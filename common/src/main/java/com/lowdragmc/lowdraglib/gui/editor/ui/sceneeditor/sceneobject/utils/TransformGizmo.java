@@ -18,7 +18,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -57,8 +56,10 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private boolean isMovingX, isMovingY, isMovingZ;
     private Vector3f moveDirection;
     private Vector2f startMouse;
+    private float lastScale = 1;
 
     public void setTargetTransform(@Nullable Transform targetTransform) {
+        if (this.targetTransform == targetTransform) return;
         this.targetTransform = targetTransform;
         if (targetTransform != null) {
             transform().position(targetTransform.position());
@@ -72,46 +73,42 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     public boolean isHoverAxis(Direction.Axis axis) {
         var scene = getScene();
-        if (scene instanceof SceneEditorWidget editor) {
+        if (scene instanceof SceneEditorWidget editor && targetTransform != null) {
             return switch (mode) {
                 case TRANSLATE -> editor.getMouseRay()
-                        .map(ray -> ray.transform(new Matrix4f().translate(transform().localPosition()).rotate(transform().localRotation()).invert()).toInfinite())
+                        .map(ray -> ray.worldToLocal(transform()).toInfinite())
                         .map(ray -> switch (axis) {
                             case X -> ray.clip(xAxisCollider) != null;
                             case Y -> ray.clip(yAxisCollider) != null;
                             case Z -> ray.clip(zAxisCollider) != null;
                         }).orElse(false);
                 case ROTATE -> editor.getMouseRay()
-                        .map(ray -> ray.transform(new Matrix4f().translate(transform().localPosition()).rotate(transform().localRotation()).invert()).toInfinite())
+                        .map(ray -> ray.worldToLocal(transform()).toInfinite())
                         .map(ray -> switch (axis) {
                             case X -> ray.clip(xRingCollider) != null;
                             case Y -> ray.clip(yRingCollider) != null;
                             case Z -> ray.clip(zRingCollider) != null;
                         }).orElse(false);
                 case SCALE -> editor.getMouseRay()
-                        .map(ray -> ray.transform(new Matrix4f().translate(transform().localPosition()).rotate(transform().localRotation()).invert()).toInfinite())
-                        .map(ray -> switch (axis) {
-                            case X -> ray.clip(Shapes.box(0, -0.1, -0.1, 0.2 + transform().scale().x, 0.1, 0.1)) != null;
-                            case Y -> ray.clip(Shapes.box(-0.1, 0, -0.1, 0.1, 0.2 + transform().scale().y, 0.1)) != null;
-                            case Z -> ray.clip(Shapes.box(-0.1, -0.1, 0, 0.1, 0.1, 0.2 + transform().scale().z)) != null;
+                        .map(ray -> ray.worldToLocal(transform()).toInfinite())
+                        .map(ray -> {
+                            if (targetTransform == null) return false;
+                            var scale = targetTransform.scale();
+                            return switch (axis) {
+                                case X -> ray.clip(Shapes.box(
+                                        Math.min(0.2 + scale.x, 0), -0.1, -0.1,
+                                        Math.max(0.2 + scale.x, 0), 0.1, 0.1)) != null;
+                                case Y -> ray.clip(Shapes.box(
+                                        -0.1, Math.min(0.2 + scale.y, 0), -0.1,
+                                        0.1, Math.max(0.2 + scale.y, 0), 0.1)) != null;
+                                case Z -> ray.clip(Shapes.box(
+                                        -0.1, -0.1, Math.min(0.2 + scale.z, 0),
+                                        0.1, 0.1, Math.max(0.2 + scale.z, 0))) != null;
+                            };
                         }).orElse(false);
             };
         }
         return false;
-    }
-
-    @Override
-    public void updateTick() {
-        super.updateTick();
-        var transform = targetTransform;
-        if (transform != null) {
-            if (!transform().position().equals(transform.position())) {
-                transform().position(transform.position());
-            }
-            if (!transform().rotation().equals(transform.rotation())) {
-                transform().rotation(transform.rotation());
-            }
-        }
     }
 
     @Override
@@ -120,9 +117,24 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     }
 
     @Override
+    @Environment(EnvType.CLIENT)
     public void updateFrame(float partialTicks) {
         super.updateFrame(partialTicks);
-        if (getScene() instanceof SceneEditorWidget editor && targetTransform != null) {
+        if (getScene() instanceof SceneEditorWidget editor) {
+            var distance = editor.getRenderer().getEyePos().distance(transform().position());
+            float baseScale = 0.23F;
+            float gizmoScale = distance * (float) Math.tan(editor.getRenderer().getFov() * 0.5f * Math.PI / 180) * baseScale;
+            if (lastScale != gizmoScale) {
+                transform().scale(new Vector3f(gizmoScale));
+                lastScale = gizmoScale;
+            }
+            if (targetTransform == null) return;
+            if (!transform().position().equals(targetTransform.position())) {
+                transform().position(targetTransform.position());
+            }
+            if (!transform().rotation().equals(targetTransform.rotation())) {
+                transform().rotation(targetTransform.rotation());
+            }
             if (isMovingX || isMovingY || isMovingZ) {
                 var currentPosition = transform().position();
 
@@ -152,14 +164,16 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 float worldHeight = 2.0f * distanceToCamera * (float) Math.tan(Math.toRadians(fov / 2));
                 float pixelToWorldScale = worldHeight / screenHeight;
                 var scaleDelta = projectedLength * pixelToWorldScale;
+                if (scaleDelta == 0) {
+                    return;
+                }
 
                 if (mode == Mode.TRANSLATE) {
                     var position = currentPosition.add(new Vector3f(moveD).mul(scaleDelta));
                     transform().position(position);
                     targetTransform.position(position);
                 } else if (mode == Mode.SCALE) {
-                    var localScale = transform().localScale().add(new Vector3f(moveDirection).mul(scaleDelta));
-                    transform().localScale(localScale);
+                    var localScale = targetTransform.localScale().add(new Vector3f(moveDirection).mul(scaleDelta));
                     targetTransform.localScale(localScale);
                 } else if (mode == Mode.ROTATE) {
                     var localRotation = transform().localRotation();
@@ -175,16 +189,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     @Override
     @Environment(EnvType.CLIENT)
-    public void draw(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
-        poseStack.pushPose();
-        poseStack.mulPoseMatrix(new Matrix4f().translate(transform().position()).rotate(transform().rotation()));
-        drawInternal(poseStack, bufferSource, partialTicks);
-        poseStack.popPose();
-    }
-
-    @Override
-    @Environment(EnvType.CLIENT)
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
+        if (targetTransform == null) return;
         var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
         var pose = poseStack.last().pose();
         var hoverColor = 0xFFFFFFFF;
@@ -207,7 +213,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         var zB = ColorUtils.blue(zColor);
         var zA = ColorUtils.alpha(zColor);
         if (mode == Mode.SCALE || mode == Mode.TRANSLATE) {
-            var scale = transform().scale();
+            var scale = targetTransform.scale();
             // draw x axis
             RenderBufferUtils.drawLine(pose, buffer, new Vector3f(0, 0, 0), new Vector3f(mode == Mode.TRANSLATE ? 1 : scale.x, 0, 0),
                     xR, xG, xB, xA, xR, xG, xB, xA);

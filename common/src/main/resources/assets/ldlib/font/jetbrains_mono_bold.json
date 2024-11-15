@@ -1,0 +1,12 @@
+{
+    "providers": [
+        {
+            "type": "ttf",
+            "file": "ldlib:jetbrains_mono_bold.ttf",
+			"shift": [0, 0],
+			"size": 11.0,
+			"oversample": 4.0,
+			"skip": ""
+        }
+	]
+}

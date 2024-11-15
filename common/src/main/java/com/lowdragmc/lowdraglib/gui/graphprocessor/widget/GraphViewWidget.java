@@ -34,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 @Getter
 public class GraphViewWidget extends WidgetGroup {
@@ -65,6 +66,10 @@ public class GraphViewWidget extends WidgetGroup {
     private long lastClickTick;
 
     public GraphViewWidget(BaseGraph graph, int x, int y, int width, int height) {
+        this(graph, x, y, width, height, null);
+    }
+
+    public GraphViewWidget(BaseGraph graph, int x, int y, int width, int height, @Nullable Consumer<List<String>> additionalGroup) {
         super(x, y, width, height);
         this.graph = graph;
         addWidget(this.freeGraphView = new FreeGraphView(0, 0, width, height) {
@@ -80,6 +85,9 @@ public class GraphViewWidget extends WidgetGroup {
         this.processor = new TriggerProcessor(graph);
         var supportNodeGroups = new ArrayList<String>();
         setupNodeGroups(supportNodeGroups);
+        if (additionalGroup != null) {
+            additionalGroup.accept(supportNodeGroups);
+        }
         for (String group : supportNodeGroups) {
             for (var wrapper : AnnotationDetector.REGISTER_GP_NODES.values()) {
                 if (wrapper.annotation().group().startsWith(group)) {

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.fabric.core.mixins;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.UnbakedModel;
@@ -38,6 +39,15 @@ public abstract class ModelBakeryMixin {
     @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", ordinal = 3))
     private void injectModelBakery(BlockColors blockColors, ProfilerFiller profilerFiller, Map modelResources, Map blockStateResources, CallbackInfo ci) {
         Set<ResourceLocation> models = new HashSet<>();
+
+        for (var entry : Minecraft.getInstance().getResourceManager().listResources("models",
+                id -> id.getNamespace().equals("ldlib") && id.getPath().endsWith(".json")).entrySet()) {
+            if (entry.getValue().sourcePackId().equals("ldlib")) {
+                models.add(new ResourceLocation(entry.getKey().getNamespace(),
+                        entry.getKey().getPath().replace("models/", "").replace(".json", "")));
+            }
+        }
+
         for (IRenderer renderer : IRenderer.EVENT_REGISTERS) {
             renderer.onAdditionalModel(models::add);
         }

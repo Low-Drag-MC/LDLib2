@@ -299,7 +299,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
         if (_parentId != null && sceneObject.getScene() != null) {
             var parent = sceneObject.getScene().getSceneObject(_parentId);
             if (parent != null) {
-                parent(parent.transform());
+                parent(parent.transform(), false);
             } else {
                 LDLib.LOGGER.warn("Parent transform {} not found.", _parentId);
             }

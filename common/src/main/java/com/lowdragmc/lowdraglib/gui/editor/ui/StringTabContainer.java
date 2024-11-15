@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib.gui.editor.ui;
 
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.TabButton;
 import com.lowdragmc.lowdraglib.gui.widget.TabContainer;
@@ -9,6 +11,10 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import lombok.Getter;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.gui.GuiGraphics;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -19,16 +25,15 @@ public class StringTabContainer extends TabContainer {
     public final static int TAB_HEIGHT = 16;
     protected Editor editor;
 
-    protected Map<TabButton, TextTexture> tabTextures;
-    protected Map<WidgetGroup, Runnable> onSelected;
-    protected Map<WidgetGroup, Runnable> onDeselected;
+    protected final Map<WidgetGroup, Runnable> onSelected;
+    protected final Map<WidgetGroup, Runnable> onDeselected;
     public BiConsumer<WidgetGroup, WidgetGroup> onChanged;
-    private List<WidgetGroup> tabGroups;
+    private final List<WidgetGroup> tabGroups;
+
 
     public StringTabContainer(Editor editor) {
         super(0, 0, editor.getSize().width - editor.getConfigPanel().getSize().width, editor.getSize().height);
         this.editor = editor;
-        this.tabTextures = new HashMap<>();
         this.onSelected = new HashMap<>();
         this.onDeselected = new HashMap<>();
         this.tabGroups = new ArrayList<>();
@@ -49,7 +54,6 @@ public class StringTabContainer extends TabContainer {
     @Override
     public void clearAllWidgets() {
         super.clearAllWidgets();
-        this.tabTextures.clear();
         this.onSelected.clear();
         this.onDeselected.clear();
         this.tabGroups.clear();
@@ -74,17 +78,59 @@ public class StringTabContainer extends TabContainer {
         tabGroups.add(tabWidget);
     }
 
-    public void addTab(String name, WidgetGroup group, @Nullable Runnable onSelected, @Nullable Runnable onDeselected) {
+    @Override
+    public void removeTab(TabButton tabButton) {
+        var group = tabs.get(tabButton);
+        super.removeTab(tabButton);
+        tabGroups.remove(group);
+        onSelected.remove(group);
+        onDeselected.remove(group);
+    }
+
+    public void addTab(@Nullable IGuiTexture icon, String name, WidgetGroup group, @Nullable Runnable onSelected, @Nullable Runnable onDeselected, @Nullable Runnable onRemoved) {
         var nameTexture = new TextTexture(name).setType(TextTexture.TextType.ROLL);
-        var tabButton = new TabButton(0, 0, 60, TAB_HEIGHT - 2)
-                .setTexture(
-                        new GuiTextureGroup(
-                                ColorPattern.T_GRAY.rectTexture(),
-                                nameTexture),
-                        new GuiTextureGroup(
-                                ColorPattern.T_RED.rectTexture(),
-                                nameTexture));
-        tabTextures.put(tabButton, nameTexture);
+        var tabButton = new TabButton(0, 0, 60, TAB_HEIGHT - 2) {
+            @Override
+            @Environment(EnvType.CLIENT)
+            public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+                super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
+                var position = getPosition();
+                var size = getSize();
+                if (icon != null) {
+                    icon.draw(graphics, mouseX, mouseY, position.x + 2, position.y + 2, 12, 12);
+                }
+                var textWidth = size.width - (icon == null ? 0 : 16) - (onRemoved == null ? 0 : 16);
+                if (textWidth != nameTexture.width) {
+                    nameTexture.setWidth(textWidth);
+                }
+                nameTexture.draw(graphics, mouseX, mouseY, position.x + (icon == null ? 0 : 16), position.y, textWidth, size.height);
+                if (onRemoved != null) {
+                    if (isMouseOver(position.x + size.width - 16, position.y, 12, 12, mouseX, mouseY)) {
+                        Icons.REMOVE.copy().setColor(ColorPattern.GREEN.color).draw(graphics, mouseX, mouseY, position.x + size.width - 16, position.y, 12, 12);
+                    } else {
+                        Icons.REMOVE.draw(graphics, mouseX, mouseY, position.x + size.width - 16, position.y, 12, 12);
+                    }
+                }
+            }
+
+            @Override
+            @Environment(EnvType.CLIENT)
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (onRemoved != null) {
+                    var position = getPosition();
+                    var size = getSize();
+                    if (isMouseOver(position.x + size.width - 16, position.y, 12, 12, mouseX, mouseY)) {
+                        onRemoved.run();
+                        removeTab(this);
+                        return true;
+                    }
+                }
+                return super.mouseClicked(mouseX, mouseY, button);
+            }
+        };
+        tabButton.setTexture(
+                new GuiTextureGroup(ColorPattern.T_GRAY.rectTexture()),
+                new GuiTextureGroup(ColorPattern.T_RED.rectTexture()));
         if (onSelected != null) {
             this.onSelected.put(group, onSelected);
         }
@@ -98,6 +144,10 @@ public class StringTabContainer extends TabContainer {
         calculateTabSize();
     }
 
+    public void addTab(String name, WidgetGroup group, @Nullable Runnable onSelected, @Nullable Runnable onDeselected) {
+        this.addTab(null, name, group, onSelected, onDeselected, null);
+    }
+
     public void addTab(String name, WidgetGroup group, Runnable onSelected) {
         this.addTab(name, group, onSelected, null);
     }
@@ -106,7 +156,7 @@ public class StringTabContainer extends TabContainer {
         this.addTab(name, group, null, null);
     }
 
-    protected void calculateTabSize() {
+    public void calculateTabSize() {
         int tabWidth = (getSize().getWidth() - 1 - tabs.size()) / this.tabs.size();
         int x = 1;
         int y = editor.getMenuPanel().getSize().height + 1;
@@ -114,7 +164,6 @@ public class StringTabContainer extends TabContainer {
             tabButton.setSelfPosition(new Position(x, y));
             tabButton.setSize(new Size(tabWidth, TAB_HEIGHT - 2));
             x += tabWidth + 1;
-            Optional.ofNullable(tabTextures.get(tabButton)).ifPresent(texture -> texture.setWidth(tabWidth));
         }
     }
 }

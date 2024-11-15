@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib.forge.CommonProxyImpl;
 import com.lowdragmc.lowdraglib.gui.compass.CompassManager;
 import com.lowdragmc.lowdraglib.gui.util.WidgetTooltipComponent;
 import com.lowdragmc.lowdraglib.test.TestBlock;
+import com.lowdragmc.lowdraglib.utils.CustomResourcePack;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -25,6 +26,7 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.resources.model.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -148,7 +150,15 @@ public class ClientProxyImpl extends CommonProxyImpl {
 //    }
 
     @SubscribeEvent
-    public void registerTextures(ModelEvent.RegisterAdditional event) {
+    public void registerModels(ModelEvent.RegisterAdditional event) {
+        // load all models under the ldlib folder
+        for (var entry : Minecraft.getInstance().getResourceManager().listResources("models",
+                id -> id.getNamespace().equals("ldlib") && id.getPath().endsWith(".json")).entrySet()) {
+            if (entry.getValue().sourcePackId().equals("ldlib")) {
+                event.register(new ResourceLocation(entry.getKey().getNamespace(),
+                        entry.getKey().getPath().replace("models/", "").replace(".json", "")));
+            }
+        }
         for (IRenderer renderer : IRenderer.EVENT_REGISTERS) {
             renderer.onAdditionalModel(event::register);
         }

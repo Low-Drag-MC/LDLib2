@@ -3,10 +3,10 @@ package com.lowdragmc.lowdraglib.gui.graphprocessor.nodes.logic;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.OutputPort;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.trigger.TriggerNode;
+import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
 
 @LDLRegister(name = "select", group = "graph_processor.node.logic")
-public class SelectNode extends TriggerNode {
+public class SelectNode extends BaseNode {
     @InputPort(name = "true")
     public Object _true;
     @InputPort(name = "false")
