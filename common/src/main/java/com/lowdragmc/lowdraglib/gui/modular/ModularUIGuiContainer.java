@@ -146,11 +146,6 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
 
         if (draggingElement != null) {
             draggingElement.getB().draw(graphics, mouseX, mouseY, mouseX - 20, mouseY - 20, 40, 40);
-        } else if (tooltipTexts != null && !tooltipTexts.isEmpty()) {
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 200);
-            DrawerHelper.drawTooltip(graphics, mouseX, mouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
-            graphics.pose().popPose();
         }
 
         graphics.bufferSource().endBatch();
@@ -178,6 +173,13 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
             EmiScreenManager.drawForeground(EmiDrawContext.wrap(graphics), mouseX, mouseY, partialTicks);
             posestack.popPose();
+        }
+
+        if (draggingElement == null && tooltipTexts != null && !tooltipTexts.isEmpty()) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 200);
+            DrawerHelper.drawTooltip(graphics, mouseX, mouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
+            graphics.pose().popPose();
         }
     }
 
