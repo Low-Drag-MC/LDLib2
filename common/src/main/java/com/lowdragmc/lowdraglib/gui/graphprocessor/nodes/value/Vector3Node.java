@@ -38,7 +38,8 @@ public class Vector3Node extends BaseNode {
             out = internalValue;
         } else if (in instanceof Vector3f vector3f) {
             out = vector3f;
-            internalValue = out;
+        } else {
+            out = new Vector3f();
         }
         out = new Vector3f(
                 inX == null ? out.x() : inX,

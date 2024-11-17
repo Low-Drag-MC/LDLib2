@@ -11,6 +11,9 @@ import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author KilaBash
  * @date 2022/12/17
@@ -18,6 +21,7 @@ import net.minecraft.nbt.CompoundTag;
  */
 @LDLRegister(name = "view", group = "editor", priority = 100)
 public class ViewMenu extends MenuTab {
+    public final Map<String, FloatViewWidget> openedViews = new HashMap<>();
 
     protected TreeBuilder.Menu createMenu() {
         var viewMenu = TreeBuilder.Menu.start().branch("ldlib.gui.editor.menu.view.window_size", menu -> {
@@ -53,6 +57,7 @@ public class ViewMenu extends MenuTab {
 
     public void openView(FloatViewWidget view) {
         if (!isViewOpened(view.name())) {
+            openedViews.put(view.name(), view);
             editor.getFloatView().addWidgetAnima(view, new Transform().duration(200).scale(0.2f));
         }
     }
@@ -70,12 +75,15 @@ public class ViewMenu extends MenuTab {
     }
 
     public boolean isViewOpened(String viewName) {
-        for (Widget widget : editor.getFloatView().widgets) {
-            if (widget instanceof FloatViewWidget view) {
-                if (view.name().equals(viewName)) {
-                    return true;
+        if (openedViews.containsKey(viewName)) {
+            for (Widget widget : editor.getFloatView().widgets) {
+                if (widget instanceof FloatViewWidget view) {
+                    if (view.name().equals(viewName)) {
+                        return true;
+                    }
                 }
             }
+            openedViews.remove(viewName);
         }
         return false;
     }

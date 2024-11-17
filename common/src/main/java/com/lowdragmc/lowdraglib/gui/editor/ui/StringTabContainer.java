@@ -45,6 +45,10 @@ public class StringTabContainer extends TabContainer {
         return tabGroups.indexOf(focus);
     }
 
+    public int getTabIndex(WidgetGroup group) {
+        return tabGroups.indexOf(group);
+    }
+
     public void switchTabIndex(int index) {
         if (tabGroups.size() > index && index >= 0) {
             switchTag(tabGroups.get(index));
@@ -81,10 +85,20 @@ public class StringTabContainer extends TabContainer {
     @Override
     public void removeTab(TabButton tabButton) {
         var group = tabs.get(tabButton);
+        var lastIndex = getTabIndex(group);
         super.removeTab(tabButton);
         tabGroups.remove(group);
+        if (focus == group) {
+            Optional.ofNullable(onDeselected.get(group)).ifPresent(Runnable::run);
+            // find a new tabs
+            focus = null;
+            if (lastIndex > 0) {
+                switchTabIndex(lastIndex - 1);
+            }
+        }
         onSelected.remove(group);
         onDeselected.remove(group);
+        calculateTabSize();
     }
 
     public void addTab(@Nullable IGuiTexture icon, String name, WidgetGroup group, @Nullable Runnable onSelected, @Nullable Runnable onDeselected, @Nullable Runnable onRemoved) {
@@ -122,6 +136,7 @@ public class StringTabContainer extends TabContainer {
                     if (isMouseOver(position.x + size.width - 16, position.y, 12, 12, mouseX, mouseY)) {
                         onRemoved.run();
                         removeTab(this);
+                        calculateTabSize();
                         return true;
                     }
                 }
