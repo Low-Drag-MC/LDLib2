@@ -103,7 +103,6 @@ public class ShaderManager {
 		buffer.vertex(-1, -1, 0).endVertex();
 		buffer.vertex(1, -1, 0).endVertex();
 		buffer.vertex(1, 1, 0).endVertex();
-		buffer.end();
 		BufferUploader.draw(buffer.end());
 
 		program.release();

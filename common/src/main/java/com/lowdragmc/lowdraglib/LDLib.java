@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.lowdragmc.lowdraglib.core.mixins.MixinPluginShared;
 import com.lowdragmc.lowdraglib.emi.EMIPlugin;
-import com.lowdragmc.lowdraglib.jei.JEIPlugin;
 import com.lowdragmc.lowdraglib.json.IGuiTextureTypeAdapter;
 import com.lowdragmc.lowdraglib.json.ItemStackTypeAdapter;
 import com.lowdragmc.lowdraglib.json.factory.FluidStackTypeAdapter;
@@ -83,4 +83,17 @@ public class LDLib {
     public static boolean isEmiLoaded() {
         return isModLoaded(MODID_EMI) && (!Platform.isClient() || EMIPlugin.isEmiEnabled());
     }
+
+    public static boolean isIrisLoaded() {
+        return MixinPluginShared.IS_IRIS_LOAD;
+    }
+
+    public static boolean isOculusLoaded() {
+        return MixinPluginShared.IS_OCULUS_LOAD;
+    }
+
+    public static boolean isOptifineLoaded() {
+        return MixinPluginShared.IS_OPT_LOAD;
+    }
+
 }

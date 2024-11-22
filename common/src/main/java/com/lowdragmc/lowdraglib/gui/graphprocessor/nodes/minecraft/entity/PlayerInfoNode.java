@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
-import com.lowdragmc.lowdraglib.misc.PlayerInventoryTransfer;
+import com.lowdragmc.lowdraglib.misc.ContainerTransfer;
 import com.lowdragmc.lowdraglib.side.item.IItemTransfer;
 import net.minecraft.world.entity.player.Player;
 
@@ -24,7 +24,7 @@ public class PlayerInfoNode extends BaseNode {
     @Override
     public void process() {
         if (in instanceof Player player) {
-            inventory = new PlayerInventoryTransfer(player.getInventory());
+            inventory = new ContainerTransfer(player.getInventory());
             isCrouching = player.isCrouching();
             name = player.getName().getString();
             xp = player.totalExperience;

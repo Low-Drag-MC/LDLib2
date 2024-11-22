@@ -19,5 +19,8 @@ public interface MixinPluginShared {
 	boolean IS_MEI_LOAD = isClassFound("dev.emi.emi.api.EmiPlugin");
 	boolean IS_EMI_LOADED = IS_MEI_LOAD;
 	boolean IS_RUBIDIUM_LOAD = IS_SODIUM_LOAD;
+	boolean IS_IRIS_LOAD = isClassFound("net.coderbot.iris.compat.sodium.mixin.IrisSodiumCompatMixinPlugin")
+			|| isClassFound("net.irisshaders.iris.compat.sodium.mixin.IrisSodiumCompatMixinPlugin");
+	boolean IS_OCULUS_LOAD = IS_IRIS_LOAD;
 
 }

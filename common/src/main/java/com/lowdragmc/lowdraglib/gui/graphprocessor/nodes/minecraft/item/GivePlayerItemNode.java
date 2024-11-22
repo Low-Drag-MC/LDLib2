@@ -22,8 +22,6 @@ public class GivePlayerItemNode extends LinearTriggerNode {
     public ItemStack itemstack;
     @InputPort(name = "preferred slot", tips = "If the inventory can't hold it, the item will be dropped in the world at the players position.")
     public Integer preferredSlot;
-    @OutputPort(name = "item transfer")
-    public IItemTransfer itemTransfer;
     @Configurable(name = "preferred slot")
     public int internalPreferredSlot;
 

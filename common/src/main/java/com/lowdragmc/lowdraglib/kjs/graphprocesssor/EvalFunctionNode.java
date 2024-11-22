@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortData;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortEdge;
 import dev.latvian.mods.kubejs.server.ServerScriptManager;
 import dev.latvian.mods.rhino.Function;
+import dev.latvian.mods.rhino.Wrapper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -46,6 +47,9 @@ public class EvalFunctionNode extends BaseNode {
         if (function != null) {
             try {
                 result = function.call(context, scope, scope, args.toArray());
+                if (result instanceof Wrapper wrapper) {
+                    result = wrapper.unwrap();
+                }
             } catch (Exception e) {
                 error = true;
                 result = e;

@@ -75,7 +75,7 @@ public class ShaderProgram {
 		bindTexture(samplerName, textureId);
 	}
 
-	public void use() {
+	public void linkProgram() {
 		if (unLinked) {
 			this.uniformCache.invalidate();
 			GL20.glLinkProgram(programId);
@@ -83,6 +83,12 @@ public class ShaderProgram {
 				throw new RuntimeException(String.format("ShaderProgram validation has failed!\n%s", GL20.glGetProgramInfoLog(programId, GL20.glGetProgrami(programId, 35716))));
 			}
 			this.unLinked = false;
+		}
+	}
+
+	public void use() {
+		if (unLinked) {
+			linkProgram();
 		}
 		GL20.glUseProgram(programId);
 		if (!samplers.isEmpty()) {
