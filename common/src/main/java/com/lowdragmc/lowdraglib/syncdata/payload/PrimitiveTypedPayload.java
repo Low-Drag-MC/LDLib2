@@ -324,7 +324,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = ((IntTag) tag).getAsInt();
+            value = ((NumericTag) tag).getAsInt();
         }
 
         @Override
@@ -353,7 +353,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = ((LongTag) tag).getAsLong();
+            value = ((NumericTag) tag).getAsLong();
         }
 
         @Override
@@ -382,7 +382,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = ((ByteTag) tag).getAsByte() != 0;
+            value = ((NumericTag) tag).getAsByte() != 0;
         }
 
         @Override
@@ -411,7 +411,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = ((FloatTag) tag).getAsFloat();
+            value = ((NumericTag) tag).getAsFloat();
         }
 
         @Override
@@ -440,7 +440,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = ((DoubleTag) tag).getAsDouble();
+            value = ((NumericTag) tag).getAsDouble();
         }
 
         @Override
@@ -469,7 +469,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = ((ByteTag) tag).getAsByte();
+            value = ((NumericTag) tag).getAsByte();
         }
 
         @Override
@@ -498,7 +498,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = ((ShortTag) tag).getAsShort();
+            value = ((NumericTag) tag).getAsShort();
         }
 
         @Override
@@ -527,7 +527,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag) {
-            value = (char) ((IntTag) tag).getAsInt();
+            value = (char) ((NumericTag) tag).getAsInt();
         }
 
         @Override
