@@ -116,11 +116,9 @@ public abstract class ModularEmiRecipe<T extends Widget> implements EmiRecipe {
                     SlotWidget slotWidget = null;
                     // Clear the LDLib slots & add EMI slots based on them.
                     if (slot instanceof com.lowdragmc.lowdraglib.gui.widget.SlotWidget slotW) {
-                        slotW.setHandlerSlot(IItemTransfer.EMPTY, 0);
-                        slotW.setDrawHoverOverlay(false).setDrawHoverTips(false);
+                        clearSlotWidgetHandler(slotW, 0);
                     } else if (slot instanceof com.lowdragmc.lowdraglib.gui.widget.TankWidget tankW) {
-                        tankW.setFluidTank(IFluidStorage.EMPTY);
-                        tankW.setDrawHoverOverlay(false).setDrawHoverTips(false);
+                        clearTankWidgetHandler(tankW);
                         long capacity = Math.max(1, ingredients.getAmount());
                         slotWidget = new TankWidget(ingredients, w.getPosition().x, w.getPosition().y, w.getSize().width, w.getSize().height, capacity);
                     }
@@ -145,6 +143,16 @@ public abstract class ModularEmiRecipe<T extends Widget> implements EmiRecipe {
         widgets.add(new ModularWrapperWidget(modular, slots));
         slots.forEach(widgets::add);
         widgets.add(new ModularForegroundRenderWidget(modular));
+    }
+
+    public void clearSlotWidgetHandler(com.lowdragmc.lowdraglib.gui.widget.SlotWidget slotW, int slotIndex) {
+        slotW.setHandlerSlot(IItemTransfer.EMPTY, slotIndex);
+        slotW.setDrawHoverOverlay(false).setDrawHoverTips(false);
+    }
+
+    public void clearTankWidgetHandler(com.lowdragmc.lowdraglib.gui.widget.TankWidget tankW) {
+        tankW.setFluidTank(IFluidStorage.EMPTY);
+        tankW.setDrawHoverOverlay(false).setDrawHoverTips(false);
     }
 
     public static ModularWrapper<?> TEMP_CACHE = null;
