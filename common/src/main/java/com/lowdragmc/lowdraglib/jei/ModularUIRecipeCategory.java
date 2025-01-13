@@ -1,5 +1,8 @@
 package com.lowdragmc.lowdraglib.jei;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.lowdragmc.lowdraglib.gui.ingredient.IRecipeIngredientSlot;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -21,6 +24,8 @@ import net.minecraft.world.item.TooltipFlag;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * @author KilaBash
@@ -29,7 +34,29 @@ import java.util.*;
  */
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public abstract class ModularUIRecipeCategory<T extends ModularWrapper<?>> implements IRecipeCategory<T> {
+public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
+    private final LoadingCache<T, ModularWrapper<?>> modularWrapperCache;
+
+    @Deprecated
+    protected ModularUIRecipeCategory() {
+        this(t -> (ModularWrapper<?>)t);
+    }
+
+    protected ModularUIRecipeCategory(Function<T, ModularWrapper<?>> wrapperFunction) {
+        this.modularWrapperCache = CacheBuilder.newBuilder()
+                .expireAfterAccess(10, TimeUnit.SECONDS)
+                .maximumSize(10)
+                .build(new CacheLoader<>() {
+                    @Override
+                    public ModularWrapper<?> load(T key) {
+                        return wrapperFunction.apply(key);
+                    }
+                });
+    }
+
+    private ModularWrapper<?> getModularWrapper(T recipe) {
+        return this.modularWrapperCache.getUnchecked(recipe);
+    }
 
     private static void addJEISlot(IRecipeLayoutBuilder builder, IRecipeIngredientSlot slot, RecipeIngredientRole role, int index) {
         var slotName = "slot_" + index;
@@ -78,7 +105,9 @@ public abstract class ModularUIRecipeCategory<T extends ModularWrapper<?>> imple
     }
 
     @Override
-    public void setRecipe(IRecipeLayoutBuilder builder, T wrapper, IFocusGroup focuses) {
+    public void setRecipe(IRecipeLayoutBuilder builder, T recipe, IFocusGroup focuses) {
+        var wrapper = getModularWrapper(recipe);
+
         wrapper.setRecipeWidget(0, 0);
         List<Widget> flatVisibleWidgetCollection = wrapper.modularUI.getFlatWidgetCollection();
         for (int i = 0; i < flatVisibleWidgetCollection.size(); i++) {
@@ -96,24 +125,30 @@ public abstract class ModularUIRecipeCategory<T extends ModularWrapper<?>> imple
     }
 
     @Override
-    public void createRecipeExtras(IRecipeExtrasBuilder builder, T wrapper, IFocusGroup focuses) {
+    public void createRecipeExtras(IRecipeExtrasBuilder builder, T recipe, IFocusGroup focuses) {
+        var wrapper = getModularWrapper(recipe);
+
         builder.addGuiEventListener(new ModularUIGuiEventListener<>(wrapper));
         builder.addWidget(new ModularForegroundRecipeWidget(wrapper));
     }
 
     @Override
     public void draw(T recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
-        recipe.draw(guiGraphics, (int) mouseX, (int) mouseY, Minecraft.getInstance().getFrameTime());
+        var wrapper = getModularWrapper(recipe);
+
+        wrapper.draw(guiGraphics, (int) mouseX, (int) mouseY, Minecraft.getInstance().getFrameTime());
     }
 
     @Override
     public void getTooltip(ITooltipBuilder tooltip, T recipe, IRecipeSlotsView recipeSlotsView, double mouseX, double mouseY) {
         IRecipeCategory.super.getTooltip(tooltip, recipe, recipeSlotsView, mouseX, mouseY);
-        if (recipe.tooltipTexts != null && !recipe.tooltipTexts.isEmpty()) {
-            tooltip.addAll(recipe.tooltipTexts);
+
+        var wrapper = getModularWrapper(recipe);
+        if (wrapper.tooltipTexts != null && !wrapper.tooltipTexts.isEmpty()) {
+            tooltip.addAll(wrapper.tooltipTexts);
         }
-        if (recipe.tooltipComponent != null) {
-            tooltip.add(recipe.tooltipComponent);
+        if (wrapper.tooltipComponent != null) {
+            tooltip.add(wrapper.tooltipComponent);
         }
     }
 
