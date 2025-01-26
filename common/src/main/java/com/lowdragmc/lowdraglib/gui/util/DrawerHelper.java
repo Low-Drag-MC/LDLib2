@@ -191,10 +191,8 @@ public class DrawerHelper {
 
         // clear depth buffer,it may cause some rendering issues?
         RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
-        RenderSystem.depthMask(false);
         RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
         RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
     }
 
     public static List<Component> getItemToolTip(ItemStack itemStack) {
