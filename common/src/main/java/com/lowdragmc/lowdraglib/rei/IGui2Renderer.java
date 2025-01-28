@@ -1,9 +1,8 @@
 package com.lowdragmc.lowdraglib.rei;
 
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import me.shedaniel.math.Rectangle;
+import com.mojang.blaze3d.systems.RenderSystem;
 import me.shedaniel.rei.api.client.gui.Renderer;
-import net.minecraft.client.gui.GuiGraphics;
 
 /**
  * @author KilaBash
@@ -15,6 +14,8 @@ public interface IGui2Renderer {
         return (graphics, bounds, mouseX, mouseY, delta) -> {
             if (guiTexture == null) return;
             guiTexture.draw(graphics, mouseX, mouseY, bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getWidth());
+            RenderSystem.enableDepthTest();
+            RenderSystem.depthMask(true);
         };
     }
 }

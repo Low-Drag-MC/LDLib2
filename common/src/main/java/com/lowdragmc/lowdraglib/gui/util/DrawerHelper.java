@@ -172,10 +172,10 @@ public class DrawerHelper {
     }
 
     public static void drawItemStack(@Nonnull GuiGraphics graphics, ItemStack itemStack, int x, int y, int color, @Nullable String altTxt) {
-        float a = ColorUtils.alpha(color);
-        float r = ColorUtils.red(color);
-        float g = ColorUtils.green(color);
-        float b = ColorUtils.blue(color);
+        var a = ColorUtils.alpha(color);
+        var r = ColorUtils.red(color);
+        var g = ColorUtils.green(color);
+        var b = ColorUtils.blue(color);
         RenderSystem.setShaderColor(r, g, b, a);
 
         RenderSystem.enableDepthTest();
@@ -191,8 +191,10 @@ public class DrawerHelper {
 
         // clear depth buffer,it may cause some rendering issues?
         RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+        RenderSystem.depthMask(false);
         RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
         RenderSystem.enableBlend();
+        RenderSystem.disableDepthTest();
     }
 
     public static List<Component> getItemToolTip(ItemStack itemStack) {
