@@ -40,8 +40,6 @@ public class ForgeEventHooksImpl {
 
     @OnlyIn(Dist.CLIENT)
     public static void postRenderForegroundEvent(AbstractContainerScreen<?> guiContainer, GuiGraphics graphics, int mouseX, int mouseY) {
-        RenderSystem.depthMask(true);
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new ContainerScreenEvent.Render.Foreground(guiContainer, graphics, mouseX, mouseY));
-        RenderSystem.depthMask(false);
     }
 }
