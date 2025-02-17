@@ -14,7 +14,7 @@ public interface MixinPluginShared {
 	boolean IS_OPT_LOAD = isClassFound("optifine.OptiFineTranformationService");
 
 	boolean IS_SODIUM_LOAD = isClassFound("me.jellysquid.mods.sodium.mixin.SodiumMixinPlugin");
-	boolean IS_JEI_LOAD = isClassFound("mezz.jei.core.search.SearchMode");
+	boolean IS_JEI_LOAD = isClassFound("mezz.jei.api.JeiPlugin");
 	boolean IS_REI_LOAD = isClassFound("me.shedaniel.rei.api.common.plugins.REIPlugin");
 	boolean IS_MEI_LOAD = isClassFound("dev.emi.emi.api.EmiPlugin");
 	boolean IS_EMI_LOADED = IS_MEI_LOAD;

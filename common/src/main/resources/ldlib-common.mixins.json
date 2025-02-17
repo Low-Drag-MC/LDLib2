@@ -33,7 +33,9 @@
     "accessor.EntityAccessor",
     "accessor.ServerPlayerAccessor",
     "accessor.SlotAccessor",
-    "emi.EmiRenderHelperMixin"
+    "emi.EmiRenderHelperMixin",
+    "jei.RecipeSlotBuilderMixin",
+    "jei.RecipeSlotMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -61,6 +61,9 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
     private static void addJEISlot(IRecipeLayoutBuilder builder, IRecipeIngredientSlot slot, RecipeIngredientRole role, int index) {
         var slotName = "slot_" + index;
         var slotBuilder = builder.addSlot(role, slot.self().getPositionX(), slot.self().getPositionY());
+        if (slotBuilder instanceof IRecipeSlotBuilderAccessor accessor) {
+            accessor.lowDragLib$setRecipeIngredientSlot(slot);
+        }
         // append ingredients
         var ingredientMap = new HashMap<IIngredientType, List>();
         for (Object ingredient : slot.getXEIIngredients()) {
@@ -76,7 +79,6 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
             slotBuilder.setCustomRenderer(type, new IIngredientRenderer<>() {
                 @Override
                 public void render(GuiGraphics guiGraphics, Object ingredient) {
-                    slot.setCurrentJEIRenderedIngredient(ingredient);
                 }
 
                 @Override

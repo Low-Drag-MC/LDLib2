@@ -14,6 +14,9 @@ public interface IRecipeIngredientSlot extends IIngredientSlot {
         return (Widget) this;
     }
 
+    /**
+     * Used for focus ingredient under the mouse
+     */
     @Nullable
     @Override
     default Object getXEIIngredientOverMouse(double mouseX, double mouseY) {
@@ -26,7 +29,18 @@ public interface IRecipeIngredientSlot extends IIngredientSlot {
         return null;
     }
 
+    /**
+     * All ingredients that may be displayed
+     */
     List<Object> getXEIIngredients();
+
+    /**
+     * Current ingredient that is displayed
+     */
+    @Nullable
+    default Object getXEICurrentIngredient() {
+        return getXEIIngredients().get(0);
+    }
 
     default float getXEIChance() {
         return 1.0f;
@@ -41,13 +55,6 @@ public interface IRecipeIngredientSlot extends IIngredientSlot {
      */
     default List<Component> getFullTooltipTexts() {
         return Collections.emptyList();
-    }
-
-    /**
-     * Set the ingredient that is currently being rendered by JEI. It is used to render the rotation of ingredients displayed.
-     */
-    default void setCurrentJEIRenderedIngredient(Object ingredient) {
-        // do nothing
     }
 
 }
