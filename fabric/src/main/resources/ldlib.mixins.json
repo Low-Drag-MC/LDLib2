@@ -1,26 +1,27 @@
 {
-    "required": true,
-    "minVersion": "0.8",
-    "package": "com.lowdragmc.lowdraglib.fabric.core.mixins",
-    "compatibilityLevel": "JAVA_17",
-    "plugin": "com.lowdragmc.lowdraglib.fabric.core.mixins.LDLibFabricMixinPlugin",
-    "client": [
-        "BlockModelShaperMixin",
-        "BlockRenderInfoMixin",
-        "GameRendererMixin",
-        "ItemMixin",
-        "ModelBakerImplMixin",
-        "ModelBakeryMixin",
-        "ModelManagerMixin",
-        "ShaderInstanceMixin",
-        "emi.MinecraftMixin",
-        "rei.MinecraftMixin"
-    ],
-    "mixins": [
-        "MinecraftServerMixin",
-        "accessor.PackRepositoryMixin"
-    ],
-    "injectors": {
-        "defaultRequire": 1
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.lowdragmc.lowdraglib.fabric.core.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "plugin": "com.lowdragmc.lowdraglib.fabric.core.mixins.LDLibFabricMixinPlugin",
+  "client": [
+    "BlockModelShaperMixin",
+    "BlockRenderInfoMixin",
+    "ChatScreenMixin",
+    "GameRendererMixin",
+    "ItemMixin",
+    "ModelBakerImplMixin",
+    "ModelBakeryMixin",
+    "ModelManagerMixin",
+    "ShaderInstanceMixin",
+    "emi.MinecraftMixin",
+    "rei.MinecraftMixin"
+  ],
+  "mixins": [
+    "MinecraftServerMixin",
+    "accessor.PackRepositoryMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
   }
 }

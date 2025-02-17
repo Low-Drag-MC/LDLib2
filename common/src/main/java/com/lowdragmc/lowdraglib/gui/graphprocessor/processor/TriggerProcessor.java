@@ -98,7 +98,8 @@ public class TriggerProcessor extends GraphProcessor {
                             continue;
                         } else if (triggerNode instanceof BreakNode) {
                             // find last loop start node and break the loop
-                            while (nodeToExecute.peek().right().isEmpty() || !(nodeToExecute.peek().right().get().left() instanceof LoopStartNode)) {
+
+                            while (!nodeToExecute.isEmpty() && (nodeToExecute.peek().right().isEmpty() || !(nodeToExecute.peek().right().get().left() instanceof LoopStartNode))) {
                                 nodeToExecute.pop();
                             }
                             if (nodeToExecute.peek().right().isEmpty() &&

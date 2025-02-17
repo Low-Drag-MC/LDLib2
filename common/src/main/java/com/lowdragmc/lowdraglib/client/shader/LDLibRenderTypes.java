@@ -21,7 +21,7 @@ public class LDLibRenderTypes extends RenderType {
                     .createCompositeState(false));
 
     private static final RenderType NO_DEPTH_LINES = create("lines_no_depth",
-            DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 256,
+            DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 256, false, false,
             RenderType.CompositeState.builder()
                     .setShaderState(RENDERTYPE_LINES_SHADER)
                     .setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(3f)))
