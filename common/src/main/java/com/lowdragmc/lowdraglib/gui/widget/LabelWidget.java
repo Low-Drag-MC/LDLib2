@@ -29,7 +29,6 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
     @Nonnull
     protected Supplier<String> textSupplier;
 
-    @Setter
     @Nullable
     protected Component component;
 
@@ -55,27 +54,39 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
         super(new Position(xPosition, yPosition), new Size(10, 10));
         setDropShadow(true);
         setTextColor(-1);
-        this.component = component;
-        if (isRemote()) {
-            lastTextValue = component.getString();
-            updateSize();
-        }
+        setComponent(component);
     }
 
     public LabelWidget(int xPosition, int yPosition, Supplier<String> text) {
         super(new Position(xPosition, yPosition), new Size(10, 10));
         setDropShadow(true);
         setTextColor(-1);
-        this.textSupplier = text;
-        if (isRemote()) {
-            lastTextValue = text.get();
-            updateSize();
-        }
+        setTextProvider(text);
     }
 
     @ConfigSetter(field = "lastTextValue")
     public void setText(String text) {
         textSupplier = () -> text;
+        if (isRemote()) {
+            lastTextValue = textSupplier.get();
+            updateSize();
+        }
+    }
+
+    public void setTextProvider(Supplier<String> textProvider) {
+        textSupplier = textProvider;
+        if (isRemote()) {
+            lastTextValue = textSupplier.get();
+            updateSize();
+        }
+    }
+
+    public void setComponent(Component component) {
+        this.component = component;
+        if (isRemote()) {
+            lastTextValue = component.getString();
+            updateSize();
+        }
     }
 
     public LabelWidget setTextColor(int color) {

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.syncdata;
 
 
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
+import com.lowdragmc.lowdraglib.syncdata.accessor.ObjectTypedPayloadAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.SimpleObjectAccessor;
 import com.lowdragmc.lowdraglib.syncdata.payload.*;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
@@ -82,7 +83,7 @@ public class TypedPayloadRegistries {
     }
 
     public static <P, T extends ObjectTypedPayload<P>> void registerSimple(Class<T> clazz, Supplier<T> factory, Class<P> objType, int priority) {
-        register(clazz, factory, SimpleObjectAccessor.create(objType, priority > 0, factory), priority);
+        register(clazz, factory, new ObjectTypedPayloadAccessor<>(objType, priority > 0, factory), priority);
     }
 
 

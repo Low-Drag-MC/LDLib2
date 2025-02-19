@@ -84,6 +84,10 @@ public class LDLib {
         return isModLoaded(MODID_EMI) && (!Platform.isClient() || EMIPlugin.isEmiEnabled());
     }
 
+    public static boolean isKubejsLoaded() {
+        return Platform.isModLoaded("kubejs");
+    }
+
     public static boolean isIrisLoaded() {
         return MixinPluginShared.IS_IRIS_LOAD;
     }

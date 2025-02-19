@@ -56,6 +56,7 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
     public ItemStack tooltipStack = ItemStack.EMPTY;
     // drag element
     protected Tuple<Object, IGuiTexture> draggingElement;
+    protected int pressedButton = -1;
 
     public ModularUIGuiContainer(ModularUI modularUI, int windowId) {
         super(new ModularUIContainer(modularUI, windowId), modularUI.entityPlayer.getInventory(), Component.nullToEmpty("modularUI"));
@@ -257,6 +258,7 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int pButton) {
+        pressedButton = pButton;
         focused = false;
         if (modularUI.mainGroup.mouseClicked(mouseX, mouseY, pButton)) return true;
         for (GuiEventListener guiEventListener : this.children()) {
@@ -282,6 +284,7 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int pButton) {
+        pressedButton = -1;
         focused = false;
         var result = modularUI.mainGroup.mouseReleased(mouseX, mouseY, pButton);
         draggingElement = null;
@@ -324,6 +327,10 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
     public void mouseMoved(double mouseX, double mouseY) {
         focused = false;
         modularUI.mainGroup.mouseMoved(mouseX, mouseY);
+    }
+
+    public boolean isButtonPressed(int button) {
+        return pressedButton == button;
     }
 
     public void superMouseClicked(double mouseX, double mouseY, int mouseButton) {

@@ -26,5 +26,13 @@ public class ItemStackPayload extends ObjectTypedPayload<ItemStack> {
     public void deserializeNBT(Tag tag) {
         payload = ItemStack.of((CompoundTag) tag);
     }
+
+    @Override
+    public Object copyForManaged(Object value) {
+        if (value instanceof ItemStack) {
+            return ((ItemStack) value).copy();
+        }
+        return super.copyForManaged(value);
+    }
 }
 

@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.networking.LDLNetworking;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIOpen;
 import com.lowdragmc.lowdraglib.side.ForgeEventHooks;
+import dev.latvian.mods.rhino.util.HideFromJS;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -35,6 +36,7 @@ public abstract class UIFactory<T> {
         FACTORIES.put(factory.uiFactoryId, factory);
     }
 
+    @HideFromJS
     public final boolean openUI(T holder, ServerPlayer player) {
         ModularUI uiTemplate = createUITemplate(holder, player);
         if (uiTemplate == null) return false;

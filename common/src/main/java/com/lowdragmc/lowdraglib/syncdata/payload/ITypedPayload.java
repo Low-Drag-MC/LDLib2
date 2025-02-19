@@ -23,4 +23,8 @@ public interface ITypedPayload<T> {
     T getPayload();
 
     boolean isPrimitive();
+
+    default Object copyForManaged(Object value) {
+        return value;
+    }
 }

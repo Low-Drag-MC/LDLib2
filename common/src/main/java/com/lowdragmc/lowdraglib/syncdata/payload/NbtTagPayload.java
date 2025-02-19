@@ -19,4 +19,12 @@ public class NbtTagPayload extends ObjectTypedPayload<Tag> {
     public void deserializeNBT(Tag tag) {
         payload = tag;
     }
+
+    @Override
+    public Object copyForManaged(Object value) {
+        if (value instanceof Tag) {
+            return ((Tag) value).copy();
+        }
+        return super.copyForManaged(value);
+    }
 }

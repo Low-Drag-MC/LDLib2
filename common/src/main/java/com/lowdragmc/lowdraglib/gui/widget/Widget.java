@@ -11,11 +11,11 @@ import com.lowdragmc.lowdraglib.gui.modular.WidgetUIAccess;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.layout.Align;
-import com.lowdragmc.lowdraglib.gui.widget.layout.Layout;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Rect;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.Setter;
@@ -56,7 +56,10 @@ import java.util.function.Supplier;
 @Accessors(chain = true)
 public class Widget {
 
+    @Getter
+    @Setter
     protected ModularUI gui;
+    @Setter
     protected WidgetUIAccess uiAccess;
     @Configurable(tips = "ldlib.gui.editor.tips.id")
     @Setter
@@ -65,6 +68,7 @@ public class Widget {
     @Getter
     private Position parentPosition = Position.ORIGIN;
     @Configurable(name = "ldlib.gui.editor.name.pos", tips = "ldlib.gui.editor.tips.pos")
+    @Getter
     private Position selfPosition;
     @Getter
     private Position position;
@@ -130,18 +134,21 @@ public class Widget {
         return this;
     }
 
+    @HideFromJS
     public Widget setHoverTooltips(String... tooltipText) {
         tooltipTexts.clear();
         appendHoverTooltips(tooltipText);
         return this;
     }
 
+    @HideFromJS
     public Widget setHoverTooltips(Component... tooltipText) {
         tooltipTexts.clear();
         appendHoverTooltips(tooltipText);
         return this;
     }
 
+    @HideFromJS
     public Widget setHoverTooltips(List<Component> tooltipText) {
         tooltipTexts.clear();
         appendHoverTooltips(tooltipText);
@@ -216,18 +223,6 @@ public class Widget {
         return animation != null && !animation.isFinish();
     }
 
-    public void setGui(ModularUI gui) {
-        this.gui = gui;
-    }
-    
-    public ModularUI getGui() {
-        return gui;
-    }
-
-    public void setUiAccess(WidgetUIAccess uiAccess) {
-        this.uiAccess = uiAccess;
-    }
-
     public void setParentPosition(Position parentPosition) {
         this.parentPosition = parentPosition;
         recomputePosition();
@@ -258,10 +253,6 @@ public class Widget {
     public Position addSelfPosition(int addX, int addY) {
         setSelfPosition(new Position(selfPosition.x + addX, selfPosition.y + addY));
         return this.selfPosition;
-    }
-
-    public Position getSelfPosition() {
-        return selfPosition;
     }
 
     public final int getSelfPositionX() {
@@ -614,6 +605,11 @@ public class Widget {
     public static boolean isKeyDown(int keyCode) {
         long id = Minecraft.getInstance().getWindow().getWindow();
         return InputConstants.isKeyDown(id, keyCode);
+    }
+
+    @Environment(EnvType.CLIENT)
+    public boolean isMouseDown(int button) {
+        return gui != null && gui.getModularUIGui().isButtonPressed(button);
     }
 
     public boolean isRemote() {

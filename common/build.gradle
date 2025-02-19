@@ -11,7 +11,7 @@ def minecraft_version = getConfig("minecraft_version")
 def fabric_loader_version = getConfig("fabric_loader_version")
 def jei_version = getConfig("jei_version")
 def rei_version = getConfig("rei_version")
-//def kjs_version = getConfig("kjs_version")
+def kjs_version = getConfig("kjs_version")
 def emi_version = getConfig("emi_version")
 
 

@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
 import java.util.Collection;
-import java.util.Objects;
 
 public class SyncUtils {
     public static boolean isChanged(@NotNull Object oldValue, @NotNull Object newValue) {
@@ -27,6 +26,7 @@ public class SyncUtils {
         return !oldValue.equals(newValue);
     }
 
+    @Deprecated
     public static Object copyWhenNecessary(Object value) {
         if (value instanceof ItemStack itemStack) {
             return itemStack.copy();
@@ -37,34 +37,7 @@ public class SyncUtils {
         if (value instanceof BlockPos blockPos) {
             return blockPos.immutable();
         }
-
-
         return value;
-    }
-
-
-    public static boolean isArrayLikeChanged(@NotNull Object oldValue, @NotNull Object newValue, int oldSize, boolean isArray) {
-        if(isArray) {
-            if(Array.getLength(newValue) != oldSize) {
-                return true;
-            }
-            return !Objects.deepEquals(oldValue, newValue);
-        }
-        if (newValue instanceof Collection<?> collection) {
-            if(collection.size() != oldSize) {
-                return true;
-            }
-            var array = (Object[]) oldValue;
-            int i = 0;
-            for (var item : collection) {
-                var oldItem = array[i++];
-                 if ((oldItem == null && item != null) || (oldItem != null && item == null) || (oldItem != null && isChanged(oldItem, item))) {
-                     return true;
-                 }
-            }
-            return false;
-        }
-        throw new IllegalArgumentException("Value %s is not an array or collection".formatted(newValue));
     }
 
     public static Object copyArrayLike(Object value, boolean isArray) {

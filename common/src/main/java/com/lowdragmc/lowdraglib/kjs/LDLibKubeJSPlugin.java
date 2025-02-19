@@ -1,8 +1,13 @@
 package com.lowdragmc.lowdraglib.kjs;
 
+import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.editor.data.UIProject;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.widget.*;
+import com.lowdragmc.lowdraglib.kjs.ui.BlockUIJSFactory;
+import com.lowdragmc.lowdraglib.kjs.ui.ItemUIJSFactory;
+import com.lowdragmc.lowdraglib.kjs.ui.UIEvents;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
@@ -21,6 +26,7 @@ import dev.latvian.mods.rhino.util.wrap.TypeWrappers;
  */
 public class LDLibKubeJSPlugin extends KubeJSPlugin {
 
+
     @Override
     public void registerClasses(ScriptType type, ClassFilter filter) {
         super.registerClasses(type, filter);
@@ -28,8 +34,17 @@ public class LDLibKubeJSPlugin extends KubeJSPlugin {
     }
 
     @Override
+    public void registerEvents() {
+        super.registerEvents();
+        UIEvents.INSTANCE.register();
+    }
+
+    @Override
     public void registerBindings(BindingsEvent event) {
         super.registerBindings(event);
+        event.add("BlockUIFactory", BlockUIJSFactory.class);
+        event.add("ItemUIFactory", ItemUIJSFactory.class);
+        event.add("UIProject", UIProject.class);
         // texture
         event.add("ResourceTexture", ResourceTexture.class);
         event.add("FillDirection", ProgressTexture.FillDirection.class);
@@ -42,6 +57,7 @@ public class LDLibKubeJSPlugin extends KubeJSPlugin {
         event.add("ShaderTexture", ShaderTexture.class);
         event.add("TextTexture", TextTexture.class);
         event.add("GuiTextureGroup", GuiTextureGroup.class);
+        event.add("ColorPattern", ColorPattern.class);
         // LDLib Widget
         event.add("ModularUI", ModularUI.class);
         event.add("BlockSelectorWidget", BlockSelectorWidget.class);

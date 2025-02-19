@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.gui.factory;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
+import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -46,10 +47,11 @@ public class HeldItemUIFactory extends UIFactory<HeldItemUIFactory.HeldItemHolde
         syncData.writeEnum(holder.hand);
     }
 
-    public static class HeldItemHolder implements IUIHolder{
-        Player player;
-        InteractionHand hand;
-        ItemStack held;
+    @Getter
+    public static class HeldItemHolder implements IUIHolder {
+        public Player player;
+        public InteractionHand hand;
+        public ItemStack held;
 
         public HeldItemHolder(Player player, InteractionHand hand) {
             this.player = player;
@@ -80,22 +82,10 @@ public class HeldItemUIFactory extends UIFactory<HeldItemUIFactory.HeldItemHolde
 
         }
 
-        public Player getPlayer() {
-            return player;
-        }
-
-        public InteractionHand getHand() {
-            return hand;
-        }
-
-        public ItemStack getHeld() {
-            return held;
-        }
     }
 
-    public interface IHeldItemUIHolder {
-
-        ModularUI createUI(Player entityPlayer, HeldItemHolder holder);
+    @Deprecated
+    public interface IHeldItemUIHolder extends IUIHolder.Item {
 
     }
 }

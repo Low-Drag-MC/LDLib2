@@ -27,4 +27,12 @@ public class BlockPosPayload extends ObjectTypedPayload<BlockPos> {
     public void deserializeNBT(Tag tag) {
         payload = NbtUtils.readBlockPos((CompoundTag) tag);
     }
+
+    @Override
+    public Object copyForManaged(Object value) {
+        if (value instanceof BlockPos) {
+            return new BlockPos((BlockPos) value);
+        }
+        return super.copyForManaged(value);
+    }
 }

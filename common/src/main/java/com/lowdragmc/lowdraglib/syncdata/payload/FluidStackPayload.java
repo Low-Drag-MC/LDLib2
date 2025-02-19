@@ -26,5 +26,13 @@ public class FluidStackPayload extends ObjectTypedPayload<FluidStack> {
     public void deserializeNBT(Tag tag) {
         payload = FluidStack.loadFromTag((CompoundTag) tag);
     }
+
+    @Override
+    public Object copyForManaged(Object value) {
+        if (value instanceof FluidStack stack) {
+            return stack.copy();
+        }
+        return super.copyForManaged(value);
+    }
 }
 

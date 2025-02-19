@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * @date 2022/05/24
  * @implNote TODO
  */
-public class TestBlockEntity extends BlockEntity implements IUIHolder {
+public class TestBlockEntity extends BlockEntity implements IUIHolder.Block {
 
     public TestBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(TYPE(), pWorldPosition, pBlockState);
@@ -42,18 +42,4 @@ public class TestBlockEntity extends BlockEntity implements IUIHolder {
 //        return new ModularUI(this, entityPlayer).widget(new UIEditor(LDLib.location));
     }
 
-    @Override
-    public boolean isInvalid() {
-        return false;
-    }
-
-    @Override
-    public boolean isRemote() {
-        return level.isClientSide;
-    }
-
-    @Override
-    public void markAsDirty() {
-
-    }
 }

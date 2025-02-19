@@ -50,4 +50,7 @@ public interface IAccessor extends Predicate<Class<?>> {
         throw new UnsupportedOperationException();
     }
 
+    default Object copyForManaged(Object value) {
+        return value;
+    }
 }
