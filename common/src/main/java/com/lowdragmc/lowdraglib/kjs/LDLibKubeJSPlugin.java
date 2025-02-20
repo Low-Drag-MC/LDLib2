@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib.kjs.ui.UIEvents;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
+import dev.architectury.injectables.annotations.ExpectPlatform;
 import org.joml.Vector3f;
 import dev.latvian.mods.kubejs.KubeJSPlugin;
 import dev.latvian.mods.kubejs.fluid.FluidStackJS;
@@ -39,9 +40,15 @@ public class LDLibKubeJSPlugin extends KubeJSPlugin {
         UIEvents.INSTANCE.register();
     }
 
+    @ExpectPlatform
+    public static void registerPlatformBindings(BindingsEvent event) {
+        throw new AssertionError();
+    }
+
     @Override
     public void registerBindings(BindingsEvent event) {
         super.registerBindings(event);
+        registerPlatformBindings(event);
         event.add("BlockUIFactory", BlockUIJSFactory.class);
         event.add("ItemUIFactory", ItemUIJSFactory.class);
         event.add("UIProject", UIProject.class);

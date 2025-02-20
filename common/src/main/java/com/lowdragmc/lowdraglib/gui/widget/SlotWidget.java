@@ -100,6 +100,8 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     @Setter
     @Getter
     protected float XEIChance = 1f;
+    @Getter
+    private ItemStack lastItem = ItemStack.EMPTY;
 
     public SlotWidget() {
         super(new Position(0, 0), new Size(18, 18));
@@ -156,6 +158,27 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         }
     }
 
+    public ItemStack getItem() {
+        return slotReference == null ? ItemStack.EMPTY : slotReference.getItem();
+    }
+
+    public void setItem(ItemStack stack) {
+        if (slotReference != null) {
+            slotReference.set(stack);
+        }
+    }
+
+    public void setItem(ItemStack stack, boolean notify) {
+        if (slotReference != null) {
+            var lastListener = changeListener;
+            if (!notify) {
+                changeListener = null;
+            }
+            slotReference.set(stack);
+            changeListener = lastListener;
+        }
+    }
+
     @Override
     public final void setSize(Size size) {
         // you cant modify size.
@@ -172,6 +195,19 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
             }
         }
         super.setGui(gui);
+    }
+
+    @Override
+    public void detectAndSendChanges() {
+        super.detectAndSendChanges();
+        this.lastItem = getItem();
+    }
+
+    @Override
+    @Environment(EnvType.CLIENT)
+    public void updateScreen() {
+        super.updateScreen();
+        this.lastItem = getItem();
     }
 
     @Override
