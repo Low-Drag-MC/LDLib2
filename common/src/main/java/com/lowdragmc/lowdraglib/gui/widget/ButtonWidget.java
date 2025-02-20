@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib.utils.Size;
 import dev.latvian.mods.rhino.annotations.JSFunction;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import lombok.Getter;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
@@ -27,6 +28,7 @@ public class ButtonWidget extends Widget implements IConfigurableWidget {
     protected IGuiTexture clickedTexture;
 
     protected Consumer<ClickData> onPressCallback;
+    @Getter
     protected boolean isClicked = false;
 
     public ButtonWidget() {

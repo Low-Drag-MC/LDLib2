@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.utils.Size;
+import dev.latvian.mods.rhino.util.RemapForJS;
 import lombok.Getter;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -69,6 +70,7 @@ public class TextTextureWidget extends Widget implements IConfigurableWidget {
         return this;
     }
 
+    @RemapForJS("setComponent")
     public TextTextureWidget setText(Component text) {
         textSupplier = () -> text;
         return this;

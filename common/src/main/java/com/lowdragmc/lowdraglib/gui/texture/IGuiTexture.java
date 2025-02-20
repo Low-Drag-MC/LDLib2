@@ -81,6 +81,11 @@ public interface IGuiTexture extends IConfigurable {
         draw(graphics, 0, 0, x, y, (int) width, (int) height);
     }
 
+    default IGuiTexture copy() {
+        var tag = serializeWrapper(this);
+        return tag == null ? this : deserializeWrapper(tag);
+    }
+
     // ***************** EDITOR  ***************** //
 
     Function<String, AnnotationDetector.Wrapper<LDLRegister, IGuiTexture>> CACHE = Util.memoize(type -> {

@@ -21,7 +21,7 @@ public class GuiTextureGroup extends TransformTexture {
         this.textures = textures;
     }
 
-    public GuiTextureGroup setTextures(IGuiTexture[] textures) {
+    public GuiTextureGroup setTextures(IGuiTexture... textures) {
         this.textures = textures;
         return this;
     }

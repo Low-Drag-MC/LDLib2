@@ -16,6 +16,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import lombok.Getter;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -40,22 +41,27 @@ public class AnimationTexture extends TransformTexture {
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_size")
     @NumberRange(range = {1, Integer.MAX_VALUE})
+    @Getter
     protected int cellSize;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_from")
     @NumberRange(range = {0, Integer.MAX_VALUE})
+    @Getter
     protected int from;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_to")
     @NumberRange(range = {0, Integer.MAX_VALUE})
+    @Getter
     protected int to;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_animation")
     @NumberRange(range = {0, Integer.MAX_VALUE})
+    @Getter
     protected int animation;
 
     @Configurable
     @NumberColor
+    @Getter
     protected int color = -1;
 
     protected int currentFrame;
@@ -78,6 +84,11 @@ public class AnimationTexture extends TransformTexture {
 
     public AnimationTexture copy() {
         return new AnimationTexture(imageLocation).setCellSize(cellSize).setAnimation(from, to).setAnimation(animation).setColor(color);
+    }
+
+    public AnimationTexture setTexture(String imageLocation) {
+        this.imageLocation = new ResourceLocation(imageLocation);
+        return this;
     }
 
     public AnimationTexture setCellSize(int cellSize) {

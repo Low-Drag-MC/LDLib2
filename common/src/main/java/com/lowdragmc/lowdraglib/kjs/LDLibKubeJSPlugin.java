@@ -58,6 +58,7 @@ public class LDLibKubeJSPlugin extends KubeJSPlugin {
         event.add("TextTexture", TextTexture.class);
         event.add("GuiTextureGroup", GuiTextureGroup.class);
         event.add("ColorPattern", ColorPattern.class);
+        event.add("TextType", TextTexture.TextType.class);
         // LDLib Widget
         event.add("ModularUI", ModularUI.class);
         event.add("BlockSelectorWidget", BlockSelectorWidget.class);
@@ -80,6 +81,7 @@ public class LDLibKubeJSPlugin extends KubeJSPlugin {
         event.add("TextFieldWidget", TextFieldWidget.class);
         event.add("TreeListWidget", TreeListWidget.class);
         event.add("WidgetGroup", WidgetGroup.class);
+        event.add("Widget", Widget.class);
         event.add("ProgressWidget", ProgressWidget.class);
         // math
         event.add("Vector3f", Vector3f.class);

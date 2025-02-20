@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.vertex.PoseStack;
+import lombok.Getter;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
@@ -25,9 +26,11 @@ public class ImageWidget extends Widget implements IConfigurableWidget {
 
     @Configurable(name = "ldlib.gui.editor.name.border")
     @NumberRange(range = {-100, 100})
+    @Getter
     private int border;
     @Configurable(name = "ldlib.gui.editor.name.border_color")
     @NumberColor
+    @Getter
     private int borderColor = -1;
 
     private Supplier<IGuiTexture> textureSupplier;

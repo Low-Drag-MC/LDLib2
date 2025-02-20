@@ -57,7 +57,6 @@ import java.util.function.Supplier;
 public class Widget {
 
     @Getter
-    @Setter
     protected ModularUI gui;
     @Setter
     protected WidgetUIAccess uiAccess;
@@ -221,6 +220,10 @@ public class Widget {
 
     public boolean inAnimate() {
         return animation != null && !animation.isFinish();
+    }
+
+    public void setGui(ModularUI gui) {
+        this.gui = gui;
     }
 
     public void setParentPosition(Position parentPosition) {

@@ -17,7 +17,7 @@ public class ResourceBorderTexture extends ResourceTexture {
     public static final ResourceBorderTexture SELECTED = new ResourceBorderTexture("ldlib:textures/gui/selected.png", 16, 16, 2, 2);
 
     @Configurable(tips = {"ldlib.gui.editor.tips.corner_size.0", "ldlib.gui.editor.tips.corner_size.1"}, collapse = false)
-    public Size boderSize;
+    public Size borderSize;
 
     @Configurable(tips = "ldlib.gui.editor.tips.image_size", collapse = false)
     public Size imageSize;
@@ -28,13 +28,23 @@ public class ResourceBorderTexture extends ResourceTexture {
 
     public ResourceBorderTexture(String imageLocation, int imageWidth, int imageHeight, int cornerWidth, int cornerHeight) {
         super(imageLocation);
-        boderSize = new Size(cornerWidth, cornerHeight);
+        borderSize = new Size(cornerWidth, cornerHeight);
         imageSize = new Size(imageWidth, imageHeight);
+    }
+
+    public ResourceBorderTexture setBorderSize(int width, int height) {
+        this.borderSize = new Size(width, height);
+        return this;
+    }
+
+    public ResourceBorderTexture setImageSize(int width, int height) {
+        this.imageSize = new Size(width, height);
+        return this;
     }
 
     @Override
     public ResourceTexture copy() {
-        return new ResourceBorderTexture(imageLocation.toString(), imageSize.width, imageSize.height, boderSize.width, boderSize.height);
+        return new ResourceBorderTexture(imageLocation.toString(), imageSize.width, imageSize.height, borderSize.width, borderSize.height);
     }
 
     @Override
@@ -47,27 +57,27 @@ public class ResourceBorderTexture extends ResourceTexture {
     @Override
     protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight) {
         //compute relative sizes
-        float cornerWidth = boderSize.width * 1f / imageSize.width;
-        float cornerHeight = boderSize.height * 1f / imageSize.height;
+        float cornerWidth = borderSize.width * 1f / imageSize.width;
+        float cornerHeight = borderSize.height * 1f / imageSize.height;
         //draw up corners
-        super.drawSubAreaInternal(graphics, x, y, boderSize.width, boderSize.height, 0, 0, cornerWidth, cornerHeight);
-        super.drawSubAreaInternal(graphics, x + width - boderSize.width, y, boderSize.width, boderSize.height, 1 - cornerWidth, 0, cornerWidth, cornerHeight);
+        super.drawSubAreaInternal(graphics, x, y, borderSize.width, borderSize.height, 0, 0, cornerWidth, cornerHeight);
+        super.drawSubAreaInternal(graphics, x + width - borderSize.width, y, borderSize.width, borderSize.height, 1 - cornerWidth, 0, cornerWidth, cornerHeight);
         //draw down corners
-        super.drawSubAreaInternal(graphics, x, y + height - boderSize.height, boderSize.width, boderSize.height, 0, 1 - cornerHeight, cornerWidth, cornerHeight);
-        super.drawSubAreaInternal(graphics, x + width - boderSize.width, y + height - boderSize.height, boderSize.width, boderSize.height, 1 - cornerWidth, 1 - cornerHeight, cornerWidth, cornerHeight);
+        super.drawSubAreaInternal(graphics, x, y + height - borderSize.height, borderSize.width, borderSize.height, 0, 1 - cornerHeight, cornerWidth, cornerHeight);
+        super.drawSubAreaInternal(graphics, x + width - borderSize.width, y + height - borderSize.height, borderSize.width, borderSize.height, 1 - cornerWidth, 1 - cornerHeight, cornerWidth, cornerHeight);
         //draw horizontal connections
-        super.drawSubAreaInternal(graphics, x + boderSize.width, y, width - 2 * boderSize.width, boderSize.height,
+        super.drawSubAreaInternal(graphics, x + borderSize.width, y, width - 2 * borderSize.width, borderSize.height,
                 cornerWidth, 0, 1 - 2 * cornerWidth, cornerHeight);
-        super.drawSubAreaInternal(graphics, x + boderSize.width, y + height - boderSize.height, width - 2 * boderSize.width, boderSize.height,
+        super.drawSubAreaInternal(graphics, x + borderSize.width, y + height - borderSize.height, width - 2 * borderSize.width, borderSize.height,
                 cornerWidth, 1 - cornerHeight, 1 - 2 * cornerWidth, cornerHeight);
         //draw vertical connections
-        super.drawSubAreaInternal(graphics, x, y + boderSize.height, boderSize.width, height - 2 * boderSize.height,
+        super.drawSubAreaInternal(graphics, x, y + borderSize.height, borderSize.width, height - 2 * borderSize.height,
                 0, cornerHeight, cornerWidth, 1 - 2 * cornerHeight);
-        super.drawSubAreaInternal(graphics, x + width - boderSize.width, y + boderSize.height, boderSize.width, height - 2 * boderSize.height,
+        super.drawSubAreaInternal(graphics, x + width - borderSize.width, y + borderSize.height, borderSize.width, height - 2 * borderSize.height,
                 1 - cornerWidth, cornerHeight, cornerWidth, 1 - 2 * cornerHeight);
         //draw central body
-        super.drawSubAreaInternal(graphics, x + boderSize.width, y + boderSize.height,
-                width - 2 * boderSize.width, height - 2 * boderSize.height,
+        super.drawSubAreaInternal(graphics, x + borderSize.width, y + borderSize.height,
+                width - 2 * borderSize.width, height - 2 * borderSize.height,
                 cornerWidth, cornerHeight, 1 - 2 * cornerWidth, 1 - 2 * cornerHeight);
     }
 
@@ -77,8 +87,8 @@ public class ResourceBorderTexture extends ResourceTexture {
                 x + width * offsetX, y + height * offsetY,
                 (int) (width * imageWidth), (int) (height * imageHeight));
 
-        float cornerWidth = boderSize.width * 1f / imageSize.width;
-        float cornerHeight = boderSize.height * 1f / imageSize.height;
+        float cornerWidth = borderSize.width * 1f / imageSize.width;
+        float cornerHeight = borderSize.height * 1f / imageSize.height;
 
         new ColorBorderTexture(-1, 0xff00ff00).draw(graphics, 0, 0,
                 x, y, (int) (width * cornerWidth), (int) (height * cornerHeight));

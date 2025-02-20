@@ -89,15 +89,21 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
         }
     }
 
+    @Deprecated
     public LabelWidget setTextColor(int color) {
         this.color = color;
         if (this.component != null) this.component = this.component.copy().withStyle(this.component.getStyle().withColor(color));
         return this;
     }
 
+    @Deprecated
     public LabelWidget setDropShadow(boolean dropShadow) {
         this.dropShadow = dropShadow;
         return this;
+    }
+
+    public void setColor(int color) {
+        setTextColor(color);
     }
 
     @Override
