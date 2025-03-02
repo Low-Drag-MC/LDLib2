@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.fabric.core.mixins;
+package com.lowdragmc.lowdraglib.forge.core.mixins;
 
 import com.lowdragmc.lowdraglib.core.mixins.MixinPluginShared;
 import org.objectweb.asm.tree.ClassNode;
@@ -8,12 +8,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import java.util.List;
 import java.util.Set;
 
-/**
- * @author KilaBash
- * @date 2023/2/11
- * @implNote LDLibFabricMixinPlugin
- */
-public class LDLibFabricMixinPlugin implements IMixinConfigPlugin, MixinPluginShared {
+public class LDLibForgeMixinPlugin implements IMixinConfigPlugin, MixinPluginShared {
     @Override
     public void onLoad(String mixinPackage) {
 
@@ -26,14 +21,8 @@ public class LDLibFabricMixinPlugin implements IMixinConfigPlugin, MixinPluginSh
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (mixinClassName.contains("com.lowdragmc.lowdraglib.fabric.core.mixins.kjs")) {
+        if (mixinClassName.contains("com.lowdragmc.lowdraglib.forge.core.mixins.kjs")) {
             return IS_KJS_LOAD;
-        }
-        if (mixinClassName.contains("com.lowdragmc.lowdraglib.fabric.core.mixins.emi")) {
-            return IS_MEI_LOAD;
-        }
-        if (mixinClassName.contains("com.lowdragmc.lowdraglib.fabric.core.mixins.rei")) {
-            return IS_REI_LOAD;
         }
         return true;
     }

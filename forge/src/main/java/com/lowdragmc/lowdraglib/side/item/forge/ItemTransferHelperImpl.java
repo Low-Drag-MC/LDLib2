@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.side.item.forge;
 
 import com.lowdragmc.lowdraglib.side.item.IItemTransfer;
 
+import com.lowdragmc.lowdraglib.side.item.ItemTransferHelper;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.core.BlockPos;
@@ -22,7 +23,7 @@ import java.util.function.Predicate;
  * @date 2023/2/10
  * @implNote ItemTransferHelperImpl
  */
-public class ItemTransferHelperImpl {
+public class ItemTransferHelperImpl extends ItemTransferHelper {
     public static IItemHandler toItemHandler(IItemTransfer itemTransfer) {
         return new IItemHandler() {
             @Override

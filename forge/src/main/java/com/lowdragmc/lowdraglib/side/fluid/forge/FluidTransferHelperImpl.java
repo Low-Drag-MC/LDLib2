@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.side.fluid.forge;
 
 import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper;
 import com.lowdragmc.lowdraglib.side.fluid.IFluidTransfer;
 import com.lowdragmc.lowdraglib.side.item.IItemTransfer;
 
@@ -27,7 +28,7 @@ import java.util.function.Predicate;
  * @date 2023/2/10
  * @implNote FluidTransferHelper
  */
-public class FluidTransferHelperImpl {
+public class FluidTransferHelperImpl extends FluidTransferHelper {
 
     public static IFluidHandler toFluidHandler(IFluidTransfer fluidTransfer) {
         return new IFluidHandler() {

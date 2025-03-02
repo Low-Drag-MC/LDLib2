@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.side.fluid.fabric;
 
 import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
+import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper;
 import com.lowdragmc.lowdraglib.side.fluid.IFluidTransfer;
 import com.lowdragmc.lowdraglib.side.item.fabric.ItemTransferHelperImpl;
 import com.lowdragmc.lowdraglib.side.item.IItemTransfer;
@@ -28,7 +29,7 @@ import java.util.function.Predicate;
  * @implNote FluidTransferHelper
  */
 @SuppressWarnings("UnstableApiUsage")
-public class FluidTransferHelperImpl {
+public class FluidTransferHelperImpl extends FluidTransferHelper {
 
     public static Storage<FluidVariant> toFluidVariantStorage(IFluidTransfer fluidTransfer) {
         return new FluidTransferProxyStorage(fluidTransfer);

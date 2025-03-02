@@ -8,6 +8,8 @@ import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.lowdraglib.kjs.ui.BlockUIJSFactory;
 import com.lowdragmc.lowdraglib.kjs.ui.ItemUIJSFactory;
 import com.lowdragmc.lowdraglib.kjs.ui.UIEvents;
+import com.lowdragmc.lowdraglib.misc.FluidStorage;
+import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
@@ -94,6 +96,9 @@ public class LDLibKubeJSPlugin extends KubeJSPlugin {
         event.add("Vector3f", Vector3f.class);
         event.add("GuiSize", Size.class);
         event.add("GuiPos", Position.class);
+        // storage
+        event.add("ItemStackTransfer", ItemStackTransfer.class);
+        event.add("FluidStorage", FluidStorage.class);
     }
 
     @Override

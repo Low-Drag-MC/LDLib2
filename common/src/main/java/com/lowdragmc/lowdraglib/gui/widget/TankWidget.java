@@ -98,7 +98,9 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     protected IngredientIO ingredientIO = IngredientIO.RENDER_ONLY;
     @Setter @Getter
     protected float XEIChance = 1f;
+    @Getter
     protected FluidStack lastFluidInTank;
+    @Getter
     protected long lastTankCapacity;
     @Setter
     protected Runnable changeListener;
@@ -155,6 +157,27 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         this.tank = tank;
         if (isClientSideWidget) {
             setClientSideWidget();
+        }
+        return this;
+    }
+
+    public FluidStack getFluid() {
+        if (isClientSideWidget || isRemote()) {
+            return lastFluidInTank == null ? FluidStack.empty() : lastFluidInTank;
+        }
+        return fluidTank != null ? fluidTank.getFluidInTank(tank) : FluidStack.empty();
+    }
+
+    public TankWidget setFluid(FluidStack fluidStack) {
+        return setFluid(fluidStack, true);
+    }
+
+    public TankWidget setFluid(FluidStack fluidStack, boolean notify) {
+        if (fluidTank != null) {
+            fluidTank.setFluidInTank(tank, fluidStack);
+            if (notify) {
+                detectAndSendChanges();
+            }
         }
         return this;
     }

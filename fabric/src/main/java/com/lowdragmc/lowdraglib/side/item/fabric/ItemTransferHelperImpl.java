@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.side.item.fabric;
 
 import com.lowdragmc.lowdraglib.side.item.IItemTransfer;
+import com.lowdragmc.lowdraglib.side.item.ItemTransferHelper;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.item.base.SingleStackStorage;
@@ -20,7 +21,7 @@ import java.util.function.Predicate;
  * @implNote ItemTransferHelperImpl
  */
 @SuppressWarnings("UnstableApiUsage")
-public class ItemTransferHelperImpl {
+public class ItemTransferHelperImpl extends ItemTransferHelper {
 
     public static Storage<ItemVariant> toItemVariantStorage(IItemTransfer itemTransfer) {
         return new ItemTransferProxyStorage(itemTransfer);
