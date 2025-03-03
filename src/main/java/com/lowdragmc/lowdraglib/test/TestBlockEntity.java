@@ -1,16 +1,15 @@
 package com.lowdragmc.lowdraglib.test;
 
+import com.lowdragmc.lowdraglib.CommonProxy;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.compass.CompassView;
 import com.lowdragmc.lowdraglib.gui.factory.BlockEntityUIFactory;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
@@ -21,12 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public class TestBlockEntity extends BlockEntity implements IUIHolder.Block {
 
     public TestBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
-        super(TYPE(), pWorldPosition, pBlockState);
-    }
-
-    @ExpectPlatform
-    public static BlockEntityType<?> TYPE() {
-        throw new AssertionError();
+        super(CommonProxy.TEST_BE_TYPE.get(), pWorldPosition, pBlockState);
     }
 
     public void use(Player player) {

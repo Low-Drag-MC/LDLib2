@@ -1,13 +1,11 @@
 package com.lowdragmc.lowdraglib.gui.modular;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.core.mixins.accessor.AbstractContainerScreenAccessor;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIWidgetUpdate;
-import com.lowdragmc.lowdraglib.side.ForgeEventHooks;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.emi.emi.runtime.EmiDrawContext;
@@ -29,6 +27,9 @@ import net.minecraft.util.Tuple;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.event.ContainerScreenEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -129,10 +130,16 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
         tooltipComponent = null;
 
         this.renderBackground(graphics, mouseX, mouseY, partialTicks);
-        if (Platform.isForge()) ForgeEventHooks.postBackgroundRenderedEvent(this, graphics);
+
+        RenderSystem.depthMask(true);
+        NeoForge.EVENT_BUS.post(new ScreenEvent.BackgroundRendered(this, graphics));
+        RenderSystem.depthMask(false);
 
         modularUI.mainGroup.drawInBackground(graphics, mouseX, mouseY, partialTicks);
-        if (Platform.isForge()) ForgeEventHooks.postRenderBackgroundEvent(this, graphics, mouseX, mouseY);
+
+        RenderSystem.depthMask(true);
+        NeoForge.EVENT_BUS.post(new ContainerScreenEvent.Render.Background(this, graphics, mouseX, mouseY));
+        RenderSystem.depthMask(false);
 
         if (LDLib.isEmiLoaded()) {
             RenderSystem.enableDepthTest();
@@ -158,7 +165,7 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
         posestack.pushPose();
         posestack.translate(leftPos, topPos, 232);
 
-        if (Platform.isForge()) ForgeEventHooks.postRenderForegroundEvent(this, graphics, mouseX, mouseY);
+        NeoForge.EVENT_BUS.post(new ContainerScreenEvent.Render.Foreground(this, graphics, mouseX, mouseY));
 
         renderItemStackOnMouse(graphics, mouseX, mouseY);
         renderReturningItemStack(graphics);

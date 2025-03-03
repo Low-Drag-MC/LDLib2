@@ -447,14 +447,30 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
             if (scrollable) {
                 setFocus(true);
                 if (isFocus()) {
+                    // scrollY
                     int moveDelta = (int) (-Mth.clamp(scrollY, -1, 1) * 13);
-                    if (scrollWheelDirection == ScrollWheelDirection.VERTICAL) {
-                        if (getMaxHeight() - getSize().height > 0 || scrollYOffset > getMaxHeight() - getSize().height) {
-                            setScrollYOffset(Mth.clamp(scrollYOffset + moveDelta, 0, getMaxHeight() - getSize().height));
+                    if (moveDelta != 0) {
+                        if (scrollWheelDirection == ScrollWheelDirection.VERTICAL) {
+                            if (getMaxHeight() - getSize().height > 0 || scrollYOffset > getMaxHeight() - getSize().height) {
+                                setScrollYOffset(Mth.clamp(scrollYOffset + moveDelta, 0, getMaxHeight() - getSize().height));
+                            }
+                        } else {
+                            if (getMaxWidth() - getSize().width > 0 || scrollXOffset > getMaxWidth() - getSize().width) {
+                                setScrollXOffset(Mth.clamp(scrollXOffset + moveDelta, 0, getMaxWidth() - getSize().width));
+                            }
                         }
-                    } else {
-                        if (getMaxWidth() - getSize().width > 0 || scrollXOffset > getMaxWidth() - getSize().width) {
-                            setScrollXOffset(Mth.clamp(scrollXOffset + moveDelta, 0, getMaxWidth() - getSize().width));
+                    }
+                    // scrollX
+                    if (moveDelta != 0) {
+                        moveDelta = (int) (-Mth.clamp(scrollX, -1, 1) * 13);
+                        if (scrollWheelDirection == ScrollWheelDirection.HORIZONTAL) {
+                            if (getMaxHeight() - getSize().height > 0 || scrollYOffset > getMaxHeight() - getSize().height) {
+                                setScrollYOffset(Mth.clamp(scrollYOffset + moveDelta, 0, getMaxHeight() - getSize().height));
+                            }
+                        } else {
+                            if (getMaxWidth() - getSize().width > 0 || scrollXOffset > getMaxWidth() - getSize().width) {
+                                setScrollXOffset(Mth.clamp(scrollXOffset + moveDelta, 0, getMaxWidth() - getSize().width));
+                            }
                         }
                     }
                 }

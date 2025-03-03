@@ -11,7 +11,6 @@ public class FoldableRegion {
         this.isCollapsed = false;
     }
 
-    // Getter 和 Setter 方法
     public int getStartLine() {
         return startLine;
     }

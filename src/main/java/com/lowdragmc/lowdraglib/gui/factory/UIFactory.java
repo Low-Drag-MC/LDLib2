@@ -17,6 +17,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.HashMap;
@@ -58,10 +60,7 @@ public abstract class UIFactory<T> {
         ((ServerPlayerAccessor)player).callInitMenu(container);
         player.containerMenu = container;
 
-        //and fire forge event only in the end
-        if (Platform.isForge()) {
-            ForgeEventHooks.postPlayerContainerEvent(player, container);
-        }
+        NeoForge.EVENT_BUS.post(new PlayerContainerEvent.Open(player, container));
         return true;
     }
 

@@ -5,16 +5,16 @@ import com.lowdragmc.lowdraglib.gui.factory.UIFactory;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import dev.latvian.mods.kubejs.event.EventResult;
 import dev.latvian.mods.kubejs.level.BlockContainerJS;
 import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.rhino.util.RemapForJS;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 public class BlockUIJSFactory extends UIFactory<BlockUIJSFactory.BlockAccess> {
     public static final BlockUIJSFactory INSTANCE = new BlockUIJSFactory();
@@ -40,7 +40,7 @@ public class BlockUIJSFactory extends UIFactory<BlockUIJSFactory.BlockAccess> {
         var block = level.getBlockState(pos);
         var blockEntity = level.getBlockEntity(pos);
         var result = UIEvents.BLOCK.post(new UIEvents.BlockUIEventJS(level, pos, new BlockContainerJS(level, pos), entityPlayer), holder.uiName);
-        if (result.value() instanceof WidgetGroup root && !result.interruptFalse() && !result.error()) {
+        if (result.value() instanceof WidgetGroup root && !result.interruptFalse()) {
             return new ModularUI(root, new IUIHolder() {
                 @Override
                 public ModularUI createUI(Player entityPlayer) {
@@ -67,14 +67,14 @@ public class BlockUIJSFactory extends UIFactory<BlockUIJSFactory.BlockAccess> {
         return null;
     }
 
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @Override
-    protected BlockAccess readHolderFromSyncData(FriendlyByteBuf syncData) {
+    protected BlockAccess readHolderFromSyncData(RegistryFriendlyByteBuf syncData) {
         return new BlockAccess(syncData.readBlockPos(), syncData.readUtf());
     }
 
     @Override
-    protected void writeHolderToSyncData(FriendlyByteBuf syncData, BlockAccess holder) {
+    protected void writeHolderToSyncData(RegistryFriendlyByteBuf syncData, BlockAccess holder) {
         syncData.writeBlockPos(holder.pos());
         syncData.writeUtf(holder.uiName());
     }

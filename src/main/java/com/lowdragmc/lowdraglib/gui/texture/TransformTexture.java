@@ -13,26 +13,23 @@ import org.joml.Quaternionf;
  * @date 2022/12/5
  * @implNote TransformTexture
  */
+@Getter
 @Configurable(name = "ldlib.gui.editor.group.transform")
 public abstract class TransformTexture implements IGuiTexture {
     @Configurable
     @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
-    @Getter
     protected float xOffset;
 
     @Configurable
     @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
-    @Getter
     protected float yOffset;
 
     @Configurable
     @NumberRange(range = {0, Float.MAX_VALUE})
-    @Getter
     protected float scale = 1;
 
     @Configurable
     @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 5)
-    @Getter
     protected float rotation;
 
     public TransformTexture rotate(float degree) {

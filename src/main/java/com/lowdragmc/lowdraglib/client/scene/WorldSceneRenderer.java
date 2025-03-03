@@ -104,6 +104,7 @@ public abstract class WorldSceneRenderer {
     private Vector3f eyePos = new Vector3f(0, 0, 10f);
     private Vector3f lookAt = new Vector3f(0, 0, 0);
     private Vector3f worldUp = new Vector3f(0, 1, 0);
+    @Getter
     private float fov = 60f;
     private float minX, maxX, minY, maxY, minZ, maxZ;
 

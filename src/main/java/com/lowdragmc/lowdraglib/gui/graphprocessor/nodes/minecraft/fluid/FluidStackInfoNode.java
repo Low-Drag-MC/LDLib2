@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
 import dev.architectury.fluid.FluidStack;
-import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.level.material.Fluid;
 
 @LDLRegister(name = "fluidstack info", group = "graph_processor.node.minecraft.fluid")
@@ -17,7 +17,7 @@ public class FluidStackInfoNode extends BaseNode {
     @OutputPort
     public int amount = 0;
     @OutputPort
-    public PatchedDataComponentMap components;
+    public DataComponentMap components;
 
     @Override
     public void process() {

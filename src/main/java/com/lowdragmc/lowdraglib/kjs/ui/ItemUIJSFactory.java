@@ -6,13 +6,13 @@ import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import dev.latvian.mods.rhino.util.RemapForJS;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 public class ItemUIJSFactory extends UIFactory<ItemUIJSFactory.ItemAccess> {
     public static final ItemUIJSFactory INSTANCE = new ItemUIJSFactory();
@@ -34,7 +34,7 @@ public class ItemUIJSFactory extends UIFactory<ItemUIJSFactory.ItemAccess> {
     protected ModularUI createUITemplate(ItemAccess holder, Player entityPlayer) {
         var held = entityPlayer.getItemInHand(holder.hand);
         var result = UIEvents.ITEM.post(new UIEvents.ItemUIEventJS(entityPlayer, holder.hand, held), holder.uiName);
-        if (result.value() instanceof WidgetGroup root && !result.interruptFalse() && !result.error()) {
+        if (result.value() instanceof WidgetGroup root && !result.interruptFalse()) {
             return new ModularUI(root, new IUIHolder() {
                 @Override
                 public ModularUI createUI(Player entityPlayer) {
@@ -43,7 +43,7 @@ public class ItemUIJSFactory extends UIFactory<ItemUIJSFactory.ItemAccess> {
 
                 @Override
                 public boolean isInvalid() {
-                    return !ItemStack.isSameItemSameTags(entityPlayer.getItemInHand(holder.hand), held);
+                    return !ItemStack.isSameItemSameComponents(entityPlayer.getItemInHand(holder.hand), held);
                 }
 
                 @Override
@@ -60,14 +60,14 @@ public class ItemUIJSFactory extends UIFactory<ItemUIJSFactory.ItemAccess> {
         return null;
     }
 
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @Override
-    protected ItemAccess readHolderFromSyncData(FriendlyByteBuf syncData) {
+    protected ItemAccess readHolderFromSyncData(RegistryFriendlyByteBuf syncData) {
         return new ItemAccess(syncData.readEnum(InteractionHand.class), syncData.readUtf());
     }
 
     @Override
-    protected void writeHolderToSyncData(FriendlyByteBuf syncData, ItemAccess holder) {
+    protected void writeHolderToSyncData(RegistryFriendlyByteBuf syncData, ItemAccess holder) {
         syncData.writeEnum(holder.hand);
         syncData.writeUtf(holder.uiName);
     }

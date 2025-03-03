@@ -1,9 +1,6 @@
 package com.lowdragmc.lowdraglib.kjs.ui;
 
-import dev.latvian.mods.kubejs.event.EventGroup;
-import dev.latvian.mods.kubejs.event.EventHandler;
-import dev.latvian.mods.kubejs.event.EventJS;
-import dev.latvian.mods.kubejs.event.Extra;
+import dev.latvian.mods.kubejs.event.*;
 import dev.latvian.mods.kubejs.level.BlockContainerJS;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,12 +12,12 @@ import net.minecraft.world.level.Level;
 
 public interface UIEvents {
     EventGroup INSTANCE = EventGroup.of("LDLibUI");
-    EventHandler BLOCK = INSTANCE.server("block", () -> BlockUIEventJS.class).extra(Extra.STRING).hasResult();
-    EventHandler ITEM = INSTANCE.server("item", () -> ItemUIEventJS.class).extra(Extra.STRING).hasResult();
+    TargetedEventHandler<String> BLOCK = INSTANCE.server("block", () -> BlockUIEventJS.class).requiredTarget(EventTargetType.STRING).hasResult();
+    TargetedEventHandler<String> ITEM = INSTANCE.server("item", () -> ItemUIEventJS.class).requiredTarget(EventTargetType.STRING).hasResult();
 
     @AllArgsConstructor
     @Getter
-    class BlockUIEventJS extends EventJS {
+    class BlockUIEventJS implements KubeEvent {
         public Level level;
         public BlockPos pos;
         public BlockContainerJS block;
@@ -29,7 +26,7 @@ public interface UIEvents {
 
     @AllArgsConstructor
     @Getter
-    class ItemUIEventJS extends EventJS {
+    class ItemUIEventJS implements KubeEvent {
         public Player player;
         public InteractionHand hand;
         public ItemStack held;

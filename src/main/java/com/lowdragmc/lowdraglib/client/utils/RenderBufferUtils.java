@@ -3,11 +3,11 @@ package com.lowdragmc.lowdraglib.client.utils;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -22,16 +22,20 @@ public class RenderBufferUtils {
 
     public static void drawLine(Matrix4f pose, VertexConsumer buffer, Vector3f from, Vector3f to,
                                 float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
-        var normal = new Vector3f(from).sub(to);
+        var normalDir = new Vector3f(to.x - from.x, to.y - from.y, to.z - from.z).normalize();
+        normalDir = pose.transformDirection(normalDir);
         buffer.addVertex(pose, from.x, from.y, from.z).setColor(sr, sg, sb, sa)
-                .setNormal(normal.x, normal.y, normal.z);
-        buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea).setNormal(normal.x, normal.y, normal.z);
+                .setNormal(normalDir.x, normalDir.y, normalDir.z);
+        buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
+                .setNormal(normalDir.x, normalDir.y, normalDir.z);
+        if (buffer instanceof MultiBufferSource.BufferSource source) {
+            source.endLastBatch();
+        }
     }
 
     public static void drawLines(PoseStack poseStack, VertexConsumer buffer, List<Vector3f> points, int colorStart, int colorEnd) {
         if (points.size() < 2) return;
-        Matrix4f pose = poseStack.last().pose();
-        Vector3f lastPoint = points.get(0);
+        Vector3f lastPoint = points.getFirst();
         Vector3f point;
         int sa = (colorStart >> 24) & 0xff, sr = (colorStart >> 16) & 0xff, sg = (colorStart >> 8) & 0xff, sb = colorStart & 0xff;
         int ea = (colorEnd >> 24) & 0xff, er = (colorEnd >> 16) & 0xff, eg = (colorEnd >> 8) & 0xff, eb = colorEnd & 0xff;
@@ -43,7 +47,7 @@ public class RenderBufferUtils {
             float s = (i - 1f) / points.size();
             float e = i * 1f / points.size();
             point = points.get(i);
-            drawLine(pose, buffer, lastPoint, point, (sr + er * s) / 255, (sg + eg * s) / 255, (sb + eb * s) / 255, (sa + ea * s) / 255,
+            drawLine(poseStack.last().pose(), buffer, lastPoint, point, (sr + er * s) / 255, (sg + eg * s) / 255, (sb + eb * s) / 255, (sa + ea * s) / 255,
                     (sr + er * e) / 255, (sg + eg * e) / 255, (sb + eb * e) / 255, (sa + ea * e) / 255);
         }
     }
@@ -339,6 +343,57 @@ public class RenderBufferUtils {
                 ;
     }
 
+    public static void drawCircleLine(@Nonnull PoseStack poseStack, VertexConsumer buffer,
+                                      Vector3f position,
+                                      Vector3f normal, int segments,
+                                      float radius, float red, float green, float blue, float alpha) {
+
+        Matrix4f pose = poseStack.last().pose();
+
+        if (segments < 3) {
+            segments = 3;
+        }
+
+        Vector3f u = new Vector3f();
+        Vector3f v = new Vector3f();
+
+        if (normal.equals(new Vector3f(0, 0, 1))) {
+            u.set(1, 0, 0);
+            v.set(0, 1, 0);
+        } else {
+            if (Math.abs(normal.x) < Math.abs(normal.y) && Math.abs(normal.x) < Math.abs(normal.z)) {
+                u.set(0, -normal.z, normal.y).normalize();
+            } else if (Math.abs(normal.y) < Math.abs(normal.x) && Math.abs(normal.y) < Math.abs(normal.z)) {
+                u.set(-normal.z, 0, normal.x).normalize();
+            } else {
+                u.set(-normal.y, normal.x, 0).normalize();
+            }
+            v.set(normal).cross(u).normalize();
+            u.cross(normal, v).normalize();
+        }
+
+        Vector3f prevPoint = new Vector3f();
+        Vector3f firstPoint = new Vector3f();
+
+        for (int i = 0; i <= segments; i++) {
+            double angle = 2.0 * Math.PI * i / segments;
+            float x = (float) (radius * Math.cos(angle));
+            float y = (float) (radius * Math.sin(angle));
+
+            Vector3f currentPoint = new Vector3f(position)
+                    .add(u.x * x + v.x * y, u.y * x + v.y * y, u.z * x + v.z * y);
+
+            if (i > 0) {
+                drawLine(pose, buffer, prevPoint, currentPoint, red, green, blue, alpha, red, green, blue, alpha);
+            } else {
+                firstPoint.set(currentPoint);
+            }
+
+            prevPoint.set(currentPoint);
+        }
+
+        drawLine(pose, buffer, prevPoint, firstPoint, red, green, blue, alpha, red, green, blue, alpha);
+    }
 
     /**
      *

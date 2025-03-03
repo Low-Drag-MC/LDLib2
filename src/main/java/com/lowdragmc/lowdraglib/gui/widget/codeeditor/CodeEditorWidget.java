@@ -6,8 +6,6 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import lombok.Getter;
 import lombok.Setter;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,6 +14,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.util.StringUtil;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4f;
@@ -90,7 +91,7 @@ public class CodeEditorWidget extends WidgetGroup {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (isHoveringXBar) {
             isDraggingXBar = true;
@@ -153,7 +154,7 @@ public class CodeEditorWidget extends WidgetGroup {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         codeEditor.endSelection();
         isDraggingXBar = false;
@@ -164,7 +165,7 @@ public class CodeEditorWidget extends WidgetGroup {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (canConsumeInput()) {
             var previous = getLines();
@@ -229,7 +230,7 @@ public class CodeEditorWidget extends WidgetGroup {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public void adaptCursor() {
         var pos = getPosition();
         var size = getSize();
@@ -272,7 +273,7 @@ public class CodeEditorWidget extends WidgetGroup {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (canConsumeInput()) {
             if (keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT) {
@@ -284,10 +285,10 @@ public class CodeEditorWidget extends WidgetGroup {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean charTyped(char codePoint, int modifiers) {
         if (canConsumeInput()) {
-            if (SharedConstants.isAllowedChatCharacter(codePoint)) {
+            if (StringUtil.isAllowedChatCharacter(codePoint)) {
                 codeEditor.insertText(Character.toString(codePoint));
                 adaptCursor();
                 notifyChanged();
@@ -298,10 +299,9 @@ public class CodeEditorWidget extends WidgetGroup {
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
-    public boolean mouseWheelMove(double mouseX, double mouseY, double wheelDelta) {
+    @OnlyIn(Dist.CLIENT)
+    public boolean mouseWheelMove(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (isMouseOverElement(mouseX, mouseY)) {
-            var pos = getPosition();
             var size = getSize();
             var font = Minecraft.getInstance().font;
             var lineHeight = font.lineHeight + 2;
@@ -314,7 +314,7 @@ public class CodeEditorWidget extends WidgetGroup {
             var hasYBar = fullHeight > availableHeight;
 
             if (hasYBar) {
-                int moveDelta = (int) (-Mth.clamp(wheelDelta, -1, 1) * 13);
+                int moveDelta = (int) (-Mth.clamp(scrollY, -1, 1) * 13);
                 scrollYOffset += moveDelta;
                 scrollYOffset = Mth.clamp(scrollYOffset, 0, fullHeight - availableHeight);
             } else {
@@ -322,11 +322,11 @@ public class CodeEditorWidget extends WidgetGroup {
             }
             return true;
         }
-        return super.mouseWheelMove(mouseX, mouseY, wheelDelta);
+        return super.mouseWheelMove(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         drawBackgroundTexture(graphics, mouseX, mouseY);
         var pos = getPosition();
