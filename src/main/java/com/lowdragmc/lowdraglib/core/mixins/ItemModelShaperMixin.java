@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.core.mixins;
 import com.lowdragmc.lowdraglib.client.renderer.IItemRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import net.minecraft.client.renderer.ItemModelShaper;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
@@ -12,6 +13,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,7 +39,12 @@ public class ItemModelShaperMixin {
                 cir.setReturnValue(SHAPES_CACHE.computeIfAbsent(renderer, r -> new BakedModel() {
                     @Override
                     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction direction, RandomSource random) {
-                        return r.renderModel(null, null, state, direction, random);
+                        return r.renderModel(null, null, state, direction, random, ModelData.EMPTY, null);
+                    }
+
+                    @Override
+                    public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
+                        return r.renderModel(null, null, state, side, rand, data, renderType);
                     }
 
                     @Override

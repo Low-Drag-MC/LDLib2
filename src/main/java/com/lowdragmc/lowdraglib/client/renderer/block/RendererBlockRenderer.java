@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.client.renderer.block;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
@@ -14,6 +15,7 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -38,9 +40,9 @@ class RendererBlockRenderer implements IRenderer {
     }
 
     @Override
-    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
+    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
         return getMachine(level, pos)
-                .map(machine -> machine.getRenderer().renderModel(level, pos, state, side, rand))
+                .map(machine -> machine.getRenderer().renderModel(level, pos, state, side, rand, data, renderType))
                 .orElseGet(Collections::emptyList);
     }
 

@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
+import net.minecraft.client.renderer.RenderType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -36,6 +37,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
 
 import javax.annotation.Nonnull;
@@ -123,10 +125,10 @@ public class IModelRenderer implements ISerializableRenderer {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
+    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
         var ibakedmodel = getBlockBakedModel(level, pos, state);
         if (ibakedmodel == null) return Collections.emptyList();
-        return ibakedmodel.getQuads(state, side, rand);
+        return ibakedmodel.getQuads(state, side, rand, data, renderType);
     }
 
     @OnlyIn(Dist.CLIENT)

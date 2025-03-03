@@ -35,6 +35,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.FluidState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
 
 import javax.annotation.Nonnull;
@@ -128,12 +129,12 @@ public class BlockStateRenderer implements ISerializableRenderer {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
+    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
         state = getState(state);
         if (state.getRenderShape() != RenderShape.INVISIBLE) {
             BlockRenderDispatcher brd = Minecraft.getInstance().getBlockRenderer();
             BakedModel model = brd.getBlockModel(state);
-            return model.getQuads(state, side, rand);
+            return model.getQuads(state, side, rand, data, renderType);
         }
         return Collections.emptyList();
     }

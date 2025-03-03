@@ -53,7 +53,7 @@ public interface IRenderer {
      * Render static block model.
      */
     @OnlyIn(Dist.CLIENT)
-    default List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
+    default List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
         return Collections.emptyList();
     }
 

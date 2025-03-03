@@ -73,8 +73,8 @@ public class UIResourceRenderer implements IRenderer {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
-        return getRenderer().renderModel(level, pos, state, side, rand);
+    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand,  ModelData data, @Nullable RenderType renderType) {
+        return getRenderer().renderModel(level, pos, state, side, rand, data, renderType);
     }
 
     @Override

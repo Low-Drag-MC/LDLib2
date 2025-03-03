@@ -98,8 +98,7 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
         public static final ModelProperty<IRenderer> IRENDERER = new ModelProperty<>();
         public static final ModelProperty<BlockAndTintGetter> WORLD = new ModelProperty<>();
         public static final ModelProperty<BlockPos> POS = new ModelProperty<>();
-        //TODO Model Data
-//        public static final ModelProperty<ModelData> MODEL_DATA = new ModelProperty<>();
+        public static final ModelProperty<ModelData> MODEL_DATA = new ModelProperty<>();
 
 
         @Override
@@ -107,9 +106,9 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
             IRenderer renderer = data.get(IRENDERER);
             BlockAndTintGetter world = data.get(WORLD);
             BlockPos pos = data.get(POS);
-//            ModelData modelData = data.get(MODEL_DATA);
+            ModelData modelData = data.get(MODEL_DATA);
             if (renderer != null) {
-                var quads = renderer.renderModel(world, pos, state, side, rand);
+                var quads = renderer.renderModel(world, pos, state, side, rand, modelData, renderType);
                 if (renderer.reBakeCustomQuads() && state != null && world != null && pos != null) {
                     return CustomBakedModel.reBakeCustomQuads(quads, world, pos, state, side, renderer.reBakeCustomQuadsOffset());
                 }
@@ -139,7 +138,7 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
                             .with(IRENDERER, renderer)
                             .with(WORLD, level)
                             .with(POS, pos)
-//                            .with(MODEL_DATA, modelData)
+                            .with(MODEL_DATA, modelData)
                             .build();
                 }
             }
