@@ -417,7 +417,7 @@ public class DrawerHelper {
         builder.addVertex(-1, -1, 0);
         builder.addVertex(1, -1, 0);
         builder.addVertex(1, 1, 0);
-        BufferUploader.drawWithShader(builder.buildOrThrow());
+        BufferUploader.draw(builder.buildOrThrow());
     }
 
     public static void drawTooltip(GuiGraphics graphics, int mouseX, int mouseY, List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable TooltipComponent tooltipComponent, Font tooltipFont) {

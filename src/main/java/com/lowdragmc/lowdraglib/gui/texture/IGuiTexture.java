@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
@@ -82,8 +83,8 @@ public interface IGuiTexture extends IConfigurable {
     }
 
     default IGuiTexture copy() {
-        var tag = serializeWrapper(this);
-        return tag == null ? this : deserializeWrapper(tag);
+        var tag = serializeWrapper(this, Platform.getFrozenRegistry());
+        return tag == null ? this : deserializeWrapper(tag, Platform.getFrozenRegistry());
     }
 
     // ***************** EDITOR  ***************** //

@@ -610,7 +610,7 @@ public class Widget {
         return InputConstants.isKeyDown(id, keyCode);
     }
 
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean isMouseDown(int button) {
         return gui != null && gui.getModularUIGui().isButtonPressed(button);
     }

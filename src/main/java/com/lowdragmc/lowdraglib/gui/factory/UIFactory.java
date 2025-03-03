@@ -1,12 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.factory;
 
-import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.core.mixins.accessor.ServerPlayerAccessor;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIContainer;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIOpen;
-import com.lowdragmc.lowdraglib.side.ForgeEventHooks;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;

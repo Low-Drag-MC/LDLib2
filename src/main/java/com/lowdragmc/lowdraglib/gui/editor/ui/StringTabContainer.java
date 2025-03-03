@@ -11,9 +11,9 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import lombok.Getter;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -105,7 +105,7 @@ public class StringTabContainer extends TabContainer {
         var nameTexture = new TextTexture(name).setType(TextTexture.TextType.ROLL);
         var tabButton = new TabButton(0, 0, 60, TAB_HEIGHT - 2) {
             @Override
-            @Environment(EnvType.CLIENT)
+            @OnlyIn(Dist.CLIENT)
             public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
                 super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
                 var position = getPosition();
@@ -128,7 +128,7 @@ public class StringTabContainer extends TabContainer {
             }
 
             @Override
-            @Environment(EnvType.CLIENT)
+            @OnlyIn(Dist.CLIENT)
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 if (onRemoved != null) {
                     var position = getPosition();
