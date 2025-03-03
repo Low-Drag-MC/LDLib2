@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib.client.model.custommodel.LDLMetadataSection;
 import com.lowdragmc.lowdraglib.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib.core.mixins.ParticleEngineAccessor;
@@ -180,6 +179,14 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void registerModels(ModelEvent.RegisterAdditional event) {
+        // load all models under the ldlib folder
+        for (var entry : Minecraft.getInstance().getResourceManager().listResources("models",
+                id -> id.getNamespace().equals("ldlib") && id.getPath().endsWith(".json")).entrySet()) {
+            if (entry.getValue().sourcePackId().equals("ldlib")) {
+                event.register(ModelResourceLocation.vanilla(entry.getKey().getNamespace(),
+                        entry.getKey().getPath().replace("models/", "").replace(".json", "")));
+            }
+        }
         for (IRenderer renderer : IRenderer.EVENT_REGISTERS) {
             renderer.onAdditionalModel(event::register);
         }

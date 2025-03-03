@@ -326,7 +326,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = ((IntTag) tag).getAsInt();
+            value = tag instanceof NumericTag ? ((NumericTag) tag).getAsInt() : 0;
         }
 
         @Override
@@ -355,7 +355,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = ((LongTag) tag).getAsLong();
+            value = tag instanceof NumericTag ? ((NumericTag) tag).getAsLong() : 0;
         }
 
         @Override
@@ -384,7 +384,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = ((ByteTag) tag).getAsByte() != 0;
+            value = tag instanceof NumericTag && ((NumericTag) tag).getAsByte() != 0;
         }
 
         @Override
@@ -413,7 +413,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = ((FloatTag) tag).getAsFloat();
+            value = tag instanceof NumericTag ? ((NumericTag) tag).getAsFloat() : 0;
         }
 
         @Override
@@ -442,7 +442,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = ((DoubleTag) tag).getAsDouble();
+            value = tag instanceof NumericTag ? ((NumericTag) tag).getAsDouble() : 0;
         }
 
         @Override
@@ -471,7 +471,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = ((ByteTag) tag).getAsByte();
+            value = tag instanceof NumericTag ? ((NumericTag) tag).getAsByte() : 0;
         }
 
         @Override
@@ -500,7 +500,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = ((ShortTag) tag).getAsShort();
+            value = tag instanceof NumericTag ? ((NumericTag) tag).getAsShort() : 0;
         }
 
         @Override
@@ -529,7 +529,7 @@ public abstract class PrimitiveTypedPayload<T> implements ITypedPayload<T> {
 
         @Override
         public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-            value = (char) ((IntTag) tag).getAsInt();
+            value = tag instanceof NumericTag ? (char) ((NumericTag) tag).getAsInt() : 0;
         }
 
         @Override

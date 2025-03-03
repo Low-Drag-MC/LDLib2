@@ -29,7 +29,9 @@ public class RegexNode extends BaseNode {
         }
         if (pattern == null) {
             pattern = Pattern.compile(regex);
-            out = pattern.matcher(PrintNode.format(in)).matches();
+        } else if (!pattern.pattern().equals(regex)) {
+            pattern = Pattern.compile(regex);
         }
+        out = pattern.matcher(PrintNode.format(in)).matches();
     }
 }

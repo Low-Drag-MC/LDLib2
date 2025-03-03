@@ -14,7 +14,7 @@ class SimpleObjectRef extends ManagedRef {
     public void update() {
         Object newValue = getField().value();
         if ((oldValue == null && newValue != null) || (oldValue != null && newValue == null) || (oldValue != null && SyncUtils.isChanged(oldValue, newValue))) {
-            oldValue = SyncUtils.copyWhenNecessary(newValue);
+            oldValue = getKey().getAccessor().copyForManaged(newValue);
             markAsDirty();
         }
     }

@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.client.shader.management;
 import com.google.common.base.Charsets;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.mojang.blaze3d.platform.GlStateManager;
+import it.unimi.dsi.fastutil.ints.Int2IntFunction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
@@ -12,6 +13,7 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL20C;
+import org.lwjgl.opengl.GL43;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
@@ -32,7 +34,7 @@ public class Shader {
     public Shader(ShaderType type, String source) {
         this.shaderType = type;
         this.source = source;
-        this.shaderId = GL20.glCreateShader(shaderType.shaderMode);
+        this.shaderId = shaderType.createShader();
         if (this.shaderId == 0) {
             LDLib.LOGGER.error("GL Shader Allocation Fail!");
             throw new RuntimeException("GL Shader Allocation Fail!");
@@ -122,17 +124,24 @@ public class Shader {
     }
 
     public enum ShaderType {
-        VERTEX("vertex", ".vsh", 35633),
-        FRAGMENT("fragment", ".fsh", 35632);
+        VERTEX("vertex", ".vsh", GL20.GL_VERTEX_SHADER, GL20::glCreateShader),
+        FRAGMENT("fragment", ".fsh", GL20.GL_FRAGMENT_SHADER, GL20::glCreateShader),
+        COMPUTE("compute", ".comp", 0x91B9, id -> GL43.glCreateShader(GL43.GL_COMPUTE_SHADER));
 
         public final String shaderName;
         public final String shaderExtension;
         public final int shaderMode;
+        public final Int2IntFunction shaderCreator;
 
-        ShaderType(String shaderNameIn, String shaderExtensionIn, int shaderModeIn) {
+        ShaderType(String shaderNameIn, String shaderExtensionIn, int shaderModeIn, Int2IntFunction shaderCreatorIn) {
             this.shaderName = shaderNameIn;
             this.shaderExtension = shaderExtensionIn;
             this.shaderMode = shaderModeIn;
+            this.shaderCreator = shaderCreatorIn;
+        }
+
+        public int createShader() {
+            return shaderCreator.get(this.shaderMode);
         }
     }
 

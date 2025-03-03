@@ -14,8 +14,10 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceProvider;
+import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +27,7 @@ import static com.mojang.blaze3d.vertex.VertexFormatElement.POSITION;
 
 @OnlyIn(Dist.CLIENT)
 public class Shaders {
-
+	private static final List<Runnable> reloadListeners = new ArrayList<>();
 	public static Shader IMAGE_F;
 	public static Shader IMAGE_V;
 	public static Shader GUI_IMAGE_V;
@@ -52,6 +54,10 @@ public class Shaders {
 
 	public static Map<ResourceLocation, Shader> CACHE = new HashMap<>();
 
+	public static void addReloadListener(Runnable runnable) {
+		reloadListeners.add(runnable);
+	}
+
 	public static void reload() {
 		for (Shader shader : CACHE.values()) {
 			if (shader != null) {
@@ -62,6 +68,7 @@ public class Shaders {
 		init();
 		DrawerHelper.init();
 		ShaderTexture.clearCache();
+		reloadListeners.forEach(Runnable::run);
 	}
 
 	public static Shader load(Shader.ShaderType shaderType, ResourceLocation resourceLocation) {
@@ -119,4 +126,13 @@ public class Shaders {
 			throw new RuntimeException(e);
 		}
     }
+
+	public static boolean supportComputeShader() {
+		return GL.getCapabilities().GL_ARB_compute_shader;
+	}
+
+	public static boolean supportSSBO() {
+		return GL.getCapabilities().GL_ARB_shader_storage_buffer_object;
+	}
+
 }

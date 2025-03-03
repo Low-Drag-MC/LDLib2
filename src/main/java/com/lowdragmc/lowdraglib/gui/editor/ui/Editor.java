@@ -1,21 +1,24 @@
 package com.lowdragmc.lowdraglib.gui.editor.ui;
 
-import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.ILDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.data.IProject;
+import com.lowdragmc.lowdraglib.gui.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.lowdragmc.lowdraglib.gui.widget.MenuWidget;
+import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.nbt.CompoundTag;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.nbt.NbtIo;
@@ -24,6 +27,8 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -49,6 +54,10 @@ public abstract class Editor extends WidgetGroup implements ILDLRegister {
     protected ToolPanel toolPanel;
     protected String copyType;
     protected Object copied;
+    public record HistoryItem(String name, CompoundTag date, @Nullable Object source) { }
+    protected final List<HistoryItem> history = new ArrayList<>();
+    @Nullable
+    protected HistoryItem currentHistory;
 
     public Editor(String modID) {
         this(new File(LDLib.getLDLibDir(), "assets/" + modID));
@@ -89,7 +98,11 @@ public abstract class Editor extends WidgetGroup implements ILDLRegister {
         super.onScreenSizeUpdate(screenWidth, screenHeight);
         this.clearAllWidgets();
         initEditorViews();
+        var lastPageIndex = tabPages == null ? -1 : tabPages.getTabIndex();
         loadProject(currentProject);
+        if (tabPages != null) {
+            tabPages.switchTabIndex(lastPageIndex);
+        }
     }
 
     public void initEditorViews() {
@@ -142,6 +155,63 @@ public abstract class Editor extends WidgetGroup implements ILDLRegister {
                 .setKeyIconSupplier(TreeBuilder.Menu::getIcon)
                 .setKeyNameSupplier(TreeBuilder.Menu::getName)
                 .setOnNodeClicked(TreeBuilder.Menu::handle);
+    }
+
+    public void addRawHistory(String name, CompoundTag date) {
+        addRawHistory(name, date, null);
+    }
+
+    public void addRawHistory(String name, CompoundTag date, @Nullable Object source) {
+        if (currentProject != null) {
+            if (currentHistory != null) {
+                var index = history.indexOf(currentHistory);
+                if (index >= 0) {
+                    while (history.size() > index + 1) {
+                        history.remove(history.size() - 1);
+                    }
+                }
+            }
+            currentHistory = new HistoryItem(name, date, source);
+            history.add(currentHistory);
+            // if history view is opened, update it
+            for (Widget widget : floatView.widgets) {
+                if (widget instanceof HistoryView historyView) {
+                    historyView.loadList();
+                    break;
+                }
+            }
+        }
+    }
+
+    public void addAutoHistory(String name, @Nullable Object source) {
+        if (this.currentProject != null) {
+            // update history view
+            var historyName = LocalizationUtils.format(name);
+            var data = this.currentProject.serializeNBT(Platform.getFrozenRegistry());
+            if (!this.getHistory().isEmpty()) {
+                var latestHistory = this.getHistory().get(this.getHistory().size() - 1);
+                // if the data is the same as the latest history, do not add a new history
+                if (!data.equals(latestHistory.date())) {
+                    // if new history is the same as the latest history, update the latest history
+                    if (latestHistory.name().equals(historyName) && Objects.equals(latestHistory.source(), source)) {
+                        this.getHistory().remove(latestHistory);
+                    }
+                    this.addRawHistory(historyName, data, source);
+                }
+            } else {
+                this.addRawHistory(historyName, data, source);
+            }
+        }
+    }
+
+    public void jumpToHistory(HistoryItem historyItem) {
+        if (currentProject != null && history.contains(historyItem)) {
+            var lastPageIndex = tabPages.getTabIndex();
+            currentProject.deserializeNBT(Platform.getFrozenRegistry(), historyItem.date());
+            loadProject(currentProject);
+            tabPages.switchTabIndex(lastPageIndex);
+            currentHistory = historyItem;
+        }
     }
 
     public void loadProject(IProject project) {

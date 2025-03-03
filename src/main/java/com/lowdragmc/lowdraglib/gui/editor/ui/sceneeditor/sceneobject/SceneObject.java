@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.sceneobject;
 
-import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.SceneEditorWidget;
 import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.data.Transform;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -9,10 +8,9 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class SceneObject implements ISceneObject {
-
     @Getter
     @Nullable
-    private SceneEditorWidget scene;
+    private IScene scene;
     @Getter
     @Accessors(fluent = true)
     private final Transform transform;
@@ -31,7 +29,7 @@ public class SceneObject implements ISceneObject {
     }
 
     @Override
-    public final void setSceneInternal(SceneEditorWidget scene) {
+    public final void setSceneInternal(IScene scene) {
         this.scene = scene;
     }
 

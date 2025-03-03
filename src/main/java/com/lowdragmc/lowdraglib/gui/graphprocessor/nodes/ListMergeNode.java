@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.NodePort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortData;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortEdge;
+import com.lowdragmc.lowdraglib.utils.TypeAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,8 +71,12 @@ public abstract class ListMergeNode<T> extends BaseNode {
         if (inputEdges.isEmpty()) return;
         var value = defaultValue();
         for (PortEdge inputEdge : inputEdges) {
-            if (inputEdge.passThroughBuffer.getClass() == type()) {
+            var edgeType = inputEdge.passThroughBuffer.getClass();
+            var type = type();
+            if (edgeType == type) {
                 value = merge(value, (T) inputEdge.passThroughBuffer);
+            } else if (TypeAdapter.areConvertable(edgeType, type)) {
+                value = merge(value, (T) TypeAdapter.convert(inputEdge.passThroughBuffer, type()));
             }
         }
         var index = inputPort.owner.getInputPorts().indexOf(inputPort);

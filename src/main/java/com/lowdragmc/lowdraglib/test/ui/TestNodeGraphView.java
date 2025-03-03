@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseGraph;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
@@ -29,7 +30,11 @@ public class TestNodeGraphView implements IUITest {
         parameters.add(new ExposedParameter.String("test_string_set").setAccessor(ExposedParameter.ParameterAccessor.Set));
         var graph = new BaseGraph(parameters);
         return IUITest.super.createUI(holder, entityPlayer)
-                .widget(new GraphViewWidget(graph, 0, 0, getScreenWidth(), getScreenHeight()));
+                .widget(new GraphViewWidget(graph, 0, 0, getScreenWidth(), getScreenHeight(), supportNodeGroups -> {
+                    if (LDLib.isModLoaded("kubejs")) {
+                        supportNodeGroups.add("graph_processor.node.kjs");
+                    }
+                }));
     }
 
     public static class LevelParameter extends ExposedParameter<Level> {

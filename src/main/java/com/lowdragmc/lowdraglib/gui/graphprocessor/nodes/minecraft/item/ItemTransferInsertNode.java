@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib.gui.editor.runtime.ConfiguratorParser;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.trigger.LinearTriggerNode;
-import lombok.SneakyThrows;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
@@ -43,18 +42,25 @@ public class ItemTransferInsertNode extends LinearTriggerNode {
     }
 
     @Override
-    @SneakyThrows
     public void buildConfigurator(ConfiguratorGroup father) {
         var setter = new HashMap<String, Method>();
         var clazz = getClass();
         for (var port : getInputPorts()) {
             if (port.fieldName.equals("slot")) {
                 if (port.getEdges().isEmpty()) {
-                    ConfiguratorParser.createFieldConfigurator(clazz.getField("internalSlot"), father, clazz, setter, this);
+                    try {
+                        ConfiguratorParser.createFieldConfigurator(clazz.getField("internalSlot"), father, clazz, setter, this);
+                    } catch (NoSuchFieldException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             } else if (port.fieldName.equals("simulate")) {
                 if (port.getEdges().isEmpty()) {
-                    ConfiguratorParser.createFieldConfigurator(clazz.getField("internalSimulate"), father, clazz, setter, this);
+                    try {
+                        ConfiguratorParser.createFieldConfigurator(clazz.getField("internalSimulate"), father, clazz, setter, this);
+                    } catch (NoSuchFieldException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }

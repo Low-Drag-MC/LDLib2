@@ -74,8 +74,4 @@ public class RangeConfigurator extends ValueConfigurator<Range> {
         addWidget(y);
     }
 
-    @Override
-    public void updateValue() {
-        super.updateValue();
-    }
 }

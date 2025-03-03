@@ -16,6 +16,7 @@ public interface ISceneRendering extends ISceneObject {
      * Called before draw the object in the scene.
      * before the transform is applied. all children will be drawn after this.
      */
+    @OnlyIn(Dist.CLIENT)
     default void preDraw(float partialTicks){
     }
 
@@ -23,15 +24,17 @@ public interface ISceneRendering extends ISceneObject {
      * Called after draw the object in the scene.
      * after the transform is applied. all children will be drawn before this.
      */
+    @OnlyIn(Dist.CLIENT)
     default void postDraw(float partialTicks){
     }
 
     /**
      * Draw the object in the scene. execute transform here.
      */
+    @OnlyIn(Dist.CLIENT)
     default void draw(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks){
         poseStack.pushPose();
-        poseStack.mulPose(transform().worldToLocalMatrix());
+        poseStack.mulPose(transform().localToWorldMatrix());
         drawInternal(poseStack, bufferSource, partialTicks);
         poseStack.popPose();
     }
@@ -39,5 +42,6 @@ public interface ISceneRendering extends ISceneObject {
     /**
      * Draw the object in the scene.
      */
+    @OnlyIn(Dist.CLIENT)
     void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks);
 }

@@ -74,6 +74,7 @@ public class FluidConfigurator extends ValueConfigurator<Fluid> implements Searc
     public void search(String word, Consumer<Fluid> find) {
         var wordLower = word.toLowerCase();
         for (var entry : BuiltInRegistries.FLUID.entrySet()) {
+            if (Thread.currentThread().isInterrupted()) return;
             var fluid = entry.getValue();
             var id = entry.getKey().location();
             if (id.toString().contains(wordLower)) {

@@ -1,13 +1,19 @@
 package com.lowdragmc.lowdraglib.kjs;
 
+import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.editor.data.UIProject;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
+import dev.latvian.mods.kubejs.event.EventGroupRegistry;
 import dev.latvian.mods.kubejs.plugin.ClassFilter;
 import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
 import dev.latvian.mods.kubejs.script.BindingRegistry;
+import com.lowdragmc.lowdraglib.kjs.ui.BlockUIJSFactory;
+import com.lowdragmc.lowdraglib.kjs.ui.ItemUIJSFactory;
+import com.lowdragmc.lowdraglib.kjs.ui.UIEvents;
 import org.joml.Vector3f;
 
 /**
@@ -17,13 +23,22 @@ import org.joml.Vector3f;
  */
 public class LDLibKubeJSPlugin implements KubeJSPlugin {
 
+
     @Override
     public void registerClasses(ClassFilter filter) {
         filter.allow("com.lowdragmc.lowdraglib");
     }
 
     @Override
+    public void registerEvents(EventGroupRegistry registry) {
+        registry.register(UIEvents.INSTANCE);
+    }
+
+    @Override
     public void registerBindings(BindingRegistry event) {
+        event.add("BlockUIFactory", BlockUIJSFactory.class);
+        event.add("ItemUIFactory", ItemUIJSFactory.class);
+        event.add("UIProject", UIProject.class);
         // texture
         event.add("ResourceTexture", ResourceTexture.class);
         event.add("FillDirection", ProgressTexture.FillDirection.class);
@@ -36,6 +51,8 @@ public class LDLibKubeJSPlugin implements KubeJSPlugin {
         event.add("ShaderTexture", ShaderTexture.class);
         event.add("TextTexture", TextTexture.class);
         event.add("GuiTextureGroup", GuiTextureGroup.class);
+        event.add("ColorPattern", ColorPattern.class);
+        event.add("TextType", TextTexture.TextType.class);
         // LDLib Widget
         event.add("ModularUI", ModularUI.class);
         event.add("BlockSelectorWidget", BlockSelectorWidget.class);
@@ -58,6 +75,7 @@ public class LDLibKubeJSPlugin implements KubeJSPlugin {
         event.add("TextFieldWidget", TextFieldWidget.class);
         event.add("TreeListWidget", TreeListWidget.class);
         event.add("WidgetGroup", WidgetGroup.class);
+        event.add("Widget", Widget.class);
         event.add("ProgressWidget", ProgressWidget.class);
         // math
         event.add("Vector3f", Vector3f.class);

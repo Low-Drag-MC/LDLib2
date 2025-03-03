@@ -62,8 +62,11 @@ public class ColorsResource extends Resource<Integer> {
         container.getPanel().getEditor().getConfigPanel().openConfigurator(ConfigPanel.Tab.RESOURCE, new IConfigurable() {
             @Override
             public void buildConfigurator(ConfiguratorGroup father) {
-                var configurator = new WrapperConfigurator("color", new HsbColorWidget(0, 0, 150, 150)
-                        .setOnChanged(newColor -> addResource(key, newColor))
+                var configurator = new WrapperConfigurator("color", wrapper -> new HsbColorWidget(0, 0, 150, 150)
+                        .setOnChanged(newColor -> {
+                            addResource(key, newColor);
+                            wrapper.notifyChanges();
+                        })
                         .setColorSupplier(() -> getResourceOrDefault(key, -1))
                         .setColor(getResourceOrDefault(key, -1)));
                 var r = new NumberConfigurator("R",

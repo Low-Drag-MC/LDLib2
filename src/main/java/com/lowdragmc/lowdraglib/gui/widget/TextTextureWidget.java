@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.utils.Size;
+import dev.latvian.mods.rhino.util.RemapForJS;
 import lombok.Getter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.FriendlyByteBuf;
@@ -39,6 +40,7 @@ public class TextTextureWidget extends Widget implements IConfigurableWidget {
 
     public TextTextureWidget(int xPosition, int yPosition, int width, int height, String text) {
         super(xPosition, yPosition, width, height);
+        textTexture.setDropShadow(true);
         textTexture.setWidth(width);
         textTexture.setSupplier(() -> lastComponent == null ? "" : lastComponent.getString());
         if (isRemote()) {
@@ -70,6 +72,7 @@ public class TextTextureWidget extends Widget implements IConfigurableWidget {
         return this;
     }
 
+    @RemapForJS("setComponent")
     public TextTextureWidget setText(Component text) {
         textSupplier = () -> text;
         return this;

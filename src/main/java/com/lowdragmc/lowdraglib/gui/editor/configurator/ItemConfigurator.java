@@ -75,6 +75,7 @@ public class ItemConfigurator extends ValueConfigurator<Item> implements SearchC
     public void search(String word, Consumer<Item> find) {
         var wordLower = word.toLowerCase();
         for (var itemEntry : BuiltInRegistries.ITEM.entrySet()) {
+            if (Thread.currentThread().isInterrupted()) return;
             var item = itemEntry.getValue();
             var id = itemEntry.getKey().location();
             if (id.toString().contains(wordLower)) {

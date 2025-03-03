@@ -14,7 +14,6 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.NodePort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortData;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortEdge;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import lombok.SneakyThrows;
 import net.minecraft.nbt.*;
 
 import java.util.Collections;
@@ -42,7 +41,6 @@ public class CompoundReaderNode extends BaseNode {
     public String internalKey = "";
 
     @Override
-    @SneakyThrows
     public void buildConfigurator(ConfiguratorGroup father) {
         super.buildConfigurator(father);
         for (var port : getInputPorts()) {
@@ -83,6 +81,10 @@ public class CompoundReaderNode extends BaseNode {
                 switch (listTag.getElementType()) {
                     case Tag.TAG_STRING -> out = listTag.stream().map(Tag::getAsString).toList();
                     case Tag.TAG_FLOAT -> out = listTag.stream().map(FloatTag.class::cast).map(FloatTag::getAsFloat).toList();
+                    case Tag.TAG_DOUBLE -> out = listTag.stream().map(DoubleTag.class::cast).map(DoubleTag::getAsFloat).toList();
+                    case Tag.TAG_INT -> out = listTag.stream().map(IntTag.class::cast).map(IntTag::getAsFloat).toList();
+                    case Tag.TAG_LONG -> out = listTag.stream().map(LongTag.class::cast).map(LongTag::getAsFloat).toList();
+                    case Tag.TAG_SHORT -> out = listTag.stream().map(ShortTag.class::cast).map(ShortTag::getAsFloat).toList();
                     case Tag.TAG_COMPOUND -> out = listTag.stream().map(CompoundTag.class::cast).toList();
                     case Tag.TAG_BYTE -> out = listTag.stream().map(ByteTag.class::cast).map(t -> t.getAsByte() != 0).toList();
                     case Tag.TAG_LIST -> out = listTag.stream().map(ListTag.class::cast).toList();

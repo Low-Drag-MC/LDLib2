@@ -1,32 +1,38 @@
 package com.lowdragmc.lowdraglib.syncdata.payload;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.IntArrayTag;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 
 public class BlockPosPayload extends ObjectTypedPayload<BlockPos> {
 
     @Override
-    public void writePayload(RegistryFriendlyByteBuf buf) {
+    public void writePayload(FriendlyByteBuf buf) {
         buf.writeBlockPos(payload);
     }
 
     @Override
-    public void readPayload(RegistryFriendlyByteBuf buf) {
+    public void readPayload(FriendlyByteBuf buf) {
         payload = buf.readBlockPos();
     }
 
     @Override
-    public Tag serializeNBT(HolderLookup.Provider provider) {
+    public Tag serializeNBT() {
         return NbtUtils.writeBlockPos(payload);
     }
 
     @Override
-    public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-        IntArrayTag ints = (IntArrayTag) tag;
-        payload = ints.size() == 3 ? new BlockPos(ints.get(0).getAsInt(), ints.get(1).getAsInt(), ints.get(2).getAsInt()) : null;
+    public void deserializeNBT(Tag tag) {
+        payload = NbtUtils.readBlockPos((CompoundTag) tag);
+    }
+
+    @Override
+    public Object copyForManaged(Object value) {
+        if (value instanceof BlockPos) {
+            return new BlockPos((BlockPos) value);
+        }
+        return super.copyForManaged(value);
     }
 }

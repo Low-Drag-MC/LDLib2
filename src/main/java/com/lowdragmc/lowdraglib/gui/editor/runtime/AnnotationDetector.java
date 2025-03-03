@@ -57,13 +57,17 @@ public class AnnotationDetector {
                     AnnotationDetector::toClientUINoArgsBuilder,
                     AnnotationDetector::clientUIWrapperSorter, l -> REGISTER_RENDERERS.putAll(l.stream().collect(Collectors.toMap(w -> w.annotation().name(), w -> w))));
             if (Platform.isDevEnv()) {
-                REGISTER_UI_TESTS.addAll(AnnotationDetector.scanClasses(
+                AnnotationDetector.scanClasses(
                         LDLRegisterClient.class,
                         IUITest.class,
                         AnnotationDetector::checkNoArgsConstructor,
                         AnnotationDetector::toClientUINoArgsBuilder,
                         AnnotationDetector::clientUIWrapperSorter,
-                        l -> {}));
+                        l -> {
+                            for (Wrapper<LDLRegisterClient, ? extends IUITest> wrapper : l) {
+                                REGISTER_UI_TESTS.add((Wrapper<LDLRegisterClient, IUITest>) wrapper);
+                            }
+                        });
             }
         }
         AnnotationDetector.scanClasses(

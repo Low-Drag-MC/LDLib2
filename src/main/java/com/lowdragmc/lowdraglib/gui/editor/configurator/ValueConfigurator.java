@@ -37,6 +37,7 @@ public abstract class ValueConfigurator<T> extends Configurator {
         if (onUpdate != null) {
             onUpdate.accept(value);
         }
+        notifyChanges();
     }
 
     /**

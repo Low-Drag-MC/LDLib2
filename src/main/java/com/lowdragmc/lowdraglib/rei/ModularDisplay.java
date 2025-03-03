@@ -126,11 +126,9 @@ public class ModularDisplay<T extends Widget> implements Display {
 
                 // Clear the LDLib slots
                 if (slot instanceof com.lowdragmc.lowdraglib.gui.widget.SlotWidget slotW) {
-                    slotW.setHandlerSlot((IItemHandlerModifiable) EmptyItemHandler.INSTANCE, 0);
-                    slotW.setDrawHoverOverlay(false).setDrawHoverTips(false);
+                    clearSlotWidgetHandler(slotW, 0);
                 } else if (slot instanceof TankWidget tankW) {
-                    tankW.setFluidTank(EmptyFluidHandler.INSTANCE);
-                    tankW.setDrawHoverOverlay(false).setDrawHoverTips(false);
+                    clearTankWidgetHandler(tankW);
                 }
                 entryWidget.tooltipProcessor(tooltips -> {
                     if (tooltips.entries().stream().noneMatch(tooltip -> !tooltip.isText() || w.getTooltipTexts().contains(tooltip.getAsText()))) {
@@ -145,6 +143,16 @@ public class ModularDisplay<T extends Widget> implements Display {
         list.add(new ModularForegroundRenderWidget(modular));
 
         return list;
+    }
+
+    public void clearSlotWidgetHandler(com.lowdragmc.lowdraglib.gui.widget.SlotWidget slotW, int slotIndex) {
+        slotW.setHandlerSlot((IItemHandlerModifiable) EmptyItemHandler.INSTANCE, slotIndex);
+        slotW.setDrawHoverOverlay(false).setDrawHoverTips(false);
+    }
+
+    public void clearTankWidgetHandler(TankWidget tankW) {
+        tankW.setFluidTank(EmptyFluidHandler.INSTANCE);
+        tankW.setDrawHoverOverlay(false).setDrawHoverTips(false);
     }
 
     @Override

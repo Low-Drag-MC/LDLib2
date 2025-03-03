@@ -94,6 +94,13 @@ public class TabContainer extends WidgetGroup {
         tabWidget.setActive(focus == tabWidget);
     }
 
+    public void removeTab(TabButton tabButton) {
+        if (tabs.containsKey(tabButton)) {
+            buttonGroup.removeWidget(tabButton);
+            containerGroup.removeWidget(tabs.remove(tabButton));
+        }
+    }
+
     @Override
     public void clearAllWidgets() {
         tabs.clear();

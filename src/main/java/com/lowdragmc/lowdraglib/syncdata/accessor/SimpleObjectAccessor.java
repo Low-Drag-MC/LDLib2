@@ -6,40 +6,10 @@ import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import com.lowdragmc.lowdraglib.syncdata.payload.ObjectTypedPayload;
 import com.lowdragmc.lowdraglib.syncdata.payload.PrimitiveTypedPayload;
 import net.minecraft.core.HolderLookup;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.function.Supplier;
 
 
 public abstract class SimpleObjectAccessor extends ManagedAccessor {
 
-    public static <T> SimpleObjectAccessor create(@NotNull Class<T> type, boolean inherited, Supplier<? extends ObjectTypedPayload<T>> payloadSupplier) {
-        if(inherited) {
-            return new SimpleObjectAccessor(type) {
-                @Override
-                public ObjectTypedPayload<?> createEmpty() {
-                    return payloadSupplier.get();
-                }
-
-                @Override
-                public boolean hasPredicate() {
-                    return true;
-                }
-
-                @Override
-                public boolean test(Class<?> test) {
-                    return type.isAssignableFrom(test);
-                }
-            };
-        }
-
-        return new SimpleObjectAccessor(type) {
-            @Override
-            public ObjectTypedPayload<?> createEmpty() {
-                return payloadSupplier.get();
-            }
-        };
-    }
     private final Class<?>[] operandTypes;
 
     protected SimpleObjectAccessor(Class<?>... operandTypes) {

@@ -99,12 +99,12 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     protected IngredientIO ingredientIO = IngredientIO.RENDER_ONLY;
     @Setter @Getter
     protected float XEIChance = 1f;
+    @Getter
     protected FluidStack lastFluidInTank;
+    @Getter
     protected int lastTankCapacity;
     @Setter
     protected Runnable changeListener;
-    @Nullable
-    FluidStack currentJEIRenderedIngredient = null;
 
     public TankWidget() {
         this(null, 0, 0, 18, 18, true, true);
@@ -158,6 +158,27 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         this.tank = tank;
         if (isClientSideWidget) {
             setClientSideWidget();
+        }
+        return this;
+    }
+
+    public FluidStack getFluid() {
+        if (isClientSideWidget || isRemote()) {
+            return lastFluidInTank == null ? FluidStack.EMPTY : lastFluidInTank;
+        }
+        return fluidTank != null ? fluidTank.getFluidInTank(tank) : FluidStack.EMPTY;
+    }
+
+    public TankWidget setFluid(FluidStack fluidStack) {
+        return setFluid(fluidStack, true);
+    }
+
+    public TankWidget setFluid(FluidStack fluidStack, boolean notify) {
+        if (fluidTank instanceof IFluidHandlerModifiable modifiableTank) {
+            modifiableTank.setFluidInTank(tank, fluidStack);
+            if (notify) {
+                detectAndSendChanges();
+            }
         }
         return this;
     }
@@ -224,6 +245,15 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
             return List.of(EmiStack.of(lastFluidInTank.getFluid(), lastFluidInTank.getComponentsPatch(), lastFluidInTank.getAmount()).setChance(XEIChance));
         }
         return List.of(FluidHelper.toRealFluidStack(lastFluidInTank));
+    }
+
+    @Override
+    public Object getXEICurrentIngredient() {
+        if (lastFluidInTank == null || lastFluidInTank.isEmpty()) return null;
+        if (LDLib.isJeiLoaded()) {
+            return JEICallWrapper.getPlatformFluidTypeForJEIClickable(new FluidStack(lastFluidInTank.getFluid(), lastFluidInTank.getAmount()), getPosition(), getSize());
+        }
+        return null;
     }
 
     private List<Object> getXEIIngredientsFromCycleTransfer(CycleFluidTransfer transfer, int index) {
@@ -341,7 +371,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     @Override
     public List<Component> getFullTooltipTexts() {
         var tooltips = new ArrayList<Component>();
-        var fluidStack = this.currentJEIRenderedIngredient != null ? this.currentJEIRenderedIngredient : this.lastFluidInTank;
+        var fluidStack = this.lastFluidInTank;
         if (fluidStack != null && !fluidStack.isEmpty()) {
             tooltips.add(FluidHelper.getDisplayName(fluidStack));
             tooltips.add(Component.translatable("ldlib.fluid.amount", fluidStack.getAmount(), lastTankCapacity).append(" " + FluidHelper.getUnit()));
@@ -362,20 +392,6 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     }
 
     @Override
-    public void setCurrentJEIRenderedIngredient(Object ingredient) {
-        if (LDLib.isJeiLoaded()) {
-            this.currentJEIRenderedIngredient = JEICallWrapper.getForgePlatformFluidTypeForIngredient(ingredient);
-            if (this.currentJEIRenderedIngredient.isEmpty()) {
-                this.currentJEIRenderedIngredient = null;
-            }
-        } else {
-            this.currentJEIRenderedIngredient = null;
-        }
-    }
-
-
-
-    @Override
     @OnlyIn(Dist.CLIENT)
     public void drawInBackground(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
@@ -393,7 +409,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         }
         Position pos = getPosition();
         Size size = getSize();
-        var renderedFluid = currentJEIRenderedIngredient != null ? currentJEIRenderedIngredient : lastFluidInTank;
+        var renderedFluid = lastFluidInTank;
         if (renderedFluid != null) {
             RenderSystem.disableBlend();
             if (!renderedFluid.isEmpty()) {
@@ -406,7 +422,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
                 int height = size.height - 2;
                 int x = pos.x + 1;
                 int y = pos.y + 1;
-                DrawerHelper.drawFluidForGui(graphics, renderedFluid, renderedFluid.getAmount(), (int) (x + drawnU * width), (int) (y + drawnV * height), ((int) (width * drawnWidth)), ((int) (height * drawnHeight)));
+                DrawerHelper.drawFluidForGui(graphics, renderedFluid, x + drawnU * width, y + drawnV * height, width * drawnWidth, height * drawnHeight);
             }
 
             if (showAmount && !renderedFluid.isEmpty()) {

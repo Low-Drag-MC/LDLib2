@@ -53,19 +53,18 @@ public interface IAsyncAutoSyncBlockEntity extends IAutoSyncBlockEntity, IAsyncL
 
     @Override
     default void asyncTick(long periodID) {
-        var server = Platform.getMinecraftServer();
-        if (server == null || server.isStopped() || !server.isRunning()) return;
+        if (Platform.isServerNotSafe()) return;
+
         if (useAsyncThread() && !getSelf().isRemoved()) {
             for (IRef field : getNonLazyFields()) {
                 field.update();
             }
             if (getRootStorage().hasDirtySyncFields() && !isAsyncSyncing()) {
                 setAsyncSyncing(true);
-                server.execute(() -> {
-                    if (!server.isStopped() && server.isRunning()) {
-                        var packet = SPacketManagedPayload.of(this, false);
-                        PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(this.getCurrentPos()), packet);
-                    }
+                Platform.getMinecraftServer().execute(() -> {
+                    if (Platform.isServerNotSafe()) return;
+                    var packet = SPacketManagedPayload.of(this, false);
+                    PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(this.getCurrentPos()), packet);
                     setAsyncSyncing(false);
                 });
             }

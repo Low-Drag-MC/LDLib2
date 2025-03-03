@@ -64,6 +64,9 @@ public class Icons {
     public static ResourceTexture RADIOBOX_MARKED = icon("radiobox_marked");
     public static ResourceTexture CHECKBOX_BLANK = icon("checkbox_blank");
     public static ResourceTexture CHECKBOX_MARKED = icon("checkbox_marked");
+    public static ResourceTexture TRANSFORM_TRANSLATE = icon("transform_translate");
+    public static ResourceTexture TRANSFORM_ROTATE = icon("transform_rotate");
+    public static ResourceTexture TRANSFORM_SCALE = icon("transform_scale");
     //align
     public static ResourceTexture ALIGN_H_C = icon("align_horizontal_center");
     public static ResourceTexture ALIGN_H_D = icon("align_horizontal_distribute");

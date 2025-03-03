@@ -30,7 +30,6 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
     @Nonnull
     protected Supplier<String> textSupplier;
 
-    @Setter
     @Nullable
     protected Component component;
 
@@ -56,6 +55,34 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
         super(new Position(xPosition, yPosition), new Size(10, 10));
         setDropShadow(true);
         setTextColor(-1);
+        setComponent(component);
+    }
+
+    public LabelWidget(int xPosition, int yPosition, Supplier<String> text) {
+        super(new Position(xPosition, yPosition), new Size(10, 10));
+        setDropShadow(true);
+        setTextColor(-1);
+        setTextProvider(text);
+    }
+
+    @ConfigSetter(field = "lastTextValue")
+    public void setText(String text) {
+        textSupplier = () -> text;
+        if (isRemote()) {
+            lastTextValue = textSupplier.get();
+            updateSize();
+        }
+    }
+
+    public void setTextProvider(Supplier<String> textProvider) {
+        textSupplier = textProvider;
+        if (isRemote()) {
+            lastTextValue = textSupplier.get();
+            updateSize();
+        }
+    }
+
+    public void setComponent(Component component) {
         this.component = component;
         if (isRemote()) {
             lastTextValue = component.getString();
@@ -63,31 +90,21 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
         }
     }
 
-    public LabelWidget(int xPosition, int yPosition, Supplier<String> text) {
-        super(new Position(xPosition, yPosition), new Size(10, 10));
-        setDropShadow(true);
-        setTextColor(-1);
-        this.textSupplier = text;
-        if (isRemote()) {
-            lastTextValue = text.get();
-            updateSize();
-        }
-    }
-
-    @ConfigSetter(field = "lastTextValue")
-    public void setText(String text) {
-        textSupplier = () -> text;
-    }
-
+    @Deprecated
     public LabelWidget setTextColor(int color) {
         this.color = color;
         if (this.component != null) this.component = this.component.copy().withStyle(this.component.getStyle().withColor(color));
         return this;
     }
 
+    @Deprecated
     public LabelWidget setDropShadow(boolean dropShadow) {
         this.dropShadow = dropShadow;
         return this;
+    }
+
+    public void setColor(int color) {
+        setTextColor(color);
     }
 
     @Override

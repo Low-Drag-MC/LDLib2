@@ -17,14 +17,13 @@ public class LDLibRenderTypes extends RenderType {
                     .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
                     .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                     .setDepthTestState(NO_DEPTH_TEST)
-                    .setWriteMaskState(COLOR_WRITE)
                     .createCompositeState(false));
 
     private static final RenderType NO_DEPTH_LINES = create("lines",
-            DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 256,
+            DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 256, false, false,
             RenderType.CompositeState.builder()
                     .setShaderState(RENDERTYPE_LINES_SHADER)
-                    .setLineState(new RenderStateShard.LineStateShard(OptionalDouble.empty()))
+                    .setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(3f)))
                     .setLayeringState(VIEW_OFFSET_Z_LAYERING)
                     .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                     .setOutputState(ITEM_ENTITY_TARGET)

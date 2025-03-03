@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib.gui.widget.layout.Layout;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.latvian.mods.rhino.util.HideFromJS;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
@@ -195,16 +196,27 @@ public class WidgetGroup extends Widget implements IGhostIngredientTarget, IIngr
     }
 
     @Nullable
+    @HideFromJS
     public Widget getFirstWidgetById(Pattern regex) {
         List<Widget> list = new ArrayList<>();
         getWidgetsById(list, regex);
         return list.isEmpty() ? null : list.get(0);
     }
 
+    @HideFromJS
     public List<Widget> getWidgetsById(Pattern regex) {
         List<Widget> list = new ArrayList<>();
         getWidgetsById(list, regex);
         return list;
+    }
+
+    @Nullable
+    public Widget getFirstWidgetById(String regex) {
+        return getFirstWidgetById(Pattern.compile(regex));
+    }
+
+    public List<Widget> getWidgetsById(String regex) {
+        return getWidgetsById(Pattern.compile(regex));
     }
 
     private void getWidgetsById(List<Widget> list, Pattern regex) {
@@ -336,6 +348,13 @@ public class WidgetGroup extends Widget implements IGhostIngredientTarget, IIngr
 
     public WidgetGroup addWidget(Widget widget) {
         return addWidget(widgets.size(), widget);
+    }
+
+    public WidgetGroup addWidgets(Widget... widgets) {
+        for (Widget widget : widgets) {
+            addWidget(widget);
+        }
+        return this;
     }
 
     public <T extends Widget> WidgetGroup addWidget(T widget, Consumer<T> callback) {

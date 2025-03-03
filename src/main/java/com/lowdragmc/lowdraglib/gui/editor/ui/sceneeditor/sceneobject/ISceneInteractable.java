@@ -36,7 +36,7 @@ public interface ISceneInteractable extends ISceneObject {
     @Nullable
     default BlockHitResult clip(Ray ray, boolean transform) {
         if (transform) {
-            ray = ray.localToWorld(transform());
+            ray = ray.worldToLocal(transform());
         }
         return ray.clip(getCollisionShape());
     }

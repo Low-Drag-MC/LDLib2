@@ -28,6 +28,8 @@ public class NumberNode extends BaseNode {
             return;
         } else if (in instanceof Number number) {
             out = number.floatValue();
+        } else if (in instanceof Boolean bool) {
+            out = bool ? 1 : 0;
         } else {
             try {
                 out = Float.parseFloat(in.toString());

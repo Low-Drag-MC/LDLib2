@@ -40,6 +40,8 @@ public class ExposedParameter<T> implements IPersistedSerializable {
     public void setValue(Object value) {
         if (type.isInstance(value)) {
             this.value = (T) value;
+        } else {
+            this.value = null;
         }
     }
 

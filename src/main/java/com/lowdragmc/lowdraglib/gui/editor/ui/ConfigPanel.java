@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.*;
+import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import lombok.Getter;
@@ -116,11 +117,17 @@ public class ConfigPanel extends WidgetGroup {
             configurator.setConfigPanel(this, tab);
 //            configurator.setConfiguratorContainer(() -> ConfigPanel.this.computeLayout(tab));
             configurator.init(WIDTH - 2);
+            configurator.addListener(c -> onConfiguratorChangeUpdate(tab, c));
             this.configurators.get(tab).add(configurator);
             configuratorGroup.get(tab).addWidget(configurator);
         }
         computeLayout(tab);
         configuratorGroup.get(tab).setScrollYOffset(0);
+    }
+
+    public void onConfiguratorChangeUpdate(Tab tab, Configurator configurator) {
+        // update history view
+        editor.addAutoHistory(configurator.getName(), configurator);
     }
 
     public void switchTag(Tab tab) {

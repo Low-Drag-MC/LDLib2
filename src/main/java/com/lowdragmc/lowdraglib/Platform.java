@@ -17,6 +17,17 @@ import java.nio.file.Path;
 public class Platform {
 
     private static final RegistryAccess BLANK = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+
+    // This is a helper method to check if the ServerLevel is safe to access.
+    // @return true if the ServerLevel is not safe to access, otherwise false.
+    public static boolean isServerNotSafe() {
+        if (Platform.isClient()) {
+            return Minecraft.getInstance().getConnection() == null;
+        } else {
+            var server = getMinecraftServer();
+            return server == null || server.isStopped() || server.isShutdown() || !server.isRunning() || server.isCurrentlySaving();
+        }
+    }
     @ApiStatus.Internal
     public static RegistryAccess FROZEN_REGISTRY_ACCESS = BLANK;
 

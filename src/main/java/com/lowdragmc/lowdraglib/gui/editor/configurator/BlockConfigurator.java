@@ -74,6 +74,7 @@ public class BlockConfigurator extends ValueConfigurator<Block> implements Searc
     public void search(String word, Consumer<Block> find) {
         var wordLower = word.toLowerCase();
         for (var blockEntry : BuiltInRegistries.BLOCK.entrySet()) {
+            if (Thread.currentThread().isInterrupted()) return;
             var block = blockEntry.getValue();
             var id = blockEntry.getKey().location();
             if (id.toString().contains(wordLower)) {

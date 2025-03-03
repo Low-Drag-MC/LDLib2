@@ -131,23 +131,26 @@ public class ResourceTexture extends TransformTexture {
     @Override
     public void createPreview(ConfiguratorGroup father) {
         super.createPreview(father);
-        WidgetGroup widgetGroup = new WidgetGroup(0, 0, 100, 100);
-        widgetGroup.addWidget(new ImageWidget(0, 0, 100, 100, () -> new GuiTextureGroup(new ResourceTexture(imageLocation.toString()), this::drawGuides)).setBorder(2, ColorPattern.T_WHITE.color));
-        widgetGroup.addWidget(new ButtonWidget(0, 0, 100, 100, IGuiTexture.EMPTY, cd -> {
-            if (Editor.INSTANCE == null) return;
-            File path = new File(Editor.INSTANCE.getWorkSpace(), "textures");
-            DialogWidget.showFileDialog(Editor.INSTANCE, "ldlib.gui.editor.tips.select_image", path, true,
-                    DialogWidget.suffixFilter(".png"), r -> {
-                        if (r != null && r.isFile()) {
-                            imageLocation = getTextureFromFile(path, r);
-                            offsetX = 0;
-                            offsetY = 0;
-                            imageWidth = 1;
-                            imageHeight = 1;
-                        }
-                    });
-        }));
-        WrapperConfigurator base = new WrapperConfigurator("ldlib.gui.editor.group.base_image", widgetGroup);
+        WrapperConfigurator base = new WrapperConfigurator("ldlib.gui.editor.group.base_image", wrapper -> {
+            WidgetGroup widgetGroup = new WidgetGroup(0, 0, 100, 100);
+            widgetGroup.addWidget(new ImageWidget(0, 0, 100, 100, () -> new GuiTextureGroup(new ResourceTexture(imageLocation.toString()), this::drawGuides)).setBorder(2, ColorPattern.T_WHITE.color));
+            widgetGroup.addWidget(new ButtonWidget(0, 0, 100, 100, IGuiTexture.EMPTY, cd -> {
+                if (Editor.INSTANCE == null) return;
+                File path = new File(Editor.INSTANCE.getWorkSpace(), "textures");
+                DialogWidget.showFileDialog(Editor.INSTANCE, "ldlib.gui.editor.tips.select_image", path, true,
+                        DialogWidget.suffixFilter(".png"), r -> {
+                            if (r != null && r.isFile()) {
+                                imageLocation = getTextureFromFile(path, r);
+                                offsetX = 0;
+                                offsetY = 0;
+                                imageWidth = 1;
+                                imageHeight = 1;
+                                wrapper.notifyChanges();
+                            }
+                        });
+            }));
+            return widgetGroup;
+        });
         base.setTips("ldlib.gui.editor.tips.click_select_image");
         father.addConfigurators(base);
     }

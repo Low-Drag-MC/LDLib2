@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.emi;
 
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.emi.emi.api.render.EmiRenderable;
 
 /**
@@ -13,6 +14,8 @@ public interface IGui2Renderable {
         return (graphics, x, y, delta) -> {
             if (guiTexture == null) return;
             guiTexture.draw(graphics, 0, 0, x, y, width, height);
+            RenderSystem.enableDepthTest();
+            RenderSystem.depthMask(true);
         };
     }
 }

@@ -1,31 +1,38 @@
 package com.lowdragmc.lowdraglib.syncdata.payload;
 
-import net.minecraft.core.HolderLookup;
+import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.neoforged.neoforge.fluids.FluidStack;
+import net.minecraft.network.FriendlyByteBuf;
 
 public class FluidStackPayload extends ObjectTypedPayload<FluidStack> {
 
     @Override
-    public void writePayload(RegistryFriendlyByteBuf buf) {
-        FluidStack.OPTIONAL_STREAM_CODEC.encode(buf, payload);
+    public void writePayload(FriendlyByteBuf buf) {
+        payload.writeToBuf(buf);
     }
 
     @Override
-    public void readPayload(RegistryFriendlyByteBuf buf) {
-        payload = FluidStack.OPTIONAL_STREAM_CODEC.decode(buf);
+    public void readPayload(FriendlyByteBuf buf) {
+        payload = FluidStack.readFromBuf(buf);
     }
 
     @Override
-    public Tag serializeNBT(HolderLookup.Provider provider) {
-        return payload.saveOptional(provider);
+    public Tag serializeNBT() {
+        return payload.saveToTag(new CompoundTag());
     }
 
     @Override
-    public void deserializeNBT(Tag tag, HolderLookup.Provider provider) {
-        payload = FluidStack.parseOptional(provider, (CompoundTag) tag);
+    public void deserializeNBT(Tag tag) {
+        payload = FluidStack.loadFromTag((CompoundTag) tag);
+    }
+
+    @Override
+    public Object copyForManaged(Object value) {
+        if (value instanceof FluidStack stack) {
+            return stack.copy();
+        }
+        return super.copyForManaged(value);
     }
 }
 

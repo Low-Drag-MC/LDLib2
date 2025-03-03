@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.WidgetTexture;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -91,6 +92,7 @@ public record UIWrapper(MainPanel panel, IConfigurableWidget inner) implements I
                             position.x - uiWrapper.inner.widget().getSize().width / 2,
                             position.y - uiWrapper.inner.widget().getSize().height / 2));
                     group.acceptWidget(uiWrapper.inner);
+                    panel.editor.addAutoHistory(LocalizationUtils.format("ldlib.gui.editor.add_widget", LocalizationUtils.format(inner.getTranslateKey())), inner.hashCode());
                     return true;
                 }
             } else if (inner instanceof IConfigurableWidgetGroup group && dragging instanceof UIWrapper[] uiWrappers && Arrays.stream(uiWrappers).allMatch(this::checkAcceptable)) {
@@ -107,6 +109,7 @@ public record UIWrapper(MainPanel panel, IConfigurableWidget inner) implements I
                             position.x - uiWrapper.inner.widget().getSize().width / 2,
                             position.y - uiWrapper.inner.widget().getSize().height / 2));
                     group.acceptWidget(uiWrapper.inner);
+                    panel.editor.addAutoHistory(LocalizationUtils.format("ldlib.gui.editor.move_widget", LocalizationUtils.format(inner.getTranslateKey())), inner.hashCode());
                 }
 
                 return true;

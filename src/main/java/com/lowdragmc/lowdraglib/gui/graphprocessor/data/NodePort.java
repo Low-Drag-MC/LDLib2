@@ -171,7 +171,7 @@ public class NodePort {
         Object ourValue;
         try {
             ourValue = fieldInfo.get(fieldOwner);
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             LDLib.LOGGER.error("Error while getting the value of the field {} for remove custom IO", fieldInfo, e);
             return;
         }
@@ -196,15 +196,21 @@ public class NodePort {
         // take multiple inputs, you must create a custom input function see CustomPortsNode.cs
         if (!edges.isEmpty()) {
             var passThroughObject = edges.stream().findFirst().get().passThroughBuffer;
-
-            // We do an extra convertion step in case the buffer output is not compatible with the input port
-            if (passThroughObject != null)
-                if (TypeAdapter.areConvertable(passThroughObject.getClass(), fieldInfo.getType()))
-                    passThroughObject = TypeAdapter.convert(passThroughObject, fieldInfo.getType());
-
             try {
-                fieldInfo.set(fieldOwner, passThroughObject);
-            } catch (IllegalAccessException e) {
+                if (passThroughObject == null) {
+                    setFieldDefault(fieldInfo, fieldOwner);
+                } else {
+                    // We do an extra convertion step in case the buffer output is not compatible with the input port
+                    if (TypeAdapter.areConvertable(passThroughObject.getClass(), fieldInfo.getType())) {
+                        passThroughObject = TypeAdapter.convert(passThroughObject, fieldInfo.getType());
+                        fieldInfo.set(fieldOwner, passThroughObject);
+                    } else if (fieldInfo.getType().isAssignableFrom(passThroughObject.getClass())) {
+                        fieldInfo.set(fieldOwner, passThroughObject);
+                    } else {
+                        setFieldDefault(fieldInfo, fieldOwner);
+                    }
+                }
+            } catch (Exception e) {
                 LDLib.LOGGER.error("Error while setting the value of the field {} with {} for pull data", fieldInfo, passThroughObject, e);
             }
         }
@@ -221,38 +227,40 @@ public class NodePort {
                 var list = (List) fieldInfo.get(fieldOwner);
                 if (list != null) list.clear();
             }
-            var type = fieldInfo.getType();
-            if (type.isPrimitive()) {
-                if (type.equals(boolean.class)) {
-                    fieldInfo.setBoolean(fieldOwner, false);
-                } else if (type.equals(byte.class)) {
-                    fieldInfo.setByte(fieldOwner, (byte) 0);
-                } else if (type.equals(short.class)) {
-                    fieldInfo.setShort(fieldOwner, (short) 0);
-                } else if (type.equals(int.class)) {
-                    fieldInfo.setInt(fieldOwner, 0);
-                } else if (type.equals(long.class)) {
-                    fieldInfo.setLong(fieldOwner, 0);
-                } else if (type.equals(float.class)) {
-                    fieldInfo.setFloat(fieldOwner, 0);
-                } else if (type.equals(double.class)) {
-                    fieldInfo.setDouble(fieldOwner, 0);
-                } else if (type.equals(char.class)) {
-                    fieldInfo.setChar(fieldOwner, '\0');
-                }
-            } else if (type.isEnum()) {
-                var enumConstants = type.getEnumConstants();
-                if (enumConstants != null && enumConstants.length > 0) {
-                    fieldInfo.set(fieldOwner, type.getEnumConstants()[0]);
-                }
-                fieldInfo.set(fieldOwner, null);
-            } else if (type.equals(String.class)) {
-                fieldInfo.set(fieldOwner, "");
-            } else {
-                fieldInfo.set(fieldOwner, null);
-            }
-        } catch (IllegalAccessException e) {
+            setFieldDefault(fieldInfo, fieldOwner);
+        } catch (Exception e) {
             LDLib.LOGGER.error("Error while resetting the value of the field {}", fieldInfo, e);
+        }
+    }
+
+    public static void setFieldDefault(Field fieldInfo, Object fieldOwner) throws IllegalAccessException {
+        var type = fieldInfo.getType();
+        if (type.isPrimitive()) {
+            if (type.equals(boolean.class)) {
+                fieldInfo.setBoolean(fieldOwner, false);
+            } else if (type.equals(byte.class)) {
+                fieldInfo.setByte(fieldOwner, (byte) 0);
+            } else if (type.equals(short.class)) {
+                fieldInfo.setShort(fieldOwner, (short) 0);
+            } else if (type.equals(int.class)) {
+                fieldInfo.setInt(fieldOwner, 0);
+            } else if (type.equals(long.class)) {
+                fieldInfo.setLong(fieldOwner, 0);
+            } else if (type.equals(float.class)) {
+                fieldInfo.setFloat(fieldOwner, 0);
+            } else if (type.equals(double.class)) {
+                fieldInfo.setDouble(fieldOwner, 0);
+            } else if (type.equals(char.class)) {
+                fieldInfo.setChar(fieldOwner, '\0');
+            }
+        } else if (type.isEnum()) {
+            var enumConstants = type.getEnumConstants();
+            if (enumConstants != null && enumConstants.length > 0) {
+                fieldInfo.set(fieldOwner, type.getEnumConstants()[0]);
+            }
+            fieldInfo.set(fieldOwner, null);
+        } else {
+            fieldInfo.set(fieldOwner, null);
         }
     }
 
@@ -281,8 +289,13 @@ public class NodePort {
                     // if outType is assignable from inType, we can directly assign the value
                     return () -> {
                         try {
-                            inputField.set(edge.inputNode, outputField.get(edge.outputNode));
-                        } catch (IllegalAccessException e) {
+                            var value = outputField.get(edge.outputNode);
+                            if (value == null) {
+                                setFieldDefault(inputField, edge.inputNode);
+                            } else {
+                                inputField.set(edge.inputNode, value);
+                            }
+                        } catch (Exception e) {
                             LDLib.LOGGER.error("Error while pushing data from {} to {}", edge.inputNode, edge.outputNode, e);
                         }
                     };
@@ -290,10 +303,27 @@ public class NodePort {
                     return () -> {
                         try {
                             var value = outputField.get(edge.outputNode);
-                            if (value != null) {
+                            if (value == null) {
+                                setFieldDefault(inputField, edge.inputNode);
+                            } else {
                                 inputField.set(edge.inputNode, TypeAdapter.convert(outputField.get(edge.outputNode), inType));
                             }
-                        } catch (IllegalAccessException e) {
+                        } catch (Exception e) {
+                            LDLib.LOGGER.error("Error while pushing data from {} to {}", edge.inputNode, edge.outputNode, e);
+                        }
+                    };
+                } else if (outType == Object.class) { // for any
+                    return () -> {
+                        try {
+                            var value = outputField.get(edge.outputNode);
+                            if (value == null) {
+                                setFieldDefault(inputField, edge.inputNode);
+                            } else if ((TypeAdapter.areConvertable(value.getClass(), inputField.getType()))) {
+                                inputField.set(edge.inputNode,  TypeAdapter.convert(value, inputField.getType()));
+                            } else if (inputField.getType().isAssignableFrom(value.getClass())) {
+                                inputField.set(edge.inputNode, value);
+                            }
+                        } catch (Exception e) {
                             LDLib.LOGGER.error("Error while pushing data from {} to {}", edge.inputNode, edge.outputNode, e);
                         }
                     };

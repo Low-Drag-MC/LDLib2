@@ -39,6 +39,10 @@ public class BaseGraph implements IPersistedSerializable {
         return nodes.stream().mapToInt(BaseNode::getComputeOrder).max().orElse(0);
     }
 
+    public void resetNodes() {
+        nodes.forEach(BaseNode::resetNode);
+    }
+
     @Setter
     @Accessors(chain = true, fluent = true)
     public static class GraphChanges {
@@ -485,7 +489,7 @@ public class BaseGraph implements IPersistedSerializable {
         if (to == Object.class)
             return true;
 
-        if (from == UnknownType.class)
+        if (from == UnknownType.class || from == Object.class)
             return true;
 
         // User defined type convertions

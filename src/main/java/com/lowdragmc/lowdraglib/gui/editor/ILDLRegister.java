@@ -25,14 +25,14 @@ public interface ILDLRegister {
         if (isLDLRegister()) {
             return getRegisterUI().name();
         }
-        throw new RuntimeException("not registered ui %s".formatted(getClass()));
+        throw new RuntimeException("not registered %s".formatted(getClass()));
     }
 
     default String group() {
         if (isLDLRegister()) {
             return getRegisterUI().group();
         }
-        throw new RuntimeException("not registered ui %s".formatted(getClass()));
+        throw new RuntimeException("not registered %s".formatted(getClass()));
     }
 
     default String getTranslateKey() {

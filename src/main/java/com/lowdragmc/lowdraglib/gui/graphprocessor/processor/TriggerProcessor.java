@@ -2,6 +2,8 @@ package com.lowdragmc.lowdraglib.gui.graphprocessor.processor;
 
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseGraph;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
+import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
+import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ParameterNode;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.trigger.ITriggerableNode;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.trigger.StartNode;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.nodes.logic.BreakNode;
@@ -40,6 +42,7 @@ public class TriggerProcessor extends GraphProcessor {
 
     @Override
     public @NotNull Iterator<BaseNode> iterator() {
+        graph.resetNodes();
         if (startNodeList.isEmpty()) {
             //we process the graph like usual
             return super.iterator();
@@ -61,6 +64,15 @@ public class TriggerProcessor extends GraphProcessor {
         private final HashSet<ITriggerableNode> nodeDependenciesGathered = new HashSet<>();
 
         private InternalIterator() {
+            // Process Out Parameters always
+            graph.nodes.stream().filter(n -> n instanceof ParameterNode parameterNode && parameterNode.parameter != null
+                            && parameterNode.parameter.getAccessor() == ExposedParameter.ParameterAccessor.Set)
+                    .forEach(n -> {
+                        nodeToExecute.push(Either.left(n));
+                        for (BaseNode node : gatherNonConditionalDependencies(n)) {
+                            nodeToExecute.push(Either.left(node));
+                        }
+                    });
             // make low priority nodes to be executed first
             startNodeList.stream().sorted((n1, n2) -> n2.getComputeOrder() - n1.getComputeOrder())
                     .forEach(n -> nodeToExecute.push(Either.right(Pair.of(n, null))));
@@ -86,8 +98,14 @@ public class TriggerProcessor extends GraphProcessor {
                             continue;
                         } else if (triggerNode instanceof BreakNode) {
                             // find last loop start node and break the loop
-                            while (nodeToExecute.peek().right().isEmpty() || !(nodeToExecute.peek().right().get().left() instanceof LoopStartNode)) {
+
+                            while (!nodeToExecute.isEmpty() && (nodeToExecute.peek().right().isEmpty() || !(nodeToExecute.peek().right().get().left() instanceof LoopStartNode))) {
                                 nodeToExecute.pop();
+                            }
+                            if (nodeToExecute.peek().right().isEmpty() &&
+                                    nodeToExecute.peek().right().get().left() instanceof LoopStartNode &&
+                                    nodeToExecute.peek().right().get().right() instanceof ForLoopNode forLoopNode) {
+                                forLoopNode.resetNode();
                             }
                             nodeToExecute.pop();
                         } else if (triggerNode instanceof ForLoopNode forLoopNode) {

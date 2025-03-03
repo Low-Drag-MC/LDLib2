@@ -1,6 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.data;
 
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.sceneobject.ISceneObject;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.joml.Matrix4f;
@@ -11,6 +18,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author KilaBash
@@ -18,23 +26,33 @@ import java.util.List;
  * @implNote A transform that represents the position, rotation, and scale of a scene object.
  */
 @Accessors(fluent = true)
-public final class Transform {
+public final class Transform implements IPersistedSerializable, IConfigurable {
+    @Getter
+    @Accessors(fluent = true)
+    @Persisted
+    private final UUID id = UUID.randomUUID();
     /**
      * Position of the transform relative to the parent transform.
      */
     @Getter
+    @Configurable(name = "transform.position", tips = "transform.position.tips")
+    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
     private Vector3f localPosition = new Vector3f();
 
     /**
      * Rotation of the transform relative to the parent transform.
      */
     @Getter
+    @Configurable(name = "transform.rotation", tips = "transform.rotation.tips", forceUpdate = false)
+    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
     private Quaternionf localRotation = new Quaternionf();
 
     /**
      * Scale of the transform relative to the parent transform.
      */
     @Getter
+    @Configurable(name = "transform.scale", tips = "transform.scale.tips")
+    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
     private Vector3f localScale = new Vector3f(1, 1, 1);
 
     /**
@@ -43,6 +61,8 @@ public final class Transform {
     @Nullable
     @Getter
     private Transform parent;
+    @Persisted
+    private UUID _parentId;
 
     /**
      * The children transforms of the transform.
@@ -70,7 +90,7 @@ public final class Transform {
     private Matrix4f worldToLocalMatrix = null;
     private Matrix4f localToWorldMatrix = null;
 
-    public Transform(ISceneObject sceneObject) {
+    public Transform(@Nonnull ISceneObject sceneObject) {
         this.sceneObject = sceneObject;
     }
 
@@ -92,30 +112,61 @@ public final class Transform {
         sceneObject.onTransformChanged();
     }
 
+    public void parent(@Nullable Transform parent) {
+        parent(parent, true);
+    }
+
     /**
      * Set the parent transform of the transform.
+     * @param parent The parent transform.
+     *               If the parent is null, the transform will be the root transform.
+     * @param keepWorldTransform If true, the world space position, rotation, and scale of the transform will be kept.
      */
-    public void parent(@Nullable Transform parent) {
+    public void parent(@Nullable Transform parent, boolean keepWorldTransform) {
         if (this.parent == parent) {
             return;
         }
+        if (parent != null) {
+            if (parent.isInheritedParent(this)) {
+                throw new IllegalArgumentException("Cannot set parent to a child transform.");
+            }
+        }
+
+        var lastPosition = keepWorldTransform ? position() : null;
+        var lastRotation = keepWorldTransform ? rotation() : null;
+        var lastScale = keepWorldTransform ? scale() : null;
+
         if (this.parent != null) {
             this.parent.children.remove(this);
             this.parent.sceneObject.onChildChanged();
         }
+
         this.parent = parent;
+        this._parentId = parent == null ? null : parent.id();
         if (parent != null) {
             parent.children.add(this);
             this.sceneObject.setScene(parent.sceneObject.getScene());
             parent.sceneObject.onChildChanged();
         }
-        var lastPosition = position();
-        var lastRotation = rotation();
-        var lastScale = scale();
-        onTransformChanged();
-        position(lastPosition);
-        rotation(lastRotation);
-        scale(lastScale);
+        if (keepWorldTransform) {
+            onTransformChanged();
+            position(lastPosition);
+            rotation(lastRotation);
+            scale(lastScale);
+        } else {
+            onTransformChanged();
+        }
+        this.sceneObject.onParentChanged();
+    }
+
+    public boolean isInheritedParent(Transform parent) {
+        if (this.parent == null) {
+            return false;
+        }
+        if (this.parent == parent) {
+            return true;
+        }
+        return this.parent.isInheritedParent(parent);
     }
 
     /**
@@ -129,25 +180,25 @@ public final class Transform {
     }
 
     /**
-     * Matrix that transforms from world space to local space.
-     */
-    public Matrix4f worldToLocalMatrix() {
-        if (worldToLocalMatrix == null) {
-            worldToLocalMatrix = parent == null ?
-                    localTransformMatrix() :
-                    new Matrix4f(parent.worldToLocalMatrix()).mul(localTransformMatrix());
-        }
-        return worldToLocalMatrix;
-    }
-
-    /**
      * Matrix that transforms from local space to world space.
      */
     public Matrix4f localToWorldMatrix() {
         if (localToWorldMatrix == null) {
-            localToWorldMatrix = worldToLocalMatrix().invert(new Matrix4f());
+            localToWorldMatrix = parent == null ?
+                    localTransformMatrix() :
+                    new Matrix4f(parent.localToWorldMatrix()).mul(localTransformMatrix());
         }
         return localToWorldMatrix;
+    }
+
+    /**
+     * Matrix that transforms from world space to local space.
+     */
+    public Matrix4f worldToLocalMatrix() {
+        if (worldToLocalMatrix == null) {
+            worldToLocalMatrix = localToWorldMatrix().invert(new Matrix4f());
+        }
+        return worldToLocalMatrix;
     }
 
     /**
@@ -167,9 +218,9 @@ public final class Transform {
         if (position == null) {
             position = parent == null ?
                     localPosition :
-                    new Vector3f(localPosition).mulPosition(parent.localToWorldMatrix());
+                    parent.localToWorldMatrix().transformPosition(new Vector3f(localPosition));
         }
-        return position;
+        return new Vector3f(position);
     }
 
     public void position(Vector3f position) {
@@ -178,10 +229,11 @@ public final class Transform {
         if (parent == null) {
             this.localPosition = new Vector3f(position);
         } else {
-            this.localPosition = new Vector3f(position).mulPosition(parent.worldToLocalMatrix());
+            this.localPosition = parent.worldToLocalMatrix().transformPosition(new Vector3f(position));
         }
     }
 
+    @ConfigSetter(field = "localPosition")
     public void localPosition(Vector3f localPosition) {
         this.localPosition = localPosition;
         onTransformChanged();
@@ -194,9 +246,9 @@ public final class Transform {
         if (rotation == null) {
             rotation = parent == null ?
                     localRotation :
-                    new Quaternionf(localRotation).mul(parent.rotation());
+                    parent.rotation().mul(localRotation);
         }
-        return rotation;
+        return new Quaternionf(rotation);
     }
 
     public void rotation(Quaternionf rotation) {
@@ -205,10 +257,11 @@ public final class Transform {
         if (parent == null) {
             this.localRotation = new Quaternionf(rotation);
         } else {
-            this.localRotation = new Quaternionf(rotation).mul(parent.rotation().invert(new Quaternionf()));
+            this.localRotation = parent.rotation().invert().mul(rotation);
         }
     }
 
+    @ConfigSetter(field = "localRotation")
     public void localRotation(Quaternionf localRotation) {
         this.localRotation = localRotation;
         onTransformChanged();
@@ -223,7 +276,7 @@ public final class Transform {
                     localScale :
                     new Vector3f(localScale).mul(parent.scale());
         }
-        return scale;
+        return new Vector3f(scale);
     }
 
     public void scale(Vector3f scale) {
@@ -236,8 +289,20 @@ public final class Transform {
         }
     }
 
+    @ConfigSetter(field = "localScale")
     public void localScale(Vector3f localScale) {
         this.localScale = localScale;
         onTransformChanged();
+    }
+
+    public void awake() {
+        if (_parentId != null && sceneObject.getScene() != null) {
+            var parent = sceneObject.getScene().getSceneObject(_parentId);
+            if (parent != null) {
+                parent(parent.transform(), false);
+            } else {
+                LDLib.LOGGER.warn("Parent transform {} not found.", _parentId);
+            }
+        }
     }
 }

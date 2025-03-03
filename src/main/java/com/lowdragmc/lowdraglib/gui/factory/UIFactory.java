@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.modular.ModularUIContainer;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIOpen;
 import com.lowdragmc.lowdraglib.side.ForgeEventHooks;
+import dev.latvian.mods.rhino.util.HideFromJS;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -33,6 +34,7 @@ public abstract class UIFactory<T> {
         FACTORIES.put(factory.uiFactoryId, factory);
     }
 
+    @HideFromJS
     public final boolean openUI(T holder, ServerPlayer player) {
         ModularUI uiTemplate = createUITemplate(holder, player);
         if (uiTemplate == null) return false;

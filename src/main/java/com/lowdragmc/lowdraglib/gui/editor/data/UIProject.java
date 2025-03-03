@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.editor.data;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
@@ -11,9 +12,13 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 
 /**
  * @author KilaBash
@@ -85,6 +90,30 @@ public class UIProject implements IProject {
         for (WidgetToolBox.Default tab : WidgetToolBox.Default.TABS) {
             editor.getToolPanel().addNewToolBox("ldlib.gui.editor.group." + tab.groupName, tab.icon, tab::createToolBox);
         }
+    }
 
+    /**
+     * Load ui project file for productive environment.
+     * @return an ui creator which caches the resources to speed up the creation process.
+     */
+    public static Supplier<WidgetGroup> loadUIFromTag(HolderLookup.Provider provider, CompoundTag tag) {
+        var resources = Resources.fromNBT(tag.getCompound("resources"));
+        var data = tag.getCompound("root");
+        return () -> {
+            var root = new WidgetGroup();
+            IConfigurableWidget.deserializeNBT(root, data, resources, false, provider);
+            return root;
+        };
+    }
+
+    @Nullable
+    public static Supplier<WidgetGroup> loadUIFromFile(ResourceLocation location) {
+        try {
+            var file = new File(LDLib.getLDLibDir(), "assets/%s/projects/ui/%s.ui".formatted(location.getNamespace(), location.getPath()));
+            return loadUIFromTag(Platform.getFrozenRegistry(), NbtIo.read(file.toPath()));
+        } catch (Exception e) {
+            LDLib.LOGGER.error("Failed to load ui project from file: {}", location, e);
+            return null;
+        }
     }
 }

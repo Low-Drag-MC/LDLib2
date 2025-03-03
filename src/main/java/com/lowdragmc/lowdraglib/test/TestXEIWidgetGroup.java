@@ -47,6 +47,11 @@ public class TestXEIWidgetGroup extends WidgetGroup {
                 .setIngredientIO(IngredientIO.INPUT)
                 .setXEIChance(0);
 
+
+        var input4 = new SlotWidget(new ItemStackHandler(), 0, 40, 20, false, false)
+                .setBackgroundTexture(SlotWidget.ITEM_SLOT_TEXTURE)
+                .setIngredientIO(IngredientIO.INPUT);
+
         var output = new SlotWidget(new ItemStackHandler(NonNullList.of(ItemStack.EMPTY, new ItemStack(Items.DIAMOND, 23))), 0, 130, 20, false, false)
                 .setBackgroundTexture(SlotWidget.ITEM_SLOT_TEXTURE)
                 .setIngredientIO(IngredientIO.OUTPUT);
@@ -95,14 +100,20 @@ public class TestXEIWidgetGroup extends WidgetGroup {
                 .setIngredientIO(IngredientIO.CATALYST)
                 .setXEIChance(0f);
 
+        var inputFluid3 = new TankWidget(new TagOrCycleFluidTransfer(fluidList), 0, 90, 20, 20, 40, false, false)
+                .setBackground(TankWidget.FLUID_SLOT_TEXTURE)
+                .setIngredientIO(IngredientIO.CATALYST);
+
         addWidget(input1);
         addWidget(input2);
         addWidget(input3);
+        addWidget(input4);
         addWidget(output);
         addWidget(both);
         addWidget(inputFluid);
         addWidget(outputFluid);
         addWidget(catalystFluid);
         addWidget(inputFluid2);
+        addWidget(inputFluid3);
     }
 }

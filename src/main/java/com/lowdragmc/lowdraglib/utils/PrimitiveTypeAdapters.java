@@ -21,5 +21,16 @@ public class PrimitiveTypeAdapters implements TypeAdapter.ITypeAdapter {
         TypeAdapter.registerAdapter(Integer.class, float.class, o -> o == null ? 0 : o.floatValue());
         TypeAdapter.registerAdapter(Float.class, Integer.class, o -> o == null ? 0 : o.intValue());
         TypeAdapter.registerAdapter(Integer.class, Float.class, o -> o == null ? 0 : o.floatValue());
+
+        TypeAdapter.registerAdapter(Boolean.class, int.class, o -> o == null ? 0 : o ? 1 : 0);
+        TypeAdapter.registerAdapter(Boolean.class, Integer.class, o -> o == null ? 0 : o ? 1 : 0);
+        TypeAdapter.registerAdapter(Boolean.class, float.class, o -> o == null ? 0 : o ? 1f : 0);
+        TypeAdapter.registerAdapter(Boolean.class, Float.class, o -> o == null ? 0 : o ? 1f : 0);
+
+        TypeAdapter.registerAdapter(boolean.class, int.class, o -> o == null ? 0 : o ? 1 : 0);
+        TypeAdapter.registerAdapter(boolean.class, Integer.class, o -> o == null ? 0 : o ? 1 : 0);
+        TypeAdapter.registerAdapter(boolean.class, float.class, o -> o == null ? 0 : o ? 1f : 0);
+        TypeAdapter.registerAdapter(boolean.class, Float.class, o -> o == null ? 0 : o ? 1f : 0);
+
     }
 }

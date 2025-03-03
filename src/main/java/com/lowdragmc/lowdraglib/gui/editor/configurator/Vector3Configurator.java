@@ -20,6 +20,7 @@ public class Vector3Configurator extends ValueConfigurator<Vector3f>{
         if (value == null) {
             value = defaultValue;
         }
+        setRange(-Float.MAX_VALUE, Float.MAX_VALUE);
         setWheel(.1f);
     }
 

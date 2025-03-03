@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib.gui.editor.configurator;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.IConfiguratorContainer;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
-import com.lowdragmc.lowdraglib.gui.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.WidgetTexture;
@@ -28,7 +27,7 @@ import java.util.function.Supplier;
  * @date 2022/12/2
  * @implNote ArrayConfigurator
  */
-public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup{
+public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     protected final Supplier<List<T>> source;
     protected final BiFunction<Supplier<T>, Consumer<T>, Configurator> configuratorProvider;
     @Setter
@@ -63,7 +62,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup{
         var newSource = source.get();
         if (newSource.size() == configurators.size()) {
             for (int i = 0; i < newSource.size(); i++) {
-                var itemConfigurator = (ItemConfigurator)configurators.get(i);
+                var itemConfigurator = (ItemConfigurator) configurators.get(i);
                 if (!itemConfigurator.object.equals(newSource.get(i))) {
                     rebuild = true;
                     break;
@@ -114,6 +113,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup{
         if (onUpdate != null) {
             onUpdate.accept(configurators.stream().map(c -> ((ItemConfigurator)c).object).toList());
         }
+        notifyChanges();
     }
 
     @Override
@@ -132,7 +132,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup{
         }
     }
 
-    public void updateOrder(ItemConfigurator src, ItemConfigurator dst, boolean before) {
+    private void updateOrder(ItemConfigurator src, ItemConfigurator dst, boolean before) {
         if (configurators.remove(src)) {
             removeWidget(src);
 

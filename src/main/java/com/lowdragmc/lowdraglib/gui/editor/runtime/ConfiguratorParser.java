@@ -63,7 +63,7 @@ public class ConfiguratorParser {
                     field.setAccessible(true);
                     var value = field.get(object);
                     if (value != null) {
-                        String name = configurable.showName() ? (configurable.name().isEmpty() ? clazz.getSimpleName() : configurable.name()) : "";
+                        String name = configurable.showName() ? (configurable.name().isEmpty() ? field.getName() : configurable.name()) : "";
                         ConfiguratorGroup newGroup = new ConfiguratorGroup(name, configurable.collapse());
                         newGroup.setCanCollapse(configurable.canCollapse());
                         newGroup.setTips(configurable.tips());

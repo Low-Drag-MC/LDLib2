@@ -15,6 +15,7 @@ import net.minecraft.util.Mth;
 @LDLRegister(name = "progress_texture", group = "texture")
 public class ProgressTexture extends TransformTexture {
     @Configurable
+    @Getter
     protected FillDirection fillDirection = FillDirection.LEFT_TO_RIGHT;
     @Configurable
     @Getter
@@ -23,6 +24,7 @@ public class ProgressTexture extends TransformTexture {
     @Getter
     protected IGuiTexture filledBarArea;
 
+    @Getter
     protected double progress;
 
     private boolean demo;
@@ -32,6 +34,12 @@ public class ProgressTexture extends TransformTexture {
                 new ResourceTexture("ldlib:textures/gui/progress_bar_fuel.png").getSubTexture(0, 0.5, 1, 0.5));
         fillDirection = FillDirection.DOWN_TO_UP;
         demo = true;
+    }
+
+    public ProgressTexture setTexture(IGuiTexture emptyBarArea, IGuiTexture filledBarArea) {
+        this.emptyBarArea = emptyBarArea;
+        this.filledBarArea = filledBarArea;
+        return this;
     }
 
     @Override

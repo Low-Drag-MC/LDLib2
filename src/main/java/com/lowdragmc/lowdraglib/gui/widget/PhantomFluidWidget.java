@@ -248,7 +248,7 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
             int height = size.height - 2;
             int x = pos.x + 1;
             int y = pos.y + 1;
-            DrawerHelper.drawFluidForGui(graphics, stack, stack.getAmount(), (int) (x + drawnU * width), (int) (y + drawnV * height), ((int) (width * drawnWidth)), ((int) (height * drawnHeight)));
+            DrawerHelper.drawFluidForGui(graphics, stack, x + drawnU * width, y + drawnV * height, width * drawnWidth, height * drawnHeight);
             if (showAmount) {
                 graphics.pose().pushPose();
                 graphics.pose().scale(0.5F, 0.5F, 1);

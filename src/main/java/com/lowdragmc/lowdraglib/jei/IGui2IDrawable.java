@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.jei;
 
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.mojang.blaze3d.systems.RenderSystem;
 import mezz.jei.api.gui.drawable.IDrawable;
 import net.minecraft.client.gui.GuiGraphics;
 
@@ -28,6 +29,8 @@ public interface IGui2IDrawable {
             public void draw(@Nonnull GuiGraphics graphics, int x, int y) {
                 if (guiTexture == null) return;
                 guiTexture.draw(graphics, 0, 0, x, y, width, height);
+                RenderSystem.enableDepthTest();
+                RenderSystem.depthMask(true);
             }
         };
     }

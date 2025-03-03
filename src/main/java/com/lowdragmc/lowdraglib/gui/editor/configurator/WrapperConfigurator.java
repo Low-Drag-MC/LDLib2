@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib.utils.Size;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.function.Function;
+
 /**
  * @author KilaBash
  * @date 2022/12/3
@@ -21,13 +23,25 @@ public class WrapperConfigurator extends Configurator {
         this("", widget, true);
     }
 
+    public WrapperConfigurator(Function<WrapperConfigurator, Widget> widgetSupplier) {
+        this("", widgetSupplier, true);
+    }
+
     public WrapperConfigurator(String name, Widget widget) {
         this(name, widget, false);
     }
 
+    public WrapperConfigurator(String name, Function<WrapperConfigurator, Widget> widgetSupplier) {
+        this(name, widgetSupplier, false);
+    }
+
     public WrapperConfigurator(String name, Widget widget, boolean removeTitleBar) {
+        this(name, configurator -> widget, removeTitleBar);
+    }
+
+    public WrapperConfigurator(String name, Function<WrapperConfigurator, Widget> widgetSupplier, boolean removeTitleBar) {
         super(name);
-        this.inner = widget;
+        this.inner = widgetSupplier.apply(this);
         this.removeTitleBar = removeTitleBar;
     }
 

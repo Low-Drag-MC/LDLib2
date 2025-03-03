@@ -47,7 +47,6 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
@@ -102,8 +101,8 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     @Setter
     @Getter
     protected float XEIChance = 1f;
-    @Nullable
-    ItemStack currentJEIRenderedIngredient = null;
+    @Getter
+    private ItemStack lastItem = ItemStack.EMPTY;
 
     public SlotWidget() {
         super(new Position(0, 0), new Size(18, 18));
@@ -160,6 +159,27 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         }
     }
 
+    public ItemStack getItem() {
+        return slotReference == null ? ItemStack.EMPTY : slotReference.getItem();
+    }
+
+    public void setItem(ItemStack stack) {
+        if (slotReference != null) {
+            slotReference.set(stack);
+        }
+    }
+
+    public void setItem(ItemStack stack, boolean notify) {
+        if (slotReference != null) {
+            var lastListener = changeListener;
+            if (!notify) {
+                changeListener = null;
+            }
+            slotReference.set(stack);
+            changeListener = lastListener;
+        }
+    }
+
     @Override
     public final void setSize(Size size) {
         // you cant modify size.
@@ -176,6 +196,19 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
             }
         }
         super.setGui(gui);
+    }
+
+    @Override
+    public void detectAndSendChanges() {
+        super.detectAndSendChanges();
+        this.lastItem = getItem();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void updateScreen() {
+        super.updateScreen();
+        this.lastItem = getItem();
     }
 
     @Override
@@ -202,7 +235,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
         Position pos = getPosition();
         if (slotReference != null) {
-            ItemStack itemStack = currentJEIRenderedIngredient == null ? getRealStack(slotReference.getItem()) : currentJEIRenderedIngredient;
+            ItemStack itemStack = getRealStack(slotReference.getItem());
             ModularUIGuiContainer modularUIGui = gui == null ? null : gui.getModularUIGui();
             if (itemStack.isEmpty() && modularUIGui != null && modularUIGui.getQuickCrafting() && modularUIGui.getQuickCraftSlots().contains(slotReference)) { // draw split
                 int splitSize = modularUIGui.getQuickCraftSlots().size();
@@ -354,7 +387,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     @Override
     public List<Component> getFullTooltipTexts() {
         if (slotReference != null) {
-            var stack = currentJEIRenderedIngredient == null ? slotReference.getItem() : this.currentJEIRenderedIngredient;
+            var stack = slotReference.getItem();
             if (!stack.isEmpty()) {
                 var tips = new ArrayList<>(DrawerHelper.getItemToolTip(stack));
                 tips.addAll(getTooltipTexts());
@@ -364,14 +397,6 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         return Collections.emptyList();
     }
 
-    @Override
-    public void setCurrentJEIRenderedIngredient(Object ingredient) {
-        if (ingredient instanceof ItemStack) {
-            this.currentJEIRenderedIngredient = (ItemStack) ingredient;
-        } else {
-            this.currentJEIRenderedIngredient = null;
-        }
-    }
 
     @Nullable
     @Override
@@ -430,6 +455,19 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     public ItemStack getRealStack(ItemStack itemStack) {
         if (itemHook != null) return itemHook.apply(itemStack);
         return itemStack;
+    }
+
+    @Override
+    public Object getXEICurrentIngredient() {
+        if (slotReference == null || slotReference.getItem().isEmpty()) return null;
+        var handler = getHandler();
+        if (handler == null) return null;
+        ItemStack realStack = getRealStack(handler.getItem());
+
+        if (LDLib.isJeiLoaded()) {
+            return JEIPlugin.getItemIngredient(realStack, getPosition().x, getPosition().y, getSize().width, getSize().height);
+        }
+        return null;
     }
 
     private List<Object> getXEIIngredientsFromCycleTransfer(CycleItemStackHandler transfer, int index) {

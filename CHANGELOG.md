@@ -1,4 +1,3 @@
 # ChangeLog
 
-* fix crash on launch
-* fix the server freezes while the server is not running
+* Port from 1.20.1

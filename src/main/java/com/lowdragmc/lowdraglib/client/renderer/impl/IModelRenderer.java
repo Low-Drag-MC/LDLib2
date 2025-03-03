@@ -5,24 +5,18 @@ import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IItemRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
-import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
-import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.StringConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
-import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
@@ -42,7 +36,6 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.neoforge.common.util.TriState;
 
 import javax.annotation.Nonnull;
@@ -74,11 +67,7 @@ public class IModelRenderer implements ISerializableRenderer {
 
     public IModelRenderer(ResourceLocation modelLocation) {
         this.modelLocation = modelLocation;
-        if (LDLib.isClient()) {
-            blockModels = new ConcurrentHashMap<>();
-            modelCaches = new ConcurrentHashMap<>();
-            registerEvent();
-        }
+        initRenderer();
     }
 
     @Override
@@ -248,39 +237,37 @@ public class IModelRenderer implements ISerializableRenderer {
         }
     }
 
+    @OnlyIn(Dist.CLIENT)
+    public void updateModelWithReloadingResource(ResourceLocation modelLocation) {
+        updateModelWithoutReloadingResource(modelLocation);
+        var unBakedModel = getModel();
+        if (unBakedModel == ModelFactory.getUnBakedModel(ModelBakery.MISSING_MODEL_LOCATION)) {
+            Minecraft.getInstance().reloadResourcePacks();
+        }
+    }
+
     @Override
-    public void createPreview(ConfiguratorGroup father) {
-        var preview = new WidgetGroup(0, 0, 100, 120);
-        var level = new TrackedDummyWorld();
-        level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(RendererBlock.BLOCK));
-        Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
-            if (blockEntity instanceof RendererBlockEntity holder) {
-                holder.setRenderer(this);
-            }
-        });
-
-        var sceneWidget = new SceneWidget(0, 0, 100, 100, level);
-        sceneWidget.setRenderFacing(false);
-        sceneWidget.setRenderSelect(false);
-        sceneWidget.createScene(level);
-        sceneWidget.getRenderer().setOnLookingAt(null); // better performance
-        sceneWidget.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
-        sceneWidget.setBackground(new ColorBorderTexture(2, ColorPattern.T_WHITE.color));
-
-        preview.addWidget(new ButtonWidget(5, 110, 90, 10,
+    public void buildConfigurator(ConfiguratorGroup father) {
+        ISerializableRenderer.super.buildConfigurator(father);
+        var locationConfigurator = father.getConfigurators().stream()
+                .filter(configurator -> configurator instanceof StringConfigurator stringConfigurator && stringConfigurator.getName().equals("modelLocation"))
+                .map(configurator -> (StringConfigurator) configurator)
+                .findFirst();
+        father.addConfigurators(new WrapperConfigurator(wrapper -> new ButtonWidget(0, 0, 90, 10,
                 new GuiTextureGroup(ColorPattern.T_GRAY.rectTexture().setRadius(5), new TextTexture("ldlib.gui.editor.tips.select_model")), cd -> {
             if (Editor.INSTANCE == null) return;
             File path = new File(Editor.INSTANCE.getWorkSpace(), "models");
             DialogWidget.showFileDialog(Editor.INSTANCE, "ldlib.gui.editor.tips.select_model", path, true,
                     DialogWidget.suffixFilter(".json"), r -> {
                         if (r != null && r.isFile()) {
-                            updateModelWithoutReloadingResource(getModelFromFile(path, r));
+                            var newModel = getModelFromFile(path, r);
+                            if (newModel.equals(modelLocation)) return;
+                            locationConfigurator.ifPresent(stringConfigurator -> stringConfigurator.setValue(newModel.toString()));
+                            updateModelWithReloadingResource(newModel);
+                            wrapper.notifyChanges();
                         }
                     });
-        }));
-
-        preview.addWidget(sceneWidget);
-        father.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", preview));
+        })).setRemoveTitleBar(true));
     }
 
     private static ResourceLocation getModelFromFile(File path, File r){

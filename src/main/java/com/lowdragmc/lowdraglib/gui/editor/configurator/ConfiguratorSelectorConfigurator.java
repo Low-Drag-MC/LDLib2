@@ -69,6 +69,7 @@ public class ConfiguratorSelectorConfigurator<T> extends ConfiguratorGroup {
         if (onUpdate != null) {
             onUpdate.accept(value);
         }
+        notifyChanges();
     }
 
     /**

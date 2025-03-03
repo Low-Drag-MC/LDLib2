@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ShaderTexture;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
@@ -21,9 +20,9 @@ public class SimpleIGuiTextureJsonUtils {
         if (texture instanceof ResourceTexture resourceTexture) {
             jsonObject.addProperty("type", "resource");
             jsonObject.addProperty("res", resourceTexture.imageLocation.toString());
-        } else if (texture instanceof ItemStackTexture itemStackTexture && itemStackTexture.itemStack.length > 0) {
+        } else if (texture instanceof ItemStackTexture itemStackTexture && itemStackTexture.items.length > 0) {
             jsonObject.addProperty("type", "item");
-            jsonObject.addProperty("res", BuiltInRegistries.ITEM.getKey(itemStackTexture.itemStack[0].getItem()).toString());
+            jsonObject.addProperty("res", BuiltInRegistries.ITEM.getKey(itemStackTexture.items[0].getItem()).toString());
         } else if (texture instanceof ShaderTexture shaderTexture && shaderTexture.location != null) {
             jsonObject.addProperty("type", "shader");
             jsonObject.addProperty("res", shaderTexture.location.toString());

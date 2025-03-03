@@ -41,7 +41,7 @@ public class ListReaderNode extends BaseNode {
                 .displayName("out")
                 .identifier("out")
                 .acceptMultipleEdges(true)
-                .displayType(UnknownType.class));
+                .displayType(Object.class));
     }
 
     @CustomPortOutput(field = "out")

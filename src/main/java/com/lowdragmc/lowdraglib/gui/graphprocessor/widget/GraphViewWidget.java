@@ -11,6 +11,8 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseGraph;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.NodePort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortEdge;
+import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
+import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ParameterNode;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.processor.BaseGraphProcessor;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.processor.TriggerProcessor;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
@@ -39,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 @Getter
 public class GraphViewWidget extends WidgetGroup {
@@ -70,6 +73,10 @@ public class GraphViewWidget extends WidgetGroup {
     private long lastClickTick;
 
     public GraphViewWidget(BaseGraph graph, int x, int y, int width, int height) {
+        this(graph, x, y, width, height, null);
+    }
+
+    public GraphViewWidget(BaseGraph graph, int x, int y, int width, int height, @Nullable Consumer<List<String>> additionalGroup) {
         super(x, y, width, height);
         this.graph = graph;
         addWidget(this.freeGraphView = new FreeGraphView(0, 0, width, height) {
@@ -85,6 +92,9 @@ public class GraphViewWidget extends WidgetGroup {
         this.processor = new TriggerProcessor(graph);
         var supportNodeGroups = new ArrayList<String>();
         setupNodeGroups(supportNodeGroups);
+        if (additionalGroup != null) {
+            additionalGroup.accept(supportNodeGroups);
+        }
         for (String group : supportNodeGroups) {
             for (var wrapper : AnnotationDetector.REGISTER_GP_NODES.values()) {
                 if (wrapper.annotation().group().startsWith(group)) {
@@ -282,6 +292,12 @@ public class GraphViewWidget extends WidgetGroup {
     }
 
     public void addNodeToCenter(BaseNode node) {
+        if(node instanceof ParameterNode parameterNode && parameterNode.parameter != null &&
+                parameterNode.parameter.getAccessor() == ExposedParameter.ParameterAccessor.Set) {
+            if (graph.nodes.stream().anyMatch(n -> n instanceof ParameterNode pn && pn.parameter == parameterNode.parameter)) {
+                return;
+            }
+        }
         addNode(node, getSizeWidth() / 2 + LDLib.RANDOM.nextInt(-20, 20),
                 getSizeHeight() / 2 + LDLib.RANDOM.nextInt(-20, 20));
     }

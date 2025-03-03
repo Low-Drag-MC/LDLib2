@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.sceneobject;
 
-import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.SceneEditorWidget;
 import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.data.Transform;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -8,6 +7,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
@@ -18,24 +18,10 @@ import java.util.function.Consumer;
 @OnlyIn(Dist.CLIENT)
 public interface ISceneObject {
     /**
-     * Get the scene.
+     * Get the unique id of the object.
      */
-    @Nullable
-    SceneEditorWidget getScene();
-
-    /**
-     * Set the scene internal. you should not call this method directly.
-     */
-    void setSceneInternal(SceneEditorWidget scene);
-
-    /**
-     * Set the scene. you should not call this method directly.
-     */
-    default void setScene(SceneEditorWidget scene) {
-        if (getScene() != scene) {
-            setSceneInternal(scene);
-            children().forEach(child -> child.setScene(scene));
-        }
+    default UUID id() {
+        return transform().id();
     }
 
     /**
@@ -43,15 +29,38 @@ public interface ISceneObject {
      */
     Transform transform();
 
+    default void setTransform(Transform transform) {
+        transform.set(transform);
+    }
+
+    /**
+     * Get the scene.
+     */
+    @Nullable
+    IScene getScene();
+
+    /**
+     * Set the scene internal. you should not call this method directly.
+     */
+    void setSceneInternal(IScene scene);
+
+    /**
+     * Set the scene. you should not call this method directly.
+     */
+    default void setScene(IScene scene) {
+        if (getScene() != scene) {
+            setSceneInternal(scene);
+            children().forEach(child -> child.setScene(scene));
+        }
+    }
+
     /**
      * Destroy the object.
      */
     default void destroy() {
-        if (transform().parent() == null) {
-            Optional.ofNullable(getScene()).ifPresent(scene -> scene.removeSceneObject(this));
-        } else {
-            transform().parent(null);
-        }
+        transform().parent(null);
+        Optional.ofNullable(getScene()).ifPresent(scene -> scene.removeSceneObjectInternal(this));
+        children().forEach(ISceneObject::destroy);
     }
 
     /**
@@ -72,6 +81,13 @@ public interface ISceneObject {
      * Called when the children of the object is changed.
      */
     default void onChildChanged() {
+    }
+
+    /**
+     * Called when the parent of the object is changed.
+     */
+    default void onParentChanged() {
+
     }
 
     /**
@@ -103,4 +119,12 @@ public interface ISceneObject {
         children().forEach(child -> child.executeAll(consumer));
         if (after != null) after.accept(this);
     }
+
+    /**
+     * it will be called when the scene objects are all added, but before the scene object is ready for used.
+     */
+    default void awake() {
+        transform().awake();
+    }
+
 }

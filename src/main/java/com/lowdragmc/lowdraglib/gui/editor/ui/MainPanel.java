@@ -121,6 +121,9 @@ public class MainPanel extends WidgetGroup {
         for (UIWrapper selectedUI : selectedUIs) {
             selectedUI.remove();
         }
+        if (!selectedUIs.isEmpty()) {
+            editor.addAutoHistory("ldlib.gui.editor.menu.remove", Arrays.hashCode(selectedUIs.toArray()));
+        }
         hoverUI = null;
         selectedUIs.clear();
     }
@@ -150,6 +153,7 @@ public class MainPanel extends WidgetGroup {
             for (UIWrapper selectedUI : selectedUIs) {
                 selectedUI.inner().widget().getParent().onWidgetRemoved(selectedUI.inner());
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.cut", Arrays.hashCode(selectedUIs.toArray()));
             selectedUIs.clear();
         }
     }
@@ -186,6 +190,7 @@ public class MainPanel extends WidgetGroup {
                         }
                     }
                 }
+                editor.addAutoHistory("ldlib.gui.editor.menu.paste", Arrays.hashCode(list.toArray()));
                 UIResourceTexture.clearCurrentResource();
             });
         }
@@ -200,6 +205,7 @@ public class MainPanel extends WidgetGroup {
             for (UIWrapper ui : selectedUIs) {
                 ui.inner().widget().addSelfPosition(0, max - ui.inner().widget().getRect().down);
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.vb", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -212,6 +218,7 @@ public class MainPanel extends WidgetGroup {
             for (UIWrapper ui : selectedUIs) {
                 ui.inner().widget().addSelfPosition(0, min - ui.inner().widget().getRect().up);
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.vt", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -224,6 +231,7 @@ public class MainPanel extends WidgetGroup {
                 var ui = uis.get(i);
                 ui.addSelfPosition(0, centerY - ui.getRect().getHeightCenter());
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.vd", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -238,6 +246,7 @@ public class MainPanel extends WidgetGroup {
             for (UIWrapper ui : selectedUIs) {
                 ui.inner().widget().addSelfPosition(0, mid - ui.inner().widget().getRect().getHeightCenter());
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.vc", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -250,6 +259,7 @@ public class MainPanel extends WidgetGroup {
             for (UIWrapper ui : selectedUIs) {
                 ui.inner().widget().addSelfPosition(max - ui.inner().widget().getRect().right, 0);
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.hr", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -262,6 +272,7 @@ public class MainPanel extends WidgetGroup {
             for (UIWrapper ui : selectedUIs) {
                 ui.inner().widget().addSelfPosition(min - ui.inner().widget().getRect().left, 0);
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.hl", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -274,6 +285,7 @@ public class MainPanel extends WidgetGroup {
                 var ui = uis.get(i);
                 ui.addSelfPosition(centerX - ui.getRect().getWidthCenter(), 0);
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.hd", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -288,6 +300,7 @@ public class MainPanel extends WidgetGroup {
             for (UIWrapper ui : selectedUIs) {
                 ui.inner().widget().addSelfPosition(mid - ui.inner().widget().getRect().getWidthCenter(), 0);
             }
+            editor.addAutoHistory("ldlib.gui.editor.menu.align.hc", Arrays.hashCode(selectedUIs.toArray()));
         }
     }
 
@@ -347,11 +360,12 @@ public class MainPanel extends WidgetGroup {
                 for (UIWrapper selectedUI : selectedUIs) {
                     selectedUI.onDragPosition((int) deltaX, (int) deltaY);
                 }
+                editor.addAutoHistory("ldlib.gui.editor.dragging_position", Arrays.hashCode(selectedUIs.toArray()));
             } else if (isDragSize) {
                 for (UIWrapper selectedUI : selectedUIs) {
                     selectedUI.onDragSize((int) deltaX, (int) deltaY);
-
                 }
+                editor.addAutoHistory("ldlib.gui.editor.dragging_size", Arrays.hashCode(selectedUIs.toArray()));
             }
             return true;
         }

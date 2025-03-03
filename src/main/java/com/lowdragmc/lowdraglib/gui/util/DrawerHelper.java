@@ -66,8 +66,7 @@ public class DrawerHelper {
                 -> program.attach(Shaders.ROUND_LINE_F).attach(Shaders.SCREEN_V));
     }
 
-
-    public static void drawFluidTexture(@Nonnull GuiGraphics graphics, float xCoord, float yCoord, TextureAtlasSprite textureSprite, int maskTop, int maskRight, float zLevel, int fluidColor) {
+    public static void drawFluidTexture(@Nonnull GuiGraphics graphics, float xCoord, float yCoord, TextureAtlasSprite textureSprite, float maskTop, float maskRight, float zLevel, int fluidColor) {
         float uMin = textureSprite.getU0();
         float uMax = textureSprite.getU1();
         float vMin = textureSprite.getV0();
@@ -86,7 +85,12 @@ public class DrawerHelper {
         BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
+    @Deprecated(since = "1.21")
     public static void drawFluidForGui(@Nonnull GuiGraphics graphics, FluidStack contents, long tankCapacity, int startX, int startY, int widthT, int heightT) {
+        drawFluidForGui(graphics, contents, startX, startY, widthT, heightT);
+    }
+
+    public static void drawFluidForGui(@Nonnull GuiGraphics graphics, FluidStack contents, float startX, float startY, float widthT, float heightT) {
         ResourceLocation LOCATION_BLOCKS_TEXTURE = InventoryMenu.BLOCK_ATLAS;
         TextureAtlasSprite fluidStillSprite = FluidHelper.getStillTexture(contents);
         if (fluidStillSprite == null) {
@@ -96,32 +100,25 @@ public class DrawerHelper {
             }
         }
         int fluidColor = FluidHelper.getColor(contents) | 0xff000000;
-        int scaledAmount = (int) (contents.getAmount() * heightT / tankCapacity);
-        if (contents.getAmount() > 0 && scaledAmount < 1) {
-            scaledAmount = 1;
-        }
-        if (scaledAmount > heightT || contents.getAmount() == tankCapacity) {
-            scaledAmount = heightT;
-        }
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, LOCATION_BLOCKS_TEXTURE);
 
-        final int xTileCount = widthT / 16;
-        final int xRemainder = widthT - xTileCount * 16;
-        final int yTileCount = scaledAmount / 16;
-        final int yRemainder = scaledAmount - yTileCount * 16;
+        final int xTileCount = (int) (widthT / 16);
+        final float xRemainder = widthT - xTileCount * 16;
+        final int yTileCount = (int) (heightT / 16);
+        final float yRemainder = heightT - yTileCount * 16;
 
-        final int yStart = startY + heightT;
+        final float yStart = startY + heightT;
 
         for (int xTile = 0; xTile <= xTileCount; xTile++) {
             for (int yTile = 0; yTile <= yTileCount; yTile++) {
-                int width = xTile == xTileCount ? xRemainder : 16;
-                int height = yTile == yTileCount ? yRemainder : 16;
-                int x = startX + xTile * 16;
-                int y = yStart - (yTile + 1) * 16;
+                float width = xTile == xTileCount ? xRemainder : 16;
+                float height = yTile == yTileCount ? yRemainder : 16;
+                float x = startX + xTile * 16;
+                float y = yStart - (yTile + 1) * 16;
                 if (width > 0 && height > 0) {
-                    int maskTop = 16 - height;
-                    int maskRight = 16 - width;
+                    float maskTop = 16 - height;
+                    float maskRight = 16 - width;
                     drawFluidTexture(graphics, x, y, fluidStillSprite, maskTop, maskRight, 0, fluidColor);
                 }
             }
@@ -171,10 +168,10 @@ public class DrawerHelper {
     }
 
     public static void drawItemStack(@Nonnull GuiGraphics graphics, ItemStack itemStack, int x, int y, int color, @Nullable String altTxt) {
-        float a = ColorUtils.alpha(color);
-        float r = ColorUtils.red(color);
-        float g = ColorUtils.green(color);
-        float b = ColorUtils.blue(color);
+        var a = ColorUtils.alpha(color);
+        var r = ColorUtils.red(color);
+        var g = ColorUtils.green(color);
+        var b = ColorUtils.blue(color);
         RenderSystem.setShaderColor(r, g, b, a);
 
         RenderSystem.enableDepthTest();

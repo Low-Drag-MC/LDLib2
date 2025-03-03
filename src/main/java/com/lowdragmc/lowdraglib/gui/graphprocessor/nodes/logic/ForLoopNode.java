@@ -29,6 +29,12 @@ public class ForLoopNode extends TriggerNode {
     }
 
     @Override
+    public void resetNode() {
+        super.resetNode();
+        isLooping = false;
+    }
+
+    @Override
     public List<TriggerNode> getNextTriggerNodes() {
         for (var port : self().getOutputPorts()) {
             if (port.fieldInfo.getType() == TriggerLink.class && port.fieldInfo.getName().equals("loopCompleted")) {

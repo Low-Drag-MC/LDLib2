@@ -298,6 +298,12 @@ public abstract class BaseNode implements IPersistedSerializable, ILDLRegister, 
     }
 
     /**
+     * Reset the node to its default state
+     */
+    public void resetNode() {
+    }
+
+    /**
      * called by the BaseGraph when the node is added to the graph
      */
     public void initialize(BaseGraph graph) {

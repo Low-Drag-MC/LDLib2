@@ -29,6 +29,7 @@ public class SyncedFieldAccessors {
     public static final IAccessor RECIPE_ACCESSOR = new RecipeAccessor();
     public static final IAccessor POSITION_ACCESSOR = new PositionAccessor();
     public static final IAccessor VECTOR3_ACCESSOR = new Vector3fAccessor();
+    public static final IAccessor QUATERNION_ACCESSOR = new QuaternionfAccessor();
     public static final IAccessor AABB_ACCESSOR = new AABBAccessor();
     public static final IAccessor COMPONENT_ACCESSOR = new ComponentAccessor();
     public static final IAccessor SIZE_ACCESSOR = new SizeAccessor();

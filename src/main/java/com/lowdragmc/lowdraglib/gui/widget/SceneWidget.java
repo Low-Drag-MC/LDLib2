@@ -49,29 +49,51 @@ public class SceneWidget extends WidgetGroup {
     protected WorldSceneRenderer renderer;
     @OnlyIn(Dist.CLIENT)
     protected TrackedDummyWorld dummyWorld;
+    @Getter
     protected boolean dragging;
+    @Getter
     protected boolean renderFacing = true;
+    @Getter
     protected boolean renderSelect = true;
+    @Getter
     protected boolean draggable = true;
+    @Getter
     protected boolean scalable = true;
+    @Getter
     protected boolean intractable = true;
+    @Getter
     protected boolean hoverTips;
+    @Getter
     protected int currentMouseX;
+    @Getter
     protected int currentMouseY;
+    @Getter
     protected Vector3f center;
+    @Getter
     protected float rotationYaw = 25;
+    @Getter
     protected float rotationPitch = -135;
+    @Getter
     protected float zoom = 5;
+    @Getter
     protected float range;
+    @Getter
     protected BlockPosFace clickPosFace;
+    @Getter
     protected BlockPosFace hoverPosFace;
+    @Getter
     protected BlockPosFace selectedPosFace;
+    @Getter
     protected ItemStack hoverItem;
+    @Getter
     protected BiConsumer<BlockPos, Direction> onSelected;
     @Getter
     protected Set<BlockPos> core;
+    @Getter
     protected boolean useCache;
+    @Getter
     protected boolean useOrtho = false;
+    @Getter
     protected boolean autoReleased;
     protected BiConsumer<SceneWidget, List<Component>> onAddedTooltips;
     protected Consumer<SceneWidget> beforeWorldRender;
@@ -134,7 +156,7 @@ public class SceneWidget extends WidgetGroup {
         return this;
     }
 
-    private float camZoom() {
+    public float camZoom() {
         if (useOrtho) {
             return 0.1f;
         } else {
@@ -615,8 +637,8 @@ public class SceneWidget extends WidgetGroup {
         return this;
     }
 
-    Interpolator interpolator;
-    long startTick;
+    protected Interpolator interpolator;
+    protected long startTick;
 
     public void setCameraYawAndPitchAnima(float rotationYaw, float rotationPitch, int dur) {
         if (interpolator != null) return ;
@@ -632,35 +654,4 @@ public class SceneWidget extends WidgetGroup {
         }, x -> interpolator = null);
     }
 
-    public Vector3f getCenter() {
-        return center;
-    }
-
-    public float getRotationYaw() {
-        return rotationYaw;
-    }
-
-    public float getRotationPitch() {
-        return rotationPitch;
-    }
-
-    public float getZoom() {
-        return zoom;
-    }
-
-    public BlockPosFace getClickPosFace() {
-        return clickPosFace;
-    }
-
-    public BlockPosFace getHoverPosFace() {
-        return hoverPosFace;
-    }
-
-    public BlockPosFace getSelectedPosFace() {
-        return selectedPosFace;
-    }
-
-    public ItemStack getHoverItem() {
-        return hoverItem;
-    }
 }

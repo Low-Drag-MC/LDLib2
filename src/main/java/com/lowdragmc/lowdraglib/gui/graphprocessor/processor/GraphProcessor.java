@@ -27,6 +27,7 @@ public class GraphProcessor extends BaseGraphProcessor {
 
     @Override
     public @NotNull Iterator<BaseNode> iterator() {
+        graph.resetNodes();
         var iterator = processList.iterator();
         return new Iterator<>() {
             @Override
