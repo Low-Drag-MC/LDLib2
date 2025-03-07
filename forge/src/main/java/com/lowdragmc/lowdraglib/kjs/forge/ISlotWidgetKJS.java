@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.forge.core.mixins.kjs;
+package com.lowdragmc.lowdraglib.kjs.forge;
 
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import dev.latvian.mods.kubejs.core.NoMixinException;

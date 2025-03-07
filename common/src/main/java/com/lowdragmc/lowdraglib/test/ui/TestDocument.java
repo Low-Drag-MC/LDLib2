@@ -6,9 +6,10 @@ import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.gui.widget.*;
+import com.lowdragmc.lowdraglib.misc.FluidBlockTransfer;
+import com.lowdragmc.lowdraglib.misc.FluidStorage;
+import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 
@@ -19,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TestDocument implements IUITest {
     @Override
     public ModularUI createUI(IUIHolder holder, Player entityPlayer) {
-        return new ModularUI(createUI(), holder, entityPlayer);
+        return new ModularUI(createUI2(), holder, entityPlayer);
     }
 
     public WidgetGroup createUI() {
@@ -49,6 +50,20 @@ public class TestDocument implements IUITest {
         button.setOnPressCallback(clickData -> {
             label.setText("Clicked " + counter.incrementAndGet() + " times!");
         });
+        return root;
+    }
+
+    public WidgetGroup createUI2() {
+        // create a root container
+        var root = new WidgetGroup();
+        root.setSize(100, 100);
+        root.setBackground(ResourceBorderTexture.BORDERED_BACKGROUND);
+
+        var selector = new SelectorWidget();
+        selector.setSelfPosition((100 - 60) / 2, (100 - 15) / 2);
+        selector.initTemplate();
+        selector.setClientSideWidget();
+        root.addWidget(selector);
         return root;
     }
 }

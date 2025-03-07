@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.forge.core.mixins.kjs;
 
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
+import com.lowdragmc.lowdraglib.kjs.forge.ISlotWidgetKJS;
 import com.lowdragmc.lowdraglib.side.item.forge.ItemTransferHelperImpl;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import net.minecraftforge.items.IItemHandlerModifiable;

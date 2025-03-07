@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * @date 2022/05/24
  * @implNote TODO
  */
-public class TestBlockEntity extends BlockEntity implements IUIHolder.Block {
+public class TestBlockEntity extends BlockEntity implements IUIHolder.BlockEntity {
 
     public TestBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(TYPE(), pWorldPosition, pBlockState);

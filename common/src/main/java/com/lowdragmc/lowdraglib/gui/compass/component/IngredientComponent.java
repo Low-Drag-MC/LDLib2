@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib.gui.compass.component;
 
 import com.lowdragmc.lowdraglib.gui.compass.ILayoutComponent;
 import com.lowdragmc.lowdraglib.gui.compass.LayoutPageWidget;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;

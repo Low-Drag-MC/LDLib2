@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.fabric.core.mixins.kjs;
 
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
+import com.lowdragmc.lowdraglib.kjs.fabric.ISlotWidgetKJS;
 import com.lowdragmc.lowdraglib.side.item.fabric.ItemTransferHelperImpl;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;

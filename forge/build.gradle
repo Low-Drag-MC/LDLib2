@@ -113,11 +113,16 @@ dependencies {
     modImplementation("dev.latvian.mods:kubejs-forge:${kjs_version}")
 
     //oculus
-    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
-    modCompileOnly("maven.modrinth:oculus:${oculus_version}")
+    forgeRuntimeLibrary(runtimeOnly("org.anarres:jcpp:1.4.14"))
+    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}") {transitive  = false}
+    modCompileOnly("maven.modrinth:oculus:${oculus_version}") {transitive = true}
 
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.5"))
     implementation(include("io.github.llamalad7:mixinextras-forge:0.3.5"))
+
+//    // Immersive Portals
+//    runtimeOnly("maven.modrinth:cloth-config:11.1.136+forge")
+//    modImplementation("maven.modrinth:immersive-portals-neoforge:3.0.1")
 }
 
 processResources {

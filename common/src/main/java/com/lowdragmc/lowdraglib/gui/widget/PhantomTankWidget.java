@@ -7,33 +7,22 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.ingredient.IGhostIngredientTarget;
 import com.lowdragmc.lowdraglib.gui.ingredient.Target;
-import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.gui.util.TextFormattingUtil;
 import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
+import com.lowdragmc.lowdraglib.side.fluid.IFluidStorage;
 import com.lowdragmc.lowdraglib.side.fluid.IFluidTransfer;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.mojang.blaze3d.systems.RenderSystem;
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import dev.emi.emi.api.stack.EmiStack;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 
@@ -41,51 +30,53 @@ import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
-@NoArgsConstructor
-@Deprecated(since = "1.21")
-public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTarget, IConfigurableWidget {
+@LDLRegister(name = "phantom_tank_slot", group = "widget.container")
+public class PhantomTankWidget extends TankWidget implements IGhostIngredientTarget, IConfigurableWidget {
 
-    @Setter
-    private Supplier<FluidStack> phantomFluidGetter = FluidStack::empty;
-    @Setter
-    private Consumer<FluidStack> phantomFluidSetter = f -> {};
+    private Consumer<FluidStack> fluidStackUpdater;
 
-    @Nullable
-    @Getter
-    protected FluidStack lastPhantomStack;
+    public PhantomTankWidget() {
+        super();
+        this.allowClickFilled = false;
+        this.allowClickDrained = false;
+    }
 
-    public PhantomFluidWidget(@Nullable IFluidTransfer fluidTank, int tank, int x, int y, int width, int height,
-                              Supplier<FluidStack> phantomFluidGetter, Consumer<FluidStack> phantomFluidSetter) {
+    public PhantomTankWidget(IFluidStorage fluidTank, int x, int y) {
+        super(fluidTank, x, y, false, false);
+    }
+
+    public PhantomTankWidget(@Nullable IFluidStorage fluidTank, int x, int y, int width, int height) {
+        super(fluidTank, x, y, width, height, false, false);
+    }
+
+    public PhantomTankWidget(IFluidTransfer fluidTank, int tank, int x, int y) {
+        super(fluidTank, tank, x, y, false, false);
+    }
+
+    public PhantomTankWidget(@Nullable IFluidTransfer fluidTank, int tank, int x, int y, int width, int height) {
         super(fluidTank, tank, x, y, width, height, false, false);
-        this.phantomFluidGetter = phantomFluidGetter;
-        this.phantomFluidSetter = phantomFluidSetter;
+    }
+
+    public PhantomTankWidget setIFluidStackUpdater(Consumer<FluidStack> fluidStackUpdater) {
+        this.fluidStackUpdater = fluidStackUpdater;
+        return this;
     }
 
     @ConfigSetter(field = "allowClickFilled")
-    public PhantomFluidWidget setAllowClickFilled(boolean v) {
+    public PhantomTankWidget setAllowClickFilled(boolean v) {
         // you cant modify it
         return this;
     }
 
     @ConfigSetter(field = "allowClickDrained")
-    public PhantomFluidWidget setAllowClickDrained(boolean v) {
+    public PhantomTankWidget setAllowClickDrained(boolean v) {
         // you cant modify it
         return this;
     }
 
-    protected void setLastPhantomStack(FluidStack fluid) {
-        if (fluid != null) {
-            this.lastPhantomStack = fluid.copy();
-            this.lastPhantomStack.setAmount(1);
-        } else {
-            this.lastPhantomStack = null;
-        }
-    }
-
     public static FluidStack drainFrom(Object ingredient) {
-         if (ingredient instanceof Ingredient ing) {
+        if (ingredient instanceof Ingredient ing) {
             var items = ing.getItems();
             if (items.length > 0) {
                 ingredient = items[0];
@@ -119,7 +110,7 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
             }
         }
         if (LDLib.isJeiLoaded() && ingredient instanceof ITypedIngredient<?> typedIngredient) {
-            ingredient = checkJEIIngredient(typedIngredient.getIngredient());
+            ingredient = PhantomFluidWidget.checkJEIIngredient(typedIngredient.getIngredient());
         }
         if (!(ingredient instanceof FluidStack) && drainFrom(ingredient).isEmpty()) {
             return Collections.emptyList();
@@ -152,29 +143,29 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
                     }
                 }
                 if (LDLib.isJeiLoaded()) {
-                    ingredient = checkJEIIngredient(ingredient);
+                    ingredient = PhantomFluidWidget.checkJEIIngredient(ingredient);
                 }
                 if (ingredient instanceof FluidStack fluidStack)
                     ingredientStack = fluidStack;
                 else
                     ingredientStack = drainFrom(ingredient);
 
-                if (ingredientStack != FluidStack.empty()) {
-                    writeClientAction(2, ingredientStack::writeToBuf);
+                if (ingredientStack != null && !ingredientStack.isEmpty()) {
+                    CompoundTag tagCompound = ingredientStack.saveToTag(new CompoundTag());
+                    writeClientAction(2, buffer -> buffer.writeNbt(tagCompound));
                 }
 
-                if (isClientSideWidget) {
-                    if (phantomFluidSetter != null) {
-                        phantomFluidSetter.accept(ingredientStack);
+                if (isClientSideWidget && fluidTank != null) {
+                    fluidTank.drain(fluidTank.getTankCapacity(tank), false);
+                    if (ingredientStack != null) {
+                        fluidTank.fill(ingredientStack.copy(), false);
+                    }
+                    if (fluidStackUpdater != null) {
+                        fluidStackUpdater.accept(ingredientStack);
                     }
                 }
             }
         });
-    }
-
-    @ExpectPlatform
-    public static Object checkJEIIngredient(Object ingredient) {
-        throw new AssertionError();
     }
 
     @Override
@@ -182,28 +173,16 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
         if (id == 1) {
             handlePhantomClick();
         } else if (id == 2) {
-            if (phantomFluidSetter != null) {
-                phantomFluidSetter.accept(FluidStack.readFromBuf(buffer));
+            FluidStack fluidStack;
+            fluidStack = FluidStack.loadFromTag(buffer.readNbt());
+            if (fluidTank == null) return;
+            fluidTank.drain(fluidTank.getTankCapacity(tank), false);
+            if (fluidStack != null) {
+                fluidTank.fill(fluidStack.copy(), false);
             }
-        } else if (id == 4) {
-            phantomFluidSetter.accept(FluidStack.empty());
-        } else if (id == 5) {
-            phantomFluidSetter.accept(FluidStack.readFromBuf(buffer));
-        }
-    }
-
-    @Override
-    public void detectAndSendChanges() {
-        super.detectAndSendChanges();
-        FluidStack stack = phantomFluidGetter.get();
-        if (stack == null || stack.isEmpty()) {
-            if (lastPhantomStack != null) {
-                setLastPhantomStack(null);
-                writeUpdateInfo(4, buf -> {});
+            if (fluidStackUpdater != null) {
+                fluidStackUpdater.accept(fluidStack);
             }
-        } else if (lastPhantomStack == null || !stack.isFluidEqual(lastPhantomStack)) {
-            setLastPhantomStack(stack);
-            writeUpdateInfo(5, stack::writeToBuf);
         }
     }
 
@@ -214,7 +193,7 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
             if (isClientSideWidget) {
                 handlePhantomClick();
             } else {
-                writeClientAction(1, buffer -> {});
+                writeClientAction(1, buffer -> { });
             }
             return true;
         }
@@ -222,57 +201,25 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
     }
 
     private void handlePhantomClick() {
+        if (fluidTank == null) return;
         ItemStack itemStack = gui.getModularUIContainer().getCarried().copy();
         if (!itemStack.isEmpty()) {
             itemStack.setCount(1);
             var handler = FluidTransferHelper.getFluidTransfer(gui.entityPlayer, gui.getModularUIContainer());
             if (handler != null) {
                 FluidStack resultFluid = handler.drain(Integer.MAX_VALUE, true);
-                if (phantomFluidSetter != null) {
-                    phantomFluidSetter.accept(resultFluid);
+                fluidTank.drain(fluidTank.getTankCapacity(tank), false);
+                fluidTank.fill(resultFluid.copy(), false);
+                if (fluidStackUpdater != null) {
+                    fluidStackUpdater.accept(resultFluid);
                 }
             }
         } else {
-            if (phantomFluidSetter != null) {
-                phantomFluidSetter.accept(FluidStack.empty());
+            fluidTank.drain(fluidTank.getTankCapacity(tank), false);
+            if (fluidStackUpdater != null) {
+                fluidStackUpdater.accept(null);
             }
         }
     }
 
-    @Override
-    public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        if (this.lastFluidInTank != null) {
-            super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
-            return;
-        }
-        Position pos = getPosition();
-        Size size = getSize();
-        FluidStack stack = phantomFluidGetter.get();
-        if (stack != null && !stack.isEmpty()) {
-            RenderSystem.disableBlend();
-
-            double progress = stack.getAmount() * 1.0 / Math.max(Math.max(stack.getAmount(), lastTankCapacity), 1);
-            float drawnU = (float) fillDirection.getDrawnU(progress);
-            float drawnV = (float) fillDirection.getDrawnV(progress);
-            float drawnWidth = (float) fillDirection.getDrawnWidth(progress);
-            float drawnHeight = (float) fillDirection.getDrawnHeight(progress);
-            int width = size.width - 2;
-            int height = size.height - 2;
-            int x = pos.x + 1;
-            int y = pos.y + 1;
-            DrawerHelper.drawFluidForGui(graphics, stack, x + drawnU * width, y + drawnV * height, width * drawnWidth, height * drawnHeight);
-            if (showAmount) {
-                graphics.pose().pushPose();
-                graphics.pose().scale(0.5F, 0.5F, 1);
-                String s = TextFormattingUtil.formatLongToCompactStringBuckets(stack.getAmount(), 3) + "B";
-                Font fontRenderer = Minecraft.getInstance().font;
-                graphics.drawString(fontRenderer, s, (int) ((pos.x + (size.width / 3f)) * 2 - fontRenderer.width(s) + 21), (int) ((pos.y + (size.height / 3f) + 6) * 2), 0xFFFFFF, true);
-                graphics.pose().popPose();
-            }
-
-            RenderSystem.enableBlend();
-            RenderSystem.setShaderColor(1, 1, 1, 1);
-        }
-
-    }
 }

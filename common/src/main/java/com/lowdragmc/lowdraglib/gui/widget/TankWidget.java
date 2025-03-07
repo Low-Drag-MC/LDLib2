@@ -121,6 +121,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
 
     public TankWidget(@Nullable IFluidStorage fluidTank, int x, int y, int width, int height, boolean allowClickContainerFilling, boolean allowClickContainerEmptying) {
         super(new Position(x, y), new Size(width, height));
+        setBackground(FLUID_SLOT_TEXTURE);
         this.fluidTank = fluidTank;
         this.tank = 0;
         this.showAmount = true;
@@ -135,6 +136,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
 
     public TankWidget(@Nullable IFluidTransfer fluidTank, int tank, int x, int y, int width, int height, boolean allowClickContainerFilling, boolean allowClickContainerEmptying) {
         super(new Position(x, y), new Size(width, height));
+        setBackground(FLUID_SLOT_TEXTURE);
         this.fluidTank = fluidTank;
         this.tank = tank;
         this.showAmount = true;

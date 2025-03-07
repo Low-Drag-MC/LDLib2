@@ -19,7 +19,8 @@
   ],
   "mixins": [
     "MinecraftServerMixin",
-    "accessor.PackRepositoryMixin"
+    "accessor.PackRepositoryMixin",
+    "kjs.SlotWidgetMixin"
   ],
   "injectors": {
     "defaultRequire": 1

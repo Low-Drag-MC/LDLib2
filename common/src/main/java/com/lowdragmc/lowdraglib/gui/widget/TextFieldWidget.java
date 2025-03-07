@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.latvian.mods.rhino.util.RemapForJS;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -307,6 +308,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
         return this;
     }
 
+    @RemapForJS("setNumbersOnlyLong")
     public TextFieldWidget setNumbersOnly(long minValue, long maxValue) {
         setValidator(s -> {
             try {
@@ -330,6 +332,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
         return setWheelDur(1);
     }
 
+    @RemapForJS("setNumbersOnlyInt")
     public TextFieldWidget setNumbersOnly(int minValue, int maxValue) {
         setValidator(s -> {
             try {
@@ -353,6 +356,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
         return setWheelDur(1);
     }
 
+    @RemapForJS("setNumbersOnlyFloat")
     public TextFieldWidget setNumbersOnly(float minValue, float maxValue) {
         setValidator(s -> {
             try {

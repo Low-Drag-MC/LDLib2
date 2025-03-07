@@ -79,7 +79,7 @@
   "ldlib.gui.editor.name.baseTexture": "base texture",
   "ldlib.gui.editor.name.pressedTexture": "pressed texture",
   "ldlib.gui.editor.name.hoverTexture": "hover texture",
-  "ldlib.gui.editor.name.clicked_texture": "hover texture",
+  "ldlib.gui.editor.name.clicked_texture": "clicked texture",
   "ldlib.gui.editor.name.isPressed": "is pressed",
   "ldlib.gui.editor.name.showAmount": "show amount",
   "ldlib.gui.editor.name.allowClickFilled": "allow click filled",
@@ -207,6 +207,7 @@
   "ldlib.gui.editor.register.widget.container.fluid_slot": "Fluid Slot",
   "ldlib.gui.editor.register.widget.container.phantom_item_slot": "Phantom Item Slot",
   "ldlib.gui.editor.register.widget.container.phantom_fluid_slot": "Phantom Fluid Slot",
+  "ldlib.gui.editor.register.widget.container.phantom_tank_slot": "Phantom Tank Slot",
   "ldlib.gui.editor.register.widget.custom.player_inventory": "Player Inventory",
 
   "ldlib.gui.editor.register.editor.history": "History View",

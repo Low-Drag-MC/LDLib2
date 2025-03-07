@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.util.ClickData;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
+import lombok.Getter;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
@@ -30,6 +31,7 @@ public class SwitchWidget extends Widget implements IConfigurableWidget {
     protected IGuiTexture hoverTexture;
 
     @Configurable(name = "ldlib.gui.editor.name.isPressed")
+    @Getter
     protected boolean isPressed;
 
     protected BiConsumer<ClickData, Boolean> onPressCallback;
@@ -115,10 +117,6 @@ public class SwitchWidget extends Widget implements IConfigurableWidget {
         if (!isClientSideWidget && supplier != null) {
             setPressed(supplier.get());
         }
-    }
-
-    public boolean isPressed() {
-        return isPressed;
     }
 
     public SwitchWidget setPressed(boolean isPressed) {

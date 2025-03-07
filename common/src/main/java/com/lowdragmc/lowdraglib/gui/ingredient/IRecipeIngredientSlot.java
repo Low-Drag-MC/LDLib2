@@ -39,7 +39,11 @@ public interface IRecipeIngredientSlot extends IIngredientSlot {
      */
     @Nullable
     default Object getXEICurrentIngredient() {
-        return getXEIIngredients().get(0);
+        var ingredients = getXEIIngredients();
+        if (ingredients.isEmpty()) {
+            return null;
+        }
+        return ingredients.get(0);
     }
 
     default float getXEIChance() {

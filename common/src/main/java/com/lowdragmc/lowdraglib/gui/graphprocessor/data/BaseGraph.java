@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.gui.graphprocessor.data;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
+import com.lowdragmc.lowdraglib.gui.graphprocessor.data.trigger.TriggerLink;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib.utils.TypeAdapter;
@@ -472,6 +473,10 @@ public class BaseGraph implements IPersistedSerializable {
      * Tell if two types can be connected in the context of a graph
      */
     public static boolean areTypesConnectable(Class from, Class to) {
+        if (from == TriggerLink.class || to == TriggerLink.class) {
+            return from == to;
+        }
+
         if (from == null || to == null)
             return false;
 

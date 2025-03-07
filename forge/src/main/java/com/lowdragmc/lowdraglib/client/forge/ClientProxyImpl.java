@@ -17,7 +17,6 @@ import com.lowdragmc.lowdraglib.forge.CommonProxyImpl;
 import com.lowdragmc.lowdraglib.gui.compass.CompassManager;
 import com.lowdragmc.lowdraglib.gui.util.WidgetTooltipComponent;
 import com.lowdragmc.lowdraglib.test.TestBlock;
-import com.lowdragmc.lowdraglib.utils.CustomResourcePack;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -26,7 +25,6 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.resources.model.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
-import net.minecraft.server.packs.resources.Resource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -67,7 +65,6 @@ public class ClientProxyImpl extends CommonProxyImpl {
             if (Platform.isDevEnv()) {
                 ItemBlockRenderTypes.setRenderLayer(TestBlock.BLOCK, RenderType.cutoutMipped());
             }
-            Minecraft.getInstance().getMainRenderTarget().enableStencil();
         });
     }
 

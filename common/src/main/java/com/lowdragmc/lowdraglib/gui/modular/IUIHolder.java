@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.gui.modular;
 
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.factory.HeldItemUIFactory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.entity.BlockEntity;
 
 public interface IUIHolder {
     IUIHolder EMPTY = new IUIHolder() {
@@ -28,9 +28,9 @@ public interface IUIHolder {
         }
     };
 
-    interface Block extends IUIHolder {
-        default BlockEntity self() {
-            return (BlockEntity) this;
+    interface BlockEntity extends IUIHolder {
+        default net.minecraft.world.level.block.entity.BlockEntity self() {
+            return (net.minecraft.world.level.block.entity.BlockEntity) this;
         }
 
         @Override
@@ -40,7 +40,8 @@ public interface IUIHolder {
 
         @Override
         default boolean isRemote() {
-            return self().getLevel().isClientSide;
+            var level = self().getLevel();
+            return level == null ? LDLib.isRemote() : level.isClientSide;
         }
 
         @Override
