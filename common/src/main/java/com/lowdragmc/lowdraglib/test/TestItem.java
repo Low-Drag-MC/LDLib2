@@ -17,7 +17,7 @@ import net.minecraft.world.item.context.UseOnContext;
  * @date 2022/05/24
  * @implNote TestItem
  */
-public class TestItem extends BlockItem implements IItemRendererProvider, IUIHolder.Item {
+public class TestItem extends BlockItem implements IItemRendererProvider, IUIHolder.ItemUI {
 
     public static final TestItem ITEM = new TestItem();
 

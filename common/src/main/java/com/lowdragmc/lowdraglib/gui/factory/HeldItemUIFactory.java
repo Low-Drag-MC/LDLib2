@@ -85,7 +85,7 @@ public class HeldItemUIFactory extends UIFactory<HeldItemUIFactory.HeldItemHolde
     }
 
     @Deprecated
-    public interface IHeldItemUIHolder extends IUIHolder.Item {
+    public interface IHeldItemUIHolder extends IUIHolder.ItemUI {
 
     }
 }
