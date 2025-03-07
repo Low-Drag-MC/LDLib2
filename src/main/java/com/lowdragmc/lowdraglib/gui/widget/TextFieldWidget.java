@@ -11,6 +11,7 @@ import net.minecraft.ResourceLocationException;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import dev.latvian.mods.rhino.util.RemapForJS;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -308,6 +309,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
         return this;
     }
 
+    @RemapForJS("setNumbersOnlyLong")
     public TextFieldWidget setNumbersOnly(long minValue, long maxValue) {
         setValidator(s -> {
             try {
@@ -331,6 +333,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
         return setWheelDur(1);
     }
 
+    @RemapForJS("setNumbersOnlyInt")
     public TextFieldWidget setNumbersOnly(int minValue, int maxValue) {
         setValidator(s -> {
             try {
@@ -354,6 +357,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
         return setWheelDur(1);
     }
 
+    @RemapForJS("setNumbersOnlyFloat")
     public TextFieldWidget setNumbersOnly(float minValue, float maxValue) {
         setValidator(s -> {
             try {

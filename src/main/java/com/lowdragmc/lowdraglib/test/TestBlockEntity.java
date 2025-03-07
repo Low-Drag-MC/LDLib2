@@ -21,7 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * @date 2022/05/24
  * @implNote TODO
  */
-public class TestBlockEntity extends BlockEntity implements IUIHolder.Block, IBlockEntityManaged {
+public class TestBlockEntity extends BlockEntity implements IUIHolder.BlockEntity, IBlockEntityManaged {
     public final static ManagedFieldHolder FIELD_HOLDER = new ManagedFieldHolder(TestBlockEntity.class);
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);

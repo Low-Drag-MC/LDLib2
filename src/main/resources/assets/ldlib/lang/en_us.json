@@ -79,7 +79,7 @@
   "ldlib.gui.editor.name.baseTexture": "base texture",
   "ldlib.gui.editor.name.pressedTexture": "pressed texture",
   "ldlib.gui.editor.name.hoverTexture": "hover texture",
-  "ldlib.gui.editor.name.clicked_texture": "hover texture",
+  "ldlib.gui.editor.name.clicked_texture": "clicked texture",
   "ldlib.gui.editor.name.isPressed": "is pressed",
   "ldlib.gui.editor.name.showAmount": "show amount",
   "ldlib.gui.editor.name.allowClickFilled": "allow click filled",

@@ -81,10 +81,10 @@ public class ClientProxy extends CommonProxy {
             ((ReloadableResourceManager) Minecraft.getInstance().getResourceManager()).registerReloadListener(CompassManager.INSTANCE);
             CompassManager.INSTANCE.onResourceManagerReload(Minecraft.getInstance().getResourceManager());
             ClientProxy.init();
+            ItemBlockRenderTypes.setRenderLayer(RendererBlock.BLOCK, RenderType.translucent());
             if (Platform.isDevEnv()) {
                 ItemBlockRenderTypes.setRenderLayer(TestBlock.BLOCK, RenderType.cutoutMipped());
             }
-            Minecraft.getInstance().getMainRenderTarget().enableStencil();
         });
     }
 

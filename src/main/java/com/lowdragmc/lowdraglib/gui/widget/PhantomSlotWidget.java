@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib.gui.ingredient.IGhostIngredientTarget;
 import com.lowdragmc.lowdraglib.gui.ingredient.Target;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.emi.emi.api.stack.EmiStack;
+import lombok.Getter;
 import lombok.Setter;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -33,11 +34,13 @@ import java.util.List;
 @LDLRegister(name = "phantom_item_slot", group = "widget.container")
 public class PhantomSlotWidget extends SlotWidget implements IGhostIngredientTarget, IConfigurableWidget {
 
+    @Getter
     private boolean clearSlotOnRightClick;
 
     @Configurable
     @NumberRange(range = {0, 64})
     @Setter
+    @Getter
     private int maxStackSize = 64;
 
     public PhantomSlotWidget() {

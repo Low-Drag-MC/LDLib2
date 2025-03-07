@@ -30,6 +30,7 @@ public class SwitchWidget extends Widget implements IConfigurableWidget {
     protected IGuiTexture hoverTexture;
 
     @Configurable(name = "ldlib.gui.editor.name.isPressed")
+    @Getter
     protected boolean isPressed;
 
     protected BiConsumer<ClickData, Boolean> onPressCallback;
@@ -115,10 +116,6 @@ public class SwitchWidget extends Widget implements IConfigurableWidget {
         if (!isClientSideWidget && supplier != null) {
             setPressed(supplier.get());
         }
-    }
-
-    public boolean isPressed() {
-        return isPressed;
     }
 
     public SwitchWidget setPressed(boolean isPressed) {

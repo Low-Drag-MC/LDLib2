@@ -14,6 +14,8 @@ import com.lowdragmc.lowdraglib.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.emi.emi.api.stack.EmiStack;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -40,11 +42,14 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegister(name = "phantom_fluid_slot", group = "widget.container")
+@NoArgsConstructor
+@Deprecated(since = "1.21")
 public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTarget, IConfigurableWidget {
 
-    private final Supplier<FluidStack> phantomFluidGetter;
-    private final Consumer<FluidStack> phantomFluidSetter;
+    @Setter
+    private Supplier<FluidStack> phantomFluidGetter = FluidStack::empty;
+    @Setter
+    private Consumer<FluidStack> phantomFluidSetter = f -> {};
 
     @Nullable
     @Getter
