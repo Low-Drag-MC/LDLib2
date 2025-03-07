@@ -28,7 +28,7 @@ public interface IUIHolder {
         }
     };
 
-    interface BlockEntity extends IUIHolder {
+    interface BlockEntityUI extends IUIHolder {
         default net.minecraft.world.level.block.entity.BlockEntity self() {
             return (net.minecraft.world.level.block.entity.BlockEntity) this;
         }
@@ -50,7 +50,7 @@ public interface IUIHolder {
         }
     }
 
-    interface Item {
+    interface ItemUI {
         ModularUI createUI(Player entityPlayer, HeldItemUIFactory.HeldItemHolder holder);
     }
 

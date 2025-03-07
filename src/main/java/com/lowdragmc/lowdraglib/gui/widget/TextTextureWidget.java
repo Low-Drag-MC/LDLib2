@@ -77,6 +77,7 @@ public class TextTextureWidget extends Widget implements IConfigurableWidget {
         return this;
     }
 
+    @RemapForJS("setTextProvider")
     public TextTextureWidget setText(Supplier<Component> textSupplier) {
         this.textSupplier = textSupplier;
         return this;
