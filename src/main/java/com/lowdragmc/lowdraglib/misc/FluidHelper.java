@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.side.fluid;
+package com.lowdragmc.lowdraglib.misc;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -36,7 +36,7 @@ public class FluidHelper {
     @OnlyIn(Dist.CLIENT)
     public static TextureAtlasSprite getStillTexture(FluidStack fluidStack) {
         var texture = IClientFluidTypeExtensions.of(fluidStack.getFluid()).getStillTexture(fluidStack);
-        return texture == null ? null : Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(texture);
+        return Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(texture);
     }
 
     public static Component getDisplayName(FluidStack fluidStack) {

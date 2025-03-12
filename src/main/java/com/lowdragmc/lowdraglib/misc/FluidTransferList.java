@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.misc;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.side.fluid.IFluidHandlerModifiable;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;

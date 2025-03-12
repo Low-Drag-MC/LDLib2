@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.utils;
 
-import com.lowdragmc.lowdraglib.side.fluid.IFluidHandlerModifiable;
+import com.lowdragmc.lowdraglib.misc.IFluidHandlerModifiable;
 import lombok.Getter;
 import lombok.Setter;
 import net.neoforged.neoforge.fluids.FluidStack;

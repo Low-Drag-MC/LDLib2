@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.util;
 
-import com.lowdragmc.lowdraglib.side.fluid.FluidHelper;
+import com.lowdragmc.lowdraglib.misc.FluidHelper;
 
 import java.text.DecimalFormat;
 import java.util.Map;

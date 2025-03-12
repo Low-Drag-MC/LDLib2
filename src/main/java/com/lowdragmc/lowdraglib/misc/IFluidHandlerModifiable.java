@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.side.fluid;
+package com.lowdragmc.lowdraglib.misc;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;

@@ -16,7 +16,8 @@ import com.lowdragmc.lowdraglib.gui.util.TextFormattingUtil;
 import com.lowdragmc.lowdraglib.jei.ClickableIngredient;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.jei.JEIPlugin;
-import com.lowdragmc.lowdraglib.side.fluid.*;
+import com.lowdragmc.lowdraglib.misc.FluidHelper;
+import com.lowdragmc.lowdraglib.misc.IFluidHandlerModifiable;
 import com.lowdragmc.lowdraglib.utils.CycleFluidTransfer;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
@@ -51,9 +52,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -544,16 +545,16 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         if (fluidTank == null) return -1;
         Player player = gui.entityPlayer;
         ItemStack currentStack = gui.getModularUIContainer().getCarried();
-        var handler = FluidTransferHelper.getFluidTransfer(gui.entityPlayer, gui.getModularUIContainer());
-        if (handler == null) return -1;
+        var handler = FluidUtil.getFluidHandler(gui.getModularUIContainer().getCarried());
+        if (handler.isEmpty()) return -1;
         int maxAttempts = isShiftKeyDown ? currentStack.getCount() : 1;
         FluidStack initialFluid = fluidTank.getFluidInTank(tank);
         if (allowClickFilled && initialFluid.getAmount() > 0) {
             boolean performedFill = false;
             for (int i = 0; i < maxAttempts; i++) {
-                FluidActionResult result = FluidTransferHelper.tryFillContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, false);
+                var result = FluidUtil.tryFillContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, false);
                 if (!result.isSuccess()) break;
-                ItemStack remainingStack = FluidTransferHelper.tryFillContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, true).getResult();
+                ItemStack remainingStack = FluidUtil.tryFillContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, true).getResult();
                 currentStack.shrink(1);
                 performedFill = true;
                 if (!remainingStack.isEmpty() && !player.addItem(remainingStack)) {
@@ -574,9 +575,9 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         if (allowClickDrained) {
             boolean performedEmptying = false;
             for (int i = 0; i < maxAttempts; i++) {
-                FluidActionResult result = FluidTransferHelper.tryEmptyContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, false);
+                var result = FluidUtil.tryEmptyContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, false);
                 if (!result.isSuccess()) break;
-                ItemStack remainingStack = FluidTransferHelper.tryEmptyContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, true).getResult();
+                ItemStack remainingStack = FluidUtil.tryEmptyContainer(currentStack, fluidTank, Integer.MAX_VALUE, null, true).getResult();
                 currentStack.shrink(1);
                 performedEmptying = true;
                 if (!remainingStack.isEmpty() && !player.getInventory().add(remainingStack)) {
@@ -602,7 +603,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if ((allowClickDrained || allowClickFilled) && isMouseOverElement(mouseX, mouseY)) {
             if (button == 0) {
-                if (FluidTransferHelper.getFluidTransfer(gui.entityPlayer, gui.getModularUIContainer()) != null) {
+                if (FluidUtil.getFluidHandler(gui.getModularUIContainer().getCarried()).isPresent()) {
                     boolean isShiftKeyDown = isShiftDown();
                     writeClientAction(1, writer -> writer.writeBoolean(isShiftKeyDown));
                     playButtonClickSound();

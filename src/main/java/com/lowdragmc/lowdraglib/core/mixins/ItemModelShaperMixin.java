@@ -53,6 +53,11 @@ public class ItemModelShaperMixin {
                     }
 
                     @Override
+                    public TriState useAmbientOcclusion(BlockState state, ModelData data, RenderType renderType) {
+                        return r.useAO(state, data, renderType);
+                    }
+
+                    @Override
                     public boolean isGui3d() {
                         return renderer.isGui3d();
                     }

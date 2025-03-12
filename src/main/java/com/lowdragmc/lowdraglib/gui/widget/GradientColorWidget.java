@@ -50,13 +50,13 @@ public class GradientColorWidget extends WidgetGroup {
                 })
                 .setOnChanged(color -> {
                     if (selectedAlphaPoint >= 0) {
-                        gradientColor.getAP().set(selectedAlphaPoint, new Vec2( gradientColor.getAP().get(selectedAlphaPoint).x, ColorUtils.alpha(color)));
+                        gradientColor.getAP().set(selectedAlphaPoint, new Vec2(gradientColor.getAP().get(selectedAlphaPoint).x, ColorUtils.alpha(color)));
                         notifyChanged();
                     }
                     if (selectedRGBPoint >= 0) {
-                        gradientColor.getRP().set(selectedRGBPoint, new Vec2( gradientColor.getRP().get(selectedRGBPoint).x, ColorUtils.red(color)));
-                        gradientColor.getGP().set(selectedRGBPoint, new Vec2( gradientColor.getGP().get(selectedRGBPoint).x, ColorUtils.green(color)));
-                        gradientColor.getBP().set(selectedRGBPoint, new Vec2( gradientColor.getBP().get(selectedRGBPoint).x, ColorUtils.blue(color)));
+                        gradientColor.getRP().set(selectedRGBPoint, new Vec2(gradientColor.getRP().get(selectedRGBPoint).x, ColorUtils.red(color)));
+                        gradientColor.getGP().set(selectedRGBPoint, new Vec2(gradientColor.getGP().get(selectedRGBPoint).x, ColorUtils.green(color)));
+                        gradientColor.getBP().set(selectedRGBPoint, new Vec2(gradientColor.getBP().get(selectedRGBPoint).x, ColorUtils.blue(color)));
                         notifyChanged();
                     }
                 }));

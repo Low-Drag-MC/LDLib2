@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib.gui.ingredient.IGhostIngredientTarget;
 import com.lowdragmc.lowdraglib.gui.ingredient.Target;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.util.TextFormattingUtil;
-import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -19,7 +18,6 @@ import mezz.jei.api.ingredients.ITypedIngredient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.Item;
@@ -30,8 +28,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -88,9 +86,9 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
             }
         }
         if (ingredient instanceof ItemStack itemStack) {
-            var handler = FluidTransferHelper.getFluidTransfer(new ItemStackHandler(NonNullList.of(ItemStack.EMPTY, itemStack)), 0);
-            if (handler != null) {
-                return handler.drain(Integer.MAX_VALUE, IFluidHandler.FluidAction.SIMULATE);
+            var handler = FluidUtil.getFluidHandler(itemStack);
+            if (handler.isPresent()) {
+                return handler.get().drain(Integer.MAX_VALUE, IFluidHandler.FluidAction.SIMULATE);
             }
         }
         return FluidStack.EMPTY;
@@ -213,9 +211,9 @@ public class PhantomFluidWidget extends TankWidget implements IGhostIngredientTa
         ItemStack itemStack = gui.getModularUIContainer().getCarried().copy();
         if (!itemStack.isEmpty()) {
             itemStack.setCount(1);
-            var handler = FluidTransferHelper.getFluidTransfer(gui.entityPlayer, gui.getModularUIContainer());
-            if (handler != null) {
-                FluidStack resultFluid = handler.drain(Integer.MAX_VALUE, IFluidHandler.FluidAction.EXECUTE);
+            var handler = FluidUtil.getFluidHandler(gui.getModularUIContainer().getCarried());
+            if (handler.isPresent()) {
+                FluidStack resultFluid = handler.get().drain(Integer.MAX_VALUE, IFluidHandler.FluidAction.EXECUTE);
                 if (phantomFluidSetter != null) {
                     phantomFluidSetter.accept(resultFluid);
                 }
