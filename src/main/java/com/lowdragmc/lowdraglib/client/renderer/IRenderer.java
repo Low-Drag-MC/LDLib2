@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.world.level.Level;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -135,7 +136,7 @@ public interface IRenderer {
      */
     @OnlyIn(Dist.CLIENT)
     @Nonnull
-    default TextureAtlasSprite getParticleTexture() {
+    default TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
         return Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(MissingTextureAtlasSprite.getLocation());
     }
 

@@ -133,8 +133,8 @@ public class UIResourceRenderer implements IRenderer {
     @NotNull
     @Override
     @OnlyIn(Dist.CLIENT)
-    public TextureAtlasSprite getParticleTexture() {
-        return getRenderer().getParticleTexture();
+    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
+        return getRenderer().getParticleTexture(level, pos, modelData);
     }
 
     @Override

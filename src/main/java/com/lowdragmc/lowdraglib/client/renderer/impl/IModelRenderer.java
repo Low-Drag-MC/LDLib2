@@ -75,10 +75,10 @@ public class IModelRenderer implements ISerializableRenderer {
     @Override
     @OnlyIn(Dist.CLIENT)
     @Nonnull
-    public TextureAtlasSprite getParticleTexture() {
+    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
         BakedModel model = getItemBakedModel();
         if (model == null) {
-            return ISerializableRenderer.super.getParticleTexture();
+            return ISerializableRenderer.super.getParticleTexture(level, pos, modelData);
         }
         return model.getParticleIcon();
     }

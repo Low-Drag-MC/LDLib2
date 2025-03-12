@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib.json;
 
 import com.google.gson.*;
 import com.lowdragmc.lowdraglib.Platform;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.TagParser;

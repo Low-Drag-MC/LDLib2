@@ -69,7 +69,7 @@ public class ItemModelShaperMixin {
 
                     @Override
                     public TextureAtlasSprite getParticleIcon() {
-                        return r.getParticleTexture();
+                        return r.getParticleTexture(null, null, ModelData.EMPTY);
                     }
 
                     @Override

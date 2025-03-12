@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.networking.s2c;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.networking.both.PacketIntLocation;
+import com.lowdragmc.lowdraglib.networking.PacketIntLocation;
 import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IManagedAccessor;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoSyncBlockEntity;
@@ -11,8 +11,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;

@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.client.renderer.IBlockRendererProvider;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -16,7 +17,7 @@ public abstract class BlockModelShaperMixin {
         if (state.getBlock() instanceof IBlockRendererProvider rendererProvider) {
             var renderer = rendererProvider.getRenderer(state);
             if (renderer != null) {
-                cir.setReturnValue(renderer.getParticleTexture());
+                cir.setReturnValue(renderer.getParticleTexture(null, null, ModelData.EMPTY));
             }
         }
     }

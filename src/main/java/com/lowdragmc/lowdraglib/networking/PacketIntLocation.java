@@ -1,29 +1,22 @@
 package com.lowdragmc.lowdraglib.networking;
 
-import com.lowdragmc.lowdraglib.networking.IPacket;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
  * a packet that contains a BlockPos
  */
 @NoArgsConstructor
-public abstract class PacketIntLocation implements IPacket {
+public abstract class PacketIntLocation implements CustomPacketPayload {
     protected BlockPos pos;
 
     public PacketIntLocation(BlockPos pos) {
         this.pos = pos;
     }
 
-    @Override
-    public void encode(RegistryFriendlyByteBuf buf) {
+    public void write(RegistryFriendlyByteBuf buf) {
         buf.writeBlockPos(pos);
-    }
-
-    @Override
-    public void decode(RegistryFriendlyByteBuf buf) {
-        pos = buf.readBlockPos();
     }
 }

@@ -99,11 +99,11 @@ public class BlockStateRenderer implements ISerializableRenderer {
     @Override
     @OnlyIn(Dist.CLIENT)
     @Nonnull
-    public TextureAtlasSprite getParticleTexture() {
+    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
         ItemStack renderItem = getBlockInfo().getItemStackForm();
         BakedModel model = getItemModel(renderItem);
         if (model == null) {
-            return ISerializableRenderer.super.getParticleTexture();
+            return ISerializableRenderer.super.getParticleTexture(level, pos, modelData);
         }
         return model.getParticleIcon();
     }

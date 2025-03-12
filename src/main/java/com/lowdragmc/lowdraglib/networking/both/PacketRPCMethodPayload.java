@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.networking.both;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.networking.PacketIntLocation;
 import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IRPCBlockEntity;
@@ -10,7 +11,6 @@ import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;

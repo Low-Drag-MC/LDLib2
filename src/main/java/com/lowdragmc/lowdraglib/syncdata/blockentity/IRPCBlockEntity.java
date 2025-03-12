@@ -39,7 +39,7 @@ public interface IRPCBlockEntity extends IManagedBlockEntity {
         PacketDistributor.sendToPlayer(player, packet);
     }
 
-    default void rpcToTracking(IManaged managed, ServerPlayer player, String methodName, HolderLookup.Provider provider, Object... args) {
+    default void rpcToTracking(IManaged managed, String methodName, HolderLookup.Provider provider, Object... args) {
         var packet = generateRpcPacket(managed, methodName, provider, args);
         PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(getCurrentPos()), packet);
     }

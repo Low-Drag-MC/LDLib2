@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib.utils.SearchEngine;
 import com.lowdragmc.lowdraglib.utils.Size;
 import lombok.Setter;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -192,14 +191,14 @@ public class SearchComponentWidget<T> extends WidgetGroup {
         /**
          * just used for server side
          */
-        default void serialize(T value, FriendlyByteBuf buf) {
+        default void serialize(T value, RegistryFriendlyByteBuf buf) {
             buf.writeUtf(resultDisplay(value));
         }
 
         /**
          * just used for server side
          */
-        default T deserialize(FriendlyByteBuf buf) {
+        default T deserialize(RegistryFriendlyByteBuf buf) {
             return (T) buf.readUtf();
         }
     }
