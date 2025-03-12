@@ -31,17 +31,10 @@
  */
 package com.lowdragmc.lowdraglib.client.utils.glu;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.util.Mth;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
 import org.lwjgl.BufferUtils;
 
-import javax.annotation.Nonnull;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-
-import static org.lwjgl.opengl.GL11.*;
 
 /**
  * Project.java
@@ -183,156 +176,6 @@ public class Project extends Util {
 	}
 
 	/**
-	 * Method gluPerspective.
-	 *
-	 * @param fovy
-	 * @param aspect
-	 * @param zNear
-	 * @param zFar
-	 */
-	public static void gluPerspective(float fovy, float aspect, float zNear, float zFar) {
-		float sine, cotangent, deltaZ;
-		float radians = fovy / 2 * Mth.PI / 180;
-
-		deltaZ = zFar - zNear;
-		sine = (float) Math.sin(radians);
-
-		if ((deltaZ == 0) || (sine == 0) || (aspect == 0)) {
-			return;
-		}
-
-		cotangent = (float) Math.cos(radians) / sine;
-
-		__gluMakeIdentityf(matrix);
-
-		matrix.put(0 * 4 + 0, cotangent / aspect);
-		matrix.put(1 * 4 + 1, cotangent);
-		matrix.put(2 * 4 + 2, - (zFar + zNear) / deltaZ);
-		matrix.put(2 * 4 + 3, -1);
-		matrix.put(3 * 4 + 2, -2 * zNear * zFar / deltaZ);
-		matrix.put(3 * 4 + 3, 0);
-
-		glMultMatrixf(matrix);
-	}
-
-	/**
-	 * Method gluLookAt
-	 *
-	 * @param eyex
-	 * @param eyey
-	 * @param eyez
-	 * @param centerx
-	 * @param centery
-	 * @param centerz
-	 * @param upx
-	 * @param upy
-	 * @param upz
-	 */
-	public static void gluLookAt(
-		float eyex,
-		float eyey,
-		float eyez,
-		float centerx,
-		float centery,
-		float centerz,
-		float upx,
-		float upy,
-		float upz) {
-		float[] forward = Project.forward;
-		float[] side = Project.side;
-		float[] up = Project.up;
-
-		forward[0] = centerx - eyex;
-		forward[1] = centery - eyey;
-		forward[2] = centerz - eyez;
-
-		up[0] = upx;
-		up[1] = upy;
-		up[2] = upz;
-
-		normalize(forward);
-
-		/* Side = forward x up */
-		cross(forward, up, side);
-		normalize(side);
-
-		/* Recompute up as: up = side x forward */
-		cross(side, forward, up);
-
-		__gluMakeIdentityf(matrix);
-		matrix.put(0 * 4 + 0, side[0]);
-		matrix.put(1 * 4 + 0, side[1]);
-		matrix.put(2 * 4 + 0, side[2]);
-
-		matrix.put(0 * 4 + 1, up[0]);
-		matrix.put(1 * 4 + 1, up[1]);
-		matrix.put(2 * 4 + 1, up[2]);
-
-		matrix.put(0 * 4 + 2, -forward[0]);
-		matrix.put(1 * 4 + 2, -forward[1]);
-		matrix.put(2 * 4 + 2, -forward[2]);
-
-		glMultMatrixf(matrix);
-		glTranslatef(-eyex, -eyey, -eyez);
-	}
-
-	/**
-	 * Method gluLookAt
-	 *
-	 */
-	public static void gluLookAt(
-			@Nonnull Matrix4fStack poseStack,
-			float eyex,
-			float eyey,
-			float eyez,
-			float centerx,
-			float centery,
-			float centerz,
-			float upx,
-			float upy,
-			float upz) {
-		float[] forward = Project.forward;
-		float[] side = Project.side;
-		float[] up = Project.up;
-
-		forward[0] = centerx - eyex;
-		forward[1] = centery - eyey;
-		forward[2] = centerz - eyez;
-
-		up[0] = upx;
-		up[1] = upy;
-		up[2] = upz;
-
-		normalize(forward);
-
-		/* Side = forward x up */
-		cross(forward, up, side);
-		normalize(side);
-
-		/* Recompute up as: up = side x forward */
-		cross(side, forward, up);
-
-		__gluMakeIdentityf(matrix);
-		matrix.put(0, side[0]);
-		matrix.put(4, side[1]);
-		matrix.put(2 * 4, side[2]);
-
-		matrix.put(1, up[0]);
-		matrix.put(4 + 1, up[1]);
-		matrix.put(2 * 4 + 1, up[2]);
-
-		matrix.put(2, -forward[0]);
-		matrix.put(4 + 2, -forward[1]);
-		matrix.put(2 * 4 + 2, -forward[2]);
-
-		matrix.rewind();
-
-		var matrix4f = new Matrix4f(matrix);
-		poseStack.mul(matrix4f);
-		poseStack.translate(-eyex, -eyey, -eyez);
-	}
-
-	/**
 	 * Method gluProject
 	 *
 	 * @param objx
@@ -436,30 +279,4 @@ public class Project extends Util {
 		return true;
 	}
 
-	/**
-	 * Method gluPickMatrix
-	 *
-	 * @param x
-	 * @param y
-	 * @param deltaX
-	 * @param deltaY
-	 * @param viewport
-	 */
-	public static void gluPickMatrix(
-		float x,
-		float y,
-		float deltaX,
-		float deltaY,
-		IntBuffer viewport) {
-		if (deltaX <= 0 || deltaY <= 0) {
-			return;
-		}
-
-		/* Translate and scale the picked region to the entire window */
-		glTranslatef(
-			(viewport.get(viewport.position() + 2) - 2 * (x - viewport.get(viewport.position() + 0))) / deltaX,
-			(viewport.get(viewport.position() + 3) - 2 * (y - viewport.get(viewport.position() + 1))) / deltaY,
-			0);
-		glScalef(viewport.get(viewport.position() + 2) / deltaX, viewport.get(viewport.position() + 3) / deltaY, 1.0f);
-	}
 }

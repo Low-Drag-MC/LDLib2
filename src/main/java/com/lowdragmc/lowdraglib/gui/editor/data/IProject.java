@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.editor.data;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.ILDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
@@ -29,8 +30,8 @@ public interface IProject extends ILDLRegister, INBTSerializable<CompoundTag> {
     default void saveProject(Path file) {
         try {
             NbtIo.write(serializeNBT(Platform.getFrozenRegistry()), file);
-        } catch (IOException ignored) {
-            // TODO
+        } catch (IOException exception) {
+            LDLib.LOGGER.error("Failed to save project: {}", file, exception);
         }
     }
 

@@ -37,7 +37,8 @@
     "accessor.ServerPlayerAccessor",
     "accessor.SlotAccessor",
     "emi.EmiRenderHelperMixin",
-    "jei.RecipeSlotBuilderMixin"
+    "jei.RecipeSlotBuilderMixin",
+    "kjs.ServerScriptManagerAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

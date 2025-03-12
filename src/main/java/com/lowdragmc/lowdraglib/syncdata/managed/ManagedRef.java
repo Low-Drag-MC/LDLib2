@@ -21,33 +21,23 @@ public class ManagedRef implements IRef {
     protected BooleanConsumer onPersistedListener = changed -> {
     };
 
-
     protected ManagedRef(IManagedVar<?> field) {
         this.field = field;
     }
 
     public static ManagedRef create(IManagedVar<?> field, boolean lazy) {
-        if (field instanceof IManagedVar.Int) {
-            return new IntRef((IManagedVar.Int) field).setLazy(lazy);
-        } else if (field instanceof IManagedVar.Long) {
-            return new LongRef((IManagedVar.Long) field).setLazy(lazy);
-        } else if (field instanceof IManagedVar.Float) {
-            return new FloatRef((IManagedVar.Float) field).setLazy(lazy);
-        } else if (field instanceof IManagedVar.Double) {
-            return new DoubleRef((IManagedVar.Double) field).setLazy(lazy);
-        } else if (field instanceof IManagedVar.Boolean) {
-            return new BooleanRef((IManagedVar.Boolean) field).setLazy(lazy);
-        } else if (field instanceof IManagedVar.Byte) {
-            return new ByteRef((IManagedVar.Byte) field).setLazy(lazy);
-        } else if (field instanceof IManagedVar.Short) {
-            return new ShortRef((IManagedVar.Short) field).setLazy(lazy);
-        } else if (field instanceof IManagedVar.Char) {
-            return new CharRef((IManagedVar.Char) field).setLazy(lazy);
-        } else if (field instanceof ReadOnlyManagedField) {
-            return new ReadOnlyManagedRef((ReadOnlyManagedField) field).setLazy(lazy);
-        } else {
-            return new SimpleObjectRef(field).setLazy(lazy);
-        }
+        return switch (field) {
+            case IManagedVar.Int anInt -> new IntRef(anInt).setLazy(lazy);
+            case IManagedVar.Long aLong -> new LongRef(aLong).setLazy(lazy);
+            case IManagedVar.Float aFloat -> new FloatRef(aFloat).setLazy(lazy);
+            case IManagedVar.Double aDouble -> new DoubleRef(aDouble).setLazy(lazy);
+            case IManagedVar.Boolean aBoolean -> new BooleanRef(aBoolean).setLazy(lazy);
+            case IManagedVar.Byte aByte -> new ByteRef(aByte).setLazy(lazy);
+            case IManagedVar.Short aShort -> new ShortRef(aShort).setLazy(lazy);
+            case IManagedVar.Char aChar -> new CharRef(aChar).setLazy(lazy);
+            case ReadOnlyManagedField readOnlyManagedField -> new ReadOnlyManagedRef(readOnlyManagedField).setLazy(lazy);
+            case null, default -> new SimpleObjectRef(field).setLazy(lazy);
+        };
     }
 
     @Override

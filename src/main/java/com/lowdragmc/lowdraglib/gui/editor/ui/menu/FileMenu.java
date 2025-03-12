@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.editor.ui.menu;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
@@ -53,8 +54,8 @@ public class FileMenu extends MenuTab {
                             }
                             try {
                                 NbtIo.write(resources.serializeNBT(Platform.getFrozenRegistry()), r.toPath());
-                            } catch (IOException ignored) {
-                                // TODO
+                            } catch (IOException exception) {
+                                LDLib.LOGGER.error("Failed to save resource", exception);
                             }
                         }
                     });
@@ -72,8 +73,8 @@ public class FileMenu extends MenuTab {
                                 if (tag != null) {
                                     editor.getResourcePanel().loadResource(currentProject.loadResources(tag), true);
                                 }
-                            } catch (IOException ignored) {
-                                // TODO
+                            } catch (IOException exception) {
+                                LDLib.LOGGER.error("Failed to load resource", exception);
                             }
                         }
                     });

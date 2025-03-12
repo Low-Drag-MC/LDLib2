@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.syncdata.accessor;
 
 import com.lowdragmc.lowdraglib.syncdata.payload.ObjectTypedPayload;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
@@ -45,5 +46,10 @@ public class ObjectTypedPayloadAccessor<T> extends SimpleObjectAccessor {
     @Override
     public Object copyForManaged(Object value) {
         return getPayload().copyForManaged(value);
+    }
+
+    @Override
+    public boolean areDifferent(@Nonnull Object a, @Nonnull Object b) {
+        return getPayload().areDifferent(a, b);
     }
 }

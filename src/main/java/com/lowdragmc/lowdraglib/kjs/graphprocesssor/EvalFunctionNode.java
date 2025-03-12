@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.kjs.graphprocesssor;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.core.mixins.kjs.ServerScriptManagerAccessor;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.CustomPortBehavior;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.CustomPortInput;
@@ -10,7 +11,6 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.NodePort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortData;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.PortEdge;
-import dev.latvian.mods.kubejs.KubeJS;
 import dev.latvian.mods.rhino.Function;
 import dev.latvian.mods.rhino.Wrapper;
 import org.jetbrains.annotations.Nullable;
@@ -38,8 +38,8 @@ public class EvalFunctionNode extends BaseNode {
 
     @Override
     protected void process() {
-        // TODO server script manager
-        var manager = KubeJS.getStartupScriptManager();
+        var manager = ServerScriptManagerAccessor.getStaticInstance();
+        if (manager == null) return;
         var context = manager.contextFactory.enter();
         var scope = context.getTopCallScope();
         result = null;
@@ -65,7 +65,8 @@ public class EvalFunctionNode extends BaseNode {
             functionCache = null;
             if (codeCache != null) {
                 try {
-                    var manager = KubeJS.getStartupScriptManager();
+                    var manager = ServerScriptManagerAccessor.getStaticInstance();
+                    if (manager == null) return functionCache;
                     var context = manager.contextFactory.enter();
                     var scope = context.getTopCallScope();
                     if (context.evaluateString(scope, codeCache, name(), 1, null) instanceof Function function) {

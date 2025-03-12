@@ -8,7 +8,6 @@ import java.util.Random;
  * @implNote PerlinNoise1D
  * @deprecated use {@link net.minecraft.world.level.levelgen.synth.ImprovedNoise} instead.
  */
-@Deprecated(forRemoval = true)
 public class PerlinNoise {
     private double seed;
     private long default_size;

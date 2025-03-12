@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
 import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import net.minecraft.core.HolderLookup;
 
+import javax.annotation.Nonnull;
 import java.util.function.Predicate;
 
 /**
@@ -34,7 +35,6 @@ public interface IAccessor extends Predicate<Class<?>> {
 
     byte getDefaultType();
 
-
     default ITypedPayload<?> readFromReadonlyField(AccessorOp op, Object obj, HolderLookup.Provider provider) {
         throw new UnsupportedOperationException();
     }
@@ -53,5 +53,9 @@ public interface IAccessor extends Predicate<Class<?>> {
 
     default Object copyForManaged(Object value) {
         return value;
+    }
+
+    default boolean areDifferent(@Nonnull Object a, @Nonnull Object b) {
+        return !a.equals(b);
     }
 }

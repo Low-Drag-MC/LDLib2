@@ -85,7 +85,6 @@ public class TypedPayloadRegistries {
         register(clazz, factory, new ObjectTypedPayloadAccessor<>(objType, priority > 0, factory), priority);
     }
 
-
     public static byte getId(Class<?> clazz) {
         return idMap.getOrDefault(clazz, (byte) -1);
     }
@@ -101,12 +100,9 @@ public class TypedPayloadRegistries {
         return PrimitiveTypedPayload.ofNull();
     }
 
-
     public static ITypedPayload<?> of(byte type) {
         return factories.get(type).get();
     }
-
-
 
     public static IAccessor findByType(Type clazz) {
 

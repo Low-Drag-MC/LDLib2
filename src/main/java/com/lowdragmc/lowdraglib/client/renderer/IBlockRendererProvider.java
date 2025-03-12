@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.client.renderer;
 
+import net.minecraft.client.resources.model.BlockModelRotation;
 import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockAndTintGetter;
@@ -46,9 +47,8 @@ public interface IBlockRendererProvider {
      * you can use this to rotate the model based on the block state.
      */
     @OnlyIn(Dist.CLIENT)
-    @Nullable // TODO make it a standard api since 1.21
     default ModelState getModelState(BlockAndTintGetter world, BlockPos pos, BlockState state) {
-        return null;
+        return BlockModelRotation.X0_Y0;
     }
 
 }

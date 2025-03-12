@@ -361,7 +361,7 @@ public abstract class WorldSceneRenderer {
         Matrix4fStack posesStack = RenderSystem.getModelViewStack();
         posesStack.pushMatrix();
         posesStack.identity();
-        Project.gluLookAt(posesStack, eyePos.x(), eyePos.y(), eyePos.z(), lookAt.x(), lookAt.y(), lookAt.z(), worldUp.x(), worldUp.y(), worldUp.z());
+        posesStack.lookAt(eyePos.x(), eyePos.y(), eyePos.z(), lookAt.x(), lookAt.y(), lookAt.z(), worldUp.x(), worldUp.y(), worldUp.z());
         RenderSystem.applyModelViewMatrix();
 
         RenderSystem.activeTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);

@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
-import com.lowdragmc.lowdraglib.syncdata.SyncUtils;
-
 class SimpleObjectRef extends ManagedRef {
     private Object oldValue;
 
@@ -13,7 +11,10 @@ class SimpleObjectRef extends ManagedRef {
     @Override
     public void update() {
         Object newValue = getField().value();
-        if ((oldValue == null && newValue != null) || (oldValue != null && newValue == null) || (oldValue != null && SyncUtils.isChanged(oldValue, newValue))) {
+        if ((oldValue == null && newValue != null) || (oldValue != null && newValue == null)) {
+            oldValue = getKey().getAccessor().copyForManaged(newValue);
+            markAsDirty();
+        } else if (oldValue != null && getKey().getAccessor().areDifferent(oldValue, newValue)) {
             oldValue = getKey().getAccessor().copyForManaged(newValue);
             markAsDirty();
         }

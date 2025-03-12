@@ -16,8 +16,6 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.function.Supplier;
 
 /**
@@ -71,15 +69,6 @@ public class UIProject implements IProject {
     @Override
     public Resources getResources() {
         return resources;
-    }
-
-    @Override
-    public void saveProject(Path file) {
-        try {
-            NbtIo.write(serializeNBT(Platform.getFrozenRegistry()), file);
-        } catch (IOException ignored) {
-            // TODO
-        }
     }
 
     @Override

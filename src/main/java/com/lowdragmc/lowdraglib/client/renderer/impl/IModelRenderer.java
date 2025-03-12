@@ -57,10 +57,6 @@ public class IModelRenderer implements ISerializableRenderer {
     protected BakedModel itemModel;
 
     @OnlyIn(Dist.CLIENT)
-    @Deprecated(forRemoval = true, since = "1.21")
-    protected Map<Direction, BakedModel> blockModels;
-
-    @OnlyIn(Dist.CLIENT)
     protected Map<ModelState, BakedModel> modelCaches;
 
     protected IModelRenderer() {
@@ -154,37 +150,25 @@ public class IModelRenderer implements ISerializableRenderer {
         return getItemBakedModel();
     }
 
-    @OnlyIn(Dist.CLIENT)
-    @Nullable
-    @Deprecated(forRemoval = true, since = "1.21")
-    protected BakedModel getBlockBakedModel(@Nullable BlockPos pos, @Nullable BlockAndTintGetter level) {
-        return getRotatedModel(Direction.NORTH);
-    }
 
     @OnlyIn(Dist.CLIENT)
     @Nullable
     protected BakedModel getBlockBakedModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state) {
-        // TODO make it a standard api since 1.21
         if (level != null && pos != null && state != null && state.getBlock() instanceof IBlockRendererProvider provider) {
             var modelState = provider.getModelState(level, pos, state);
             if (modelState != null) {
-                return modelCaches.computeIfAbsent(modelState, facing -> getModel().bake(
+                return modelCaches.computeIfAbsent(modelState, ms -> getModel().bake(
                         ModelFactory.getModelBaker(),
                         this::materialMapping,
-                        modelState));
+                        ms));
             }
         }
-        return getBlockBakedModel(pos, level);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Deprecated(forRemoval = true, since = "1.21")
-    public BakedModel getRotatedModel(Direction frontFacing) {
-        return blockModels.computeIfAbsent(frontFacing, facing -> getModel().bake(
+        return modelCaches.computeIfAbsent(BlockModelRotation.X0_Y0, ms -> getModel().bake(
                 ModelFactory.getModelBaker(),
                 this::materialMapping,
-                ModelFactory.getRotation(facing)));
+                ms));
     }
+
 
     @OnlyIn(Dist.CLIENT)
     protected TextureAtlasSprite materialMapping(Material material) {
@@ -196,7 +180,6 @@ public class IModelRenderer implements ISerializableRenderer {
     public void onPrepareTextureAtlas(ResourceLocation atlasName, Consumer<ResourceLocation> register) {
         if (atlasName.equals(TextureAtlas.LOCATION_BLOCKS)) {
             itemModel = null;
-            blockModels.clear();
             modelCaches.clear();
         }
     }
@@ -221,7 +204,6 @@ public class IModelRenderer implements ISerializableRenderer {
     public void initRenderer() {
         if (this.modelLocation != null) {
             if (LDLib.isClient()) {
-                blockModels = new ConcurrentHashMap<>();
                 modelCaches = new ConcurrentHashMap<>();
                 registerEvent();
             }
@@ -234,7 +216,6 @@ public class IModelRenderer implements ISerializableRenderer {
         this.modelLocation = modelLocation;
         if (LDLib.isClient()) {
             itemModel = null;
-            if (blockModels != null) blockModels.clear();
             if (modelCaches != null) modelCaches.clear();
         }
     }
