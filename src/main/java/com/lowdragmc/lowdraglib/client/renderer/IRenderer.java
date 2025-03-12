@@ -2,8 +2,10 @@ package com.lowdragmc.lowdraglib.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -186,5 +188,17 @@ public interface IRenderer {
     @OnlyIn(Dist.CLIENT)
     default boolean isGui3d() {
         return true;
+    }
+
+    /**
+     * Return an {@link AABB} that controls the visible scope of this {@link BlockEntityRenderer}.
+     * Defaults to the unit cube at the given position. {@link AABB#INFINITE} can be used to declare the BER
+     * should be visible everywhere.
+     *
+     * @return an appropriately sized {@link AABB} for the {@link BlockEntityRenderer}
+     */
+    @OnlyIn(Dist.CLIENT)
+    default AABB getRenderBoundingBox(BlockEntity blockEntity) {
+        return new AABB(blockEntity.getBlockPos());
     }
 }

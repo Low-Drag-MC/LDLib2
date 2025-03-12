@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -55,10 +56,10 @@ public class ATESRRendererProvider<T extends BlockEntity> implements BlockEntity
     }
 
     @Nullable
-    public IRenderer getRenderer(@Nonnull T tileEntity) {
-        Level world = tileEntity.getLevel();
+    public IRenderer getRenderer(@Nonnull T blockEntity) {
+        Level world = blockEntity.getLevel();
         if (world != null) {
-            BlockState state = tileEntity.getBlockState();
+            BlockState state = blockEntity.getBlockState();
             if (state.getBlock() instanceof IBlockRendererProvider blockRendererProvider) {
                 return blockRendererProvider.getRenderer(state);
             }
@@ -66,19 +67,27 @@ public class ATESRRendererProvider<T extends BlockEntity> implements BlockEntity
         return null;
     }
 
-    public boolean hasRenderer(T tileEntity) {
-        IRenderer renderer = getRenderer(tileEntity);
-        return renderer != null && renderer.hasTESR(tileEntity);
+    public boolean hasRenderer(T blockEntity) {
+        IRenderer renderer = getRenderer(blockEntity);
+        return renderer != null && renderer.hasTESR(blockEntity);
     }
 
     @Override
-    public boolean shouldRenderOffScreen(@Nonnull T tileEntity) {
-        IRenderer renderer = getRenderer(tileEntity);
+    public boolean shouldRenderOffScreen(@Nonnull T blockEntity) {
+        IRenderer renderer = getRenderer(blockEntity);
         if (renderer != null) {
-            return renderer.isGlobalRenderer(tileEntity);
+            return renderer.isGlobalRenderer(blockEntity);
         }
         return false;
     }
-    
+
+    @Override
+    public AABB getRenderBoundingBox(T blockEntity) {
+        IRenderer renderer = getRenderer(blockEntity);
+        if (renderer != null) {
+            return renderer.getRenderBoundingBox(blockEntity);
+        }
+        return BlockEntityRenderer.super.getRenderBoundingBox(blockEntity);
+    }
 }
 
