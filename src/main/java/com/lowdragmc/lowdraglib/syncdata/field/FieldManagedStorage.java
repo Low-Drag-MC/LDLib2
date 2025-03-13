@@ -78,12 +78,12 @@ public class FieldManagedStorage implements IManagedStorage {
             var result = ManagedFieldUtils.getFieldRefs(fields, owner, (ref, index, changed) -> {
                 if (dirtySyncFields != null && index >= 0) {
                     dirtySyncFields.set(index, changed);
-                    owner.onSyncChanged(ref, changed);
+                    owner.onSyncMarkChanged(ref, changed);
                 }
             }, (ref, index, changed) -> {
                 if (dirtyPersistedFields != null && index >= 0) {
                     dirtyPersistedFields.set(index, changed);
-                    owner.onPersistedChanged(ref, changed);
+                    owner.onPersistedMarkChanged(ref, changed);
                 }
             });
 

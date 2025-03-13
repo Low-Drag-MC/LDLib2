@@ -100,7 +100,7 @@ public class ManagedFieldUtils {
             final var fieldObj = key.createRef(obj);
             fieldObj.markAsDirty();
             fieldRefMap.put(key, fieldObj);
-            if (!fieldObj.isLazy()) {
+            if (!fieldObj.getKey().isLazy()) {
                 nonLazyFields.add(fieldObj);
             }
             int syncIndex = -1;

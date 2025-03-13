@@ -9,6 +9,8 @@ import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import com.lowdragmc.lowdraglib.syncdata.payload.PrimitiveTypedPayload;
 import net.minecraft.core.HolderLookup;
 
+import javax.annotation.Nonnull;
+
 public abstract class ManagedAccessor implements IAccessor {
     private byte defaultType = -1;
 
@@ -23,8 +25,8 @@ public abstract class ManagedAccessor implements IAccessor {
     }
 
     @Override
-    public boolean isManaged() {
-        return true;
+    public boolean isReadOnly() {
+        return false;
     }
 
     public abstract ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider);
@@ -53,5 +55,17 @@ public abstract class ManagedAccessor implements IAccessor {
         writeManagedField(op, managedField, payload, provider);
     }
 
+    /**
+     * This method will be called to store a copy of the value. which will be used to compare with the latest value.
+     * @param value
+     * @return
+     */
+    public abstract Object copyForManaged(Object value) {
+        return value;
+    }
+
+    default boolean areDifferent(@Nonnull Object a, @Nonnull Object b) {
+        return !a.equals(b);
+    }
 
 }

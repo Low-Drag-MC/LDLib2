@@ -75,8 +75,8 @@ public class ArrayAccessor implements IAccessor, IArrayLikeAccessor {
     }
 
     @Override
-    public boolean isManaged() {
-        return childAccessor.isManaged();
+    public boolean isReadOnly() {
+        return childAccessor.isReadOnly();
     }
 
     @Override
@@ -92,7 +92,7 @@ public class ArrayAccessor implements IAccessor, IArrayLikeAccessor {
 
         var size = Array.getLength(value);
         var result = new ITypedPayload[size];
-        if (!childAccessor.isManaged()) {
+        if (!childAccessor.isReadOnly()) {
             for (int i = 0; i < size; i++) {
                 var obj = Array.get(value, i);
                 var payload = childAccessor.readFromReadonlyField(op, obj, provider);
@@ -118,7 +118,7 @@ public class ArrayAccessor implements IAccessor, IArrayLikeAccessor {
         if (!(payload instanceof ArrayPayload arrayPayload)) {
             throw new IllegalArgumentException("Payload %s is not ArrayPayload".formatted(payload));
         }
-        boolean isManaged = childAccessor.isManaged();
+        boolean isManaged = childAccessor.isReadOnly();
         var result = field.value();
         if (result == null || Array.getLength(result) != arrayPayload.getPayload().length) {
             if (!isManaged) {

@@ -16,7 +16,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
-public class ManagedKey {
+public final class ManagedKey {
     @Getter
     private final String name;
     @Getter
@@ -96,27 +96,27 @@ public class ManagedKey {
 
             if(accessor instanceof IArrayLikeAccessor arrayLikeAccessor) {
 
-                if(accessor.isManaged() || arrayLikeAccessor.getChildAccessor().isManaged()) {
-                    return new ManagedArrayLikeRef(ManagedField.of(rawField, instance), isLazy).setKey(this);
+                if(accessor.isReadOnly() || arrayLikeAccessor.getChildAccessor().isReadOnly()) {
+                    return new ManagedArrayLikeRef(ManagedField.of(rawField, instance)).setKey(this);
                 }
 //                else if (isReadOnlyManaged()) {
 //                    return new ReadOnlyManagedArrayLikeRef(ReadOnlyManagedField.of(rawField, instance, onChangedMethod, serializeMethod, deserializeMethod), isLazy).setKey(this);
 //                }
                 try {
                     rawField.setAccessible(true);
-                    return new ReadonlyArrayRef(isLazy, rawField.get(instance)).setKey(this);
+                    return new ReadonlyArrayRef(rawField.get(instance)).setKey(this);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
             }
-            if (accessor.isManaged()) {
-                return ManagedRef.create(ManagedField.of(rawField, instance), isLazy).setKey(this);
+            if (accessor.isReadOnly()) {
+                return ManagedRef.create(ManagedField.of(rawField, instance)).setKey(this);
             } else if (isReadOnlyManaged()) {
-                return ManagedRef.create(ReadOnlyManagedField.of(rawField, instance, onDirtyMethod, serializeMethod, deserializeMethod), isLazy).setKey(this);
+                return ManagedRef.create(ReadOnlyManagedField.of(rawField, instance, onDirtyMethod, serializeMethod, deserializeMethod)).setKey(this);
             }
             try {
                 rawField.setAccessible(true);
-                return new ReadonlyRef(isLazy, rawField.get(instance)).setKey(this);
+                return new ReadonlyRef(rawField.get(instance)).setKey(this);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

@@ -10,8 +10,8 @@ import java.util.Collection;
 public class ReadonlyArrayRef extends ReadonlyRef implements IArrayRef {
     private final IntSet dirty = new IntOpenHashSet();
 
-    public ReadonlyArrayRef(boolean isLazy, Object value) {
-        super(isLazy, value);
+    public ReadonlyArrayRef(Object value) {
+        super(value);
     }
 
     @Override
@@ -21,7 +21,7 @@ public class ReadonlyArrayRef extends ReadonlyRef implements IArrayRef {
             super.init();
             return;
         }
-        if (isLazy()) {
+        if (getKey().isLazy()) {
             return;
         }
         var type = value.getClass();

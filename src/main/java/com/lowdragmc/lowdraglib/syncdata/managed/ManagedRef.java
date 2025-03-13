@@ -12,7 +12,6 @@ public class ManagedRef implements IRef {
     protected final IManagedVar<?> field;
     @Getter
     protected boolean isSyncDirty, isPersistedDirty;
-    protected boolean lazy = false;
     protected ManagedKey key;
     @Setter
     protected BooleanConsumer onSyncListener = changed -> {
@@ -25,18 +24,18 @@ public class ManagedRef implements IRef {
         this.field = field;
     }
 
-    public static ManagedRef create(IManagedVar<?> field, boolean lazy) {
+    public static ManagedRef create(IManagedVar<?> field) {
         return switch (field) {
-            case IManagedVar.Int anInt -> new IntRef(anInt).setLazy(lazy);
-            case IManagedVar.Long aLong -> new LongRef(aLong).setLazy(lazy);
-            case IManagedVar.Float aFloat -> new FloatRef(aFloat).setLazy(lazy);
-            case IManagedVar.Double aDouble -> new DoubleRef(aDouble).setLazy(lazy);
-            case IManagedVar.Boolean aBoolean -> new BooleanRef(aBoolean).setLazy(lazy);
-            case IManagedVar.Byte aByte -> new ByteRef(aByte).setLazy(lazy);
-            case IManagedVar.Short aShort -> new ShortRef(aShort).setLazy(lazy);
-            case IManagedVar.Char aChar -> new CharRef(aChar).setLazy(lazy);
-            case ReadOnlyManagedField readOnlyManagedField -> new ReadOnlyManagedRef(readOnlyManagedField).setLazy(lazy);
-            case null, default -> new SimpleObjectRef(field).setLazy(lazy);
+            case IManagedVar.Int anInt -> new IntRef(anInt);
+            case IManagedVar.Long aLong -> new LongRef(aLong);
+            case IManagedVar.Float aFloat -> new FloatRef(aFloat);
+            case IManagedVar.Double aDouble -> new DoubleRef(aDouble);
+            case IManagedVar.Boolean aBoolean -> new BooleanRef(aBoolean);
+            case IManagedVar.Byte aByte -> new ByteRef(aByte);
+            case IManagedVar.Short aShort -> new ShortRef(aShort);
+            case IManagedVar.Char aChar -> new CharRef(aChar);
+            case ReadOnlyManagedField readOnlyManagedField -> new ReadOnlyManagedRef(readOnlyManagedField);
+            case null, default -> new SimpleObjectRef(field);
         };
     }
 
@@ -81,11 +80,6 @@ public class ManagedRef implements IRef {
             isPersistedDirty = true;
             onPersistedListener.accept(true);
         }
-    }
-
-    @Override
-    public boolean isLazy() {
-        return lazy;
     }
 
     @Override

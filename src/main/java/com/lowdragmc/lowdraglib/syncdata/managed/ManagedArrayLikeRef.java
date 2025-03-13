@@ -14,9 +14,8 @@ public class ManagedArrayLikeRef extends ManagedRef implements IArrayRef {
     protected int oldLength;
     protected final boolean isArray;
 
-    public ManagedArrayLikeRef(IManagedVar<?> field, boolean lazy) {
+    public ManagedArrayLikeRef(IManagedVar<?> field) {
         super(field);
-        this.lazy = lazy;
         isArray = field.getType().isArray();
         if (!isArray && !Collection.class.isAssignableFrom(field.getType())) {
             throw new IllegalArgumentException("Field %s is not an array or collection".formatted(field));

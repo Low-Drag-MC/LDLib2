@@ -13,7 +13,6 @@ public class ReadonlyRef implements IRef {
     @Getter
     @Setter
     private String persistedPrefixName;
-    protected final boolean lazy;
     private ManagedKey key;
     @Getter
     private boolean isSyncDirty, isPersistedDirty;
@@ -26,14 +25,13 @@ public class ReadonlyRef implements IRef {
 
     protected final WeakReference<?> reference;
 
-    public ReadonlyRef(boolean lazy, Object value) {
-        this.lazy = lazy;
+    public ReadonlyRef(Object value) {
         this.reference = new WeakReference<>(value);
         init();
     }
 
     protected void init() {
-        if (!lazy) {
+        if (!getKey().isLazy()) {
             if (getReference().get() instanceof IContentChangeAware handler) {
                 replaceHandler(handler);
             } else if (readRaw() instanceof IManaged) {

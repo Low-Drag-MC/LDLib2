@@ -19,14 +19,14 @@ public interface IManaged {
      * on field updated.
      * it may be called in any thread if you are using {@link com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity}.
      */
-    default void onSyncChanged(IRef ref, boolean isDirty) {
+    default void onSyncMarkChanged(IRef ref, boolean isDirty) {
     }
 
     /**
      * on field updated.
      * it may be called in any thread if you are using {@link com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity}.
      */
-    default void onPersistedChanged(IRef ref, boolean isDirty) {
+    default void onPersistedMarkChanged(IRef ref, boolean isDirty) {
         if (isDirty) {
             onChanged();
             ref.clearPersistedDirty();

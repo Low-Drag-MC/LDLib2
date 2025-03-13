@@ -55,11 +55,11 @@ public abstract class SyncableMap<K, V> implements Map<K, V>, IContentChangeAwar
             throw new RuntimeException("Cannot find accessor for key or value type");
         }
 
-        if(!keyAccessor.isManaged()) {
+        if(!keyAccessor.isReadOnly()) {
             throw new RuntimeException("Key accessor is not managed");
         }
 
-        if(!valueAccessor.isManaged()) {
+        if(!valueAccessor.isReadOnly()) {
             throw new RuntimeException("Value accessor is not managed");
         }
     }

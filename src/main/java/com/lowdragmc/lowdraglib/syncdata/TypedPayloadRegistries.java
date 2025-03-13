@@ -152,7 +152,7 @@ public class TypedPayloadRegistries {
         if (result == null) {
             throw new IllegalArgumentException("No payload found for class " + clazz.getName());
         }
-        if (result.hasPredicate() && !result.test(clazz)) {
+        if (!result.test(clazz)) {
             throw new IllegalStateException("Accessor " + result + " does not match class " + clazz);
         }
         return result;

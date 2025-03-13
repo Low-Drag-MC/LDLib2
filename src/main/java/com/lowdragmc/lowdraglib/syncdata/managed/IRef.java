@@ -6,6 +6,11 @@ import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 
 import javax.annotation.Nullable;
 
+/**
+ * Ref is a reference to a field instance, it's used to detect / manage the field's dirty status.
+ * <br>
+ * Also, can be used to obtain the internal value.
+ */
 public interface IRef {
     /**
      * ManagedKey refer to ref's meta info.
@@ -13,35 +18,36 @@ public interface IRef {
     ManagedKey getKey();
 
     /**
-     * whether it is dirty.
+     * whether the ref is dirty and need to be synced.
      */
     boolean isSyncDirty();
 
     /**
-     * whether it is dirty.
+     * whether the ref is dirty and need to be persisted.
      */
     boolean isPersistedDirty();
 
     /**
-     * clear dirty mark.
+     * Clear sync dirty mark. It should be called after the field has been synced.
      */
     void clearSyncDirty();
 
     /**
-     * clear dirty mark.
+     * Clear persisted dirty mark. It should be called after the field has been persisted.
      */
     void clearPersistedDirty();
 
     /**
-     * mark it as dirty.
+     * Mark the ref as dirty, it should be called while the field has been changed.
      */
     void markAsDirty();
 
     /**
-     * called to automatically check its internal changed per tick.
+     * Called automatically if it is a non-lazy ref.
+     * <br>
+     * Implement this method to check its internal changed. If it has changed, it should mark as dirty.
      */
-    default void update() {
-    }
+    void update();
 
     /**
      * listener should be called while it has changed.
@@ -53,10 +59,6 @@ public interface IRef {
      */
     void setOnPersistedListener(BooleanConsumer listener);
 
-    /**
-     * is a lazy ref
-     */
-    boolean isLazy();
 
     <T> T readRaw();
 

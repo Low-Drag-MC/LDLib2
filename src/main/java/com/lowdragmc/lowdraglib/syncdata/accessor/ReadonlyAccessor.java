@@ -30,8 +30,8 @@ public abstract class ReadonlyAccessor implements IAccessor {
     public abstract void writeToReadonlyField(AccessorOp op, Object obj, ITypedPayload<?> payload, HolderLookup.Provider provider);
 
     @Override
-    public boolean isManaged() {
-        return false;
+    public boolean isReadOnly() {
+        return true;
     }
 
     @Override

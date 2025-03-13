@@ -46,7 +46,7 @@ public class CollectionAccessor extends ReadonlyAccessor implements IArrayLikeAc
 
         var size = collection.size();
         var result = new ITypedPayload[size];
-        if (!childAccessor.isManaged()) {
+        if (!childAccessor.isReadOnly()) {
             throw new IllegalArgumentException("Child accessor %s is not managed".formatted(childAccessor));
         }
 
@@ -73,7 +73,7 @@ public class CollectionAccessor extends ReadonlyAccessor implements IArrayLikeAc
         var collection = (Collection<Object>) obj;
 
         var array = arrayPayload.getPayload();
-        if (!childAccessor.isManaged()) {
+        if (!childAccessor.isReadOnly()) {
             throw new IllegalArgumentException("Child accessor %s is not managed".formatted(childAccessor));
         }
         collection.clear();
