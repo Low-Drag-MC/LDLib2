@@ -1,223 +1,78 @@
 package com.lowdragmc.lowdraglib.syncdata.accessor;
 
+import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
+import com.lowdragmc.lowdraglib.syncdata.managed.DirectField;
+import com.lowdragmc.lowdraglib.syncdata.managed.DirectRef;
+import com.lowdragmc.lowdraglib.syncdata.managed.IDirectVar;
+import com.lowdragmc.lowdraglib.syncdata.managed.UniqueDirectRef;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.codecs.PrimitiveCodec;
+import io.netty.buffer.ByteBuf;
+import lombok.Getter;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import org.jetbrains.annotations.NotNull;
 
-import com.lowdragmc.lowdraglib.syncdata.AccessorOp;
-import com.lowdragmc.lowdraglib.syncdata.managed.IManagedVar;
-import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
-import com.lowdragmc.lowdraglib.syncdata.payload.PrimitiveTypedPayload;
-import net.minecraft.core.HolderLookup;
+@Getter
+public final class PrimitiveAccessor<TYPE> implements IDirectAccessor<IDirectVar<TYPE>> {
 
-import java.util.Objects;
-
-public abstract class PrimitiveAccessor extends ManagedAccessor {
     private final Class<?>[] operandTypes;
+    private final PrimitiveCodec<TYPE> codec;
+    private final StreamCodec<ByteBuf, TYPE> streamCodec;
 
-    protected PrimitiveAccessor(Class<?> ...operandTypes) {
+    private PrimitiveAccessor(PrimitiveCodec<TYPE> codec, StreamCodec<ByteBuf, TYPE> streamCodec, Class<?> ...operandTypes) {
         this.operandTypes = operandTypes;
+        this.codec = codec;
+        this.streamCodec = streamCodec;
+    }
+
+    public static <T> PrimitiveAccessor<T> of(PrimitiveCodec<T> codec, StreamCodec<ByteBuf, T> streamCodec, Class<?> ...operandTypes) {
+        return new PrimitiveAccessor<>(codec, streamCodec, operandTypes);
+    }
+
+    /**
+     * Test if the given type is supported by this accessor.
+     *
+     * @param type The type to test.
+     * @return True if the type is supported.
+     */
+    public boolean test(Class<?> type) {
+        for (Class<?> aClass : operandTypes) {
+            if (aClass == type) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
-    public Class<?>[] operandTypes() {
-        return operandTypes;
+    public <T> T readDirectVar(DynamicOps<T> op, IDirectVar<TYPE> var) {
+        return codec.write(op, var.value());
     }
 
-    protected PrimitiveTypedPayload<?> ensurePrimitive(ITypedPayload<?> payload) {
-        if(!(payload instanceof PrimitiveTypedPayload<?> primitivePayload)) {
-            throw new IllegalArgumentException("Payload %s is not a primitive payload".formatted(payload));
-        }
-        return primitivePayload;
+    @Override
+    public <T> void writeDirectVar(DynamicOps<T> op, IDirectVar<TYPE> var, T payload) {
+        codec.read(op, payload).result().ifPresent(var::set);
     }
 
-    protected <T> IManagedVar<T> ensureType(IManagedVar<?> field, Class<T> clazz) {
-        if(!clazz.isAssignableFrom(field.getType())) {
-            throw new IllegalArgumentException("Field %s is not of type %s".formatted(field, clazz));
-        }
-        //noinspection unchecked
-        return (IManagedVar<T>) field;
+    @Override
+    public void readDirectVarToStream(RegistryFriendlyByteBuf buffer, IDirectVar<TYPE> var) {
+        streamCodec.encode(buffer, var.value());
     }
 
-
-    public static class IntAccessor extends PrimitiveAccessor {
-
-        public IntAccessor() {
-            super(int.class, Integer.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Int intField) {
-                return PrimitiveTypedPayload.ofInt(intField.intValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not an int field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Int intField) {
-                intField.setInt(primitivePayload.getAsInt());
-            } else {
-                ensureType(field, Integer.class).set(primitivePayload.getAsInt());
-            }
-        }
+    @Override
+    public void writeDirectVarFromStream(RegistryFriendlyByteBuf buffer, IDirectVar<TYPE> var) {
+        var.set(streamCodec.decode(buffer));
     }
 
-    public static class LongAccessor extends PrimitiveAccessor {
-
-        public LongAccessor() {
-            super(long.class, Long.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Long longField) {
-                return PrimitiveTypedPayload.ofLong(longField.longValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not a long field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Long longField) {
-                longField.setLong(primitivePayload.getAsLong());
-            } else {
-                ensureType(field, Long.class).set(primitivePayload.getAsLong());
-            }
-        }
+    @Override
+    public DirectRef<IDirectVar<TYPE>> createDirectRef(ManagedKey managedKey, IDirectVar<TYPE> var) {
+        return new UniqueDirectRef<>(var, managedKey, this);
     }
 
-    public static class FloatAccessor extends PrimitiveAccessor {
-
-        public FloatAccessor() {
-            super(float.class, Float.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Float floatField) {
-                return PrimitiveTypedPayload.ofFloat(floatField.floatValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not a float field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Float floatField) {
-                floatField.setFloat(primitivePayload.getAsFloat());
-            } else {
-                ensureType(field, Float.class).set(primitivePayload.getAsFloat());
-            }
-        }
+    @Override
+    public IDirectVar<TYPE> createDirectVar(ManagedKey managedKey, @NotNull Object holder) {
+        return DirectField.of(managedKey.getRawField(), holder);
     }
 
-    public static class DoubleAccessor extends PrimitiveAccessor {
-
-        public DoubleAccessor() {
-            super(double.class, Double.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Double doubleField) {
-                return PrimitiveTypedPayload.ofDouble(doubleField.doubleValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not a double field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Double doubleField) {
-                doubleField.setDouble(primitivePayload.getAsDouble());
-            } else {
-                ensureType(field, Double.class).set(primitivePayload.getAsDouble());
-            }
-        }
-    }
-
-    public static class BooleanAccessor extends PrimitiveAccessor {
-
-        public BooleanAccessor() {
-            super(boolean.class, Boolean.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Boolean booleanField) {
-                return PrimitiveTypedPayload.ofBoolean(booleanField.booleanValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not a boolean field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Boolean booleanField) {
-                booleanField.setBoolean(primitivePayload.getAsBoolean());
-            } else {
-                ensureType(field, Boolean.class).set(primitivePayload.getAsBoolean());
-            }
-        }
-    }
-
-    public static class ByteAccessor extends PrimitiveAccessor {
-
-        public ByteAccessor() {
-            super(byte.class, Byte.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Byte byteField) {
-                return PrimitiveTypedPayload.ofByte(byteField.byteValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not a byte field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Byte byteField) {
-                byteField.setByte(primitivePayload.getAsByte());
-            } else {
-                ensureType(field, Byte.class).set(primitivePayload.getAsByte());
-            }
-        }
-    }
-
-    public static class CharAccessor extends PrimitiveAccessor {
-
-        public CharAccessor() {
-            super(char.class, Character.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Char charField) {
-                return PrimitiveTypedPayload.ofChar(charField.charValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not a char field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Char charField) {
-                charField.setChar(primitivePayload.getAsChar());
-            } else {
-                ensureType(field, Character.class).set(primitivePayload.getAsChar());
-            }
-        }
-    }
-
-    public static class ShortAccessor extends PrimitiveAccessor {
-
-        public ShortAccessor() {
-            super(short.class, Short.class);
-        }
-        public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-            if(field instanceof IManagedVar.Short shortField) {
-                return PrimitiveTypedPayload.ofShort(shortField.shortValue());
-            }
-            var result = PrimitiveTypedPayload.tryOfBoxed(field.value());
-            return Objects.requireNonNull(result, "Field %s is not a short field".formatted(field));
-        }
-
-        public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-            var primitivePayload = ensurePrimitive(payload);
-            if(field instanceof IManagedVar.Short shortField) {
-                shortField.setShort(primitivePayload.getAsShort());
-            } else {
-                ensureType(field, Short.class).set(primitivePayload.getAsShort());
-            }
-        }
-    }
 }

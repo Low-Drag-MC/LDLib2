@@ -1,12 +1,31 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.google.common.base.MoreObjects;
+import com.mojang.serialization.Codec;
+import lombok.Getter;
+import net.minecraft.Util;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.phys.Vec2;
 import org.joml.Vector2f;
 
+import java.util.List;
 import java.util.Objects;
 
-public class Position {
+@Getter
+public final class Position {
+    public final static Codec<Position> CODEC = Codec.INT.listOf().comapFlatMap(
+            list -> Util.fixedSize(list, 2).map(p_253489_ -> Position.of(list.get(0), list.get(1))),
+            position -> List.of(position.x, position.y)
+    );
+
+    public final static StreamCodec<FriendlyByteBuf, Position> STREAM_CODEC = StreamCodec.of(
+            (byteBuf, position) -> {
+                byteBuf.writeVarInt(position.x);
+                byteBuf.writeVarInt(position.y);
+            },
+            byteBuf -> new Position(byteBuf.readVarInt(), byteBuf.readVarInt())
+    );
 
     public static final Position ORIGIN = new Position(0, 0);
 
@@ -46,19 +65,10 @@ public class Position {
         return new Position(x,this.y + y);
     }
 
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Position)) return false;
-        Position position = (Position) o;
+        if (!(o instanceof Position position)) return false;
         return x == position.x &&
                 y == position.y;
     }

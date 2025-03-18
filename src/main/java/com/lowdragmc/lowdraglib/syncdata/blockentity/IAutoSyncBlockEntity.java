@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata.blockentity;
 
-import com.lowdragmc.lowdraglib.networking.s2c.SPacketManagedPayload;
+import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
@@ -32,7 +32,7 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
         for (IRef field : this.getNonLazyFields()) {
             field.update();
         }
-        var packet = SPacketManagedPayload.of(this, force);
+        var packet = SPacketAutoSyncBlockEntity.of(this, force);
         PacketDistributor.sendToPlayersTrackingChunk(serverLevel, new ChunkPos(this.getCurrentPos()), packet);
     }
 
@@ -43,7 +43,7 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
             field.update();
         }
         if (getRootStorage().hasDirtySyncFields()) {
-            var packet = SPacketManagedPayload.of(this, false);
+            var packet = SPacketAutoSyncBlockEntity.of(this, false);
             PacketDistributor.sendToPlayersTrackingChunk(serverLevel, new ChunkPos(this.getCurrentPos()), packet);
         }
     }

@@ -7,12 +7,12 @@ import net.minecraft.nbt.CompoundTag;
  * @date 2023/2/19
  * @implNote ReadOnlyManagedRef
  */
-public class ReadOnlyManagedRef extends ManagedRef {
+public class ReadOnlyManagedRef extends DirectRef {
 
     private boolean wasNull;
     private CompoundTag lastUid;
 
-    ReadOnlyManagedRef(ReadOnlyManagedField field) {
+    ReadOnlyManagedRef(ReadOnlyDirectField field) {
         super(field);
         var current = getField().value();
         wasNull = current == null;
@@ -21,8 +21,8 @@ public class ReadOnlyManagedRef extends ManagedRef {
         }
     }
 
-    public ReadOnlyManagedField getReadOnlyField() {
-        return ((ReadOnlyManagedField)field);
+    public ReadOnlyDirectField getReadOnlyField() {
+        return ((ReadOnlyDirectField)field);
     }
 
     @Override

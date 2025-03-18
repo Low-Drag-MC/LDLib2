@@ -11,19 +11,19 @@ import java.lang.reflect.Method;
  * @date 2023/2/19
  * @implNote ReadOnlyManagedField
  */
-public class ReadOnlyManagedField extends ManagedField {
+public class ReadOnlyDirectField extends DirectField {
 
     protected final Method onDirtyMethod, serializeMethod, deserializeMethod;
 
-    protected ReadOnlyManagedField(Field field, Object instance, Method onDirtyMethod, Method serializeMethod, Method deserializeMethod) {
+    protected ReadOnlyDirectField(Field field, Object instance, Method onDirtyMethod, Method serializeMethod, Method deserializeMethod) {
         super(field, instance);
         this.onDirtyMethod = onDirtyMethod;
         this.serializeMethod = serializeMethod;
         this.deserializeMethod = deserializeMethod;
     }
 
-    public static ReadOnlyManagedField of(Field field, Object instance, Method onDirtyMethod, Method serializeMethod, Method deserializeMethod) {
-        return new ReadOnlyManagedField(field, instance, onDirtyMethod, serializeMethod, deserializeMethod);
+    public static ReadOnlyDirectField of(Field field, Object instance, Method onDirtyMethod, Method serializeMethod, Method deserializeMethod) {
+        return new ReadOnlyDirectField(field, instance, onDirtyMethod, serializeMethod, deserializeMethod);
     }
 
     public boolean isDirty(Object obj) {

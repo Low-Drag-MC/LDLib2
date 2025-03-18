@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib.syncdata.accessor;
 
 
 import com.lowdragmc.lowdraglib.syncdata.AccessorOp;
-import com.lowdragmc.lowdraglib.syncdata.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
 import com.lowdragmc.lowdraglib.syncdata.managed.ManagedHolder;
 import com.lowdragmc.lowdraglib.syncdata.payload.ArrayPayload;
@@ -46,7 +45,7 @@ public class CollectionAccessor extends ReadonlyAccessor implements IArrayLikeAc
 
         var size = collection.size();
         var result = new ITypedPayload[size];
-        if (!childAccessor.isReadOnly()) {
+        if (childAccessor.isReadOnly()) {
             throw new IllegalArgumentException("Child accessor %s is not managed".formatted(childAccessor));
         }
 
@@ -73,7 +72,7 @@ public class CollectionAccessor extends ReadonlyAccessor implements IArrayLikeAc
         var collection = (Collection<Object>) obj;
 
         var array = arrayPayload.getPayload();
-        if (!childAccessor.isReadOnly()) {
+        if (childAccessor.isReadOnly()) {
             throw new IllegalArgumentException("Child accessor %s is not managed".formatted(childAccessor));
         }
         collection.clear();

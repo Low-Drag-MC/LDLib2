@@ -8,13 +8,13 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Array;
 import java.util.Collection;
 
-public class ManagedArrayLikeRef extends ManagedRef implements IArrayRef {
+public class ManagedArrayLikeRef extends DirectRef implements IArrayRef {
     private final IntSet dirty = new IntOpenHashSet();
     protected Object oldValue;
     protected int oldLength;
     protected final boolean isArray;
 
-    public ManagedArrayLikeRef(IManagedVar<?> field) {
+    public ManagedArrayLikeRef(IDirectVar<?> field) {
         super(field);
         isArray = field.getType().isArray();
         if (!isArray && !Collection.class.isAssignableFrom(field.getType())) {

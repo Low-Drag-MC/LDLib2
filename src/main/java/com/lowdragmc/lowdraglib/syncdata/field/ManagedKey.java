@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.syncdata.field;
 
 import com.lowdragmc.lowdraglib.syncdata.AccessorOp;
-import com.lowdragmc.lowdraglib.syncdata.IAccessor;
+import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IArrayLikeAccessor;
 import com.lowdragmc.lowdraglib.syncdata.managed.*;
@@ -61,43 +61,45 @@ public final class ManagedKey {
         this.rawField = rawField;
     }
 
-    private IAccessor accessor;
+    private IAccessor<?> fieldAccessor;
 
-    public IAccessor getAccessor() {
-        if (accessor == null) {
-            accessor = TypedPayloadRegistries.findByType(contentType);
+    public <T extends IAccessor> T getFieldAccessor() {
+        if (fieldAccessor == null) {
+            fieldAccessor = TypedPayloadRegistries.findByType(contentType);
         }
-        return accessor;
+        return (T) fieldAccessor;
     }
 
     public ITypedPayload<?> readSyncedField(IRef field, boolean force, HolderLookup.Provider provider) {
-        return getAccessor().readField(force ? AccessorOp.FORCE_SYNCED : AccessorOp.SYNCED, field, provider);
+        return getFieldAccessor().readField(force ? AccessorOp.FORCE_SYNCED : AccessorOp.SYNCED, field, provider);
     }
 
     public void writeSyncedField(IRef field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-        getAccessor().writeField(AccessorOp.SYNCED, field, payload, provider);
+        getFieldAccessor().writeField(AccessorOp.SYNCED, field, payload, provider);
     }
 
     public Tag readPersistedField(IRef field, HolderLookup.Provider provider) {
-        return getAccessor().readField(AccessorOp.PERSISTED, field, provider).serializeNBT(provider);
+        return getFieldAccessor().readField(AccessorOp.PERSISTED, field, provider).serializeNBT(provider);
     }
 
     public void writePersistedField(IRef field, @NotNull Tag nbt, HolderLookup.Provider provider) {
-        var payloadType = getAccessor().getDefaultType();
+        var payloadType = getFieldAccessor().getDefaultType();
         var payload = TypedPayloadRegistries.create(payloadType);
         payload.deserializeNBT(nbt, provider);
-        getAccessor().writeField(AccessorOp.PERSISTED, field, payload, provider);
+        getFieldAccessor().writeField(AccessorOp.PERSISTED, field, payload, provider);
     }
 
     public IRef createRef(Object instance) {
+        return getFieldAccessor().createRef(this, instance);
+
         try {
 
-            var accessor = getAccessor();
+            var accessor = getFieldAccessor();
 
             if(accessor instanceof IArrayLikeAccessor arrayLikeAccessor) {
 
-                if(accessor.isReadOnly() || arrayLikeAccessor.getChildAccessor().isReadOnly()) {
-                    return new ManagedArrayLikeRef(ManagedField.of(rawField, instance)).setKey(this);
+                if(!accessor.isReadOnly() || !arrayLikeAccessor.getChildAccessor().isReadOnly()) {
+                    return new ManagedArrayLikeRef(DirectField.of(rawField, instance)).setKey(this);
                 }
 //                else if (isReadOnlyManaged()) {
 //                    return new ReadOnlyManagedArrayLikeRef(ReadOnlyManagedField.of(rawField, instance, onChangedMethod, serializeMethod, deserializeMethod), isLazy).setKey(this);
@@ -109,10 +111,10 @@ public final class ManagedKey {
                     throw new RuntimeException(e);
                 }
             }
-            if (accessor.isReadOnly()) {
-                return ManagedRef.create(ManagedField.of(rawField, instance)).setKey(this);
+            if (!accessor.isReadOnly()) {
+                return DirectRef.create(DirectField.of(rawField, instance)).setKey(this);
             } else if (isReadOnlyManaged()) {
-                return ManagedRef.create(ReadOnlyManagedField.of(rawField, instance, onDirtyMethod, serializeMethod, deserializeMethod)).setKey(this);
+                return DirectRef.create(ReadOnlyDirectField.of(rawField, instance, onDirtyMethod, serializeMethod, deserializeMethod)).setKey(this);
             }
             try {
                 rawField.setAccessible(true);

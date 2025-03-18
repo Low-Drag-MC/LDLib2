@@ -1,10 +1,30 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.google.common.base.MoreObjects;
+import com.mojang.serialization.Codec;
+import lombok.Getter;
+import net.minecraft.Util;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 
+import java.util.List;
 import java.util.Objects;
 
+@Getter
 public class Size {
+
+    public final static Codec<Size> CODEC = Codec.INT.listOf().comapFlatMap(
+            list -> Util.fixedSize(list, 2).map(p_253489_ -> Size.of(list.get(0), list.get(1))),
+            size -> List.of(size.width, size.height)
+    );
+
+    public final static StreamCodec<FriendlyByteBuf, Size> STREAM_CODEC = StreamCodec.of(
+            (byteBuf, size) -> {
+                byteBuf.writeVarInt(size.width);
+                byteBuf.writeVarInt(size.height);
+            },
+            byteBuf -> new Size(byteBuf.readVarInt(), byteBuf.readVarInt())
+    );
 
     public static final Size ZERO = new Size(0, 0);
 
@@ -44,19 +64,10 @@ public class Size {
         return new Size(width, this.height + height);
     }
 
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Size)) return false;
-        Size size = (Size) o;
+        if (!(o instanceof Size size)) return false;
         return width == size.width &&
                 height == size.height;
     }

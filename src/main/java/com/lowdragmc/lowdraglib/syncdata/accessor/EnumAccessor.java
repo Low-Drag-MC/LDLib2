@@ -1,22 +1,23 @@
 package com.lowdragmc.lowdraglib.syncdata.accessor;
 
-import com.lowdragmc.lowdraglib.syncdata.AccessorOp;
-import com.lowdragmc.lowdraglib.syncdata.managed.IManagedVar;
-import com.lowdragmc.lowdraglib.syncdata.payload.EnumValuePayload;
-import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
-import com.lowdragmc.lowdraglib.syncdata.payload.PrimitiveTypedPayload;
-import net.minecraft.core.HolderLookup;
+import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
+import com.lowdragmc.lowdraglib.syncdata.managed.DirectField;
+import com.lowdragmc.lowdraglib.syncdata.managed.DirectRef;
+import com.lowdragmc.lowdraglib.syncdata.managed.IDirectVar;
+import com.lowdragmc.lowdraglib.syncdata.managed.UniqueDirectRef;
+import com.mojang.serialization.DynamicOps;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.StringRepresentable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 import java.util.WeakHashMap;
 
-public class EnumAccessor extends ManagedAccessor {
-
+public class EnumAccessor implements IDirectAccessor<IDirectVar<Enum<?>>> {
     private static final WeakHashMap<Class<? extends Enum<?>>, Enum<?>[]> enumCache = new WeakHashMap<>();
     private static final WeakHashMap<Class<? extends Enum<?>>, Map<String, Enum<?>>> enumNameCache = new WeakHashMap<>();
 
-    public static <T extends Enum<T>> T getEnum(Class<T> type, String name) {
+    public static Enum<?> getEnum(Class<Enum<?>> type, String name) {
         var values = enumNameCache.computeIfAbsent(type, t -> {
             var map = new WeakHashMap<String, Enum<?>>();
             for (var value : t.getEnumConstants()) {
@@ -33,6 +34,14 @@ public class EnumAccessor extends ManagedAccessor {
         return type.cast(value);
     }
 
+    public static Enum<?> getEnum(Class<Enum<?>> type, int ordinal) {
+        var values = enumCache.computeIfAbsent(type, Class::getEnumConstants);
+        if (ordinal < 0 || ordinal >= values.length) {
+            throw new IllegalArgumentException("Invalid ordinal for enum type " + type.getName() + ": " + ordinal);
+        }
+        return type.cast(values[ordinal]);
+    }
+
     public static String getEnumName(Enum<?> enumValue) {
         if (enumValue instanceof StringRepresentable provider) {
             return provider.getSerializedName();
@@ -41,72 +50,39 @@ public class EnumAccessor extends ManagedAccessor {
         }
     }
 
-    public static <T extends Enum<T>> T getEnum(Class<T> type, int ordinal) {
-        var values = enumCache.computeIfAbsent(type, Class::getEnumConstants);
-        if (ordinal < 0 || ordinal >= values.length) {
-            throw new IllegalArgumentException("Invalid ordinal for enum type " + type.getName() + ": " + ordinal);
-        }
-        return type.cast(values[ordinal]);
-    }
-
-    @Override
-    public boolean hasPredicate() {
-        return true;
-    }
-
     @Override
     public boolean test(Class<?> type) {
         return type.isEnum();
     }
 
-
     @Override
-    public ITypedPayload<?> readManagedField(AccessorOp op, IManagedVar<?> field, HolderLookup.Provider provider) {
-        if (!field.getType().isEnum()) {
-            throw new IllegalArgumentException("Field is not an enum");
-        }
-        var value = field.value();
-        if (value != null) {
-            var enumVal = (Enum<?>) value;
-            var name = getEnumName(enumVal);
-            var ordinal = enumVal.ordinal();
-            return EnumValuePayload.of(name, ordinal);
-        }
-        return PrimitiveTypedPayload.ofNull();
+    public <T> T readDirectVar(DynamicOps<T> op, IDirectVar<Enum<?>> var) {
+        return op.createString(getEnumName(var.value()));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void writeManagedField(AccessorOp op, IManagedVar<?> field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-        if (payload instanceof PrimitiveTypedPayload<?> primitive && primitive.isNull()) {
-            field.set(null);
-            return;
-        }
-        if (!field.getType().isEnum()) {
-            throw new IllegalArgumentException("Field is not an enum");
-        }
-        if (!(payload instanceof EnumValuePayload enumValue)) {
-            throw new IllegalArgumentException("Payload is not an enum value");
-        }
-
-        var enumField = (IManagedVar<Enum>) field;
-
-        var ordinal = enumValue.getPayload().ordinal;
-        var name = enumValue.getPayload().name;
-
-        Enum value;
-        if (ordinal >= 0) {
-            value = getEnum((Class<Enum>) field.getType(), ordinal);
-        } else {
-            value = getEnum((Class<Enum>) field.getType(), name);
-        }
-        if (value == null) {
-            value = getEnum((Class<Enum>) field.getType(), 0);
-        }
-        if (value == null) {
-            throw new IllegalArgumentException("Invalid enum value %s (%d) for field %s".formatted(name, ordinal, field));
-        }
-        enumField.set(value);
-
+    public <T> void writeDirectVar(DynamicOps<T> op, IDirectVar<Enum<?>> var, T payload) {
+        var.set(getEnum(var.getType(), op.getStringValue(payload).getOrThrow()));
     }
+
+    @Override
+    public void readDirectVarToStream(RegistryFriendlyByteBuf buffer, IDirectVar<Enum<?>> var) {
+        buffer.writeVarInt(var.value().ordinal());
+    }
+
+    @Override
+    public void writeDirectVarFromStream(RegistryFriendlyByteBuf buffer, IDirectVar<Enum<?>> var) {
+        var.set(var.getType().getEnumConstants()[buffer.readVarInt()]);
+    }
+
+    @Override
+    public DirectRef<IDirectVar<Enum<?>>> createDirectRef(ManagedKey managedKey, IDirectVar<Enum<?>> var) {
+        return new UniqueDirectRef<>(var, managedKey, this);
+    }
+
+    @Override
+    public IDirectVar<Enum<?>> createDirectVar(ManagedKey managedKey, @NotNull Object holder) {
+        return DirectField.of(managedKey.getRawField(), holder);
+    }
+
 }

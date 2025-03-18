@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata;
 
+import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.ObjectTypedPayloadAccessor;
 import com.lowdragmc.lowdraglib.syncdata.payload.*;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;

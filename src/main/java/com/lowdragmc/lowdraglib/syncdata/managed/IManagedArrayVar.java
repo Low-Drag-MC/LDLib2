@@ -5,7 +5,7 @@ package com.lowdragmc.lowdraglib.syncdata.managed;
  * @date 2023/2/21
  * @implNote IManagedArrayVar
  */
-public interface IManagedArrayVar<T> extends IManagedVar<T> {
+public interface IManagedArrayVar<T> extends IDirectVar<T> {
     T value(int index);
 
     void set(int index, T value);

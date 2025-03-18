@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.networking;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.networking.both.PacketRPCMethodPayload;
 import com.lowdragmc.lowdraglib.networking.c2s.CPacketUIClientAction;
-import com.lowdragmc.lowdraglib.networking.s2c.SPacketManagedPayload;
+import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIOpen;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIWidgetUpdate;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -21,7 +21,7 @@ public class LDLNetworking {
 
         registar.playToClient(SPacketUIOpen.TYPE, SPacketUIOpen.CODEC, SPacketUIOpen::execute);
         registar.playToClient(SPacketUIWidgetUpdate.TYPE, SPacketUIWidgetUpdate.CODEC, SPacketUIWidgetUpdate::execute);
-        registar.playToClient(SPacketManagedPayload.TYPE, SPacketManagedPayload.CODEC, SPacketManagedPayload::execute);
+        registar.playToClient(SPacketAutoSyncBlockEntity.TYPE, SPacketAutoSyncBlockEntity.CODEC, SPacketAutoSyncBlockEntity::execute);
 
         registar.playToServer(CPacketUIClientAction.TYPE, CPacketUIClientAction.CODEC, CPacketUIClientAction::execute);
 

@@ -3,14 +3,12 @@ package com.lowdragmc.lowdraglib.syncdata.blockentity;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.async.AsyncThreadData;
 import com.lowdragmc.lowdraglib.async.IAsyncLogic;
-import com.lowdragmc.lowdraglib.networking.s2c.SPacketManagedPayload;
+import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.ApiStatus;
-
-import java.util.Objects;
 
 /**
  * @author KilaBash
@@ -63,7 +61,7 @@ public interface IAsyncAutoSyncBlockEntity extends IAutoSyncBlockEntity, IAsyncL
                 setAsyncSyncing(true);
                 Platform.getMinecraftServer().execute(() -> {
                     if (Platform.isServerNotSafe()) return;
-                    var packet = SPacketManagedPayload.of(this, false);
+                    var packet = SPacketAutoSyncBlockEntity.of(this, false);
                     PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(this.getCurrentPos()), packet);
                     setAsyncSyncing(false);
                 });

@@ -1,152 +1,62 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
-import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware;
-import com.lowdragmc.lowdraglib.syncdata.IManaged;
+import com.lowdragmc.lowdraglib.syncdata.accessor.IReadOnlyAccessor;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
-import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
+import com.mojang.serialization.JavaOps;
 import lombok.Getter;
-import lombok.Setter;
 
+import javax.annotation.Nonnull;
 import java.lang.ref.WeakReference;
 
-public class ReadonlyRef implements IRef {
+/**
+ * ReadonlyRef represents a reference to a nonnull value, the value is readonly and the instance won't change.
+ *  <br>
+ *  It will store the old value mark to compare with the new value mark every update.
+ *  Please implement {@link IMarkFunction} for the accessor.
+ *  If the {@link IMarkFunction} is not implemented, it will use codec to store the mark in a type of {@link com.mojang.serialization.JavaOps}
+ */
+@SuppressWarnings("unchecked")
+public class ReadonlyRef<TYPE> extends Ref {
     @Getter
-    @Setter
-    private String persistedPrefixName;
-    private ManagedKey key;
-    @Getter
-    private boolean isSyncDirty, isPersistedDirty;
-    @Setter
-    protected BooleanConsumer onSyncListener = changed -> {
-    };
-    @Setter
-    protected BooleanConsumer onPersistedListener = changed -> {
-    };
+    protected final WeakReference<TYPE> reference;
+    private @Nonnull Object oldValueMark;
 
-    protected final WeakReference<?> reference;
-
-    public ReadonlyRef(Object value) {
+    public ReadonlyRef(TYPE value, ManagedKey key, IReadOnlyAccessor<TYPE> accessor) {
+        super(key, accessor);
         this.reference = new WeakReference<>(value);
-        init();
-    }
-
-    protected void init() {
-        if (!getKey().isLazy()) {
-            if (getReference().get() instanceof IContentChangeAware handler) {
-                replaceHandler(handler);
-            } else if (readRaw() instanceof IManaged) {
-
-            }
-            else {
-                throw new IllegalArgumentException("complex sync field must be an IContentChangeAware if not lazy!");
-            }
-        }
-    }
-
-    protected void replaceHandler(IContentChangeAware handler) {
-        var onContentChanged = handler.getOnContentsChanged();
-        if (onContentChanged != null) {
-            handler.setOnContentsChanged(() -> {
-                markAsDirty();
-                onContentChanged.run();
-            });
-        } else {
-            handler.setOnContentsChanged(() -> markAsDirty());
-        }
+        this.oldValueMark = accessor instanceof IMarkFunction markFunction ?
+                markFunction.obtainManagedMark(value) :
+                accessor.readReadOnlyValue(JavaOps.INSTANCE, value);
     }
 
     @Override
-    public ManagedKey getKey() {
-        return key;
-    }
-
-    public IRef setKey(ManagedKey key) {
-        this.key = key;
-        return this;
-    }
-
-    public WeakReference<?> getReference() {
-        return reference;
+    public IReadOnlyAccessor<TYPE> getAccessor() {
+        return (IReadOnlyAccessor<TYPE>) super.getAccessor();
     }
 
     @Override
-    public void clearSyncDirty() {
-        isSyncDirty = false;
-        if (readRaw() instanceof IManaged managed) {
-            for (var field : managed.getSyncStorage().getSyncFields()) {
-                field.clearSyncDirty();
-            }
-        }
-        if (key.isDestSync()) {
-            onSyncListener.accept(false);
-        }
-    }
-
-    @Override
-    public void clearPersistedDirty() {
-        isPersistedDirty = false;
-        if (readRaw() instanceof IManaged managed) {
-            for (var field : managed.getSyncStorage().getPersistedFields()) {
-                field.clearPersistedDirty();
-            }
-        }
-        if (key.isPersist()) {
-            onPersistedListener.accept(false);
-        }
-    }
-
-    @Override
-    public void markAsDirty() {
-        if (key.isDestSync()) {
-            isSyncDirty = true;
-            onSyncListener.accept(true);
-        }
-        if (key.isPersist()) {
-            isPersistedDirty = true;
-            onPersistedListener.accept(true);
-        }
+    public TYPE readRaw() {
+        return this.reference.get();
     }
 
     @Override
     public void update() {
-        if (readRaw() instanceof IManaged managed) {
-            var storage = managed.getSyncStorage();
-
-            for (IRef field : storage.getNonLazyFields()) {
-                field.update();
+        var value = reference.get();
+        if (value == null) {
+            throw new IllegalStateException("The read only value is null, it should not be null!");
+        }
+        var accessor = getAccessor();
+        if (accessor instanceof IMarkFunction markFunction) {
+            if (markFunction.areDifferent(oldValueMark, value)) {
+                oldValueMark = markFunction.obtainManagedMark(value);
+                markAsDirty();
             }
-
-            if (storage.hasDirtySyncFields()) {
-                if (key.isDestSync()) {
-                    markAsDirty();
-                } else {
-                    for (var field : storage.getSyncFields()) {
-                        field.clearSyncDirty();
-                    }
-                }
-            }
-
-            if (storage.hasDirtyPersistedFields()) {
-                if (key.isPersist()) {
-                    markAsDirty();
-                } else {
-                    for (var field : storage.getPersistedFields()) {
-                        field.clearPersistedDirty();
-                    }
-                }
+        } else {
+            var newValueMark = accessor.readReadOnlyValue(JavaOps.INSTANCE, value);
+            if (!oldValueMark.equals(newValueMark)) {
+                oldValueMark = newValueMark;
+                markAsDirty();
             }
         }
-    }
-
-    @Override
-    public boolean isLazy() {
-        return lazy;
-    }
-
-
-    @Override
-    public <T> T readRaw() {
-        //noinspection unchecked
-        return (T) this.reference.get();
     }
 }

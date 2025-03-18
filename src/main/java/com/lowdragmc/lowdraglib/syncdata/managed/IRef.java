@@ -1,8 +1,11 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
 import com.google.common.base.Strings;
+import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
+import com.mojang.serialization.DynamicOps;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import javax.annotation.Nullable;
 
@@ -13,9 +16,21 @@ import javax.annotation.Nullable;
  */
 public interface IRef {
     /**
-     * ManagedKey refer to ref's meta info.
+     * ManagedKey refer to ref's meta info. It's used to get the field's name, type, etc.
      */
     ManagedKey getKey();
+
+    /**
+     * The creator of this ref. please refer to {@link IAccessor#createRef(ManagedKey, Object)}
+     * <br>
+     * This accessor is not same as the accessor in {@link ManagedKey#getFieldAccessor()}, it's the accessor that created this ref.
+     */
+    IAccessor<?> getAccessor();
+
+    /**
+     * Read the real value of the field.
+     */
+    <T> T readRaw();
 
     /**
      * whether the ref is dirty and need to be synced.
@@ -45,7 +60,7 @@ public interface IRef {
     /**
      * Called automatically if it is a non-lazy ref.
      * <br>
-     * Implement this method to check its internal changed. If it has changed, it should mark as dirty.
+     * Implement this method to check it has changes (e.g. internal changed, instance change). If it has changed, it should mark as dirty.
      */
     void update();
 
@@ -58,9 +73,6 @@ public interface IRef {
      * listener should be called while it has changed.
      */
     void setOnPersistedListener(BooleanConsumer listener);
-
-
-    <T> T readRaw();
 
     /**
      * set persisted prefix name
@@ -85,4 +97,23 @@ public interface IRef {
         return key;
     }
 
+    @SuppressWarnings("unchecked")
+    default <T> T readPersisted(DynamicOps<T> op) {
+        return ((IAccessor<IRef>)getAccessor()).readField(op, this);
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T> void writePersisted(DynamicOps<T> op, T payload) {
+        ((IAccessor<IRef>)getAccessor()).writeField(op, this, payload);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void readSyncToStream(RegistryFriendlyByteBuf buffer) {
+        ((IAccessor<IRef>)getAccessor()).readFieldToStream(buffer, this);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void writeSyncFromStream(RegistryFriendlyByteBuf buffer) {
+        ((IAccessor<IRef>)getAccessor()).writeFieldFromStream(buffer, this);
+    }
 }

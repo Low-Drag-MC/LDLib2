@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.core.mixins;
 
-import com.lowdragmc.lowdraglib.networking.s2c.SPacketManagedPayload;
+import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoPersistBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoSyncBlockEntity;
@@ -26,7 +26,7 @@ public abstract class BlockEntityMixin {
     private void injectGetUpdateTag(HolderLookup.Provider provider, CallbackInfoReturnable<CompoundTag> cir) {
         if (this instanceof IAutoSyncBlockEntity autoSyncBlockEntity) {
             var tag = cir.getReturnValue();
-            tag.put(autoSyncBlockEntity.getSyncTag(), SPacketManagedPayload.of(autoSyncBlockEntity, true).serializeNBT(provider));
+            tag.put(autoSyncBlockEntity.getSyncTag(), SPacketAutoSyncBlockEntity.of(autoSyncBlockEntity, true).serializeNBT(provider));
         }
     }
 
@@ -40,7 +40,7 @@ public abstract class BlockEntityMixin {
     @Inject(method = "loadAdditional", at = @At(value = "RETURN"))
     private void injectLoad(CompoundTag pTag, HolderLookup.Provider provider, CallbackInfo ci) {
         if (this instanceof IAutoSyncBlockEntity autoSyncBlockEntity && pTag.get(autoSyncBlockEntity.getSyncTag()) instanceof CompoundTag tag) {
-            SPacketManagedPayload.processPacket(autoSyncBlockEntity, new SPacketManagedPayload(tag, provider));
+            SPacketAutoSyncBlockEntity.processPacket(autoSyncBlockEntity, new SPacketAutoSyncBlockEntity(tag, provider));
         } else if (this instanceof IAutoPersistBlockEntity autoPersistBlockEntity) {
             autoPersistBlockEntity.loadManagedPersistentData(pTag);
         }

@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.syncdata.field;
 
 import com.lowdragmc.lowdraglib.syncdata.AccessorOp;
 import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
-import com.lowdragmc.lowdraglib.syncdata.accessor.ManagedAccessor;
+import com.lowdragmc.lowdraglib.syncdata.accessor.DirectAccessor;
 import com.lowdragmc.lowdraglib.syncdata.managed.ManagedHolder;
 import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import com.lowdragmc.lowdraglib.syncdata.rpc.RPCSender;
@@ -15,7 +15,7 @@ import java.lang.reflect.Type;
 public class RPCMethodMeta {
     @Getter
     private final String name;
-    private final ManagedAccessor[] argsAccessor;
+    private final DirectAccessor[] argsAccessor;
     private final Class<?>[] argsType;
     private final Method method;
     private final boolean isFirstArgSender;
@@ -28,14 +28,14 @@ public class RPCMethodMeta {
         var args = method.getParameters();
 
         if (args.length == 0) {
-            argsAccessor = new ManagedAccessor[0];
+            argsAccessor = new DirectAccessor[0];
             argsType = new Class[0];
             isFirstArgSender = false;
         } else {
 
             var firstArg = args[0];
             if (RPCSender.class.isAssignableFrom(firstArg.getType())) {
-                argsAccessor = new ManagedAccessor[args.length - 1];
+                argsAccessor = new DirectAccessor[args.length - 1];
                 argsType = new Class[args.length - 1];
                 for (int i = 1; i < args.length; i++) {
                     var arg = args[i];
@@ -44,7 +44,7 @@ public class RPCMethodMeta {
                 }
                 isFirstArgSender = true;
             } else {
-                argsAccessor = new ManagedAccessor[args.length];
+                argsAccessor = new DirectAccessor[args.length];
                 argsType = new Class[args.length];
                 for (int i = 0; i < args.length; i++) {
                     var arg = args[i];
@@ -95,24 +95,24 @@ public class RPCMethodMeta {
     }
 
 
-    private static ManagedAccessor getAccessor(Type type) {
+    private static DirectAccessor getAccessor(Type type) {
         var accessor = TypedPayloadRegistries.findByType(type);
         if (accessor == null) {
             throw new IllegalArgumentException("Cannot find accessor for type " + type);
         }
-        if (accessor instanceof ManagedAccessor) {
-            return (ManagedAccessor) accessor;
+        if (accessor instanceof DirectAccessor) {
+            return (DirectAccessor) accessor;
         }
         throw new IllegalArgumentException("Accessor for type " + type + " is not a ManagedAccessor");
     }
 
-    private static Object deserialize(ITypedPayload<?> payload, Class<?> type, ManagedAccessor accessor, HolderLookup.Provider provider) {
+    private static Object deserialize(ITypedPayload<?> payload, Class<?> type, DirectAccessor accessor, HolderLookup.Provider provider) {
         var cache = ManagedHolder.ofType(type);
         accessor.writeManagedField(AccessorOp.PERSISTED, cache, payload, provider);
         return cache.value();
     }
 
-    private static ITypedPayload<?> serialize(Object value, ManagedAccessor accessor, HolderLookup.Provider provider) {
+    private static ITypedPayload<?> serialize(Object value, DirectAccessor accessor, HolderLookup.Provider provider) {
         var cache = ManagedHolder.of(value);
         return accessor.readManagedField(AccessorOp.PERSISTED, cache, provider);
     }

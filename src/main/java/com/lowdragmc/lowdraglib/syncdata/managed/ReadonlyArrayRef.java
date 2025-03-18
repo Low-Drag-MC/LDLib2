@@ -14,6 +14,31 @@ public class ReadonlyArrayRef extends ReadonlyRef implements IArrayRef {
         super(value);
     }
 
+    protected void init() {
+        if (!getKey().isLazy()) {
+            if (getReference().get() instanceof IContentChangeAware handler) {
+                replaceHandler(handler);
+            } else if (readRaw() instanceof IManaged) {
+
+            }
+            else {
+                throw new IllegalArgumentException("complex sync field must be an IContentChangeAware if not lazy!");
+            }
+        }
+    }
+
+    protected void replaceHandler(IContentChangeAware handler) {
+        var onContentChanged = handler.getOnContentsChanged();
+        if (onContentChanged != null) {
+            handler.setOnContentsChanged(() -> {
+                markAsDirty();
+                onContentChanged.run();
+            });
+        } else {
+            handler.setOnContentsChanged(() -> markAsDirty());
+        }
+    }
+
     @Override
     protected void init() {
         var value = readRaw();
