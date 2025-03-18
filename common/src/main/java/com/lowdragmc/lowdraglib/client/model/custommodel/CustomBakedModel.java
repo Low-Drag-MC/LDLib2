@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib.client.model.custommodel;
 
-import com.google.common.collect.Table;
-import com.google.common.collect.Tables;
 import com.lowdragmc.lowdraglib.client.bakedpipeline.Quad;
 import com.lowdragmc.lowdraglib.client.bakedpipeline.Submap;
 import com.lowdragmc.lowdraglib.client.model.ModelFactory;
@@ -23,7 +21,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Used to bake the model with emissive effect. or multi-layer making the top layer emissive.
@@ -33,12 +32,12 @@ import java.util.stream.Collectors;
 @MethodsReturnNonnullByDefault
 public class CustomBakedModel implements BakedModel {
     private final BakedModel parent;
-    private final Table<Direction, Connections, List<BakedQuad>> sideCache;
+    private final ConcurrentMap<Direction, ConcurrentMap<Connections, List<BakedQuad>>> sideCache;
     private final List<BakedQuad> noSideCache;
 
     public CustomBakedModel(BakedModel parent) {
         this.parent = parent;
-        this.sideCache = Tables.newCustomTable(new EnumMap<>(Direction.class), HashMap::new);
+        this.sideCache = new ConcurrentHashMap<>();
         this.noSideCache = new ArrayList<>();
     }
 
@@ -54,16 +53,17 @@ public class CustomBakedModel implements BakedModel {
         var connections = Connections.checkConnections(level, pos, state, side);
         if (side == null) {
             if (noSideCache.isEmpty()) {
-                noSideCache.addAll(buildCustomQuads(connections, parent.getQuads(state, null, rand), 0.0f));
+                synchronized (noSideCache) {
+                    if (noSideCache.isEmpty()) {
+                        noSideCache.addAll(buildCustomQuads(connections, parent.getQuads(state, null, rand), 0.0f));
+                    }
+                }
             }
             return noSideCache;
         }
-        if (!sideCache.contains(side, connections)) {
-            synchronized (sideCache) {
-                sideCache.put(side, connections, buildCustomQuads(connections, parent.getQuads(state, side, rand), 0.0f));
-            }
-        }
-        return Objects.requireNonNull(sideCache.get(side, connections));
+        return sideCache
+                .computeIfAbsent(side, key -> new ConcurrentHashMap<>())
+                .computeIfAbsent(connections, key -> buildCustomQuads(connections, parent.getQuads(state, side, rand), 0.0f));
     }
 
     public static List<BakedQuad> reBakeCustomQuads(List<BakedQuad> quads, BlockAndTintGetter level, BlockPos pos, @Nonnull BlockState state, @Nullable Direction side, float offset) {

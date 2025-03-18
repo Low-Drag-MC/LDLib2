@@ -1,3 +1,3 @@
 # ChangeLog
 
-* Fixed sync system use cache for new paylods.
+* Fixed field synchronized in multiple threads.

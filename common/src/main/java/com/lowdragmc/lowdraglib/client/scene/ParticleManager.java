@@ -57,7 +57,7 @@ public class ParticleManager {
     }
 
     public void tick() {
-        if (waitToAdded.size() > 0) {
+        if (!waitToAdded.isEmpty()) {
             synchronized (waitToAdded) {
                 for (var particle : waitToAdded) {
                     particles.computeIfAbsent(particle.getRenderType(), type -> Queues.newArrayDeque()).add(particle);
