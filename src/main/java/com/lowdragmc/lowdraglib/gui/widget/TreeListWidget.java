@@ -32,6 +32,8 @@ public class TreeListWidget<K, T> extends Widget {
     @Setter @Nullable
     protected Consumer<TreeNode<K, T>> onSelected;
     @Setter @Nullable
+    protected Consumer<TreeNode<K, T>> onDoubleClickLeaf;
+    @Setter @Nullable
     protected Function<K, IGuiTexture> keyIconSupplier;
     @Setter @Nullable
     protected Function<K, String> keyNameSupplier;
@@ -42,6 +44,8 @@ public class TreeListWidget<K, T> extends Widget {
     @Setter
     protected int lineHeight = 11;
     protected boolean canSelectNode;
+    // runtime
+    protected long lastClickTime;
 
     public TreeListWidget(int xPosition, int yPosition, int width, int height, TreeNode<K, T> root, Consumer<TreeNode<K, T>> onSelected) {
         super(xPosition, yPosition, width, height);
@@ -186,6 +190,11 @@ public class TreeListWidget<K, T> extends Widget {
                         if (onSelected != null){
                             onSelected.accept(node);
                         }
+                        lastClickTime = System.currentTimeMillis();
+                    } else if (onDoubleClickLeaf != null && System.currentTimeMillis() - lastClickTime < 500) {
+                        onDoubleClickLeaf.accept(node);
+                    } else {
+                        lastClickTime = System.currentTimeMillis();
                     }
                 } else {
                     if (canSelectNode && this.selected != node) {
