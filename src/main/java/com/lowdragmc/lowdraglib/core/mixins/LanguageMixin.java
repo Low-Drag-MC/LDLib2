@@ -14,6 +14,8 @@ public abstract class LanguageMixin {
     private void injectGet(String key, String defaultText, CallbackInfoReturnable<String> cir) {
         if (LocalizationUtils.RESOURCE != null && LocalizationUtils.RESOURCE.hasBuiltinResource(key)) {
             cir.setReturnValue(LocalizationUtils.RESOURCE.getBuiltinResource(key));
+        } else if (LocalizationUtils.hasDynamicLang(key)) {
+            cir.setReturnValue(LocalizationUtils.getDynamicLang(key));
         }
     }
 
