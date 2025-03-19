@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
+import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IDirectAccessor;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import com.mojang.serialization.JavaOps;
@@ -29,6 +30,11 @@ public class MutableDirectRef<T> extends DirectRef<IDirectVar<T>> {
     }
 
     @Override
+    public IDirectAccessor<IDirectVar<T>> getAccessor() {
+        return (IDirectAccessor<IDirectVar<T>>) super.getAccessor();
+    }
+
+    @Override
     public void update() {
         T newValue = getField().value();
         if (newValue == null) {
@@ -44,7 +50,7 @@ public class MutableDirectRef<T> extends DirectRef<IDirectVar<T>> {
                 oldValueMark = markFunction.obtainManagedMark(newValue);
                 markAsDirty();
             }
-        } else {
+        } else if (accessor instanceof IDirectAccessor) {
             if (oldValueMark == null) {
                 oldValueMark = accessor.readDirectVar(JavaOps.INSTANCE, field);
                 markAsDirty();

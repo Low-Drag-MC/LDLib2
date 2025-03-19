@@ -5,9 +5,19 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.PrimitiveCodec;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.util.ExtraCodecs;
+
+import java.util.UUID;
 
 public class LDLibExtraCodecs {
-    public static PrimitiveCodec<Character> CHAR = new PrimitiveCodec<>() {
+
+    public final static Codec<UUID> UUID = Codec.STRING.xmap(java.util.UUID::fromString, java.util.UUID::toString);
+
+    public final static Codec<Tag> TAG = ExtraCodecs.converter(NbtOps.INSTANCE);
+
+    public final static PrimitiveCodec<Character> CHAR = new PrimitiveCodec<>() {
         public <T> DataResult<Character> read(DynamicOps<T> ops, T input) {
             return ops.getNumberValue(input).map(number -> (char) number.intValue());
         }

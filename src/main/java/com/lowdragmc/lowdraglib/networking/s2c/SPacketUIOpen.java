@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.networking.s2c;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.factory.UIFactory;
+import com.lowdragmc.lowdraglib.utils.ByteBufUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import lombok.NoArgsConstructor;
@@ -21,40 +22,34 @@ public class SPacketUIOpen implements CustomPacketPayload {
     public static final Type<SPacketUIOpen> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, SPacketUIOpen> CODEC = StreamCodec.ofMember(SPacketUIOpen::write, SPacketUIOpen::decode);
     private ResourceLocation uiFactoryId;
-    private RegistryFriendlyByteBuf serializedHolder;
+    private byte[] serializedDta;
     private int windowId;
 
-    public SPacketUIOpen(ResourceLocation uiFactoryId, RegistryFriendlyByteBuf serializedHolder, int windowId) {
+    public SPacketUIOpen(ResourceLocation uiFactoryId, byte[] serializedDta, int windowId) {
         this.uiFactoryId = uiFactoryId;
-        this.serializedHolder = serializedHolder;
+        this.serializedDta = serializedDta;
         this.windowId = windowId;
     }
 
     public void write(@NotNull RegistryFriendlyByteBuf buf) {
-        buf.writeVarInt(serializedHolder.readableBytes());
-        buf.writeBytes(serializedHolder);
-
         buf.writeResourceLocation(uiFactoryId);
         buf.writeVarInt(windowId);
-
-        serializedHolder.readerIndex(0);
+        buf.writeByteArray(serializedDta);
     }
 
     public static SPacketUIOpen decode(RegistryFriendlyByteBuf buf) {
-        ByteBuf directSliceBuffer = buf.readBytes(buf.readVarInt());
-        ByteBuf copiedDataBuffer = Unpooled.copiedBuffer(directSliceBuffer);
-        directSliceBuffer.release();
-        RegistryFriendlyByteBuf serializedHolder = new RegistryFriendlyByteBuf(copiedDataBuffer, buf.registryAccess());
-
-        ResourceLocation uiFactoryId = buf.readResourceLocation();
-        int windowId = buf.readVarInt();
-        return new SPacketUIOpen(uiFactoryId, serializedHolder, windowId);
+        var uiFactoryId = buf.readResourceLocation();
+        var windowId = buf.readVarInt();
+        var data = buf.readByteArray();
+        return new SPacketUIOpen(uiFactoryId, data, windowId);
     }
 
     public static void execute(SPacketUIOpen packet, IPayloadContext context) {
         UIFactory<?> uiFactory = UIFactory.FACTORIES.get(packet.uiFactoryId);
         if (uiFactory != null) {
-            uiFactory.initClientUI(packet.serializedHolder, packet.windowId);
+            ByteBufUtil.readCustomData(packet.serializedDta,
+                    buf -> uiFactory.initClientUI(buf, packet.windowId),
+                    context.player().registryAccess());
         }
     }
 

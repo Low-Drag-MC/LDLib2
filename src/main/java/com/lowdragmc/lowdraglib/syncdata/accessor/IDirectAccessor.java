@@ -82,16 +82,6 @@ public interface IDirectAccessor<VAR extends IDirectVar<?>> extends IAccessor<Di
     }
 
     @Override
-    default void writeFieldFromStream(RegistryFriendlyByteBuf buffer, DirectRef<VAR> ref) {
-        var managedField = ref.getField();
-        if (!managedField.isPrimitive() && buffer.readBoolean()) {
-            managedField.set(null);
-            return;
-        }
-        writeDirectVarFromStream(buffer, managedField);
-    }
-
-    @Override
     default void readFieldToStream(RegistryFriendlyByteBuf buffer, DirectRef<VAR> ref) {
         var managedField = ref.getField();
         if (!managedField.isPrimitive() && managedField.value() == null) {
@@ -100,5 +90,16 @@ public interface IDirectAccessor<VAR extends IDirectVar<?>> extends IAccessor<Di
         }
         buffer.writeBoolean(false);
         readDirectVarToStream(buffer, managedField);
+    }
+
+    @Override
+    default void writeFieldFromStream(RegistryFriendlyByteBuf buffer, DirectRef<VAR> ref) {
+        var managedField = ref.getField();
+        var isNull = buffer.readBoolean();
+        if (isNull && !managedField.isPrimitive()) {
+            managedField.set(null);
+            return;
+        }
+        writeDirectVarFromStream(buffer, managedField);
     }
 }

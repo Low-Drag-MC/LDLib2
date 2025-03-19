@@ -19,8 +19,15 @@ import java.util.Map;
  * @date 2022/12/1
  * @implNote ConfiguratorParser
  */
-public class ConfiguratorParser {
+public final class ConfiguratorParser {
 
+    public static void createConfigurators(ConfiguratorGroup father, Object object) {
+        createConfigurators(father, new HashMap<>(), object.getClass(), object);
+    }
+
+    /**
+     * This method is used to create configurators for the given object fields with  {@link Configurable} annotation under the given father group.
+     */
     public static void createConfigurators(ConfiguratorGroup father, Map<String, Method> setters, Class<?> clazz, Object object) {
         if (clazz == Object.class || clazz == null) return;
 
@@ -50,6 +57,9 @@ public class ConfiguratorParser {
         }
     }
 
+    /**
+     * This method is used to create configurators for the given field with {@link Configurable} annotation under the given father group.
+     */
     public static void createFieldConfigurator(Field field, ConfiguratorGroup father, Class<?> clazz, Map<String, Method> setters, Object object) {
         if (Modifier.isStatic(field.getModifiers())) {
             return;

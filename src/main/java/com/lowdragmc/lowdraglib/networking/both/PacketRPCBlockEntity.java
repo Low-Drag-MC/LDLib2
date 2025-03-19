@@ -3,13 +3,11 @@ package com.lowdragmc.lowdraglib.networking.both;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.networking.PacketIntLocation;
 import com.lowdragmc.lowdraglib.syncdata.IManaged;
-import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IRPCBlockEntity;
-import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import com.lowdragmc.lowdraglib.syncdata.rpc.RPCSender;
+import com.lowdragmc.lowdraglib.utils.ByteBufUtil;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -28,26 +26,26 @@ import java.util.Objects;
  * a packet that contains payload for managed fields
  */
 @NoArgsConstructor
-public class PacketRPCMethodPayload extends PacketIntLocation implements CustomPacketPayload {
+public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPacketPayload {
     public static final ResourceLocation ID = LDLib.location("rpc_method_payload");
-    public static final Type<PacketRPCMethodPayload> TYPE = new Type<>(ID);
-    public static final StreamCodec<RegistryFriendlyByteBuf, PacketRPCMethodPayload> CODEC = StreamCodec.ofMember(PacketRPCMethodPayload::write, PacketRPCMethodPayload::decode);
+    public static final Type<PacketRPCBlockEntity> TYPE = new Type<>(ID);
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketRPCBlockEntity> CODEC = StreamCodec.ofMember(PacketRPCBlockEntity::write, PacketRPCBlockEntity::decode);
 
     private BlockEntityType<?> blockEntityType;
-    private ITypedPayload<?>[] payloads;
 
     private String methodName;
     private int managedId;
+    private byte[] data;
 
-    public PacketRPCMethodPayload(int managedId, BlockEntityType<?> type, BlockPos pos, String methodName, ITypedPayload<?>[] payloads) {
+    public PacketRPCBlockEntity(int managedId, BlockEntityType<?> type, BlockPos pos, String methodName, byte[] data) {
         super(pos);
         this.managedId = managedId;
         blockEntityType = type;
         this.methodName = methodName;
-        this.payloads = payloads;
+        this.data = data;
     }
 
-    public static PacketRPCMethodPayload of(IManaged managed, IRPCBlockEntity tile, String methodName, HolderLookup.Provider provider, Object... args) {
+    public static PacketRPCBlockEntity of(IManaged managed, IRPCBlockEntity tile, String methodName, Object... args) {
         var index = Arrays.stream(tile.getRootStorage().getManaged()).toList().indexOf(managed);
         if (index < 0) {
             throw new IllegalArgumentException("No such rpc managed: " + methodName);
@@ -56,11 +54,11 @@ public class PacketRPCMethodPayload extends PacketIntLocation implements CustomP
         if (rpcMethod == null) {
             throw new IllegalArgumentException("No such RPC method: " + methodName);
         }
-        var payloads = rpcMethod.serializeArgs(args, provider);
-        return new PacketRPCMethodPayload(index, tile.getBlockEntityType(), tile.getCurrentPos(), methodName, payloads);
+        var data = ByteBufUtil.writeCustomData(buf -> rpcMethod.serializeArgs(buf, args), tile.getSelf().getLevel().registryAccess());
+        return new PacketRPCBlockEntity(index, tile.getBlockEntityType(), tile.getCurrentPos(), methodName, data);
     }
 
-    public static void processPacket(@NotNull BlockEntity blockEntity, RPCSender sender, PacketRPCMethodPayload packet, HolderLookup.Provider provider) {
+    public static void processPacket(@NotNull BlockEntity blockEntity, RPCSender sender, PacketRPCBlockEntity packet, IPayloadContext context) {
         if (blockEntity.getType() != packet.blockEntityType) {
             LDLib.LOGGER.warn("Block entity type mismatch in rpc payload packet!");
             return;
@@ -78,9 +76,7 @@ public class PacketRPCMethodPayload extends PacketIntLocation implements CustomP
             LDLib.LOGGER.error("Cannot find RPC method: " + packet.methodName);
             return;
         }
-
-        rpcMethod.invoke(tile, sender, packet.payloads, provider);
-
+        ByteBufUtil.readCustomData(packet.data, buf -> rpcMethod.invoke(tile, sender, buf), context.player().registryAccess());
     }
 
     @Override
@@ -89,30 +85,19 @@ public class PacketRPCMethodPayload extends PacketIntLocation implements CustomP
         buf.writeVarInt(this.managedId);
         buf.writeResourceLocation(Objects.requireNonNull(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntityType)));
         buf.writeUtf(methodName);
-        buf.writeVarInt(payloads.length);
-        for (ITypedPayload<?> payload : payloads) {
-            buf.writeByte(payload.getType());
-            payload.writePayload(buf);
-        }
+        buf.writeByteArray(data);
     }
 
-    public static PacketRPCMethodPayload decode(RegistryFriendlyByteBuf buffer) {
-        BlockPos pos = buffer.readBlockPos();
-        int managedId = buffer.readVarInt();
-
-        BlockEntityType<?> blockEntityType = BuiltInRegistries.BLOCK_ENTITY_TYPE.get(buffer.readResourceLocation());
-        String methodName = buffer.readUtf();
-        ITypedPayload<?>[] payloads = new ITypedPayload<?>[buffer.readVarInt()];
-        for (int i = 0; i < payloads.length; i++) {
-            byte id = buffer.readByte();
-            var payload = TypedPayloadRegistries.create(id);
-            payload.readPayload(buffer);
-            payloads[i] = payload;
-        }
-        return new PacketRPCMethodPayload(managedId, blockEntityType, pos, methodName, payloads);
+    public static PacketRPCBlockEntity decode(RegistryFriendlyByteBuf buffer) {
+        var pos = buffer.readBlockPos();
+        var managedId = buffer.readVarInt();
+        var blockEntityType = BuiltInRegistries.BLOCK_ENTITY_TYPE.get(buffer.readResourceLocation());
+        var methodName = buffer.readUtf();
+        var data = buffer.readByteArray();
+        return new PacketRPCBlockEntity(managedId, blockEntityType, pos, methodName, data);
     }
 
-    public static void execute(PacketRPCMethodPayload packet, IPayloadContext context) {
+    public static void execute(PacketRPCBlockEntity packet, IPayloadContext context) {
         if (context.player() instanceof ServerPlayer) {
             executeServer(packet, context);
         } else {
@@ -120,7 +105,7 @@ public class PacketRPCMethodPayload extends PacketIntLocation implements CustomP
         }
     }
 
-    public static void executeClient(PacketRPCMethodPayload packet, IPayloadContext context) {
+    public static void executeClient(PacketRPCBlockEntity packet, IPayloadContext context) {
         if (context.player().level() == null) {
             return;
         }
@@ -128,13 +113,13 @@ public class PacketRPCMethodPayload extends PacketIntLocation implements CustomP
         if (tile == null) {
             return;
         }
-        processPacket(tile, RPCSender.ofServer(), packet, context.player().registryAccess());
+        processPacket(tile, RPCSender.ofServer(), packet, context);
     }
 
-    public static void executeServer(PacketRPCMethodPayload packet, IPayloadContext context) {
+    public static void executeServer(PacketRPCBlockEntity packet, IPayloadContext context) {
         var player = context.player();
-        if (player == null) {
-            LDLib.LOGGER.error("Received rpc payload packet from client with no player!");
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            LDLib.LOGGER.error("Received rpc payload packet from client with no server player!");
             return;
         }
         var level = player.level();
@@ -143,7 +128,7 @@ public class PacketRPCMethodPayload extends PacketIntLocation implements CustomP
         if (tile == null) {
             return;
         }
-        processPacket(tile, RPCSender.ofClient(player), packet, context.player().registryAccess());
+        processPacket(tile, RPCSender.ofClient(serverPlayer), packet, context);
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
 import com.lowdragmc.lowdraglib.utils.TagUtils;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
@@ -24,7 +25,17 @@ import java.util.Map;
  * @date 2022/12/6
  * @implNote PersistedParser
  */
-public class PersistedParser {
+public final class PersistedParser {
+
+    public static CompoundTag serializeNBT(Object object, HolderLookup.Provider provider) {
+        var tag = new CompoundTag();
+        serializeNBT(tag, object.getClass(), object, provider);
+        return tag;
+    }
+
+    /**
+     * This method is used to serialize the object fields with {@link Persisted} or {@link Configurable} annotation to the NBT data.
+     */
     public static void serializeNBT(CompoundTag tag, Class<?> clazz, Object object, HolderLookup.Provider provider) {
         if (clazz == Object.class || clazz == null) return;
 
@@ -69,8 +80,7 @@ public class PersistedParser {
                     }
                 } catch (IllegalAccessException ignored) {}
             } else {
-                var managedKey = ManagedFieldUtils.createKey(field);
-                nbt = managedKey.readPersistedField(managedKey.createRef(object), provider);
+                nbt = ManagedFieldUtils.createKey(field).createRef(object).readPersisted(NbtOps.INSTANCE);
             }
             if (nbt != null) {
                 TagUtils.setTagExtended(tag, key, nbt);
@@ -79,6 +89,9 @@ public class PersistedParser {
         }
     }
 
+    /**
+     * This method is used to deserialize the NBT data to the object fields with {@link Persisted} or {@link Configurable} annotation.
+     */
     public static void deserializeNBT(CompoundTag tag, Map<String, Method> setters, Class<?> clazz, Object object, HolderLookup.Provider provider) {
         if (clazz == Object.class || clazz == null) return;
 
@@ -133,8 +146,7 @@ public class PersistedParser {
                         }
                     } catch (IllegalAccessException ignored) {}
                 } else {
-                    var managedKey = ManagedFieldUtils.createKey(field);
-                    managedKey.writePersistedField(managedKey.createRef(object), nbt, provider);
+                    ManagedFieldUtils.createKey(field).createRef(object).writePersisted(NbtOps.INSTANCE, nbt);
                     Method setter = setters.get(field.getName());
 
                     if (setter != null) {

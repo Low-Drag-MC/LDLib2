@@ -1,9 +1,10 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
-import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IDirectAccessor;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import lombok.Getter;
+
+import javax.annotation.Nullable;
 
 /**
  * DirectRef represents a reference to a value, the value is changeable (may not be the same instance or have internal changes).
@@ -20,13 +21,13 @@ public abstract class DirectRef<VAR extends IDirectVar<?>> extends Ref {
 
     @Override
     @SuppressWarnings("unchecked")
-    public IAccessor<IRef> getAccessor() {
-        return (IAccessor<IRef>) super.getAccessor();
+    public IDirectAccessor<VAR> getAccessor() {
+        return (IDirectAccessor<VAR>) super.getAccessor();
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T readRaw() {
+    public @Nullable <T> T readRaw() {
         return (T) getField().value();
     }
 }

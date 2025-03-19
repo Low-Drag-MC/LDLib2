@@ -4,11 +4,18 @@ import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
+import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.connection.ConnectionType;
 
+import java.util.BitSet;
 import java.util.Objects;
 
 /**
@@ -49,7 +56,7 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
     }
 
     /**
-     * write custom data to the packet
+     * write custom data to the packet. it will always be synced.
      */
     default void writeCustomSyncData(CompoundTag tag) {
     }
@@ -66,5 +73,44 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
      */
     default String getSyncTag() {
         return "sync";
+    }
+
+    /**
+     * This is called when the block entity is first created on the client, and prepare initial data at the server side.
+     */
+    default CompoundTag serializeInitialData() {
+        var tag = new CompoundTag();
+        var customTag = new CompoundTag();
+        writeCustomSyncData(customTag);
+        if (!customTag.isEmpty()) {
+            tag.put("custom", customTag);
+        }
+
+        var list = new ListTag();
+        var syncedFields = getRootStorage().getSyncFields();
+        for (IRef syncedField : syncedFields) {
+            list.add(syncedField.readSync(NbtOps.INSTANCE));
+        }
+        if (!list.isEmpty()) {
+            tag.put("managed", list);
+        }
+        return tag;
+    }
+
+    /**
+     * This is called when the block entity is first created on the client, and deserialize initial data at client side.
+     */
+    default void deserializeInitialData(CompoundTag tag) {
+        var customTag = tag.getCompound("custom");
+        readCustomSyncData(customTag);
+
+        var list = tag.getList("managed", Tag.TAG_COMPOUND);
+        var syncedFields = getRootStorage().getSyncFields();
+        if (syncedFields.length != list.size()) {
+            throw new IllegalStateException("Synced fields count mismatch");
+        }
+        for (int i = 0; i < list.size(); i++) {
+            syncedFields[i].writeSync(NbtOps.INSTANCE, list.getCompound(i));
+        }
     }
 }

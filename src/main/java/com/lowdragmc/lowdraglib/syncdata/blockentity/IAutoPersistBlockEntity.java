@@ -1,36 +1,52 @@
 package com.lowdragmc.lowdraglib.syncdata.blockentity;
 
-import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.syncdata.accessor.IManagedObjectAccessor;
 import com.lowdragmc.lowdraglib.utils.TagUtils;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 
+/**
+ * Interface for block entities that automatically save and load managed data.
+ *
+ * @see Persisted
+ */
 public interface IAutoPersistBlockEntity extends IManagedBlockEntity {
 
     default void saveManagedPersistentData(CompoundTag tag, boolean forDrop) {
         var persistedFields = getRootStorage().getPersistedFields();
-
+        var managedTag = new CompoundTag();
         for (var persistedField : persistedFields) {
-            var fieldKey = persistedField.getKey();
-
-            if (forDrop && !fieldKey.isDrop()) {
+            if (forDrop && !persistedField.getKey().isDrop()) {
                 continue;
             }
-
-            String key = persistedField.getPersistedKey();
-            var nbt = fieldKey.readPersistedField(persistedField, Platform.getFrozenRegistry());
-            if (nbt != null) {
-                TagUtils.setTagExtended(tag, key, nbt);
+            var data = persistedField.readPersisted(NbtOps.INSTANCE);
+            if (data != null) {
+                TagUtils.setTagExtended(managedTag, persistedField.getPersistedKey(), data);
             }
         }
 
-        saveCustomPersistedData(tag, forDrop);
+        var customTag = new CompoundTag();
+        saveCustomPersistedData(customTag, forDrop);
+
+        if (!managedTag.isEmpty()) {
+            tag.put("managed", managedTag);
+        }
+        if (!customTag.isEmpty()) {
+            managedTag.put("custom", customTag);
+        }
     }
 
     default void loadManagedPersistentData(CompoundTag tag) {
         var refs = getRootStorage().getPersistedFields();
-        IManagedObjectAccessor.writePersistedFields(tag, refs, Platform.getFrozenRegistry());
-        loadCustomPersistedData(tag);
+        var managedTag = tag.getCompound("managed");
+        for (var ref : refs) {
+            var key = ref.getPersistedKey();
+            var data = TagUtils.getTagExtended(managedTag, key);
+            if (data != null) {
+                ref.writePersisted(NbtOps.INSTANCE, data);
+            }
+        }
+        loadCustomPersistedData(tag.getCompound("custom"));
     }
 
 

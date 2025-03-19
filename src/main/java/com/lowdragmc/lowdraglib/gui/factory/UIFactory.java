@@ -5,8 +5,8 @@ import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIContainer;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIOpen;
+import com.lowdragmc.lowdraglib.utils.ByteBufUtil;
 import dev.latvian.mods.rhino.util.HideFromJS;
-import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -46,14 +46,15 @@ public abstract class UIFactory<T> {
         ((ServerPlayerAccessor)player).callNextContainerCounter();
         int currentWindowId = ((ServerPlayerAccessor)player).getContainerCounter();
 
-        RegistryFriendlyByteBuf serializedHolder = new RegistryFriendlyByteBuf(Unpooled.buffer(), player.server.registryAccess());
-        writeHolderToSyncData(serializedHolder, holder);
         ModularUIContainer container = new ModularUIContainer(uiTemplate, currentWindowId);
 
         //accumulate all initial updates of widgets in open packet
-        uiTemplate.mainGroup.writeInitialData(serializedHolder);
+        var data = ByteBufUtil.writeCustomData(buf -> {
+            writeHolderToSyncData(buf, holder);
+            uiTemplate.mainGroup.writeInitialData(buf);
+        }, player.server.registryAccess());
 
-        PacketDistributor.sendToPlayer(player, new SPacketUIOpen(uiFactoryId, serializedHolder, currentWindowId));
+        PacketDistributor.sendToPlayer(player, new SPacketUIOpen(uiFactoryId, data, currentWindowId));
 
         ((ServerPlayerAccessor)player).callInitMenu(container);
         player.containerMenu = container;

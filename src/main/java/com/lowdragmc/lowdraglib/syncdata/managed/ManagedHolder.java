@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.syncdata.managed;
 import java.util.Map;
 
 public class ManagedHolder<T> implements IDirectVar<T> {
-    private static Map<Class<?>, Class<?>> primitiveToWrapper = Map.of(
+    private static final Map<Class<?>, Class<?>> PRIMITIVE_TO_WRAPPER = Map.of(
         int.class, Integer.class,
         long.class, java.lang.Long.class,
         float.class, java.lang.Float.class,
@@ -28,7 +28,7 @@ public class ManagedHolder<T> implements IDirectVar<T> {
 
     public static <T> ManagedHolder<T> ofType(Class<T> type) {
         if(type.isPrimitive()) {
-            type = (Class<T>) primitiveToWrapper.get(type);
+            type = (Class<T>) PRIMITIVE_TO_WRAPPER.get(type);
         }
         return new ManagedHolder<>(null, type);
     }

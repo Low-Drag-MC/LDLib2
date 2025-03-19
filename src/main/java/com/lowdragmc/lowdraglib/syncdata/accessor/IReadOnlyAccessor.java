@@ -1,9 +1,10 @@
 package com.lowdragmc.lowdraglib.syncdata.accessor;
 
-import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
+import com.lowdragmc.lowdraglib.syncdata.managed.ReadOnlyDirectField;
 import com.lowdragmc.lowdraglib.syncdata.managed.ReadonlyRef;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
@@ -43,21 +44,16 @@ public interface IReadOnlyAccessor<TYPE> extends IAccessor<ReadonlyRef<TYPE>> {
     /**
      * Create a readonly reference with the given value.
      * @param managedKey The managed information of the field.
-     * @param value The internal value. NOTE. the value may not refer to the field.
+     * @param field The field value accessor.
      * @return
      */
-    ReadonlyRef<TYPE> createReadOnlyRef(ManagedKey managedKey, TYPE value);
+    default ReadonlyRef<TYPE> createReadOnlyRef(ManagedKey managedKey, ReadOnlyDirectField<TYPE> field) {
+        return new ReadonlyRef<>(field, managedKey, this);
+    }
 
     @Override
     default ReadonlyRef<TYPE> createRef(ManagedKey managedKey, @NotNull Object holder) {
-        var field = managedKey.getRawField();
-        field.setAccessible(true);
-        try {
-            return createReadOnlyRef(managedKey, (TYPE) field.get(holder));
-        } catch (IllegalAccessException e) {
-            LDLib.LOGGER.error("Failed to obtain the value of create readonly reference for field {} with object {}", managedKey, holder, e);
-            throw new RuntimeException(e);
-        }
+        return createReadOnlyRef(managedKey, ReadOnlyDirectField.of(managedKey, holder));
     }
 
     @Override
@@ -69,7 +65,7 @@ public interface IReadOnlyAccessor<TYPE> extends IAccessor<ReadonlyRef<TYPE>> {
     default <T> T readField(DynamicOps<T> op, ReadonlyRef<TYPE> ref) {
         var value = ref.readRaw();
         if (value == null) {
-            return op.empty();
+            throw new IllegalArgumentException("readonly field %s has a null reference".formatted(ref.getKey()));
         }
         return readReadOnlyValue(op, value);
     }
@@ -77,7 +73,7 @@ public interface IReadOnlyAccessor<TYPE> extends IAccessor<ReadonlyRef<TYPE>> {
     @Override
     default <T> void writeField(DynamicOps<T> op, ReadonlyRef<TYPE> ref, T payload) {
         var value = ref.readRaw();
-        if (value == null && payload != op.empty()) {
+        if (value == null) {
             throw new IllegalArgumentException("readonly field %s has a null reference".formatted(ref.getKey()));
         }
         writeReadOnlyValue(op, value, payload);
@@ -86,25 +82,19 @@ public interface IReadOnlyAccessor<TYPE> extends IAccessor<ReadonlyRef<TYPE>> {
     @Override
     default void readFieldToStream(RegistryFriendlyByteBuf buffer, ReadonlyRef<TYPE> ref) {
         var value = ref.readRaw();
-        buffer.writeBoolean(value == null);
-        if (value != null) {
-            readReadOnlyValueToStream(buffer, value);
+        if (value == null) {
+            throw new IllegalArgumentException("readonly field %s has a null reference".formatted(ref.getKey()));
         }
+        readReadOnlyValueToStream(buffer, value);
     }
 
     @Override
     default void writeFieldFromStream(RegistryFriendlyByteBuf buffer, ReadonlyRef<TYPE> ref) {
         var value = ref.readRaw();
-        if (buffer.readBoolean()) {
-            if (value != null) {
-                throw new IllegalArgumentException("readonly field %s has a null reference".formatted(ref.getKey()));
-            }
-        } else {
-            if (value == null) {
-                throw new IllegalArgumentException("readonly field %s has a null reference".formatted(ref.getKey()));
-            }
-            writeReadOnlyValueFromStream(buffer, value);
+        if (value == null) {
+            throw new IllegalArgumentException("readonly field %s has a null reference".formatted(ref.getKey()));
         }
+        writeReadOnlyValueFromStream(buffer, value);
     }
 
 }

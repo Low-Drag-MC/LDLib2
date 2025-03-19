@@ -67,10 +67,12 @@ public class ManagedFieldUtils {
             var clazz = field.getDeclaringClass();
             var rawType = field.getType();
             try {
-                var onDirtyMethod = clazz.getDeclaredMethod(readOnlyManaged.onDirtyMethod(), rawType);
+                var onDirtyMethod = readOnlyManaged.onDirtyMethod().isEmpty() ? null : clazz.getDeclaredMethod(readOnlyManaged.onDirtyMethod(), rawType);
                 var serializeMethod = clazz.getDeclaredMethod(readOnlyManaged.serializeMethod(), rawType);
                 var deserializeMethod = clazz.getDeclaredMethod(readOnlyManaged.deserializeMethod(), CompoundTag.class);
-                onDirtyMethod.setAccessible(true);
+                if (onDirtyMethod != null) {
+                    onDirtyMethod.setAccessible(true);
+                }
                 serializeMethod.setAccessible(true);
                 deserializeMethod.setAccessible(true);
                 managedKey.setRedOnlyManaged(onDirtyMethod, serializeMethod, deserializeMethod);

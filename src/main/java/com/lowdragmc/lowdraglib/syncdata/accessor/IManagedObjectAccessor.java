@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.syncdata.accessor;
 import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib.syncdata.managed.IManagedReadOnlyRef;
+import com.lowdragmc.lowdraglib.syncdata.managed.ReadOnlyDirectField;
 import com.mojang.serialization.DynamicOps;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +36,7 @@ public class IManagedObjectAccessor implements IReadOnlyAccessor<IManaged> {
     }
 
     @Override
-    public IManagedReadOnlyRef createReadOnlyRef(ManagedKey managedKey, IManaged value) {
-        return new IManagedReadOnlyRef(value, managedKey, this);
+    public IManagedReadOnlyRef createReadOnlyRef(ManagedKey managedKey, ReadOnlyDirectField<IManaged> field) {
+        return new IManagedReadOnlyRef(field, managedKey, this);
     }
 }

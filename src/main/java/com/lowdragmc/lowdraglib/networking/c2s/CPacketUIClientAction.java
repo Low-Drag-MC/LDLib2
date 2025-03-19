@@ -19,30 +19,21 @@ public class CPacketUIClientAction implements CustomPacketPayload {
     public static final Type<CPacketUIClientAction> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, CPacketUIClientAction> CODEC = StreamCodec.ofMember(CPacketUIClientAction::write, CPacketUIClientAction::decode);
     public int windowId;
-    public RegistryFriendlyByteBuf updateData;
+    public byte[] updateData;
 
-    public CPacketUIClientAction(int windowId, RegistryFriendlyByteBuf updateData) {
+    public CPacketUIClientAction(int windowId, byte[] updateData) {
         this.windowId = windowId;
         this.updateData = updateData;
     }
 
     public void write(RegistryFriendlyByteBuf buf) {
-        buf.writeVarInt(updateData.readableBytes());
-        buf.writeBytes(updateData);
-
         buf.writeVarInt(windowId);
-
-        // have to do this because the packet is written twice sometimes for some reason by the packet splitter??
-        updateData.readerIndex(0);
+        buf.writeByteArray(updateData);
     }
 
     public static CPacketUIClientAction decode(RegistryFriendlyByteBuf buf) {
-        ByteBuf directSliceBuffer = buf.readBytes(buf.readVarInt());
-        ByteBuf copiedDataBuffer = Unpooled.copiedBuffer(directSliceBuffer);
-        directSliceBuffer.release();
-        RegistryFriendlyByteBuf updateData = new RegistryFriendlyByteBuf(copiedDataBuffer, buf.registryAccess());
-        
-        int windowId = buf.readVarInt();
+        var windowId = buf.readVarInt();
+        var updateData = buf.readByteArray();
         return new CPacketUIClientAction(windowId, updateData);
     }
 

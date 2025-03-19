@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IArrayLikeAccessor;
 import com.lowdragmc.lowdraglib.syncdata.managed.*;
-import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
@@ -44,7 +43,7 @@ public final class ManagedKey {
         this.persistentKey = persistentKey;
     }
 
-    public void setRedOnlyManaged(Method onDirtyMethod, Method serializeMethod, Method deserializeMethod) {
+    public void setRedOnlyManaged(@Nullable Method onDirtyMethod, Method serializeMethod, Method deserializeMethod) {
         this.isReadOnlyManaged = true;
         this.onDirtyMethod = onDirtyMethod;
         this.serializeMethod = serializeMethod;
@@ -63,30 +62,11 @@ public final class ManagedKey {
 
     private IAccessor<?> fieldAccessor;
 
-    public <T extends IAccessor> T getFieldAccessor() {
+    public IAccessor<?> getFieldAccessor() {
         if (fieldAccessor == null) {
             fieldAccessor = TypedPayloadRegistries.findByType(contentType);
         }
-        return (T) fieldAccessor;
-    }
-
-    public ITypedPayload<?> readSyncedField(IRef field, boolean force, HolderLookup.Provider provider) {
-        return getFieldAccessor().readField(force ? AccessorOp.FORCE_SYNCED : AccessorOp.SYNCED, field, provider);
-    }
-
-    public void writeSyncedField(IRef field, ITypedPayload<?> payload, HolderLookup.Provider provider) {
-        getFieldAccessor().writeField(AccessorOp.SYNCED, field, payload, provider);
-    }
-
-    public Tag readPersistedField(IRef field, HolderLookup.Provider provider) {
-        return getFieldAccessor().readField(AccessorOp.PERSISTED, field, provider).serializeNBT(provider);
-    }
-
-    public void writePersistedField(IRef field, @NotNull Tag nbt, HolderLookup.Provider provider) {
-        var payloadType = getFieldAccessor().getDefaultType();
-        var payload = TypedPayloadRegistries.create(payloadType);
-        payload.deserializeNBT(nbt, provider);
-        getFieldAccessor().writeField(AccessorOp.PERSISTED, field, payload, provider);
+        return fieldAccessor;
     }
 
     public IRef createRef(Object instance) {

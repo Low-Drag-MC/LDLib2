@@ -4,8 +4,6 @@ import com.lowdragmc.lowdraglib.gui.editor.ILDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.runtime.ConfiguratorParser;
 
-import java.util.HashMap;
-
 /**
  * @author KilaBash
  * @date 2022/12/3
@@ -22,7 +20,7 @@ public interface IConfigurable extends ILDLRegister {
      * @param father father group
      */
     default void buildConfigurator(ConfiguratorGroup father) {
-        ConfiguratorParser.createConfigurators(father, new HashMap<>(), getClass(), this);
+        ConfiguratorParser.createConfigurators(father, this);
     }
 
 }

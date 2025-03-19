@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata.accessor;
 
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
-import com.lowdragmc.lowdraglib.syncdata.managed.ReadonlyRef;
 import com.mojang.serialization.DynamicOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -16,11 +14,6 @@ public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTS
     @Override
     public boolean test(Class<?> type) {
         return INBTSerializable.class.isAssignableFrom(type);
-    }
-
-    @Override
-    public ReadonlyRef<INBTSerializable<?>> createReadOnlyRef(ManagedKey managedKey, INBTSerializable<?> value) {
-        return new ReadonlyRef<>(value, managedKey, this);
     }
 
     @Override

@@ -26,7 +26,7 @@ public abstract class BlockEntityMixin {
     private void injectGetUpdateTag(HolderLookup.Provider provider, CallbackInfoReturnable<CompoundTag> cir) {
         if (this instanceof IAutoSyncBlockEntity autoSyncBlockEntity) {
             var tag = cir.getReturnValue();
-            tag.put(autoSyncBlockEntity.getSyncTag(), SPacketAutoSyncBlockEntity.of(autoSyncBlockEntity, true).serializeNBT(provider));
+            tag.put(autoSyncBlockEntity.getSyncTag(), autoSyncBlockEntity.serializeInitialData());
         }
     }
 
@@ -40,7 +40,7 @@ public abstract class BlockEntityMixin {
     @Inject(method = "loadAdditional", at = @At(value = "RETURN"))
     private void injectLoad(CompoundTag pTag, HolderLookup.Provider provider, CallbackInfo ci) {
         if (this instanceof IAutoSyncBlockEntity autoSyncBlockEntity && pTag.get(autoSyncBlockEntity.getSyncTag()) instanceof CompoundTag tag) {
-            SPacketAutoSyncBlockEntity.processPacket(autoSyncBlockEntity, new SPacketAutoSyncBlockEntity(tag, provider));
+            autoSyncBlockEntity.deserializeInitialData(tag);
         } else if (this instanceof IAutoPersistBlockEntity autoPersistBlockEntity) {
             autoPersistBlockEntity.loadManagedPersistentData(pTag);
         }

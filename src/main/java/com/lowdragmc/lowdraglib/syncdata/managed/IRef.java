@@ -1,10 +1,14 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
 import com.google.common.base.Strings;
+import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
+import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoSyncBlockEntity;
+import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoPersistBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import com.mojang.serialization.DynamicOps;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import javax.annotation.Nullable;
@@ -97,21 +101,49 @@ public interface IRef {
         return key;
     }
 
+    /** 
+     * This method is used to read the persisted data. see {@link IAutoPersistBlockEntity#saveManagedPersistentData}
+     */
     @SuppressWarnings("unchecked")
     default <T> T readPersisted(DynamicOps<T> op) {
         return ((IAccessor<IRef>)getAccessor()).readField(op, this);
     }
 
+    /** 
+     * This method is used to write the persisted data. {@link IAutoPersistBlockEntity#loadManagedPersistentData(CompoundTag)}
+     */
     @SuppressWarnings("unchecked")
     default <T> void writePersisted(DynamicOps<T> op, T payload) {
         ((IAccessor<IRef>)getAccessor()).writeField(op, this, payload);
     }
 
+    /** 
+     * This method is used to read the sync initial data. see {@link IAutoSyncBlockEntity#serializeInitialData()}
+     */
+    @SuppressWarnings("unchecked")
+    default <T> T readSync(DynamicOps<T> op) {
+        return ((IAccessor<IRef>)getAccessor()).readField(op, this);
+    }
+
+    /**
+     * This method is used to write the sync initial data. see {@link IAutoSyncBlockEntity#deserializeInitialData(CompoundTag)}
+     */
+    @SuppressWarnings("unchecked")
+    default <T> void writeSync(DynamicOps<T> op, T payload) {
+        ((IAccessor<IRef>)getAccessor()).writeField(op, this, payload);
+    }
+
+    /** 
+     * This method is used to read the sync changed data . see {@link SPacketAutoSyncBlockEntity#of(IAutoSyncBlockEntity, boolean)}
+     */
     @SuppressWarnings("unchecked")
     default void readSyncToStream(RegistryFriendlyByteBuf buffer) {
         ((IAccessor<IRef>)getAccessor()).readFieldToStream(buffer, this);
     }
 
+    /**
+     * This method is used to write the sync changed data . see {@link SPacketAutoSyncBlockEntity#processPacket(IAutoSyncBlockEntity, SPacketAutoSyncBlockEntity)}
+     */
     @SuppressWarnings("unchecked")
     default void writeSyncFromStream(RegistryFriendlyByteBuf buffer) {
         ((IAccessor<IRef>)getAccessor()).writeFieldFromStream(buffer, this);

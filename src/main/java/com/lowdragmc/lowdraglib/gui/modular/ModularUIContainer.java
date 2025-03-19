@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.networking.c2s.CPacketUIClientAction;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketUIWidgetUpdate;
+import com.lowdragmc.lowdraglib.utils.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import lombok.Getter;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -247,28 +248,31 @@ public class ModularUIContainer extends AbstractContainerMenu implements WidgetU
 
     @Override
     public void writeClientAction(Widget widget, int updateId, Consumer<RegistryFriendlyByteBuf> payloadWriter) {
-        RegistryFriendlyByteBuf packetBuffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), Platform.getFrozenRegistry());
-        packetBuffer.writeVarInt(updateId);
-        payloadWriter.accept(packetBuffer);
         if (modularUI.entityPlayer instanceof AbstractClientPlayer) {
-            PacketDistributor.sendToServer(new CPacketUIClientAction(containerId, packetBuffer));
+            PacketDistributor.sendToServer(new CPacketUIClientAction(containerId, ByteBufUtil.writeCustomData(buf -> {
+                buf.writeVarInt(updateId);
+                payloadWriter.accept(buf);
+            }, Platform.getFrozenRegistry())));
         }
     }
 
     @Override
     public void writeUpdateInfo(Widget widget, int updateId, Consumer<RegistryFriendlyByteBuf> payloadWriter) {
-        RegistryFriendlyByteBuf packetBuffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), this.modularUI.entityPlayer.registryAccess());
-        packetBuffer.writeVarInt(updateId);
-        payloadWriter.accept(packetBuffer);
         if (modularUI.entityPlayer instanceof ServerPlayer serverPlayer) {
-            PacketDistributor.sendToPlayer(serverPlayer, new SPacketUIWidgetUpdate(containerId, packetBuffer));
+            PacketDistributor.sendToPlayer(serverPlayer, new SPacketUIWidgetUpdate(containerId, ByteBufUtil.writeCustomData(buf -> {
+                buf.writeVarInt(updateId);
+                payloadWriter.accept(buf);
+            }, serverPlayer.registryAccess())));
+
         }
     }
 
     public void handleClientAction(CPacketUIClientAction packet) {
         if (packet.windowId == containerId) {
-            int updateId = packet.updateData.readVarInt();
-            modularUI.mainGroup.handleClientAction(updateId, packet.updateData);
+            ByteBufUtil.readCustomData(packet.updateData, buf -> {
+                int updateId = buf.readVarInt();
+                modularUI.mainGroup.handleClientAction(updateId, buf);
+            }, Platform.getFrozenRegistry());
         }
     }
 

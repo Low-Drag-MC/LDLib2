@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata.blockentity;
 
-import com.lowdragmc.lowdraglib.networking.both.PacketRPCMethodPayload;
+import com.lowdragmc.lowdraglib.networking.both.PacketRPCBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.field.RPCMethodMeta;
 import net.minecraft.core.HolderLookup;
@@ -23,24 +23,24 @@ public interface IRPCBlockEntity extends IManagedBlockEntity {
         return managed.getFieldHolder().getRpcMethodMap().get(methodName);
     }
 
-    default PacketRPCMethodPayload generateRpcPacket(IManaged managed, String methodName, HolderLookup.Provider provider, Object... args) {
-        return PacketRPCMethodPayload.of(managed, this, methodName, provider, args);
+    default PacketRPCBlockEntity generateRpcPacket(IManaged managed, String methodName,Object... args) {
+        return PacketRPCBlockEntity.of(managed, this, methodName, args);
     }
 
     @OnlyIn(Dist.CLIENT)
-    default void rpcToServer(IManaged managed, String methodName, HolderLookup.Provider provider, Object... args) {
-        var packet = generateRpcPacket(managed, methodName, provider, args);
+    default void rpcToServer(IManaged managed, String methodName, Object... args) {
+        var packet = generateRpcPacket(managed, methodName, args);
         PacketDistributor.sendToServer(packet);
     }
 
 
-    default void rpcToPlayer(IManaged managed, ServerPlayer player, String methodName, HolderLookup.Provider provider, Object... args) {
-        var packet = generateRpcPacket(managed, methodName, provider, args);
+    default void rpcToPlayer(IManaged managed, ServerPlayer player, String methodName, Object... args) {
+        var packet = generateRpcPacket(managed, methodName, args);
         PacketDistributor.sendToPlayer(player, packet);
     }
 
-    default void rpcToTracking(IManaged managed, String methodName, HolderLookup.Provider provider, Object... args) {
-        var packet = generateRpcPacket(managed, methodName, provider, args);
+    default void rpcToTracking(IManaged managed, String methodName, Object... args) {
+        var packet = generateRpcPacket(managed, methodName, args);
         PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(getCurrentPos()), packet);
     }
 

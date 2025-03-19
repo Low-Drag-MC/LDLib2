@@ -7,15 +7,19 @@ import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,10 +27,13 @@ import net.minecraft.world.level.material.Fluid;
 import com.lowdragmc.lowdraglib.utils.Position;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.util.NeoForgeExtraCodecs;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
+import java.util.UUID;
 import java.util.function.BiFunction;
 
 @SuppressWarnings("unchecked")
@@ -51,8 +58,42 @@ public class SyncedFieldAccessors {
 
     public static final INBTSerializableReadOnlyAccessor TAG_SERIALIZABLE_ACCESSOR = new INBTSerializableReadOnlyAccessor();
 
-    public static final IAccessor MANAGED_ACCESSOR = new IManagedObjectAccessor();
+    public static final IManagedObjectAccessor MANAGED_ACCESSOR = new IManagedObjectAccessor();
 
+    public static final CustomDirectAccessor<BlockPos> BLOCK_POA_ACCESSOR = CustomDirectAccessor.builder(BlockPos.class, false)
+            .codec(BlockPos.CODEC)
+            .streamCodec(BlockPos.STREAM_CODEC)
+            .copyMark(BlockPos::new)
+            .build();
+
+    public static final CustomDirectAccessor<FluidStack> FLUID_STACK_ACCESSOR = CustomDirectAccessor.builder(FluidStack.class, false)
+            .codec(FluidStack.CODEC)
+            .streamCodec(FluidStack.STREAM_CODEC)
+            .copyMark(FluidStack::copy)
+            .build();
+
+    public static final CustomDirectAccessor<ItemStack> ITEM_STACK_ACCESSOR = CustomDirectAccessor.builder(ItemStack.class, false)
+            .codec(ItemStack.CODEC)
+            .streamCodec(ItemStack.STREAM_CODEC)
+            .copyMark(ItemStack::copy)
+            .build();
+
+    public static final CustomDirectAccessor<UUID> UUID_ACCESSOR = CustomDirectAccessor.builder(UUID.class, false)
+            .codec(LDLibExtraCodecs.UUID)
+            .streamCodec(StreamCodec.of(
+                    (byteBuf, uuid) -> {
+                        byteBuf.writeLong(uuid.getMostSignificantBits());
+                        byteBuf.writeLong(uuid.getLeastSignificantBits());
+                    },
+                    byteBuf -> new UUID(byteBuf.readLong(), byteBuf.readLong())
+            ))
+            .build();
+
+    public static final CustomDirectAccessor<Tag> ENTITY_ACCESSOR = CustomDirectAccessor.builder(Tag.class, true)
+            .codec(LDLibExtraCodecs.TAG)
+            .streamCodec(ByteBufCodecs.TRUSTED_TAG)
+            .copyMark(Tag::copy)
+            .build();
 
     public static final CustomDirectAccessor<BlockState> BLOCK_STATE_ACCESSOR =
             CustomDirectAccessor.builder(BlockState.class, false)

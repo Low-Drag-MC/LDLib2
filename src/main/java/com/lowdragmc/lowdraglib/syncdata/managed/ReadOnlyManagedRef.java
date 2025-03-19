@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
+import com.lowdragmc.lowdraglib.syncdata.accessor.IDirectAccessor;
+import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import net.minecraft.nbt.CompoundTag;
 
 /**
@@ -7,17 +9,17 @@ import net.minecraft.nbt.CompoundTag;
  * @date 2023/2/19
  * @implNote ReadOnlyManagedRef
  */
-public class ReadOnlyManagedRef extends DirectRef {
+public class ReadOnlyManagedRef extends DirectRef<ReadOnlyDirectField<?>> {
 
     private boolean wasNull;
     private CompoundTag lastUid;
 
-    ReadOnlyManagedRef(ReadOnlyDirectField field) {
-        super(field);
+    public ReadOnlyManagedRef(ReadOnlyDirectField<?> field, ManagedKey key, IDirectAccessor<ReadOnlyDirectField<?>> accessor) {
+        super(field, key, accessor);
         var current = getField().value();
         wasNull = current == null;
         if (current != null) {
-            lastUid = getReadOnlyField().serializeUid(current);
+            lastUid = getField().serializeUid(current);
         }
     }
 
@@ -33,8 +35,8 @@ public class ReadOnlyManagedRef extends DirectRef {
         }
         wasNull = newValue == null;
         if (newValue != null) {
-            var newUid = getReadOnlyField().serializeUid(newValue);
-            if (!newUid.equals(lastUid) || getReadOnlyField().isDirty(newValue)) {
+            var newUid = getField().serializeUid(newValue);
+            if (!newUid.equals(lastUid) || getField().isDirty(newValue)) {
                 markAsDirty();
             }
             lastUid = newUid;

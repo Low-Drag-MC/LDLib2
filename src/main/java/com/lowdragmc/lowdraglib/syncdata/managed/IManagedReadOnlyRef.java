@@ -6,13 +6,11 @@ import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import com.mojang.serialization.DynamicOps;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.*;
 
 public class IManagedReadOnlyRef extends ReadonlyRef<IManaged> {
 
-    public IManagedReadOnlyRef(IManaged managed, ManagedKey key, IManagedObjectAccessor accessor) {
+    public IManagedReadOnlyRef(ReadOnlyDirectField<IManaged> managed, ManagedKey key, IManagedObjectAccessor accessor) {
         super(managed, key, accessor);
     }
 
@@ -37,7 +35,7 @@ public class IManagedReadOnlyRef extends ReadonlyRef<IManaged> {
     }
 
     @Override
-    public void update() {
+    public void readOnlyUpdate() {
         var storage = getManaged().getSyncStorage();
 
         for (IRef field : storage.getNonLazyFields()) {
@@ -66,7 +64,7 @@ public class IManagedReadOnlyRef extends ReadonlyRef<IManaged> {
     }
 
     @Override
-    public <T> T readPersisted(DynamicOps<T> op) {
+    public <T> T readReadOnlyPersisted(DynamicOps<T> op) {
         var persistedFields = getManaged().getSyncStorage().getPersistedFields();
         var map = new HashMap<T, T>();
         for (var persistedField : persistedFields) {
@@ -78,7 +76,7 @@ public class IManagedReadOnlyRef extends ReadonlyRef<IManaged> {
     }
 
     @Override
-    public <T> void writePersisted(DynamicOps<T> op, T payload) {
+    public <T> void writeReadOnlyPersisted(DynamicOps<T> op, T payload) {
         var persistedFields = getManaged().getSyncStorage().getPersistedFields();
         var map = op.getMap(payload).getOrThrow();
         for (var persistedField : persistedFields) {
@@ -91,7 +89,31 @@ public class IManagedReadOnlyRef extends ReadonlyRef<IManaged> {
     }
 
     @Override
-    public void readSyncToStream(RegistryFriendlyByteBuf buffer) {
+    public <T> T readReadOnlySync(DynamicOps<T> op) {
+        var syncedFields = getManaged().getSyncStorage().getSyncFields();
+        var list = new ArrayList<T>();
+        for (var syncedField : syncedFields) {
+            list.add(syncedField.readSync(op));
+        }
+        return op.createList(list.stream());
+    }
+
+    @Override
+    public <T> void writeReadOnlySync(DynamicOps<T> op, T payload) {
+        var syncedFields = getManaged().getSyncStorage().getSyncFields();
+        var list = op.getStream(payload).getOrThrow().toList();
+        if (list.size() != syncedFields.length) {
+            throw new IllegalArgumentException("Size of list does not match size of synced fields");
+        }
+        for (int i = 0; i < syncedFields.length; i++) {
+            var syncedField = syncedFields[i];
+            var data = list.get(i);
+            syncedField.writeSync(op, data);
+        }
+    }
+
+    @Override
+    public void readReadOnlySyncToStream(RegistryFriendlyByteBuf buffer) {
         var syncedFields = getManaged().getSyncStorage().getSyncFields();
         var changed = new BitSet();
         for (int i = 0; i < syncedFields.length; i++) {
@@ -105,13 +127,12 @@ public class IManagedReadOnlyRef extends ReadonlyRef<IManaged> {
             if (changed.get(i)) {
                 var syncedField = syncedFields[i];
                 syncedField.readSyncToStream(buffer);
-                syncedField.clearSyncDirty();
             }
         }
     }
 
     @Override
-    public void writeSyncFromStream(RegistryFriendlyByteBuf buffer) {
+    public void writeReadOnlySyncFromStream(RegistryFriendlyByteBuf buffer) {
         var syncedFields = getManaged().getSyncStorage().getSyncFields();
         var changed = BitSet.valueOf(buffer.readByteArray());
         for (int i = 0; i < syncedFields.length; i++) {

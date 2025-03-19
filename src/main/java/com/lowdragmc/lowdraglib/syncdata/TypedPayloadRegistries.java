@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata;
 
 import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
-import com.lowdragmc.lowdraglib.syncdata.accessor.ObjectTypedPayloadAccessor;
 import com.lowdragmc.lowdraglib.syncdata.payload.*;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
 import it.unimi.dsi.fastutil.Pair;
@@ -105,7 +104,7 @@ public class TypedPayloadRegistries {
         return factories.get(type).get();
     }
 
-    public static IAccessor findByType(Type clazz) {
+    public static IAccessor<?> findByType(Type clazz) {
 
         if (clazz instanceof GenericArrayType array) {
             var componentType = array.getGenericComponentType();

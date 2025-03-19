@@ -10,7 +10,7 @@ import net.minecraft.core.HolderLookup;
 
 import java.lang.reflect.Array;
 
-public class ArrayAccessor implements IAccessor, IArrayLikeAccessor {
+public class ArrayAccessor implements IArrayLikeAccessor {
 
     @Override
     public byte getDefaultType() {
