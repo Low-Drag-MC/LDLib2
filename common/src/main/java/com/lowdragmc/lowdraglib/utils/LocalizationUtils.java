@@ -5,8 +5,12 @@ import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
 import net.minecraft.client.resources.language.I18n;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LocalizationUtils {
     public static Resource<String> RESOURCE;
+    private final static Map<String, String> DYNAMIC_LANG = new HashMap<>();
 
     public static void setResource(Resource<String> resource) {
         RESOURCE = resource;
@@ -14,6 +18,18 @@ public class LocalizationUtils {
 
     public static void clearResource() {
         RESOURCE = null;
+    }
+
+    public static void appendDynamicLang(Map<String, String> dynamicLang) {
+        DYNAMIC_LANG.putAll(dynamicLang);
+    }
+
+    public static boolean hasDynamicLang(String key) {
+        return DYNAMIC_LANG.containsKey(key);
+    }
+
+    public static String getDynamicLang(String key) {
+        return DYNAMIC_LANG.get(key);
     }
 
     /**
