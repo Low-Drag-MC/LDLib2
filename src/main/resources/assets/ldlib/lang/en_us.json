@@ -126,6 +126,8 @@
   "ldlib.gui.editor.menu.static_resource.folder": "static resource folder",
   "ldlib.gui.editor.menu.resource.static_to_builtin": "move to builtin",
   "ldlib.gui.editor.menu.resource.builtin_to_static": "move to static",
+  "ldlib.gui.editor.menu.resource.static": "static resource (share among projects)",
+  "ldlib.gui.editor.menu.resource.builtin": "builtin resource (only for this project)",
   "ldlib.gui.editor.menu.cut": "cut",
   "ldlib.gui.editor.menu.copy": "copy",
   "ldlib.gui.editor.menu.paste": "paste",

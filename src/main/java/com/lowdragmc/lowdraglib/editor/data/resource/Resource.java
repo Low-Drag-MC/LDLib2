@@ -57,7 +57,7 @@ public abstract class Resource<T> implements ILDLRegister<Resource<?>, Supplier<
     }
 
     public void onLoad() {
-
+        getStaticResource().loadAndUpdateStaticResource();
     }
 
     public void unLoad() {
