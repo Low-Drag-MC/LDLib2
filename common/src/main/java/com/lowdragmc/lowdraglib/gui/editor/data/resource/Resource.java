@@ -51,7 +51,7 @@ public abstract class Resource<T> {
     }
 
     public void onLoad() {
-
+        getStaticResource().loadAndUpdateStaticResource();
     }
 
     public void unLoad() {

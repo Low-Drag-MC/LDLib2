@@ -28,6 +28,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.File;
+import java.util.function.IntSupplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
@@ -56,6 +57,7 @@ public class ResourceTexture extends TransformTexture {
     @Configurable
     @NumberColor
     protected int color = -1;
+    protected IntSupplier dynamicColor = () -> color;
 
     public ResourceTexture(ResourceLocation imageLocation, float offsetX, float offsetY, float width, float height) {
         this.imageLocation = imageLocation;
@@ -98,6 +100,11 @@ public class ResourceTexture extends TransformTexture {
         return this;
     }
 
+    public ResourceTexture setDynamicColor(IntSupplier color) {
+        this.dynamicColor = color;
+        return this;
+    }
+
     public static ResourceTexture fromSpirit(ResourceLocation texture) {
         if (LDLib.isClient()) {
             var sprite = Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(texture);
@@ -125,6 +132,7 @@ public class ResourceTexture extends TransformTexture {
         RenderSystem.setShaderTexture(0, imageLocation);
         var matrix4f = graphics.pose().last().pose();
         bufferbuilder.begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);
+        var color = dynamicColor.getAsInt();
         bufferbuilder.vertex(matrix4f, x, y + height, 0).uv(imageU, imageV + imageHeight).color(color).endVertex();
         bufferbuilder.vertex(matrix4f, x + width, y + height, 0).uv(imageU + imageWidth, imageV + imageHeight).color(color).endVertex();
         bufferbuilder.vertex(matrix4f, x + width, y, 0).uv(imageU + imageWidth, imageV).color(color).endVertex();

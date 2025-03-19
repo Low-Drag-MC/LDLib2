@@ -60,7 +60,7 @@ public class EntriesResourceContainer extends ResourceContainer<String, TextFiel
             selectableWidgetGroup.setDraggingProvider(draggingMapping == null ? entry::getValue : () -> draggingMapping.apply(entry.getKey()), (c, p) -> draggingRenderer.apply(entry.getKey(), c, p));
             selectableWidgetGroup.addWidget(new ImageWidget(0, 0, width, 15, new GuiTextureGroup(
                     ColorPattern.GRAY.rectTexture(),
-                    new TextTexture(resource.getResource(entry.getKey()) + " ").setWidth(size.width).setType(TextTexture.TextType.ROLL))));
+                    new TextTexture(resource.getResourceName(entry.getKey()) + " ").setWidth(size.width).setType(TextTexture.TextType.ROLL))));
             selectableWidgetGroup.addWidget(widget);
             selectableWidgetGroup.setOnSelected(s -> selected = entry.getKey());
             selectableWidgetGroup.setOnUnSelected(s -> selected = null);

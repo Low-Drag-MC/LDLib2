@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.*;
+import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
@@ -137,7 +138,11 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
             SelectableWidgetGroup selectableWidgetGroup = new SelectableWidgetGroup(0, 0, size.width, size.height + 14);
             selectableWidgetGroup.setDraggingProvider(draggingMapping == null ? entry::getValue : () -> draggingMapping.apply(key), (c, p) -> draggingRenderer == null ? new TextTexture(resource.getResourceName(key)) : draggingRenderer.apply(key, c, p));
             selectableWidgetGroup.addWidget(widget);
-            selectableWidgetGroup.addWidget(new ImageWidget(1, 1, 10, 10, () -> (onRemove == null || onRemove.test(key)) ? key.map(l -> Icons.LOCAL, r -> Icons.GLOBAL) : IGuiTexture.EMPTY));
+            if ((resource.supportStaticResource() && (onRemove == null || onRemove.test(key)))) {
+                selectableWidgetGroup.addWidget(new ImageWidget(1, 1, 10, 10,
+                        (IGuiTexture) key.map(l -> Icons.LOCAL, r -> Icons.GLOBAL.copy().setDynamicColor(ColorPattern::generateRainbowColor)))
+                        .setHoverTooltips(key.left().isPresent() ? "ldlib.gui.editor.menu.resource.builtin" : "ldlib.gui.editor.menu.resource.static"));
+            }
             selectableWidgetGroup.addWidget(new ImageWidget(0, size.height + 3, size.width, 10, new TextTexture(resource.getResourceName(key)).setWidth(size.width).setType(TextTexture.TextType.ROLL)));
             selectableWidgetGroup.setOnSelected(s -> selected = key);
             selectableWidgetGroup.setOnUnSelected(s -> selected = null);
