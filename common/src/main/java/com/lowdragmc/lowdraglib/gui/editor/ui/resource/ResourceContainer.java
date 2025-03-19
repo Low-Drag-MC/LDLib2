@@ -12,15 +12,21 @@ import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
+import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.Util;
+import net.minecraft.nbt.EndTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.function.TriFunction;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.*;
@@ -37,27 +43,29 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
     @Getter
     protected final Resource<T> resource;
     @Getter
-    protected final Map<String, C> widgets;
+    protected final Map<Either<String, File>, C> widgets;
     protected DraggableScrollableWidgetGroup container;
-    @Setter @Getter
-    protected Function<String, C> widgetSupplier;
+    @Setter
+    @Getter
+    protected Function<Either<String, File>, C> widgetSupplier;
     @Setter
     protected Function<String, T> onAdd;
     @Setter
-    protected Predicate<String> onRemove;
+    protected Predicate<Either<String, File>> onRemove;
     @Setter
-    protected Consumer<String> onEdit;
-    protected Function<String, Object> draggingMapping;
-    protected TriFunction<String, Object, Position, IGuiTexture> draggingRenderer;
+    protected Consumer<Either<String, File>> onEdit;
+    protected Function<Either<String, File>, Object> draggingMapping;
+    protected TriFunction<Either<String, File>, Object, Position, IGuiTexture> draggingRenderer;
     @Setter
     protected Supplier<String> nameSupplier;
     @Setter
     protected Predicate<String> renamePredicate;
     // runtime
-    @Getter @Nullable
-    protected String selected;
+    @Getter
+    @Nullable
+    protected Either<String, File> selected;
     private boolean firstClick;
-    private String firstClickName;
+    private Either<String, File> firstClickName;
     private long firstClickTime;
 
     public ResourceContainer(Resource<T> resource, ResourcePanel panel) {
@@ -68,13 +76,13 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
         this.resource = resource;
     }
 
-    public <D> ResourceContainer<T, C> setDragging(Function<String, D> draggingMapping, Function<D, IGuiTexture> draggingRenderer) {
+    public <D> ResourceContainer<T, C> setDragging(Function<Either<String, File>, D> draggingMapping, Function<D, IGuiTexture> draggingRenderer) {
         this.draggingMapping = draggingMapping::apply;
         this.draggingRenderer = (k, o, p) -> draggingRenderer.apply((D) o);
         return this;
     }
 
-    public <D> ResourceContainer<T, C> setDragging(Function<String, D> draggingMapping, TriFunction<String, D, Position, IGuiTexture> draggingRenderer) {
+    public <D> ResourceContainer<T, C> setDragging(Function<Either<String, File>, D> draggingMapping, TriFunction<Either<String, File>, D, Position, IGuiTexture> draggingRenderer) {
         this.draggingMapping = draggingMapping::apply;
         this.draggingRenderer = (k, o, p) -> draggingRenderer.apply(k, (D) o, p);
         return this;
@@ -90,21 +98,48 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
         super.initWidget();
     }
 
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+        if (gui.getTickCount() % 20 == 0) {
+            if (selected != null && selected.right().isPresent()) {
+                // check if the file should be updated
+                var selectedResource = resource.getResource(selected);
+                var resTag = resource.serialize(selectedResource);
+                Tag fileTag = EndTag.INSTANCE;
+                try {
+                    var fileData = NbtIo.read(selected.right().get());
+                    if (fileData != null && fileData.getString("type").equals(resource.name()) && fileData.contains("data")) {
+                        fileTag = fileData.get("data");
+                    }
+                } catch (IOException ignored) {}
+                if (!fileTag.equals(resTag)) {
+                    resource.addStaticResource(selected.right().get(), selectedResource);
+                }
+            }
+            if (resource.loadAndUpdateStaticResource()) {
+                reBuild();
+            }
+        }
+    }
+
     public void reBuild() {
         selected = null;
         container.clearAllWidgets();
         int width = getSize().getWidth();
         int x = 1;
         int y = 3;
-        for (Map.Entry<String, T> entry : resource.allResources()) {
+        for (var entry : resource.allResources().toList()) {
             var widget = widgetSupplier.apply(entry.getKey());
-            widgets.put(entry.getKey(), widget);
+            var key = entry.getKey();
+            widgets.put(key, widget);
             Size size = widget.getSize();
             SelectableWidgetGroup selectableWidgetGroup = new SelectableWidgetGroup(0, 0, size.width, size.height + 14);
-            selectableWidgetGroup.setDraggingProvider(draggingMapping == null ? entry::getValue : () -> draggingMapping.apply(entry.getKey()), (c, p) -> draggingRenderer == null ? new TextTexture(entry.getKey()) : draggingRenderer.apply(entry.getKey(), c, p));
+            selectableWidgetGroup.setDraggingProvider(draggingMapping == null ? entry::getValue : () -> draggingMapping.apply(key), (c, p) -> draggingRenderer == null ? new TextTexture(resource.getResourceName(key)) : draggingRenderer.apply(key, c, p));
             selectableWidgetGroup.addWidget(widget);
-            selectableWidgetGroup.addWidget(new ImageWidget(0, size.height + 3, size.width, 10, new TextTexture(entry.getKey()).setWidth(size.width).setType(TextTexture.TextType.ROLL)));
-            selectableWidgetGroup.setOnSelected(s -> selected = entry.getKey());
+            selectableWidgetGroup.addWidget(new ImageWidget(1, 1, 10, 10, () -> (onRemove == null || onRemove.test(key)) ? key.map(l -> Icons.LOCAL, r -> Icons.GLOBAL) : IGuiTexture.EMPTY));
+            selectableWidgetGroup.addWidget(new ImageWidget(0, size.height + 3, size.width, 10, new TextTexture(resource.getResourceName(key)).setWidth(size.width).setType(TextTexture.TextType.ROLL)));
+            selectableWidgetGroup.setOnSelected(s -> selected = key);
             selectableWidgetGroup.setOnUnSelected(s -> selected = null);
             selectableWidgetGroup.setSelectedTexture(ColorPattern.T_GRAY.rectTexture());
             size = selectableWidgetGroup.getSize();
@@ -152,6 +187,33 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
         }
         menu.leaf("ldlib.gui.editor.menu.rename", this::renameResource);
         menu.crossLine();
+        if (resource.supportStaticResource()) {
+            menu.leaf(Icons.FOLDER, "ldlib.gui.editor.menu.static_resource.folder", () -> Util.getPlatform().openFile(resource.getStaticLocation()));
+            if (selected != null && (onRemove == null || onRemove.test(selected))) {
+                if (selected.left().isPresent()) {
+                    menu.leaf(Icons.GLOBAL, "ldlib.gui.editor.menu.resource.builtin_to_static", () -> {
+                        var name = resource.getResourceName(selected);
+                        var value = resource.getResource(selected);
+                        if (value != null) {
+                            resource.removeResource(selected);
+                            resource.addStaticResource(resource.getStaticResourceFile(name), value);
+                            reBuild();
+                        }
+                    });
+                } else {
+                    menu.leaf(Icons.LOCAL, "ldlib.gui.editor.menu.resource.static_to_builtin", () -> {
+                        var name = resource.getResourceName(selected);
+                        var value = resource.getResource(selected);
+                        if (value != null) {
+                            resource.removeResource(selected);
+                            resource.addBuiltinResource(name, value);
+                            reBuild();
+                        }
+                    });
+                }
+            }
+            menu.crossLine();
+        }
         menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", this::copy);
         menu.leaf(Icons.PASTE, "ldlib.gui.editor.menu.paste", this::paste);
         if (onAdd != null) {
@@ -163,8 +225,8 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
 
     protected void paste() {
         panel.getEditor().ifCopiedPresent(resource.name(), c -> {
-            var value = getResource().deserialize((Tag)c);
-            resource.addResource(genNewFileName(), value);
+            var value = getResource().deserialize((Tag) c);
+            resource.addBuiltinResource(genNewFileName(), value);
             reBuild();
         });
     }
@@ -177,20 +239,24 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
 
     protected void renameResource() {
         if (selected != null) {
-            DialogWidget.showStringEditorDialog(Editor.INSTANCE, LocalizationUtils.format("ldlib.gui.editor.tips.rename") + " " + LocalizationUtils.format(resource.name()), selected, s -> {
-                if (resource.hasResource(s)) {
-                    return false;
-                }
-                if (renamePredicate != null) {
-                    return renamePredicate.test(s);
-                }
-                return true;
-            }, s -> {
-                if (s == null) return;
-                var stored =  resource.removeResource(selected);
-                resource.addResource(s, stored);
-                reBuild();
-            });
+            DialogWidget.showStringEditorDialog(Editor.INSTANCE, LocalizationUtils.format("ldlib.gui.editor.tips.rename") + " " + LocalizationUtils.format(resource.name()),
+                    resource.getResourceName(selected), s -> {
+                        if (!selected.map(l -> resource.hasBuiltinResource(s), r -> resource.hasStaticResource(resource.getStaticResourceFile(s)))) {
+                            return false;
+                        }
+                        if (renamePredicate != null) {
+                            return renamePredicate.test(s);
+                        }
+                        return true;
+                    }, s -> {
+                        if (s == null) return;
+                        var stored = resource.removeResource(selected);
+                        if (stored != null) {
+                            var name = selected.mapBoth(l -> s, r -> resource.getStaticResourceFile(s));
+                            resource.addResource(name, stored);
+                        }
+                        reBuild();
+                    });
         }
     }
 
@@ -206,7 +272,7 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
             randomName = nameSupplier.get();
         } else {
             int i = 0;
-            while (resource.hasResource(randomName + i)) {
+            while (resource.hasBuiltinResource(randomName + i)) {
                 i++;
             }
             randomName += i;
@@ -217,7 +283,7 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
     protected void addNewResource() {
         if (onAdd != null) {
             String randomName = genNewFileName();
-            resource.addResource(randomName, onAdd.apply(randomName));
+            resource.addBuiltinResource(randomName, onAdd.apply(randomName));
             reBuild();
         }
     }

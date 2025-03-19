@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.editor.data.resource;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
 import com.lowdragmc.lowdraglib.gui.editor.ui.ResourcePanel;
@@ -13,6 +14,8 @@ import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+
+import java.io.File;
 
 import static com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource.RESOURCE_NAME;
 import static com.lowdragmc.lowdraglib.gui.widget.TabContainer.TABS_LEFT;
@@ -28,19 +31,20 @@ public class TexturesResource extends Resource<IGuiTexture> {
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.textures";
 
     public TexturesResource() {
-        data.put("empty", IGuiTexture.EMPTY);
+        super(new File(LDLib.getLDLibDir(), "assets/resources/textures"));
+        addBuiltinResource("empty", IGuiTexture.EMPTY);
     }
 
     @Override
     public void buildDefault() {
-        data.put("border background", ResourceBorderTexture.BORDERED_BACKGROUND);
-        data.put("button", ResourceBorderTexture.BUTTON_COMMON);
-        data.put("slot", SlotWidget.ITEM_SLOT_TEXTURE.copy());
-        data.put("fluid slot", TankWidget.FLUID_SLOT_TEXTURE.copy());
-        data.put("tab", TABS_LEFT.getSubTexture(0, 0, 0.5f, 1f / 3));
-        data.put("tab pressed", TABS_LEFT.getSubTexture(0.5f, 0, 0.5f, 1f / 3));
+        addBuiltinResource("border background", ResourceBorderTexture.BORDERED_BACKGROUND);
+        addBuiltinResource("button", ResourceBorderTexture.BUTTON_COMMON);
+        addBuiltinResource("slot", SlotWidget.ITEM_SLOT_TEXTURE.copy());
+        addBuiltinResource("fluid slot", TankWidget.FLUID_SLOT_TEXTURE.copy());
+        addBuiltinResource("tab", TABS_LEFT.getSubTexture(0, 0, 0.5f, 1f / 3));
+        addBuiltinResource("tab pressed", TABS_LEFT.getSubTexture(0.5f, 0, 0.5f, 1f / 3));
         for (var wrapper : AnnotationDetector.REGISTER_TEXTURES) {
-            data.put("ldlib.gui.editor.register.texture." + wrapper.annotation().name(), wrapper.creator().get());
+            addBuiltinResource("ldlib.gui.editor.register.texture." + wrapper.annotation().name(), wrapper.creator().get());
         }
     }
 
@@ -69,12 +73,12 @@ public class TexturesResource extends Resource<IGuiTexture> {
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        data.clear();
-        data.put("empty", IGuiTexture.EMPTY);
+        getBuiltinResources().clear();
+        addBuiltinResource("empty", IGuiTexture.EMPTY);
         for (String key : nbt.getAllKeys()) {
-            data.put(key, deserialize(nbt.get(key)));
+            addBuiltinResource(key, deserialize(nbt.get(key)));
         }
-        for (IGuiTexture texture : data.values()) {
+        for (IGuiTexture texture : getBuiltinResources().values()) {
             texture.setUIResource(this);
         }
     }

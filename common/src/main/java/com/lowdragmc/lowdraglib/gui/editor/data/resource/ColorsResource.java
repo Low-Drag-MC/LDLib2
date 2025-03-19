@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.editor.data.resource;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
@@ -13,9 +14,12 @@ import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.widget.HsbColorWidget;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
+import com.mojang.datafixers.util.Either;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
 import javax.annotation.Nullable;
+
+import java.io.File;
 
 import static com.lowdragmc.lowdraglib.gui.editor.data.resource.ColorsResource.RESOURCE_NAME;
 
@@ -29,11 +33,14 @@ public class ColorsResource extends Resource<Integer> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.colors";
 
+    public ColorsResource() {
+        super(new File(LDLib.getLDLibDir(), "assets/resources/colors"));
+    }
 
     @Override
     public void buildDefault() {
         for (ColorPattern color : ColorPattern.values()) {
-            data.put(color.name(), color.color);
+            addBuiltinResource(color.name(), color.color);
         }
     }
 
@@ -57,7 +64,7 @@ public class ColorsResource extends Resource<Integer> {
         return container;
     }
 
-    private void openTextureConfigurator(ResourceContainer<Integer, ImageWidget> container, String key) {
+    private void openTextureConfigurator(ResourceContainer<Integer, ImageWidget> container, Either<String, File> key) {
         container.getPanel().getEditor().getConfigPanel().openConfigurator(ConfigPanel.Tab.RESOURCE, new IConfigurable() {
             @Override
             public void buildConfigurator(ConfiguratorGroup father) {

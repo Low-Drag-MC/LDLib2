@@ -1,8 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.editor.data.resource;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.gui.editor.ui.resource.IRendererResourceContainer;
 import com.lowdragmc.lowdraglib.gui.editor.ui.resource.ResourceContainer;
@@ -12,16 +14,22 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+
+import static com.lowdragmc.lowdraglib.gui.editor.data.resource.IRendererResource.RESOURCE_NAME;
+
+@LDLRegister(name = RESOURCE_NAME, group = "resource")
 public class IRendererResource extends Resource<IRenderer> {
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.renderer";
 
     public IRendererResource() {
-        data.put("empty", IRenderer.EMPTY);
+        super(new File(LDLib.getLDLibDir(), "assets/resources/renderers"));
+        addBuiltinResource("empty", IRenderer.EMPTY);
     }
 
     @Override
     public void buildDefault() {
-        data.put("furnace", new IModelRenderer(new ResourceLocation("block/furnace")));
+        addBuiltinResource("furnace", new IModelRenderer(new ResourceLocation("block/furnace")));
     }
 
     @Override
@@ -56,10 +64,10 @@ public class IRendererResource extends Resource<IRenderer> {
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        data.clear();
-        data.put("empty", IRenderer.EMPTY);
+        getBuiltinResources().clear();
+        addBuiltinResource("empty", IRenderer.EMPTY);
         for (String key : nbt.getAllKeys()) {
-            data.put(key, deserialize(nbt.get(key)));
+            addBuiltinResource(key, deserialize(nbt.get(key)));
         }
     }
 }

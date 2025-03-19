@@ -29,7 +29,7 @@ public class EntriesResource extends Resource<String> {
 
     @Override
     public void buildDefault() {
-        data.put("ldlib.author", "Hello KilaBash!");
+        addBuiltinResource("ldlib.author", "Hello KilaBash!");
     }
 
     @Override
