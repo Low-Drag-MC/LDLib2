@@ -67,6 +67,8 @@ public class Icons {
     public static ResourceTexture TRANSFORM_TRANSLATE = icon("transform_translate");
     public static ResourceTexture TRANSFORM_ROTATE = icon("transform_rotate");
     public static ResourceTexture TRANSFORM_SCALE = icon("transform_scale");
+    public static ResourceTexture GLOBAL = icon("global");
+    public static ResourceTexture LOCAL = icon("local");
     //align
     public static ResourceTexture ALIGN_H_C = icon("align_horizontal_center");
     public static ResourceTexture ALIGN_H_D = icon("align_horizontal_distribute");

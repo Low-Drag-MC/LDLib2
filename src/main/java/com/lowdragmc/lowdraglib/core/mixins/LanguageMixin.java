@@ -12,8 +12,8 @@ public abstract class LanguageMixin {
 
     @Inject(method = "getOrDefault", at = @At(value = "HEAD"), cancellable = true)
     private void injectGet(String key, String defaultText, CallbackInfoReturnable<String> cir) {
-        if (LocalizationUtils.RESOURCE != null && LocalizationUtils.RESOURCE.hasResource(key)) {
-            cir.setReturnValue(LocalizationUtils.RESOURCE.getResource(key));
+        if (LocalizationUtils.RESOURCE != null && LocalizationUtils.RESOURCE.hasBuiltinResource(key)) {
+            cir.setReturnValue(LocalizationUtils.RESOURCE.getBuiltinResource(key));
         }
     }
 

@@ -2,11 +2,14 @@ package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
+import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import lombok.Setter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
+
+import java.io.File;
 
 /**
  * @author KilaBash
@@ -32,13 +35,13 @@ public class UIResourceTexture implements IGuiTexture {
     @Setter
     private Resource<IGuiTexture> resource;
 
-    public final String key;
+    public final Either<String, File> key;
 
-    public UIResourceTexture(String key) {
+    public UIResourceTexture(Either<String, File> key) {
         this.key = key;
     }
 
-    public UIResourceTexture(Resource<IGuiTexture> resource, String key) {
+    public UIResourceTexture(Resource<IGuiTexture> resource, Either<String, File> key) {
         this.resource = resource;
         this.key = key;
     }

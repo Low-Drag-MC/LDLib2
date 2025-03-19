@@ -18,7 +18,7 @@ import static com.lowdragmc.lowdraglib.editor.data.resource.EntriesResource.RESO
  * @date 2022/12/3
  * @implNote TextureResource
  */
-@LDLRegister(name = RESOURCE_NAME, registry = "resource")
+@LDLRegister(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class EntriesResource extends Resource<String> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.entries";
@@ -30,7 +30,7 @@ public class EntriesResource extends Resource<String> {
 
     @Override
     public void buildDefault() {
-        data.put("ldlib.author", "Hello KilaBash!");
+        addBuiltinResource("ldlib.author", "Hello KilaBash!");
     }
 
     @Override

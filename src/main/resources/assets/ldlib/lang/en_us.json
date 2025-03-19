@@ -104,7 +104,7 @@
   "ldlib.gui.editor.tips.isDynamicSized": "size will be adjusted according to content",
   "ldlib.gui.editor.name.allowXEIIngredientOverMouse": "support xei ingredient lookup",
   "ldlib.gui.editor.tips.allowXEIIngredientOverMouse": "if ture, the widget will be able to jump to the xei viewer",
-  "ldlib.gui.editor.tips.items": "items",
+  "ldlib.gui.editor.name.items": "items",
 
 
   "ldlib.gui.editor.name.texture_type": "Texture Type",
@@ -123,6 +123,9 @@
   "ldlib.gui.editor.menu.remove": "remove",
   "ldlib.gui.editor.menu.rename": "rename",
   "ldlib.gui.editor.menu.reload_resource": "reload resource",
+  "ldlib.gui.editor.menu.static_resource.folder": "static resource folder",
+  "ldlib.gui.editor.menu.resource.static_to_builtin": "move to builtin",
+  "ldlib.gui.editor.menu.resource.builtin_to_static": "move to static",
   "ldlib.gui.editor.menu.cut": "cut",
   "ldlib.gui.editor.menu.copy": "copy",
   "ldlib.gui.editor.menu.paste": "paste",

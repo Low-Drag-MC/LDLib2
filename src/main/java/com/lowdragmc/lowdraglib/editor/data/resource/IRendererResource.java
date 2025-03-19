@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.data.resource;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
@@ -7,22 +8,29 @@ import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.editor.ui.resource.IRendererResourceContainer;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+
+import static com.lowdragmc.lowdraglib.editor.data.resource.IRendererResource.RESOURCE_NAME;
+
+@LDLRegister(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class IRendererResource extends Resource<IRenderer> {
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.renderer";
 
     public IRendererResource() {
-        data.put("empty", IRenderer.EMPTY);
+        super(new File(LDLib.getLDLibDir(), "assets/resources/renderers"));
+        addBuiltinResource("empty", IRenderer.EMPTY);
     }
 
     @Override
     public void buildDefault() {
-        data.put("furnace", new IModelRenderer(ResourceLocation.parse("block/furnace")));
+        addBuiltinResource("furnace", new IModelRenderer(ResourceLocation.parse("block/furnace")));
     }
 
     @Override
@@ -57,10 +65,10 @@ public class IRendererResource extends Resource<IRenderer> {
 
     @Override
     public void deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
-        data.clear();
-        data.put("empty", IRenderer.EMPTY);
+        getBuiltinResources().clear();
+        addBuiltinResource("empty", IRenderer.EMPTY);
         for (String key : nbt.getAllKeys()) {
-            data.put(key, deserialize(nbt.get(key), provider));
+            addBuiltinResource(key, deserialize(nbt.get(key), provider));
         }
     }
 }

@@ -1,7 +1,10 @@
 package com.lowdragmc.lowdraglib.editor.data;
 
 import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib.editor.data.resource.ColorsResource;
+import com.lowdragmc.lowdraglib.editor.data.resource.EntriesResource;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -18,14 +21,6 @@ public class Resources {
 
     public final Map<String, Resource<?>> resources;
 
-    protected Resources() {
-        this.resources = new LinkedHashMap<>();
-        for (var wrapper : AnnotationDetector.REGISTER_RESOURCES) {
-            var resource =  wrapper.creator().get();
-            resources.put(resource.name(), resource);
-        }
-    }
-
     public Resources(Map<String, Resource<?>> resources) {
         this.resources = resources;
     }
@@ -35,15 +30,32 @@ public class Resources {
     }
 
     public static Resources fromNBT(CompoundTag tag) {
-        var resource = new Resources();
-        resource.deserializeNBT(tag, Platform.getFrozenRegistry());
-        return resource;
+        Map<String, Resource<?>> map = new LinkedHashMap<>();
+        for (String key : tag.getAllKeys()) {
+            var resource = AnnotationDetector.REGISTER_RESOURCES.stream()
+                    .filter(wrapper -> wrapper.annotation().name().equals(key))
+                    .findFirst();
+            if (resource.isEmpty()) continue;
+            map.put(key, resource.get().creator().get());
+        }
+        var resources = new Resources(map);
+        resources.deserializeNBT(tag, Platform.getFrozenRegistry());
+        return resources;
     }
 
+    @Deprecated(since = "1.21")
     public static Resources defaultResource() { // default
-        Resources resources = new Resources();
+        var resources = of(new EntriesResource(), new ColorsResource(), new TexturesResource());
         resources.resources.values().forEach(Resource::buildDefault);
         return resources;
+    }
+
+    public static Resources of(Resource<?>... resources) { // default
+        Map<String, Resource<?>> map = new LinkedHashMap<>();
+        for (Resource<?> resource : resources) {
+            map.put(resource.name(), resource);
+        }
+        return new Resources(map);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

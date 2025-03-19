@@ -27,7 +27,8 @@ public class IRendererResourceContainer extends ResourceContainer<IRenderer, Wid
     public IRendererResourceContainer(Resource<IRenderer> resource, ResourcePanel panel) {
         super(resource, panel);
         setWidgetSupplier(k -> createPreview(getResource().getResource(k)));
-        setDragging(key -> new UIResourceRenderer(resource, key), (k, o, p) -> new TextTexture(k));
+        setDragging(key -> new UIResourceRenderer(resource, key),
+                (k, o, p) -> new TextTexture(resource.getResourceName(k)));
         setOnEdit(key -> {
             if (getResource().getResource(key) instanceof IConfigurable configurable) {
                 getPanel().getEditor().getConfigPanel().openConfigurator(ConfigPanel.Tab.RESOURCE, configurable);
@@ -59,23 +60,15 @@ public class IRendererResourceContainer extends ResourceContainer<IRenderer, Wid
 
     @Override
     protected TreeBuilder.Menu getMenu() {
-        return TreeBuilder.Menu.start()
-                .leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", this::editResource)
-                .leaf("ldlib.gui.editor.menu.rename", this::renameResource)
-                .crossLine()
-                .leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", this::copy)
-                .leaf(Icons.PASTE, "ldlib.gui.editor.menu.paste", this::paste)
-                .branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_renderer", menu -> {
-                    for (var entry : AnnotationDetector.REGISTER_RENDERERS.entrySet()) {
-                        menu.leaf("ldlib.renderer.%s".formatted(entry.getKey()), () -> {
-                            var renderer = entry.getValue().creator().get();
-                            renderer.initRenderer();
-                            resource.addResource(genNewFileName(), renderer);
-                            reBuild();
-                        });
-                    }
-                })
-                .leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", this::removeSelectedResource)
-                .leaf(Icons.ROTATION, "ldlib.gui.editor.menu.reload_resource", () -> Minecraft.getInstance().reloadResourcePacks());
+        return super.getMenu().branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_renderer", menu -> {
+            for (var entry : AnnotationDetector.REGISTER_RENDERERS.entrySet()) {
+                menu.leaf("ldlib.renderer.%s".formatted(entry.getKey()), () -> {
+                    var renderer = entry.getValue().creator().get();
+                    renderer.initRenderer();
+                    resource.addBuiltinResource(genNewFileName(), renderer);
+                    reBuild();
+                });
+            }
+        });
     }
 }

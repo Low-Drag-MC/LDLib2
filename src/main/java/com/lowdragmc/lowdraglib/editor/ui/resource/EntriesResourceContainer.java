@@ -21,12 +21,12 @@ public class EntriesResourceContainer extends ResourceContainer<String, TextFiel
 
     public EntriesResourceContainer(Resource<String> resource, ResourcePanel panel) {
         super(resource, panel);
-        setDragging(key -> key, TextTexture::new);
+        setDragging(key -> key, key -> new TextTexture(resource.getResourceName(key)));
         setOnAdd(key -> "Hello KilaBash!");
         setNameSupplier(() -> {
             String randomName = "new.";
             int i = 0;
-            while (getResource().hasResource(randomName + i)) {
+            while (getResource().hasBuiltinResource(randomName + i)) {
                 i++;
             }
             randomName += i;
@@ -40,7 +40,7 @@ public class EntriesResourceContainer extends ResourceContainer<String, TextFiel
         container.clearAllWidgets();
         int width = (getSize().getWidth() - 16) / 2;
         int i = 0;
-        for (var entry : resource.allResources()) {
+        for (var entry : resource.allResources().toList()) {
             TextFieldWidget widget = new TextFieldWidget(width, 0, width, 15, null, s -> resource.addResource(entry.getKey(), s));
             widget.setCurrentString(entry.getValue());
             widget.setBordered(false);
@@ -60,7 +60,7 @@ public class EntriesResourceContainer extends ResourceContainer<String, TextFiel
             selectableWidgetGroup.setDraggingProvider(draggingMapping == null ? entry::getValue : () -> draggingMapping.apply(entry.getKey()), (c, p) -> draggingRenderer.apply(entry.getKey(), c, p));
             selectableWidgetGroup.addWidget(new ImageWidget(0, 0, width, 15, new GuiTextureGroup(
                     ColorPattern.GRAY.rectTexture(),
-                    new TextTexture("" + entry.getKey() + " ").setWidth(size.width).setType(TextTexture.TextType.ROLL))));
+                    new TextTexture(resource.getResource(entry.getKey()) + " ").setWidth(size.width).setType(TextTexture.TextType.ROLL))));
             selectableWidgetGroup.addWidget(widget);
             selectableWidgetGroup.setOnSelected(s -> selected = entry.getKey());
             selectableWidgetGroup.setOnUnSelected(s -> selected = null);

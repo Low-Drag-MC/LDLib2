@@ -36,8 +36,8 @@ public final class LocalizationUtils {
         if (!LDLib.isClient()) {
             return String.format(localisationKey, substitutions);
         } else {
-            if (RESOURCE != null && RESOURCE.hasResource(localisationKey)) {
-                return RESOURCE.getResource(localisationKey);
+            if (RESOURCE != null && RESOURCE.hasBuiltinResource(localisationKey)) {
+                return RESOURCE.getBuiltinResource(localisationKey);
             }
             return I18n.get(localisationKey, substitutions);
         }

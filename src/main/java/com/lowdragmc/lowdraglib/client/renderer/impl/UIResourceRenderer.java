@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.client.renderer.impl;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -28,6 +29,7 @@ import net.neoforged.neoforge.common.util.TriState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -50,13 +52,13 @@ public class UIResourceRenderer implements IRenderer {
     @Setter
     private Resource<IRenderer> resource;
 
-    public final String key;
+    public final Either<String, File> key;
 
-    public UIResourceRenderer(String key) {
+    public UIResourceRenderer(Either<String, File> key) {
         this.key = key;
     }
 
-    public UIResourceRenderer(Resource<IRenderer> resource, String key) {
+    public UIResourceRenderer(Resource<IRenderer> resource, Either<String, File> key) {
         this.resource = resource;
         this.key = key;
     }
