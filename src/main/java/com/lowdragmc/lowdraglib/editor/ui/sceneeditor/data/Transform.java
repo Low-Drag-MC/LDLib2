@@ -30,7 +30,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
     @Getter
     @Accessors(fluent = true)
     @Persisted
-    private final UUID id = UUID.randomUUID();
+    private UUID id = UUID.randomUUID();
     /**
      * Position of the transform relative to the parent transform.
      */
@@ -93,7 +93,6 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
     public Transform(@Nonnull ISceneObject sceneObject) {
         this.sceneObject = sceneObject;
     }
-
 
     /**
      * Notify the transform that the transform has changed.
@@ -205,9 +204,19 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
      * Set the position, rotation, and scale of the transform.
      */
     public Transform set(Transform transform) {
-        position(transform.position());
-        rotation(transform.rotation());
-        scale(transform.scale());
+        return set(transform, false);
+    }
+
+    public Transform set(Transform transform, boolean local) {
+        if (local) {
+            localPosition(transform.localPosition());
+            localRotation(transform.localRotation());
+            localScale(transform.localScale());
+        } else {
+            position(transform.position());
+            rotation(transform.rotation());
+            scale(transform.scale());
+        }
         return this;
     }
 
@@ -304,5 +313,29 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
                 LDLib.LOGGER.warn("Parent transform {} not found.", _parentId);
             }
         }
+    }
+
+    /**
+     * Set the ID of the transform.
+     * Do not call this method unless you know what you are doing.
+     */
+    public void _setInternalID(UUID uuid) {
+        id = uuid;
+    }
+
+    /**
+     * Refresh the ID of the transform. This will generate a new random UUID.
+     * Do not call this method unless you know what you are doing.
+     */
+    public void _refreshInternalID() {
+        id = UUID.randomUUID();
+    }
+
+    /**
+     * Set the parent ID of the transform.
+     * Do not call this method unless you know what you are doing.
+     */
+    public void _setInternalParentID(UUID uuid) {
+        _parentId = uuid;
     }
 }
