@@ -53,9 +53,9 @@ public class FluidConfigurator extends ValueConfigurator<Fluid> implements Searc
         searchComponent.setIconProvider(fluid -> new ItemStackTexture(fluid.getBucket()));
         searchComponent.setShowUp(true);
         searchComponent.setCapacity(5);
+        searchComponent.setCurrent(value);
         var textFieldWidget = searchComponent.textFieldWidget;
         textFieldWidget.setClientSideWidget();
-        textFieldWidget.setCurrentString(value == null ? BuiltInRegistries.FLUID.getKey(defaultValue) : BuiltInRegistries.FLUID.getKey(value));
         textFieldWidget.setBordered(false);
     }
 

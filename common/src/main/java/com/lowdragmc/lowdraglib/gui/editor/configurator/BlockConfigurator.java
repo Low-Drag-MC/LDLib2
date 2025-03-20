@@ -54,9 +54,9 @@ public class BlockConfigurator extends ValueConfigurator<Block> implements Searc
         searchComponent.setIconProvider(block -> new ItemStackTexture(block.asItem()));
         searchComponent.setShowUp(true);
         searchComponent.setCapacity(5);
+        searchComponent.setCurrent(value);
         var textFieldWidget = searchComponent.textFieldWidget;
         textFieldWidget.setClientSideWidget();
-        textFieldWidget.setCurrentString(value == null ? BuiltInRegistries.BLOCK.getKey(defaultValue) : BuiltInRegistries.BLOCK.getKey(value));
         textFieldWidget.setBordered(false);
     }
 
