@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.utils.search.ISearch;
 import com.lowdragmc.lowdraglib.math.Position;
@@ -15,6 +16,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import javax.annotation.Nullable;
 
 import javax.annotation.Nonnull;
+import java.util.function.Function;
 
 /**
  * @author KilaBash
@@ -30,12 +32,17 @@ public class SearchComponentWidget<T> extends WidgetGroup {
     protected boolean isShow;
     @Setter
     protected boolean showUp = false;
+    @Nullable
+    protected Function<T, IGuiTexture> iconProvider;
+    @Nullable
+    @Getter
+    private T current;
 
     public SearchComponentWidget(int x, int y, int width, int height, IWidgetSearch<T> search) {
         this(x, y, width, height, search, false);
     }
 
-    public  SearchComponentWidget(int x, int y, int width, int height, IWidgetSearch<T> search, boolean isServer) {
+    public SearchComponentWidget(int x, int y, int width, int height, IWidgetSearch<T> search, boolean isServer) {
         super(x, y, width, height);
         if (!isServer) {
             setClientSideWidget();
@@ -72,13 +79,7 @@ public class SearchComponentWidget<T> extends WidgetGroup {
             } else {
                 popUp.setSelfPosition(Position.of(0, height));
             }
-            popUp.waitToAdded(new ButtonWidget(0, size * 15, width,
-                    15, new TextTexture(search.resultDisplay(r)).setWidth(width).setType(TextTexture.TextType.ROLL),
-                    cd -> {
-                        search.selectResult(r);
-                        setShow(false);
-                        textFieldWidget.setCurrentString(search.resultDisplay(r));
-                    }).setHoverBorderTexture(-1, -1));
+            popUp.waitToAdded(createCandidateWidget(search, r, size));
             if (isServer) {
                 writeUpdateInfo(-2, buf -> search.serialize(r, buf));
             }
@@ -100,6 +101,30 @@ public class SearchComponentWidget<T> extends WidgetGroup {
         });
     }
 
+    public void setIconProvider(@Nonnull Function<T, IGuiTexture> iconProvider) {
+        this.iconProvider = iconProvider;
+        this.textFieldWidget.setSizeWidth(getSizeWidth() - 14);
+        this.addWidget(0, new ImageWidget(getSizeWidth() - 14, 1, 12, 12,
+                () -> current == null ? IGuiTexture.EMPTY : iconProvider.apply(current)));
+    }
+
+    private Widget createCandidateWidget(IWidgetSearch<T> search, T result, int row) {
+        var width = getSizeWidth();
+        var group = new WidgetGroup(0, row * 15, width, 15);
+        var hasIcon = iconProvider != null;
+        group.addWidget(new TextTextureWidget(0, 0, hasIcon ? width - 14 : width, 15, search.resultDisplay(result))
+                .textureStyle(t -> t.setType(TextTexture.TextType.ROLL)));
+        if (hasIcon) {
+            group.addWidget(new ImageWidget(width - 14, 1, 12, 12, iconProvider.apply(result)));
+        }
+        group.addWidget(new ButtonWidget(0, row * 15, width, 15, IGuiTexture.EMPTY, cd -> {
+            search.selectResult(result);
+            setShow(false);
+            setCurrent(result);
+        }).setHoverBorderTexture(-1, -1));
+        return group;
+    }
+
     @Override
     public void readUpdateInfo(int id, RegistryFriendlyByteBuf buffer) {
         if (id == -1) {
@@ -113,20 +138,13 @@ public class SearchComponentWidget<T> extends WidgetGroup {
         } else if (id == -2) {
             T r = search.deserialize(buffer);
             int size = popUp.getAllWidgetSize();
-            int width = getSize().width;
             popUp.setSize(Size.of(getSize().width, Math.min(size + 1, capacity) * 15));
             if (showUp) {
                 popUp.setSelfPosition(Position.of(0, -Math.min(size + 1, capacity) * 15));
             } else {
                 popUp.setSelfPosition(Position.of(0, getSize().height));
             }
-            popUp.addWidget(new ButtonWidget(0, size * 15, width,
-                    15, new TextTexture(search.resultDisplay(r)).setWidth(width).setType(TextTexture.TextType.ROLL),
-                    cd -> {
-                        search.selectResult(r);
-                        setShow(false);
-                        textFieldWidget.setCurrentString(search.resultDisplay(r));
-                    }).setHoverBorderTexture(-1, -1));
+            popUp.addWidget(createCandidateWidget(search, r, size));
         } else {
             super.readUpdateInfo(id, buffer);
         }
@@ -143,13 +161,14 @@ public class SearchComponentWidget<T> extends WidgetGroup {
         return this;
     }
 
-    public SearchComponentWidget<T> setCurrentString(String currentString) {
-        textFieldWidget.setCurrentString(currentString);
+    public SearchComponentWidget<T> setCurrent(@Nullable T content) {
+        current = content;
+        if (content != null) {
+            textFieldWidget.setCurrentString(search.resultDisplay(content));
+        } else {
+            textFieldWidget.setCurrentString("");
+        }
         return this;
-    }
-
-    public String getCurrentString() {
-        return textFieldWidget.getCurrentString();
     }
 
     public void setShow(boolean isShow) {

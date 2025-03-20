@@ -73,6 +73,11 @@ public class SceneEditorWidget extends SceneWidget implements IScene {
         this(x, y, width, height, world, false);
     }
 
+    public void disableTransformGizmo() {
+        transformGroup.setActive(false);
+        transformGroup.setVisible(false);
+    }
+
     public void setTransformGizmoTarget(@Nullable Transform transform) {
         transformGizmo.setTargetTransform(transform);
         transformGroup.setActive(transform != null);

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.editor.configurator;
 
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
@@ -29,7 +30,7 @@ public class ItemConfigurator extends ValueConfigurator<Item> implements SearchC
         if (newValue == null) newValue = defaultValue;
         if (value == newValue) return;
         super.onValueUpdate(newValue);
-        searchComponent.setCurrentString(BuiltInRegistries.ITEM.getKey(value == null ? defaultValue : value).toString());
+        searchComponent.setCurrent(value == null ? defaultValue : value);
     }
 
     @Override
@@ -51,6 +52,7 @@ public class ItemConfigurator extends ValueConfigurator<Item> implements SearchC
                     image.setImage(ColorPattern.T_GRAY.rectTexture().setRadius(5));
                 });
         addWidget(searchComponent = new SearchComponentWidget<>(leftWidth + 3, 2, width - leftWidth - 6 - rightWidth, 10, this));
+        searchComponent.setIconProvider(item -> new ItemStackTexture(new ItemStack(item)));
         searchComponent.setShowUp(true);
         searchComponent.setCapacity(5);
         var textFieldWidget = searchComponent.textFieldWidget;
