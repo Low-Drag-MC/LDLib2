@@ -21,7 +21,7 @@ public class EntriesResourceContainer extends ResourceContainer<String, TextFiel
 
     public EntriesResourceContainer(Resource<String> resource, ResourcePanel panel) {
         super(resource, panel);
-        setDragging(key -> key, key -> new TextTexture(resource.getResourceName(key)));
+        setDragging(key -> key.left().orElse(""), key -> new TextTexture(resource.getBuiltinResource(key)));
         setOnAdd(key -> "Hello KilaBash!");
         setNameSupplier(() -> {
             String randomName = "new.";
