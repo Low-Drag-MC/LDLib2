@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-
 import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.math.Position;

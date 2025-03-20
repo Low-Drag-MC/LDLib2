@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.utils.search.ISearch;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.utils.search.SearchEngine;
 import com.lowdragmc.lowdraglib.math.Size;
+import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -104,7 +105,7 @@ public class SearchComponentWidget<T> extends WidgetGroup {
     public void setIconProvider(@Nonnull Function<T, IGuiTexture> iconProvider) {
         this.iconProvider = iconProvider;
         this.textFieldWidget.setSizeWidth(getSizeWidth() - 14);
-        this.addWidget(0, new ImageWidget(getSizeWidth() - 14, 1, 12, 12,
+        this.addWidget(0, new ImageWidget(getSizeWidth() - getSizeHeight(), 0, getSizeHeight() - 2, getSizeHeight() - 2,
                 () -> current == null ? IGuiTexture.EMPTY : iconProvider.apply(current)));
     }
 
@@ -117,7 +118,7 @@ public class SearchComponentWidget<T> extends WidgetGroup {
         if (hasIcon) {
             group.addWidget(new ImageWidget(width - 14, 1, 12, 12, iconProvider.apply(result)));
         }
-        group.addWidget(new ButtonWidget(0, row * 15, width, 15, IGuiTexture.EMPTY, cd -> {
+        group.addWidget(new ButtonWidget(0, 0, width, 15, IGuiTexture.EMPTY, cd -> {
             search.selectResult(result);
             setShow(false);
             setCurrent(result);
