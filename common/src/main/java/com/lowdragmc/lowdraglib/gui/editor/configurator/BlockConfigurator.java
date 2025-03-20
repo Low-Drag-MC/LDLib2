@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.editor.configurator;
 
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
@@ -28,7 +29,7 @@ public class BlockConfigurator extends ValueConfigurator<Block> implements Searc
         if (newValue == null) newValue = defaultValue;
         if (value == newValue) return;
         super.onValueUpdate(newValue);
-        searchComponent.setCurrentString(BuiltInRegistries.BLOCK.getKey(value == null ? defaultValue : value).toString());
+        searchComponent.setCurrent(value == null ? defaultValue : value);
     }
 
     @Override
@@ -50,6 +51,7 @@ public class BlockConfigurator extends ValueConfigurator<Block> implements Searc
                     image.setImage(ColorPattern.T_GRAY.rectTexture().setRadius(5));
                 });
         addWidget(searchComponent = new SearchComponentWidget<>(leftWidth + 3, 2, width - leftWidth - 6 - rightWidth, 10, this));
+        searchComponent.setIconProvider(block -> new ItemStackTexture(block.asItem()));
         searchComponent.setShowUp(true);
         searchComponent.setCapacity(5);
         var textFieldWidget = searchComponent.textFieldWidget;

@@ -1,11 +1,11 @@
 package com.lowdragmc.lowdraglib.gui.editor.configurator;
 
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.material.Fluid;
 
 import javax.annotation.Nonnull;
@@ -28,7 +28,7 @@ public class FluidConfigurator extends ValueConfigurator<Fluid> implements Searc
         if (newValue == null) newValue = defaultValue;
         if (value == newValue) return;
         super.onValueUpdate(newValue);
-        searchComponent.setCurrentString(BuiltInRegistries.FLUID.getKey(value == null ? defaultValue : value).toString());
+        searchComponent.setCurrent(value == null ? defaultValue : value);
     }
 
     @Override
@@ -50,6 +50,7 @@ public class FluidConfigurator extends ValueConfigurator<Fluid> implements Searc
                     image.setImage(ColorPattern.T_GRAY.rectTexture().setRadius(5));
                 });
         addWidget(searchComponent = new SearchComponentWidget<>(leftWidth + 3, 2, width - leftWidth - 6 - rightWidth, 10, this));
+        searchComponent.setIconProvider(fluid -> new ItemStackTexture(fluid.getBucket()));
         searchComponent.setShowUp(true);
         searchComponent.setCapacity(5);
         var textFieldWidget = searchComponent.textFieldWidget;
