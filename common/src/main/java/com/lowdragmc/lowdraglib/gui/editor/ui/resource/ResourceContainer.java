@@ -204,11 +204,9 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
         if (resource.supportStaticResource()) {
             menu.leaf(Icons.FOLDER, "ldlib.gui.editor.menu.static_resource.folder", () -> Util.getPlatform().openFile(resource.getStaticLocation()));
             if (selected != null && (canGlobalChange == null || canGlobalChange.test(selected))) {
-                if (onGlobalChange != null) {
-                    onGlobalChange.accept(selected);
-                }
                 if (selected.left().isPresent()) {
                     menu.leaf(Icons.GLOBAL, "ldlib.gui.editor.menu.resource.builtin_to_static", () -> {
+                        var preName = selected;
                         var name = resource.getResourceName(selected);
                         var value = resource.getResource(selected);
                         if (value != null) {
@@ -216,15 +214,22 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
                             resource.addStaticResource(resource.getStaticResourceFile(name), value);
                             reBuild();
                         }
+                        if (onGlobalChange != null) {
+                            onGlobalChange.accept(preName);
+                        }
                     });
                 } else {
                     menu.leaf(Icons.LOCAL, "ldlib.gui.editor.menu.resource.static_to_builtin", () -> {
+                        var preName = selected;
                         var name = resource.getResourceName(selected);
                         var value = resource.getResource(selected);
                         if (value != null) {
                             resource.removeResource(selected);
                             resource.addBuiltinResource(name, value);
                             reBuild();
+                        }
+                        if (onGlobalChange != null) {
+                            onGlobalChange.accept(preName);
                         }
                     });
                 }
