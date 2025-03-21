@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib.gui.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.gui.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
-import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.mojang.datafixers.util.Either;
 
@@ -28,7 +27,19 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
         setWidgetSupplier(k -> new ImageWidget(0, 0, 30, 30, getResource().getResource(k)));
         setDragging(key -> new UIResourceTexture(resource, key), o -> o);
         setOnEdit(key -> openTextureConfigurator(key, getResource().getResource(key)));
-        setOnRemove(key -> !resource.getResourceName(key).equals("empty"));
+        setCanEdit(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
+        setCanGlobalChange(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
+        setCanRemove(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
+        setOnMenu((selected, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+            for (AnnotationDetector.Wrapper<LDLRegister, IGuiTexture> wrapper : AnnotationDetector.REGISTER_TEXTURES) {
+                IGuiTexture icon = wrapper.creator().get();
+                String name = "ldlib.gui.editor.register.texture." + wrapper.annotation().name();
+                menu.leaf(icon, name, () -> {
+                    resource.addBuiltinResource(genNewFileName(), wrapper.creator().get());
+                    reBuild();
+                });
+            }
+        }));
     }
 
     private void openTextureConfigurator(Either<String, File> key, IGuiTexture current) {
@@ -68,18 +79,4 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
         });
     }
 
-    @Override
-    protected TreeBuilder.Menu getMenu() {
-        return super.getMenu()
-                .branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
-                    for (AnnotationDetector.Wrapper<LDLRegister, IGuiTexture> wrapper : AnnotationDetector.REGISTER_TEXTURES) {
-                        IGuiTexture icon = wrapper.creator().get();
-                        String name = "ldlib.gui.editor.register.texture." + wrapper.annotation().name();
-                        menu.leaf(icon, name, () -> {
-                            resource.addBuiltinResource(genNewFileName(), wrapper.creator().get());
-                            reBuild();
-                        });
-                    }
-                });
-    }
 }
