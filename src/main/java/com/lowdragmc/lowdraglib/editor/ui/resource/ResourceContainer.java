@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.*;
-import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
@@ -53,9 +52,19 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
     @Setter
     protected Function<String, T> onAdd;
     @Setter
-    protected Predicate<Either<String, File>> onRemove;
+    protected Predicate<Either<String, File>> canRemove;
+    @Setter
+    protected Consumer<Either<String, File>> onRemove;
+    @Setter
+    protected Predicate<Either<String, File>> canGlobalChange;
+    @Setter
+    protected Consumer<Either<String, File>> onGlobalChange;
+    @Setter
+    protected Predicate<Either<String, File>> canEdit;
     @Setter
     protected Consumer<Either<String, File>> onEdit;
+    @Setter
+    protected BiConsumer<Either<String, File>, TreeBuilder.Menu> onMenu;
     protected Function<Either<String, File>, Object> draggingMapping;
     protected TriFunction<Either<String, File>, Object, Position, IGuiTexture> draggingRenderer;
     @Setter
@@ -139,7 +148,7 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
             SelectableWidgetGroup selectableWidgetGroup = new SelectableWidgetGroup(0, 0, size.width, size.height + 14);
             selectableWidgetGroup.setDraggingProvider(draggingMapping == null ? entry::getValue : () -> draggingMapping.apply(key), (c, p) -> draggingRenderer == null ? new TextTexture(resource.getResourceName(key)) : draggingRenderer.apply(key, c, p));
             selectableWidgetGroup.addWidget(widget);
-            if ((resource.supportStaticResource() && (onRemove == null || onRemove.test(key)))) {
+            if ((resource.supportStaticResource() && (canGlobalChange == null || canGlobalChange.test(key)))) {
                 selectableWidgetGroup.addWidget(new ImageWidget(1, 1, 10, 10,
                         (IGuiTexture) key.map(l -> Icons.LOCAL, r -> Icons.GLOBAL.copy().setDynamicColor(ColorPattern::generateRainbowColor)))
                         .setHoverTooltips(key.left().isPresent() ? "ldlib.gui.editor.menu.resource.builtin" : "ldlib.gui.editor.menu.resource.static"));
@@ -173,7 +182,7 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
         if (button == 1 && isMouseOverElement(mouseX, mouseY)) {
             panel.getEditor().openMenu(mouseX, mouseY, getMenu());
             return true;
-        } else if (button == 0 && isMouseOverElement(mouseX, mouseY) && selected != null && onEdit != null) {
+        } else if (button == 0 && isMouseOverElement(mouseX, mouseY) && selected != null && onEdit != null && (canEdit == null || canEdit.test(selected))) {
             if (firstClick && firstClickName.equals(selected) && gui.getTickCount() - firstClickTime < 10) {
                 editResource();
                 firstClick = false;
@@ -188,14 +197,17 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
 
     protected TreeBuilder.Menu getMenu() {
         var menu = TreeBuilder.Menu.start();
-        if (onEdit != null) {
+        if (onEdit != null && (canEdit != null && canEdit.test(selected))) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", this::editResource);
         }
         menu.leaf("ldlib.gui.editor.menu.rename", this::renameResource);
         menu.crossLine();
         if (resource.supportStaticResource()) {
             menu.leaf(Icons.FOLDER, "ldlib.gui.editor.menu.static_resource.folder", () -> Util.getPlatform().openFile(resource.getStaticLocation()));
-            if (selected != null && (onRemove == null || onRemove.test(selected))) {
+            if (selected != null && (canGlobalChange == null || canGlobalChange.test(selected))) {
+                if (onGlobalChange != null) {
+                    onGlobalChange.accept(selected);
+                }
                 if (selected.left().isPresent()) {
                     menu.leaf(Icons.GLOBAL, "ldlib.gui.editor.menu.resource.builtin_to_static", () -> {
                         var name = resource.getResourceName(selected);
@@ -226,6 +238,9 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
             menu.leaf(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", this::addNewResource);
         }
         menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", this::removeSelectedResource);
+        if (onMenu != null) {
+            onMenu.accept(selected, menu);
+        }
         return menu;
     }
 
@@ -267,7 +282,7 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
     }
 
     protected void editResource() {
-        if (onEdit != null && selected != null) {
+        if (onEdit != null && selected != null && (canEdit == null || canEdit.test(selected))) {
             onEdit.accept(selected);
         }
     }
@@ -296,7 +311,10 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
 
     protected void removeSelectedResource() {
         if (selected == null) return;
-        if (onRemove == null || onRemove.test(selected)) {
+        if (canRemove == null || canRemove.test(selected)) {
+            if (onRemove != null) {
+                onRemove.accept(selected);
+            }
             resource.removeResource(selected);
             reBuild();
         }

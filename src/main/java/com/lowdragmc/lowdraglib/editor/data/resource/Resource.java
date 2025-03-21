@@ -105,6 +105,10 @@ public abstract class Resource<T> implements ILDLRegister<Resource<?>, Supplier<
         return getStaticResource().staticResources.containsKey(file);
     }
 
+    public boolean hasResource(Either<String, File> key) {
+        return key.map(this::hasBuiltinResource, this::hasStaticResource);
+    }
+
     public void addBuiltinResource(String key, T resource) {
         if (supportBuiltInResource()) {
             builtinResources.put(key, resource);

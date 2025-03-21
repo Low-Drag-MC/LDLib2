@@ -11,12 +11,10 @@ import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib.utils.virtuallevel.TrackedDummyWorld;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 
 import java.util.Collections;
@@ -36,6 +34,19 @@ public class IRendererResourceContainer extends ResourceContainer<IRenderer, Wid
                 getPanel().getEditor().getConfigPanel().clearAllConfigurators(ConfigPanel.Tab.RESOURCE);
             }
         });
+        setCanEdit(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
+        setCanGlobalChange(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
+        setCanRemove(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
+        setOnMenu((selected, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_renderer", menu -> {
+            for (var entry : AnnotationDetector.REGISTER_RENDERERS.entrySet()) {
+                menu.leaf("ldlib.renderer.%s".formatted(entry.getKey()), () -> {
+                    var renderer = entry.getValue().creator().get();
+                    renderer.initRenderer();
+                    resource.addBuiltinResource(genNewFileName(), renderer);
+                    reBuild();
+                });
+            }
+        }));
     }
 
     protected SceneWidget createPreview(IRenderer renderer) {
@@ -58,17 +69,4 @@ public class IRendererResourceContainer extends ResourceContainer<IRenderer, Wid
         return sceneWidget;
     }
 
-    @Override
-    protected TreeBuilder.Menu getMenu() {
-        return super.getMenu().branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_renderer", menu -> {
-            for (var entry : AnnotationDetector.REGISTER_RENDERERS.entrySet()) {
-                menu.leaf("ldlib.renderer.%s".formatted(entry.getKey()), () -> {
-                    var renderer = entry.getValue().creator().get();
-                    renderer.initRenderer();
-                    resource.addBuiltinResource(genNewFileName(), renderer);
-                    reBuild();
-                });
-            }
-        });
-    }
 }
