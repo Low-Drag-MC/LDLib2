@@ -196,7 +196,7 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
 
     protected TreeBuilder.Menu getMenu() {
         var menu = TreeBuilder.Menu.start();
-        if (onEdit != null && (canEdit != null && canEdit.test(selected))) {
+        if (selected != null && onEdit != null && (canEdit != null && canEdit.test(selected))) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", this::editResource);
         }
         menu.leaf("ldlib.gui.editor.menu.rename", this::renameResource);
