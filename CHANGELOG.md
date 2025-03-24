@@ -1,3 +1,3 @@
 # ChangeLog
 
-* Fixed editor resource right-click crash
+* Fixed editor resource rename doesn't work

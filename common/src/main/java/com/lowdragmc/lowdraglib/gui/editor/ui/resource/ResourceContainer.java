@@ -266,7 +266,7 @@ public class ResourceContainer<T, C extends Widget> extends WidgetGroup {
         if (selected != null) {
             DialogWidget.showStringEditorDialog(Editor.INSTANCE, LocalizationUtils.format("ldlib.gui.editor.tips.rename") + " " + LocalizationUtils.format(resource.name()),
                     resource.getResourceName(selected), s -> {
-                        if (!selected.map(l -> resource.hasBuiltinResource(s), r -> resource.hasStaticResource(resource.getStaticResourceFile(s)))) {
+                        if (selected.map(l -> resource.hasBuiltinResource(s), r -> resource.hasStaticResource(resource.getStaticResourceFile(s)))) {
                             return false;
                         }
                         if (renamePredicate != null) {
