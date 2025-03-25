@@ -1,6 +1,9 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
 import com.lowdragmc.lowdraglib.syncdata.SyncUtils;
+import com.lowdragmc.lowdraglib.syncdata.ref.DirectRef;
+import com.lowdragmc.lowdraglib.syncdata.ref.IArrayRef;
+import com.lowdragmc.lowdraglib.syncdata.var.IVar;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.jetbrains.annotations.NotNull;
@@ -14,7 +17,7 @@ public class ManagedArrayLikeRef extends DirectRef implements IArrayRef {
     protected int oldLength;
     protected final boolean isArray;
 
-    public ManagedArrayLikeRef(IDirectVar<?> field) {
+    public ManagedArrayLikeRef(IVar<?> field) {
         super(field);
         isArray = field.getType().isArray();
         if (!isArray && !Collection.class.isAssignableFrom(field.getType())) {
@@ -54,7 +57,7 @@ public class ManagedArrayLikeRef extends DirectRef implements IArrayRef {
             var dirty = false;
             for (int i = 0; i < Array.getLength(oldValue); i++) {
                 if (SyncUtils.isChanged(Array.get(oldValue, i), Array.get(newValue, i))) {
-                    setChanged(i);
+                    markAsDirty(i);
                     dirty = true;
                 }
             }
@@ -71,7 +74,7 @@ public class ManagedArrayLikeRef extends DirectRef implements IArrayRef {
             for (var item : collection) {
                 var oldItem = Array.get(oldValue, i);
                 if ((oldItem == null && item != null) || (oldItem != null && item == null) || (oldItem != null && SyncUtils.isChanged(oldItem, item))) {
-                    setChanged(i);
+                    markAsDirty(i);
                     dirty = true;
                 }
                 i++;
@@ -91,7 +94,7 @@ public class ManagedArrayLikeRef extends DirectRef implements IArrayRef {
     }
 
     @Override
-    public void setChanged(int index) {
+    public void markAsDirty(int index) {
         markAsDirty();
         dirty.add(index);
     }

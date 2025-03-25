@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.misc;
 import com.lowdragmc.lowdraglib.syncdata.*;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.DirectAccessor;
-import com.lowdragmc.lowdraglib.syncdata.managed.ManagedHolder;
+import com.lowdragmc.lowdraglib.syncdata.var.ManagedHolderVar;
 import com.lowdragmc.lowdraglib.syncdata.payload.PrimitiveTypedPayload;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
 import lombok.Getter;
@@ -49,8 +49,8 @@ public abstract class SyncableMap<K, V> implements Map<K, V>, IContentChangeAwar
 
         stringKey = keyType == String.class;
 
-        keyAccessor = TypedPayloadRegistries.findByType(keyType);
-        valueAccessor = TypedPayloadRegistries.findByType(valueType);
+        keyAccessor = AccessorRegistries.findByType(keyType);
+        valueAccessor = AccessorRegistries.findByType(valueType);
 
         if (keyAccessor == null || valueAccessor == null) {
             throw new RuntimeException("Cannot find accessor for key or value type");
@@ -141,15 +141,15 @@ public abstract class SyncableMap<K, V> implements Map<K, V>, IContentChangeAwar
     }
 
     private static Tag readVal(DirectAccessor accessor, Object val, HolderLookup.Provider provider) {
-        return val == null ? PrimitiveTypedPayload.ofNull().serializeNBT(provider) : accessor.readManagedField(AccessorOp.PERSISTED, ManagedHolder.of(val), provider).serializeNBT(provider);
+        return val == null ? PrimitiveTypedPayload.ofNull().serializeNBT(provider) : accessor.readManagedField(AccessorOp.PERSISTED, ManagedHolderVar.of(val), provider).serializeNBT(provider);
     }
 
     private static Object writeVal(DirectAccessor accessor, Tag val, Class<?> type, HolderLookup.Provider provider) {
         if (val == null) {
             return null;
         }
-        var holder = ManagedHolder.ofType(type);
-        var payload = TypedPayloadRegistries.create(accessor.getDefaultType());
+        var holder = ManagedHolderVar.ofType(type);
+        var payload = AccessorRegistries.create(accessor.getDefaultType());
         payload.deserializeNBT(val, provider);
         accessor.writeManagedField(AccessorOp.PERSISTED, holder, payload, provider);
         return holder.value();

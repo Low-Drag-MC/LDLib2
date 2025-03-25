@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.kjs.ui.ItemUIJSFactory;
 import com.lowdragmc.lowdraglib.networking.LDLNetworking;
 import com.lowdragmc.lowdraglib.plugin.ILDLibPlugin;
 import com.lowdragmc.lowdraglib.plugin.LDLibPlugin;
-import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
+import com.lowdragmc.lowdraglib.syncdata.AccessorRegistries;
 import com.lowdragmc.lowdraglib.test.NoRendererTestBlock;
 import com.lowdragmc.lowdraglib.test.TestBlock;
 import com.lowdragmc.lowdraglib.test.TestBlockEntity;
@@ -64,7 +64,7 @@ public class CommonProxy {
                 }
             } catch (Throwable ignored) {}
         }, () -> {});
-        TypedPayloadRegistries.postInit();
+        AccessorRegistries.postInit();
         BLOCKS.register(eventBus);
         ITEMS.register(eventBus);
         BLOCK_ENTITY_TYPES.register(eventBus);
@@ -79,11 +79,11 @@ public class CommonProxy {
             UIFactory.register(ItemUIJSFactory.INSTANCE);
         }
         AnnotationDetector.init();
-        TypedPayloadRegistries.init();
+        AccessorRegistries.init();
     }
 
     public static void loadComplete(FMLLoadCompleteEvent e) {
-        e.enqueueWork(TypedPayloadRegistries::postInit);
+        e.enqueueWork(AccessorRegistries::postInit);
     }
 
     public void registerCommand(RegisterCommandsEvent event) {

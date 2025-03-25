@@ -1,8 +1,11 @@
 package com.lowdragmc.lowdraglib.syncdata;
 
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
-import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
+import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import net.minecraft.world.level.block.entity.BlockEntity;
+
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * @author KilaBash
@@ -63,7 +66,7 @@ public interface IManagedStorage {
      */
     boolean hasSyncListener(ManagedKey key);
 
-    <T> void notifyFieldUpdate(ManagedKey key, T newVal, T oldVal);
+    <T> Stream<Consumer<T>> notifyFieldUpdate(ManagedKey key, T currentValue);
 
     /**
      * Marks a field as changed, so it will be synced.

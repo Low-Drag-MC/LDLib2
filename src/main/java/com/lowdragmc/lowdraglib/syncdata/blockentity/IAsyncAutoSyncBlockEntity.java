@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.async.AsyncThreadData;
 import com.lowdragmc.lowdraglib.async.IAsyncLogic;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
-import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
+import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;

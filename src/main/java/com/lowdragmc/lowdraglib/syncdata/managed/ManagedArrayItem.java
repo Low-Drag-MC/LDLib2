@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib.syncdata.managed;
 
+import com.lowdragmc.lowdraglib.syncdata.var.IVar;
+
 @SuppressWarnings("unchecked")
-public class ManagedArrayItem<T> implements IDirectVar<T> {
+public class ManagedArrayItem<T> implements IVar<T> {
     protected Object array;
     protected Class<T> type;
     protected int index;

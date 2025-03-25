@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.syncdata.accessor;
 
 import com.lowdragmc.lowdraglib.syncdata.AccessorOp;
-import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
-import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
-import com.lowdragmc.lowdraglib.syncdata.managed.ReadOnlyManagedRef;
+import com.lowdragmc.lowdraglib.syncdata.AccessorRegistries;
+import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
+import com.lowdragmc.lowdraglib.syncdata.ref.ReadOnlyManagedRef;
 import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import com.lowdragmc.lowdraglib.syncdata.payload.NbtTagPayload;
 import com.lowdragmc.lowdraglib.syncdata.payload.PrimitiveTypedPayload;
@@ -74,7 +74,7 @@ public abstract class ReadonlyAccessor implements IAccessor {
                 }
                 var payloadTag = tag.getCompound("payload");
                 byte id = payloadTag.getByte("t");
-                var p = TypedPayloadRegistries.create(id);
+                var p = AccessorRegistries.create(id);
                 p.deserializeNBT(payloadTag.get("d"), provider);
                 writeToReadonlyField(op, obj, p, provider);
             }

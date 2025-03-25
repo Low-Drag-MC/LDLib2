@@ -5,8 +5,11 @@ import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.IManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
+import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * @author KilaBash
@@ -129,10 +132,8 @@ public class MultiManagedStorage implements IManagedStorage {
         return false;
     }
 
-    public <T> void notifyFieldUpdate(ManagedKey key, T newVal, T oldVal) {
-        for (IManagedStorage storage : storages) {
-            storage.notifyFieldUpdate(key, newVal, oldVal);
-        }
+    public <T> Stream<Consumer<T>> notifyFieldUpdate(ManagedKey key, T currentValue) {
+        return storages.stream().flatMap(storage -> storage.notifyFieldUpdate(key, currentValue));
     }
 
     @Override

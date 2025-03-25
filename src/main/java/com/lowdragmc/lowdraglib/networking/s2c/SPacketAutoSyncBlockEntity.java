@@ -67,7 +67,15 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
             var syncedFields = storage.getSyncFields();
             for (int i = 0; i < syncedFields.length; i++) {
                 if (packet.changed.get(i)) {
-                    syncedFields[i].writeSyncFromStream(buffer);
+                    var field = syncedFields[i];
+                    var key = field.getKey();
+                    if (storage.hasSyncListener(key)) {
+                        var postStream = storage.notifyFieldUpdate(key, field.readRaw());
+                        field.writeSyncFromStream(buffer);
+                        postStream.forEach(consumer -> consumer.accept(field.readRaw()));
+                    } else {
+                        field.writeSyncFromStream(buffer);
+                    }
                 }
             }
         }, blockEntity.getSelf().getLevel().registryAccess());

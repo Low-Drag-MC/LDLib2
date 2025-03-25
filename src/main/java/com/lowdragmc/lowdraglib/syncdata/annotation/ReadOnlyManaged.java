@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata.annotation;
 
-import com.lowdragmc.lowdraglib.syncdata.managed.ReadonlyRef;
+import com.lowdragmc.lowdraglib.syncdata.ref.ReadOnlyRef;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -24,7 +24,7 @@ public @interface ReadOnlyManaged {
     /**
      * specify a method e.g. {@code boolean methodName()}
      * return whether it has changed.
-     * if this method is not defined, it will check dirty using default method {@link ReadonlyRef#readOnlyUpdate()}.
+     * if this method is not defined, it will check dirty using default method {@link ReadOnlyRef#readOnlyUpdate()}.
      */
     String onDirtyMethod() default "";
 

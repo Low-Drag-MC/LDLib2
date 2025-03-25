@@ -3,19 +3,15 @@ package com.lowdragmc.lowdraglib.syncdata.blockentity;
 import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.LazyManaged;
-import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
-import io.netty.buffer.Unpooled;
+import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.connection.ConnectionType;
 
-import java.util.BitSet;
 import java.util.Objects;
 
 /**
@@ -88,8 +84,8 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
 
         var list = new ListTag();
         var syncedFields = getRootStorage().getSyncFields();
-        for (IRef syncedField : syncedFields) {
-            list.add(syncedField.readSync(NbtOps.INSTANCE));
+        for (IRef<?> syncedField : syncedFields) {
+            list.add(syncedField.readInitialSync(NbtOps.INSTANCE));
         }
         if (!list.isEmpty()) {
             tag.put("managed", list);
@@ -110,7 +106,7 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
             throw new IllegalStateException("Synced fields count mismatch");
         }
         for (int i = 0; i < list.size(); i++) {
-            syncedFields[i].writeSync(NbtOps.INSTANCE, list.getCompound(i));
+            syncedFields[i].writeInitialSync(NbtOps.INSTANCE, list.getCompound(i));
         }
     }
 }

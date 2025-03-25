@@ -17,7 +17,7 @@ import java.util.Objects;
  */
 @Getter
 @Setter
-public class Range {
+public final class Range {
 
     public final static Codec<Range> CODEC = LDLibExtraCodecs.NUMBER.listOf().comapFlatMap(
             list -> Util.fixedSize(list, 2).map(p_253489_ -> new Range(list.get(0), list.get(1))),

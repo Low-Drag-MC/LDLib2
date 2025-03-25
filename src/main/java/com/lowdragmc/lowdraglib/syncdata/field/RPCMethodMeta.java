@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.syncdata.field;
 
-import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
-import com.lowdragmc.lowdraglib.syncdata.accessor.IDirectAccessor;
-import com.lowdragmc.lowdraglib.syncdata.managed.ManagedHolder;
+import com.lowdragmc.lowdraglib.syncdata.AccessorRegistries;
+import com.lowdragmc.lowdraglib.syncdata.accessor.direct.IDirectAccessor;
+import com.lowdragmc.lowdraglib.syncdata.var.ManagedHolderVar;
 import com.lowdragmc.lowdraglib.syncdata.rpc.RPCSender;
 import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -60,14 +60,14 @@ public class RPCMethodMeta {
             args = new Object[argsAccessor.length + 1];
             args[0] = sender;
             for (int i = 0; i < argsAccessor.length; i++) {
-                var holder = ManagedHolder.ofType(argsType[i]);
+                var holder = ManagedHolderVar.ofType(argsType[i]);
                 ((IDirectAccessor)argsAccessor[i]).writeDirectVarFromStream(buf, holder);
                 args[i + 1] = holder.value();
             }
         } else {
             args = new Object[argsAccessor.length];
             for (int i = 0; i < argsAccessor.length; i++) {
-                var holder = ManagedHolder.ofType(argsType[i]);
+                var holder = ManagedHolderVar.ofType(argsType[i]);
                 ((IDirectAccessor)argsAccessor[i]).writeDirectVarFromStream(buf, holder);
                 args[i] = holder.value();
             }
@@ -86,12 +86,12 @@ public class RPCMethodMeta {
             throw new IllegalArgumentException("Invalid number of arguments, expected " + argsAccessor.length + " but got " + args.length);
         }
         for (int i = 0; i < argsAccessor.length; i++) {
-            ((IDirectAccessor)argsAccessor[i]).readDirectVarToStream(buf, ManagedHolder.of(args[i]));
+            ((IDirectAccessor)argsAccessor[i]).readDirectVarToStream(buf, ManagedHolderVar.of(args[i]));
         }
     }
 
     private static IDirectAccessor<?> getAccessor(Type type) {
-        var accessor = TypedPayloadRegistries.findByType(type);
+        var accessor = AccessorRegistries.findByType(type);
         if (accessor == null) {
             throw new IllegalArgumentException("Cannot find accessor for type " + type);
         }

@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata.payload;
 
-import com.lowdragmc.lowdraglib.syncdata.TypedPayloadRegistries;
+import com.lowdragmc.lowdraglib.syncdata.AccessorRegistries;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -42,7 +42,7 @@ public class ArrayPayload extends ObjectTypedPayload<ITypedPayload<?>[]> {
             }
             byte type = compound.getByte("t");
             Tag tag = compound.get("p");
-            payload[i] = TypedPayloadRegistries.create(type);
+            payload[i] = AccessorRegistries.create(type);
             payload[i].deserializeNBT(tag, provider);
         }
     }
@@ -61,7 +61,7 @@ public class ArrayPayload extends ObjectTypedPayload<ITypedPayload<?>[]> {
         payload = new ITypedPayload[buf.readVarInt()];
         for (int i = 0; i < payload.length; i++) {
             byte type = buf.readByte();
-            payload[i] = TypedPayloadRegistries.create(type);
+            payload[i] = AccessorRegistries.create(type);
             payload[i].readPayload(buf);
         }
     }

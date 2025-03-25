@@ -4,8 +4,9 @@ import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.syncdata.*;
 import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
 import com.lowdragmc.lowdraglib.syncdata.annotation.UpdateListener;
-import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
+import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import net.minecraft.Util;
+import org.apache.commons.lang3.function.Consumers;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -13,6 +14,8 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class FieldManagedStorage implements IManagedStorage {
 
@@ -52,19 +55,21 @@ public class FieldManagedStorage implements IManagedStorage {
         return list != null && !list.isEmpty();
     }
 
-    public <T> void notifyFieldUpdate(ManagedKey key, T newVal, T oldVal) {
+    public <T> Stream<Consumer<T>> notifyFieldUpdate(ManagedKey key, T currentValue) {
         var list = listeners.get(key);
         if (list != null) {
-            for (var sub : list) {
-                //noinspection unchecked
-                var listener = (IFieldUpdateListener<T>) sub.listener;
-                try {
-                    listener.onFieldChanged(key.getName(), newVal, oldVal);
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                }
-            }
+            return list.stream()
+                    .map(sub -> (IFieldUpdateListener<T>) sub.listener)
+                    .map(listener -> {
+                        try {
+                            return listener.onFieldUpdated(key, currentValue);
+                        } catch (Throwable t) {
+                            LDLib.LOGGER.error("Error occurred while notifying field {} update", key, t);
+                        }
+                        return Consumers.nop();
+                    });
         }
+        return Stream.empty();
     }
 
     public void init() {
@@ -164,7 +169,7 @@ public class FieldManagedStorage implements IManagedStorage {
         for (IRef syncField : getSyncFields()) {
             var rawField = syncField.getKey().getRawField();
             if (rawField.isAnnotationPresent(RequireRerender.class) && owner instanceof IEnhancedManaged enhancedManaged) {
-                addSyncUpdateListener(syncField.getKey(),  enhancedManaged::scheduleRender);
+                addSyncUpdateListener(syncField.getKey(),  );
             }
             if (rawField.isAnnotationPresent(UpdateListener.class)) {
                 final var method = METHOD_CACHES.apply(rawField, owner.getClass());
