@@ -2,10 +2,12 @@ package com.lowdragmc.lowdraglib.utils;
 
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
+import lombok.experimental.UtilityClass;
 import net.minecraft.client.resources.language.I18n;
 
-public class LocalizationUtils {
+@UtilityClass
+public final class LocalizationUtils {
     public static Resource<String> RESOURCE;
 
     public static void setResource(Resource<String> resource) {

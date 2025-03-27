@@ -6,10 +6,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @author KilaBash
- * @date 2023/6/23
- * @implNote RequireRerender.
- * <br>
  * When the annotated fields updated (synced from server) will schedule chunk rendering update.
  */
 @Retention(RetentionPolicy.RUNTIME)

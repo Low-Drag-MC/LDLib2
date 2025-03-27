@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.client.utils;
 
 import com.lowdragmc.lowdraglib.gui.util.WidgetTooltipComponent;
-import com.lowdragmc.lowdraglib.jei.ModularWrapper;
+import com.lowdragmc.lowdraglib.integration.jei.ModularWrapper;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.MethodsReturnNonnullByDefault;

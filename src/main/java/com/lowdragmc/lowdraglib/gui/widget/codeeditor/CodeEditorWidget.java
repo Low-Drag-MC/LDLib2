@@ -1,12 +1,11 @@
 package com.lowdragmc.lowdraglib.gui.widget.codeeditor;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;

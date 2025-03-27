@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -11,7 +11,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-@LDLRegister(name = "item_stack_texture", group = "texture")
+@LDLRegister(name = "item_stack_texture", registry = "ldlib:gui_texture")
 public class ItemStackTexture extends TransformTexture {
     @Configurable(name = "ldlib.gui.editor.name.items")
     public ItemStack[] items;

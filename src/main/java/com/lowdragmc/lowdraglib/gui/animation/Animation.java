@@ -1,12 +1,11 @@
 package com.lowdragmc.lowdraglib.gui.animation;
 
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.lowdragmc.lowdraglib.utils.interpolate.Eases;
-import com.lowdragmc.lowdraglib.utils.interpolate.IEase;
-import com.lowdragmc.lowdraglib.utils.interpolate.Interpolator;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
+import com.lowdragmc.lowdraglib.math.interpolate.Eases;
+import com.lowdragmc.lowdraglib.math.interpolate.IEase;
+import com.lowdragmc.lowdraglib.math.interpolate.Interpolator;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -120,10 +119,10 @@ public class Animation {
             onUpdate.accept(t);
         }
         if (size != null) {
-            widget.setSize(new Size((int)(size.width * t + initialSize.width * (1 - t)), (int)(size.height * t + initialSize.height * (1 - t))));
+            widget.setSize(Size.of((int)(size.width * t + initialSize.width * (1 - t)), (int)(size.height * t + initialSize.height * (1 - t))));
         }
         if (position != null) {
-            widget.setSelfPosition(new Position((int)(position.x * t + initialPosition.x * (1 - t)), (int)(position.y * t + initialPosition.y * (1 - t))));
+            widget.setSelfPosition(Position.of((int)(position.x * t + initialPosition.x * (1 - t)), (int)(position.y * t + initialPosition.y * (1 - t))));
         }
     }
 

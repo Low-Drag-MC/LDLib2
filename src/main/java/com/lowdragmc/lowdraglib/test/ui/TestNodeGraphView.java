@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseGraph;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.widget.GraphViewWidget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib.graphprocessor.data.BaseGraph;
+import com.lowdragmc.lowdraglib.graphprocessor.data.parameter.ExposedParameter;
+import com.lowdragmc.lowdraglib.graphprocessor.widget.GraphViewWidget;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import lombok.NoArgsConstructor;

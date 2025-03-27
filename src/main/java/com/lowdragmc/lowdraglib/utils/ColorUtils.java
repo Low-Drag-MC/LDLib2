@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import lombok.experimental.UtilityClass;
 import net.minecraft.util.Mth;
 
 /**
@@ -8,7 +9,8 @@ import net.minecraft.util.Mth;
  * @date 2022/12/11
  * @implNote ColorUtils
  */
-public class ColorUtils {
+@UtilityClass
+public final class ColorUtils {
 
     public static int randomColor(int minR, int maxR, int minG, int maxG, int minB, int maxB) {
         return 0xff000000 |

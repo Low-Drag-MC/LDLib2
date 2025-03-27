@@ -1,9 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.*;
+import com.lowdragmc.lowdraglib.editor.annotation.*;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Setter;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-@LDLRegister(name = "text_texture", group = "texture")
+@LDLRegister(name = "text_texture", registry = "ldlib:gui_texture")
 public class TextTexture extends TransformTexture {
 
     @Configurable

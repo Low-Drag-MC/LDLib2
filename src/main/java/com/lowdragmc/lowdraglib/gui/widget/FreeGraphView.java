@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.utils.Rect;
+import com.lowdragmc.lowdraglib.math.Rect;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.gui.GuiGraphics;

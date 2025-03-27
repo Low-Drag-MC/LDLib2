@@ -1,12 +1,11 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.utils.Rect;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.lowdragmc.lowdraglib.math.Rect;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.neoforged.api.distmarker.Dist;
@@ -16,7 +15,7 @@ import org.joml.Vector4f;
 
 import java.awt.*;
 
-@LDLRegister(name = "color_rect_texture", group = "texture")
+@LDLRegister(name = "color_rect_texture", registry = "ldlib:gui_texture")
 @Accessors(chain = true)
 public class ColorRectTexture extends TransformTexture{
 

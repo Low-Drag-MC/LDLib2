@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.math.Size;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 
-@LDLRegister(name = "border_texture", group = "texture")
+@LDLRegister(name = "border_texture", registry = "ldlib:gui_texture")
 public class ResourceBorderTexture extends ResourceTexture {
     public static final ResourceBorderTexture BORDERED_BACKGROUND = new ResourceBorderTexture("ldlib:textures/gui/background.png", 16, 16, 4, 4);
     public static final ResourceBorderTexture BORDERED_BACKGROUND_INVERSE = new ResourceBorderTexture("ldlib:textures/gui/background_inverse.png", 16, 16, 4, 4);
@@ -28,17 +28,17 @@ public class ResourceBorderTexture extends ResourceTexture {
 
     public ResourceBorderTexture(String imageLocation, int imageWidth, int imageHeight, int cornerWidth, int cornerHeight) {
         super(imageLocation);
-        borderSize = new Size(cornerWidth, cornerHeight);
-        imageSize = new Size(imageWidth, imageHeight);
+        borderSize = Size.of(cornerWidth, cornerHeight);
+        imageSize = Size.of(imageWidth, imageHeight);
     }
 
     public ResourceBorderTexture setBorderSize(int width, int height) {
-        this.borderSize = new Size(width, height);
+        this.borderSize = Size.of(width, height);
         return this;
     }
 
     public ResourceBorderTexture setImageSize(int width, int height) {
-        this.imageSize = new Size(width, height);
+        this.imageSize = Size.of(width, height);
         return this;
     }
 

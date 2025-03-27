@@ -3,10 +3,8 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.mojang.blaze3d.vertex.PoseStack;
-import lombok.Getter;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Setter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;

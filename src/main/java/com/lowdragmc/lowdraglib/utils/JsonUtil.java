@@ -4,10 +4,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import lombok.experimental.UtilityClass;
 
 import java.lang.reflect.Array;
 
-public class JsonUtil {
+@UtilityClass
+public final class JsonUtil {
     public static int[] getIntArray(JsonElement array) {
         if (array.isJsonArray()) {
             JsonArray jsonArray = array.getAsJsonArray();

@@ -3,12 +3,20 @@ package com.lowdragmc.lowdraglib.syncdata.field;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.ManagedFieldUtils;
+import com.lowdragmc.lowdraglib.syncdata.rpc.RPCMethodMeta;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class ManagedFieldHolder {
+/**
+ * This class is used to store all the fields of a class that implements {@link IManaged} and all the RPC methods{@link RPCMethodMeta}.
+ * <br>
+ * You don't need to create this class for all instances.
+ * Create a static instance of this class in the class that implements {@link IManaged} and
+ * return it in the {@link IManaged#getFieldHolder()} method.
+ */
+public final class ManagedFieldHolder {
 
     private final Map<String, ManagedKey> fieldNameMap = new HashMap<>();
     private ManagedKey[] fields;
@@ -22,13 +30,6 @@ public class ManagedFieldHolder {
         this.initAll();
     }
 
-
-    public void merge(ManagedFieldHolder other) {
-        this.fields = ArrayUtils.addAll(this.fields, other.fields);
-        this.resetSyncFieldIndexMap();
-        this.rpcMethodMap.putAll(other.rpcMethodMap);
-    }
-
     /**
      * merge the sync field keys from the given class
      *
@@ -40,8 +41,13 @@ public class ManagedFieldHolder {
         merge(parent);
     }
 
-    private final Class<? extends IManaged> clazz;
+    public void merge(ManagedFieldHolder other) {
+        this.fields = ArrayUtils.addAll(this.fields, other.fields);
+        this.resetSyncFieldIndexMap();
+        this.rpcMethodMap.putAll(other.rpcMethodMap);
+    }
 
+    private final Class<? extends IManaged> clazz;
 
     private void initAll() {
         this.fields = ManagedFieldUtils.getManagedFields(clazz);

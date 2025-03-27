@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.core.mixins.jei;
 
-import com.lowdragmc.lowdraglib.jei.ClickableIngredient;
-import com.lowdragmc.lowdraglib.jei.IRecipeIngredientSlotWrapper;
+import com.lowdragmc.lowdraglib.integration.jei.ClickableIngredient;
+import com.lowdragmc.lowdraglib.integration.jei.IRecipeIngredientSlotWrapper;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.library.gui.ingredients.RecipeSlot;

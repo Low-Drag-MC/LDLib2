@@ -2,11 +2,11 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.google.common.collect.Lists;
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.ingredient.IGhostIngredientTarget;
 import com.lowdragmc.lowdraglib.gui.ingredient.Target;
 import com.mojang.blaze3d.platform.InputConstants;

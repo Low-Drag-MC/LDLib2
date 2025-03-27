@@ -39,6 +39,13 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
         this.extra = extra;
     }
 
+    /**
+     * Create a packet to sync fields of a block entity. This will also clear the dirty flag of all synced fields.
+     *
+     * @param tile  The block entity
+     * @param force Whether to force sync all fields
+     * @return The packet
+     */
     public static SPacketAutoSyncBlockEntity of(IAutoSyncBlockEntity tile, boolean force) {
         var changed = new BitSet();
         var syncedFields = tile.getRootStorage().getSyncFields();

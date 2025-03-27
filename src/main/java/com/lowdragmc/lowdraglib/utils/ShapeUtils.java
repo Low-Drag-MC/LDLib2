@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.utils;
 
 
+import lombok.experimental.UtilityClass;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -12,7 +13,8 @@ import org.joml.Vector3f;
  * @date 2022/6/17
  * @implNote ShapeUtils
  */
-public class ShapeUtils {
+@UtilityClass
+public final class ShapeUtils {
 
     public static AABB rotate(AABB AABB, Direction facing) {
         switch (facing) {

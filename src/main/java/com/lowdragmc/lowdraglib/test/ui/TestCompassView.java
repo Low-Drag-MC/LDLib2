@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.compass.CompassView;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib.compass.CompassView;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import lombok.NoArgsConstructor;

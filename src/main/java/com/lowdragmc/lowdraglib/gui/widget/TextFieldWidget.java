@@ -1,10 +1,11 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.*;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.annotation.*;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -28,7 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-@Configurable(name = "ldlib.gui.editor.register.widget.text_field", collapse = false)
+@Configurable(name = "widget.text_field", collapse = false)
 @LDLRegister(name = "text_field", group = "widget.basic")
 public class TextFieldWidget extends Widget implements IConfigurableWidget {
 
@@ -62,7 +63,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
     }
 
     public TextFieldWidget(int xPosition, int yPosition, int width, int height, Supplier<String> textSupplier, Consumer<String> textResponder) {
-        super(new Position(xPosition, yPosition), new Size(width, height));
+        super(Position.of(xPosition, yPosition), Size.of(width, height));
         if (isRemote()) {
             Font fontRenderer = Minecraft.getInstance().font;
             this.textField = new EditBox(fontRenderer, xPosition, yPosition, width, height, Component.literal("text field"));

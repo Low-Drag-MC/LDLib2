@@ -1,16 +1,16 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import lombok.Getter;
@@ -19,7 +19,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import javax.annotation.Nonnull;
 import java.util.function.Supplier;
 
-@Configurable(name = "ldlib.gui.editor.register.widget.image", collapse = false)
+@Configurable(name = "widget.image", collapse = false)
 @LDLRegister(name = "image", group = "widget.basic")
 public class ImageWidget extends Widget implements IConfigurableWidget {
 

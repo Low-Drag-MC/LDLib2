@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
 import lombok.Getter;
 import lombok.Setter;
 import net.neoforged.api.distmarker.Dist;

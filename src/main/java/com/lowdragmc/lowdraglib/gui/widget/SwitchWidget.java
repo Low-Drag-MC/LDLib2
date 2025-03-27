@@ -1,12 +1,12 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.util.ClickData;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-@Configurable(name = "ldlib.gui.editor.register.widget.switch", collapse = false)
+@Configurable(name = "widget.switch", collapse = false)
 @LDLRegister(name = "switch", group = "widget.basic")
 public class SwitchWidget extends Widget implements IConfigurableWidget {
 

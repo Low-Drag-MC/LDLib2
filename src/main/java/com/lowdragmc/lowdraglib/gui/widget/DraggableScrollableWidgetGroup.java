@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,7 +19,6 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
@@ -88,7 +87,7 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
     }
 
     public DraggableScrollableWidgetGroup(int x, int y, int width, int height) {
-        super(new Position(x, y), new Size(width, height));
+        super(Position.of(x, y), Size.of(width, height));
         maxHeight = height;
         maxWidth = width;
         useScissor = true;

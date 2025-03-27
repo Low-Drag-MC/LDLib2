@@ -1,15 +1,16 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.*;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.annotation.*;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -58,7 +59,7 @@ public class SelectorWidget extends WidgetGroup {
     }
 
     public SelectorWidget(int x, int y, int width, int height, List<String> candidates, int fontColor) {
-        super(new Position(x, y), new Size(width, height));
+        super(Position.of(x, y), Size.of(width, height));
         this.button = new ButtonWidget(0,0, width, height, IGuiTexture.EMPTY, d -> {
             if (d.isRemote) setShow(!isShow);
         });
@@ -78,8 +79,8 @@ public class SelectorWidget extends WidgetGroup {
         int height = Math.min(maxCount, candidates.size()) * 15;
         popUp.clearAllWidgets();
         selectables.clear();
-        popUp.setSize(new Size(getSize().width, height));
-        popUp.setSelfPosition(showUp ? new Position(0, -height) : new Position(0, getSize().height));
+        popUp.setSize(Size.of(getSize().width, height));
+        popUp.setSelfPosition(showUp ? Position.of(0, -height) : Position.of(0, getSize().height));
         if (candidates.size() > maxCount) {
             popUp.setYScrollBarWidth(4).setYBarStyle(null, new ColorRectTexture(-1));
         }

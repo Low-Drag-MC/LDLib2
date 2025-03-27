@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.widget.codeeditor.language;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Style;

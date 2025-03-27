@@ -1,11 +1,11 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -21,7 +21,6 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
-import org.lwjgl.system.MemoryUtil;
 
 import javax.annotation.Nonnull;
 import java.util.function.IntConsumer;

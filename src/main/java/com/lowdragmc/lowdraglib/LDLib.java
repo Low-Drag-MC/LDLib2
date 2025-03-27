@@ -3,16 +3,13 @@ package com.lowdragmc.lowdraglib;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.lowdragmc.lowdraglib.client.ClientProxy;
-import com.lowdragmc.lowdraglib.json.factory.FluidStackTypeAdapter;
 import com.lowdragmc.lowdraglib.core.mixins.MixinPluginShared;
-import com.lowdragmc.lowdraglib.emi.EMIPlugin;
+import com.lowdragmc.lowdraglib.integration.emi.EMIPlugin;
 import com.lowdragmc.lowdraglib.json.IGuiTextureTypeAdapter;
-import com.lowdragmc.lowdraglib.json.ItemStackTypeAdapter;
-import com.lowdragmc.lowdraglib.rei.REIPlugin;
+import com.lowdragmc.lowdraglib.integration.rei.REIPlugin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -36,9 +33,6 @@ public class LDLib {
     public static final RandomSource RANDOM = RandomSource.createThreadSafe();
     public static final Gson GSON = new GsonBuilder()
             .registerTypeAdapterFactory(IGuiTextureTypeAdapter.INSTANCE)
-            .registerTypeAdapterFactory(FluidStackTypeAdapter.INSTANCE)
-            .registerTypeAdapter(ItemStack.class, ItemStackTypeAdapter.INSTANCE)
-            .registerTypeAdapter(ResourceLocation.class, new ResourceLocation.Serializer())
             .create();
     private static File location;
 

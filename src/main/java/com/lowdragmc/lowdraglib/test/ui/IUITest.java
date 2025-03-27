@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.test.ui;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Size;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -52,7 +52,7 @@ public interface IUITest {
      */
     default SceneWidget createRealWorldScene(@Nullable Size size, @Nullable Collection<BlockPos> positions) {
         if (size == null) {
-            size = new Size(Minecraft.getInstance().getWindow().getGuiScaledWidth(), Minecraft.getInstance().getWindow().getGuiScaledHeight());
+            size = Size.of(Minecraft.getInstance().getWindow().getGuiScaledWidth(), Minecraft.getInstance().getWindow().getGuiScaledHeight());
         }
         var sceneWidget = new SceneWidget(0, 0, size.width, size.height, Minecraft.getInstance().level);
         sceneWidget.useCacheBuffer();

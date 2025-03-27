@@ -6,8 +6,8 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -56,7 +56,7 @@ public final class ModularUI {
     }
 
     public ModularUI(int width, int height, IUIHolder holder, Player entityPlayer) {
-        this(new Size(width, height), holder, entityPlayer);
+        this(Size.of(width, height), holder, entityPlayer);
     }
 
     public ModularUI(WidgetGroup mainGroup, IUIHolder holder, Player entityPlayer) {
@@ -176,7 +176,7 @@ public final class ModularUI {
         if (this.width != width || this.height != height) {
             this.width = width;
             this.height = height;
-            mainGroup.setSize(new Size(width, height));
+            mainGroup.setSize(Size.of(width, height));
             if (getModularUIGui() != null) {
                 getModularUIGui().init();
             }
@@ -195,7 +195,7 @@ public final class ModularUI {
         }
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
-        Position displayOffset = new Position(getGuiLeft(), getGuiTop());
+        Position displayOffset = Position.of(getGuiLeft(), getGuiTop());
         mainGroup.setParentPosition(displayOffset);
         mainGroup.onScreenSizeUpdate(screenWidth, screenHeight);
     }

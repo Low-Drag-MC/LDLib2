@@ -2,8 +2,7 @@ package com.lowdragmc.lowdraglib.syncdata.blockentity;
 
 import com.lowdragmc.lowdraglib.networking.both.PacketRPCBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.IManaged;
-import com.lowdragmc.lowdraglib.syncdata.field.RPCMethodMeta;
-import net.minecraft.core.HolderLookup;
+import com.lowdragmc.lowdraglib.syncdata.rpc.RPCMethodMeta;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.api.distmarker.Dist;
@@ -32,7 +31,6 @@ public interface IRPCBlockEntity extends IManagedBlockEntity {
         var packet = generateRpcPacket(managed, methodName, args);
         PacketDistributor.sendToServer(packet);
     }
-
 
     default void rpcToPlayer(IManaged managed, ServerPlayer player, String methodName, Object... args) {
         var packet = generateRpcPacket(managed, methodName, args);

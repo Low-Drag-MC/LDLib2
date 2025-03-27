@@ -5,13 +5,15 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.PrimitiveCodec;
+import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.ExtraCodecs;
 
 import java.util.UUID;
 
-public class LDLibExtraCodecs {
+@UtilityClass
+public final class LDLibExtraCodecs {
 
     public final static Codec<UUID> UUID = Codec.STRING.xmap(java.util.UUID::fromString, java.util.UUID::toString);
 

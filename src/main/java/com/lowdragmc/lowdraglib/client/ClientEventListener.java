@@ -1,11 +1,11 @@
 package com.lowdragmc.lowdraglib.client;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.emi.ModularEmiRecipe;
-import com.lowdragmc.lowdraglib.gui.compass.CompassManager;
-import com.lowdragmc.lowdraglib.gui.compass.ItemLookupWidget;
+import com.lowdragmc.lowdraglib.integration.emi.ModularEmiRecipe;
+import com.lowdragmc.lowdraglib.compass.CompassManager;
+import com.lowdragmc.lowdraglib.compass.ItemLookupWidget;
 import com.lowdragmc.lowdraglib.gui.util.WidgetTooltipComponent;
-import com.lowdragmc.lowdraglib.rei.ModularDisplay;
+import com.lowdragmc.lowdraglib.integration.rei.ModularDisplay;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.datafixers.util.Either;

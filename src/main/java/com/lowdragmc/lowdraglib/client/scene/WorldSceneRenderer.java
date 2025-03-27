@@ -2,7 +2,11 @@ package com.lowdragmc.lowdraglib.client.scene;
 
 import com.lowdragmc.lowdraglib.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib.client.utils.glu.Project;
-import com.lowdragmc.lowdraglib.utils.*;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.PositionedRect;
+import com.lowdragmc.lowdraglib.math.Size;
+import com.lowdragmc.lowdraglib.utils.virtuallevel.DummyWorld;
+import com.lowdragmc.lowdraglib.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
@@ -325,11 +329,11 @@ public abstract class WorldSceneRenderer {
     }
 
     public PositionedRect getPositionedRect(int x, int y, int width, int height) {
-        return new PositionedRect(new Position(x, y), new Size(width, height));
+        return PositionedRect.of(Position.of(x, y), Size.of(width, height));
     }
 
     public PositionedRect getPositionRectRevert(int windowX, int windowY, int windowWidth, int windowHeight) {
-        return new PositionedRect(new Position(windowX, windowY), new Size(windowWidth, windowHeight));
+        return PositionedRect.of(Position.of(windowX, windowY), Size.of(windowWidth, windowHeight));
     }
 
     protected void setupCamera(PositionedRect viewport) {

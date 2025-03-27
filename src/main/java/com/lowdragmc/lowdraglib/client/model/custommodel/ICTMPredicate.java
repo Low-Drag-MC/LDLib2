@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.client.model.custommodel;
 
 import com.lowdragmc.lowdraglib.client.renderer.IBlockRendererProvider;
-import com.lowdragmc.lowdraglib.utils.FacadeBlockAndTintGetter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockAndTintGetter;

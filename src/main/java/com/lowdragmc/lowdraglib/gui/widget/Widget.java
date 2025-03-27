@@ -3,17 +3,17 @@ package com.lowdragmc.lowdraglib.gui.widget;
 import com.google.common.base.Preconditions;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.animation.Animation;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.gui.modular.WidgetUIAccess;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.layout.Align;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Rect;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Rect;
+import com.lowdragmc.lowdraglib.math.Size;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -125,7 +125,7 @@ public class Widget {
     }
 
     public Widget(int x, int y, int width, int height) {
-        this(new Position(x, y), new Size(width, height));
+        this(Position.of(x, y), Size.of(width, height));
     }
 
     public Widget setClientSideWidget() {
@@ -242,7 +242,7 @@ public class Widget {
     }
 
     public final void setSelfPosition(int x, int y) {
-        setSelfPosition(new Position(x, y));
+        setSelfPosition(Position.of(x, y));
     }
 
     public final void setSelfPositionX(int x) {
@@ -254,7 +254,7 @@ public class Widget {
     }
 
     public Position addSelfPosition(int addX, int addY) {
-        setSelfPosition(new Position(selfPosition.x + addX, selfPosition.y + addY));
+        setSelfPosition(Position.of(selfPosition.x + addX, selfPosition.y + addY));
         return this.selfPosition;
     }
 
@@ -277,7 +277,7 @@ public class Widget {
     }
 
     public final void setSize(int width, int height) {
-        setSize(new Size(width, height));
+        setSize(Size.of(width, height));
     }
 
     public final void setSizeWidth(int width) {
@@ -469,7 +469,7 @@ public class Widget {
         if (!isMouseOverElement(mouseX, mouseY) && tryToDrag && draggingProvider != null && draggingRenderer != null) {
             var element = draggingProvider.get();
             if (element != null) {
-                getGui().getModularUIGui().setDraggingElement(element, draggingRenderer.apply(element, new Position((int) mouseX, (int) mouseY)));
+                getGui().getModularUIGui().setDraggingElement(element, draggingRenderer.apply(element, Position.of((int) mouseX, (int) mouseY)));
             }
         }
         if (isMouseOverElement(mouseX, mouseY) && draggingAccept.test(getGui().getModularUIGui().getDraggingElement())) {

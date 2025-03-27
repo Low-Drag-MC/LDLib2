@@ -2,12 +2,12 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ArrayConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.runtime.PersistedParser;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.ArrayConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.utils.PersistedParser;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,7 +16,6 @@ import net.minecraft.nbt.Tag;
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -165,8 +164,7 @@ public class TabContainer extends WidgetGroup {
 
     @Override
     public CompoundTag serializeInnerNBT(HolderLookup.Provider provider) {
-        CompoundTag tag = new CompoundTag();
-        PersistedParser.serializeNBT(tag, getClass(), this, provider);
+        CompoundTag tag = PersistedParser.serializeNBT(this, provider);
         var tabs = new ListTag();
         for (Map.Entry<TabButton, WidgetGroup> entry : this.tabs.entrySet()) {
             var button = entry.getKey();
@@ -183,7 +181,7 @@ public class TabContainer extends WidgetGroup {
     @Override
     public void deserializeInnerNBT(HolderLookup.Provider provider, CompoundTag nbt) {
         clearAllWidgets();
-        PersistedParser.deserializeNBT(nbt, new HashMap<>(), getClass(), this, provider);
+        PersistedParser.deserializeNBT(nbt, this, provider);
         var tabs = nbt.getList("tabs", Tag.TAG_COMPOUND);
         for (Tag tag : tabs) {
             if (tag instanceof CompoundTag tab) {

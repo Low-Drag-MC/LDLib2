@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import lombok.experimental.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
@@ -12,7 +13,8 @@ import java.net.URL;
  * @date 2023/2/20
  * @implNote ResourceHelper
  */
-public class ResourceHelper {
+@UtilityClass
+public final class ResourceHelper {
     public static boolean isResourceExistRaw(ResourceLocation rs) {
         URL url = ResourceHelper.class.getResource(String.format("/assets/%s/%s", rs.getNamespace(), rs.getPath()));
         return url != null;

@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.syncdata;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.syncdata.annotation.*;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
-import com.lowdragmc.lowdraglib.syncdata.field.RPCMethodMeta;
+import com.lowdragmc.lowdraglib.syncdata.rpc.RPCMethodMeta;
 import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import net.minecraft.nbt.CompoundTag;
 
@@ -83,21 +83,20 @@ public class ManagedFieldUtils {
         return managedKey;
     }
 
-    public record FieldRefs(IRef[] syncedRefs, IRef[] persistedRefs, IRef[] nonLazyFields,
-                            Map<ManagedKey, IRef> fieldRefMap) {
+    public record FieldRefs(IRef<?>[] syncedRefs, IRef<?>[] persistedRefs, IRef<?>[] nonLazyFields, Map<ManagedKey, IRef<?>> fieldRefMap) {
 
     }
 
     public interface FieldChangedCallback {
-        void onFieldChanged(IRef ref, int index, boolean changed);
+        void onFieldChanged(IRef<?> ref, int index, boolean changed);
     }
 
 
     public static FieldRefs getFieldRefs(ManagedKey[] keys, Object obj, FieldChangedCallback syncFieldChangedCallback, FieldChangedCallback persistedFieldChangedCallback) {
-        List<IRef> syncedFields = new ArrayList<>();
-        List<IRef> persistedFields = new ArrayList<>();
-        List<IRef> nonLazyFields = new ArrayList<>();
-        Map<ManagedKey, IRef> fieldRefMap = new HashMap<>();
+        List<IRef<?>> syncedFields = new ArrayList<>();
+        List<IRef<?>> persistedFields = new ArrayList<>();
+        List<IRef<?>> nonLazyFields = new ArrayList<>();
+        Map<ManagedKey, IRef<?>> fieldRefMap = new HashMap<>();
         for (ManagedKey key : keys) {
             final var fieldObj = key.createRef(obj);
             fieldObj.markAsDirty();
@@ -121,9 +120,9 @@ public class ManagedFieldUtils {
             fieldObj.setOnPersistedListener((changed) -> persistedFieldChangedCallback.onFieldChanged(fieldObj, finalPersistIndex, changed));
         }
         return new FieldRefs(
-                syncedFields.toArray(IRef[]::new),
-                persistedFields.toArray(IRef[]::new),
-                nonLazyFields.toArray(IRef[]::new),
+                syncedFields.toArray(IRef<?>[]::new),
+                persistedFields.toArray(IRef<?>[]::new),
+                nonLazyFields.toArray(IRef<?>[]::new),
                 fieldRefMap
         );
     }

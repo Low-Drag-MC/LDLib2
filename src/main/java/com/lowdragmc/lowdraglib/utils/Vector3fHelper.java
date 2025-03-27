@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.utils;
 
+import lombok.experimental.UtilityClass;
 import net.minecraft.core.BlockPos;
 import org.joml.Vector3f;
 
@@ -8,7 +9,8 @@ import org.joml.Vector3f;
  * @date 2023/6/9
  * @implNote Vector3fHelper
  */
-public class Vector3fHelper {
+@UtilityClass
+public final class Vector3fHelper {
     public static float min(Vector3f vec) {
         return vec.x < vec.y ? Math.min(vec.x, vec.z) : Math.min(vec.y, vec.z);
     }

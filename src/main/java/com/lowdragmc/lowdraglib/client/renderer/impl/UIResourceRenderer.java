@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.client.renderer.impl;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.core.mixins.emi;
 
-import com.lowdragmc.lowdraglib.emi.ModularEmiRecipe;
+import com.lowdragmc.lowdraglib.integration.emi.ModularEmiRecipe;
 import dev.emi.emi.EmiRenderHelper;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.widget.WidgetHolder;

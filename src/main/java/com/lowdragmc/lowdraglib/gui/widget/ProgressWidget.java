@@ -1,17 +1,17 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.Configurator;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.GuiTextureConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.GuiTextureConfigurator;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -50,21 +50,21 @@ public class ProgressWidget extends Widget implements IConfigurableWidget {
     }
 
     public ProgressWidget(DoubleSupplier progressSupplier, int x, int y, int width, int height, ResourceTexture fullImage) {
-        super(new Position(x, y), new Size(width, height));
+        super(Position.of(x, y), Size.of(width, height));
         this.progressSupplier = progressSupplier;
         this.progressTexture = new ProgressTexture(fullImage.getSubTexture(0.0, 0.0, 1.0, 0.5), fullImage.getSubTexture(0.0, 0.5, 1.0, 0.5));
         this.lastProgressValue = -1;
     }
 
     public ProgressWidget(DoubleSupplier progressSupplier, int x, int y, int width, int height, ProgressTexture progressBar) {
-        super(new Position(x, y), new Size(width, height));
+        super(Position.of(x, y), Size.of(width, height));
         this.progressSupplier = progressSupplier;
         this.progressTexture = progressBar;
         this.lastProgressValue = -1;
     }
 
     public ProgressWidget(DoubleSupplier progressSupplier, int x, int y, int width, int height) {
-        super(new Position(x, y), new Size(width, height));
+        super(Position.of(x, y), Size.of(width, height));
         this.progressSupplier = progressSupplier;
     }
 

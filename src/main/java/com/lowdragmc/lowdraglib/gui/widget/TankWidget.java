@@ -2,26 +2,26 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.gui.ingredient.IRecipeIngredientSlot;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.util.TextFormattingUtil;
-import com.lowdragmc.lowdraglib.jei.ClickableIngredient;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
-import com.lowdragmc.lowdraglib.jei.JEIPlugin;
-import com.lowdragmc.lowdraglib.misc.FluidHelper;
+import com.lowdragmc.lowdraglib.integration.jei.ClickableIngredient;
+import com.lowdragmc.lowdraglib.integration.jei.IngredientIO;
+import com.lowdragmc.lowdraglib.integration.jei.JEIPlugin;
+import com.lowdragmc.lowdraglib.utils.FluidHelper;
 import com.lowdragmc.lowdraglib.misc.IFluidHandlerModifiable;
-import com.lowdragmc.lowdraglib.utils.CycleFluidTransfer;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.lowdragmc.lowdraglib.utils.TagOrCycleFluidTransfer;
+import com.lowdragmc.lowdraglib.misc.CycleFluidTransfer;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
+import com.lowdragmc.lowdraglib.misc.TagOrCycleFluidTransfer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
@@ -122,7 +122,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     }
 
     public TankWidget(@Nullable IFluidHandler fluidTank, int x, int y, int width, int height, boolean allowClickContainerFilling, boolean allowClickContainerEmptying) {
-        super(new Position(x, y), new Size(width, height));
+        super(Position.of(x, y), Size.of(width, height));
         this.fluidTank = fluidTank;
         this.tank = 0;
         this.showAmount = true;
@@ -136,7 +136,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     }
 
     public TankWidget(@Nullable IFluidHandler fluidTank, int tank, int x, int y, int width, int height, boolean allowClickContainerFilling, boolean allowClickContainerEmptying) {
-        super(new Position(x, y), new Size(width, height));
+        super(Position.of(x, y), Size.of(width, height));
         this.fluidTank = fluidTank;
         this.tank = tank;
         this.showAmount = true;

@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.animation;
 
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.lowdragmc.lowdraglib.utils.interpolate.IEase;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
+import com.lowdragmc.lowdraglib.math.interpolate.IEase;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;

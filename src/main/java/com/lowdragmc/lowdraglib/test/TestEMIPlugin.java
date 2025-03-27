@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.test;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.emi.ModularEmiRecipe;
+import com.lowdragmc.lowdraglib.integration.emi.ModularEmiRecipe;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import dev.emi.emi.api.EmiRegistry;
 import dev.emi.emi.api.recipe.EmiRecipeCategory;

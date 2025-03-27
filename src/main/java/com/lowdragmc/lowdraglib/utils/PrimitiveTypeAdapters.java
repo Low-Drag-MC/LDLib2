@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.utils;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 
 @LDLRegister(name = "primitive_converter", group = "type_adapter")
 public class PrimitiveTypeAdapters implements TypeAdapter.ITypeAdapter {

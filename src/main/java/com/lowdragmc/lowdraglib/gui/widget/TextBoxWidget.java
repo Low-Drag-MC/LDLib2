@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-@Configurable(name = "ldlib.gui.editor.register.widget.text_box", collapse = false)
+@Configurable(name = "widget.text_box", collapse = false)
 @LDLRegister(name = "text_box", group = "widget.basic")
 public class TextBoxWidget extends Widget implements IConfigurableWidget {
 
@@ -127,7 +127,7 @@ public class TextBoxWidget extends Widget implements IConfigurableWidget {
                         .splitLines(LocalizationUtils.format(textLine), wrapWidth, Style.EMPTY)
                         .stream().map(FormattedText::getString).toList());
             }
-            this.setSize(new Size(this.getSize().width, this.textLines.size() * (fontSize + space)));
+            this.setSize(Size.of(this.getSize().width, this.textLines.size() * (fontSize + space)));
         }
     }
 

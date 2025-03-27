@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import lombok.Getter;
@@ -58,7 +58,6 @@ public abstract class TransformTexture implements IGuiTexture {
         graphics.pose().mulPose(new Quaternionf().rotationXYZ(0, 0, (float) Math.toRadians(rotation)));
         graphics.pose().translate(-x + -width / 2f, -y + -height / 2f, 0);
     }
-
 
     @OnlyIn(Dist.CLIENT)
     protected void postDraw(GuiGraphics graphics, float x, float y, float width, float height) {

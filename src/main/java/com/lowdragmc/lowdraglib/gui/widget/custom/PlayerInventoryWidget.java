@@ -1,14 +1,14 @@
 package com.lowdragmc.lowdraglib.gui.widget.custom;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
+import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.Position;
+import com.lowdragmc.lowdraglib.math.Position;
 import lombok.Getter;
 import net.minecraft.world.entity.player.Player;
 
@@ -28,7 +28,7 @@ public class PlayerInventoryWidget extends WidgetGroup {
 
         for (int col = 0; col < 9; col++) {
             String id = "player_inv_" + col;
-            var pos = new Position(5 + col * 18, 5 + 58);
+            var pos = Position.of(5 + col * 18, 5 + 58);
             var slot = new SlotWidget();
             slot.initTemplate();
             slot.setSelfPosition(pos);
@@ -39,7 +39,7 @@ public class PlayerInventoryWidget extends WidgetGroup {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 var id = "player_inv_" + (col + (row + 1) * 9);
-                var pos = new Position(5 + col * 18, 5 + row * 18);
+                var pos = Position.of(5 + col * 18, 5 + row * 18);
                 var slot = new SlotWidget();
                 slot.initTemplate();
                 slot.setSelfPosition(pos);

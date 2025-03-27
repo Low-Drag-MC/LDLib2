@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.gui.animation.Transform;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
+import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.*;
 import com.lowdragmc.lowdraglib.gui.ingredient.IGhostIngredientTarget;
 import com.lowdragmc.lowdraglib.gui.ingredient.IIngredientSlot;
 import com.lowdragmc.lowdraglib.gui.ingredient.Target;
@@ -13,8 +13,8 @@ import com.lowdragmc.lowdraglib.gui.modular.WidgetUIAccess;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.WidgetTexture;
 import com.lowdragmc.lowdraglib.gui.widget.layout.Layout;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import lombok.Getter;
@@ -249,7 +249,7 @@ public class WidgetGroup extends Widget implements IGhostIngredientTarget, IIngr
 
     protected void recomputeLayout() {
         if (layout != Layout.NONE) {
-            var lastPosition = new Position(0, 0);
+            var lastPosition = Position.of(0, 0);
             switch (layout) {
                 case VERTICAL_LEFT -> {
                     for (var widget : widgets) {
@@ -315,10 +315,10 @@ public class WidgetGroup extends Widget implements IGhostIngredientTarget, IIngr
         for (Widget widget : widgets) {
             Position size = widget.getPosition().add(widget.getSize()).subtract(selfPosition);
             if (size.x > currentSize.width) {
-                currentSize = new Size(size.x, currentSize.height);
+                currentSize = Size.of(size.x, currentSize.height);
             }
             if (size.y > currentSize.height) {
-                currentSize = new Size(currentSize.width, size.y);
+                currentSize = Size.of(currentSize.width, size.y);
             }
         }
         return currentSize;

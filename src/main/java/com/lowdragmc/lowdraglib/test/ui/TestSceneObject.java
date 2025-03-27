@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.SceneEditorWidget;
-import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.sceneobject.utils.BlockModelObject;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib.editor.ui.sceneeditor.SceneEditorWidget;
+import com.lowdragmc.lowdraglib.editor.ui.sceneeditor.sceneobject.utils.BlockModelObject;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import lombok.NoArgsConstructor;
@@ -41,7 +41,7 @@ public class TestSceneObject implements IUITest {
         sceneWidget.addSceneObject(testModel);
         sceneWidget.setTransformGizmoTarget(testModel.transform());
 
-//        var sizeBox = new SizeBoxObject();
+//        var sizeBox = Size.ofBoxObject();
 //        sizeBox.transform().position(new Vector3f(playerPos.below().getX(), playerPos.below().getY() + 1, playerPos.below().getZ()));
 //        sceneWidget.addSceneObject(sizeBox);
 

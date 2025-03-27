@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.gui.util.ClickData;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -196,13 +196,13 @@ public class ComponentPanelWidget extends Widget {
             totalHeight -= space;
         }
         if (isCenter) {
-            setSize(new Size(maxWidthLimit, totalHeight));
+            setSize(Size.of(maxWidthLimit, totalHeight));
         } else {
             int maxStringWidth = 0;
             for (var line : cacheLines) {
                 maxStringWidth = Math.max(fontRenderer.width(line), maxStringWidth);
             }
-            setSize(new Size(maxWidthLimit == 0 ? maxStringWidth : Math.min(maxWidthLimit, maxStringWidth), totalHeight));
+            setSize(Size.of(maxWidthLimit == 0 ? maxStringWidth : Math.min(maxWidthLimit, maxStringWidth), totalHeight));
         }
     }
 

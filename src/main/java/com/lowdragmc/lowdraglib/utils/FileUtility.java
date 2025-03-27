@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.utils;
 
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
+import lombok.experimental.UtilityClass;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
@@ -19,11 +20,9 @@ import java.util.stream.Collectors;
  * Date: 2022/04/26
  * Description:
  */
-public class FileUtility {
+@UtilityClass
+public final class FileUtility {
     public static final Gson GSON_PRETTY = new GsonBuilder().setPrettyPrinting().create();
-
-    private FileUtility() {
-    }
 
     public static String readInputStream(InputStream inputStream) throws IOException {
         byte[] streamData = IOUtils.toByteArray(inputStream);

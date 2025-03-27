@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.Icons;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;

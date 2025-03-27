@@ -1,15 +1,15 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.Icons;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.neoforged.api.distmarker.Dist;
@@ -137,7 +137,7 @@ public class MenuWidget<K, T> extends WidgetGroup {
             }
         }
         Position pos = getPosition();
-        setSize(new Size(maxWidth, maxHeight));
+        setSize(Size.of(maxWidth, maxHeight));
         // check width
         int rightSpace = getGui().getScreenWidth() - pos.getX();
         int bottomSpace = getGui().getScreenHeight() - pos.getY();

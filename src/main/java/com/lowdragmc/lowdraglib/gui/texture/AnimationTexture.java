@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
@@ -31,7 +31,7 @@ import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
  * @date 2022/9/14
  * @implNote AnimationTexture
  */
-@LDLRegister(name = "animation_texture", group = "texture")
+@LDLRegister(name = "animation_texture", registry = "ldlib:gui_texture")
 public class AnimationTexture extends TransformTexture {
 
     @Configurable(name = "ldlib.gui.editor.name.resource")

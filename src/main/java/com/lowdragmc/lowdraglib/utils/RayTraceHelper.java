@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.utils;
 
+import lombok.experimental.UtilityClass;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -16,7 +17,8 @@ import java.util.function.Predicate;
  * @date 2023/2/17
  * @implNote RaytraceHelper, copied from create.
  */
-public class RayTraceHelper {
+@UtilityClass
+public final class RayTraceHelper {
     public static BlockHitResult rayTraceRange(Level worldIn, Player playerIn, double range) {
         Vec3 origin = getTraceOrigin(playerIn);
         Vec3 target = getTraceTarget(playerIn, range, origin);

@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Setter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.ComponentSerialization;
@@ -22,7 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
-@Configurable(name = "ldlib.gui.editor.register.widget.label", collapse = false)
+@Configurable(name = "widget.label", collapse = false)
 @LDLRegister(name = "label", group = "widget.basic")
 public class LabelWidget extends Widget implements IConfigurableWidget {
 
@@ -52,14 +52,14 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
     }
 
     public LabelWidget(int xPosition, int yPosition, Component component) {
-        super(new Position(xPosition, yPosition), new Size(10, 10));
+        super(Position.of(xPosition, yPosition), Size.of(10, 10));
         setDropShadow(true);
         setTextColor(-1);
         setComponent(component);
     }
 
     public LabelWidget(int xPosition, int yPosition, Supplier<String> text) {
-        super(new Position(xPosition, yPosition), new Size(10, 10));
+        super(Position.of(xPosition, yPosition), Size.of(10, 10));
         setDropShadow(true);
         setTextColor(-1);
         setTextProvider(text);
@@ -187,7 +187,7 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
     @OnlyIn(Dist.CLIENT)
     private void updateSize() {
         Font fontRenderer = Minecraft.getInstance().font;
-        setSize(new Size(this.component == null ? fontRenderer.width(LocalizationUtils.format(lastTextValue)) : fontRenderer.width(this.component), fontRenderer.lineHeight));
+        setSize(Size.of(this.component == null ? fontRenderer.width(LocalizationUtils.format(lastTextValue)) : fontRenderer.width(this.component), fontRenderer.lineHeight));
     }
 
     @Override

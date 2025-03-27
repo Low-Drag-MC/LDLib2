@@ -2,10 +2,10 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.utils.ISearch;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.SearchEngine;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.utils.search.ISearch;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.utils.search.SearchEngine;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Setter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -66,11 +66,11 @@ public class SearchComponentWidget<T> extends WidgetGroup {
         this.search = search;
         this.engine = new SearchEngine<>(search, (r) -> {
             int size = popUp.getAllWidgetSize();
-            popUp.setSize(new Size(getSize().width, Math.min(size + 1, capacity) * 15));
+            popUp.setSize(Size.of(getSize().width, Math.min(size + 1, capacity) * 15));
             if (showUp) {
-                popUp.setSelfPosition(new Position(0, -Math.min(size + 1, capacity) * 15));
+                popUp.setSelfPosition(Position.of(0, -Math.min(size + 1, capacity) * 15));
             } else {
-                popUp.setSelfPosition(new Position(0, height));
+                popUp.setSelfPosition(Position.of(0, height));
             }
             popUp.waitToAdded(new ButtonWidget(0, size * 15, width,
                     15, new TextTexture(search.resultDisplay(r)).setWidth(width).setType(TextTexture.TextType.ROLL),
@@ -86,11 +86,11 @@ public class SearchComponentWidget<T> extends WidgetGroup {
 
         textFieldWidget.setTextResponder(s -> {
             popUp.clearAllWidgets();
-            popUp.setSize(new Size(getSize().width, 0));
+            popUp.setSize(Size.of(getSize().width, 0));
             if (showUp) {
-                popUp.setSelfPosition(new Position(0, 0));
+                popUp.setSelfPosition(Position.of(0, 0));
             } else {
-                popUp.setSelfPosition(new Position(0, height));
+                popUp.setSelfPosition(Position.of(0, height));
             }
             setShow(true);
             this.engine.searchWord(s);
@@ -104,21 +104,21 @@ public class SearchComponentWidget<T> extends WidgetGroup {
     public void readUpdateInfo(int id, RegistryFriendlyByteBuf buffer) {
         if (id == -1) {
             popUp.clearAllWidgets();
-            popUp.setSize(new Size(getSize().width, 0));
+            popUp.setSize(Size.of(getSize().width, 0));
             if (showUp) {
-                popUp.setSelfPosition(new Position(0, 0));
+                popUp.setSelfPosition(Position.of(0, 0));
             } else {
-                popUp.setSelfPosition(new Position(0, getSize().height));
+                popUp.setSelfPosition(Position.of(0, getSize().height));
             }
         } else if (id == -2) {
             T r = search.deserialize(buffer);
             int size = popUp.getAllWidgetSize();
             int width = getSize().width;
-            popUp.setSize(new Size(getSize().width, Math.min(size + 1, capacity) * 15));
+            popUp.setSize(Size.of(getSize().width, Math.min(size + 1, capacity) * 15));
             if (showUp) {
-                popUp.setSelfPosition(new Position(0, -Math.min(size + 1, capacity) * 15));
+                popUp.setSelfPosition(Position.of(0, -Math.min(size + 1, capacity) * 15));
             } else {
-                popUp.setSelfPosition(new Position(0, getSize().height));
+                popUp.setSelfPosition(Position.of(0, getSize().height));
             }
             popUp.addWidget(new ButtonWidget(0, size * 15, width,
                     15, new TextTexture(search.resultDisplay(r)).setWidth(width).setType(TextTexture.TextType.ROLL),
@@ -134,11 +134,11 @@ public class SearchComponentWidget<T> extends WidgetGroup {
 
     public SearchComponentWidget<T> setCapacity(int capacity) {
         this.capacity = capacity;
-        popUp.setSize(new Size(getSize().width, Math.min(popUp.getAllWidgetSize(), capacity) * 15));
+        popUp.setSize(Size.of(getSize().width, Math.min(popUp.getAllWidgetSize(), capacity) * 15));
         if (showUp) {
-            popUp.setSelfPosition(new Position(0, -Math.min(popUp.getAllWidgetSize(), capacity) * 15));
+            popUp.setSelfPosition(Position.of(0, -Math.min(popUp.getAllWidgetSize(), capacity) * 15));
         } else {
-            popUp.setSelfPosition(new Position(0, getSize().height));
+            popUp.setSelfPosition(Position.of(0, getSize().height));
         }
         return this;
     }

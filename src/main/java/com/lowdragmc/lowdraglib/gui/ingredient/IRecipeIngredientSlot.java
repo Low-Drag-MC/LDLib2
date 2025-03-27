@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.ingredient;
 
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
+import com.lowdragmc.lowdraglib.integration.jei.IngredientIO;
 import net.minecraft.network.chat.Component;
 
 import javax.annotation.Nullable;

@@ -3,9 +3,11 @@ package com.lowdragmc.lowdraglib.utils;
 import com.google.gson.JsonParser;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.misc.FluidHelper;
+import com.lowdragmc.lowdraglib.utils.data.BlockInfo;
+import com.lowdragmc.lowdraglib.utils.data.EntityInfo;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentMap;
@@ -46,6 +48,7 @@ import java.util.*;
  * @date 2022/9/4
  * @implNote XmlUtils
  */
+@UtilityClass
 public class XmlUtils {
     public final static DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 
@@ -236,7 +239,7 @@ public class XmlUtils {
                 break;
             }
         }
-        return new EntityInfo(id, entityType, tag);
+        return EntityInfo.of(id, entityType, tag);
     }
 
     public record SizedIngredient(Ingredient ingredient, int count) {};

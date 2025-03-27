@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.client.scene;
 
-import com.lowdragmc.lowdraglib.utils.PositionedRect;
+import com.lowdragmc.lowdraglib.math.PositionedRect;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.neoforged.api.distmarker.Dist;

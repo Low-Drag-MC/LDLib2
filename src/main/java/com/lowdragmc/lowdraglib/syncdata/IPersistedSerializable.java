@@ -1,24 +1,21 @@
 package com.lowdragmc.lowdraglib.syncdata;
 
-import com.lowdragmc.lowdraglib.gui.editor.runtime.PersistedParser;
+import com.lowdragmc.lowdraglib.utils.PersistedParser;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
-
-import java.util.HashMap;
+import org.jetbrains.annotations.NotNull;
 
 public interface IPersistedSerializable extends INBTSerializable<CompoundTag> {
 
     @Override
-    default CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        var tag = new CompoundTag();
-        PersistedParser.serializeNBT(tag, this.getClass(), this, provider);
-        return tag;
+    default CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
+        return PersistedParser.serializeNBT(this, provider);
     }
 
     @Override
-    default void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-        PersistedParser.deserializeNBT(tag, new HashMap<>(), this.getClass(), this, provider);
+    default void deserializeNBT(HolderLookup.@NotNull Provider provider, @NotNull CompoundTag tag) {
+        PersistedParser.deserializeNBT(tag, this, provider);
     }
 
 }

@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib.core.mixins;
 
-import com.lowdragmc.lowdraglib.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoPersistBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoSyncBlockEntity;
@@ -56,7 +55,7 @@ public abstract class BlockEntityMixin {
     @Inject(method = "clearRemoved", at = @At(value = "RETURN"))
     private void injectClearRemoved(CallbackInfo ci) {
         if (this instanceof IManagedBlockEntity managed) {
-            managed.getRootStorage().init();
+            managed.getRootStorage().requireInit();
             if (managed instanceof IAsyncAutoSyncBlockEntity autoSyncBlockEntity) {
                 autoSyncBlockEntity.onValid();
             }

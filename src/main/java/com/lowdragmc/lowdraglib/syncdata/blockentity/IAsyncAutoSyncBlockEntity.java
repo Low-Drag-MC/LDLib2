@@ -8,7 +8,8 @@ import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.jetbrains.annotations.ApiStatus;
+
+import java.util.concurrent.locks.Lock;
 
 /**
  * @author KilaBash
@@ -16,6 +17,11 @@ import org.jetbrains.annotations.ApiStatus;
  * @implNote IAsyncAutoSyncBlockEntity
  */
 public interface IAsyncAutoSyncBlockEntity extends IAutoSyncBlockEntity, IAsyncLogic {
+
+    /**
+     * Get the lock for syncing in an async thread.
+     */
+    Lock getAsyncLock();
 
     default boolean useAsyncThread() {
         return true;
@@ -33,37 +39,21 @@ public interface IAsyncAutoSyncBlockEntity extends IAutoSyncBlockEntity, IAsyncL
         }
     }
 
-    /**
-     * whether it's syncing in an async thread
-     */
-    @ApiStatus.AvailableSince("1.21")
-    default boolean isAsyncSyncing() {
-        return false;
-    }
-
-    /**
-     * set whether it's syncing in an async thread
-     */
-    @ApiStatus.AvailableSince("1.21")
-    default void setAsyncSyncing(boolean syncing) {
-
-    }
-
     @Override
     default void asyncTick(long periodID) {
         if (Platform.isServerNotSafe()) return;
 
         if (useAsyncThread() && !getSelf().isRemoved()) {
-            for (IRef field : getNonLazyFields()) {
+            for (IRef<?> field : getNonLazyFields()) {
                 field.update();
             }
-            if (getRootStorage().hasDirtySyncFields() && !isAsyncSyncing()) {
-                setAsyncSyncing(true);
+            if (getRootStorage().hasDirtySyncFields() && getAsyncLock().tryLock()) {
                 Platform.getMinecraftServer().execute(() -> {
-                    if (Platform.isServerNotSafe()) return;
-                    var packet = SPacketAutoSyncBlockEntity.of(this, false);
-                    PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(this.getCurrentPos()), packet);
-                    setAsyncSyncing(false);
+                    if (!Platform.isServerNotSafe()) {
+                        var packet = SPacketAutoSyncBlockEntity.of(this, false);
+                        PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(this.getCurrentPos()), packet);
+                    }
+                    getAsyncLock().unlock();
                 });
             }
         }

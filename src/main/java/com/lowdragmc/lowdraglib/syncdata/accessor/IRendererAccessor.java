@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib.syncdata.accessor;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.runtime.PersistedParser;
 import com.lowdragmc.lowdraglib.syncdata.AccessorOp;
 import com.lowdragmc.lowdraglib.syncdata.payload.ITypedPayload;
 import com.lowdragmc.lowdraglib.syncdata.payload.NbtTagPayload;
@@ -26,7 +25,6 @@ public class IRendererAccessor extends CustomObjectAccessor<IRenderer> {
             tag.putString("key", renderer.key);
             return NbtTagPayload.of(tag);
         }
-        PersistedParser
         return NbtTagPayload.of(new CompoundTag());
     }
 

@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.client.shader.management;
 
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.shader.uniform.IUniformCallback;
-import com.lowdragmc.lowdraglib.utils.PositionedRect;
+import com.lowdragmc.lowdraglib.math.PositionedRect;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;

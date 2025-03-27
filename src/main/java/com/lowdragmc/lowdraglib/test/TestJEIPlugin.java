@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib.test;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.jei.ModularUIRecipeCategory;
-import com.lowdragmc.lowdraglib.jei.ModularWrapper;
+import com.lowdragmc.lowdraglib.integration.jei.ModularUIRecipeCategory;
+import com.lowdragmc.lowdraglib.integration.jei.ModularWrapper;
 import lombok.Getter;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.helpers.IJeiHelpers;

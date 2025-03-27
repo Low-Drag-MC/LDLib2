@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.widget.codeeditor.CodeEditorWidget;

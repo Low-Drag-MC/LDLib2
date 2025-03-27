@@ -1,11 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.Icons;
-import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
-import com.lowdragmc.lowdraglib.utils.GradientColor;
+import com.lowdragmc.lowdraglib.math.GradientColor;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Setter;

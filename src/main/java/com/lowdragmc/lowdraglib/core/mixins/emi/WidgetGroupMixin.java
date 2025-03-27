@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.core.mixins.emi;
 
-import com.lowdragmc.lowdraglib.emi.ModularWrapperWidget;
+import com.lowdragmc.lowdraglib.integration.emi.ModularWrapperWidget;
 import dev.emi.emi.api.widget.Widget;
 import dev.emi.emi.screen.WidgetGroup;
 import org.spongepowered.asm.mixin.Final;

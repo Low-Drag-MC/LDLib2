@@ -2,23 +2,23 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.core.mixins.accessor.SlotAccessor;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.gui.ingredient.IRecipeIngredientSlot;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
-import com.lowdragmc.lowdraglib.jei.JEIPlugin;
-import com.lowdragmc.lowdraglib.utils.CycleItemStackHandler;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.lowdragmc.lowdraglib.utils.TagOrCycleItemStackTransfer;
+import com.lowdragmc.lowdraglib.integration.jei.IngredientIO;
+import com.lowdragmc.lowdraglib.integration.jei.JEIPlugin;
+import com.lowdragmc.lowdraglib.misc.CycleItemStackHandler;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Size;
+import com.lowdragmc.lowdraglib.misc.TagOrCycleItemStackTransfer;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Either;
@@ -48,7 +48,6 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
@@ -105,7 +104,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     private ItemStack lastItem = ItemStack.EMPTY;
 
     public SlotWidget() {
-        super(new Position(0, 0), new Size(18, 18));
+        super(Position.of(0, 0), Size.of(18, 18));
     }
 
     @Override
@@ -116,7 +115,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     }
 
     public SlotWidget(Container inventory, int slotIndex, int xPosition, int yPosition, boolean canTakeItems, boolean canPutItems) {
-        super(new Position(xPosition, yPosition), new Size(18, 18));
+        super(Position.of(xPosition, yPosition), Size.of(18, 18));
         setBackgroundTexture(SlotWidget.ITEM_SLOT_TEXTURE);
         this.canTakeItems = canTakeItems;
         this.canPutItems = canPutItems;
@@ -124,7 +123,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     }
 
     public SlotWidget(IItemHandlerModifiable itemHandler, int slotIndex, int xPosition, int yPosition, boolean canTakeItems, boolean canPutItems) {
-        super(new Position(xPosition, yPosition), new Size(18, 18));
+        super(Position.of(xPosition, yPosition), Size.of(18, 18));
         setBackgroundTexture(SlotWidget.ITEM_SLOT_TEXTURE);
         this.canTakeItems = canTakeItems;
         this.canPutItems = canPutItems;

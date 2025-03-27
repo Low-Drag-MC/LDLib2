@@ -14,7 +14,7 @@ import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib.core.mixins.ParticleEngineAccessor;
 import com.lowdragmc.lowdraglib.core.mixins.accessor.ModelBakeryAccessor;
-import com.lowdragmc.lowdraglib.gui.compass.CompassManager;
+import com.lowdragmc.lowdraglib.compass.CompassManager;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.util.WidgetTooltipComponent;
 import com.lowdragmc.lowdraglib.test.TestBlock;

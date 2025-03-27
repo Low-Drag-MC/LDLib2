@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib;
 
-import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
+import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.gui.factory.*;
-import com.lowdragmc.lowdraglib.kjs.ui.BlockUIJSFactory;
-import com.lowdragmc.lowdraglib.kjs.ui.ItemUIJSFactory;
+import com.lowdragmc.lowdraglib.integration.kjs.ui.BlockUIJSFactory;
+import com.lowdragmc.lowdraglib.integration.kjs.ui.ItemUIJSFactory;
 import com.lowdragmc.lowdraglib.networking.LDLNetworking;
 import com.lowdragmc.lowdraglib.plugin.ILDLibPlugin;
 import com.lowdragmc.lowdraglib.plugin.LDLibPlugin;
@@ -57,7 +57,7 @@ public class CommonProxy {
         // init common features
         CommonProxy.init();
         // load ldlib plugin
-        ReflectionUtils.findAnnotationClasses(LDLibPlugin.class, clazz -> {
+        ReflectionUtils.findAnnotationClasses(LDLibPlugin.class, data -> true, clazz -> {
             try {
                 if (clazz.getConstructor().newInstance() instanceof ILDLibPlugin plugin) {
                     plugin.onLoad();

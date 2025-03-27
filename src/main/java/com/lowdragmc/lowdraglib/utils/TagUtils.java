@@ -1,11 +1,13 @@
 package com.lowdragmc.lowdraglib.utils;
 
+import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
 import javax.annotation.Nullable;
 
-public class TagUtils {
+@UtilityClass
+public final class TagUtils {
 
     public static CompoundTag getOrCreateTag(CompoundTag compoundTag, String key) {
         if (!compoundTag.contains(key)) {

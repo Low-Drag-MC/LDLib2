@@ -1,9 +1,8 @@
 package com.lowdragmc.lowdraglib.utils;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.UnknownType;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.trigger.TriggerLink;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.graphprocessor.data.UnknownType;
+import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.TriggerLink;
 import org.joml.Vector3f;
 
 import java.lang.reflect.Modifier;

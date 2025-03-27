@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib.client;
 
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.shader.management.ShaderManager;
-import com.lowdragmc.lowdraglib.gui.compass.CompassManager;
-import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
+import com.lowdragmc.lowdraglib.compass.CompassManager;
+import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.mojang.brigadier.arguments.BoolArgumentType;

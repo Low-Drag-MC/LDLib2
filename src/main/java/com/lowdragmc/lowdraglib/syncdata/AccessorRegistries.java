@@ -1,7 +1,10 @@
 package com.lowdragmc.lowdraglib.syncdata;
 
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.math.Range;
+import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
-import com.lowdragmc.lowdraglib.syncdata.accessor.IGuiTextureAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IRendererAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.RecipeAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.arraylike.ArrayAccessor;
@@ -211,7 +214,6 @@ public class AccessorRegistries {
         registerAccessor(CustomDirectAccessor.builder(Range.class)
                 .codec(Range.CODEC)
                 .streamCodec(Range.STREAM_CODEC)
-                .copyMark(Range::new)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ResourceLocation.class, true)
                 .codec(ResourceLocation.CODEC)
@@ -277,6 +279,12 @@ public class AccessorRegistries {
                 .streamCodec(ItemStack.STREAM_CODEC)
                 .copyMark(ItemStack::copy)
                 .build());
+        registerAccessor(CustomDirectAccessor.builder(IGuiTexture.class)
+                .codec(IGuiTexture.CODEC)
+                .streamCodec(ByteBufCodecs.fromCodec(IGuiTexture.CODEC))
+                .copyMark(IGuiTexture::copy)
+                .build());
+
 
         setPriority(1500);
 
@@ -299,7 +307,6 @@ public class AccessorRegistries {
         setPriority(1000);
 
         public static final IAccessor RECIPE_ACCESSOR = new RecipeAccessor();
-        public static final IAccessor GUI_TEXTURE_ACCESSOR = new IGuiTextureAccessor();
         public static final IAccessor RENDERER_ACCESSOR = new IRendererAccessor();
     }
 

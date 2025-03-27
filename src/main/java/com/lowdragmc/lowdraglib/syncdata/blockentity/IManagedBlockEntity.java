@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.syncdata.blockentity;
 
-import com.lowdragmc.lowdraglib.syncdata.IManagedStorage;
+import com.lowdragmc.lowdraglib.syncdata.storage.IManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
