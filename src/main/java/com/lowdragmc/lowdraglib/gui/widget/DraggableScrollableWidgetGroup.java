@@ -1,13 +1,19 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.ingredient.IRecipeIngredientSlot;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
+import com.mojang.blaze3d.platform.Window;
+import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
+import dev.emi.emi.screen.EmiScreenManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -15,6 +21,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.nbt.CompoundTag;
@@ -388,8 +395,17 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
             setFocus(true);
             return true;
         } else if(isMouseOverElement(mouseX, mouseY)){
+            Widget widget = getHoverElement(mouseX, mouseY);
             if (checkClickedDragged(mouseX, mouseY, button)) {
                 setFocus(true);
+                return true;
+            }
+            else if (widget instanceof IRecipeIngredientSlot igs) {
+                if (LDLib.isEmiLoaded()) {
+                    if (igs.getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                        EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                    }
+                }
                 return true;
             }
             setFocus(true);
@@ -401,6 +417,26 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
         }
         setFocus(false);
         return false;
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        Window window = Minecraft.getInstance().getWindow();
+        double mouseX = Minecraft.getInstance().mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
+        double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
+        if (isMouseOverElement(mouseX, mouseY)) {
+            Widget widget = getHoverElement(mouseX, mouseY);
+            if (widget instanceof IRecipeIngredientSlot igs) {
+                if (LDLib.isEmiLoaded()) {
+                    if (igs.getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                        EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
+                    }
+                }
+                return true;
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @OnlyIn(Dist.CLIENT)

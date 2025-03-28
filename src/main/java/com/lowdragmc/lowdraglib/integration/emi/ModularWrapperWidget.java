@@ -100,16 +100,10 @@ public class ModularWrapperWidget extends Widget implements ContainerEventHandle
         return modular.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY);
     }
 
-    /*
     @Override
     public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
-        modular.focused = false;
-        if (modular.modularUI.mainGroup.keyPressed(pKeyCode, pScanCode, pModifiers)) {
-            return true;
-        }
-        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+        return modular.keyPressed(pKeyCode, pScanCode, pModifiers);
     }
-    */
 
     @Override
     public boolean keyReleased(int pKeyCode, int pScanCode, int pModifiers) {

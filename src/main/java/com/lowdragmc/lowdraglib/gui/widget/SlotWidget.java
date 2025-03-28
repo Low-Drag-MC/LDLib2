@@ -20,11 +20,14 @@ import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.misc.TagOrCycleItemStackTransfer;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
+import dev.emi.emi.screen.EmiScreenManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -265,26 +268,50 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (slotReference != null && isMouseOverElement(mouseX, mouseY) && gui != null) {
             var stack = slotReference.getItem();
-            if (!(canPutItems && stack.isEmpty() || canTakeItems && !stack.isEmpty())) return false;
-            ModularUIGuiContainer modularUIGui = gui.getModularUIGui();
-            boolean last = modularUIGui.getQuickCrafting();
-            InputConstants.Key mouseKey = InputConstants.Type.MOUSE.getOrCreate(button);
-            HOVER_SLOT = slotReference;
-            gui.getModularUIGui().superMouseClicked(mouseX, mouseY, button);
-            HOVER_SLOT = null;
-            if (last != modularUIGui.getQuickCrafting()) {
-                modularUIGui.dragSplittingButton = button;
-                if (button == 0) {
-                    modularUIGui.dragSplittingLimit = 0;
-                } else if (button == 1) {
-                    modularUIGui.dragSplittingLimit = 1;
-                } else if (Minecraft.getInstance().options.keyPickItem.matchesMouse(mouseKey.getValue())) {
-                    modularUIGui.dragSplittingLimit = 2;
+            if (canPutItems && stack.isEmpty() || canTakeItems && !stack.isEmpty()) {
+                ModularUIGuiContainer modularUIGui = gui.getModularUIGui();
+                boolean last = modularUIGui.getQuickCrafting();
+                InputConstants.Key mouseKey = InputConstants.Type.MOUSE.getOrCreate(button);
+                HOVER_SLOT = slotReference;
+                gui.getModularUIGui().superMouseClicked(mouseX, mouseY, button);
+                HOVER_SLOT = null;
+                if (last != modularUIGui.getQuickCrafting()) {
+                    modularUIGui.dragSplittingButton = button;
+                    if (button == 0) {
+                        modularUIGui.dragSplittingLimit = 0;
+                    } else if (button == 1) {
+                        modularUIGui.dragSplittingLimit = 1;
+                    } else if (Minecraft.getInstance().options.keyPickItem.matchesMouse(mouseKey.getValue())) {
+                        modularUIGui.dragSplittingLimit = 2;
+                    }
+                }
+                return true;
+            } else if (LDLib.isEmiLoaded()) {
+                if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                    EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                }
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    @Environment(EnvType.CLIENT)
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        Window window = Minecraft.getInstance().getWindow();
+        double mouseX = Minecraft.getInstance().mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
+        double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
+        if (isMouseOverElement(mouseX, mouseY)) {
+            if (LDLib.isEmiLoaded()) {
+                if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                    EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
                 }
             }
             return true;
         }
-        return false;
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -465,6 +492,8 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
 
         if (LDLib.isJeiLoaded()) {
             return JEIPlugin.getItemIngredient(realStack, getPosition().x, getPosition().y, getSize().width, getSize().height);
+        } else if (LDLib.isEmiLoaded()) {
+            return EmiStack.of(realStack);
         }
         return null;
     }
