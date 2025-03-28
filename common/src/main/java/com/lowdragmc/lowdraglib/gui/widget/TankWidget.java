@@ -22,11 +22,14 @@ import com.lowdragmc.lowdraglib.utils.CycleFluidTransfer;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.lowdraglib.utils.TagOrCycleFluidTransfer;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
+import dev.emi.emi.screen.EmiScreenManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -602,17 +605,42 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
 
     @Environment(EnvType.CLIENT)
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if ((allowClickDrained || allowClickFilled) && isMouseOverElement(mouseX, mouseY)) {
-            if (button == 0) {
-                if (FluidTransferHelper.getFluidTransfer(gui.entityPlayer, gui.getModularUIContainer()) != null) {
-                    boolean isShiftKeyDown = isShiftDown();
-                    writeClientAction(1, writer -> writer.writeBoolean(isShiftKeyDown));
-                    playButtonClickSound();
+            if (isMouseOverElement(mouseX, mouseY)) {
+                if (allowClickDrained || allowClickFilled) {
+                    if (button == 0) {
+                        if (FluidTransferHelper.getFluidTransfer(gui.entityPlayer, gui.getModularUIContainer()) != null) {
+                            boolean isShiftKeyDown = isShiftDown();
+                            writeClientAction(1, writer -> writer.writeBoolean(isShiftKeyDown));
+                            playButtonClickSound();
+                            return true;
+                        }
+                    }
+                }
+                if (LDLib.isEmiLoaded()) {
+                    if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                        EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                        return true;
+                    }
+                }
+            }
+        return false;
+    }
+
+    @Override
+    @Environment(EnvType.CLIENT)
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        Window window = Minecraft.getInstance().getWindow();
+        double mouseX = Minecraft.getInstance().mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
+        double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
+        if (isMouseOverElement(mouseX, mouseY)) {
+            if (LDLib.isEmiLoaded()) {
+                if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                    EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
                     return true;
                 }
             }
         }
-        return false;
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
