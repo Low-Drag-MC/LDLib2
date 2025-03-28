@@ -3,8 +3,6 @@ package com.lowdragmc.lowdraglib.editor.ui.resource;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
-import com.lowdragmc.lowdraglib.registry.AutoRegistry;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor.configurator.SelectorConfigurator;
@@ -13,12 +11,9 @@ import com.lowdragmc.lowdraglib.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.mojang.datafixers.util.Either;
 
 import java.io.File;
-
-import java.util.function.Supplier;
 
 /**
  * @author KilaBash
@@ -29,15 +24,16 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
     public TexturesResourceContainer(Resource<IGuiTexture> resource, ResourcePanel panel) {
         super(resource, panel);
         setWidgetSupplier(k -> new ImageWidget(0, 0, 30, 30, getResource().getResource(k)));
-        setDragging(key -> new UIResourceTexture(resource, key), o -> o);
+        setDragging(key -> new UIResourceTexture(resource.getResource(key), key), o -> o);
         setOnEdit(key -> openTextureConfigurator(key, getResource().getResource(key)));
         setCanEdit(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
         setCanGlobalChange(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
         setCanRemove(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
         setOnMenu((selected, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
             for (var holder : LDLibRegistries.GUI_TEXTURES) {
-                IGuiTexture icon = holder.value().get();
                 String name = holder.annotation().name();
+                if (name.equals("empty") || name.equals("ui_resource_texture")) continue;
+                IGuiTexture icon = holder.value().get();
                 menu.leaf(icon, name, () -> {
                     resource.addBuiltinResource(genNewFileName(), holder.value().get());
                     reBuild();
@@ -65,7 +61,10 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
                         },
                         defaultHolder,
                         false,
-                        LDLibRegistries.GUI_TEXTURES.values().stream().toList(),
+                        LDLibRegistries.GUI_TEXTURES.values().stream().filter(value -> {
+                            var name = value.annotation().name();
+                            return !name.equals("empty") && !name.equals("ui_resource_texture");
+                        }).toList(),
                         holder -> holder.annotation().name()
                 );
                 selectorConfigurator.setTips("ldlib.gui.editor.tips.texture_type");

@@ -38,4 +38,10 @@ public @interface LDLRegister {
      * The priority of the element during iteration of the registry, the higher the value, the higher the priority.
      */
     int priority() default 0;
+
+    /**
+     * Whether the element should be registered manually. If true, the element will not be registered automatically.
+     * If false you HAVE TO register it manually in the {@link com.lowdragmc.lowdraglib.registry.AutoRegistry.LDLibRegister}
+     */
+    boolean manual() default false;
 }

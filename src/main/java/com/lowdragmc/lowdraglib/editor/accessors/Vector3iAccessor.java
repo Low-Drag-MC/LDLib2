@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
@@ -17,7 +17,7 @@ import java.util.function.Supplier;
  * @date 2023/5/27
  * @implNote Vector3iAccessor
  */
-@ConfigAccessor
+@LDLRegisterClient(name = "vector3i", registry = "ldlib:configurator_accessor")
 public class Vector3iAccessor extends TypesAccessor<Vector3i> {
 
     public Vector3iAccessor() {

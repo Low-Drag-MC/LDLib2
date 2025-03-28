@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -59,9 +58,7 @@ public class GuiTextureGroup extends TransformTexture {
     }
 
     @Override
-    public void setUIResource(Resource<IGuiTexture> texturesResource) {
-        for (IGuiTexture texture : textures) {
-            texture.setUIResource(texturesResource);
-        }
+    public IGuiTexture copy() {
+        return new GuiTextureGroup(textures);
     }
 }

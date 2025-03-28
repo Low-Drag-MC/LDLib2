@@ -52,7 +52,7 @@ public class ConfiguratorAccessors {
 
     public static IConfiguratorAccessor<?> findByClass(Class<?> clazz) {
         return ACCESSOR_MAP.computeIfAbsent(clazz, c -> {
-            for (var holder : LDLibRegistries.CONFIG_ACCESSORS) {
+            for (var holder : LDLibRegistries.CONFIGURATOR_ACCESSORS) {
                 if (holder.value().test(c)) {
                     return holder.value();
                 }

@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.StringConfigurator;
@@ -16,7 +16,7 @@ import java.util.function.Supplier;
  * @date 2022/12/3
  * @implNote ResourceLocationAccessor
  */
-@ConfigAccessor
+@LDLRegisterClient(name = "resource_location", registry = "ldlib:configurator_accessor")
 public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
 
     public ResourceLocationAccessor() {

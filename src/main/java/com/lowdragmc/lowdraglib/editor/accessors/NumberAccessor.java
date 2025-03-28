@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
@@ -18,7 +18,7 @@ import java.util.function.Supplier;
  * @date 2022/12/1
  * @implNote NumberAccessor
  */
-@ConfigAccessor
+@LDLRegisterClient(name = "number", registry = "ldlib:configurator_accessor")
 public class NumberAccessor extends TypesAccessor<Number> {
 
     public NumberAccessor() {

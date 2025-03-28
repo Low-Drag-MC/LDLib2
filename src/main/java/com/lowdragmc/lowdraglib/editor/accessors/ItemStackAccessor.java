@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
@@ -17,7 +17,7 @@ import java.lang.reflect.Field;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@ConfigAccessor
+@LDLRegisterClient(name = "item_stack", registry = "ldlib:configurator_accessor")
 public class ItemStackAccessor extends TypesAccessor<ItemStack> {
 
     public ItemStackAccessor() {

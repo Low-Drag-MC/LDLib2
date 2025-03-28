@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.PersistedParser;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -25,19 +26,6 @@ import java.util.function.Supplier;
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
 public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
-    IGuiTexture EMPTY = new IGuiTexture() {
-        @Override
-        public IGuiTexture copy() {
-            return this;
-        }
-
-        @OnlyIn(Dist.CLIENT)
-        @Override
-        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
-
-        }
-    };
-
     IGuiTexture MISSING_TEXTURE = new IGuiTexture() {
         @Override
         public IGuiTexture copy() {
@@ -63,6 +51,18 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
     Codec<IGuiTexture> CODEC = LDLibRegistries.GUI_TEXTURES.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
             optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
                     .orElseGet(() -> MapCodec.unit(MISSING_TEXTURE)));
+
+    @LDLRegisterClient(name = "empty", registry = "ldlib:gui_texture", manual = true)
+    final class EmptyTexture implements IGuiTexture {
+        @Override
+        public IGuiTexture copy() { return EMPTY; }
+
+        @OnlyIn(Dist.CLIENT)
+        @Override
+        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {}
+    }
+
+    EmptyTexture EMPTY = new EmptyTexture();
 
     default IGuiTexture setColor(int color){
         return this;

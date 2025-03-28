@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
+import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -11,7 +12,7 @@ import java.util.function.Supplier;
  * @date 2022/12/1
  * @implNote IConfiguratorAccessor
  */
-public interface IConfiguratorAccessor<T> {
+public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfiguratorAccessor<?>, IConfiguratorAccessor<?>> {
     IConfiguratorAccessor<?> DEFAULT = type -> true;
 
     boolean test(Class<?> type);

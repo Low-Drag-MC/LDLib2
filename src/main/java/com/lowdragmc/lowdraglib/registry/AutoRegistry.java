@@ -22,7 +22,11 @@ import java.util.function.Supplier;
  * AutoRegistry is used to register objects automatically by detecting the class with the given annotation {@link LDLRegister} and {@link LDLRegisterClient}.
  */
 public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String<AutoRegistry.Holder<A, C, V>> {
-    public record Holder<A extends Annotation, C, V>(A annotation, Class<? extends C> clazz, V value) { }
+    public record Holder<A extends Annotation, C, V>(A annotation, Class<? extends C> clazz, V value) {
+        public static <A extends Annotation, C, V> Holder<A, C, V> of(A annotation, Class<? extends C> clazz, V value) {
+            return new Holder<>(annotation, clazz, value);
+        }
+    }
 
     private final Class<A> annotationClass;
     private final Class<C> baseClazz;
@@ -60,9 +64,10 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
                                                                             Class<C> baseClazz,
                                                                             @Nullable Predicate<Map<java.lang.String, Object>> annotationFilter,
                                                                             @Nullable Predicate<Class<? extends C>> classFilter,
+                                                                            BiFunction<A, Class<? extends C>, java.lang.String> keyFactory,
                                                                             BiFunction<A, Class<? extends C>, V> supplier,
                                                                             @Nullable Comparator<Holder<A, C, V>> sorter) {
-        return new AutoRegistry<>(registryName, annotationClass, baseClazz, annotationFilter, classFilter, (a, b) -> a.toString(), supplier, sorter);
+        return new AutoRegistry<>(registryName, annotationClass, baseClazz, annotationFilter, classFilter, keyFactory, supplier, sorter);
     }
 
     public AutoRegistry<A, C, V> autoRegister() {
@@ -126,8 +131,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
             super(registryName, LDLRegister.class, baseClazz, annotationData -> {
                 if (annotationData.containsKey("modID") && annotationData.get("modID") instanceof java.lang.String modID) {
                     return modID.isEmpty() || Platform.isModLoaded(modID);
-                }
-                return true;
+                } else return !annotationData.containsKey("manual") || !(annotationData.get("manual") instanceof Boolean manual) || !manual;
             }, null, (annotation, clazz) -> annotation.name(), supplier, (a, b) -> b.annotation().priority() - a.annotation().priority());
         }
 
@@ -149,8 +153,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
             super(registryName, LDLRegisterClient.class, baseClazz, annotationData -> {
                 if (annotationData.containsKey("modID") && annotationData.get("modID") instanceof java.lang.String modID) {
                     return modID.isEmpty() || Platform.isModLoaded(modID);
-                }
-                return true;
+                } else return !annotationData.containsKey("manual") || !(annotationData.get("manual") instanceof Boolean manual) || !manual;
             }, null, (annotation, clazz) -> annotation.name(), supplier, (a, b) -> b.annotation().priority() - a.annotation().priority());
         }
 

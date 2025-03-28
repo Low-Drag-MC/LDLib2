@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.StringConfigurator;
@@ -16,7 +16,7 @@ import java.util.function.Supplier;
  * @date 2022/12/2
  * @implNote ComponentAccessor
  */
-@ConfigAccessor
+@LDLRegisterClient(name = "component", registry = "ldlib:configurator_accessor")
 public class ComponentAccessor implements IConfiguratorAccessor<Component> {
     @Override
     public boolean test(Class<?> type) {

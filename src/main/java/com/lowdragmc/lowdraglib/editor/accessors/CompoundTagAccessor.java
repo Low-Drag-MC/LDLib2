@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.google.common.collect.Lists;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.StringConfigurator;
@@ -15,7 +15,7 @@ import java.lang.reflect.Field;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@ConfigAccessor
+@LDLRegisterClient(name = "compound_tag", registry = "ldlib:configurator_accessor")
 public class CompoundTagAccessor extends TypesAccessor<CompoundTag> {
 
     public CompoundTagAccessor() {

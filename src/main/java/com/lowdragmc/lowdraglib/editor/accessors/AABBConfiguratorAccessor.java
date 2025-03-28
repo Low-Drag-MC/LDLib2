@@ -1,16 +1,16 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.AABBConfigurator;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import net.minecraft.world.phys.AABB;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@ConfigAccessor
+@LDLRegisterClient(name = "aabb", registry = "ldlib:configurator_accessor")
 public class AABBConfiguratorAccessor extends TypesAccessor<AABB>{
 
     public AABBConfiguratorAccessor() {

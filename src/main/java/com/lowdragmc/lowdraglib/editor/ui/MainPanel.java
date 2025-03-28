@@ -1,14 +1,10 @@
 package com.lowdragmc.lowdraglib.editor.ui;
 
-import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidgetGroup;
-import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
-import com.lowdragmc.lowdraglib.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
@@ -158,18 +154,13 @@ public class MainPanel extends WidgetGroup {
         }
     }
 
-    @SuppressWarnings("unchecked")
     protected void copy() {
-        if (editor.getResourcePanel().resources != null) {
-            UIResourceTexture.setCurrentResource((Resource<IGuiTexture>) editor.getResourcePanel().resources.resources.get(TexturesResource.RESOURCE_NAME));
-        }
         List<CompoundTag> list = new ArrayList<>();
         if (!selectedUIs.isEmpty()) {
             for (UIWrapper selectedUI : selectedUIs) {
                 list.add(selectedUI.inner().serializeWrapper());
             }
         }
-        UIResourceTexture.clearCurrentResource();
         getEditor().setCopy("widgets", list);
     }
 
@@ -177,9 +168,6 @@ public class MainPanel extends WidgetGroup {
     protected void paste() {
         if (hoverUI != null) {
             getEditor().ifCopiedPresent(COPY_TYPE, c -> {
-                if (editor.getResourcePanel().resources != null) {
-                    UIResourceTexture.setCurrentResource((Resource<IGuiTexture>) editor.getResourcePanel().resources.resources.get(TexturesResource.RESOURCE_NAME));
-                }
                 List<CompoundTag> list = (List<CompoundTag>) c;
                 for (var tag : list) {
                     var widget = IConfigurableWidget.deserializeWrapper(tag);
@@ -191,7 +179,6 @@ public class MainPanel extends WidgetGroup {
                     }
                 }
                 editor.addAutoHistory("ldlib.gui.editor.menu.paste", Arrays.hashCode(list.toArray()));
-                UIResourceTexture.clearCurrentResource();
             });
         }
     }

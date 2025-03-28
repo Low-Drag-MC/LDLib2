@@ -75,6 +75,7 @@ public class CommonProxy {
             UIFactory.register(ItemUIJSFactory.INSTANCE);
         }
         AccessorRegistries.init();
+        LDLibRegistries.init();
     }
 
     public void registerCommand(RegisterCommandsEvent event) {

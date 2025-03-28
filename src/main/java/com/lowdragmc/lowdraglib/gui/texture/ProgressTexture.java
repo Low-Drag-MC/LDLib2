@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
@@ -89,16 +88,6 @@ public class ProgressTexture extends TransformTexture {
             filledBarArea.drawSubArea(graphics, X, Y, W, H, drawnU, drawnV,
                     ((drawnWidth * width)) / (width),
                     ((drawnHeight * height)) / (height));
-        }
-    }
-
-    @Override
-    public void setUIResource(Resource<IGuiTexture> texturesResource) {
-        if (emptyBarArea != null) {
-            emptyBarArea.setUIResource(texturesResource);
-        }
-        if (filledBarArea != null) {
-            filledBarArea.setUIResource(texturesResource);
         }
     }
 

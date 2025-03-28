@@ -2,48 +2,44 @@ package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.mojang.datafixers.util.Either;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.io.File;
 
-/**
- * @author KilaBash
- * @date 2022/12/15
- * @implNote UIResourceTexture
- */
-public class UIResourceTexture implements IGuiTexture {
-    @Getter
-    private final static ThreadLocal<Resource<IGuiTexture>> projectResource = new ThreadLocal<>();
+@LDLRegisterClient(name = "ui_resource_texture", registry = "ldlib:gui_texture")
+@NoArgsConstructor
+public final class UIResourceTexture implements IGuiTexture, IPersistedSerializable {
+    public final static ThreadLocal<Resource<IGuiTexture>> RESOURCE = ThreadLocal.withInitial(() -> null);
+    private Either<String, File> key;
+    @Nullable
+    @Persisted
+    private IGuiTexture fallbackTexture;
 
-    public static void setCurrentResource(Resource<IGuiTexture> resource) {
-        projectResource.set(resource);
-    }
-
-    public static void clearCurrentResource() {
-        projectResource.remove();
-    }
-
-    @Setter
-    private Resource<IGuiTexture> resource;
-
-    public final Either<String, File> key;
-
-    public UIResourceTexture(Either<String, File> key) {
+    public UIResourceTexture(@Nullable IGuiTexture fallbackTexture, Either<String, File> key) {
+        this.fallbackTexture = fallbackTexture;
         this.key = key;
-    }
-
-    public UIResourceTexture(Resource<IGuiTexture> resource, Either<String, File> key) {
-        this.resource = resource;
-        this.key = key;
+        this.fallbackTexture = RESOURCE.get() == null ? IGuiTexture.MISSING_TEXTURE : RESOURCE.get().getResourceOrDefault(key, IGuiTexture.MISSING_TEXTURE);
     }
 
     public IGuiTexture getTexture() {
-        return resource == null ? IGuiTexture.MISSING_TEXTURE : resource.getResourceOrDefault(key, IGuiTexture.MISSING_TEXTURE);
+        var resource = RESOURCE.get();
+        return resource == null ? getFallbackTexture() : resource.getResourceOrDefault(key, getFallbackTexture());
+    }
+
+    public IGuiTexture getFallbackTexture() {
+        return fallbackTexture == null ? IGuiTexture.MISSING_TEXTURE : fallbackTexture;
     }
 
     @Override
@@ -95,7 +91,37 @@ public class UIResourceTexture implements IGuiTexture {
     }
 
     @Override
-    public void setUIResource(Resource<IGuiTexture> texturesResource) {
-        setResource(texturesResource);
+    public IGuiTexture copy() {
+        return new UIResourceTexture(fallbackTexture, key);
+    }
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
+        return key.map(
+                l -> {
+                    var key = new CompoundTag();
+                    key.putString("key", l);
+                    key.putString("type", "builtin");
+                    return key;
+                }, r-> {
+                    var key = new CompoundTag();
+                    key.putString("key", r.getPath());
+                    key.putString("type", "file");
+                    return key;
+                }
+        );
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.@NotNull Provider provider) {
+        if (tag instanceof CompoundTag compoundTag) {
+            var key = compoundTag.getString("key");
+            var type = compoundTag.getString("type");
+            if (type.equals("file")) {
+                this.key = Either.right(new File(key));
+            } else  {
+                this.key = Either.left(key);
+            }
+        }
     }
 }

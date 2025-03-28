@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.editor.ui.resource.TexturesResourceContainer;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
+import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
@@ -45,6 +46,10 @@ public class TexturesResource extends Resource<IGuiTexture> {
         addBuiltinResource("tab", TABS_LEFT.getSubTexture(0, 0, 0.5f, 1f / 3));
         addBuiltinResource("tab pressed", TABS_LEFT.getSubTexture(0.5f, 0, 0.5f, 1f / 3));
         for (var holder : LDLibRegistries.GUI_TEXTURES) {
+            var name = holder.annotation().name();
+            if (name.equals("empty") || name .equals("ui_resource_texture")) {
+                continue;
+            }
             addBuiltinResource(holder.annotation().name(), holder.value().get());
         }
     }
@@ -76,9 +81,17 @@ public class TexturesResource extends Resource<IGuiTexture> {
         for (String key : nbt.getAllKeys()) {
             addBuiltinResource(key, deserialize(nbt.get(key), provider));
         }
-        for (IGuiTexture texture : getBuiltinResources().values()) {
-            texture.setUIResource(this);
-        }
     }
 
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        UIResourceTexture.RESOURCE.set(this);
+    }
+
+    @Override
+    public void unLoad() {
+        super.unLoad();
+        UIResourceTexture.RESOURCE.remove();
+    }
 }

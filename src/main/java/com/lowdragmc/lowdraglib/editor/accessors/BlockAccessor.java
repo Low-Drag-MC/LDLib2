@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.BlockConfigurator;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
@@ -14,7 +14,7 @@ import java.lang.reflect.Field;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@ConfigAccessor
+@LDLRegisterClient(name = "block", registry = "ldlib:configurator_accessor")
 public class BlockAccessor extends TypesAccessor<Block> {
 
     public BlockAccessor() {

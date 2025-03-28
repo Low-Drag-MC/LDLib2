@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.editor.configurator.RangeConfigurator;
 import com.lowdragmc.lowdraglib.math.Range;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
@@ -16,7 +16,7 @@ import java.util.function.Supplier;
  * @date 2022/12/1
  * @implNote RangeAccessor
  */
-@ConfigAccessor
+@LDLRegisterClient(name = "range", registry = "ldlib:configurator_accessor")
 public class RangeAccessor extends TypesAccessor<Range> {
 
     public RangeAccessor() {

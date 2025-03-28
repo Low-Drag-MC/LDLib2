@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
@@ -17,7 +17,7 @@ import java.util.function.Supplier;
  * @date 2022/12/2
  * @implNote PositionAccessor
  */
-@ConfigAccessor
+@LDLRegisterClient(name = "size", registry = "ldlib:configurator_accessor")
 public class SizeAccessor extends TypesAccessor<Size> {
 
     public SizeAccessor() {

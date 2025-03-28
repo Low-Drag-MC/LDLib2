@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
@@ -19,7 +19,7 @@ import java.util.function.Supplier;
  * @date 2023/5/27
  * @implNote BlockPosAccessor
  */
-@ConfigAccessor
+@LDLRegisterClient(name = "block_pos", registry = "ldlib:configurator_accessor")
 public class BlockPosAccessor extends TypesAccessor<Vec3i> {
 
     public BlockPosAccessor() {

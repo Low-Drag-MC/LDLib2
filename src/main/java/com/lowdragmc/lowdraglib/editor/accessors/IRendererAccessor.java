@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigAccessor;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.IRendererConfigurator;
@@ -13,7 +13,7 @@ import java.lang.reflect.Field;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@ConfigAccessor
+@LDLRegisterClient(name = "renderer", registry = "ldlib:configurator_accessor")
 public class IRendererAccessor extends TypesAccessor<IRenderer> {
 
     public IRendererAccessor() {

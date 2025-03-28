@@ -132,6 +132,10 @@ public class ResourcePanel extends WidgetGroup {
             this.resources.merge(resources);
         }
 
+        if (this.resources.resources.isEmpty()) {
+            return;
+        }
+
         int offset = Minecraft.getInstance().font.width(LocalizationUtils.format("ldlib.gui.editor.group.resources")) + 8;
         var maxWidth = (getSize().width - offset) / this.resources.resources.size();
         for (Resource<?> resource : this.resources.resources.values()) {
