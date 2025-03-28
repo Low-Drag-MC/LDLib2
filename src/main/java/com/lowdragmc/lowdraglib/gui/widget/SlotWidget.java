@@ -289,6 +289,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
             } else if (LDLib.isEmiLoaded()) {
                 if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
                     EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                    return true;
                 }
             } else {
                 return false;
@@ -298,7 +299,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         Window window = Minecraft.getInstance().getWindow();
         double mouseX = Minecraft.getInstance().mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
@@ -307,9 +308,9 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
             if (LDLib.isEmiLoaded()) {
                 if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
                     EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
+                    return true;
                 }
             }
-            return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }

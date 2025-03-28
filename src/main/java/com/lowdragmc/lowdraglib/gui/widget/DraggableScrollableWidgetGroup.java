@@ -390,18 +390,18 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
             setFocus(true);
             return true;
         } else if(isMouseOverElement(mouseX, mouseY)){
-            Widget widget = getHoverElement(mouseX, mouseY);
             if (checkClickedDragged(mouseX, mouseY, button)) {
                 setFocus(true);
                 return true;
+            }
+            Widget widget = getHoverElement(mouseX, mouseY);
+            if (widget != null) {
+                return widget.mouseClicked(mouseX, mouseY, button);
             }
             setFocus(true);
             if (draggable) {
                 this.draggedPanel = true;
                 return true;
-            }
-            if (widget != null) {
-                return widget.mouseClicked(mouseX, mouseY, button);
             }
         }
         setFocus(false);

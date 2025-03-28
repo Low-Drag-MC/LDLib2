@@ -22,11 +22,14 @@ import com.lowdragmc.lowdraglib.misc.CycleFluidTransfer;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.misc.TagOrCycleFluidTransfer;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
+import dev.emi.emi.screen.EmiScreenManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -35,6 +38,7 @@ import me.shedaniel.rei.api.common.util.EntryIngredients;
 import me.shedaniel.rei.api.common.util.EntryStacks;
 import mezz.jei.api.helpers.IPlatformFluidHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -51,6 +55,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -603,17 +608,42 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
 
     @OnlyIn(Dist.CLIENT)
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if ((allowClickDrained || allowClickFilled) && isMouseOverElement(mouseX, mouseY)) {
-            if (button == 0) {
-                if (FluidUtil.getFluidHandler(gui.getModularUIContainer().getCarried()).isPresent()) {
-                    boolean isShiftKeyDown = isShiftDown();
-                    writeClientAction(1, writer -> writer.writeBoolean(isShiftKeyDown));
-                    playButtonClickSound();
+            if (isMouseOverElement(mouseX, mouseY)) {
+                if (allowClickDrained || allowClickFilled) {
+                    if (button == 0) {
+                        if (getFluidHandler(gui.entityPlayer, gui.getModularUIContainer()) != null) {
+                            boolean isShiftKeyDown = isShiftDown();
+                            writeClientAction(1, writer -> writer.writeBoolean(isShiftKeyDown));
+                            playButtonClickSound();
+                            return true;
+                        }
+                    }
+                }
+                if (LDLib.isEmiLoaded()) {
+                    if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                        EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                        return true;
+                    }
+                }
+            }
+        return false;
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        Window window = Minecraft.getInstance().getWindow();
+        double mouseX = Minecraft.getInstance().mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
+        double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
+        if (isMouseOverElement(mouseX, mouseY)) {
+            if (LDLib.isEmiLoaded()) {
+                if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
+                    EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
                     return true;
                 }
             }
         }
-        return false;
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -635,6 +665,14 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         }.setAllowClickDrained(false).setAllowClickFilled(false).setFluidTank(handler)));
 
         IConfigurableWidget.super.buildConfigurator(father);
+    }
+
+    public static IFluidHandler getFluidHandler(Player player, AbstractContainerMenu screenHandler) {
+        var itemStack = screenHandler.getCarried();
+        if (!itemStack.isEmpty()) {
+            return itemStack.getCapability(Capabilities.FluidHandler.ITEM);
+        }
+        return null;
     }
 
     /**
