@@ -1,19 +1,14 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.ingredient.IRecipeIngredientSlot;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.platform.Window;
-import dev.emi.emi.api.stack.EmiStack;
-import dev.emi.emi.api.stack.EmiStackInteraction;
-import dev.emi.emi.screen.EmiScreenManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -398,20 +393,14 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
                 setFocus(true);
                 return true;
             }
-            else if (widget instanceof IRecipeIngredientSlot igs) {
-                if (LDLib.isEmiLoaded()) {
-                    if (igs.getXEICurrentIngredient() instanceof EmiStack emiStack) {
-                        EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
-                    }
-                }
-                return true;
-            }
             setFocus(true);
             if (draggable) {
                 this.draggedPanel = true;
                 return true;
             }
-            return false;
+            if (widget != null) {
+                return widget.mouseClicked(mouseX, mouseY, button);
+            }
         }
         setFocus(false);
         return false;
@@ -425,13 +414,8 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
         double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
         if (isMouseOverElement(mouseX, mouseY)) {
             Widget widget = getHoverElement(mouseX, mouseY);
-            if (widget instanceof IRecipeIngredientSlot igs) {
-                if (LDLib.isEmiLoaded()) {
-                    if (igs.getXEICurrentIngredient() instanceof EmiStack emiStack) {
-                        EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
-                    }
-                }
-                return true;
+            if (widget != null) {
+                return widget.keyPressed(keyCode, scanCode, modifiers);
             }
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
