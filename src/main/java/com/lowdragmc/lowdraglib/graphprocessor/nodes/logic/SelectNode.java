@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "select", group = "graph_processor.node.logic")
+@LDLRegister(name = "select", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class SelectNode extends BaseNode {
     @InputPort(name = "true")
     public Object _true;

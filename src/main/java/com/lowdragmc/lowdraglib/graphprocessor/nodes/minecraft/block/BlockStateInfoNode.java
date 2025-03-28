@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 
-@LDLRegister(name = "blockstate info", group = "graph_processor.node.minecraft.block")
+@LDLRegister(name = "blockstate info", group = "graph_processor.node.minecraft.block", registry = "ldlib:graph_node")
 public class BlockStateInfoNode extends BaseNode {
     @InputPort
     public BlockState in = null;

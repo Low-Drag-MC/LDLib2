@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 
-@LDLRegister(name = "group_texture", registry = "ldlib:gui_texture")
+@LDLRegisterClient(name = "group_texture", registry = "ldlib:gui_texture")
 public class GuiTextureGroup extends TransformTexture {
 
     @Configurable(collapse = false)

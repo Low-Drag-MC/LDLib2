@@ -11,7 +11,7 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "fluid transfer get", group = "graph_processor.node.minecraft.fluid")
+@LDLRegister(name = "fluid transfer get", group = "graph_processor.node.minecraft.fluid", registry = "ldlib:graph_node")
 public class FluidTransferGetNode extends LinearTriggerNode {
     @InputPort
     public Level level;

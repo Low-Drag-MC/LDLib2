@@ -23,9 +23,6 @@ import java.util.function.Function;
  * @implNote ResourcePanel
  */
 public class ToolPanel extends WidgetGroup {
-    @Deprecated
-    public static final int WIDTH = 100;
-
     @Getter
     protected final Editor editor;
     @Getter
@@ -41,7 +38,7 @@ public class ToolPanel extends WidgetGroup {
     protected boolean isShow;
 
     public ToolPanel(Editor editor) {
-        super(-WIDTH, 30, WIDTH, Math.max(100, editor.getSize().getHeight() - ResourcePanel.HEIGHT - 30));
+        super(-100, 30, 100, Math.max(100, editor.getSize().getHeight() - ResourcePanel.HEIGHT - 30));
         setClientSideWidget();
         this.editor = editor;
     }
@@ -94,14 +91,6 @@ public class ToolPanel extends WidgetGroup {
         toolBoxes.clear();
         tabContainer.clearAllWidgets();
         tabsBackground.setSize(Size.of(20, 0));
-    }
-
-    @Deprecated
-    public void addNewToolBox(String name, ResourceTexture texture, WidgetGroup toolBox) {
-        addNewToolBox(name, texture, size -> {
-            toolBox.setSize(size);
-            return toolBox;
-        });
     }
 
     public void addNewToolBox(String name, ResourceTexture texture, Function<Size, WidgetGroup> toolBoxSupplier) {

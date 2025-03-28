@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
 import java.util.Objects;
 
-@LDLRegister(name = "equal", group = "graph_processor.node.logic")
+@LDLRegister(name = "equal", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class EqualNode extends BaseNode {
     @InputPort
     public Object a;

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.editor.data.UIProject;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.widget.*;
+import com.lowdragmc.lowdraglib.gui.widget.layout.PhantomTankWidget;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
 import dev.latvian.mods.kubejs.event.EventGroupRegistry;
@@ -61,7 +62,7 @@ public class LDLibKubeJSPlugin implements KubeJSPlugin {
         event.add("DraggableWidgetGroup", DraggableWidgetGroup.class);
         event.add("ImageWidget", ImageWidget.class);
         event.add("LabelWidget", LabelWidget.class);
-        event.add("PhantomFluidWidget", PhantomFluidWidget.class);
+        event.add("PhantomTankWidget", PhantomTankWidget.class);
         event.add("PhantomSlotWidget", PhantomSlotWidget.class);
         event.add("SceneWidget", SceneWidget.class);
         event.add("SelectableWidgetGroup", SelectableWidgetGroup.class);

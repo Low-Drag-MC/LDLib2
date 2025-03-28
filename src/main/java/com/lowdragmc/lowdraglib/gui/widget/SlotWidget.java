@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @SuppressWarnings("UnusedReturnValue")
-@LDLRegister(name = "item_slot", group = "widget.container")
+@LDLRegister(name = "item_slot", group = "widget.container", registry = "ldlib:widget")
 @Accessors(chain = true)
 public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfigurableWidget {
     public final static ResourceBorderTexture ITEM_SLOT_TEXTURE = new ResourceBorderTexture("ldlib:textures/gui/slot.png", 18, 18, 1, 1);

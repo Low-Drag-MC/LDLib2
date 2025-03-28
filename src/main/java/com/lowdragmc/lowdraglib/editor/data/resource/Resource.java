@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.editor.data.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceContainer;
 
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
+import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
@@ -34,7 +34,7 @@ import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
  * or you can add a resource dynamically to the project
  */
 @SuppressWarnings({"unchecked"})
-public abstract class Resource<T> implements ILDLRegister<Resource<?>, Supplier<Resource>> {
+public abstract class Resource<T> implements ILDLRegisterClient<Resource<?>, Supplier<Resource>> {
     private final static Map<String, StaticResource<?>> STATIC_RESOURCES = new HashMap<>();
     @Getter
     private final Map<String, T> builtinResources = new LinkedHashMap<>();
@@ -67,10 +67,10 @@ public abstract class Resource<T> implements ILDLRegister<Resource<?>, Supplier<
     public StaticResource<T> getStaticResource() {
         if (!supportStaticResource()) return StaticResource.empty();
         if (staticResource == null) {
-            staticResource = (StaticResource<T>) STATIC_RESOURCES.computeIfAbsent(name(), name -> {
-                var resource = AnnotationDetector.REGISTER_RESOURCES.stream().filter(wrapper -> wrapper.annotation().name().equals(name)).findFirst();
-                return resource.map(wrapper -> new StaticResource(wrapper.creator().get())).orElse(StaticResource.empty());
-            });
+            staticResource = (StaticResource<T>) STATIC_RESOURCES.computeIfAbsent(name(),
+                    name -> LDLibRegistries.RESOURCES.getOptional(name)
+                            .map(r -> new StaticResource<T>(r.value().get()))
+                            .orElseGet(StaticResource::empty));
         }
         return staticResource;
     }

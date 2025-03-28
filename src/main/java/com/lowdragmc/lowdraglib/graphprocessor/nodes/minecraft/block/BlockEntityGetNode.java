@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "get block", group = "graph_processor.node.minecraft.block")
+@LDLRegister(name = "get block", group = "graph_processor.node.minecraft.block", registry = "ldlib:graph_node")
 public class BlockEntityGetNode extends BaseNode {
     @InputPort
     public Level level;

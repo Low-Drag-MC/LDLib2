@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.utils;
 
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 
-@LDLRegister(name = "primitive_converter", group = "type_adapter")
+@LDLRegister(name = "primitive_converter", registry = "ldlib:type_adapter")
 public class PrimitiveTypeAdapters implements TypeAdapter.ITypeAdapter {
 
     @Override

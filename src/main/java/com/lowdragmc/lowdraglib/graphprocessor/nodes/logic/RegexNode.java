@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.nodes.utils.PrintNode;
 
 import java.util.regex.Pattern;
 
-@LDLRegister(name = "regex", group = "graph_processor.node.logic")
+@LDLRegister(name = "regex", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class RegexNode extends BaseNode {
     @InputPort
     public Object in;

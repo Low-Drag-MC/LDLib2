@@ -19,7 +19,7 @@ public class ItemUIJSFactory extends UIFactory<ItemUIJSFactory.ItemAccess> {
     public record ItemAccess(InteractionHand hand, String uiName) { }
 
     private ItemUIJSFactory() {
-        super(LDLib.location("item_js"));
+        super(LDLib.id("item_js"));
     }
 
     @RemapForJS("openUI")

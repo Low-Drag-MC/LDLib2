@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import net.minecraft.core.Direction;
 
-@LDLRegister(name = "direction", group = "graph_processor.node.minecraft.data")
+@LDLRegister(name = "direction", group = "graph_processor.node.minecraft.data", registry = "ldlib:graph_node")
 public class DirectionNode extends BaseNode {
     @InputPort
     public Object in = null;

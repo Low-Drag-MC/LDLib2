@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib.editor.ui.view;
 
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.Icons;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.*;
@@ -13,7 +12,6 @@ import lombok.Getter;
  * @date 2022/12/17
  * @implNote HistoryView
  */
-@LDLRegister(name = "history", group = "editor")
 @Getter
 public class HistoryView extends FloatViewWidget {
     private WidgetGroup container;
@@ -25,6 +23,11 @@ public class HistoryView extends FloatViewWidget {
     @Override
     public IGuiTexture getIcon() {
         return Icons.HISTORY.copy();
+    }
+
+    @Override
+    public String name() {
+        return "history_name";
     }
 
     @Override

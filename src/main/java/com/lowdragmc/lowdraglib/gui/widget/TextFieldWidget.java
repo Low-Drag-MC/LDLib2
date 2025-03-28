@@ -31,7 +31,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Configurable(name = "widget.text_field", collapse = false)
-@LDLRegister(name = "text_field", group = "widget.basic")
+@LDLRegister(name = "text_field", group = "widget.basic", registry = "ldlib:widget")
 public class TextFieldWidget extends Widget implements IConfigurableWidget {
 
     @OnlyIn(Dist.CLIENT)

@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.nodes.ListInputNode;
 import java.util.ArrayList;
 import java.util.List;
 
-@LDLRegister(name = "pack list", group = "graph_processor.node.utils.list")
+@LDLRegister(name = "pack list", group = "graph_processor.node.utils.list", registry = "ldlib:graph_node")
 public class PackListNode extends ListInputNode<Object> {
     @OutputPort
     public List<Object> out = new ArrayList<>();

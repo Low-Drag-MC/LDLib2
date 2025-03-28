@@ -1,8 +1,10 @@
 package com.lowdragmc.lowdraglib.utils;
 
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.graphprocessor.data.UnknownType;
 import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.TriggerLink;
+import com.lowdragmc.lowdraglib.registry.ILDLRegister;
 import org.joml.Vector3f;
 
 import java.lang.reflect.Modifier;
@@ -22,7 +24,7 @@ import java.util.function.Function;
  * </code>
  */
 public class TypeAdapter {
-    public interface ITypeAdapter {
+    public interface ITypeAdapter extends ILDLRegister<ITypeAdapter, ITypeAdapter> {
         void onRegister();
     }
 
@@ -60,7 +62,8 @@ public class TypeAdapter {
 
     public static void loadAllAdapters() {
         adaptersLoaded = true;
-        AnnotationDetector.REGISTER_TYPE_ADAPTERS.forEach(instance -> {
+        LDLibRegistries.TYPE_ADAPTERS.forEach(holder -> {
+            var instance = holder.value();
             instance.onRegister();
             var clazz = instance.getClass();
             for (var method : clazz.getDeclaredMethods()) {

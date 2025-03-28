@@ -17,14 +17,11 @@ import com.lowdragmc.lowdraglib.core.mixins.accessor.ModelBakeryAccessor;
 import com.lowdragmc.lowdraglib.compass.CompassManager;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.util.WidgetTooltipComponent;
-import com.lowdragmc.lowdraglib.test.TestBlock;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.objects.Object2BooleanLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -81,10 +78,6 @@ public class ClientProxy extends CommonProxy {
             ((ReloadableResourceManager) Minecraft.getInstance().getResourceManager()).registerReloadListener(CompassManager.INSTANCE);
             CompassManager.INSTANCE.onResourceManagerReload(Minecraft.getInstance().getResourceManager());
             ClientProxy.init();
-            ItemBlockRenderTypes.setRenderLayer(RendererBlock.BLOCK, RenderType.translucent());
-            if (Platform.isDevEnv()) {
-                ItemBlockRenderTypes.setRenderLayer(TestBlock.BLOCK, RenderType.cutoutMipped());
-            }
         });
     }
 
@@ -100,7 +93,7 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void modelRegistry(final ModelEvent.RegisterGeometryLoaders e) {
-        e.register(LDLib.location("renderer"), LDLRendererModel.Loader.INSTANCE);
+        e.register(LDLib.id("renderer"), LDLRendererModel.Loader.INSTANCE);
     }
 
     @SubscribeEvent

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@LDLRegister(name = "list merge", group = "graph_processor.node.utils.list")
+@LDLRegister(name = "list merge", group = "graph_processor.node.utils.list", registry = "ldlib:graph_node")
 public class ListMergeNode extends BaseNode {
     @InputPort
     public List<Object> a = new ArrayList<>();

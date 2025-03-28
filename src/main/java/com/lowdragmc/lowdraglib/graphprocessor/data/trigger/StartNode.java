@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "trigger start", group = "graph_processor.node.logic")
+@LDLRegister(name = "trigger start", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class StartNode extends BaseNode implements ITriggerableNode {
     @OutputPort(name = "Triggered", priority = -10000)
     public TriggerLink triggered;

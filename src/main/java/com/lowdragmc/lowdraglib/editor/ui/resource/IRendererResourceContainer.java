@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.ui.resource;
 
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
@@ -7,7 +8,6 @@ import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
@@ -38,9 +38,9 @@ public class IRendererResourceContainer extends ResourceContainer<IRenderer, Wid
         setCanGlobalChange(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
         setCanRemove(key -> key.left().isEmpty() || !resource.getResourceName(key).equals("empty"));
         setOnMenu((selected, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_renderer", menu -> {
-            for (var entry : AnnotationDetector.REGISTER_RENDERERS.entrySet()) {
-                menu.leaf("ldlib.renderer.%s".formatted(entry.getKey()), () -> {
-                    var renderer = entry.getValue().creator().get();
+            for (var entry : LDLibRegistries.RENDERERS.entries()) {
+                menu.leaf(entry.getKey(), () -> {
+                    var renderer = entry.getValue().value().get();
                     renderer.initRenderer();
                     resource.addBuiltinResource(genNewFileName(), renderer);
                     reBuild();

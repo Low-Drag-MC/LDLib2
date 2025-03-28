@@ -10,7 +10,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "drop item", group = "graph_processor.node.minecraft.item")
+@LDLRegister(name = "drop item", group = "graph_processor.node.minecraft.item", registry = "ldlib:graph_node")
 public class DropItemNode extends LinearTriggerNode {
     @InputPort
     public Level level;

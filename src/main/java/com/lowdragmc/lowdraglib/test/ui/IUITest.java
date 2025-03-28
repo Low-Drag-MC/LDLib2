@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
 import com.lowdragmc.lowdraglib.math.Size;
+import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -13,8 +14,9 @@ import net.neoforged.api.distmarker.OnlyIn;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
-public interface IUITest {
+public interface IUITest extends ILDLRegisterClient<IUITest, Supplier<IUITest>> {
 
     /**
      * Get the size of the UI.

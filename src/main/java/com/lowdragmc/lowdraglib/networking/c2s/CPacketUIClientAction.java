@@ -2,10 +2,7 @@ package com.lowdragmc.lowdraglib.networking.c2s;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIContainer;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import lombok.NoArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -15,7 +12,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 @NoArgsConstructor
 public class CPacketUIClientAction implements CustomPacketPayload {
-    public static final ResourceLocation ID = LDLib.location("ui_client_action");
+    public static final ResourceLocation ID = LDLib.id("ui_client_action");
     public static final Type<CPacketUIClientAction> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, CPacketUIClientAction> CODEC = StreamCodec.ofMember(CPacketUIClientAction::write, CPacketUIClientAction::decode);
     public int windowId;

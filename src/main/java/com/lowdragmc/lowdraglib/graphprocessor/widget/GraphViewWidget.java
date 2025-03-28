@@ -1,12 +1,13 @@
 package com.lowdragmc.lowdraglib.graphprocessor.widget;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.Icons;
+import com.lowdragmc.lowdraglib.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseGraph;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.graphprocessor.data.NodePort;
@@ -42,6 +43,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Getter
 public class GraphViewWidget extends WidgetGroup {
@@ -57,7 +59,7 @@ public class GraphViewWidget extends WidgetGroup {
     @Nullable
     private BaseGraphProcessor processor;
     @Getter
-    private Map<String, List<AnnotationDetector.Wrapper<LDLRegister, ? extends BaseNode>>> nodeGroups = new LinkedHashMap<>();
+    private Map<String, List<AutoRegistry.Holder<LDLRegister, BaseNode, Supplier<BaseNode>>>> nodeGroups = new LinkedHashMap<>();
     // runtime
     @Setter
     private boolean showDebugInfo = Platform.isDevEnv();
@@ -96,7 +98,7 @@ public class GraphViewWidget extends WidgetGroup {
             additionalGroup.accept(supportNodeGroups);
         }
         for (String group : supportNodeGroups) {
-            for (var wrapper : AnnotationDetector.REGISTER_GP_NODES.values()) {
+            for (var wrapper : LDLibRegistries.GRAPH_NODES.values()) {
                 if (wrapper.annotation().group().startsWith(group)) {
                     nodeGroups.computeIfAbsent(wrapper.annotation().group(), k -> new ArrayList<>()).add(wrapper);
                 }
@@ -349,7 +351,7 @@ public class GraphViewWidget extends WidgetGroup {
         var menu =  TreeBuilder.Menu.start()
                 .branch(Icons.ADD, "add nodes", m -> nodeGroups.forEach((group, wrappers) -> m.branch(group, n -> {
                     for (var wrapper : wrappers) {
-                        n.leaf(wrapper.annotation().name(), () -> addNode(wrapper.creator().get(), (int)mouseX, (int)mouseY));
+                        n.leaf(wrapper.annotation().name(), () -> addNode(wrapper.value().get(), (int)mouseX, (int)mouseY));
                     }
                 })));
         if (!selectedNodes.isEmpty()) {

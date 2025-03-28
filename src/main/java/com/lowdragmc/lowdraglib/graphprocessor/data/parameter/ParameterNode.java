@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-@LDLRegister(name = "parameter", group = "graph_processor.node.parameter")
+@LDLRegister(name = "parameter", group = "graph_processor.node.parameter", registry = "ldlib:graph_node")
 public class ParameterNode extends BaseNode {
 
     @InputPort

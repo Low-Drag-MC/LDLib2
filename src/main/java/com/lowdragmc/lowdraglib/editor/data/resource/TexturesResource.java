@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.data.resource;
 
 import com.lowdragmc.lowdraglib.LDLibRegistries;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib.editor.ui.resource.TexturesResourceContainer;
@@ -11,6 +10,7 @@ import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -26,7 +26,7 @@ import static com.lowdragmc.lowdraglib.gui.widget.TabContainer.TABS_LEFT;
  * @date 2022/12/3
  * @implNote TextureResource
  */
-@LDLRegister(name = RESOURCE_NAME, registry = "ldlib:resource")
+@LDLRegisterClient(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class TexturesResource extends Resource<IGuiTexture> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.textures";
@@ -45,7 +45,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
         addBuiltinResource("tab", TABS_LEFT.getSubTexture(0, 0, 0.5f, 1f / 3));
         addBuiltinResource("tab pressed", TABS_LEFT.getSubTexture(0.5f, 0, 0.5f, 1f / 3));
         for (var holder : LDLibRegistries.GUI_TEXTURES) {
-            addBuiltinResource("%s.%s".formatted(LDLibRegistries.GUI_TEXTURES.getRegistryName(), holder.annotation().name()), holder.value().get());
+            addBuiltinResource(holder.annotation().name(), holder.value().get());
         }
     }
 

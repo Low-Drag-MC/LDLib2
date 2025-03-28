@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.editor.data.resource;
 
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.editor.ui.resource.EntriesResourceContainer;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceContainer;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * @date 2022/12/3
  * @implNote TextureResource
  */
-@LDLRegister(name = RESOURCE_NAME, registry = "ldlib:resource")
+@LDLRegisterClient(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class EntriesResource extends Resource<String> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.entries";

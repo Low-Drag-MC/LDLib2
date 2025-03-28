@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "null", group = "graph_processor.node.value")
+@LDLRegister(name = "null", group = "graph_processor.node.value", registry = "ldlib:graph_node")
 public class NullNode extends BaseNode {
 
     @OutputPort

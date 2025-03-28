@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.util.ClickData;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
+import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -17,7 +18,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 @Configurable(name = "widget.switch", collapse = false)
-@LDLRegister(name = "switch", group = "widget.basic")
+@LDLRegister(name = "switch", group = "widget.basic", registry = "ldlib:widget")
 public class SwitchWidget extends Widget implements IConfigurableWidget {
 
     @Configurable(name = "ldlib.gui.editor.name.baseTexture")

@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.graphprocessor.nodes.logic;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.graphprocessor.nodes.ListMergeNode;
 
-@LDLRegister(name = "and", group = "graph_processor.node.logic")
+@LDLRegister(name = "and", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class AndNode extends ListMergeNode<Boolean> {
 
     @Override

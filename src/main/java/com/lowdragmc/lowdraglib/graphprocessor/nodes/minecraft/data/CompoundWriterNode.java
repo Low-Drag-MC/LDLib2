@@ -10,7 +10,7 @@ import net.minecraft.nbt.*;
 
 import java.util.List;
 
-@LDLRegister(name = "compound writer", group = "graph_processor.node.minecraft.data")
+@LDLRegister(name = "compound writer", group = "graph_processor.node.minecraft.data", registry = "ldlib:graph_node")
 public class CompoundWriterNode extends LinearTriggerNode {
     @InputPort
     public CompoundTag tag;

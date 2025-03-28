@@ -17,7 +17,7 @@ import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 
-@LDLRegister(name = "command", group = "graph_processor.node.minecraft")
+@LDLRegister(name = "command", group = "graph_processor.node.minecraft", registry = "ldlib:graph_node")
 public class CommandNode extends LinearTriggerNode {
     @InputPort
     public String command;

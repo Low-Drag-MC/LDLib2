@@ -5,13 +5,16 @@ import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.widget.SwitchWidget;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * @author KilaBash
- * @date 2023/5/30
- * @implNote IToggleConfigurable
+ * Toggle Configurable is a configurable that can be toggled on and off.
+ * By default, the object will not be serialized when it is disabled. To change this behavior, override the {@link #skipDisableSerialize()} method.
  */
-public interface IToggleConfigurable extends IConfigurable {
+public interface IToggleConfigurable extends IConfigurable, IPersistedSerializable {
 
     boolean isEnable();
 
@@ -57,4 +60,30 @@ public interface IToggleConfigurable extends IConfigurable {
                 .setHoverTooltips("ldlib.gui.editor.toggle_configurable.tooltip"));
     }
 
+    /**
+     * If true, the object will not be serialized when it is disabled.
+     */
+    default boolean skipDisableSerialize() {
+        return true;
+    }
+
+    @Override
+    default CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
+        CompoundTag data;
+        if (!isEnable() && skipDisableSerialize()) {
+            data = new CompoundTag();
+        } else {
+            data = IPersistedSerializable.super.serializeNBT(provider);
+        }
+        data.putBoolean("enable", isEnable());
+        return data;
+    }
+
+    @Override
+    default void deserializeNBT(HolderLookup.@NotNull Provider provider, @NotNull CompoundTag tag) {
+        setEnable(tag.getBoolean("enable"));
+        if (isEnable() || !skipDisableSerialize()) {
+            IPersistedSerializable.super.deserializeNBT(provider, tag);
+        }
+    }
 }

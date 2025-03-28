@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib.editor.data.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor.configurator.NumberConfigurator;
@@ -13,6 +12,7 @@ import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.widget.HsbColorWidget;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import net.minecraft.core.HolderLookup;
 import com.mojang.datafixers.util.Either;
@@ -29,7 +29,7 @@ import static com.lowdragmc.lowdraglib.editor.data.resource.ColorsResource.RESOU
  * @date 2022/12/3
  * @implNote TextureResource
  */
-@LDLRegister(name = RESOURCE_NAME, registry = "ldlib:resource")
+@LDLRegisterClient(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class ColorsResource extends Resource<Integer> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.colors";

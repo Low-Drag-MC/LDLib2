@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.ManagedFieldUtils;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.mojang.datafixers.util.Pair;
@@ -11,6 +12,7 @@ import com.mojang.serialization.*;
 import lombok.experimental.UtilityClass;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
@@ -29,6 +31,10 @@ import java.util.function.Supplier;
 @UtilityClass
 public final class PersistedParser {
 
+    /**
+     * This method is used to create a codec for the type serialized with {@link Persisted} or {@link Configurable} annotation.
+     * @param creator The supplier to create the instance of the type.
+     */
     public static <T> Codec<T> createCodec(Supplier<T> creator) {
         return new Codec<>() {
             @Override
@@ -40,9 +46,7 @@ public final class PersistedParser {
 
             @Override
             public <T1> DataResult<T1> encode(T input, DynamicOps<T1> ops, T1 prefix) {
-                RecordBuilder<T1> builder = ops.mapBuilder();
-                serializeNBT(builder, ops, input.getClass(), input, Platform.getFrozenRegistry());
-                return builder.build(ops.empty());
+                return serialize(ops, input, Platform.getFrozenRegistry());
             }
 
             @Override
@@ -53,44 +57,46 @@ public final class PersistedParser {
     }
 
     /**
-     * This method is used to serialize the object fields with {@link Persisted} or {@link Configurable} annotation to specific type data.
-     */
-    public static <T> T serialize(DynamicOps<T> op, Object object, HolderLookup.Provider provider) {
-        var builder = op.mapBuilder();
-        serializeNBT(builder, op, object.getClass(), object, provider);
-        return builder.build(op.empty()).getOrThrow();
-    }
-
-    /**
      * This method is used to serial the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
     public static CompoundTag serializeNBT(Object object, HolderLookup.Provider provider) {
-        var builder = NbtOps.INSTANCE.mapBuilder();
-        serializeNBT(builder, NbtOps.INSTANCE, object.getClass(), object, provider);
-        return (CompoundTag) builder.build(NbtOps.INSTANCE.empty()).getOrThrow();
-    }
-
-    /**
-     * This method is used to deserialize the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
-     */
-    public static <T> void deserialize(DynamicOps<T> op, T data, Object object, HolderLookup.Provider provider) {
-        op.getMap(data).ifSuccess(map -> deserializeNBT(map, op, new HashMap<>(), object.getClass(), object, provider));
+        return (CompoundTag) serialize(NbtOps.INSTANCE, object, provider).result().orElse(new CompoundTag());
     }
 
     /**
      * This method is used to deserialize the NBT data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
     public static void deserializeNBT(CompoundTag tag, Object object, HolderLookup.Provider provider) {
-        deserializeNBT(NbtOps.INSTANCE.getMap(tag).getOrThrow(), NbtOps.INSTANCE, new HashMap<>(), object.getClass(), object, provider);
+        deserialize(NbtOps.INSTANCE, tag, object, provider);
+    }
+
+    /**
+     * This method is used to serialize the object fields with {@link Persisted} or {@link Configurable} annotation to specific type data.
+     */
+    public static <T> DataResult<T> serialize(DynamicOps<T> op, Object object, HolderLookup.Provider provider) {
+        var builder = op.mapBuilder();
+        serializeInternal(true, builder, op, object.getClass(), object, provider);
+        return builder.build(op.empty());
+    }
+
+    /**
+     * This method is used to deserialize the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
+     */
+    public static <T> void deserialize(DynamicOps<T> op, T data, Object object, HolderLookup.Provider provider) {
+        op.getMap(data).ifSuccess(map -> deserializeInternal(true, map, op, new HashMap<>(), object.getClass(), object, provider));
     }
 
     /**
      * This method is used to serialize the object fields with {@link Persisted} or {@link Configurable} annotation to the op data.
      */
-    public static <T> void serializeNBT(RecordBuilder<T> recordBuilder, DynamicOps<T> op, Class<?> clazz, Object object, HolderLookup.Provider provider) {
+    private static <T> void serializeInternal(boolean root, RecordBuilder<T> recordBuilder, DynamicOps<T> op, Class<?> clazz, Object object, HolderLookup.Provider provider) {
         if (clazz == Object.class || clazz == null) return;
 
-        serializeNBT(recordBuilder, op, clazz.getSuperclass(), object, provider);
+        if (root && object instanceof IPersistedSerializable serializable) {
+            serializable.beforeSerialize();
+        }
+
+        serializeInternal(false, recordBuilder, op, clazz.getSuperclass(), object, provider);
 
         for (Field field : clazz.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) {
@@ -117,7 +123,8 @@ public final class PersistedParser {
 
             T data = null;
             // sub configurable
-            if ((field.isAnnotationPresent(Configurable.class) && field.getAnnotation(Configurable.class).subConfigurable()) || (field.isAnnotationPresent(Persisted.class) && field.getAnnotation(Persisted.class).subPersisted())) {
+            if ((field.isAnnotationPresent(Configurable.class) && field.getAnnotation(Configurable.class).subConfigurable()) ||
+                    (field.isAnnotationPresent(Persisted.class) && field.getAnnotation(Persisted.class).subPersisted())) {
                 try {
                     field.setAccessible(true);
                     var value = field.get(object);
@@ -126,7 +133,7 @@ public final class PersistedParser {
                             data = op == NbtOps.INSTANCE ? (T) serializable.serializeNBT(provider) : NbtOps.INSTANCE.convertTo(op, serializable.serializeNBT(provider));
                         } else {
                             var builder = op.mapBuilder();
-                            serializeNBT(builder, op, ReflectionUtils.getRawType(field.getGenericType()), value, provider);
+                            serializeInternal(false, builder, op, ReflectionUtils.getRawType(field.getGenericType()), value, provider);
                             data = builder.build(op.empty()).getOrThrow();
                         }
                     }
@@ -138,13 +145,27 @@ public final class PersistedParser {
                 recordBuilder.add(key, data);
             }
         }
+
+        // additional data
+        if (root && object instanceof IPersistedSerializable serializable) {
+            var additional = serializable.serializeAdditionalNBT(provider);
+            if (additional != null && additional != EndTag.INSTANCE) {
+                var data = NbtOps.INSTANCE.convertTo(op, additional);
+                recordBuilder.add("_additional", data);
+            }
+            serializable.afterSerialize();
+        }
     }
 
     /**
      * This method is used to deserialize the op data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
-    public static <T> void deserializeNBT(MapLike<T> map, DynamicOps<T> op, Map<String, Method> setters, Class<?> clazz, Object object, HolderLookup.Provider provider) {
+    private static <T> void deserializeInternal(boolean root, MapLike<T> map, DynamicOps<T> op, Map<String, Method> setters, Class<?> clazz, Object object, HolderLookup.Provider provider) {
         if (clazz == Object.class || clazz == null) return;
+
+        if (root && object instanceof IPersistedSerializable serializable) {
+            serializable.beforeDeserialize();
+        }
 
         for (Method method : clazz.getMethods()) {
             if (method.isAnnotationPresent(ConfigSetter.class)) {
@@ -156,7 +177,7 @@ public final class PersistedParser {
             }
         }
 
-        deserializeNBT(map, op, setters, clazz.getSuperclass(), object, provider);
+        deserializeInternal(false, map, op, setters, clazz.getSuperclass(), object, provider);
 
         for (Field field : clazz.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) {
@@ -184,7 +205,8 @@ public final class PersistedParser {
             T data = map.get(key);
             // sub configurable
             if (data != null) {
-                if ((field.isAnnotationPresent(Configurable.class) && field.getAnnotation(Configurable.class).subConfigurable()) || (field.isAnnotationPresent(Persisted.class) && field.getAnnotation(Persisted.class).subPersisted())) {
+                if ((field.isAnnotationPresent(Configurable.class) && field.getAnnotation(Configurable.class).subConfigurable()) ||
+                        (field.isAnnotationPresent(Persisted.class) && field.getAnnotation(Persisted.class).subPersisted())) {
                     try {
                         field.setAccessible(true);
                         var value = field.get(object);
@@ -196,7 +218,7 @@ public final class PersistedParser {
                                     serializable.deserializeNBT(provider, op.convertTo(NbtOps.INSTANCE, data));
                                 }
                             } else {
-                                op.getMap(data).ifSuccess(mapData -> deserializeNBT(mapData, op, new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider));
+                                op.getMap(data).ifSuccess(mapData -> deserializeInternal(true, mapData, op, new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider));
                             }
                         }
                     } catch (IllegalAccessException ignored) {}
@@ -214,6 +236,15 @@ public final class PersistedParser {
                     }
                 }
             }
+        }
+
+        // additional data
+        if (root && object instanceof IPersistedSerializable serializable) {
+            var additional = map.get("_additional");
+            if (additional != null) {
+                serializable.deserializeAdditionalNBT(op.convertTo(NbtOps.INSTANCE, additional), provider);
+            }
+            serializable.afterDeserialize();
         }
     }
 

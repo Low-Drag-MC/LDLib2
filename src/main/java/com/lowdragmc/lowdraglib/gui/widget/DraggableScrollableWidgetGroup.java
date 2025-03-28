@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.Tag;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-@LDLRegister(name = "draggable_scrollable_group", group = "widget.group")
+@LDLRegister(name = "draggable_scrollable_group", group = "widget.group", registry = "ldlib:widget")
 @Accessors(chain = true)
 public class DraggableScrollableWidgetGroup extends WidgetGroup {
     public enum ScrollWheelDirection {
@@ -571,8 +572,8 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
     }
 
     @Override
-    public CompoundTag serializeInnerNBT(HolderLookup.Provider provider) {
-        CompoundTag tag = super.serializeInnerNBT(provider);
+    public CompoundTag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
+        var tag = super.serializeAdditionalNBT(provider);
         tag.putInt("scrollXOffset", scrollXOffset);
         tag.putInt("scrollYOffset", scrollYOffset);
         tag.putInt("maxHeight", maxHeight);
@@ -581,17 +582,19 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
     }
 
     @Override
-    public void deserializeInnerNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        super.deserializeInnerNBT(provider, nbt);
-        this.scrollXOffset= nbt.getInt("scrollXOffset");
-        this.scrollYOffset= nbt.getInt("scrollYOffset");
-        this.maxHeight= nbt.getInt("maxHeight");
-        this.maxWidth= nbt.getInt("maxWidth");
-        isComputingMax = true;
-        for (Widget widget : widgets) {
-            widget.addSelfPosition(-scrollXOffset, -scrollYOffset);
+    public void deserializeAdditionalNBT(Tag nbt, HolderLookup.Provider provider) {
+        super.deserializeAdditionalNBT(nbt, provider);
+        if (nbt instanceof CompoundTag tag) {
+            this.scrollXOffset= tag.getInt("scrollXOffset");
+            this.scrollYOffset= tag.getInt("scrollYOffset");
+            this.maxHeight= tag.getInt("maxHeight");
+            this.maxWidth= tag.getInt("maxWidth");
+            isComputingMax = true;
+            for (Widget widget : widgets) {
+                widget.addSelfPosition(-scrollXOffset, -scrollYOffset);
+            }
+            isComputingMax = false;
         }
-        isComputingMax = false;
     }
 
     public interface IDraggable extends ISelected {

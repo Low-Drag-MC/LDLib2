@@ -14,7 +14,7 @@ import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 
-@LDLRegister(name = "fluidstack", group = "graph_processor.node.minecraft.fluid")
+@LDLRegister(name = "fluidstack", group = "graph_processor.node.minecraft.fluid", registry = "ldlib:graph_node")
 public class FluidStackNode extends BaseNode {
     @InputPort
     public Object in;

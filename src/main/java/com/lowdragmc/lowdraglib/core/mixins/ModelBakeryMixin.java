@@ -56,7 +56,7 @@ public abstract class ModelBakeryMixin {
             ResourceLocation resourceLocation = modelResourceLocation.id();
             var block = BuiltInRegistries.BLOCK.get(resourceLocation);
             if (block instanceof IBlockRendererProvider) {
-                UnbakedModel newModel = getModel(LDLib.location("block/renderer_model"));
+                UnbakedModel newModel = getModel(LDLib.id("block/renderer_model"));
                 model.set(newModel);
                 return newModel.getDependencies();
             }

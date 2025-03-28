@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.mojang.datafixers.util.Either;
 
 import java.io.File;
@@ -36,7 +37,7 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
         setOnMenu((selected, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
             for (var holder : LDLibRegistries.GUI_TEXTURES) {
                 IGuiTexture icon = holder.value().get();
-                String name = "%s.%s".formatted(LDLibRegistries.GUI_TEXTURES.getRegistryName(), holder.annotation().name());
+                String name = holder.annotation().name();
                 menu.leaf(icon, name, () -> {
                     resource.addBuiltinResource(genNewFileName(), holder.value().get());
                     reBuild();
@@ -46,11 +47,11 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
     }
 
     private void openTextureConfigurator(Either<String, File> key, IGuiTexture current) {
-        if (resource.getResourceName(key).equals("empty")) return;
+        if (resource.getResourceName(key).equals("empty") || !current.isLDLRegister()) return;
         getPanel().getEditor().getConfigPanel().openConfigurator(ConfigPanel.Tab.RESOURCE, new IConfigurable() {
             @Override
             public void buildConfigurator(ConfiguratorGroup father) {
-                final AutoRegistry.Holder<LDLRegister, IGuiTexture, Supplier<IGuiTexture>> defaultHolder = current.getRegistryHolder();
+                final var defaultHolder = current.getRegistryHolder();
                 var selectorConfigurator = new SelectorConfigurator<>(
                         "ldlib.gui.editor.name.texture_type",
                         () -> defaultHolder,
@@ -65,7 +66,7 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
                         defaultHolder,
                         false,
                         LDLibRegistries.GUI_TEXTURES.values().stream().toList(),
-                        holder -> "%s.%s".formatted(LDLibRegistries.GUI_TEXTURES.getRegistryName(), holder.annotation().name())
+                        holder -> holder.annotation().name()
                 );
                 selectorConfigurator.setTips("ldlib.gui.editor.tips.texture_type");
                 father.addConfigurators(selectorConfigurator);

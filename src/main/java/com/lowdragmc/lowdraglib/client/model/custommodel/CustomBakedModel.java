@@ -72,7 +72,7 @@ public class CustomBakedModel<T extends BakedModel> extends BakedModelWrapper<T>
             if (noSideCache.isEmpty()) {
                 synchronized (noSideCache) {
                     if (noSideCache.isEmpty()) {
-                        noSideCache.addAll(buildCustomQuads(connections, parent.getQuads(state, null, rand), 0.0f));
+                        noSideCache.addAll(buildCustomQuads(connections, getQuads(state, null, rand), 0.0f));
                     }
                 }
             }
@@ -80,7 +80,7 @@ public class CustomBakedModel<T extends BakedModel> extends BakedModelWrapper<T>
         }
         return sideCache
                 .computeIfAbsent(side, key -> new ConcurrentHashMap<>())
-                .computeIfAbsent(connections, key -> buildCustomQuads(connections, parent.getQuads(state, side, rand), 0.0f));
+                .computeIfAbsent(connections, key -> buildCustomQuads(connections, getQuads(state, side, rand), 0.0f));
     }
 
     public static List<BakedQuad> reBakeCustomQuads(List<BakedQuad> quads, BlockAndTintGetter level, BlockPos pos, @Nonnull BlockState state, @Nullable Direction side, float offset) {

@@ -12,7 +12,7 @@ public class UIEditorFactory extends UIFactory<UIEditorFactory> implements IUIHo
 	public static final UIEditorFactory INSTANCE = new UIEditorFactory();
 
 	private UIEditorFactory(){
-		super(LDLib.location("ui_editor"));
+		super(LDLib.id("ui_editor"));
 	}
 
 	@Override

@@ -10,7 +10,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "entity info", group = "graph_processor.node.minecraft.entity")
+@LDLRegister(name = "entity info", group = "graph_processor.node.minecraft.entity", registry = "ldlib:graph_node")
 public class EntityInfoNode extends BaseNode {
     @InputPort
     public Object in;

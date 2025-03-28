@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.NumberFormat;
 
-@LDLRegister(name = "console log", group = "graph_processor.node.utils")
+@LDLRegister(name = "console log", group = "graph_processor.node.utils", registry = "ldlib:graph_node")
 public class ConsoleLogNode extends LinearTriggerNode {
     public static final Logger LOGGER = LoggerFactory.getLogger("NodeGraph");
 

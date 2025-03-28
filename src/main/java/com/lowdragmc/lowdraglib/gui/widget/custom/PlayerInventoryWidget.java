@@ -10,14 +10,13 @@ import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.math.Position;
 import lombok.Getter;
-import net.minecraft.world.entity.player.Player;
 
 /**
  * @author KilaBash
  * @date 2022/12/12
  * @implNote PlayerInventoryWidget
  */
-@LDLRegister(name = "player_inventory", group = "widget.custom")
+@LDLRegister(name = "player_inventory", group = "widget.custom", registry = "ldlib:widget")
 public class PlayerInventoryWidget extends WidgetGroup {
     @Configurable(name = "ldlib.gui.editor.name.slot_background")
     @Getter
@@ -68,16 +67,6 @@ public class PlayerInventoryWidget extends WidgetGroup {
                     slotWidget.setCanPutItems(true);
                     slotWidget.setCanTakeItems(true);
                 }
-            }
-        }
-    }
-
-    @Deprecated
-    public void setPlayer(Player entityPlayer) {
-        for (int i = 0; i < widgets.size(); i++) {
-            if (widgets.get(i) instanceof  SlotWidget slotWidget) {
-                slotWidget.setContainerSlot(entityPlayer.getInventory(), i);
-                slotWidget.setLocationInfo(true, i < 9);
             }
         }
     }

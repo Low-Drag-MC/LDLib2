@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-@LDLRegister(name = "eval function", group = "graph_processor.node.kjs", modID = "kubejs")
+@LDLRegister(name = "eval function", group = "graph_processor.node.kjs", modID = "kubejs", registry = "ldlib:graph_node")
 public class EvalFunctionNode extends BaseNode {
     @InputPort
     public String code;

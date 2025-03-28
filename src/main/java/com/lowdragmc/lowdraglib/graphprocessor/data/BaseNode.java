@@ -1,11 +1,10 @@
 package com.lowdragmc.lowdraglib.graphprocessor.data;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.CustomPortBehavior;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
@@ -13,11 +12,14 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.custom.ICustomPortBehaviorDe
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib.math.Position;
+import com.lowdragmc.lowdraglib.utils.LDLibExtraCodecs;
+import com.lowdragmc.lowdraglib.utils.PersistedParser;
+import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
@@ -25,9 +27,14 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @Getter
-public abstract class BaseNode implements IPersistedSerializable, ILDLRegister, IConfigurable {
+public abstract class BaseNode implements IPersistedSerializable, ILDLRegister<BaseNode, Supplier<BaseNode>>, IConfigurable {
+    public final static Codec<BaseNode> CODEC = LDLibRegistries.GRAPH_NODES.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
+            optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
+                    .orElseGet(LDLibExtraCodecs::errorDecoder));
+
     /**
      * Name of the node, it will be displayed in the title section
      */
@@ -106,27 +113,17 @@ public abstract class BaseNode implements IPersistedSerializable, ILDLRegister, 
         InitializeInOutDatas();
     }
 
-    @Override
-    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        var tag = IPersistedSerializable.super.serializeNBT(provider);
-        tag.putString("_type", name());
-        return tag;
+    public CompoundTag serializeWrapper() {
+        return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).result().orElse(new CompoundTag());
     }
 
-    public static BaseNode createFromTag(HolderLookup.Provider provider, CompoundTag tag) {
-        var type = tag.getString("_type");
-        var wrapper = AnnotationDetector.REGISTER_GP_NODES.get(type);
-        if (wrapper == null) {
-            LDLib.LOGGER.error("Cannot find node type: " + type);
-            return null;
-        }
-        var node = wrapper.creator().get();
-        node.deserializeNBT(provider, tag);
-        return node;
+    @Nullable
+    public static BaseNode createFromTag(Tag tag) {
+        return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(null);
     }
 
     public BaseNode copy() {
-        var newNode = createFromTag(Platform.getFrozenRegistry(), serializeNBT(Platform.getFrozenRegistry()));
+        var newNode = createFromTag(serializeWrapper());
         newNode.GUID = null;
         return newNode;
     }

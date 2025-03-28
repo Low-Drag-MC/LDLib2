@@ -3,11 +3,8 @@ package com.lowdragmc.lowdraglib.graphprocessor.data;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import org.jetbrains.annotations.NotNull;
 
-public class PortEdge implements IPersistedSerializable {
+public final class PortEdge implements IPersistedSerializable {
     @Persisted
     public String GUID;
     @Persisted
@@ -59,15 +56,10 @@ public class PortEdge implements IPersistedSerializable {
         inputNodeGUID = inputNode.getGUID();
     }
 
-    @Override
-    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        onBeforeSerialize();
-        return IPersistedSerializable.super.serializeNBT(provider);
-    }
 
     @Override
-    public void deserializeNBT(HolderLookup.@NotNull Provider provider, @NotNull CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(provider, tag);
+    public void beforeSerialize() {
+        onBeforeSerialize();
     }
 
     public PortEdge copy() {

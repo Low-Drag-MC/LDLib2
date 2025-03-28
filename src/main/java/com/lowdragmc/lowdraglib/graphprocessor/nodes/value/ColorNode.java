@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "color", group = "graph_processor.node.value")
+@LDLRegister(name = "color", group = "graph_processor.node.value", registry = "ldlib:graph_node")
 public class ColorNode extends BaseNode {
     @InputPort
     public Object in;

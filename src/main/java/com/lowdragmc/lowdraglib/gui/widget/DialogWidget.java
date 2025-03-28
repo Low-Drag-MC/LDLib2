@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.Icons;
+import com.lowdragmc.lowdraglib.editor.configurator.ItemConfigurator;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
@@ -294,9 +295,10 @@ public class DialogWidget extends WidgetGroup {
         AtomicReference<ItemStack> selected = new AtomicReference<>();
         selected.set(init);
 
-        container.addWidget(new ItemStackSelectorWidget(10, size.height / 2 - 20, size.width - 2, false)
-                .setItemStack(init)
-                .setOnItemStackUpdate(selected::set));
+        var itemConfigurator = new ItemConfigurator("", () -> selected.get().getItem(), item -> selected.set(new ItemStack(item)), init.getItem(), true);
+        itemConfigurator.init(170);
+        itemConfigurator.setSelfPosition((size.width - itemConfigurator.getSizeWidth()) / 2, (size.height - itemConfigurator.getSizeHeight()) / 2);
+        container.addWidget(itemConfigurator);
 
         createButton(container, ((size.width / 2) - 60) / 2, size.height - 20 + 3, 60, 15, "ldlib.gui.tips.confirm", () -> {
             dialog.close();

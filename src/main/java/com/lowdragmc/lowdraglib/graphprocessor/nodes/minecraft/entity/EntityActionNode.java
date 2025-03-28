@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.LinearTriggerNode;
 import net.minecraft.world.entity.Entity;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "entity action", group = "graph_processor.node.minecraft.entity")
+@LDLRegister(name = "entity action", group = "graph_processor.node.minecraft.entity", registry = "ldlib:graph_node")
 public class EntityActionNode extends LinearTriggerNode {
     public enum Action {
         KILL,

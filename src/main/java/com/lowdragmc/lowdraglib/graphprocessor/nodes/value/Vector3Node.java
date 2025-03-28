@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "xyz", group = "graph_processor.node.value")
+@LDLRegister(name = "xyz", group = "graph_processor.node.value", registry = "ldlib:graph_node")
 public class Vector3Node extends BaseNode {
     @InputPort(name = "xyz")
     public Object in;

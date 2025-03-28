@@ -19,7 +19,7 @@ import net.minecraft.nbt.*;
 import java.util.Collections;
 import java.util.List;
 
-@LDLRegister(name = "compound reader", group = "graph_processor.node.minecraft.data")
+@LDLRegister(name = "compound reader", group = "graph_processor.node.minecraft.data", registry = "ldlib:graph_node")
 public class CompoundReaderNode extends BaseNode {
     public enum Type {
         STRING,

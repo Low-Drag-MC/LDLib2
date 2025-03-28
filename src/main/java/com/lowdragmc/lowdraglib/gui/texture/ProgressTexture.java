@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -12,7 +12,7 @@ import net.minecraft.util.Mth;
 /**
  * @author youyihj
  */
-@LDLRegister(name = "progress_texture", registry = "ldlib:gui_texture")
+@LDLRegisterClient(name = "progress_texture", registry = "ldlib:gui_texture")
 public class ProgressTexture extends TransformTexture {
     @Configurable
     @Getter

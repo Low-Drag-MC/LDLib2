@@ -116,6 +116,10 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
         return registry.get(key);
     }
 
+    public Optional<V> getOptional(K key) {
+        return Optional.ofNullable(get(key));
+    }
+
     public V getOrDefault(K key, V defaultValue) {
         return registry.getOrDefault(key, defaultValue);
     }
@@ -143,6 +147,8 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
     }
 
     public abstract Codec<V> codec();
+
+    public abstract Codec<Optional<V>> optionalCodec();
 
     public abstract StreamCodec<RegistryFriendlyByteBuf, V> streamCodec();
 
@@ -186,6 +192,12 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
         @Override
         public Codec<V> codec() {
             return Codec.STRING.flatXmap(str -> Optional.ofNullable(this.get(str)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry key in " + this.registryName + ": " + str)), obj -> Optional.ofNullable(this.getKey(obj)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry element in " + this.registryName + ": " + obj)));
+        }
+
+        @Override
+        public Codec<Optional<V>> optionalCodec() {
+            return Codec.STRING.flatXmap(str -> DataResult.success(getOptional(str)),
+                    optional -> optional.map(obj -> DataResult.success(this.getKey(obj))).orElseGet(() -> DataResult.error(() -> "registry key in " + this.registryName)));
         }
 
         public StreamCodec<RegistryFriendlyByteBuf, V> streamCodec() {
@@ -232,6 +244,12 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
         @Override
         public Codec<V> codec() {
             return ResourceLocation.CODEC.flatXmap(rl -> Optional.ofNullable(this.get(rl)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry key in " + this.registryName + ": " + rl)), obj -> Optional.ofNullable(this.getKey(obj)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry element in " + this.registryName + ": " + obj)));
+        }
+
+        @Override
+        public Codec<Optional<V>> optionalCodec() {
+            return ResourceLocation.CODEC.flatXmap(rl -> DataResult.success(getOptional(rl)),
+                    optional -> optional.map(obj -> DataResult.success(this.getKey(obj))).orElseGet(() -> DataResult.error(() -> "registry key in " + this.registryName)));
         }
 
         @Override

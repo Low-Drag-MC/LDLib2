@@ -1,10 +1,29 @@
 package com.lowdragmc.lowdraglib.client.renderer;
 
+import com.lowdragmc.lowdraglib.LDLibRegistries;
+import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
+import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
+import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
+import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib.utils.PersistedParser;
+import com.lowdragmc.lowdraglib.utils.data.BlockInfo;
+import com.lowdragmc.lowdraglib.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.world.level.Level;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -25,20 +44,32 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-public interface IRenderer {
-    Set<IRenderer> EVENT_REGISTERS = new HashSet<>();
+public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRenderer>>, IConfigurable, IPersistedSerializable {
     IRenderer EMPTY = new IRenderer() {};
+    Codec<IRenderer> CODEC = LDLibRegistries.RENDERERS.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
+            optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
+                    .orElseGet(() -> MapCodec.unit(EMPTY)));
+
+    Set<IRenderer> EVENT_REGISTERS = new HashSet<>();
+
+    // should be called after deserialization and only once.
+    default void initRenderer() {
+    }
+
+    @Override
+    default void afterDeserialize() {
+        initRenderer();
+    }
 
     /**
      * Render itemstack.
@@ -58,6 +89,17 @@ public interface IRenderer {
     @OnlyIn(Dist.CLIENT)
     default List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
         return Collections.emptyList();
+    }
+
+    /**
+     * Gets the set of {@link RenderType render types} to use when drawing this block in the level.
+     * Supported types are those returned by {@link RenderType#chunkBufferLayers()}.
+     * <p>
+     * By default, defers query to {@link ItemBlockRenderTypes}.
+     */
+    @OnlyIn(Dist.CLIENT)
+    default ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+        return ItemBlockRenderTypes.getRenderLayers(state);
     }
 
     /**
@@ -84,13 +126,6 @@ public interface IRenderer {
         synchronized (EVENT_REGISTERS) {
             EVENT_REGISTERS.add(this);
         }
-    }
-
-    /**
-     * If the renderer is ready to be rendered.
-     */
-    default boolean isRaw() {
-        return false;
     }
 
     /**
@@ -200,5 +235,43 @@ public interface IRenderer {
     @OnlyIn(Dist.CLIENT)
     default AABB getRenderBoundingBox(BlockEntity blockEntity) {
         return new AABB(blockEntity.getBlockPos());
+    }
+
+    /**
+     * Preview of the renderer.
+     */
+    default void createPreview(ConfiguratorGroup father) {
+        var level = new TrackedDummyWorld();
+        level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(RendererBlock.BLOCK));
+        Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
+            if (blockEntity instanceof RendererBlockEntity holder) {
+                holder.setRenderer(this);
+            }
+        });
+
+        var sceneWidget = new SceneWidget(0, 0, 100, 100, level);
+        sceneWidget.setRenderFacing(false);
+        sceneWidget.setRenderSelect(false);
+        sceneWidget.createScene(level);
+        sceneWidget.getRenderer().setOnLookingAt(null); // better performance
+        sceneWidget.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
+        sceneWidget.setBackground(new ColorBorderTexture(2, ColorPattern.T_WHITE.color));
+
+        father.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", sceneWidget));
+    }
+
+    @Override
+    default void buildConfigurator(ConfiguratorGroup father) {
+        createPreview(father);
+        IConfigurable.super.buildConfigurator(father);
+    }
+
+    @Nullable
+    default CompoundTag serializeWrapper() {
+        return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).result().orElse(null);
+    }
+
+    static IRenderer deserializeWrapper(Tag tag) {
+        return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(EMPTY);
     }
 }

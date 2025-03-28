@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.TriggerNode;
 
 import java.util.List;
 
-@LDLRegister(name = "if else", group = "graph_processor.node.logic")
+@LDLRegister(name = "if else", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class IfElseNode extends TriggerNode {
     @InputPort
     public boolean condition;

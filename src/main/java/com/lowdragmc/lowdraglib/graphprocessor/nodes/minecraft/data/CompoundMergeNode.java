@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.LinearTriggerNode;
 import net.minecraft.nbt.CompoundTag;
 
-@LDLRegister(name = "compound merge", group = "graph_processor.node.minecraft.data")
+@LDLRegister(name = "compound merge", group = "graph_processor.node.minecraft.data", registry = "ldlib:graph_node")
 public class CompoundMergeNode extends LinearTriggerNode {
 
     @InputPort

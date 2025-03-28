@@ -1,9 +1,7 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.mojang.datafixers.util.Either;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.PrimitiveCodec;
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.NbtOps;
@@ -11,9 +9,26 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.util.ExtraCodecs;
 
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @UtilityClass
 public final class LDLibExtraCodecs {
+    public final static MapCodec ERROR_DECODER = MapCodec.of(Encoder.empty(), new MapDecoder.Implementation<>() {
+        @Override
+        public <T> DataResult<Object> decode(final DynamicOps<T> ops, final MapLike<T> input) {
+            return DataResult.error(() -> "Error decoding");
+        }
+
+        @Override
+        public <T> Stream<T> keys(final DynamicOps<T> ops) {
+            return Stream.empty();
+        }
+
+        @Override
+        public String toString() {
+            return "ERROR_DECODER";
+        }
+    });
 
     public final static Codec<UUID> UUID = Codec.STRING.xmap(java.util.UUID::fromString, java.util.UUID::toString);
 
@@ -44,4 +59,12 @@ public final class LDLibExtraCodecs {
                         }
                     }
             );
+
+
+    /**
+     * This codec use an empty encoder and a decoder that always return an error
+     */
+    public static <T> MapCodec<T> errorDecoder() {
+        return ERROR_DECODER;
+    }
 }

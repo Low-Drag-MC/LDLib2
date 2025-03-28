@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import net.minecraft.core.Direction;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "direction info", group = "graph_processor.node.minecraft.data")
+@LDLRegister(name = "direction info", group = "graph_processor.node.minecraft.data", registry = "ldlib:graph_node")
 public class DirectionInfoNode extends BaseNode {
     @InputPort
     public Direction in;

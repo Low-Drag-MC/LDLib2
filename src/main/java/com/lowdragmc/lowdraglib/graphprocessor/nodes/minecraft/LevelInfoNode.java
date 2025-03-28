@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import net.minecraft.world.level.Level;
 
-@LDLRegister(name = "level info", group = "graph_processor.node.minecraft")
+@LDLRegister(name = "level info", group = "graph_processor.node.minecraft", registry = "ldlib:graph_node")
 public class LevelInfoNode extends BaseNode {
     @InputPort
     public Level level;

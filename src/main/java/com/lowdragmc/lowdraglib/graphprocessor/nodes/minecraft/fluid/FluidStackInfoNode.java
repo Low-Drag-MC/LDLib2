@@ -8,7 +8,7 @@ import dev.architectury.fluid.FluidStack;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.level.material.Fluid;
 
-@LDLRegister(name = "fluidstack info", group = "graph_processor.node.minecraft.fluid")
+@LDLRegister(name = "fluidstack info", group = "graph_processor.node.minecraft.fluid", registry = "ldlib:graph_node")
 public class FluidStackInfoNode extends BaseNode {
     @InputPort
     public FluidStack in = null;

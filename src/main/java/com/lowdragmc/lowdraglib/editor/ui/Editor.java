@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib.editor.ui;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib.editor.data.IProject;
 import com.lowdragmc.lowdraglib.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
@@ -38,7 +37,7 @@ import java.util.function.Consumer;
  * @implNote MainPage
  */
 @Getter
-public abstract class Editor extends WidgetGroup implements ILDLRegister {
+public abstract class Editor extends WidgetGroup {
     @OnlyIn(Dist.CLIENT)
     public static Editor INSTANCE;
     protected final File workSpace;
@@ -73,6 +72,12 @@ public abstract class Editor extends WidgetGroup implements ILDLRegister {
         setClientSideWidget();
         this.workSpace = workSpace;
     }
+
+    @Override
+    public abstract String group();
+
+    @Override
+    public abstract String name();
 
     @Override
     public void setGui(ModularUI gui) {

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegister(name = "selector", group = "widget.basic")
+@LDLRegister(name = "selector", group = "widget.basic", registry = "ldlib:widget")
 public class SelectorWidget extends WidgetGroup {
     protected List<SelectableWidgetGroup> selectables;
     @Configurable(name = "ldlib.gui.editor.name.candidates")

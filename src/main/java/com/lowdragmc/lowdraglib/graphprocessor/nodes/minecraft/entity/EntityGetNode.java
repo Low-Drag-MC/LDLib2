@@ -13,7 +13,7 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 
-@LDLRegister(name = "get entities", group = "graph_processor.node.minecraft.entity")
+@LDLRegister(name = "get entities", group = "graph_processor.node.minecraft.entity", registry = "ldlib:graph_node")
 public class EntityGetNode extends BaseNode {
     @InputPort
     public Level level;

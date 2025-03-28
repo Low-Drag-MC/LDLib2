@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Optional;
+
 /**
  * @author KilaBash
  * @date 2023/6/13
@@ -56,8 +58,15 @@ public interface ILDLRegisterClient<T extends ILDLRegisterClient<T, V>, V> {
         throw new RuntimeException("not registered %s".formatted(getClass()));
     }
 
+    default Optional<AutoRegistry.Holder<LDLRegisterClient, T, V>> getRegistryHolderOptional() {
+        if (isLDLRegister()) {
+            return Optional.ofNullable(getRegistry().get(name()));
+        }
+        return Optional.empty();
+    }
+
     default String getTranslateKey() {
-        return "%s.%s".formatted(group(), name());
+        return group().isEmpty() ? name() : "%s.%s".formatted(group(), name());
     }
 
     default Component getChatComponent() {

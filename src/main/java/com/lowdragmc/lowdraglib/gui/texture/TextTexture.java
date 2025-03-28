@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.editor.annotation.*;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Setter;
@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-@LDLRegister(name = "text_texture", registry = "ldlib:gui_texture")
+@LDLRegisterClient(name = "text_texture", registry = "ldlib:gui_texture")
 public class TextTexture extends TransformTexture {
 
     @Configurable
@@ -237,7 +237,7 @@ public class TextTexture extends TransformTexture {
         graphics.drawString(fontRenderer, line, (int) _x, (int) _y, color, dropShadow);
     }
 
-    @Environment(EnvType.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public int getLines() {
         return texts.size();
     }

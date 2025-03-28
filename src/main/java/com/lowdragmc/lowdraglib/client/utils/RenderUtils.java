@@ -1,12 +1,9 @@
 package com.lowdragmc.lowdraglib.client.utils;
 
-import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,7 +11,6 @@ import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
@@ -23,115 +19,9 @@ import java.util.Stack;
 
 @OnlyIn(Dist.CLIENT)
 public class RenderUtils {
-
-    private static final Stack<int[]> scissorFrameStack = new Stack<>();
-
-    @Deprecated
-    public static void useScissor(int x, int y, int width, int height, Runnable codeBlock) {
-        pushScissorFrame(x, y, width, height);
-        try {
-            codeBlock.run();
-        } finally {
-            popScissorFrame();
-        }
-    }
-
-    /**
-     * use a scissor for the current screen. it maintains a stack for deeper scissors.
-     * @param poseStack current stack state
-     * @param x screen pos x
-     * @param y screen pos y
-     * @param width screen pos width
-     * @param height screen pos height
-     * @param codeBlock inner rendering logic
-     */
-    @Deprecated
-    public static void useScissor(@Nonnull PoseStack poseStack, int x, int y, int width, int height, Runnable codeBlock) {
-        var pose = poseStack.last().pose();
-        Vector4f pos = pose.transform(new Vector4f(x, y, 0, 1.0F));
-        Vector4f size = pose.transform(new Vector4f(x + width, y + height, 0, 1.0F));
-
-        x = (int) pos.x();
-        y = (int) pos.y();
-        width = (int) (size.x() - x);
-        height = (int) (size.y() - y);
-
-        pushScissorFrame(x, y, width, height);
-        try {
-            codeBlock.run();
-        } finally {
-            popScissorFrame();
-        }
-    }
-
-    private static int[] peekFirstScissorOrFullScreen() {
-        int[] currentTopFrame = scissorFrameStack.isEmpty() ? null : scissorFrameStack.peek();
-        if (currentTopFrame == null) {
-            Window window = Minecraft.getInstance().getWindow();
-            return new int[]{0, 0, window.getWidth(), window.getHeight()};
-        }
-        return currentTopFrame;
-    }
-
-    private static void pushScissorFrame(int x, int y, int width, int height) {
-        int[] parentScissor = peekFirstScissorOrFullScreen();
-        int parentX = parentScissor[0];
-        int parentY = parentScissor[1];
-        int parentWidth = parentScissor[2];
-        int parentHeight = parentScissor[3];
-
-        boolean pushedFrame = false;
-        if (x <= parentX + parentWidth && y <= parentY + parentHeight) {
-            int newX = Math.max(x, parentX);
-            int newY = Math.max(y, parentY);
-            int newWidth = width - (newX - x);
-            int newHeight = height - (newY - y);
-            if (newWidth > 0 && newHeight > 0) {
-                int maxWidth = parentWidth - (x - parentX);
-                int maxHeight = parentHeight - (y - parentY);
-                newWidth = Math.min(maxWidth, newWidth);
-                newHeight = Math.min(maxHeight, newHeight);
-                applyScissor(newX, newY, newWidth, newHeight);
-                //finally, push applied scissor on top of scissor stack
-                if (scissorFrameStack.isEmpty()) {
-                    GL11.glEnable(GL11.GL_SCISSOR_TEST);
-                }
-                scissorFrameStack.push(new int[]{newX, newY, newWidth, newHeight});
-                pushedFrame = true;
-            }
-        }
-        if (!pushedFrame) {
-            if (scissorFrameStack.isEmpty()) {
-                GL11.glEnable(GL11.GL_SCISSOR_TEST);
-            }
-            scissorFrameStack.push(new int[]{parentX, parentY, parentWidth, parentHeight});
-        }
-    }
-
-    private static void popScissorFrame() {
-        scissorFrameStack.pop();
-        int[] parentScissor = peekFirstScissorOrFullScreen();
-        int parentX = parentScissor[0];
-        int parentY = parentScissor[1];
-        int parentWidth = parentScissor[2];
-        int parentHeight = parentScissor[3];
-        applyScissor(parentX, parentY, parentWidth, parentHeight);
-        if (scissorFrameStack.isEmpty()) {
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
-        }
-    }
-
-    private static void applyScissor(int x, int y, int w, int h) {
-        //translate upper-left to bottom-left
-        Window window = Minecraft.getInstance().getWindow();
-        double s = window.getGuiScale();
-        int translatedY = window.getGuiScaledHeight() - y - h;
-        GL11.glScissor((int)(x * s), (int)(translatedY * s), (int)(w * s), (int)(h * s));
-    }
-
     /***
      * used to render pixels in stencil mask. (e.g. Restrict rendering results to be displayed only in Monitor Screens)
-     * if you want to do the similar things in Gui(2D) not World(3D), plz consider using the {@link #useScissor(int, int, int, int, Runnable)}
+     * if you want to do the similar things in Gui(2D) not World(3D)
      * that you don't need to draw mask to build a rect mask easily.
      * @param mask draw mask
      * @param renderInMask rendering in the mask

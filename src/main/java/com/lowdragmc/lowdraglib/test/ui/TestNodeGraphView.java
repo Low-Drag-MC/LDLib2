@@ -13,7 +13,7 @@ import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
 
-@LDLRegisterClient(name="node_graph", group = "ui_test")
+@LDLRegisterClient(name="node_graph", registry = "ui_test")
 @NoArgsConstructor
 public class TestNodeGraphView implements IUITest {
     @Override

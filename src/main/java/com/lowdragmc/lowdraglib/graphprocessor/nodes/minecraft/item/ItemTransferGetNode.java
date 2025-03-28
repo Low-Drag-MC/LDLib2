@@ -11,7 +11,7 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import org.joml.Vector3f;
 
-@LDLRegister(name = "item transfer get", group = "graph_processor.node.minecraft.item")
+@LDLRegister(name = "item transfer get", group = "graph_processor.node.minecraft.item", registry = "ldlib:graph_node")
 public class ItemTransferGetNode extends LinearTriggerNode {
     @InputPort
     public Level level;

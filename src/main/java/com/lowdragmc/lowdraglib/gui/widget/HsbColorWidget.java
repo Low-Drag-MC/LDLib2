@@ -27,7 +27,7 @@ import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
 @Accessors(chain = true)
-@LDLRegister(name = "color", group = "widget.basic")
+@LDLRegister(name = "color", group = "widget.basic", registry = "ldlib:widget")
 public class HsbColorWidget extends Widget implements IConfigurableWidget {
 
 	/**

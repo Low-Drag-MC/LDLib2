@@ -50,7 +50,7 @@ public class ATESRRendererProvider<T extends BlockEntity> implements BlockEntity
     @Override
     public void render(T pBlockEntity, float pPartialTick, PoseStack pPoseStack, MultiBufferSource pBufferSource, int pPackedLight, int pPackedOverlay) {
         IRenderer renderer = getRenderer(pBlockEntity);
-        if (renderer != null && !renderer.isRaw()) {
+        if (renderer != null) {
             renderer.render(pBlockEntity, pPartialTick, pPoseStack, pBufferSource, pPackedLight, pPackedOverlay);
         }
     }

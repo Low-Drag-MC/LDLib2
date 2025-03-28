@@ -20,7 +20,7 @@ public class BlockUIJSFactory extends UIFactory<BlockUIJSFactory.BlockAccess> {
     public record BlockAccess(BlockPos pos, String uiName) { }
 
     private BlockUIJSFactory() {
-        super(LDLib.location("block_js"));
+        super(LDLib.id("block_js"));
     }
 
     @RemapForJS("openUI")

@@ -23,6 +23,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.client.model.data.ModelProperty;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
@@ -154,6 +155,18 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
             }
             return BakedModel.super.getParticleIcon(data);
         }
+
+        @Override
+        public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
+            var renderer = data.get(IRENDERER);
+            var world = data.get(WORLD);
+            var pos = data.get(POS);
+            var modelData = data.get(MODEL_DATA);
+            if (renderer != null) {
+                return renderer.getRenderTypes(world, pos, state, rand, modelData);
+            }
+            return BakedModel.super.getRenderTypes(state, rand, data);
+        }
     }
 
     public static final class Loader implements IGeometryLoader<LDLRendererModel> {
@@ -166,4 +179,5 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
             return LDLRendererModel.INSTANCE;
         }
     }
+
 }

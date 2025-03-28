@@ -13,7 +13,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-@LDLRegister(name = "item", group = "graph_processor.node.minecraft.item")
+@LDLRegister(name = "item", group = "graph_processor.node.minecraft.item", registry = "ldlib:graph_node")
 public class ItemNode extends BaseNode {
     @InputPort
     public Object in = null;

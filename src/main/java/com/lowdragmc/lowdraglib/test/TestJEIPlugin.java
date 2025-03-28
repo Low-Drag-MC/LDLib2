@@ -26,7 +26,7 @@ public class TestJEIPlugin {
     }
 
     private static class TestJEIRecipeCategory extends ModularUIRecipeCategory<TestJEIRecipe> {
-        private static RecipeType<TestJEIRecipe> RECIPE_TYPE = new RecipeType<>(LDLib.location("test_category"), TestJEIRecipe.class);
+        private static RecipeType<TestJEIRecipe> RECIPE_TYPE = new RecipeType<>(LDLib.id("test_category"), TestJEIRecipe.class);
 
         @Getter
         private final IDrawable background;
@@ -34,6 +34,7 @@ public class TestJEIPlugin {
         private final IDrawable icon;
 
         public TestJEIRecipeCategory(IJeiHelpers helpers) {
+            super(recipe -> recipe);
             this.background = helpers.getGuiHelper().createBlankDrawable(170, 60);
             this.icon = helpers.getGuiHelper().createDrawableItemStack(new ItemStack(Items.APPLE));
         }

@@ -14,7 +14,7 @@ import lombok.Getter;
 import java.util.List;
 import java.util.Objects;
 
-@LDLRegister(name = "string", group = "graph_processor.node.value")
+@LDLRegister(name = "string", group = "graph_processor.node.value", registry = "ldlib:graph_node")
 public class StringNode extends BaseNode {
     @InputPort
     public Object in;

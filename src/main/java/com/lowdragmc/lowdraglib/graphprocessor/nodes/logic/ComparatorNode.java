@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
 import java.util.function.BiPredicate;
 
-@LDLRegister(name = "comparator", group = "graph_processor.node.logic")
+@LDLRegister(name = "comparator", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class ComparatorNode extends BaseNode {
     public enum ComparatorType {
         EQUAL(Float::equals),

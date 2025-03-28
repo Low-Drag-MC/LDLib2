@@ -2,9 +2,9 @@ package com.lowdragmc.lowdraglib.editor.data;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
+import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.neoforged.neoforge.common.util.INBTSerializable;
@@ -14,13 +14,14 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 
 /**
  * @author KilaBash
  * @date 2022/12/9
  * @implNote IProject
  */
-public interface IProject extends ILDLRegister, INBTSerializable<CompoundTag> {
+public interface IProject extends ILDLRegisterClient<IProject, Supplier<IProject>>, INBTSerializable<CompoundTag> {
 
     Resources getResources();
 

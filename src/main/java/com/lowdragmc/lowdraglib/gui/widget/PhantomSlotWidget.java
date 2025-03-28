@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 
-@LDLRegister(name = "phantom_item_slot", group = "widget.container")
+@LDLRegister(name = "phantom_item_slot", group = "widget.container", registry = "ldlib:widget")
 public class PhantomSlotWidget extends SlotWidget implements IGhostIngredientTarget, IConfigurableWidget {
 
     @Getter

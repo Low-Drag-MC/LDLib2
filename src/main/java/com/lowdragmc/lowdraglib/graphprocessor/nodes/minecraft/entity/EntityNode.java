@@ -11,7 +11,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 
-@LDLRegister(name = "entity type", group = "graph_processor.node.minecraft")
+@LDLRegister(name = "entity type", group = "graph_processor.node.minecraft", registry = "ldlib:graph_node")
 public class EntityNode extends BaseNode {
     @InputPort
     public Object in = null;

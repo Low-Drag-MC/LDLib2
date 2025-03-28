@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "xor", group = "graph_processor.node.logic")
+@LDLRegister(name = "xor", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class XorNode extends BaseNode {
     @InputPort
     public boolean a = false;

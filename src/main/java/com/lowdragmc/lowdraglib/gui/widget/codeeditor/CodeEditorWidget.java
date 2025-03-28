@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 
 @Getter
 public class CodeEditorWidget extends WidgetGroup {
-    public static final ResourceLocation MONO_BOLD = LDLib.location("jetbrains_mono_bold");
+    public static final ResourceLocation MONO_BOLD = LDLib.id("jetbrains_mono_bold");
 
     public final CodeEditor codeEditor = new CodeEditor();
     protected int scrollXOffset;

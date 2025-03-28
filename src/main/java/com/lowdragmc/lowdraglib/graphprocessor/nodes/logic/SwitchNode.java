@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.PortEdge;
 import java.util.ArrayList;
 import java.util.List;
 
-@LDLRegister(name = "switch", group = "graph_processor.node.logic")
+@LDLRegister(name = "switch", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class SwitchNode extends BaseNode {
     @InputPort
     public int index = 0;

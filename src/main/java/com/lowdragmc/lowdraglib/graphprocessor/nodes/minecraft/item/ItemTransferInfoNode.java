@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
-@LDLRegister(name = "item transfer info", group = "graph_processor.node.minecraft.item")
+@LDLRegister(name = "item transfer info", group = "graph_processor.node.minecraft.item", registry = "ldlib:graph_node")
 public class ItemTransferInfoNode extends BaseNode {
     @InputPort(name = "item transfer")
     public IItemHandler itemTransfer;

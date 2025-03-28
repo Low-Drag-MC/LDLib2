@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IItemRendererProvider;
-import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
+import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
@@ -37,6 +37,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
 
@@ -47,8 +48,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-@LDLRegisterClient(name = "json_model", group = "renderer")
-public class IModelRenderer implements ISerializableRenderer {
+@LDLRegisterClient(name = "json_model", registry = "ldlib:renderer")
+public class IModelRenderer implements IRenderer {
     @Getter
     @Configurable(forceUpdate = false)
     protected ResourceLocation modelLocation;
@@ -74,7 +75,7 @@ public class IModelRenderer implements ISerializableRenderer {
     public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
         BakedModel model = getItemBakedModel();
         if (model == null) {
-            return ISerializableRenderer.super.getParticleTexture(level, pos, modelData);
+            return IRenderer.super.getParticleTexture(level, pos, modelData);
         }
         return model.getParticleIcon();
     }
@@ -125,6 +126,14 @@ public class IModelRenderer implements ISerializableRenderer {
         var ibakedmodel = getBlockBakedModel(level, pos, state);
         if (ibakedmodel == null) return Collections.emptyList();
         return ibakedmodel.getQuads(state, side, rand, data, renderType);
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+        var ibakedmodel = getBlockBakedModel(level, pos, state);
+        if (ibakedmodel != null) return ibakedmodel.getRenderTypes(state, rand, modelData);
+        return IRenderer.super.getRenderTypes(level, pos, state, rand, modelData);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -195,7 +204,7 @@ public class IModelRenderer implements ISerializableRenderer {
     public boolean isGui3d() {
         var model = getItemBakedModel();
         if (model == null) {
-            return ISerializableRenderer.super.isGui3d();
+            return IRenderer.super.isGui3d();
         }
         return model.isGui3d();
     }
@@ -231,7 +240,7 @@ public class IModelRenderer implements ISerializableRenderer {
 
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
-        ISerializableRenderer.super.buildConfigurator(father);
+        IRenderer.super.buildConfigurator(father);
         var locationConfigurator = father.getConfigurators().stream()
                 .filter(configurator -> configurator instanceof StringConfigurator stringConfigurator && stringConfigurator.getName().equals("modelLocation"))
                 .map(configurator -> (StringConfigurator) configurator)

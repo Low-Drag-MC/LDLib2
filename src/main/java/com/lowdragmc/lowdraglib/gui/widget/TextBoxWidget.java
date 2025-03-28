@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Configurable(name = "widget.text_box", collapse = false)
-@LDLRegister(name = "text_box", group = "widget.basic")
+@LDLRegister(name = "text_box", group = "widget.basic", registry = "ldlib:widget")
 public class TextBoxWidget extends Widget implements IConfigurableWidget {
 
     // config

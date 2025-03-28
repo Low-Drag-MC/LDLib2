@@ -50,7 +50,7 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
         return new TestBlockEntity(pPos, pState);
     }
 
-    IRenderer renderer = new IModelRenderer(LDLib.location("block/cube")) {
+    IRenderer renderer = new IModelRenderer(LDLib.id("block/cube")) {
         @Override
         public boolean reBakeCustomQuads() {
             return true;

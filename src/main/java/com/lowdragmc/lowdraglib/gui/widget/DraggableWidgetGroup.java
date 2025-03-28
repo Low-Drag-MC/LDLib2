@@ -14,7 +14,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
-@LDLRegister(name = "draggable_widget_group", group = "widget.group")
+@LDLRegister(name = "draggable_widget_group", group = "widget.group", registry = "ldlib:widget")
 public class DraggableWidgetGroup extends WidgetGroup implements DraggableScrollableWidgetGroup.IDraggable {
     protected boolean isSelected;
     @Configurable(name = "ldlib.gui.editor.name.selected_texture")

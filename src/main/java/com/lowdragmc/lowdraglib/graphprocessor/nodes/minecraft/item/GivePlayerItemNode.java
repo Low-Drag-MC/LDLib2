@@ -14,7 +14,7 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 import java.util.HashMap;
 
-@LDLRegister(name = "give player item", group = "graph_processor.node.minecraft.item")
+@LDLRegister(name = "give player item", group = "graph_processor.node.minecraft.item", registry = "ldlib:graph_node")
 public class GivePlayerItemNode extends LinearTriggerNode {
     @InputPort
     public Object target;

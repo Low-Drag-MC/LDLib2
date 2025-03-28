@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@LDLRegister(name = "list reader", group = "graph_processor.node.utils.list")
+@LDLRegister(name = "list reader", group = "graph_processor.node.utils.list", registry = "ldlib:graph_node")
 public class ListReaderNode extends BaseNode {
     @InputPort
     public List<Object> in = new ArrayList<>();

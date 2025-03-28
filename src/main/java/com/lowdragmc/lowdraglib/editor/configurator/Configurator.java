@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib.editor.configurator;
 
 import com.lowdragmc.lowdraglib.editor.IConfiguratorContainer;
 import com.lowdragmc.lowdraglib.editor.Icons;
-import com.lowdragmc.lowdraglib.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
@@ -25,13 +24,6 @@ public class Configurator extends WidgetGroup {
     @Nullable
     @Getter
     protected IConfiguratorContainer configuratorContainer;
-    @Getter
-    @Nullable
-    @Deprecated(since = "1.21", forRemoval = true)
-    protected ConfigPanel configPanel;
-    @Getter
-    @Deprecated(since = "1.21", forRemoval = true)
-    protected ConfigPanel.Tab tab;
     protected String[] tips = new String[0];
     @Getter
     protected String name;
@@ -61,17 +53,6 @@ public class Configurator extends WidgetGroup {
 
     public void setConfiguratorContainer(@Nullable IConfiguratorContainer configuratorContainer) {
         this.configuratorContainer = configuratorContainer;
-    }
-
-    @Deprecated(since = "1.21")
-    public void setConfigPanel(ConfigPanel configPanel, ConfigPanel.Tab tab) {
-        this.configPanel = configPanel;
-        this.tab = tab;
-        setConfiguratorContainer(() -> {
-            if (configPanel != null) {
-                configPanel.computeLayout(tab);
-            }
-        });
     }
 
     public void computeLayout() {

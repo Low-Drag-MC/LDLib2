@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.TriggerNode;
 import java.util.Collections;
 import java.util.List;
 
-@LDLRegister(name = "for loop", group = "graph_processor.node.logic")
+@LDLRegister(name = "for loop", group = "graph_processor.node.logic", registry = "ldlib:graph_node")
 public class ForLoopNode extends TriggerNode {
     @OutputPort(name = "loop body")
     public TriggerLink loopBody;

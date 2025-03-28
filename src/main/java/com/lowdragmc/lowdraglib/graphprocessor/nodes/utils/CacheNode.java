@@ -12,7 +12,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.LinearTriggerNode;
 
 import java.util.List;
 
-@LDLRegister(name = "cache", group = "graph_processor.node.utils")
+@LDLRegister(name = "cache", group = "graph_processor.node.utils", registry = "ldlib:graph_node")
 public class CacheNode extends LinearTriggerNode {
     @InputPort
     public Object in;

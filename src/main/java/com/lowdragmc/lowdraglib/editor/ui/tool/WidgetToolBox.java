@@ -1,10 +1,9 @@
 package com.lowdragmc.lowdraglib.editor.ui.tool;
 
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.Icons;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.editor.ui.ToolPanel;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.texture.WidgetTexture;
@@ -41,11 +40,6 @@ public class WidgetToolBox extends DraggableScrollableWidgetGroup {
             TABS.add(this);
         }
 
-        @Deprecated
-        public WidgetToolBox createToolBox() {
-            return new WidgetToolBox(groupName, Size.of(ToolPanel.WIDTH, 100));
-        }
-
         public WidgetToolBox createToolBox(Size size) {
             return new WidgetToolBox(groupName, size);
         }
@@ -59,10 +53,10 @@ public class WidgetToolBox extends DraggableScrollableWidgetGroup {
         super(0, 0, size.width, size.height);
         int yOffset = 3;
         setYScrollBarWidth(4).setYBarStyle(null, ColorPattern.T_WHITE.rectTexture().setRadius(2).transform(-0.5f, 0));
-        for (AnnotationDetector.Wrapper<LDLRegister, IConfigurableWidget> wrapper : AnnotationDetector.REGISTER_WIDGETS) {
-            String group = wrapper.annotation().group().isEmpty() ? "widget.basic" : wrapper.annotation().group();
+        for (var holder : LDLibRegistries.WIDGETS) {
+            String group = holder.annotation().group().isEmpty() ? "widget.basic" : holder.annotation().group();
             if (group.equals(groupName)) {
-                var widget = wrapper.creator().get();
+                var widget = holder.value().get();
                 widget.initTemplate();
                 widget.widget().setSelfPosition(Position.of(0, 0));
                 SelectableWidgetGroup selectableWidgetGroup = new SelectableWidgetGroup(0, yOffset, size.width - 2, 50 + 14);
@@ -70,7 +64,7 @@ public class WidgetToolBox extends DraggableScrollableWidgetGroup {
                 selectableWidgetGroup.addWidget(new LabelWidget(3, 3, widget.getTranslateKey()));
                 selectableWidgetGroup.setSelectedTexture(ColorPattern.T_GRAY.rectTexture());
                 selectableWidgetGroup.setDraggingProvider(() -> {
-                    final IConfigurableWidget configurableWidget = wrapper.creator().get();
+                    final IConfigurableWidget configurableWidget = holder.value().get();
                     configurableWidget.initTemplate();
                     return (IWidgetPanelDragging) () -> configurableWidget;
                 }, (w, p) -> new WidgetTexture(w.get().widget()).setDragging(true));

@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -24,7 +23,7 @@ public class HeldItemUIFactory extends UIFactory<HeldItemUIFactory.HeldItemHolde
     public static final HeldItemUIFactory INSTANCE = new HeldItemUIFactory();
 
     public HeldItemUIFactory() {
-        super(LDLib.location("held_item"));
+        super(LDLib.id("held_item"));
     }
 
     public final boolean openUI(ServerPlayer player, InteractionHand hand) {
@@ -62,7 +61,7 @@ public class HeldItemUIFactory extends UIFactory<HeldItemUIFactory.HeldItemHolde
 
         @Override
         public ModularUI createUI(Player entityPlayer) {
-            if (held.getItem() instanceof IHeldItemUIHolder itemUIHolder) {
+            if (held.getItem() instanceof IUIHolder.ItemUI itemUIHolder) {
                 return itemUIHolder.createUI(entityPlayer, this);
             }
             return null;
@@ -85,8 +84,4 @@ public class HeldItemUIFactory extends UIFactory<HeldItemUIFactory.HeldItemHolde
 
     }
 
-    @Deprecated
-    public interface IHeldItemUIHolder extends IUIHolder.ItemUI {
-
-    }
 }

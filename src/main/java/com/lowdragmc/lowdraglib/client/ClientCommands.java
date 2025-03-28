@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.client;
 
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib.compass.CompassManager;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -48,11 +48,14 @@ public class ClientCommands {
 
     private static LiteralArgumentBuilder<CommandSourceStack> createTestCommands() {
         var builder = Commands.literal("ldlib_test");
-        for (var uiTest : AnnotationDetector.REGISTER_UI_TESTS) {
+        if (LDLibRegistries.UI_TESTS == null) {
+            return builder;
+        }
+        for (var uiTest : LDLibRegistries.UI_TESTS) {
             builder = builder.then(createLiteral(uiTest.annotation().name())
                     .executes(context -> {
                         var holder = IUIHolder.EMPTY;
-                        var test = uiTest.creator().get();
+                        var test = uiTest.value().get();
 
                         var minecraft = Minecraft.getInstance();
                         var entityPlayer = minecraft.player;

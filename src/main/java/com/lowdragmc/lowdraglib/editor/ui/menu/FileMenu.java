@@ -1,13 +1,14 @@
 package com.lowdragmc.lowdraglib.editor.ui.menu;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.editor.Icons;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib.editor.data.IProject;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Setter;
 import net.minecraft.nbt.NbtIo;
 
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
  * @date 2022/12/17
  * @implNote FileMenu
  */
-@LDLRegister(name = "file", group = "editor", priority = 101)
+@LDLRegisterClient(name = "file", group = "editor", priority = 101, registry = "ldlib:menu_tab")
 public class FileMenu extends MenuTab {
     @Setter
     protected Predicate<IProject> projectFilter = project -> project.group().startsWith(editor.name());
@@ -86,8 +87,8 @@ public class FileMenu extends MenuTab {
     }
 
     private void newProject(TreeBuilder.Menu menu) {
-        for (var project : AnnotationDetector.REGISTER_PROJECTS.stream()
-                .map(AnnotationDetector.Wrapper::creator).map(Supplier::get).filter(getProjectPredicate()).toList()) {
+        for (var project : LDLibRegistries.PROJECTS.values().stream()
+                .map(AutoRegistry.Holder::value).map(Supplier::get).filter(getProjectPredicate()).toList()) {
             menu = menu.leaf(project.getTranslateKey(), () -> {
                 if (editor.isCurrentProjectSaved()) {
                     editor.loadProject(project.newEmptyProject());
@@ -101,8 +102,8 @@ public class FileMenu extends MenuTab {
     }
 
     private void openProject() {
-        var suffixes = AnnotationDetector.REGISTER_PROJECTS.stream()
-                .map(AnnotationDetector.Wrapper::creator).map(Supplier::get)
+        var suffixes = LDLibRegistries.PROJECTS.values().stream()
+                .map(AutoRegistry.Holder::value).map(Supplier::get)
                 .filter(getProjectPredicate()).map(IProject::getSuffix).collect(Collectors.toSet());
         DialogWidget.showFileDialog(editor, "ldlib.gui.editor.tips.load_project", editor.getWorkSpace(), true,
                 node -> {
@@ -119,8 +120,8 @@ public class FileMenu extends MenuTab {
                 }, r -> {
                     if (r != null && r.isFile()) {
                         String file = r.getName().toLowerCase();
-                        for (var project : AnnotationDetector.REGISTER_PROJECTS.stream()
-                                .map(AnnotationDetector.Wrapper::creator).map(Supplier::get)
+                        for (var project : LDLibRegistries.PROJECTS.values().stream()
+                                .map(AutoRegistry.Holder::value).map(Supplier::get)
                                 .filter(getProjectPredicate()).toList()) {
                             if (file.endsWith("." + project.getSuffix())) {
                                 var p = project.loadProject(r.toPath());

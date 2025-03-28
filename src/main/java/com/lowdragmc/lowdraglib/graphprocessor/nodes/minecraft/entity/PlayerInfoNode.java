@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.misc.PlayerInventoryTransfer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.items.IItemHandler;
 
-@LDLRegister(name = "player info", group = "graph_processor.node.minecraft.entity")
+@LDLRegister(name = "player info", group = "graph_processor.node.minecraft.entity", registry = "ldlib:graph_node")
 public class PlayerInfoNode extends BaseNode {
     @InputPort
     public Object in;

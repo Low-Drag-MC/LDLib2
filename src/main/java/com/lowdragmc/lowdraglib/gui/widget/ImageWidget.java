@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 import java.util.function.Supplier;
 
 @Configurable(name = "widget.image", collapse = false)
-@LDLRegister(name = "image", group = "widget.basic")
+@LDLRegister(name = "image", group = "widget.basic", registry = "ldlib:widget")
 public class ImageWidget extends Widget implements IConfigurableWidget {
 
     @Configurable(name = "ldlib.gui.editor.name.border")

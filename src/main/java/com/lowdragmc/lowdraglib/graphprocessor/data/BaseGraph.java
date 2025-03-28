@@ -1,10 +1,8 @@
 package com.lowdragmc.lowdraglib.graphprocessor.data;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.trigger.TriggerLink;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib.graphprocessor.data.parameter.ExposedParameter;
+import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.TriggerLink;
 import com.lowdragmc.lowdraglib.utils.TypeAdapter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -12,13 +10,14 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Pair;
 
 import java.util.*;
 import java.util.function.Consumer;
 
-public class BaseGraph implements IPersistedSerializable {
+public class BaseGraph implements INBTSerializable<CompoundTag> {
     public final HashSet<UUID> usedGUIDs = new HashSet<>();
 
     public UUID newGUID() {
@@ -127,7 +126,6 @@ public class BaseGraph implements IPersistedSerializable {
         destroyBrokenGraphElements();
         updateComputeOrder(ComputeOrderType.DepthFirst);
     }
-
 
     private void initializeGraphElements() {
         // Sanitize the element lists (it's possible that nodes are null if their full class name have changed)
@@ -306,10 +304,10 @@ public class BaseGraph implements IPersistedSerializable {
 
     @Override
     public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        var tag = IPersistedSerializable.super.serializeNBT(provider);
+        var tag = new CompoundTag();
         var nodes = new ListTag();
         for (var node : this.nodes) {
-            nodes.add(node.serializeNBT(provider));
+            nodes.add(node.serializeWrapper());
         }
         // save nodes
         tag.put("nodes", nodes);
@@ -342,10 +340,9 @@ public class BaseGraph implements IPersistedSerializable {
         nodes.clear();
         edges.clear();
         // load nodes
-        IPersistedSerializable.super.deserializeNBT(provider, tag);
         var nodes = tag.getList("nodes", Tag.TAG_COMPOUND);
         for (int i = 0; i < nodes.size(); i++) {
-            this.nodes.add(BaseNode.createFromTag(provider, nodes.getCompound(i)));
+            this.nodes.add(BaseNode.createFromTag(nodes.getCompound(i)));
         }
         // load edges
         var edges = tag.getList("edges", Tag.TAG_COMPOUND);

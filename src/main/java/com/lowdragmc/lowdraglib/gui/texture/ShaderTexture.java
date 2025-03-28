@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.client.shader.management.ShaderProgram;
 import com.lowdragmc.lowdraglib.client.shader.uniform.UniformCache;
 import com.lowdragmc.lowdraglib.editor.annotation.*;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.neoforged.api.distmarker.Dist;
@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-@LDLRegister(name = "shader_texture", registry = "ldlib:gui_texture")
+@LDLRegisterClient(name = "shader_texture", registry = "ldlib:gui_texture")
 public class ShaderTexture extends TransformTexture {
     private static final Map<ResourceLocation, ShaderTexture> CACHE = new HashMap<>();
 

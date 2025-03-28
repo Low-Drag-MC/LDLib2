@@ -11,7 +11,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-@LDLRegister(name = "blockentity info", group = "graph_processor.node.minecraft.block")
+@LDLRegister(name = "blockentity info", group = "graph_processor.node.minecraft.block", registry = "ldlib:graph_node")
 public class BlockEntityInfoNode extends BaseNode {
     @InputPort
     public Object in;

@@ -22,7 +22,7 @@ import java.util.*;
  * a packet that contains payload for managed fields
  */
 public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
-    public static final ResourceLocation ID = LDLib.location("auto_sync_block_entity");
+    public static final ResourceLocation ID = LDLib.id("auto_sync_block_entity");
     public static final Type<SPacketAutoSyncBlockEntity> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, SPacketAutoSyncBlockEntity> CODEC = StreamCodec.ofMember(SPacketAutoSyncBlockEntity::write, SPacketAutoSyncBlockEntity::decode);
 

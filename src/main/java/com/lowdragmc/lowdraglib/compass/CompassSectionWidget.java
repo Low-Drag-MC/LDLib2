@@ -320,7 +320,7 @@ public class CompassSectionWidget extends WidgetGroup {
                         var resourceManager = Minecraft.getInstance().getResourceManager();
                         var path = "compass/pages/en_us/%s.xml".formatted(pageLocation.getPath());
                         var option = resourceManager.getResource(ResourceLocation.fromNamespaceAndPath(pageLocation.getNamespace(), path));
-                        var resource = option.orElseGet(() -> resourceManager.getResource(LDLib.location("compass/pages/en_us/missing.xml")).orElseThrow());
+                        var resource = option.orElseGet(() -> resourceManager.getResource(LDLib.id("compass/pages/en_us/missing.xml")).orElseThrow());
                         String content;
                         try (var inputStream = resource.open()) {
                             content = FileUtility.readInputStream(inputStream);
@@ -373,17 +373,17 @@ public class CompassSectionWidget extends WidgetGroup {
     protected void createTextureMenu(TreeBuilder.Menu menu, String title, IGuiTexture initial, IGuiTexture defaultTexture, Consumer<IGuiTexture> consumer) {
         menu.branch(initial, title, m -> m
                 .leaf(defaultTexture == initial ? defaultTexture : IGuiTexture.EMPTY, "ldlib.gui.compass.default", () -> consumer.accept(defaultTexture))
-                .leaf((defaultTexture != initial && initial instanceof ResourceTexture) ? initial : IGuiTexture.EMPTY, "ldlib:gui_texture.resource_texture", () -> DialogWidget.showStringEditorDialog(compassView, title, "ldlib:textures/gui/icon.png", ResourceLocation::isValidPath, s -> {
+                .leaf((defaultTexture != initial && initial instanceof ResourceTexture) ? initial : IGuiTexture.EMPTY, "resource_texture", () -> DialogWidget.showStringEditorDialog(compassView, title, "ldlib:textures/gui/icon.png", ResourceLocation::isValidPath, s -> {
                     if (s != null && LDLib.isValidResourceLocation(s)) {
                         consumer.accept(new ResourceTexture(s));
                     }
                 }))
-                .leaf((defaultTexture != initial && initial instanceof ItemStackTexture) ? initial : IGuiTexture.EMPTY, "ldlib:gui_texture.item_texture", () -> DialogWidget.showItemSelector(compassView, title, ItemStack.EMPTY, item -> {
+                .leaf((defaultTexture != initial && initial instanceof ItemStackTexture) ? initial : IGuiTexture.EMPTY, "item_texture", () -> DialogWidget.showItemSelector(compassView, title, ItemStack.EMPTY, item -> {
                     if (item != null && item != Items.AIR) {
                         consumer.accept(new ItemStackTexture(item));
                     }
                 }))
-                .leaf((defaultTexture != initial && initial instanceof ShaderTexture) ? initial : IGuiTexture.EMPTY, "ldlib:gui_texture.shader_texture", () -> DialogWidget.showStringEditorDialog(compassView, title, "ldlib:compass_node", ResourceLocation::isValidPath, s -> {
+                .leaf((defaultTexture != initial && initial instanceof ShaderTexture) ? initial : IGuiTexture.EMPTY, "shader_texture", () -> DialogWidget.showStringEditorDialog(compassView, title, "ldlib:compass_node", ResourceLocation::isValidPath, s -> {
                     if (s != null && LDLib.isValidResourceLocation(s)) {
                         consumer.accept(ShaderTexture.createShader(ResourceLocation.parse(s)));
                     }

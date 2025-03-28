@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "div", group = "graph_processor.node.math")
+@LDLRegister(name = "div", group = "graph_processor.node.math", registry = "ldlib:graph_node")
 public class DivNode extends BaseNode {
     @InputPort
     public float a = 0;

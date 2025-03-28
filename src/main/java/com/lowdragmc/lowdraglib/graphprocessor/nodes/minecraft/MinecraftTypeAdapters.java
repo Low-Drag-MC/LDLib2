@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 
-@LDLRegister(name = "minecraft_type_adapters", group = "type_adapter")
+@LDLRegister(name = "minecraft_type_adapters", registry = "ldlib:type_adapter")
 public class MinecraftTypeAdapters implements TypeAdapter.ITypeAdapter {
 
     @Override

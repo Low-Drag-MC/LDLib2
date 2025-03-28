@@ -1,9 +1,8 @@
 package com.lowdragmc.lowdraglib.editor.ui;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.editor.ui.menu.MenuTab;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
@@ -60,10 +59,10 @@ public class MenuPanel extends WidgetGroup {
         } catch (IOException e) {
             LDLib.LOGGER.error(e.getMessage());
         }
-        for (AnnotationDetector.Wrapper<LDLRegister, MenuTab> wrapper : AnnotationDetector.REGISTER_MENU_TABS) {
-            if (editor.name().startsWith(wrapper.annotation().group())) {
-                var tab = wrapper.creator().get();
-                tabs.put(wrapper.annotation().name(), tab);
+        for (var holder : LDLibRegistries.MENU_TABS) {
+            if (editor.name().startsWith(holder.annotation().group())) {
+                var tab = holder.value().get();
+                tabs.put(holder.annotation().name(), tab);
                 var button = tab.createTabWidget();
                 button.addSelfPosition(x, 0);
                 x += button.getSize().getWidth();

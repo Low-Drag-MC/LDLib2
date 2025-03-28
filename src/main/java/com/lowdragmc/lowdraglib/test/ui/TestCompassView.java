@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 
-@LDLRegisterClient(name="compass_view", group = "ui_test")
+@LDLRegisterClient(name="compass_view", registry = "ui_test")
 @NoArgsConstructor
 public class TestCompassView implements IUITest {
     @Override

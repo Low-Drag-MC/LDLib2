@@ -182,17 +182,17 @@
   "ldlib.gui.editor.tips.texture_type": "Switching the texture type will not modify references of the previous one.",
   "ldlib.gui.editor.tips.progress_texture": "Can only accept a Progress Texture",
 
-  "ldlib:gui_texture.resource_texture": "Resource Texture",
-  "ldlib:gui_texture.item_texture": "Item Texture",
-  "ldlib:gui_texture.border_texture": "Border Texture",
-  "ldlib:gui_texture.text_texture": "Text Texture",
-  "ldlib:gui_texture.color_rect_texture": "Color Rect Texture",
-  "ldlib:gui_texture.color_border_texture": "Color Border Texture",
-  "ldlib:gui_texture.animation_texture": "Animation Texture",
-  "ldlib:gui_texture.item_stack_texture": "Item Stack Texture",
-  "ldlib:gui_texture.shader_texture": "Shader Texture",
-  "ldlib:gui_texture.progress_texture": "Progress Texture",
-  "ldlib:gui_texture.group_texture": "Group Texture",
+  "resource_texture": "Resource Texture",
+  "item_texture": "Item Texture",
+  "border_texture": "Border Texture",
+  "text_texture": "Text Texture",
+  "color_rect_texture": "Color Rect Texture",
+  "color_border_texture": "Color Border Texture",
+  "animation_texture": "Animation Texture",
+  "item_stack_texture": "Item Stack Texture",
+  "shader_texture": "Shader Texture",
+  "progress_texture": "Progress Texture",
+  "group_texture": "Group Texture",
 
   "widget.basic.image": "Image",
   "widget.basic.button": "Button",
@@ -214,7 +214,7 @@
   "widget.container.phantom_fluid_slot": "Phantom Fluid Slot",
   "widget.custom.player_inventory": "Player Inventory",
 
-  "editor.history": "History View",
+  "history_view": "History View",
 
   "editor.ui.ui": "UI Project",
 
@@ -249,7 +249,7 @@
   "ldlib.gui.editor.menu.move_down": "Move Down",
   "ldlib.compass.c_press": "Press [C] open compass",
 
-  "ldlib.renderer.json_model": "Json Model",
+  "json_model": "Json Model",
   "ldlib.renderer.block_model": "BlockState Model",
   "ldlib.gui.editor.config_panel.tabs.widget": "basic configurator",
   "ldlib.gui.editor.config_panel.tabs.resource": "resource configurator",

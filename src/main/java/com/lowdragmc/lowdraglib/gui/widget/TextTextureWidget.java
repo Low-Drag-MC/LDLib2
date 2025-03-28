@@ -19,7 +19,7 @@ import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegister(name = "text_texture", group = "widget.basic")
+@LDLRegister(name = "text_texture", group = "widget.basic", registry = "ldlib:widget")
 public class TextTextureWidget extends Widget implements IConfigurableWidget {
     @Configurable(name = "ldlib.gui.editor.name.text")
     @Getter

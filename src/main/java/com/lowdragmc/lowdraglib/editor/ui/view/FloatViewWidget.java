@@ -22,7 +22,7 @@ import net.neoforged.api.distmarker.OnlyIn;
  * They are technically project-independent and can be used for any project.
  */
 @Getter
-public class FloatViewWidget extends WidgetGroup implements ILDLRegister {
+public abstract class FloatViewWidget extends WidgetGroup {
     protected final Editor editor;
     protected final boolean isFixedView;
     protected WidgetGroup title, content;
@@ -38,6 +38,9 @@ public class FloatViewWidget extends WidgetGroup implements ILDLRegister {
         this.isFixedView = isFixedView;
         setClientSideWidget();
     }
+
+    @Override
+    public abstract String name();
 
     @Override
     public void initWidget() {

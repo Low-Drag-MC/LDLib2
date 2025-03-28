@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.function.DoubleSupplier;
 import java.util.function.Function;
 
-@LDLRegister(name = "progress", group = "widget.basic")
+@LDLRegister(name = "progress", group = "widget.basic", registry = "ldlib:widget")
 @Accessors(chain = true)
 public class ProgressWidget extends Widget implements IConfigurableWidget {
     public final static DoubleSupplier JEIProgress = () -> Math.abs(System.currentTimeMillis() % 2000) / 2000.;

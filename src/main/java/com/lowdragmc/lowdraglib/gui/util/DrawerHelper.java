@@ -85,11 +85,6 @@ public class DrawerHelper {
         BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
-    @Deprecated(since = "1.21")
-    public static void drawFluidForGui(@Nonnull GuiGraphics graphics, FluidStack contents, long tankCapacity, int startX, int startY, int widthT, int heightT) {
-        drawFluidForGui(graphics, contents, startX, startY, widthT, heightT);
-    }
-
     public static void drawFluidForGui(@Nonnull GuiGraphics graphics, FluidStack contents, float startX, float startY, float widthT, float heightT) {
         ResourceLocation LOCATION_BLOCKS_TEXTURE = InventoryMenu.BLOCK_ATLAS;
         TextureAtlasSprite fluidStillSprite = FluidHelper.getStillTexture(contents);

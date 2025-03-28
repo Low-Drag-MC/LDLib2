@@ -13,7 +13,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
-@LDLRegister(name = "fluid fill", group = "graph_processor.node.minecraft.fluid")
+@LDLRegister(name = "fluid fill", group = "graph_processor.node.minecraft.fluid", registry = "ldlib:graph_node")
 public class FluidTransferFillNode extends LinearTriggerNode {
     @InputPort(name = "fluid transfer")
     public IFluidHandler fluidTransfer;

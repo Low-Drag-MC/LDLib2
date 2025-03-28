@@ -1,12 +1,11 @@
 package com.lowdragmc.lowdraglib.syncdata;
 
+import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Range;
 import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
-import com.lowdragmc.lowdraglib.syncdata.accessor.IRendererAccessor;
-import com.lowdragmc.lowdraglib.syncdata.accessor.RecipeAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.arraylike.ArrayAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.arraylike.CollectionAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.direct.CustomDirectAccessor;
@@ -22,6 +21,7 @@ import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -31,6 +31,8 @@ import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -49,7 +51,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
-
+@SuppressWarnings("unchecked")
 public class AccessorRegistries {
     public record AccessorHolder(IAccessor<?> accessor, int priority) { }
     private final static List<AccessorHolder> ACCESSOR_HOLDERS = Collections.synchronizedList(new ArrayList<>());
@@ -167,7 +169,6 @@ public class AccessorRegistries {
     /**
      * Initialize the default accessors.
      */
-
     public static void init() {
         setPriority(-1);
 
@@ -284,6 +285,17 @@ public class AccessorRegistries {
                 .streamCodec(ByteBufCodecs.fromCodec(IGuiTexture.CODEC))
                 .copyMark(IGuiTexture::copy)
                 .build());
+        registerAccessor(CustomDirectAccessor.builder(IRenderer.class)
+                .codec(IRenderer.CODEC)
+                .streamCodec(ByteBufCodecs.fromCodec(IRenderer.CODEC))
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(RecipeHolder.class)
+                .codec(RecordCodecBuilder.create(instance -> instance.group(
+                        ResourceLocation.CODEC.fieldOf("id").forGetter(RecipeHolder::id),
+                        Recipe.CODEC.fieldOf("recipe").forGetter(RecipeHolder::value)
+                ).apply(instance, RecipeHolder::new)))
+                .streamCodec((StreamCodec<RegistryFriendlyByteBuf, RecipeHolder>) (Object)RecipeHolder.STREAM_CODEC)
+                .build());
 
 
         setPriority(1500);
@@ -305,9 +317,6 @@ public class AccessorRegistries {
                 .build());
 
         setPriority(1000);
-
-        public static final IAccessor RECIPE_ACCESSOR = new RecipeAccessor();
-        public static final IAccessor RENDERER_ACCESSOR = new IRendererAccessor();
     }
 
 }

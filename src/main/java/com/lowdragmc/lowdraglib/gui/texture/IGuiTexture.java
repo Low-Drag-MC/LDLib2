@@ -2,16 +2,17 @@ package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.PersistedParser;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.nbt.NbtOps;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -23,10 +24,7 @@ import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
-public interface IGuiTexture extends IConfigurable, ILDLRegister<IGuiTexture, Supplier<IGuiTexture>> {
-    Codec<IGuiTexture> CODEC = LDLibRegistries.GUI_TEXTURES.codec().dispatch(ILDLRegister::getRegistryHolder,
-            holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"));
-
+public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
     IGuiTexture EMPTY = new IGuiTexture() {
         @Override
         public IGuiTexture copy() {
@@ -61,6 +59,10 @@ public interface IGuiTexture extends IConfigurable, ILDLRegister<IGuiTexture, Su
             BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
         }
     };
+
+    Codec<IGuiTexture> CODEC = LDLibRegistries.GUI_TEXTURES.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
+            optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
+                    .orElseGet(() -> MapCodec.unit(MISSING_TEXTURE)));
 
     default IGuiTexture setColor(int color){
         return this;

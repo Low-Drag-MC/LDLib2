@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 @Configurable(name = "widget.label", collapse = false)
-@LDLRegister(name = "label", group = "widget.basic")
+@LDLRegister(name = "label", group = "widget.basic", registry = "ldlib:widget")
 public class LabelWidget extends Widget implements IConfigurableWidget {
 
     @Setter
@@ -90,21 +90,13 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
         }
     }
 
-    @Deprecated
-    public LabelWidget setTextColor(int color) {
+    public void setTextColor(int color) {
         this.color = color;
         if (this.component != null) this.component = this.component.copy().withStyle(this.component.getStyle().withColor(color));
-        return this;
     }
 
-    @Deprecated
-    public LabelWidget setDropShadow(boolean dropShadow) {
+    public void setDropShadow(boolean dropShadow) {
         this.dropShadow = dropShadow;
-        return this;
-    }
-
-    public void setColor(int color) {
-        setTextColor(color);
     }
 
     @Override

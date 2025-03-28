@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-@LDLRegister(name = "group", group = "widget.group")
+@LDLRegister(name = "group", group = "widget.group", registry = "ldlib:widget")
 public class WidgetGroup extends Widget implements IGhostIngredientTarget, IIngredientSlot, IConfigurableWidgetGroup {
 
     public final List<Widget> widgets = new ArrayList<>();
@@ -838,12 +838,17 @@ public class WidgetGroup extends Widget implements IGhostIngredientTarget, IIngr
     }
 
     @Override
-    public CompoundTag serializeInnerNBT(HolderLookup.Provider provider) {
-        CompoundTag tag = IConfigurableWidgetGroup.super.serializeInnerNBT(provider);
+    public void beforeDeserialize() {
+        clearAllWidgets();
+    }
+
+    @Override
+    public CompoundTag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
+        CompoundTag tag = new CompoundTag();
         var children = new ListTag();
         for (Widget widget : widgets) {
             if (widget instanceof IConfigurableWidget child && child.isLDLRegister()) {
-                children.add(child.serializeWrapper(provider));
+                children.add(child.serializeWrapper());
             }
         }
         tag.put("children", children);
@@ -851,15 +856,15 @@ public class WidgetGroup extends Widget implements IGhostIngredientTarget, IIngr
     }
 
     @Override
-    public void deserializeInnerNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        clearAllWidgets();
-        IConfigurableWidgetGroup.super.deserializeInnerNBT(provider, nbt);
-        var children = nbt.getList("children", Tag.TAG_COMPOUND);
-        for (Tag tag : children) {
-            if (tag instanceof CompoundTag ui) {
-                var child = IConfigurableWidget.deserializeWrapper(ui, provider);
-                if (child != null) {
-                    addWidget(child.widget());
+    public void deserializeAdditionalNBT(Tag nbt, HolderLookup.Provider provider) {
+        if (nbt instanceof CompoundTag tag) {
+            var children = tag.getList("children", Tag.TAG_COMPOUND);
+            for (var childTag : children) {
+                if (childTag instanceof CompoundTag ui) {
+                    var child = IConfigurableWidget.deserializeWrapper(ui);
+                    if (child != null) {
+                        addWidget(child.widget());
+                    }
                 }
             }
         }

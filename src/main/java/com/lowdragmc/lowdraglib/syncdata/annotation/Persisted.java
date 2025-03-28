@@ -11,6 +11,14 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE})
 public @interface Persisted {
+    /**
+     * The key of the field in the persistence.
+     * @return The key of the field in the persistence.
+     */
     String key() default "";
+
+    /**
+     * If true, it will wrap the field as a map, and serialize the field's internal values into the map
+     */
     boolean subPersisted() default false;
 }

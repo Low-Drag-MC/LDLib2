@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 
-@LDLRegisterClient(name="ui_editor", group = "ui_test")
+@LDLRegisterClient(name="ui_editor", registry = "ui_test")
 @NoArgsConstructor
 public class TestUIEditor implements IUITest {
     @Override

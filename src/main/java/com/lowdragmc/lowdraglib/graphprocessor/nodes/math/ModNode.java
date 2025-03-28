@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "mod", group = "graph_processor.node.math")
+@LDLRegister(name = "mod", group = "graph_processor.node.math", registry = "ldlib:graph_node")
 public class ModNode extends BaseNode {
     @InputPort
     public int a = 0;

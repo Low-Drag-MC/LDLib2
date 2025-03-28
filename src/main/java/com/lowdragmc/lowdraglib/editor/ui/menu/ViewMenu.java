@@ -1,27 +1,37 @@
 package com.lowdragmc.lowdraglib.editor.ui.menu;
 
+import com.lowdragmc.lowdraglib.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib.gui.animation.Transform;
 import com.lowdragmc.lowdraglib.editor.Icons;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.editor.ui.view.FloatViewWidget;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * @author KilaBash
  * @date 2022/12/17
  * @implNote ViewMenu
  */
-@LDLRegister(name = "view", group = "editor", priority = 100)
+@LDLRegisterClient(name = "view", group = "editor", priority = 100, registry = "ldlib:menu_tab")
 public class ViewMenu extends MenuTab {
     public final Map<String, FloatViewWidget> openedViews = new HashMap<>();
+    public final List<Pair<String, Supplier<FloatViewWidget>>> views = new ArrayList<>();
+
+    public ViewMenu() {
+        views.add(Pair.of("history_view", HistoryView::new));
+    }
+
+    public void addView(String name, Supplier<FloatViewWidget> creator) {
+        views.add(Pair.of(name, creator));
+    }
 
     protected TreeBuilder.Menu createMenu() {
         var viewMenu = TreeBuilder.Menu.start().branch("ldlib.gui.editor.menu.view.window_size", menu -> {
@@ -38,18 +48,14 @@ public class ViewMenu extends MenuTab {
                 });
             }
         });
-        for (AnnotationDetector.Wrapper<LDLRegister, FloatViewWidget> wrapper : AnnotationDetector.REGISTER_FLOAT_VIEWS) {
-            if (editor.name().startsWith(wrapper.annotation().group())) {
-                String translateKey = "%s.%s".formatted(wrapper.annotation().group(), wrapper.annotation().name());
-                String name = wrapper.annotation().name();
-                if (isViewOpened(name)) {
-                    viewMenu.leaf(Icons.CHECK, translateKey, () -> removeView(name));
-                } else {
-                    viewMenu.leaf(translateKey, () -> {
-                        var view = wrapper.creator().get();
-                        openView(view);
-                    });
-                }
+        for (var view : views) {
+            String name = view.getLeft();
+            if (isViewOpened(name)) {
+                viewMenu.leaf(Icons.CHECK, name, () -> removeView(name));
+            } else {
+                viewMenu.leaf(name, () -> {
+                    openView(view.getRight().get());
+                });
             }
         }
         return viewMenu;

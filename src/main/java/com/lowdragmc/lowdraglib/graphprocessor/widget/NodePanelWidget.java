@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.graphprocessor.widget;
 
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Getter
 public class NodePanelWidget extends DraggablePanelWidget {
@@ -69,9 +70,9 @@ public class NodePanelWidget extends DraggablePanelWidget {
     private class NodeGroupWidget extends WidgetGroup {
         private final WidgetGroup nodesGroup;
         private final ImageWidget splitLine;
-        private final List<AnnotationDetector.Wrapper<LDLRegister, ? extends BaseNode>> nodes;
+        private final List<AutoRegistry.Holder<LDLRegister, BaseNode, Supplier<BaseNode>>> nodes;
 
-        public NodeGroupWidget(String groupName, List<AnnotationDetector.Wrapper<LDLRegister, ? extends BaseNode>> nodes, int width) {
+        public NodeGroupWidget(String groupName, List<AutoRegistry.Holder<LDLRegister, BaseNode, Supplier<BaseNode>>> nodes, int width) {
             super(0, 0, width, 0);
             this.nodes = nodes;
             nodesGroup = new WidgetGroup(Position.of(2, 16));
@@ -123,7 +124,7 @@ public class NodePanelWidget extends DraggablePanelWidget {
                                 } else {
                                     var currentClickTime = gui.getTickCount();
                                     if (currentClickTime - lastClickTime < 10) {
-                                        graphView.addNodeToCenter(node.creator().get());
+                                        graphView.addNodeToCenter(node.value().get());
                                         lastClickTime = currentClickTime - 10;
                                     } else {
                                         lastClickTime = currentClickTime;
@@ -132,7 +133,7 @@ public class NodePanelWidget extends DraggablePanelWidget {
                             }));
                     buttonGroup.addWidget(new ImageWidget(0, 0, width - 4, 10, () ->
                             node.annotation().name().equals(selectedNode) ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
-                            .setDraggingProvider(() -> node.creator().get(), (n, pos) -> new TextTexture(n.getDisplayName())));
+                            .setDraggingProvider(() -> node.value().get(), (n, pos) -> new TextTexture(n.getDisplayName())));
                     nodesGroup.addWidget(buttonGroup);
                 }
             }

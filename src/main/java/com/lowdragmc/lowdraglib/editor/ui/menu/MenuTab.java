@@ -1,12 +1,12 @@
 package com.lowdragmc.lowdraglib.editor.ui.menu;
 
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
@@ -16,13 +16,14 @@ import net.neoforged.api.distmarker.OnlyIn;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * @author KilaBash
  * @date 2022/12/17
  * @implNote MenuTab
  */
-public abstract class MenuTab implements ILDLRegister {
+public abstract class MenuTab implements ILDLRegisterClient<MenuTab, Supplier<MenuTab>> {
     private final static Map<String, List<BiConsumer<MenuTab, TreeBuilder.Menu>>> HOOKS = new LinkedHashMap<>();
 
     protected Editor editor;

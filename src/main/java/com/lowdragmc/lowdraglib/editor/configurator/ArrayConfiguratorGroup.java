@@ -117,12 +117,6 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     }
 
     @Override
-    @Deprecated
-    public void addConfigurators(Configurator... configurators) {
-        super.addConfigurators(configurators);
-    }
-
-    @Override
     public void init(int width) {
         super.init(width);
         if (addDefault != null) {

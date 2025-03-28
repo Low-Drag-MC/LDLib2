@@ -37,11 +37,6 @@ import java.util.function.Function;
 public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
     private final LoadingCache<T, ModularWrapper<?>> modularWrapperCache;
 
-    @Deprecated
-    protected ModularUIRecipeCategory() {
-        this(t -> (ModularWrapper<?>)t);
-    }
-
     protected ModularUIRecipeCategory(Function<T, ModularWrapper<?>> wrapperFunction) {
         this.modularWrapperCache = CacheBuilder.newBuilder()
                 .expireAfterAccess(10, TimeUnit.SECONDS)

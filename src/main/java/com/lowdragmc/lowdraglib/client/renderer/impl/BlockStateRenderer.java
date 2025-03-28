@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.client.renderer.impl;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
+import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib.utils.virtuallevel.FacadeBlockWorld;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -35,6 +35,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.FluidState;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
 
@@ -45,7 +46,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 //@LDLRegisterClient(name = "block_model", group = "renderer")
-public class BlockStateRenderer implements ISerializableRenderer {
+public class BlockStateRenderer implements IRenderer {
 
     @Getter
     protected BlockInfo blockInfo;
@@ -103,7 +104,7 @@ public class BlockStateRenderer implements ISerializableRenderer {
         ItemStack renderItem = getBlockInfo().getItemStackForm();
         BakedModel model = getItemModel(renderItem);
         if (model == null) {
-            return ISerializableRenderer.super.getParticleTexture(level, pos, modelData);
+            return IRenderer.super.getParticleTexture(level, pos, modelData);
         }
         return model.getParticleIcon();
     }
@@ -137,6 +138,18 @@ public class BlockStateRenderer implements ISerializableRenderer {
             return model.getQuads(state, side, rand, data, renderType);
         }
         return Collections.emptyList();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+        state = getState(state);
+        if (state.getRenderShape() != RenderShape.INVISIBLE) {
+            BlockRenderDispatcher brd = Minecraft.getInstance().getBlockRenderer();
+            BakedModel model = brd.getBlockModel(state);
+            return model.getRenderTypes(state, rand, modelData);
+        }
+        return IRenderer.super.getRenderTypes(level, pos, state, rand, modelData);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -225,7 +238,7 @@ public class BlockStateRenderer implements ISerializableRenderer {
     public boolean isGui3d() {
         var model = getItemModel(getBlockInfo().getItemStackForm());
         if (model == null) {
-            return ISerializableRenderer.super.isGui3d();
+            return IRenderer.super.isGui3d();
         }
         return model.isGui3d();
     }

@@ -8,7 +8,7 @@ import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-@LDLRegister(name = "itemstack info", group = "graph_processor.node.minecraft.item")
+@LDLRegister(name = "itemstack info", group = "graph_processor.node.minecraft.item", registry = "ldlib:graph_node")
 public class ItemStackInfoNode extends BaseNode {
     @InputPort
     public ItemStack in = null;

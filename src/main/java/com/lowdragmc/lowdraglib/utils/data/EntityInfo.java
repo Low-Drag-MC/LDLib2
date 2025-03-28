@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.utils.data;
 
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import net.minecraft.nbt.CompoundTag;
@@ -9,14 +10,13 @@ import org.jetbrains.annotations.Nullable;
 
 @ToString
 @EqualsAndHashCode
+@Getter
+@Setter
 public final class EntityInfo {
-    @Setter
     private int id;
     @Nullable
-    @Setter
     private CompoundTag tag;
     @Nullable
-    @Setter
     private EntityType<?> entityType;
 
     private EntityInfo(int id, @Nullable EntityType<?> entityType, @Nullable CompoundTag tag) {

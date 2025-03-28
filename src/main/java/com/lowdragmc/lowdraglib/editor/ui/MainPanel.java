@@ -161,12 +161,12 @@ public class MainPanel extends WidgetGroup {
     @SuppressWarnings("unchecked")
     protected void copy() {
         if (editor.getResourcePanel().resources != null) {
-            UIResourceTexture.setCurrentResource((Resource<IGuiTexture>) editor.getResourcePanel().resources.resources.get(TexturesResource.RESOURCE_NAME), true);
+            UIResourceTexture.setCurrentResource((Resource<IGuiTexture>) editor.getResourcePanel().resources.resources.get(TexturesResource.RESOURCE_NAME));
         }
         List<CompoundTag> list = new ArrayList<>();
         if (!selectedUIs.isEmpty()) {
             for (UIWrapper selectedUI : selectedUIs) {
-                list.add(selectedUI.inner().serializeWrapper(Platform.getFrozenRegistry()));
+                list.add(selectedUI.inner().serializeWrapper());
             }
         }
         UIResourceTexture.clearCurrentResource();
@@ -178,11 +178,11 @@ public class MainPanel extends WidgetGroup {
         if (hoverUI != null) {
             getEditor().ifCopiedPresent(COPY_TYPE, c -> {
                 if (editor.getResourcePanel().resources != null) {
-                    UIResourceTexture.setCurrentResource((Resource<IGuiTexture>) editor.getResourcePanel().resources.resources.get(TexturesResource.RESOURCE_NAME), true);
+                    UIResourceTexture.setCurrentResource((Resource<IGuiTexture>) editor.getResourcePanel().resources.resources.get(TexturesResource.RESOURCE_NAME));
                 }
                 List<CompoundTag> list = (List<CompoundTag>) c;
                 for (var tag : list) {
-                    var widget = IConfigurableWidget.deserializeWrapper(tag, Platform.getFrozenRegistry());
+                    var widget = IConfigurableWidget.deserializeWrapper(tag);
                     if (widget != null && hoverUI.inner() instanceof IConfigurableWidgetGroup group) {
                         widget.widget().addSelfPosition(5,5);
                         if (group.canWidgetAccepted(widget)) {

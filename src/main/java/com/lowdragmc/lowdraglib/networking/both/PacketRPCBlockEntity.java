@@ -27,7 +27,7 @@ import java.util.Objects;
  */
 @NoArgsConstructor
 public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPacketPayload {
-    public static final ResourceLocation ID = LDLib.location("rpc_method_payload");
+    public static final ResourceLocation ID = LDLib.id("rpc_method_payload");
     public static final Type<PacketRPCBlockEntity> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, PacketRPCBlockEntity> CODEC = StreamCodec.ofMember(PacketRPCBlockEntity::write, PacketRPCBlockEntity::decode);
 

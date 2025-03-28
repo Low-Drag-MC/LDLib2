@@ -3,9 +3,9 @@ package com.lowdragmc.lowdraglib.gui.texture;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.math.Rect;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Setter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -14,7 +14,7 @@ import org.joml.Vector4f;
 
 import java.awt.*;
 
-@LDLRegister(name = "color_border_texture", registry = "ldlib:gui_texture")
+@LDLRegisterClient(name = "color_border_texture", registry = "ldlib:gui_texture")
 public class ColorBorderTexture extends TransformTexture{
 
     @Configurable

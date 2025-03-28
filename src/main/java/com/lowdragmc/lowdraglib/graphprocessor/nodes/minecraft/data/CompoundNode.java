@@ -10,7 +10,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 
-@LDLRegister(name = "compound", group = "graph_processor.node.minecraft.data")
+@LDLRegister(name = "compound", group = "graph_processor.node.minecraft.data", registry = "ldlib:graph_node")
 public class CompoundNode extends BaseNode {
     @InputPort
     public Object in = null;

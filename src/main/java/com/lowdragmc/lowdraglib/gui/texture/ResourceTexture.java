@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib.gui.texture;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
@@ -13,6 +12,7 @@ import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.NoArgsConstructor;
@@ -29,12 +29,12 @@ import java.util.function.IntSupplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
-@LDLRegister(name = "resource_texture", registry = "ldlib:gui_texture")
+@LDLRegisterClient(name = "resource_texture", registry = "ldlib:gui_texture")
 @NoArgsConstructor
 public class ResourceTexture extends TransformTexture {
 
     @Configurable(name = "ldlib.gui.editor.name.resource", forceUpdate = false)
-    public ResourceLocation imageLocation = LDLib.location("textures/gui/icon.png");
+    public ResourceLocation imageLocation = LDLib.id("textures/gui/icon.png");
 
     @Configurable
     @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)

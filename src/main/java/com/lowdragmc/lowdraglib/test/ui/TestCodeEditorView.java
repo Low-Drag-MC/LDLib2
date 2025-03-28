@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.gui.widget.codeeditor.CodeEditorWidget;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 
-@LDLRegisterClient(name="code_editor", group = "ui_test")
+@LDLRegisterClient(name="code_editor", registry = "ui_test")
 @NoArgsConstructor
 public class TestCodeEditorView implements IUITest {
     @Override

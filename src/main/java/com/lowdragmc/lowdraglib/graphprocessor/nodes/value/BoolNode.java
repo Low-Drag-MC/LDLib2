@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "bool", group = "graph_processor.node.value")
+@LDLRegister(name = "bool", group = "graph_processor.node.value", registry = "ldlib:graph_node")
 public class BoolNode extends BaseNode {
     @InputPort
     public Object in = null;

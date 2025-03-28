@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
-@LDLRegister(name = "fluid transfer info", group = "graph_processor.node.minecraft.fluid")
+@LDLRegister(name = "fluid transfer info", group = "graph_processor.node.minecraft.fluid", registry = "ldlib:graph_node")
 public class FluidTransferInfoNode extends BaseNode {
     @InputPort(name = "fluid transfer")
     public IFluidHandler fluidTransfer;

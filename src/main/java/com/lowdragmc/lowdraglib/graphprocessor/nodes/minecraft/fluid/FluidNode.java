@@ -13,7 +13,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
-@LDLRegister(name = "fluid", group = "graph_processor.node.minecraft.fluid")
+@LDLRegister(name = "fluid", group = "graph_processor.node.minecraft.fluid", registry = "ldlib:graph_node")
 public class FluidNode extends BaseNode {
     @InputPort
     public Object in = null;

@@ -13,7 +13,7 @@ import org.joml.Vector3f;
 
 import java.util.List;
 
-@LDLRegisterClient(name="scene_object", group = "ui_test")
+@LDLRegisterClient(name="scene_object", registry = "ui_test")
 @NoArgsConstructor
 public class TestSceneObject implements IUITest {
     @Override

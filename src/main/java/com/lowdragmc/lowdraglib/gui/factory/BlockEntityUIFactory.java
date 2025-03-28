@@ -15,7 +15,7 @@ public class BlockEntityUIFactory extends UIFactory<BlockEntity> {
     public static final BlockEntityUIFactory INSTANCE  = new BlockEntityUIFactory();
 
     private BlockEntityUIFactory() {
-        super(LDLib.location("block_entity"));
+        super(LDLib.id("block_entity"));
     }
 
     @Override

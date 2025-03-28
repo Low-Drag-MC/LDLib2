@@ -11,7 +11,7 @@ import org.joml.Vector3f;
 
 import java.text.NumberFormat;
 
-@LDLRegister(name = "print", group = "graph_processor.node.utils")
+@LDLRegister(name = "print", group = "graph_processor.node.utils", registry = "ldlib:graph_node")
 public class PrintNode extends BaseNode {
     private static NumberFormat numberFormat = NumberFormat.getInstance();
     static {

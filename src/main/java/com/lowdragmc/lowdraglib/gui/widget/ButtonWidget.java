@@ -18,7 +18,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
-@LDLRegister(name = "button", group = "widget.basic")
+@LDLRegister(name = "button", group = "widget.basic", registry = "ldlib:widget")
 @RemapPrefixForJS("kjs$")
 public class ButtonWidget extends Widget implements IConfigurableWidget {
 

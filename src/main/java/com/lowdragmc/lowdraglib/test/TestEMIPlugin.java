@@ -22,7 +22,7 @@ public class TestEMIPlugin {
 
     protected static class TestEmiRecipeCategory extends EmiRecipeCategory {
         public TestEmiRecipeCategory() {
-            super(LDLib.location("modular_ui"), EmiStack.of(Items.APPLE));
+            super(LDLib.id("modular_ui"), EmiStack.of(Items.APPLE));
         }
     }
 
@@ -36,7 +36,7 @@ public class TestEMIPlugin {
 
         @Override
         public @Nullable ResourceLocation getId() {
-            return LDLib.location("test_recipe");
+            return LDLib.id("test_recipe");
         }
     }
 }

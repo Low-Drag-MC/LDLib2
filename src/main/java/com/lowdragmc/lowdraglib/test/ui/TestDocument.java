@@ -7,15 +7,12 @@ import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.*;
-import com.lowdragmc.lowdraglib.misc.FluidBlockTransfer;
-import com.lowdragmc.lowdraglib.misc.FluidStorage;
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@LDLRegisterClient(name="document", group = "ui_test")
+@LDLRegisterClient(name="document", registry = "ui_test")
 @NoArgsConstructor
 public class TestDocument implements IUITest {
     @Override

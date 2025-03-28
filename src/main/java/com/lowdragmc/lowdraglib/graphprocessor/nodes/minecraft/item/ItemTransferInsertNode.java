@@ -13,7 +13,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
-@LDLRegister(name = "item insert", group = "graph_processor.node.minecraft.item")
+@LDLRegister(name = "item insert", group = "graph_processor.node.minecraft.item", registry = "ldlib:graph_node")
 public class ItemTransferInsertNode extends LinearTriggerNode {
     @InputPort(name = "item transfer")
     public IItemHandler itemTransfer;

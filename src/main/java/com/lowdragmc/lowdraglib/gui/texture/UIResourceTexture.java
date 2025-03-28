@@ -18,18 +18,14 @@ import java.io.File;
  */
 public class UIResourceTexture implements IGuiTexture {
     @Getter
-    private static Resource<IGuiTexture> projectResource;
-    @Getter
-    private static boolean isProject;
+    private final static ThreadLocal<Resource<IGuiTexture>> projectResource = new ThreadLocal<>();
 
-    public static void setCurrentResource(Resource<IGuiTexture> resource, boolean isProject) {
-        projectResource = resource;
-        UIResourceTexture.isProject = isProject;
+    public static void setCurrentResource(Resource<IGuiTexture> resource) {
+        projectResource.set(resource);
     }
 
     public static void clearCurrentResource() {
-        projectResource = null;
-        UIResourceTexture.isProject = false;
+        projectResource.remove();
     }
 
     @Setter

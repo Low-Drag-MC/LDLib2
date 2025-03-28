@@ -7,12 +7,13 @@ import com.lowdragmc.lowdraglib.editor.configurator.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.utils.PersistedParser;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -20,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-@LDLRegister(name = "tab_group", group = "widget.group")
+@LDLRegister(name = "tab_group", group = "widget.group", registry = "ldlib:widget")
 public class TabContainer extends WidgetGroup {
     public static final ResourceTexture TABS_LEFT = new ResourceTexture("ldlib:textures/gui/tabs_left.png");
 
@@ -163,15 +164,15 @@ public class TabContainer extends WidgetGroup {
     }
 
     @Override
-    public CompoundTag serializeInnerNBT(HolderLookup.Provider provider) {
-        CompoundTag tag = PersistedParser.serializeNBT(this, provider);
+    public CompoundTag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
+        CompoundTag tag = new CompoundTag();
         var tabs = new ListTag();
         for (Map.Entry<TabButton, WidgetGroup> entry : this.tabs.entrySet()) {
             var button = entry.getKey();
             var group = entry.getValue();
             var tab = new CompoundTag();
-            tab.put("button", button.serializeInnerNBT(provider));
-            tab.put("group", group.serializeWrapper(provider));
+            tab.put("button", button.serializeNBT(provider));
+            tab.put("group", group.serializeWrapper());
             tabs.add(tab);
         }
         tag.put("tabs", tabs);
@@ -179,17 +180,17 @@ public class TabContainer extends WidgetGroup {
     }
 
     @Override
-    public void deserializeInnerNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        clearAllWidgets();
-        PersistedParser.deserializeNBT(nbt, this, provider);
-        var tabs = nbt.getList("tabs", Tag.TAG_COMPOUND);
-        for (Tag tag : tabs) {
-            if (tag instanceof CompoundTag tab) {
-                TabButton button = new TabButton();
-                button.deserializeInnerNBT(provider, tab.getCompound("button"));
-                var widget = IConfigurableWidget.deserializeWrapper(tab.getCompound("group"), provider);
-                if (widget != null && widget.widget() instanceof WidgetGroup group) {
-                    addTab(button, group);
+    public void deserializeAdditionalNBT(Tag nbt, HolderLookup.Provider provider) {
+        if (nbt instanceof CompoundTag tag) {
+            var tabs = tag.getList("tabs", Tag.TAG_COMPOUND);
+            for (Tag tabTag : tabs) {
+                if (tabTag instanceof CompoundTag tab) {
+                    TabButton button = new TabButton();
+                    button.deserializeNBT(provider, tab.getCompound("button"));
+                    var widget = IConfigurableWidget.deserializeWrapper(tab.getCompound("group"));
+                    if (widget != null && widget.widget() instanceof WidgetGroup group) {
+                        addTab(button, group);
+                    }
                 }
             }
         }

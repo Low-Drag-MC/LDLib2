@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 @NoArgsConstructor
 public class SPacketUIWidgetUpdate implements CustomPacketPayload {
-    public static final ResourceLocation ID = LDLib.location("ui_widget_update");
+    public static final ResourceLocation ID = LDLib.id("ui_widget_update");
     public static final Type<SPacketUIWidgetUpdate> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, SPacketUIWidgetUpdate> CODEC = StreamCodec.ofMember(SPacketUIWidgetUpdate::write, SPacketUIWidgetUpdate::decode);
 

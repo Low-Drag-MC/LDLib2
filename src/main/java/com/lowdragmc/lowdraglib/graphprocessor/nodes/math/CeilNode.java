@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 
-@LDLRegister(name = "ceil", group = "graph_processor.node.math")
+@LDLRegister(name = "ceil", group = "graph_processor.node.math", registry = "ldlib:graph_node")
 public class CeilNode extends BaseNode {
     @InputPort
     public float in = 0;

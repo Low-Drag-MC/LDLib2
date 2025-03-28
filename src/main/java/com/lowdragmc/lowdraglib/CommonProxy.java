@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib;
 
-import com.lowdragmc.lowdraglib.utils.AnnotationDetector;
 import com.lowdragmc.lowdraglib.gui.factory.*;
 import com.lowdragmc.lowdraglib.integration.kjs.ui.BlockUIJSFactory;
 import com.lowdragmc.lowdraglib.integration.kjs.ui.ItemUIJSFactory;
@@ -19,7 +18,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -50,7 +48,6 @@ public class CommonProxy {
 
         // used for forge events (ClientProxy + CommonProxy)
         // eventBus.register(this); //TODO: uncomment if @SubscribeEvent is used in this class
-        eventBus.addListener(FMLLoadCompleteEvent.class, CommonProxy::loadComplete);
         eventBus.addListener(LDLNetworking::registerPayloads);
         // register server commands
         NeoForge.EVENT_BUS.addListener(this::registerCommand);
@@ -64,7 +61,6 @@ public class CommonProxy {
                 }
             } catch (Throwable ignored) {}
         }, () -> {});
-        AccessorRegistries.postInit();
         BLOCKS.register(eventBus);
         ITEMS.register(eventBus);
         BLOCK_ENTITY_TYPES.register(eventBus);
@@ -78,12 +74,7 @@ public class CommonProxy {
             UIFactory.register(BlockUIJSFactory.INSTANCE);
             UIFactory.register(ItemUIJSFactory.INSTANCE);
         }
-        AnnotationDetector.init();
         AccessorRegistries.init();
-    }
-
-    public static void loadComplete(FMLLoadCompleteEvent e) {
-        e.enqueueWork(AccessorRegistries::postInit);
     }
 
     public void registerCommand(RegisterCommandsEvent event) {
