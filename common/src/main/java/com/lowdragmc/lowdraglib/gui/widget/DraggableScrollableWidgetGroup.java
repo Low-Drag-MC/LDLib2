@@ -392,9 +392,11 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
                 setFocus(true);
                 return true;
             }
-            Widget widget = getHoverElement(mouseX, mouseY);
-            if (widget != null) {
-                return widget.mouseClicked(mouseX, mouseY, button);
+            for (int i = widgets.size() - 1; i >= 0; i--) {
+                Widget widget = widgets.get(i);
+                if (widget.isVisible() && widget.isMouseOverElement(mouseX, mouseY)) {
+                    return widget.mouseClicked(mouseX, mouseY, button);
+                }
             }
             setFocus(true);
             if (draggable) {
@@ -412,10 +414,13 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
         Window window = Minecraft.getInstance().getWindow();
         double mouseX = Minecraft.getInstance().mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
         double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
-        if (isMouseOverElement(mouseX, mouseY)) {
-            Widget widget = getHoverElement(mouseX, mouseY);
-            if (widget != null) {
-                return widget.keyPressed(keyCode, scanCode, modifiers);
+
+        if(isMouseOverElement(mouseX, mouseY)) {
+            for (int i = widgets.size() - 1; i >= 0; i--) {
+                Widget widget = widgets.get(i);
+                if (widget.isVisible() && widget.isMouseOverElement(mouseX, mouseY)) {
+                    return widget.keyPressed(keyCode, scanCode, modifiers);
+                }
             }
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
