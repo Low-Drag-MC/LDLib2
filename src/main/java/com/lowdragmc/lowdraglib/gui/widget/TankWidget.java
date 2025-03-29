@@ -26,6 +26,7 @@ import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
+import dev.emi.emi.api.neoforge.NeoForgeEmiStack;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.stack.EmiStackInteraction;
@@ -259,7 +260,9 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
     public Object getXEICurrentIngredient() {
         if (lastFluidInTank == null || lastFluidInTank.isEmpty()) return null;
         if (LDLib.isJeiLoaded()) {
-            return JEICallWrapper.getPlatformFluidTypeForJEIClickable(new FluidStack(lastFluidInTank.getFluid(), lastFluidInTank.getAmount()), getPosition(), getSize());
+            return JEICallWrapper.getPlatformFluidTypeForJEIClickable(lastFluidInTank.copy(), getPosition(), getSize());
+        } else if (LDLib.isEmiLoaded()) {
+            return NeoForgeEmiStack.of(lastFluidInTank).setChance(XEIChance);
         }
         return null;
     }

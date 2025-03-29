@@ -394,12 +394,6 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
                 setFocus(true);
                 return true;
             }
-            for (int i = widgets.size() - 1; i >= 0; i--) {
-                Widget widget = widgets.get(i);
-                if (widget.isVisible() && widget.isMouseOverElement(mouseX, mouseY)) {
-                    return widget.mouseClicked(mouseX, mouseY, button);
-                }
-            }
             setFocus(true);
             if (draggable) {
                 this.draggedPanel = true;
