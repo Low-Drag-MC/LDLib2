@@ -34,7 +34,7 @@ public class LDLib {
     public static final Gson GSON = new GsonBuilder()
             .registerTypeAdapterFactory(IGuiTextureTypeAdapter.INSTANCE)
             .create();
-    private static File location;
+    private static File assetsLocation;
 
     public LDLib(IEventBus eventBus, ModContainer modContainer) {
         LDLib.init();
@@ -47,17 +47,17 @@ public class LDLib {
 
     public static void init() {
         LOGGER.info("{} is initializing on platform: {}", NAME, Platform.platformName());
-        getLDLibDir();
+        getAssetsDir();
     }
 
-    public static File getLDLibDir() {
-        if (location == null) {
-            location = new File(Platform.getGamePath().toFile(), "assets/ldlib");
-            if (location.mkdir()) {
+    public static File getAssetsDir() {
+        if (assetsLocation == null) {
+            assetsLocation = new File(Platform.getGamePath().toFile(), "assets");
+            if (assetsLocation.mkdir()) {
                 LOGGER.info("Created ldlib config folder");
             }
         }
-        return location;
+        return assetsLocation;
     }
 
     public static boolean isValidResourceLocation(String string) {

@@ -10,8 +10,8 @@ version = mod_version
 group = maven_group
 
 repositories {
-    mavenLocal()
     mavenCentral()
+    mavenLocal()
     maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
     maven {
         name = "Modrinth"
@@ -96,6 +96,10 @@ runs {
         systemProperty 'forge.logging.console.level', 'debug'
 
         modSource project.sourceSets.main
+
+        dependencies {
+            runtime 'org.lwjgl:lwjgl-yoga:3.3.6'
+        }
     }
 
     client {
@@ -161,6 +165,9 @@ dependencies {
     // lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    // Yoga
+    implementation 'org.lwjgl:lwjgl-yoga:3.3.6'
 }
 
 tasks.withType(ProcessResources).configureEach {

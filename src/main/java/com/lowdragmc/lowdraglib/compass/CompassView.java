@@ -156,7 +156,7 @@ public class CompassView extends WidgetGroup {
     }
 
     protected void saveSections() {
-        var path = new File(LDLib.getLDLibDir(), "assets/%s/compass/sections".formatted(modID));
+        var path = new File(LDLib.getAssetsDir(), "%s/compass/sections".formatted(modID));
         if (!path.isDirectory()) {
             if (path.mkdirs()) {
                 LDLib.LOGGER.info("Created directory %s".formatted(path));

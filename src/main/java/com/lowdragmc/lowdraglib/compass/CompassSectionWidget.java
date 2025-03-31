@@ -126,7 +126,7 @@ public class CompassSectionWidget extends WidgetGroup {
     }
 
     private void saveSection() {
-        var path = new File(LDLib.getLDLibDir(), "assets/%s/compass/nodes".formatted(section.getSectionName().getNamespace()));
+        var path = new File(LDLib.getAssetsDir(), "%s/compass/nodes".formatted(section.getSectionName().getNamespace()));
         if (!path.isDirectory()) {
             if (path.mkdirs()) {
                 LDLib.LOGGER.info("Created directory %s".formatted(path));
@@ -311,7 +311,7 @@ public class CompassSectionWidget extends WidgetGroup {
                         }
                     }
                 }).leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> {
-                    var file = new File(LDLib.getLDLibDir(), "assets/%s/compass/pages/en_us/%s.xml".formatted(selectedNode.getNodeName().getNamespace(), selectedNode.getNodeName().getPath()));
+                    var file = new File(LDLib.getAssetsDir(), "%s/compass/pages/en_us/%s.xml".formatted(selectedNode.getNodeName().getNamespace(), selectedNode.getNodeName().getPath()));
                     if (!file.exists()) {
                         if (!file.getParentFile().isDirectory()) {
                             file.getParentFile().mkdirs();

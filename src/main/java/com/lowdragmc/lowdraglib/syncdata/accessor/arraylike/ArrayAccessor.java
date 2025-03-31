@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
 import com.lowdragmc.lowdraglib.syncdata.ref.ReadOnlyArrayRef;
 import com.lowdragmc.lowdraglib.syncdata.var.FieldVar;
 import com.lowdragmc.lowdraglib.syncdata.var.ReadOnlyVar;
+import com.lowdragmc.lowdraglib.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -54,7 +55,7 @@ public class ArrayAccessor<TYPE, TYPE_ARRAY> implements IArrayLikeAccessor<TYPE,
         } else {
             var refs = arrayRef.getRefs();
             if (refs == null) {
-                return op.empty();
+                return LDLibExtraCodecs.createStringNull(op);
             }
             return readListField(op, refs);
         }
@@ -79,7 +80,7 @@ public class ArrayAccessor<TYPE, TYPE_ARRAY> implements IArrayLikeAccessor<TYPE,
             writeListField(op, ref, op.getStream(payload).getOrThrow().toList(), refs);
         } else {
             var refs = arrayRef.getRefs();
-            if (payload == op.empty()) {
+            if (LDLibExtraCodecs.isEmptyOrStringNull(op, payload)) {
                 ((DirectArrayRef<TYPE, TYPE_ARRAY>)ref).getField().set(null);
                 return;
             }

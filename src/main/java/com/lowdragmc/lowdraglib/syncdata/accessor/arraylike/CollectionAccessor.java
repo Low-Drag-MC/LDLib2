@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib.syncdata.accessor.direct.IDirectAccessor;
 import com.lowdragmc.lowdraglib.syncdata.accessor.readonly.IReadOnlyAccessor;
 import com.lowdragmc.lowdraglib.syncdata.var.ManagedHolderVar;
+import com.lowdragmc.lowdraglib.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JavaOps;
 import lombok.Getter;
@@ -41,7 +42,7 @@ public class CollectionAccessor<TYPE> implements
         return op.createList(value.stream().map(v -> {
             if (childAccessor instanceof IDirectAccessor<TYPE> directAccessor) {
                 if (v == null) {
-                    return op.empty();
+                    return LDLibExtraCodecs.createStringNull(op);
                 }
                 return directAccessor.readDirectVar(op, ManagedHolderVar.of(v));
             } else if (childAccessor instanceof IReadOnlyAccessor<TYPE> readOnlyAccessor) {
@@ -62,7 +63,7 @@ public class CollectionAccessor<TYPE> implements
             value.clear();
             var holder = ManagedHolderVar.ofNull(childType);
             stream.map(p -> {
-                if (p == op.empty()) {
+                if (p == LDLibExtraCodecs.createStringNull(op)) {
                     return null;
                 }
                 directAccessor.writeDirectVar(op, holder, p);
@@ -78,7 +79,7 @@ public class CollectionAccessor<TYPE> implements
             while (iterValue.hasNext()) {
                 var v = iterValue.next();
                 var p = iterPayload.next();
-                if (p == op.empty()) {
+                if (LDLibExtraCodecs.isEmptyOrStringNull(op, p)) {
                     throw new IllegalArgumentException("Empty value in the stream of a read-only accessor");
                 }
                 readOnlyAccessor.writeReadOnlyValue(op, v, p);

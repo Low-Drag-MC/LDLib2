@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.Platform;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -24,7 +25,7 @@ public final class ResourceHelper {
         if (LDLib.isClient()) {
             return Minecraft.getInstance().getResourceManager().getResource(rs).isPresent();
         } else {
-            return false;
+            return Platform.getMinecraftServer().getResourceManager().getResource(rs).isPresent();
         }
     }
 

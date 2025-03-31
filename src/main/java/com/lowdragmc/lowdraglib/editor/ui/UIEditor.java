@@ -8,6 +8,11 @@ import java.io.File;
  * @implNote UIEditor
  */
 public class UIEditor extends Editor {
+
+    public UIEditor(String modID) {
+        super(modID);
+    }
+
     public UIEditor(File workSpace) {
         super(workSpace);
     }
@@ -16,12 +21,9 @@ public class UIEditor extends Editor {
     public String group() {
         return "editor";
     }
+
     @Override
     public String name() {
         return "editor.ui";
-    }
-
-    public UIEditor(String modID) {
-        super(modID);
     }
 }

@@ -59,7 +59,7 @@ public abstract class Editor extends WidgetGroup {
     protected HistoryItem currentHistory;
 
     public Editor(String modID) {
-        this(new File(LDLib.getLDLibDir(), "assets/" + modID));
+        this(new File(LDLib.getAssetsDir(), modID));
         if (LDLib.isClient()) {
             if (!this.workSpace.exists() && !this.workSpace.mkdirs()) {
                 LDLib.LOGGER.error("Failed to create work space for mod: " + modID);

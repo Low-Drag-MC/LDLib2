@@ -102,7 +102,7 @@ public class UIProject implements IProject {
     @Nullable
     public static Supplier<WidgetGroup> loadUIFromFile(ResourceLocation location) {
         try {
-            var file = new File(LDLib.getLDLibDir(), "assets/%s/projects/ui/%s.ui".formatted(location.getNamespace(), location.getPath()));
+            var file = new File(LDLib.getAssetsDir(), "%s/projects/ui/%s.ui".formatted(location.getNamespace(), location.getPath()));
             return loadUIFromTag(Platform.getFrozenRegistry(), NbtIo.read(file.toPath()));
         } catch (Exception e) {
             LDLib.LOGGER.error("Failed to load ui project from file: {}", location, e);

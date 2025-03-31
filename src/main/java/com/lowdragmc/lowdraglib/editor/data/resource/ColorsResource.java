@@ -35,7 +35,7 @@ public class ColorsResource extends Resource<Integer> {
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.colors";
 
     public ColorsResource() {
-        super(new File(LDLib.getLDLibDir(), "assets/resources/colors"));
+        super(new File(LDLib.getAssetsDir(), "ldlib/resources/colors"));
     }
 
     @Override

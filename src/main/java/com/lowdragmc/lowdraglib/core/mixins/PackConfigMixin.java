@@ -23,7 +23,7 @@ public abstract class PackConfigMixin {
     ))
     private List<PackResources> injectCreateReload(List<PackResources> resourcePacks) {
         var mutableList = new ArrayList<>(resourcePacks);
-        mutableList.add(new CustomResourcePack(LDLib.getLDLibDir(), LDLib.MOD_ID, PackType.SERVER_DATA));
+        mutableList.add(new CustomResourcePack(LDLib.getAssetsDir(), LDLib.MOD_ID, PackType.SERVER_DATA));
         return mutableList;
     }
 

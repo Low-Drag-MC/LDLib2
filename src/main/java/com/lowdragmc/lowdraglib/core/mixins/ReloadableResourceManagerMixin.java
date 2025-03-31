@@ -27,7 +27,7 @@ public abstract class ReloadableResourceManagerMixin {
         }
         
         var mutableList = new ArrayList<>(resourcePacks);
-        mutableList.add(new CustomResourcePack(LDLib.getLDLibDir(), LDLib.MOD_ID, PackType.CLIENT_RESOURCES));
+        mutableList.add(new CustomResourcePack(LDLib.getAssetsDir(), LDLib.MOD_ID, PackType.CLIENT_RESOURCES));
 
         return mutableList;
     }

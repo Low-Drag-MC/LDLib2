@@ -67,4 +67,21 @@ public final class LDLibExtraCodecs {
     public static <T> MapCodec<T> errorDecoder() {
         return ERROR_DECODER;
     }
+
+    public final static String NULL_STRING = "_NULL_";
+
+    /**
+     * Why we need it? Because Mojang doesn't support null in the nbt.
+     *
+     * @param ops
+     * @return
+     * @param <T>
+     */
+    public static <T> T createStringNull(DynamicOps<T> ops) {
+        return ops.createString(NULL_STRING);
+    }
+
+    public static <T> boolean isEmptyOrStringNull(DynamicOps<T> ops, T payload) {
+        return ops == ops.empty() || ops.getStringValue(payload).map(s -> s.equals(NULL_STRING)).result().orElse(false);
+    }
 }

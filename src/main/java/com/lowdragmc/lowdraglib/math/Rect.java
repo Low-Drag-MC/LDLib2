@@ -7,6 +7,7 @@ import lombok.Data;
  */
 @Data(staticConstructor = "of")
 public final class Rect {
+	public static final Rect ZERO = new Rect(0, 0, 0, 0);
 	public final int left;
 	public final int right;
 	public final int up;
@@ -166,6 +167,18 @@ public final class Rect {
 
 	public Rect moveVertical(int delta) {
 		return new Rect(left, right, up + delta, down + delta);
+	}
+
+	public Rect move(int deltaX, int deltaY) {
+		return new Rect(left + deltaX, right + deltaX, up + deltaY, down + deltaY);
+	}
+
+	public Rect move(Position delta) {
+		return new Rect(left + delta.x, right + delta.x, up + delta.y, down + delta.y);
+	}
+
+	public Rect move(Size size) {
+		return new Rect(left + size.width, right + size.width, up + size.height, down + size.height);
 	}
 
 	public boolean isCollide(Rect rect) {

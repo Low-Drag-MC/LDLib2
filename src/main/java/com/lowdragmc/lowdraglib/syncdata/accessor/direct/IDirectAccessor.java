@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib.syncdata.ref.DirectRef;
 import com.lowdragmc.lowdraglib.syncdata.var.IVar;
 import com.lowdragmc.lowdraglib.syncdata.ref.IRef;
+import com.lowdragmc.lowdraglib.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +69,7 @@ public interface IDirectAccessor<TYPE> extends IAccessor<TYPE> {
     default <T> T readField(DynamicOps<T> op, IRef<TYPE> ref) {
         var managedField = ((DirectRef<TYPE>)ref).getField();
         if (!managedField.isPrimitive() && managedField.value() == null) {
-            return op.empty();
+            return LDLibExtraCodecs.createStringNull(op);
         }
         return readDirectVar(op, managedField);
     }
@@ -76,7 +77,7 @@ public interface IDirectAccessor<TYPE> extends IAccessor<TYPE> {
     @Override
     default <T> void writeField(DynamicOps<T> op, IRef<TYPE> ref, T payload) {
         var managedField = ((DirectRef<TYPE>)ref).getField();
-        if (!managedField.isPrimitive() && payload == op.empty()) {
+        if (!managedField.isPrimitive() && LDLibExtraCodecs.isEmptyOrStringNull(op, payload)) {
             managedField.set(null);
             return;
         }

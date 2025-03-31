@@ -14,6 +14,6 @@ public class TestUIEditor implements IUITest {
     @Override
     public ModularUI createUI(IUIHolder holder, Player entityPlayer) {
         return IUITest.super.createUI(holder, entityPlayer)
-                .widget(new UIEditor(LDLib.getLDLibDir()));
+                .widget(new UIEditor(LDLib.getAssetsDir()));
     }
 }

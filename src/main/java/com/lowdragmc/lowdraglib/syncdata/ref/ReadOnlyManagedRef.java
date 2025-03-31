@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib.syncdata.var.IReadOnlyManagedVar;
 import com.lowdragmc.lowdraglib.syncdata.var.ReadOnlyVar;
+import com.lowdragmc.lowdraglib.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
@@ -121,7 +122,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
         if (isReadOnlyManaged()) {
             var value = readRaw();
             if (value == null) {
-                return op.empty();
+                return LDLibExtraCodecs.createStringNull(op);
             }
             var field = getReadOnlyVar();
             assert field.getManagedVar() != null;
@@ -143,7 +144,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
         if (isReadOnlyManaged()) {
             var field = getReadOnlyVar();
             assert field.getManagedVar() != null;
-            if (payload == op.empty()) {
+            if (LDLibExtraCodecs.isEmptyOrStringNull(op, payload)) {
                 field.set(null);
             } else {
                 var uid = op.get(payload, "uid").result().map(data -> op.convertTo(NbtOps.INSTANCE, data)).map(CompoundTag.class::cast).orElseThrow();
@@ -171,7 +172,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
             assert field.getManagedVar() != null;
             var value = readRaw();
             if (value == null) {
-                return op.empty();
+                return LDLibExtraCodecs.createStringNull(op);
             }
             return op.mapBuilder()
                     .add("uid", NbtOps.INSTANCE.convertMap(op, field.getManagedVar().serializeUid(value)))
@@ -191,7 +192,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
         if (isReadOnlyManaged()) {
             var field = getReadOnlyVar();
             assert field.getManagedVar() != null;
-            if (payload == op.empty()) {
+            if (LDLibExtraCodecs.isEmptyOrStringNull(op, payload)) {
                 field.set(null);
             } else {
                 var uid = op.get(payload, "uid").result().map(data -> op.convertTo(NbtOps.INSTANCE, data)).map(CompoundTag.class::cast).orElseThrow();

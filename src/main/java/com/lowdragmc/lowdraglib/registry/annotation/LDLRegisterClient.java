@@ -1,8 +1,5 @@
 package com.lowdragmc.lowdraglib.registry.annotation;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -16,7 +13,6 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
-@OnlyIn(Dist.CLIENT)
 public @interface LDLRegisterClient {
 
     /**
