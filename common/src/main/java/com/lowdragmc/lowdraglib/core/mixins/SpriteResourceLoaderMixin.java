@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.core.mixins;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import com.lowdragmc.lowdraglib.client.model.custommodel.LDLMetadataSection;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import net.minecraft.client.renderer.texture.SpriteContents;
@@ -26,11 +27,11 @@ import java.util.function.Supplier;
 public class SpriteResourceLoaderMixin {
 
     // load ctm textures
-    @Inject(method = "list", at = @At(value = "INVOKE", target = "Lcom/google/common/collect/ImmutableList;builder()Lcom/google/common/collect/ImmutableList$Builder;"),
-            locals = LocalCapture.CAPTURE_FAILHARD)
+    @Inject(method = "list", at = @At(value = "INVOKE", target = "Lcom/google/common/collect/ImmutableList;builder()Lcom/google/common/collect/ImmutableList$Builder;")
+    )
     private void injectList(ResourceManager resourceManager, CallbackInfoReturnable<List<Supplier<SpriteContents>>> cir,
-                            Map<ResourceLocation, SpriteSource.SpriteSupplier> map,
-                            SpriteSource.Output output) {
+                            @Local Map<ResourceLocation, SpriteSource.SpriteSupplier> map,
+                            @Local SpriteSource.Output output) {
         for (ResourceLocation spriteName : map.keySet()) {
             var data = LDLMetadataSection.getMetadata(LDLMetadataSection.spriteToAbsolute(spriteName));
             if (data.connection != null) {
@@ -40,9 +41,9 @@ public class SpriteResourceLoaderMixin {
     }
 
     // try to load all renderer textures
-    @Inject(method = "load", at = @At(value = "RETURN"),
-            locals = LocalCapture.CAPTURE_FAILHARD)
-    private static void injectLoad(ResourceManager resourceManager, ResourceLocation location, CallbackInfoReturnable<SpriteResourceLoader> cir, ResourceLocation resourceLocation, List<SpriteSource> list) {
+    @Inject(method = "load", at = @At(value = "RETURN"))
+    private static void injectLoad(ResourceManager resourceManager, ResourceLocation location, CallbackInfoReturnable<SpriteResourceLoader> cir,
+                                   @Local List<SpriteSource> list) {
         ResourceLocation atlas = new ResourceLocation(location.getNamespace(), "textures/atlas/%s.png".formatted(location.getPath()));
         Set<ResourceLocation> sprites = new HashSet<>();
         for (var renderer : IRenderer.EVENT_REGISTERS) {
