@@ -44,7 +44,7 @@ public class SpriteSourceListMixin {
     @Inject(method = "load", at = @At(value = "RETURN"))
     private static void ldlib$injectLoad(ResourceManager resourceManager, ResourceLocation location, CallbackInfoReturnable<SpriteResourceLoader> cir,
                                    @Local List<SpriteSource> list) {
-        ResourceLocation atlas = ResourceLocation.fromNamespaceAndPath(location.getNamespace(), "textures/atlas/%s.png".formatted(location.getPath()));
+        ResourceLocation atlas = location.withPath("textures/atlas/%s.png"::formatted);
         Set<ResourceLocation> sprites = new HashSet<>();
         for (var renderer : IRenderer.EVENT_REGISTERS) {
             renderer.onPrepareTextureAtlas(atlas, sprites::add);
