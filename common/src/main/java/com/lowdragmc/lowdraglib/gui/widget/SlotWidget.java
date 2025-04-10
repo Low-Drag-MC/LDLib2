@@ -494,7 +494,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         if (LDLib.isJeiLoaded()) {
             return JEIPlugin.getItemIngredient(realStack, getPosition().x, getPosition().y, getSize().width, getSize().height);
         } else if (LDLib.isEmiLoaded()) {
-            return EmiStack.of(realStack);
+            return EmiStack.of(realStack).setChance(getXEIChance());
         }
         return null;
     }

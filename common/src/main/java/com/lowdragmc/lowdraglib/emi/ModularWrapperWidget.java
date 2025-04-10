@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.emi;
 
+import com.lowdragmc.lowdraglib.gui.ingredient.IRecipeIngredientSlot;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.jei.ModularWrapper;
 import dev.emi.emi.api.widget.Bounds;
@@ -52,7 +53,8 @@ public class ModularWrapperWidget extends Widget implements ContainerEventHandle
 
     @Override
     public List<ClientTooltipComponent> getTooltip(int mouseX, int mouseY) {
-        if (modular.tooltipTexts != null && !modular.tooltipTexts.isEmpty()) {
+        if (modular.tooltipTexts != null && !modular.tooltipTexts.isEmpty() &&
+                !(modular.modularUI.mainGroup.getHoverElement(mouseX + modular.getLeft(), mouseY + modular.getTop()) instanceof IRecipeIngredientSlot)) {
             List<ClientTooltipComponent> tooltips = modular.tooltipTexts.stream().map(Component::getVisualOrderText).map(ClientTooltipComponent::create).collect(Collectors.toList());
             if (modular.tooltipComponent != null) {
                 tooltips.add(DrawerHelper.getClientTooltipComponent(modular.tooltipComponent));

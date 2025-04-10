@@ -39,12 +39,14 @@ public class TestXEIWidgetGroup extends WidgetGroup {
         List<Either<List<Pair<TagKey<Item>, Integer>>, List<ItemStack>>> itemsList2 = List.of(Either.left(List.of(Pair.of(ItemTags.AXES, 5))));
         var input2 = new SlotWidget(new TagOrCycleItemStackTransfer(itemsList), 0, 20, 0, false, false)
                 .setBackgroundTexture(SlotWidget.ITEM_SLOT_TEXTURE)
-                .setIngredientIO(IngredientIO.INPUT);
+                .setIngredientIO(IngredientIO.INPUT)
+                .appendHoverTooltips("appended tooltip");
 
         var input3 = new SlotWidget(new TagOrCycleItemStackTransfer(itemsList2), 0, 40, 0, false, false)
                 .setBackgroundTexture(SlotWidget.ITEM_SLOT_TEXTURE)
                 .setIngredientIO(IngredientIO.INPUT)
-                .setXEIChance(0);
+                .setXEIChance(0)
+                .appendHoverTooltips("appended tooltip");
 
         var input4 = new SlotWidget(new ItemStackTransfer(), 0, 40, 20, false, false)
                 .setBackgroundTexture(SlotWidget.ITEM_SLOT_TEXTURE)
@@ -60,7 +62,8 @@ public class TestXEIWidgetGroup extends WidgetGroup {
 
         var inputFluid = new TankWidget(new FluidStorage(FluidStack.create(Fluids.WATER, 1000)), 20, 40, 20, 20, false, false)
                 .setBackground(TankWidget.FLUID_SLOT_TEXTURE)
-                .setIngredientIO(IngredientIO.INPUT);
+                .setIngredientIO(IngredientIO.INPUT)
+                .appendHoverTooltips("appended tooltip");
 
         var outputFluid = new TankWidget(new FluidStorage(FluidStack.create(Fluids.LAVA, 1000)), 130, 40, 20, 20, false, false)
                 .setBackground(TankWidget.FLUID_SLOT_TEXTURE)
@@ -87,12 +90,14 @@ public class TestXEIWidgetGroup extends WidgetGroup {
         var catalystFluid = new TankWidget(new TagOrCycleFluidTransfer(fluidList), 0, 110, 40, 20, 20, false, false)
                 .setBackground(TankWidget.FLUID_SLOT_TEXTURE)
                 .setIngredientIO(IngredientIO.CATALYST)
-                .setXEIChance(0.01f);
+                .setXEIChance(0.01f)
+                .appendHoverTooltips("appended tooltip");
 
         var inputFluid2 = new TankWidget(new TagOrCycleFluidTransfer(fluidList2), 0, 110, 20, 20, 20, false, false)
                 .setBackground(TankWidget.FLUID_SLOT_TEXTURE)
                 .setIngredientIO(IngredientIO.CATALYST)
-                .setXEIChance(0f);
+                .setXEIChance(0f)
+                .appendHoverTooltips("appended tooltip");
 
         var inputFluid3 = new TankWidget(new TagOrCycleFluidTransfer(fluidList), 0, 90, 20, 20, 40, false, false)
                 .setBackground(TankWidget.FLUID_SLOT_TEXTURE)
