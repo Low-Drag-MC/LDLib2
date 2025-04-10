@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.math.Position;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * @author KilaBash
@@ -21,6 +22,11 @@ public class PlayerInventoryWidget extends WidgetGroup {
     @Configurable(name = "ldlib.gui.editor.name.slot_background")
     @Getter
     private IGuiTexture slotBackground = SlotWidget.ITEM_SLOT_TEXTURE.copy();
+    @Getter
+    @Setter
+    @Configurable(name = "ldlib.gui.editor.name.allow_custom_background",
+            tips = "ldlib.gui.editor.name.allow_custom_background.tips")
+    private boolean allowCustomBackground = false;
 
     public PlayerInventoryWidget() {
         super(0, 0, 172, 86);
@@ -59,7 +65,9 @@ public class PlayerInventoryWidget extends WidgetGroup {
             if (widgets.get(i) instanceof SlotWidget slotWidget) {
                 slotWidget.setContainerSlot(gui.entityPlayer.getInventory(), i);
                 slotWidget.setLocationInfo(true, i < 9);
-                slotWidget.setBackground(slotBackground);
+                if (!allowCustomBackground) {
+                    slotWidget.setBackground(slotBackground);
+                }
                 if (LDLib.isClient() && Editor.INSTANCE != null) {
                     slotWidget.setCanPutItems(false);
                     slotWidget.setCanTakeItems(false);

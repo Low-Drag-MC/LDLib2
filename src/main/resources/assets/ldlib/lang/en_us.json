@@ -49,6 +49,8 @@
   "ldlib.gui.editor.blockstate.properties": "Properties",
 
   "ldlib.gui.editor.name.slot_background": "slot background",
+  "ldlib.gui.editor.name.allow_custom_background": "allow custom background",
+  "ldlib.gui.editor.name.allow_custom_background.tips": "If true, each slot can have its own background, if false, all slots will share the same background.",
   "ldlib.gui.editor.name.x_bar_height": "x bar height",
   "ldlib.gui.editor.name.y_bar_width": "y bar height",
   "ldlib.gui.editor.name.draggable": "draggable",
