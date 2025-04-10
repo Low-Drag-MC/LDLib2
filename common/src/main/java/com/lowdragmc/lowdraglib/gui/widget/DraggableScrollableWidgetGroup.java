@@ -8,17 +8,18 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
+import com.mojang.blaze3d.platform.Window;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
@@ -396,10 +397,27 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
                 this.draggedPanel = true;
                 return true;
             }
-            return false;
         }
         setFocus(false);
         return false;
+    }
+
+    @Override
+    @Environment(EnvType.CLIENT)
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        Window window = Minecraft.getInstance().getWindow();
+        double mouseX = Minecraft.getInstance().mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
+        double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
+
+        if(isMouseOverElement(mouseX, mouseY)) {
+            for (int i = widgets.size() - 1; i >= 0; i--) {
+                Widget widget = widgets.get(i);
+                if (widget.isVisible() && widget.isMouseOverElement(mouseX, mouseY)) {
+                    return widget.keyPressed(keyCode, scanCode, modifiers);
+                }
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Environment(EnvType.CLIENT)
