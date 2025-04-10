@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 public class NumberAccessor extends TypesAccessor<Number> {
 
     public NumberAccessor() {
-        super(int.class, float.class, byte.class, double.class, Integer.class, Float.class, Byte.class, Double.class);
+        super(int.class, long.class, float.class, byte.class, double.class, Integer.class, Long.class, Float.class, Byte.class, Double.class);
     }
 
     @Override
