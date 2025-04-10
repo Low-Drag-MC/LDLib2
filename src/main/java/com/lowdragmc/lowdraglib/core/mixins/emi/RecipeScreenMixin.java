@@ -74,17 +74,4 @@ public abstract class RecipeScreenMixin {
         }
     }
 
-    @Inject(method = "keyPressed", at = @At(value = "HEAD"), cancellable = true)
-    private void initKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        for (var widgetGroup : currentPage) {
-            for (Widget widget : widgetGroup.widgets) {
-                if (widget instanceof ModularWrapperWidget wrapperWidget) {
-                    if (wrapperWidget.keyPressed(keyCode, scanCode, modifiers)) {
-                        cir.setReturnValue(true);
-                    }
-                }
-            }
-        }
-    }
-
 }
