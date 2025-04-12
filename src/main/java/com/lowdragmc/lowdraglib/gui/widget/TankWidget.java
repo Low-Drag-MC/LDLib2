@@ -228,7 +228,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
                 return EntryStacks.of(dev.architectury.fluid.FluidStack.create(lastFluidInTank.getFluid(), lastFluidInTank.getAmount(), lastFluidInTank.getComponentsPatch()));
             }
             if (LDLib.isEmiLoaded()) {
-                return EmiStack.of(lastFluidInTank.getFluid(), lastFluidInTank.getComponentsPatch(), lastFluidInTank.getAmount()).setChance(XEIChance);
+                return EMICallWrapper.getEmiIngredient(lastFluidInTank, getXEIChance());
             }
         }
         return null;
@@ -251,7 +251,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
             return List.of(EntryStacks.of(dev.architectury.fluid.FluidStack.create(lastFluidInTank.getFluid(), lastFluidInTank.getAmount(), lastFluidInTank.getComponentsPatch())));
         }
         if (LDLib.isEmiLoaded()) {
-            return List.of(EmiStack.of(lastFluidInTank.getFluid(), lastFluidInTank.getComponentsPatch(), lastFluidInTank.getAmount()).setChance(XEIChance));
+            return List.of(EMICallWrapper.getEmiIngredient(lastFluidInTank, XEIChance));
         }
         return List.of(FluidHelper.toRealFluidStack(lastFluidInTank));
     }
@@ -262,7 +262,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         if (LDLib.isJeiLoaded()) {
             return JEICallWrapper.getPlatformFluidTypeForJEIClickable(lastFluidInTank.copy(), getPosition(), getSize());
         } else if (LDLib.isEmiLoaded()) {
-            return NeoForgeEmiStack.of(lastFluidInTank).setChance(XEIChance);
+            return EMICallWrapper.getEmiIngredient(lastFluidInTank, XEIChance);
         }
         return null;
     }
@@ -623,8 +623,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
                     }
                 }
                 if (LDLib.isEmiLoaded()) {
-                    if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
-                        EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                    if (EMICallWrapper.mouseClick(getXEICurrentIngredient(), button)) {
                         return true;
                     }
                 }
@@ -640,8 +639,7 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
         double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
         if (isMouseOverElement(mouseX, mouseY)) {
             if (LDLib.isEmiLoaded()) {
-                if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
-                    EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
+                if (EMICallWrapper.keyPressed(getXEICurrentIngredient(), keyCode, scanCode, modifiers)) {
                     return true;
                 }
             }
@@ -728,6 +726,26 @@ public class TankWidget extends Widget implements IRecipeIngredientSlot, IConfig
             return list.stream()
                     .map(pair -> EmiIngredient.of(pair.getFirst()).setAmount(pair.getSecond()).setChance(xeiChance))
                     .collect(Collectors.toList());
+        }
+
+        public static Object getEmiIngredient(FluidStack fluidStack, float xeiChance) {
+            return NeoForgeEmiStack.of(fluidStack).setChance(xeiChance);
+        }
+
+        public static boolean mouseClick(Object ingredient, int button) {
+            if (ingredient instanceof EmiStack emiStack) {
+                EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                return true;
+            }
+            return false;
+        }
+
+        public static boolean keyPressed(Object ingredient, int keyCode, int scanCode, int modifiers) {
+            if (ingredient instanceof EmiStack emiStack) {
+                EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
+                return true;
+            }
+            return false;
         }
     }
 }
