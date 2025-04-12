@@ -95,7 +95,7 @@ dependencies {
     // JEI
     modCompileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
     modCompileOnly("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}") { transitive = false }
-    modCompileOnly("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    modRuntimeOnly("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
 
     // REI
     modCompileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-forge:${rei_version}")
@@ -104,7 +104,7 @@ dependencies {
 
     // EMI
     modCompileOnly("dev.emi:emi-forge:${emi_version}:api")
-    modImplementation("dev.emi:emi-forge:${emi_version}")
+    modCompileOnly("dev.emi:emi-forge:${emi_version}")
 
     // AE2
     modImplementation("appeng:appliedenergistics2-forge:${ae2_version}")

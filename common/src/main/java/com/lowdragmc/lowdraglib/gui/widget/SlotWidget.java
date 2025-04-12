@@ -287,10 +287,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
                 }
                 return true;
             } else if (LDLib.isEmiLoaded()) {
-                if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
-                    EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
-                    return true;
-                }
+                return EMICallWrapper.mouseClicked(getXEICurrentIngredient(), button);
             } else {
                 return false;
             }
@@ -306,8 +303,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         double mouseY = Minecraft.getInstance().mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
         if (isMouseOverElement(mouseX, mouseY)) {
             if (LDLib.isEmiLoaded()) {
-                if (getXEICurrentIngredient() instanceof EmiStack emiStack) {
-                    EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
+                if (EMICallWrapper.keyPressed(getXEICurrentIngredient(), keyCode, scanCode, modifiers)) {
                     return true;
                 }
             }
@@ -494,7 +490,7 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         if (LDLib.isJeiLoaded()) {
             return JEIPlugin.getItemIngredient(realStack, getPosition().x, getPosition().y, getSize().width, getSize().height);
         } else if (LDLib.isEmiLoaded()) {
-            return EmiStack.of(realStack).setChance(getXEIChance());
+            return EMICallWrapper.getEmiIngredient(realStack, getXEIChance());
         }
         return null;
     }
@@ -767,6 +763,26 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
         }
         public static List<Object> getEmiIngredients(ItemStack stack, float xeiChance) {
             return List.of(EmiStack.of(stack).setChance(xeiChance));
+        }
+
+        public static Object getEmiIngredient(ItemStack stack, float xeiChance) {
+            return EmiStack.of(stack).setChance(xeiChance);
+        }
+
+        public static boolean mouseClicked(Object ingredient, int button) {
+            if (ingredient instanceof EmiStack emiStack) {
+                EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
+                return true;
+            }
+            return false;
+        }
+
+        public static boolean keyPressed(Object ingredient, int keyCode, int scanCode, int modifiers) {
+            if (ingredient instanceof EmiStack emiStack) {
+                EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
+                return true;
+            }
+            return false;
         }
     }
 }

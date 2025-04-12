@@ -124,7 +124,7 @@ public abstract class ModularEmiRecipe<T extends Widget> implements EmiRecipe {
                         slotWidget = new TankWidget(ingredients, w.getPosition().x, w.getPosition().y, w.getSize().width, w.getSize().height, capacity);
                     }
                     if (slotWidget == null) {
-                        slotWidget = new RecipeIngredientSlotWidget(slot);
+                        slotWidget = (SlotWidget) EMICallWrapper.Creator(slot);
                     }
 
                     slotWidget.customBackground(null, w.getPosition().x, w.getPosition().y, w.getSize().width, w.getSize().height)
@@ -167,5 +167,11 @@ public abstract class ModularEmiRecipe<T extends Widget> implements EmiRecipe {
         modular.setRecipeWidget(0, 0);
         widgets.add(new ModularWrapperWidget(modular, new ArrayList<>()));
         TEMP_CACHE = modular;
+    }
+
+    public static final class EMICallWrapper {
+        public static Object Creator(IRecipeIngredientSlot slot){
+            return new RecipeIngredientSlotWidget(slot);
+        }
     }
 }
