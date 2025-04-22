@@ -14,8 +14,8 @@ public abstract class UIElement {
     public void requestLayout() {
         if (needsLayout) return;
         needsLayout = true;
-        getParent().ifPresent(UIElement::requestLayout);
-        Yoga.
+        //getParent().ifPresent(UIElement::requestLayout);
+        //Yoga.
     }
 
     // 实际布局入口
@@ -26,8 +26,8 @@ public abstract class UIElement {
         computeSize(parentBounds);
 
         // 2. 选择布局引擎
-        LayoutEngine engine = UIManager.getLayoutEngine(this);
-        engine.layout(this);
+        //LayoutEngine engine = UIManager.getLayoutEngine(this);
+        //engine.layout(this);
 
         // 3. 标记布局完成
         needsLayout = false;
