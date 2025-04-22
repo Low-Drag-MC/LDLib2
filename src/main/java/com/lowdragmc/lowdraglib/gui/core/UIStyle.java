@@ -30,7 +30,7 @@ public class UIStyle {
     public AlignSelf alignSelf = AlignSelf.AUTO;
     
     // 定位
-    public Position position = Position.RELATIVE;
+    //public Position position = Position.RELATIVE;
     
     // 枚举类型
     public enum FlexDirection { ROW, ROW_REVERSE, COLUMN, COLUMN_REVERSE }

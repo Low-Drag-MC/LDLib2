@@ -147,7 +147,7 @@ dependencies {
 
     // EMI
     compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
-    runtimeOnly("dev.emi:emi-neoforge:${emi_version}")
+    implementation("dev.emi:emi-neoforge:${emi_version}")
 
     // AE2
     compileOnly("appeng:appliedenergistics2-neoforge:${ae2_version}")
