@@ -771,16 +771,14 @@ public class SlotWidget extends Widget implements IRecipeIngredientSlot, IConfig
 
         public static boolean mouseClicked(Object ingredient, int button) {
             if (ingredient instanceof EmiStack emiStack) {
-                EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
-                return true;
+                return EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesMouse(button));
             }
             return false;
         }
 
         public static boolean keyPressed(Object ingredient, int keyCode, int scanCode, int modifiers) {
             if (ingredient instanceof EmiStack emiStack) {
-                EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
-                return true;
+                return EmiScreenManager.stackInteraction(new EmiStackInteraction(emiStack), (bind) -> bind.matchesKey(keyCode, scanCode));
             }
             return false;
         }
