@@ -98,7 +98,7 @@ runs {
         modSource project.sourceSets.main
 
         dependencies {
-            runtime 'org.lwjgl:lwjgl-yoga:3.3.6'
+            runtime 'org.appliedenergistics.yoga:yoga:1.0.0'
         }
     }
 
@@ -167,7 +167,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     // Yoga
-    implementation 'org.lwjgl:lwjgl-yoga:3.3.6'
+    implementation 'org.appliedenergistics.yoga:yoga:1.0.0'
 }
 
 tasks.withType(ProcessResources).configureEach {

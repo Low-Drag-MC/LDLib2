@@ -148,10 +148,10 @@ public class TextTexture extends TransformTexture {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         updateTick();
         if (backgroundColor != 0) {
-            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, width, height, backgroundColor);
+            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, backgroundColor);
         }
         graphics.pose().pushPose();
         graphics.pose().translate(0, 0, 400);
@@ -182,20 +182,20 @@ public class TextTexture extends TransformTexture {
                 graphics.drawString(fontRenderer, line, (int) (x + width - lineWidth), (int) _y, color, dropShadow);
             }
         } else if (type == TextType.HIDE) {
-            if (Widget.isMouseOver((int) x, (int) y, width, height, mouseX, mouseY) && texts.size() > 1) {
+            if (Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
                 drawTextLine(graphics, x, y, width, height, fontRenderer, textH, line);
             }
         } else if (type == TextType.ROLL || type == TextType.ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || Widget.isMouseOver((int) x, (int) y, width, height, mouseX, mouseY))) {
+            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 drawTextLine(graphics, x, y, width, height, fontRenderer, textH, texts.get(0));
             }
         } else if (type == TextType.LEFT_HIDE) {
-            if (Widget.isMouseOver((int) x, (int) y, width, height, mouseX, mouseY) && texts.size() > 1) {
+            if (Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
@@ -203,7 +203,7 @@ public class TextTexture extends TransformTexture {
                 graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
             }
         } else if (type == TextType.LEFT_ROLL || type == TextType.LEFT_ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || Widget.isMouseOver((int) x, (int) y, width, height, mouseX, mouseY))) {
+            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 float _y = y + (height - textH) / 2f;
@@ -215,10 +215,10 @@ public class TextTexture extends TransformTexture {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void drawRollTextLine(GuiGraphics graphics, float x, float y, int width, int height, Font fontRenderer, int textH, String line) {
+    private void drawRollTextLine(GuiGraphics graphics, float x, float y, float width, float height, Font fontRenderer, int textH, String line) {
         float _y = y + (height - textH) / 2f;
-        int textW = fontRenderer.width(line);
-        int totalW = width + textW + 10;
+        float textW = fontRenderer.width(line);
+        float totalW = width + textW + 10;
         float from = x + width;
         var trans = graphics.pose().last().pose();
         var realPos = trans.transform(new Vector4f(x, y, 0, 1));
@@ -230,7 +230,7 @@ public class TextTexture extends TransformTexture {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void drawTextLine(GuiGraphics graphics, float x, float y, int width, int height, Font fontRenderer, int textH, String line) {
+    private void drawTextLine(GuiGraphics graphics, float x, float y, float width, float height, Font fontRenderer, int textH, String line) {
         int textW = fontRenderer.width(line);
         float _x = x + (width - textW) / 2f;
         float _y = y + (height - textH) / 2f;

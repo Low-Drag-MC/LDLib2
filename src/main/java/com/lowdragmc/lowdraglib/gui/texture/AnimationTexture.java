@@ -135,7 +135,7 @@ public class AnimationTexture extends TransformTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         updateTick();
         float cell = 1f / this.cellSize;
         int X = currentFrame % cellSize;
@@ -191,7 +191,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         float cell = 1f / this.cellSize;
         int X = from % cellSize;
         int Y = from / cellSize;
@@ -201,7 +201,7 @@ public class AnimationTexture extends TransformTexture {
 
         new ColorBorderTexture(-1, 0xff00ff00).draw(graphics, 0, 0,
                 x + width * imageU, y + height * imageV,
-                (int) (width * (cell)), (int) (height * (cell)));
+                (int) (width * (cell)), (int) (height * (cell)), partialTicks);
 
         X = to % cellSize;
         Y = to / cellSize;
@@ -211,6 +211,6 @@ public class AnimationTexture extends TransformTexture {
 
         new ColorBorderTexture(-1, 0xffff0000).draw(graphics, 0, 0,
                 x + width * imageU, y + height * imageV,
-                (int) (width * (cell)), (int) (height * (cell)));
+                (int) (width * (cell)), (int) (height * (cell)), partialTicks);
     }
 }

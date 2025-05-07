@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.PersistedParser;
@@ -34,7 +33,7 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
 
         @OnlyIn(Dist.CLIENT)
         @Override
-        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
             Tesselator tessellator = Tesselator.getInstance();
             BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX);
             RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
@@ -59,7 +58,7 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
 
         @OnlyIn(Dist.CLIENT)
         @Override
-        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {}
+        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {}
     }
 
     EmptyTexture EMPTY = new EmptyTexture();
@@ -81,14 +80,14 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
     }
 
     @OnlyIn(Dist.CLIENT)
-    void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height);
+    void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
 
     @OnlyIn(Dist.CLIENT)
     default void updateTick() { }
 
     @OnlyIn(Dist.CLIENT)
-    default void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight) {
-        draw(graphics, 0, 0, x, y, (int) width, (int) height);
+    default void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
+        draw(graphics, 0, 0, x, y, (int) width, (int) height, partialTicks);
     }
 
     default IGuiTexture copy() {
@@ -108,9 +107,5 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
     default void buildConfigurator(ConfiguratorGroup father) {
         createPreview(father);
         IConfigurable.super.buildConfigurator(father);
-    }
-
-    default void setUIResource(Resource<IGuiTexture> texturesResource) {
-
     }
 }

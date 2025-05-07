@@ -71,9 +71,9 @@ public class ProgressTexture extends TransformTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         if (emptyBarArea != null) {
-            emptyBarArea.draw(graphics, mouseX, mouseY, x, y, width, height);
+            emptyBarArea.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         }
         if (filledBarArea != null) {
             float drawnU = (float) fillDirection.getDrawnU(progress);
@@ -87,7 +87,7 @@ public class ProgressTexture extends TransformTexture {
 
             filledBarArea.drawSubArea(graphics, X, Y, W, H, drawnU, drawnV,
                     ((drawnWidth * width)) / (width),
-                    ((drawnHeight * height)) / (height));
+                    ((drawnHeight * height)) / (height), partialTicks);
         }
     }
 

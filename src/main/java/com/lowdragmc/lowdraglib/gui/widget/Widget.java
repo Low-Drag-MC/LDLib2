@@ -413,12 +413,12 @@ public class Widget {
         if (backgroundTexture != null && (!isHovered || drawBackgroundWhenHover)) {
             Position pos = getPosition();
             Size size = getSize();
-            backgroundTexture.draw(graphics, mouseX, mouseY, pos.x, pos.y, size.width, size.height);
+            backgroundTexture.draw(graphics, mouseX, mouseY, pos.x, pos.y, size.width, size.height,0);
         }
         if (hoverTexture != null && isHovered && isActive()) {
             Position pos = getPosition();
             Size size = getSize();
-            hoverTexture.draw(graphics, mouseX, mouseY, pos.x, pos.y, size.width, size.height);
+            hoverTexture.draw(graphics, mouseX, mouseY, pos.x, pos.y, size.width, size.height, 0);
         }
     }
 
@@ -434,7 +434,7 @@ public class Widget {
     public void drawOverlay(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         if (overlay != null) {
             Position pos = getPosition();
-            overlay.draw(graphics, mouseX, mouseY, pos.x, pos.y, size.width, size.height);
+            overlay.draw(graphics, mouseX, mouseY, pos.x, pos.y, size.width, size.height, 0);
         }
     }
 

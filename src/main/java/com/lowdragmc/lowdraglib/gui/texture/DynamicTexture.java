@@ -15,7 +15,7 @@ public class DynamicTexture implements IGuiTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
-        textureSupplier.get().draw(graphics, mouseX, mouseY, x, y, width, height);
+    public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        textureSupplier.get().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
     }
 }

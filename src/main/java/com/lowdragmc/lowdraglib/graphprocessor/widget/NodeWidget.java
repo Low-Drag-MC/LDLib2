@@ -204,12 +204,12 @@ public class NodeWidget extends WidgetGroup {
         super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
         var radius = new Vector4f(5, 5, 5, 5);
         if (isMouseOverElement(mouseX, mouseY) || graphView.getSelectedNodes().contains(node)) {
-            DrawerHelper.drawFrameRoundBox(graphics, Rect.ofRelative(getPositionX(), getSizeWidth(), getPositionY(), getSizeHeight()),
+            DrawerHelper.drawFrameRoundBox(graphics,getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(),
                     1, radius, radius, ColorPattern.BLUE.color);
         }
         if (graphView.isRunStep() && graphView.getStepNode() == node) {
-            DrawerHelper.drawFrameRoundBox(graphics, Rect.ofRelative(getPositionX() - 3, getSizeWidth() + 6,
-                            getPositionY() - 3, getSizeHeight() + 6),
+            DrawerHelper.drawFrameRoundBox(graphics,getPositionX() - 3, getPositionY() - 3, getSizeWidth() + 6,
+                            getSizeHeight() + 6,
                     2, radius, radius, ColorPattern.generateRainbowColor(gui.getTickCount()));
         }
     }

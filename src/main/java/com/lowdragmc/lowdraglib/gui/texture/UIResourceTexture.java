@@ -64,8 +64,8 @@ public final class UIResourceTexture implements IGuiTexture, IPersistedSerializa
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
-        getTexture().draw(graphics, mouseX, mouseY, x, y, width, height);
+    public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        getTexture().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
     }
 
     @Override
@@ -76,8 +76,8 @@ public final class UIResourceTexture implements IGuiTexture, IPersistedSerializa
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight) {
-        getTexture().drawSubArea(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight);
+    public void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
+        getTexture().drawSubArea(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight, partialTicks);
     }
 
     @Override

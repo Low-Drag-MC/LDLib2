@@ -112,12 +112,12 @@ public class ResourceTexture extends TransformTexture {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
-        drawSubArea(graphics, x, y, width, height, 0, 0, 1, 1);
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        drawSubArea(graphics, x, y, width, height, 0, 0, 1, 1, partialTicks);
     }
     
     @OnlyIn(Dist.CLIENT)
-    protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight) {
+    protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
         //sub area is just different width and height
         float imageU = this.offsetX + (this.imageWidth * drawnU);
         float imageV = this.offsetY + (this.imageHeight * drawnV);
@@ -169,9 +169,9 @@ public class ResourceTexture extends TransformTexture {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         new ColorBorderTexture(-1, 0xffff0000).draw(graphics, 0, 0,
                 x + width * offsetX, y + height * offsetY,
-                (int) (width * imageWidth), (int) (height * imageHeight));
+                (int) (width * imageWidth), (int) (height * imageHeight), partialTicks);
     }
 }

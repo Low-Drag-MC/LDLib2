@@ -157,7 +157,7 @@ public class ModularUIGuiContainer extends AbstractContainerScreen<ModularUICont
         modularUI.mainGroup.drawInForeground(graphics, mouseX, mouseY, partialTicks);
 
         if (draggingElement != null) {
-            draggingElement.getB().draw(graphics, mouseX, mouseY, mouseX - 20, mouseY - 20, 40, 40);
+            draggingElement.getB().draw(graphics, mouseX, mouseY, mouseX - 20, mouseY - 20, 40, 40, partialTicks);
         }
 
         graphics.bufferSource().endBatch();

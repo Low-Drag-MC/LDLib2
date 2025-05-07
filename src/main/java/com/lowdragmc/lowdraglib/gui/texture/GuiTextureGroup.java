@@ -35,9 +35,9 @@ public class GuiTextureGroup extends TransformTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         for (IGuiTexture texture : textures) {
-            texture.draw(graphics, mouseX,mouseY,  x, y, width, height);
+            texture.draw(graphics, mouseX,mouseY,  x, y, width, height, partialTicks);
         }
     }
 
@@ -51,9 +51,9 @@ public class GuiTextureGroup extends TransformTexture {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight) {
+    protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
         for (IGuiTexture texture : textures) {
-            texture.drawSubArea(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight);
+            texture.drawSubArea(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight, partialTicks);
         }
     }
 

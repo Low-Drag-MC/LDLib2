@@ -90,14 +90,14 @@ public class ColorRectTexture extends TransformTexture{
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         if (width == 0 || height == 0) return;
         if (radiusLT > 0 || radiusLB > 0 || radiusRT > 0 || radiusRB > 0) {
             float radius = Math.min(width, height) / 2f;
-            DrawerHelper.drawRoundBox(graphics, Rect.ofRelative((int) x, width, (int) y, height),
+            DrawerHelper.drawRoundBox(graphics, x, y, width, height,
                     new Vector4f(Math.min(radius, radiusRT), Math.min(radiusRB, radius), Math.min(radius, radiusLT), Math.min(radius, radiusLB)), color);
         } else {
-            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, width, height, color);
+            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, color);
         }
     }
 }

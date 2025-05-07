@@ -175,18 +175,18 @@ public class ColorBorderTexture extends TransformTexture{
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         if (width == 0 || height == 0) return;
         if (radiusLTInner > 0 || radiusLBInner > 0 || radiusRTInner > 0 ||radiusRBInner > 0 ||
                 radiusLTOuter > 0 || radiusLBOuter > 0 || radiusRTOuter > 0 ||radiusRBOuter > 0) {
             float radius = Math.min(width, height) / 2f;
-            DrawerHelper.drawFrameRoundBox(graphics, Rect.ofRelative((int) x, width, (int) y, height),
+            DrawerHelper.drawFrameRoundBox(graphics,x, y, width, height,
                     border,
                     new Vector4f(Math.min(radius, radiusRTInner), Math.min(radiusRBInner, radius), Math.min(radius, radiusLTInner), Math.min(radius, radiusLBInner)),
                     new Vector4f(Math.min(radius, radiusRTOuter), Math.min(radiusRBOuter, radius), Math.min(radius, radiusLTOuter), Math.min(radius, radiusLBOuter)),
                     color);
         } else {
-            DrawerHelper.drawBorder(graphics, (int)x, (int)y, width, height, color, border);
+            DrawerHelper.drawBorder(graphics, (int)x, (int)y, (int)width, (int)height, color, border);
         }
     }
 }

@@ -32,6 +32,7 @@ import net.minecraft.world.phys.Vec2;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.appliedenergistics.yoga.YogaNode;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.lwjgl.opengl.GL11;
@@ -326,12 +327,12 @@ public class DrawerHelper {
         uploadScreenPosVertex();
     }
 
-    public static void drawRoundBox(@Nonnull GuiGraphics graphics, Rect square, Vector4f radius, int color) {
+    public static void drawRoundBox(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, Vector4f radius, int color) {
         DrawerHelper.ROUND_BOX.use(uniform -> {
             DrawerHelper.updateScreenVshUniform(graphics, uniform);
             uniform.glUniformMatrix4F("PoseStack", new Matrix4f());
-            var point1 = new Vector4f(square.left - 0.25f, square.up - 0.25f, 0, 1);
-            var point2 = new Vector4f(square.right - 0.25f, square.down - 0.25f, 0, 1);
+            var point1 = new Vector4f(x - 0.25f, y - 0.25f, 0, 1);
+            var point2 = new Vector4f(x + width - 0.25f, y + height - 0.25f, 0, 1);
             var matrix = graphics.pose().last().pose();
             point1.mul(matrix);
             point2.mul(matrix);
@@ -365,12 +366,12 @@ public class DrawerHelper {
         uploadScreenPosVertex();
     }
 
-    public static void drawFrameRoundBox(@Nonnull GuiGraphics graphics, Rect square, float thickness, Vector4f radius1, Vector4f radius2, int color) {
+    public static void drawFrameRoundBox(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, float thickness, Vector4f radius1, Vector4f radius2, int color) {
         DrawerHelper.FRAME_ROUND_BOX.use(uniform -> {
             DrawerHelper.updateScreenVshUniform(graphics, uniform);
             uniform.glUniformMatrix4F("PoseStack", new Matrix4f());
-            var point1 = new Vector4f(square.left - 0.25f, square.up - 0.25f, 0, 1);
-            var point2 = new Vector4f(square.right - 0.25f, square.down - 0.25f, 0, 1);
+            var point1 = new Vector4f(x - 0.25f, y - 0.25f, 0, 1);
+            var point2 = new Vector4f(x + width - 0.25f, y + height - 0.25f, 0, 1);
             var matrix = graphics.pose().last().pose();
             point1.mul(matrix);
             point2.mul(matrix);

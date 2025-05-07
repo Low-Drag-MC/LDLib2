@@ -350,9 +350,9 @@ public class CodeEditorWidget extends WidgetGroup {
             isHoveringYBar = isMouseOver(pos.x + size.width - 4,
                     pos.y + scrollYOffset * availableHeight / fullHeight, 4, barHeight, mouseX, mouseY);
             scrollYOffset = Mth.clamp(scrollYOffset, 0, fullHeight - availableHeight);
-            yBarB.draw(graphics, mouseX, mouseY, pos.x + size.width - 4, pos.y, 4, availableHeight);
+            yBarB.draw(graphics, mouseX, mouseY, pos.x + size.width - 4, pos.y, 4, availableHeight, partialTicks);
             yBarF.draw(graphics, mouseX, mouseY, pos.x + size.width - 4,
-                    pos.y + scrollYOffset * availableHeight * 1f / fullHeight, 4, barHeight);
+                    pos.y + scrollYOffset * availableHeight * 1f / fullHeight, 4, barHeight, partialTicks);
         } else {
             scrollYOffset = 0;
             isHoveringYBar = false;
@@ -363,9 +363,9 @@ public class CodeEditorWidget extends WidgetGroup {
             isHoveringXBar = isMouseOver(pos.x + scrollXOffset * size.width / fullWidth,
                     pos.y + size.height - 4, barWidth, 4, mouseX, mouseY);
             scrollXOffset = Mth.clamp(scrollXOffset, 0, fullWidth - availableWidth);
-            xBarB.draw(graphics, mouseX, mouseY, pos.x, pos.y + size.height - 4, size.width, 4);
+            xBarB.draw(graphics, mouseX, mouseY, pos.x, pos.y + size.height - 4, size.width, 4, partialTicks);
             xBarF.draw(graphics, mouseX, mouseY, pos.x + scrollXOffset * size.width * 1f / fullWidth,
-                    pos.y + size.height - 4, barWidth, 4);
+                    pos.y + size.height - 4, barWidth, 4, partialTicks);
         } else {
             scrollXOffset = 0;
             isHoveringXBar = false;

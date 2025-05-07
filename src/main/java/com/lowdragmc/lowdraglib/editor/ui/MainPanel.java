@@ -323,12 +323,12 @@ public class MainPanel extends WidgetGroup {
             float middleX = pos.x + (size.width - 16) / 2f;
             float middleY = pos.y + (size.height - 16) / 2f;
             if (isDragPosition) {
-                Icons.UP.copy().setColor(-1).draw(graphics, mouseX, mouseY, middleX, pos.y - 10 - 16, 16, 16);
-                Icons.LEFT.copy().setColor(-1).draw(graphics, mouseX, mouseY, pos.x - 10 - 16, middleY, 16, 16);
+                Icons.UP.copy().setColor(-1).draw(graphics, mouseX, mouseY, middleX, pos.y - 10 - 16, 16, 16, partialTicks);
+                Icons.LEFT.copy().setColor(-1).draw(graphics, mouseX, mouseY, pos.x - 10 - 16, middleY, 16, 16, partialTicks);
             }
             if (isDragPosition || isDragSize) {
-                Icons.DOWN.copy().setColor(-1).draw(graphics, mouseX, mouseY, middleX, pos.y + size.height + 10, 16, 16);
-                Icons.RIGHT.copy().setColor(-1).draw(graphics, mouseX, mouseY, pos.x + size.width + 10, middleY, 16, 16);
+                Icons.DOWN.copy().setColor(-1).draw(graphics, mouseX, mouseY, middleX, pos.y + size.height + 10, 16, 16, partialTicks);
+                Icons.RIGHT.copy().setColor(-1).draw(graphics, mouseX, mouseY, pos.x + size.width + 10, middleY, 16, 16, partialTicks);
             }
         }
     }
