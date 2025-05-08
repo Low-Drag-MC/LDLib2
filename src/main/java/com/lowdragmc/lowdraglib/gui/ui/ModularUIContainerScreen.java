@@ -65,7 +65,9 @@ public class ModularUIContainerScreen<T extends AbstractContainerMenu> extends A
     }
 
     @Override
-    public void resize(Minecraft minecraft, int width, int height) {
+    protected void containerTick() {
+        super.containerTick();
+        modularUI.tick();
     }
 
     @Override

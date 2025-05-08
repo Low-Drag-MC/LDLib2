@@ -115,12 +115,32 @@ public class UIElement {
 
     /**
      * Calculate the layout of the element and its children.
-     * Call it to update layout manually if the node {@link YogaNode#hasNewLayout()},
      */
     public void calculateLayout() {
-        if (layoutNode.hasNewLayout()) {
-            layoutNode.calculateLayout(YogaConstants.UNDEFINED, YogaConstants.UNDEFINED);
+        layoutNode.calculateLayout(YogaConstants.UNDEFINED, YogaConstants.UNDEFINED);
+        applyLayout();
+    }
+
+    protected void applyLayout() {
+        if (!layoutNode.hasNewLayout()) {
+            return;
         }
+        // Reset the flag
+        layoutNode.markLayoutSeen();
+
+        // Do the real work
+        onLayoutChanged();
+
+        for (var child : children) {
+            child.applyLayout();
+        }
+    }
+
+    /**
+     * This method is called when the layout of the element has changed.
+     * You can override this method to do something when the layout changes.
+     */
+    protected void onLayoutChanged() {
         positionX = FloatOptional.of();
         positionY = FloatOptional.of();
         for (var child : children) {

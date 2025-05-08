@@ -60,4 +60,10 @@ public class ModularUI {
         rootElement.calculateLayout();
     }
 
+    public void tick() {
+        rootElement.screenTick();
+        if (rootElement.layoutNode.isDirty()) {
+            rootElement.calculateLayout();
+        }
+    }
 }
