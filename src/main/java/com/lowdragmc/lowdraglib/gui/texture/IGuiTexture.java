@@ -80,10 +80,13 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
     }
 
     @OnlyIn(Dist.CLIENT)
-    void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
+    @Deprecated
+    default void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height) {
+        draw(graphics, mouseX, mouseY, x, y, width, height, 0);
+    }
 
     @OnlyIn(Dist.CLIENT)
-    default void updateTick() { }
+    void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
 
     @OnlyIn(Dist.CLIENT)
     default void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {

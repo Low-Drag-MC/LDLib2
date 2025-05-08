@@ -85,16 +85,15 @@ public class TextTexture extends TransformTexture {
         return this;
     }
 
-    @Override
     @OnlyIn(Dist.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {
             long tick = Minecraft.getInstance().level.getGameTime();
             if (tick == lastTick) return;
             lastTick = tick;
-        }
-        if (supplier != null) {
-            updateText(supplier.get());
+            if (supplier != null) {
+                updateText(supplier.get());
+            }
         }
     }
 

@@ -66,14 +66,6 @@ public class TreeListWidget<K, T> extends Widget {
         return this;
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void updateScreen() {
-        super.updateScreen();
-        if (nodeTexture != null) nodeTexture.updateTick();
-        if (leafTexture != null) leafTexture.updateTick();
-    }
-
 
     @Override
     @OnlyIn(Dist.CLIENT)
@@ -108,32 +100,32 @@ public class TreeListWidget<K, T> extends Widget {
             String name = node.toString();
             if (node.isLeaf()) {
                 if (leafTexture != null) {
-                    leafTexture.draw(graphics, mouseX, mouseY, x, sY, width, lineHeight);
+                    leafTexture.draw(graphics, mouseX, mouseY, x, sY, width, lineHeight, partialTicks);
                 }
                 if (node.getContent() != null) {
                     String nameS = contentNameSupplier == null ? null : contentNameSupplier.apply(node.getContent());
                     name = nameS == null ? name : nameS;
                     IGuiTexture icon = contentIconSupplier == null ? null : contentIconSupplier.apply(node.getContent());
                     if (icon != null) {
-                        icon.draw(graphics, mouseX, mouseY, sX - 2 - lineHeight, sY, lineHeight, lineHeight);
+                        icon.draw(graphics, mouseX, mouseY, sX - 2 - lineHeight, sY, lineHeight, lineHeight, partialTicks);
                     }
                 }
             } else {
                 if (nodeTexture != null) {
-                    nodeTexture.draw(graphics, mouseX, mouseY, x, sY, width, lineHeight);
+                    nodeTexture.draw(graphics, mouseX, mouseY, x, sY, width, lineHeight, partialTicks);
                 }
                 String nameS = keyNameSupplier == null ? null : keyNameSupplier.apply(node.getKey());
                 name = nameS == null ? name : nameS;
                 IGuiTexture icon = keyIconSupplier == null ? null : keyIconSupplier.apply(node.getKey());
                 if (icon != null) {
-                    icon.draw(graphics, mouseX, mouseY, sX - 2 - lineHeight, sY, lineHeight, lineHeight);
+                    icon.draw(graphics, mouseX, mouseY, sX - 2 - lineHeight, sY, lineHeight, lineHeight, partialTicks);
                 }
             }
             if (node == selected) {
                 DrawerHelper.drawSolidRect(graphics, x + 1, sY, width - 2, lineHeight, 0x7f000000);
             }
             int maxWidth = Math.max(width - lineHeight * node.dimension, lineHeight - 3);
-            new TextTexture(name).setType(TextTexture.TextType.LEFT_HIDE).setWidth(maxWidth).draw(graphics, mouseX, mouseY, sX, sY, maxWidth, lineHeight);
+            new TextTexture(name).setType(TextTexture.TextType.LEFT_HIDE).setWidth(maxWidth).draw(graphics, mouseX, mouseY, sX, sY, maxWidth, lineHeight, partialTicks);
         }
         graphics.disableScissor();
 

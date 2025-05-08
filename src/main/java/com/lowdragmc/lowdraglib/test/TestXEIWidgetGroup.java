@@ -75,7 +75,7 @@ public class TestXEIWidgetGroup extends WidgetGroup {
                 .setOnAddedTooltips((widget, tooltips) -> {
                     tooltips.add(Component.literal("test tooltip").withStyle(ChatFormatting.GREEN));
                 })
-                .setOverlay((graphics, mouseX, mouseY, x, y, width, height) -> {
+                .setOverlay((graphics, mouseX, mouseY, x, y, width, height, partialTick) -> {
                     graphics.pose().pushPose();
                     graphics.pose().translate(0, 0, 400);
                     graphics.pose().scale(0.5f, 0.5f, 1);

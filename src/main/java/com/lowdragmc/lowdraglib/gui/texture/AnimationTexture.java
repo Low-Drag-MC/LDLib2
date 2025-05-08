@@ -112,24 +112,23 @@ public class AnimationTexture extends TransformTexture {
         return this;
     }
 
-    @Override
     @OnlyIn(Dist.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {
             long tick = Minecraft.getInstance().level.getGameTime();
             if (tick == lastTick) return;
             lastTick = tick;
-        }
-        if (currentTime >= animation) {
-            currentTime = 0;
-            currentFrame += 1;
-        } else {
-            currentTime++;
-        }
-        if (currentFrame > to) {
-            currentFrame = from;
-        } else if (currentFrame < from) {
-            currentFrame = from;
+            if (currentTime >= animation) {
+                currentTime = 0;
+                currentFrame += 1;
+            } else {
+                currentTime++;
+            }
+            if (currentFrame > to) {
+                currentFrame = from;
+            } else if (currentFrame < from) {
+                currentFrame = from;
+            }
         }
     }
 

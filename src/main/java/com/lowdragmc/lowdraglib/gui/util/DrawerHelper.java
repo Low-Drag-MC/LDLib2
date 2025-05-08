@@ -75,6 +75,7 @@ public class DrawerHelper {
         uMax = uMax - maskRight / 16f * (uMax - uMin);
         vMax = vMax - maskTop / 16f * (vMax - vMin);
 
+        // TODO optimal rendertype?
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         var mat = graphics.pose().last().pose();

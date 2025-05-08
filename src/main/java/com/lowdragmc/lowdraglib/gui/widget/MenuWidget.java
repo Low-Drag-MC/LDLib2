@@ -32,9 +32,9 @@ public class MenuWidget<K, T> extends WidgetGroup {
     public static IGuiTexture NODE_TEXTURE = new IGuiTexture() {
         @Override
         @OnlyIn(Dist.CLIENT)
-        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
-            ColorPattern.BLACK.rectTexture().draw(graphics, mouseX, mouseY, x, y, width, height);
-            Icons.RIGHT.draw(graphics, mouseX, mouseY, x + width - height + 3, y + 3, height - 6, height - 6);
+        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+            ColorPattern.BLACK.rectTexture().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+            Icons.RIGHT.draw(graphics, mouseX, mouseY, x + width - height + 3, y + 3, height - 6, height - 6, partialTicks);
         }
     };
     public static IGuiTexture LEAF_TEXTURE = ColorPattern.BLACK.rectTexture();

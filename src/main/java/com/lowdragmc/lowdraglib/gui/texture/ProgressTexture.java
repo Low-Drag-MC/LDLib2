@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.gui.texture;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Getter;
+import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
@@ -22,11 +23,10 @@ public class ProgressTexture extends TransformTexture {
     @Configurable
     @Getter
     protected IGuiTexture filledBarArea;
-
     @Getter
     protected double progress;
-
     private boolean demo;
+    private long lastTick;
 
     public ProgressTexture() {
         this(new ResourceTexture("ldlib:textures/gui/progress_bar_fuel.png").getSubTexture(0, 0, 1, 0.5),
@@ -41,18 +41,17 @@ public class ProgressTexture extends TransformTexture {
         return this;
     }
 
-    @Override
     @OnlyIn(Dist.CLIENT)
     public void updateTick() {
-        if (emptyBarArea != null) {
-            emptyBarArea.updateTick();
+        if (Minecraft.getInstance().level != null) {
+            long tick = Minecraft.getInstance().level.getGameTime();
+            if (tick == lastTick) return;
+            lastTick = tick;
+            if (demo) {
+                progress = Math.abs(System.currentTimeMillis() % 2000) / 2000.0;
+            }
         }
-        if (filledBarArea != null) {
-            filledBarArea.updateTick();
-        }
-        if (demo) {
-            progress = Math.abs(System.currentTimeMillis() % 2000) / 2000.0;
-        }
+
     }
 
     public ProgressTexture(IGuiTexture emptyBarArea, IGuiTexture filledBarArea) {
@@ -72,6 +71,7 @@ public class ProgressTexture extends TransformTexture {
     @Override
     @OnlyIn(Dist.CLIENT)
     protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        updateTick();
         if (emptyBarArea != null) {
             emptyBarArea.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         }

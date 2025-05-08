@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.math.Rect;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -14,6 +13,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import org.joml.Vector4f;
 
 import java.awt.*;
+import java.util.function.IntSupplier;
 
 @LDLRegisterClient(name = "color_rect_texture", registry = "ldlib:gui_texture")
 @Accessors(chain = true)
@@ -44,6 +44,9 @@ public class ColorRectTexture extends TransformTexture{
     @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusRB;
 
+    @Setter
+    public IntSupplier colorSupplier;
+
     public ColorRectTexture() {
         this(0x4f0ffddf);
     }
@@ -54,6 +57,10 @@ public class ColorRectTexture extends TransformTexture{
 
     public ColorRectTexture(Color color) {
         this.color = color.getRGB();
+    }
+
+    public ColorRectTexture(IntSupplier color) {
+        this.color = color.getAsInt();
     }
 
     public ColorRectTexture setRadius(float radius) {
@@ -92,6 +99,9 @@ public class ColorRectTexture extends TransformTexture{
     @Override
     protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         if (width == 0 || height == 0) return;
+        if (colorSupplier != null) {
+            color = colorSupplier.getAsInt();
+        }
         if (radiusLT > 0 || radiusLB > 0 || radiusRT > 0 || radiusRB > 0) {
             float radius = Math.min(width, height) / 2f;
             DrawerHelper.drawRoundBox(graphics, x, y, width, height,

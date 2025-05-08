@@ -53,12 +53,7 @@ public class ColorsResource extends Resource<Integer> {
     @Override
     public ResourceContainer<Integer, ImageWidget> createContainer(ResourcePanel panel) {
         ResourceContainer<Integer, ImageWidget> container = new ResourceContainer<>(this, panel);
-        container.setWidgetSupplier(k -> new ImageWidget(0, 0, 30, 30, new ColorRectTexture(getResourceOrDefault(k, -1)) {
-                    @Override
-                    public void updateTick() {
-                        this.color = getResourceOrDefault(k, -1);
-                    }
-                }))
+        container.setWidgetSupplier(k -> new ImageWidget(0, 0, 30, 30, new ColorRectTexture(() -> getResourceOrDefault(k, -1))))
                 .setDragging(this::getResource, ColorRectTexture::new)
                 .setOnEdit(k -> openTextureConfigurator(container, k))
                 .setOnAdd(key -> -1);

@@ -70,12 +70,6 @@ public final class UIResourceTexture implements IGuiTexture, IPersistedSerializa
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void updateTick() {
-        getTexture().updateTick();
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
     public void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
         getTexture().drawSubArea(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight, partialTicks);
     }

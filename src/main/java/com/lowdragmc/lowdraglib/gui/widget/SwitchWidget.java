@@ -86,16 +86,6 @@ public class SwitchWidget extends Widget implements IConfigurableWidget {
     @OnlyIn(Dist.CLIENT)
     public void updateScreen() {
         super.updateScreen();
-        if (baseTexture != null) {
-            baseTexture.updateTick();
-        }
-        if (pressedTexture != null) {
-            pressedTexture.updateTick();
-        }
-        if (hoverTexture != null) {
-            hoverTexture.updateTick();
-
-        }
         if (isClientSideWidget && supplier != null) {
             setPressed(supplier.get());
         }

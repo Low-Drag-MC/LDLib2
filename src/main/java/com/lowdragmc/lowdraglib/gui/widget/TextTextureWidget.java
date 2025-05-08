@@ -140,7 +140,7 @@ public class TextTextureWidget extends Widget implements IConfigurableWidget {
         super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
         var position = getPosition();
         var size = getSize();
-        textTexture.draw(graphics, mouseX, mouseY, position.x, position.y, size.width, size.height);
+        textTexture.draw(graphics, mouseX, mouseY, position.x, position.y, size.width, size.height, partialTicks);
         drawOverlay(graphics, mouseX, mouseY, partialTicks);
     }
 }

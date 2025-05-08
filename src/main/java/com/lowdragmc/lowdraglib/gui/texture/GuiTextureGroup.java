@@ -41,14 +41,6 @@ public class GuiTextureGroup extends TransformTexture {
         }
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void updateTick() {
-        for (IGuiTexture texture : textures) {
-            texture.updateTick();
-        }
-    }
-
     @OnlyIn(Dist.CLIENT)
     @Override
     protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {

@@ -30,7 +30,7 @@ public class StyleContext {
 
     protected void collectMatchedRules() {
         if (element.getModularUI() != null) {
-            for (var rule : element.getModularUI().getStyleSheet().rules) {
+            for (var rule : element.getModularUI().styleSheet.rules) {
                 if (rule.matches(element)) {
                     matchedRules.add(rule);
                 }

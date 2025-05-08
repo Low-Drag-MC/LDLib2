@@ -384,12 +384,6 @@ public class Widget {
                 case BOTTOM_RIGHT -> setSelfPosition(parent.getSize().width - getSize().width, parent.getSize().height - getSize().height);
             }
         }
-        if (backgroundTexture != null) {
-            backgroundTexture.updateTick();
-        }
-        if (hoverTexture != null) {
-            hoverTexture.updateTick();
-        }
     }
 
     @OnlyIn(Dist.CLIENT)

@@ -48,17 +48,16 @@ public class ItemStackTexture extends TransformTexture {
         return this;
     }
 
-    @Override
     @OnlyIn(Dist.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {
             long tick = Minecraft.getInstance().level.getGameTime();
             if (tick == lastTick) return;
             lastTick = tick;
+            if(items.length > 1 && ++ticks % 20 == 0)
+                if(++index == items.length)
+                    index = 0;
         }
-        if(items.length > 1 && ++ticks % 20 == 0)
-            if(++index == items.length)
-                index = 0;
     }
 
     @OnlyIn(Dist.CLIENT)

@@ -45,6 +45,7 @@ public class LDLibRegistries {
             .create(LDLib.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
 
     public final static AutoRegistry.LDLibRegisterClient<IUITest, Supplier<IUITest>> UI_TESTS;
+
     static {
         if (LDLib.isClient() && Platform.isDevEnv()) {
             UI_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib.id("ui_test"), IUITest.class, AutoRegistry::noArgsCreator);
