@@ -1,11 +1,14 @@
 package com.lowdragmc.lowdraglib.gui.ui;
 
+import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventListener;
+import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -15,10 +18,7 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaConstants;
-import org.appliedenergistics.yoga.YogaDisplay;
-import org.appliedenergistics.yoga.YogaNode;
-import org.appliedenergistics.yoga.YogaProps;
+import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 
 import javax.annotation.Nonnull;
@@ -75,9 +75,9 @@ public class UIElement {
     // runtime
     @Nullable
     private List<UIElement> sortedChildrenCache = null;
+    private ImmutableList<UIElement> structurePathCache = null;
     private FloatOptional positionXCache = FloatOptional.of();
     private FloatOptional positionYCache = FloatOptional.of();
-
 
     @Getter
     @Configurable(name = "ldlib.gui.editor.name.hover_tips", tips = "ldlib.gui.editor.tips.hover_tips")
@@ -107,11 +107,6 @@ public class UIElement {
 
     public UIElement layout(Consumer<YogaProps> layout) {
         layout.accept(layoutNode);
-        return this;
-    }
-
-    public UIElement style(Consumer<Style> style) {
-        style.accept(this.style);
         return this;
     }
 
@@ -149,6 +144,11 @@ public class UIElement {
             child.positionXCache = FloatOptional.of();
             child.positionYCache = FloatOptional.of();
         }
+        var event = UIEvent.create(UIEvents.LAYOUT_CHANGED);
+        event.target = this;
+        event.hasBubblePhase = false;
+        event.hasCapturePhase = false;
+        UIEventDispatcher.dispatchEvent(event);
     }
 
     /**
@@ -193,6 +193,50 @@ public class UIElement {
         return layoutNode.getLayoutHeight();
     }
 
+    /**
+     * Get the x position of the element excluding the border.
+     */
+    public final float getPaddingX() {
+        return getPositionXCache() + layoutNode.getLayoutBorder(YogaEdge.LEFT);
+    }
+
+    /**
+     * Get the X position of the content area in the element.
+     */
+    public final float getContentX() {
+        return getPaddingX() + layoutNode.getLayoutPadding(YogaEdge.LEFT);
+    }
+
+    /**
+     * Get the y position of the element excluding the border.
+     */
+    public final float getPaddingY() {
+        return getPositionYCache() + layoutNode.getLayoutBorder(YogaEdge.TOP);
+    }
+
+    /**
+     * Get the Y position of the content area in the element.
+     */
+    public final float getContentY() {
+        return getPaddingY() + layoutNode.getLayoutPadding(YogaEdge.TOP);
+    }
+
+    public final float getPaddingWidth() {
+        return getSizeWidth() - layoutNode.getLayoutPadding(YogaEdge.LEFT) - layoutNode.getLayoutPadding(YogaEdge.RIGHT);
+    }
+
+    public final float getContentWidth() {
+        return getPaddingWidth() - layoutNode.getLayoutPadding(YogaEdge.LEFT) - layoutNode.getLayoutPadding(YogaEdge.RIGHT);
+    }
+
+    public final float getPaddingHeight() {
+        return getSizeHeight() - layoutNode.getLayoutPadding(YogaEdge.TOP) - layoutNode.getLayoutPadding(YogaEdge.BOTTOM);
+    }
+
+    public final float getContentHeight() {
+        return getPaddingHeight() - layoutNode.getLayoutPadding(YogaEdge.TOP) - layoutNode.getLayoutPadding(YogaEdge.BOTTOM);
+    }
+
     /// Structure
     @Nullable
     public UIElement getParent() {
@@ -228,6 +272,7 @@ public class UIElement {
         children.add(index, child);
         layoutNode.addChildAt(child.layoutNode, index);
         clearSortedChildrenCache();
+        child.clearStructurePathCache();
         return this;
     }
 
@@ -251,6 +296,7 @@ public class UIElement {
         layoutNode.removeChild(child.layoutNode);
         child.parent = null;
         clearSortedChildrenCache();
+        child.clearStructurePathCache();
         return true;
     }
 
@@ -311,6 +357,23 @@ public class UIElement {
      * @param value the style value. if null, it means the style is removed.
      */
     public void applyStyle(String key, @Nullable StyleValue<?> value) {
+    }
+
+    public UIElement style(Consumer<Style> style) {
+        style.accept(this.style);
+        onStyleChanged();
+        return this;
+    }
+
+    public final void notifyStyleChanged() {
+        onStyleChanged();
+    }
+
+    /**
+     * This method is called when the style of the element has changed.
+     * It will only be called when the style is changed by the {@link #style(Consumer)} or {@link #notifyStyleChanged()}.
+     */
+    protected void onStyleChanged() {
     }
 
     /// Focus
@@ -385,7 +448,7 @@ public class UIElement {
     /**
      * Get the sorted children of this element. The children are sorted by their zIndex and their order in the structure.
      */
-    public List<UIElement> getSortedChildrenCache() {
+    public List<UIElement> getSortedChildren() {
         if (sortedChildrenCache == null) {
             // sorted by zIndex
             sortedChildrenCache = new ArrayList<>(children);
@@ -404,6 +467,29 @@ public class UIElement {
     }
 
     /**
+     * Get the path to the target element. The path is a list of elements from the root to the target element.
+     */
+    public ImmutableList<UIElement> getStructurePath() {
+        if (structurePathCache == null) {
+            var builder = ImmutableList.<UIElement>builder();
+            if (parent != null) {
+                builder.addAll(parent.getStructurePath());
+            }
+            builder.add(this);
+            structurePathCache = builder.build();
+        }
+        return structurePathCache;
+    }
+
+    public void clearStructurePathCache() {
+        if (structurePathCache == null) return;
+        structurePathCache = null;
+        for (var child : children) {
+            child.clearStructurePathCache();
+        }
+    }
+
+    /**
      * Get the element that is hovered by the mouse.
      * @return the element that is hovered, or null if no element is hovered
      */
@@ -411,7 +497,7 @@ public class UIElement {
     public UIElement getHoverElement(double mouseX, double mouseY) {
         if (!isDisplayed() || !isVisible()) return null;
 
-        for (var child : getSortedChildrenCache()) {
+        for (var child : getSortedChildren()) {
             var hover = child.getHoverElement(mouseX, mouseY);
             if (hover != null) {
                 return hover;
@@ -556,7 +642,7 @@ public class UIElement {
         if (display == YogaDisplay.FLEX) {
             drawBackgroundTexture(guiGraphics, mouseX, mouseY, partialTick);
             drawBackgroundAdditional(guiGraphics, mouseX, mouseY, partialTick);
-            drawOverlayTexture(guiGraphics, mouseX, mouseY, partialTick);
+            drawBackgroundOverlay(guiGraphics, mouseX, mouseY, partialTick);
         }
         children.forEach(child -> child.drawInBackground(guiGraphics, mouseX, mouseY, partialTick));
         if (zIndex != 0) {
@@ -568,20 +654,8 @@ public class UIElement {
      * Renders the background texture of the GUI element.
      */
     public void drawBackgroundTexture(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        var border = style.borderTexture();
-        if (border != IGuiTexture.EMPTY) {
-            // TODO border rendering
-            border.draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
-        }
-        var isHovered = isMouseOverElement(mouseX, mouseY);
-        var bg = style.backgroundTexture();
-        var hover = style.hoverTexture();
-        if (bg != IGuiTexture.EMPTY && (!isHovered || style.drawBackgroundWhenHover())) {
-            bg.draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
-        }
-        if (hover != IGuiTexture.EMPTY && isHovered && isActive()) {
-            hover.draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
-        }
+        style.backgroundTexture().draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
+        style.borderTexture().draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
     }
 
     /**
@@ -594,11 +668,8 @@ public class UIElement {
     /**
      * Renders the overlay texture of the GUI element.
      */
-    public void drawOverlayTexture(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        var overlay = style.overlayTexture();
-        if (overlay != IGuiTexture.EMPTY) {
-            overlay.draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
-        }
+    public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+
     }
 
     /**
@@ -619,5 +690,4 @@ public class UIElement {
         info.add(Component.literal("[id: %s, class: \"%s\"]".formatted(getId().isEmpty() ? "empty" : getId(), String.join(" ", classes))));
         return info;
     }
-
 }

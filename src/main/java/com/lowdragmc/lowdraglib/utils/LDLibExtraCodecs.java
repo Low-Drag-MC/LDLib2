@@ -4,10 +4,15 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.PrimitiveCodec;
 import lombok.experimental.UtilityClass;
+import net.minecraft.Util;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.ExtraCodecs;
+import org.joml.Vector2f;
+import org.joml.Vector2i;
+import org.joml.Vector3f;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -58,6 +63,20 @@ public final class LDLibExtraCodecs {
                             return Either.right(number.doubleValue());
                         }
                     }
+            );
+
+    public static final Codec<Vector2f> VECTOR2F = Codec.FLOAT
+            .listOf()
+            .comapFlatMap(
+                    list -> Util.fixedSize(list, 2).map(l -> new Vector2f(l.get(0), l.get(1))),
+                    vec2f -> List.of(vec2f.x, vec2f.y)
+            );
+
+    public static final Codec<Vector2i> VECTOR2I = Codec.INT
+            .listOf()
+            .comapFlatMap(
+                    list -> Util.fixedSize(list, 2).map(l -> new Vector2i(l.get(0), l.get(1))),
+                    vec2i -> List.of(vec2i.x, vec2i.y)
             );
 
 

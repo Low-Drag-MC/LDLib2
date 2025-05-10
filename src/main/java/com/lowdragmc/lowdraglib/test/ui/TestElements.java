@@ -4,6 +4,11 @@ import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib.gui.ui.elements.TextElement;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
@@ -18,33 +23,45 @@ public class TestElements implements IUITest {
         var root = new UIElement();
         root.layout(layout -> {
             layout.setWidth(250);
-            layout.setHeight(475);
+            layout.setHeight(400);
             layout.setPadding(YogaEdge.ALL, 10);
         }).setId("root");
-        root.getStyle().backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND);
+        root.getStyle().backgroundTexture(Sprites.BORDER);
         root.addChild(new UIElement()
                 .layout(layout -> {
                     layout.setFlex(1);
                     layout.setGap(YogaGutter.ROW, 10);
                 }).setId("container")
-                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND))
-                .addChildren(new UIElement()
+                .style(style -> style.backgroundTexture(Sprites.BORDER))
+                .addChildren(new TextElement()
+                                .setText("Hello World!!")
                                 .layout(layout -> {
                                     layout.setHeight(60);
                                 }).setId("header")
-                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND)),
+                                .style(style -> style
+                                        .fontSize(20)
+                                        .textAlignHorizontal(Horizontal.CENTER)
+                                        .textAlignVertical(Vertical.CENTER)
+                                        .backgroundTexture(Sprites.BORDER)),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setFlex(1);
                                     layout.setMargin(YogaEdge.HORIZONTAL, 10);
                                 }).setId("flex-1")
-                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND)),
+                                .style(style -> style.backgroundTexture(Sprites.BORDER))
+                                .addChild(new Button()
+                                        .layout(layout -> {
+                                            layout.setWidth(60);
+                                            layout.setHeight(20);
+                                            layout.setAlignSelf(YogaAlign.CENTER);
+                                            layout.setMarginAuto(YogaEdge.VERTICAL);
+                                        })),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setFlex(2);
                                     layout.setMargin(YogaEdge.HORIZONTAL, 10);
                                 }).setId("flex-2")
-                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND)),
+                                .style(style -> style.backgroundTexture(Sprites.BORDER)),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setPositionType(YogaPositionType.ABSOLUTE);
@@ -55,31 +72,31 @@ public class TestElements implements IUITest {
                                     layout.setAlignItems(YogaAlign.CENTER);
                                     layout.setJustifyContent(YogaJustify.SPACE_AROUND);
                                 }).setId("footer")
-                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND))
+                                .style(style -> style.backgroundTexture(Sprites.BORDER))
                                 .addChildren(new UIElement()
                                                 .layout(layout -> {
                                                     layout.setWidth(40);
                                                     layout.setHeight(40);
                                                 }).setId("footer-1")
-                                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND)),
+                                                .style(style -> style.backgroundTexture(Sprites.BORDER)),
                                         new UIElement()
                                                 .layout(layout -> {
                                                     layout.setWidth(40);
                                                     layout.setHeight(40);
                                                 }).setId("footer-2")
-                                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND)),
+                                                .style(style -> style.backgroundTexture(Sprites.BORDER)),
                                         new UIElement()
                                                 .layout(layout -> {
                                                     layout.setWidth(40);
                                                     layout.setHeight(40);
                                                 }).setId("footer-3")
-                                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND)),
+                                                .style(style -> style.backgroundTexture(Sprites.BORDER)),
                                         new UIElement()
                                                 .layout(layout -> {
                                                     layout.setWidth(40);
                                                     layout.setHeight(40);
                                                 }).setId("footer-4")
-                                                .style(style -> style.backgroundTexture(ResourceBorderTexture.BORDERED_BACKGROUND)))
+                                                .style(style -> style.backgroundTexture(Sprites.BORDER)))
                 )
         );
         return new ModularUI(UI.of(root));

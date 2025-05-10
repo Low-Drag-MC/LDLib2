@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.ui.data.Pivot;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import lombok.Getter;
@@ -16,6 +17,8 @@ import org.joml.Quaternionf;
 @Getter
 @Configurable(name = "ldlib.gui.editor.group.transform")
 public abstract class TransformTexture implements IGuiTexture {
+    @Configurable
+    protected Pivot pivot = Pivot.CENTER;
     @Configurable
     @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
     protected float xOffset;
@@ -53,10 +56,15 @@ public abstract class TransformTexture implements IGuiTexture {
         graphics.pose().pushPose();
         graphics.pose().translate(xOffset, yOffset, 0);
 
-        graphics.pose().translate(x + width / 2f, y + height / 2f, 0);
+        var xPivot = pivot.getX() * width;
+        var yPivot = pivot.getY() * height;
+        var translationX = x + xPivot;
+        var translationY = y + yPivot;
+
+        graphics.pose().translate(translationX, translationY, 0);
         graphics.pose().scale(scale, scale, 1);
         graphics.pose().mulPose(new Quaternionf().rotationXYZ(0, 0, (float) Math.toRadians(rotation)));
-        graphics.pose().translate(-x + -width / 2f, -y + -height / 2f, 0);
+        graphics.pose().translate(-translationX, -translationY, 0);
     }
 
     @OnlyIn(Dist.CLIENT)

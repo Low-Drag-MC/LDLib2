@@ -57,6 +57,8 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     @Getter
     private int lastMouseDownButton, lastMouseClickButton;
     @Getter
+    private int lastPressedKeyCode, lastPressedScanCode, lastPressedModifiers;
+    @Getter
     private long lastMouseClickTime;
     @Getter
     private float lastMouseX, lastMouseY, lastMouseDownX, lastMouseDownY;
@@ -347,17 +349,46 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return GuiEventListener.super.keyPressed(keyCode, scanCode, modifiers);
+        lastPressedKeyCode = keyCode;
+        lastPressedScanCode = scanCode;
+        lastPressedModifiers = modifiers;
+        if (focusedElement != null) {
+            var event = UIEvent.create(UIEvents.KEY_DOWN);
+            event.keyCode = keyCode;
+            event.scanCode = scanCode;
+            event.modifiers = modifiers;
+            event.target = focusedElement;
+            UIEventDispatcher.dispatchEvent(event);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        return GuiEventListener.super.keyReleased(keyCode, scanCode, modifiers);
+        if (focusedElement != null) {
+            var event = UIEvent.create(UIEvents.KEY_UP);
+            event.keyCode = keyCode;
+            event.scanCode = scanCode;
+            event.modifiers = modifiers;
+            event.target = focusedElement;
+            UIEventDispatcher.dispatchEvent(event);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
-        return GuiEventListener.super.charTyped(codePoint, modifiers);
+        if (focusedElement != null) {
+            var event = UIEvent.create(UIEvents.CHAR_TYPED);
+            event.keyCode = codePoint;
+            event.modifiers = modifiers;
+            event.target = focusedElement;
+            UIEventDispatcher.dispatchEvent(event);
+            return true;
+        }
+        return false;
     }
 
     private void triggerMouseEnter(UIElement element, double mouseX, double mouseY) {

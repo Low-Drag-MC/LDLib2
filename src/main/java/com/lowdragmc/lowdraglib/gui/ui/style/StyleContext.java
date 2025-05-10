@@ -70,6 +70,7 @@ public class StyleContext {
         removedValues.keySet().removeAll(computedValues.keySet());
         removedValues.forEach((key, value) -> element.applyStyle(key, null));
         computedValues.forEach(element::applyStyle);
+        element.notifyStyleChanged();
     }
 
     protected void applyInheritedProperties() {

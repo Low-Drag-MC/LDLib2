@@ -40,6 +40,10 @@ public class UIEvent {
      */
     public float dragStartX, dragStartY;
     public DragHandler dragHandler;
+    /**
+     * Key Event data
+     */
+    public int keyCode, scanCode, modifiers;
     @Nullable
     public Object customData;
     /**
@@ -50,10 +54,6 @@ public class UIEvent {
      * Whether the event has a capture phase and a bubble phase.
      */
     public boolean hasCapturePhase = true, hasBubblePhase = true;
-    /**
-     * The path of the event, from the root element to the target element. (including the target element)
-     */
-    public List<UIElement> path;
     /**
      * The target element that the event is dispatched to.
      * <br>

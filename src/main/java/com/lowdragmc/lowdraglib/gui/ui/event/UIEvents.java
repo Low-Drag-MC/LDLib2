@@ -2,13 +2,37 @@ package com.lowdragmc.lowdraglib.gui.ui.event;
 
 public interface UIEvents {
     /// Mouse Events
+    /**
+     * The {@code mouseDown} is sent when the user presses a mouse button.
+     */
     String MOUSE_DOWN = "mouseDown";
+    /**
+     * The {@code mouseUp} is sent when the user releases a mouse button.
+     */
     String MOUSE_UP = "mouseUp";
+    /**
+     * The {@code mouseClick} is sent when the user clicks a mouse button.
+     */
     String CLICK = "mouseClick";
+    /**
+     * The {@code mouseDoubleClick} is sent when the user double clicks a mouse button.
+     */
     String DOUBLE_CLICK = "doubleClick";
+    /**
+     * The {@code mouseDrag} is sent when the user drags a mouse button.
+     */
     String MOUSE_MOVE = "mouseMove";
+    /**
+     * The {@code mouseMove} is sent when the mouse enters an element or one of its descendants.
+     */
     String MOUSE_ENTER = "mouseEnter";
+    /**
+     * The {@code mouseLeave} is sent when the mouse leaves an element or one of its descendants.
+     */
     String MOUSE_LEAVE = "mouseLeave";
+    /**
+     * The {@code mouseWheel} is sent when the user activates the mouse wheel.
+     */
     String MOUSE_WHEEL = "mouseWheel";
 
 
@@ -64,4 +88,27 @@ public interface UIEvents {
      * <li> relatedTarget: The element that is about to gain focus.
      */
     String FOCUS_OUT = "focusOut";
+
+    /// Keyboard Events
+    /**
+     * The {@code keyDown} is sent when the user presses a key on the keyboard.
+     */
+    String KEY_DOWN = "keyDown";
+    /**
+     * The {@code keyUp} is sent when the user releases a key on the keyboard.
+     */
+    String KEY_UP = "keyUp";
+
+    /// Text Input Events
+    /**
+     * The {@code charTyped} is sent when data is input to an element.
+     */
+    String CHAR_TYPED = "charTyped";
+
+
+    /// Layout Events
+    /**
+     * The {@code layoutChanged} is sent when the layout of an element changes.
+     */
+    String LAYOUT_CHANGED = "layoutChanged";
 }

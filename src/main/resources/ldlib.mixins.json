@@ -17,6 +17,7 @@
     "ModelBakeryMixin",
     "ParticleEngineAccessor",
     "ParticleEngineMixin",
+    "SimpleTextureMixin",
     "SpriteSourceListMixin",
     "TextureAtlasMixin",
     "WorldRendererMixin",

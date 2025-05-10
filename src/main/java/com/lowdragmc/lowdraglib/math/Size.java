@@ -13,7 +13,7 @@ import java.util.Objects;
 @Data(staticConstructor = "of")
 public final class Size {
     public final static Codec<Size> CODEC = Codec.INT.listOf().comapFlatMap(
-            list -> Util.fixedSize(list, 2).map(p_253489_ -> Size.of(list.get(0), list.get(1))),
+            list -> Util.fixedSize(list, 2).map(l -> Size.of(l.get(0), l.get(1))),
             size -> List.of(size.width, size.height)
     );
 

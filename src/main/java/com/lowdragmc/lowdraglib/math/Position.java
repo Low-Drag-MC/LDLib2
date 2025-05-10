@@ -15,7 +15,7 @@ import java.util.Objects;
 @Data(staticConstructor = "of")
 public final class Position {
     public final static Codec<Position> CODEC = Codec.INT.listOf().comapFlatMap(
-            list -> Util.fixedSize(list, 2).map(p_253489_ -> Position.of(list.get(0), list.get(1))),
+            list -> Util.fixedSize(list, 2).map(l -> Position.of(l.get(0), l.get(1))),
             position -> List.of(position.x, position.y)
     );
 

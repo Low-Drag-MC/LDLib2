@@ -10,16 +10,7 @@ public final class UIEventDispatcher {
     public static void dispatchEvent(UIEvent event) {
         // 1. build path from root to target
         var target = event.target;
-        var path = event.path;
-        if (path == null) {
-            path = new LinkedList<>();
-            var node = target;
-            while (node != null) {
-                path.addFirst(node);
-                node = node.getParent();
-            }
-            event.path = path;
-        }
+        var path = target.getStructurePath();
 
         // 2. capture phase: root -> target.parent
         if (event.hasCapturePhase) {

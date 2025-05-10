@@ -59,6 +59,11 @@ public class ModularUIContainerScreen<T extends AbstractContainerMenu> extends A
     }
 
     @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        modularUI.mouseMoved(mouseX, mouseY);
+    }
+
+    @Override
     public void render(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         super.render(graphics, mouseX, mouseY, partialTicks);
 

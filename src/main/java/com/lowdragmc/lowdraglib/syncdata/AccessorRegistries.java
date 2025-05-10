@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.syncdata;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.data.Pivot;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Range;
 import com.lowdragmc.lowdraglib.math.Size;
@@ -40,9 +41,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.fluids.FluidStack;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
-import org.joml.Vector4f;
+import org.joml.*;
 
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
@@ -212,6 +211,10 @@ public class AccessorRegistries {
                 .codec(Size.CODEC)
                 .streamCodec(Size.STREAM_CODEC)
                 .build());
+        registerAccessor(CustomDirectAccessor.builder(Pivot.class)
+                .codec(Pivot.CODEC)
+                .streamCodec(Pivot.STREAM_CODEC)
+                .build());
         registerAccessor(CustomDirectAccessor.builder(Range.class)
                 .codec(Range.CODEC)
                 .streamCodec(Range.STREAM_CODEC)
@@ -222,7 +225,6 @@ public class AccessorRegistries {
                 .build());
 
         setPriority(1000);
-
         registerAccessor(CustomDirectAccessor.builder(Vector3f.class)
                 .codec(ExtraCodecs.VECTOR3F)
                 .streamCodec(ByteBufCodecs.VECTOR3F)
@@ -240,6 +242,28 @@ public class AccessorRegistries {
                         byteBuf -> new Vector4f(byteBuf.readFloat(), byteBuf.readFloat(), byteBuf.readFloat(), byteBuf.readFloat())
                 ))
                 .copyMark(Vector4f::new)
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(Vector2f.class)
+                .codec(LDLibExtraCodecs.VECTOR2F)
+                .streamCodec(StreamCodec.of(
+                        (byteBuf, vector) -> {
+                            byteBuf.writeFloat(vector.x);
+                            byteBuf.writeFloat(vector.y);
+                        },
+                        byteBuf -> new Vector2f(byteBuf.readFloat(), byteBuf.readFloat())
+                ))
+                .copyMark(Vector2f::new)
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(Vector2i.class)
+                .codec(LDLibExtraCodecs.VECTOR2I)
+                .streamCodec(StreamCodec.of(
+                        (byteBuf, vector) -> {
+                            byteBuf.writeVarInt(vector.x);
+                            byteBuf.writeVarInt(vector.y);
+                        },
+                        byteBuf -> new Vector2i(byteBuf.readVarInt(), byteBuf.readVarInt())
+                ))
+                .copyMark(Vector2i::new)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(Quaternionf.class)
                 .codec(ExtraCodecs.QUATERNIONF)
