@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.utils.TextUtilities;
 import lombok.Getter;
@@ -34,6 +35,7 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.text.NumberFormat;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -45,7 +47,7 @@ public class TextField extends UIElement {
     public static class TextFieldStyle extends Style {
         @Getter
         @Setter
-        private IGuiTexture focusTexture = Sprites.RECT_RD_T_SOLID;
+        private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
         @Getter @Setter
         private float fontSize = 9;
         @Getter @Setter
@@ -114,6 +116,18 @@ public class TextField extends UIElement {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSource);
         addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
+    }
+
+    public TextField textFieldStyle(Consumer<TextFieldStyle> style) {
+        style.accept(textFieldStyle);
+        onStyleChanged();
+        return this;
+    }
+
+    @Override
+    public void applyStyle(Map<String, StyleValue<?>> values) {
+        super.applyStyle(values);
+        textFieldStyle.applyStyles(values);
     }
 
     /// events
@@ -608,8 +622,8 @@ public class TextField extends UIElement {
     @Override
     public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         super.drawBackgroundOverlay(graphics, mouseX, mouseY, partialTicks);
-        if (isHover() || isFocused()) {
-            getTextFieldStyle().focusTexture().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+        if (isChildHover() || isFocused()) {
+            getTextFieldStyle().focusOverlay().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         }
     }
 

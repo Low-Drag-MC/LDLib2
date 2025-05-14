@@ -5,10 +5,7 @@ import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
-import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib.gui.ui.elements.TextField;
-import com.lowdragmc.lowdraglib.gui.ui.elements.Toggle;
+import com.lowdragmc.lowdraglib.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
@@ -54,10 +51,12 @@ public class TestElements implements IUITest {
                                 .addChildren(
                                         new Button(),
                                         new Toggle(),
+                                        new Selector(),
                                         new TextField(),
                                         new TextField().setResourceLocationOnly(),
                                         new TextField().setNumbersOnlyInt(23, 145),
-                                        new TextField().setNumbersOnlyFloat(-3, 3)),
+                                        new TextField().setNumbersOnlyFloat(-3, 3)
+                                        ),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setWidthPercent(100);

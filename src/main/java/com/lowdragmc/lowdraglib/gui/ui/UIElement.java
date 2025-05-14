@@ -112,6 +112,21 @@ public class UIElement {
         return this;
     }
 
+    public UIElement node(Consumer<YogaNode> node) {
+        node.accept(layoutNode);
+        return this;
+    }
+
+    public UIElement setDisplay(YogaDisplay display) {
+        layoutNode.setDisplay(display);
+        return this;
+    }
+
+    public UIElement setOverflow(YogaOverflow overflow) {
+        layoutNode.setOverflow(overflow);
+        return this;
+    }
+
     /**
      * Calculate the layout of the element and its children.
      */
@@ -473,6 +488,20 @@ public class UIElement {
     }
 
     /**
+     * Return true if the child element is hovered by the mouse.
+     */
+    public boolean isChildHover() {
+        var hovered = getModularUI() != null ? getModularUI().getLastHoveredElement() : null;
+        while (hovered != null) {
+            if (hovered == this) {
+                return true;
+            }
+            hovered = hovered.getParent();
+        }
+        return false;
+    }
+
+    /**
      * Return true if the element is focused by the mouse.
      */
     public boolean isFocused() {
@@ -541,17 +570,18 @@ public class UIElement {
     public UIElement getHoverElement(double mouseX, double mouseY) {
         if (!isDisplayed() || !isVisible()) return null;
 
+        UIElement hover = null;
         for (var child : getSortedChildren()) {
-            var hover = child.getHoverElement(mouseX, mouseY);
-            if (hover != null) {
-                return hover;
+            var result = child.getHoverElement(mouseX, mouseY);
+            if (result != null && (hover == null || hover.style.zIndex() < result.style.zIndex())) {
+                hover = result;
             }
         }
 
-        if (isMouseOver(mouseX, mouseY)) {
+        if (isMouseOver(mouseX, mouseY) && (hover == null || hover.style.zIndex() < style.zIndex())) {
             return this;
         }
-        return null;
+        return hover;
     }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
@@ -590,16 +620,33 @@ public class UIElement {
      * @param listener the listener to add
      * @param useCapture if true, the listener will be called during the capture phase, otherwise it will be called during the bubble phase
      */
-    public void addEventListener(String eventType, UIEventListener listener, boolean useCapture) {
+    public UIElement addEventListener(String eventType, UIEventListener listener, boolean useCapture) {
         if (useCapture) {
             captureListeners.computeIfAbsent(eventType, k -> new ArrayList<>()).add(listener);
         } else {
             bubbleListeners.computeIfAbsent(eventType, k -> new ArrayList<>()).add(listener);
         }
+        return this;
     }
 
-    public void addEventListener(String eventType, UIEventListener listener) {
-        addEventListener(eventType, listener, false);
+    public UIElement addEventListener(String eventType, UIEventListener listener) {
+        return addEventListener(eventType, listener, false);
+    }
+
+
+    /**
+     * Block the propagation of the event for the interaction.
+     */
+    public UIElement stopInteractionEventsPropagation() {
+        this.addEventListener(UIEvents.MOUSE_DOWN, UIEvent::stopPropagation);
+        this.addEventListener(UIEvents.MOUSE_UP, UIEvent::stopPropagation);
+        this.addEventListener(UIEvents.CLICK, UIEvent::stopPropagation);
+        this.addEventListener(UIEvents.DOUBLE_CLICK, UIEvent::stopPropagation);
+        this.addEventListener(UIEvents.MOUSE_MOVE, UIEvent::stopPropagation);
+        this.addEventListener(UIEvents.MOUSE_WHEEL, UIEvent::stopPropagation);
+        this.addEventListener(UIEvents.DRAG_UPDATE, UIEvent::stopPropagation);
+        this.addEventListener(UIEvents.DRAG_PERFORM, UIEvent::stopPropagation);
+        return this;
     }
 
     /**

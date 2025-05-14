@@ -107,9 +107,6 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
 
     public void tick() {
         ui.rootElement.screenTick();
-        if (ui.rootElement.layoutNode.isDirty()) {
-            ui.rootElement.calculateLayout();
-        }
     }
 
     @Override
@@ -429,6 +426,10 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     /// rendering
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (ui.rootElement.layoutNode.isDirty()) {
+            ui.rootElement.calculateLayout();
+        }
+
         cleanTooltip();
 
         lastHoveredElement = ui.rootElement.getHoverElement(mouseX, mouseY);

@@ -83,6 +83,10 @@ public class Icons {
     public static ResourceTexture ALIGN_V_B = icon("align_vertical_bottom");
 
     public static SpriteTexture CHECK_SPRITE = SpriteTexture.of(GDP_ICONS).setSprite(72, 0, 12, 12);
+    public static SpriteTexture DOWN_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(36, 24, 12, 12);
+    public static SpriteTexture UP_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(48, 24, 12, 12);
+    public static SpriteTexture LEFT_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(0, 24, 12, 12);
+    public static SpriteTexture RIGHT_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(12, 24, 12, 12);
 
 
     static {

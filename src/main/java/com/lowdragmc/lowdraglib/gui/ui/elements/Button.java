@@ -58,7 +58,7 @@ public class Button extends TextElement {
     public Button() {
         super();
         getLayout().setWidth(60);
-        getLayout().setHeight(20);
+        getLayout().setHeight(14);
         getTextStyle()
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER);
