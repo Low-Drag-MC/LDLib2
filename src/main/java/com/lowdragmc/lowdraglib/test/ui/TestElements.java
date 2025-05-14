@@ -51,7 +51,13 @@ public class TestElements implements IUITest {
                                     layout.setPadding(YogaEdge.ALL, 5);
                                 }).setId("flex-1")
                                 .style(style -> style.backgroundTexture(Sprites.BORDER))
-                                .addChildren(new Button(), new Toggle(), new TextField()),
+                                .addChildren(
+                                        new Button(),
+                                        new Toggle(),
+                                        new TextField(),
+                                        new TextField().setResourceLocationOnly(),
+                                        new TextField().setNumbersOnlyInt(23, 145),
+                                        new TextField().setNumbersOnlyFloat(-3, 3)),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setWidthPercent(100);

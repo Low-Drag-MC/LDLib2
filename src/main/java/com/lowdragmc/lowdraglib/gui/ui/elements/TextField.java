@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
 import com.google.common.base.Predicates;
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
@@ -8,7 +10,6 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.utils.TextUtilities;
-import com.sun.jna.platform.win32.GL;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,17 +20,21 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.minecraft.util.Tuple;
+import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.text.NumberFormat;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 @ParametersAreNonnullByDefault
@@ -56,15 +61,34 @@ public class TextField extends UIElement {
             super(holder);
         }
     }
-    @Getter @Setter
+    public enum Mode {
+        STRING,
+        COMPOUND_TAG,
+        RESOURCE_LOCATION,
+        NUMBER_LONG,
+        NUMBER_INT,
+        NUMBER_FLOAT
+    }
+    @Setter
     private Predicate<String> textValidator = Predicates.alwaysTrue();
-    @Getter @Setter
-    private String rawText = "DDDaaaaffffDFAEF";
+    @Setter
+    private Consumer<String> textResponder = Consumers.nop();
+    @Getter
+    private String text = "";
     @Getter @Setter
     private String placeholder = "input here...";
     @Getter
     private final TextFieldStyle textFieldStyle = new TextFieldStyle(this);
+    @Getter
+    private float wheelDur;
+    private NumberFormat numberInstance;
     // runtime
+    @Getter
+    private Mode mode = Mode.STRING;
+    @Getter
+    private boolean isError = false;
+    @Getter
+    private String rawText = "";
     @Getter
     private int cursorPos;
     @Getter
@@ -89,10 +113,24 @@ public class TextField extends UIElement {
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSource);
+        addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
     }
 
+    /// events
     protected void onDragSource(UIEvent event) {
-        if (event.dragHandler.draggingObject instanceof Integer start) {
+        if (mode == Mode.NUMBER_INT) {
+           try {
+               setRawText(String.valueOf(Integer.parseInt(getRawText()) + (int) (event.deltaX * wheelDur * (isShiftDown() ? 10 : 1))));
+           } catch (NumberFormatException ignored) { }
+        } else if (mode == Mode.NUMBER_LONG) {
+            try {
+                setRawText(String.valueOf(Long.parseLong(getRawText()) + (long) (event.deltaX * wheelDur * (isShiftDown() ? 10 : 1))));
+            } catch (NumberFormatException ignored) { }
+        } else if (mode == Mode.NUMBER_FLOAT) {
+            try {
+                setRawText(numberInstance.format(Float.parseFloat(getRawText()) + event.deltaX * wheelDur * (isShiftDown() ? 10 : 1)));
+            } catch (NumberFormatException ignored) { }
+        } if (event.dragHandler.draggingObject instanceof Integer start) {
             var cursor = getCursorUnderMouseX(event.x);
             if (cursor != -1) {
                 setCursor(cursor);
@@ -101,13 +139,35 @@ public class TextField extends UIElement {
         }
     }
 
+    protected void onMouseWheel(UIEvent event) {
+        if (isEditable()) {
+            if (mode == Mode.NUMBER_INT) {
+                try {
+                    setRawText(String.valueOf(Integer.parseInt(getRawText()) + (int) ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
+                } catch (NumberFormatException ignored) { }
+            } else if (mode == Mode.NUMBER_LONG) {
+                try {
+                    setRawText(String.valueOf(Long.parseLong(getRawText()) + (long) ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
+                } catch (NumberFormatException ignored) { }
+            } else if (mode == Mode.NUMBER_FLOAT) {
+                try {
+                    setRawText(numberInstance.format(Float.parseFloat(getRawText()) + ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
+                } catch (NumberFormatException ignored) { }
+            }
+        }
+    }
+
     protected void onMouseDown(UIEvent event) {
         if (event.button == 0 && isMouseOver(event.x, event.y)) {
-            var cursor = getCursorUnderMouseX(event.x);
-            if (cursor != -1) {
-                setCursor(cursor);
-                setSelection(cursorPos, cursorPos);
-                startDrag(cursorPos, null);
+            if (mode == Mode.NUMBER_INT || mode == Mode.NUMBER_LONG || mode == Mode.NUMBER_FLOAT) {
+                startDrag(null, null);
+            } else {
+                var cursor = getCursorUnderMouseX(event.x);
+                if (cursor != -1) {
+                    setCursor(cursor);
+                    setSelection(cursorPos, cursorPos);
+                    startDrag(cursorPos, null);
+                }
             }
         }
     }
@@ -202,6 +262,132 @@ public class TextField extends UIElement {
         }
     }
 
+    /// logic
+    public TextField setText(String text, boolean notify) {
+        this.rawText = text;
+        if (!this.text.equals(text)) {
+            this.text = text;
+            if (notify && textResponder != null) {
+                textResponder.accept(rawText);
+            }
+        }
+        this.cursorPos = text.length();
+        this.selectionStart = cursorPos;
+        this.selectionEnd = cursorPos;
+        this.formattedLineCache = null;
+        updateDisplayOffset();
+        return this;
+    }
+
+    public TextField setText(String text) {
+        return setText(text, true);
+    }
+
+    protected TextField setRawText(String text) {
+        this.rawText = text;
+        this.cursorPos = text.length();
+        this.selectionStart = cursorPos;
+        this.selectionEnd = cursorPos;
+        this.formattedLineCache = null;
+        onRawTextUpdate();
+        return this;
+    }
+
+    public TextField setCompoundTagOnly() {
+        setTextValidator(s -> {
+            try {
+                TagParser.parseTag(s);
+                return true;
+            } catch (Exception ignored) { }
+            return false;
+        });
+        style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.compound_tag")));
+        return this;
+    }
+
+    public TextField setResourceLocationOnly() {
+        setTextValidator(LDLib::isValidResourceLocation);
+        style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.resourcelocation")));
+        return this;
+    }
+
+    public TextField setNumbersOnlyLong(long minValue, long maxValue) {
+        mode = Mode.NUMBER_LONG;
+        setTextValidator(s -> {
+            try {
+                long value = Long.parseLong(s);
+                if (minValue <= value && value <= maxValue) return true;
+            } catch (NumberFormatException ignored) { }
+            return false;
+        });
+        if (minValue == Long.MIN_VALUE && maxValue == Long.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+        } else if (minValue == Long.MIN_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+        } else if (maxValue == Long.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+        } else {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+        }
+        return setWheelDur(1);
+    }
+
+    public TextField setNumbersOnlyInt(int minValue, int maxValue) {
+        mode = Mode.NUMBER_INT;
+        setTextValidator(s -> {
+            try {
+                int value = Integer.parseInt(s);
+                if (minValue <= value && value <= maxValue) return true;
+            } catch (NumberFormatException ignored) { }
+            return false;
+        });
+        if (minValue == Integer.MIN_VALUE && maxValue == Integer.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+        } else if (minValue == Integer.MIN_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+        } else if (maxValue == Integer.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+        } else {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+        }
+        return setWheelDur(1);
+    }
+
+    public TextField setNumbersOnlyFloat(float minValue, float maxValue) {
+        mode = Mode.NUMBER_FLOAT;
+        setTextValidator(s -> {
+            try {
+                float value = Float.parseFloat(s);
+                if (minValue <= value && value <= maxValue) return true;
+            } catch (NumberFormatException ignored) { }
+            return false;
+        });
+        if (minValue == -Float.MAX_VALUE && maxValue == Float.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+        } else if (minValue == -Float.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+        } else if (maxValue == Float.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+        } else {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+        }
+        return setWheelDur(0.1f);
+    }
+
+    public TextField setWheelDur(float wheelDur) {
+        this.wheelDur = wheelDur;
+        this.numberInstance = NumberFormat.getNumberInstance();
+        numberInstance.setMaximumFractionDigits(4);
+        return this;
+    }
+
+    public TextField setWheelDur(int digits, float wheelDur) {
+        this.wheelDur = wheelDur;
+        this.numberInstance = NumberFormat.getNumberInstance();
+        numberInstance.setMaximumFractionDigits(digits);
+        return this;
+    }
+
     public String getHighlighted() {
         if (selectionStart != selectionEnd) {
             return rawText.substring(Math.min(selectionStart, selectionEnd), Math.max(selectionStart, selectionEnd));
@@ -242,6 +428,7 @@ public class TextField extends UIElement {
         this.selectionStart = Mth.clamp(min, 0, this.rawText.length());
         this.selectionEnd = Mth.clamp(max, 0, this.rawText.length());
     }
+
 
     /**
      * Deletes the given number of words from the current cursor's position, unless there is currently a selection, in which case the selection is deleted instead.
@@ -365,7 +552,15 @@ public class TextField extends UIElement {
     protected void onRawTextUpdate() {
         updateDisplayOffset();
         if (textValidator.test(rawText)) {
-
+            isError = false;
+            if (!text.equals(rawText)) {
+                text = rawText;
+                if (textResponder != null) {
+                    textResponder.accept(rawText);
+                }
+            }
+        } else {
+            isError = true;
         }
     }
 
@@ -397,7 +592,7 @@ public class TextField extends UIElement {
         if (formattedLineCache == null) {
             var lines = TextUtilities.computeFormattedLines(
                     getFont(),
-                    Component.literal(rawText),
+                    Component.literal(rawText.isEmpty() ? placeholder : rawText),
                     getTextFieldStyle().fontSize(),
                     Float.MAX_VALUE
             );
@@ -436,7 +631,9 @@ public class TextField extends UIElement {
         graphics.pose().pushPose();
         graphics.pose().translate(lineX, lineY, 0);
         graphics.pose().scale(scale, scale, 1);
-        graphics.drawString(font, line, 0, 0, textFieldStyle.textColor, textFieldStyle.textShadow);
+        graphics.drawString(font, line, 0, 0, rawText.isEmpty() ?
+                ColorPattern.LIGHT_GRAY.color : (isError ? textFieldStyle.errorColor : textFieldStyle.textColor),
+                !rawText.isEmpty() && textFieldStyle.textShadow);
         graphics.pose().popPose();
 
         // draw highlight

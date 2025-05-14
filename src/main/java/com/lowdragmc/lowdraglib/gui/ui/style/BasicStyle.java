@@ -8,6 +8,11 @@ import com.lowdragmc.lowdraglib.gui.ui.style.value.TextWrap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.network.chat.Component;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Accessors(chain = true, fluent = true)
 public class BasicStyle extends Style {
@@ -17,6 +22,8 @@ public class BasicStyle extends Style {
     private IGuiTexture backgroundTexture = IGuiTexture.EMPTY;
     @Getter @Setter
     private IGuiTexture borderTexture = IGuiTexture.EMPTY;
+    @Getter @Setter
+    private List<Component> tooltips = new ArrayList<>();
     @Getter
     private int zIndex = 0;
 
@@ -30,6 +37,16 @@ public class BasicStyle extends Style {
         if (holder.getParent() != null) {
             holder.getParent().clearSortedChildrenCache();
         }
+        return this;
+    }
+
+    public BasicStyle appendTooltips(Component... tooltips) {
+        this.tooltips.addAll(Arrays.asList(tooltips));
+        return this;
+    }
+
+    public BasicStyle appendTooltipsString(String... tooltips) {
+        this.tooltips.addAll(Arrays.stream(tooltips).map(Component::translatable).toList());
         return this;
     }
 }

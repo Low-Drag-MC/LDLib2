@@ -67,13 +67,12 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
 
     // hover tips
     @Nullable
-    public List<Component> tooltipTexts;
+    private List<Component> tooltipTexts;
     @Nullable
-    public TooltipComponent tooltipComponent;
+    private TooltipComponent tooltipComponent;
     @Nullable
-    public Font tooltipFont;
-    @Nullable
-    public ItemStack tooltipStack = ItemStack.EMPTY;
+    private Font tooltipFont;
+    private ItemStack tooltipStack = ItemStack.EMPTY;
 
     public ModularUI(UI ui) {
         this.ui = ui;
@@ -413,15 +412,35 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         UIEventDispatcher.dispatchEvent(event);
     }
 
+    public void setHoverTooltip(List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable Font tooltipFont, @Nullable TooltipComponent tooltipComponent) {
+        this.tooltipTexts = tooltipTexts;
+        this.tooltipStack = tooltipStack;
+        this.tooltipFont = tooltipFont;
+        this.tooltipComponent = tooltipComponent;
+    }
+
+    public void cleanTooltip() {
+        tooltipTexts = null;
+        tooltipComponent = null;
+        tooltipFont = null;
+        tooltipStack = ItemStack.EMPTY;
+    }
+
     /// rendering
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        cleanTooltip();
+
         lastHoveredElement = ui.rootElement.getHoverElement(mouseX, mouseY);
         lastMouseX = mouseX;
         lastMouseY = mouseY;
 
         ui.rootElement.drawInBackground(guiGraphics, mouseX, mouseY, partialTick);
         ui.rootElement.drawInForeground(guiGraphics, mouseX, mouseY, partialTick);
+
+        if (lastHoveredElement != null && tooltipTexts == null && !lastHoveredElement.getStyle().tooltips().isEmpty()) {
+            setHoverTooltip(lastHoveredElement.getStyle().tooltips(), ItemStack.EMPTY, null, null);
+        }
 
         if (dragHandler.isDragging() && dragHandler.dragTexture != null) {
             dragHandler.dragTexture.draw(guiGraphics, mouseX, mouseY, mouseX - 20, mouseY - 20, 40, 40, partialTick);

@@ -61,12 +61,18 @@ public class LDLib {
     }
 
     public static boolean isValidResourceLocation(String string) {
-        for (int i = 0; i < string.length(); i++) {
-            if (!ResourceLocation.isAllowedInResourceLocation(string.charAt(i))) {
-                return false;
+        int i = string.indexOf(":");
+        if (i == -1) {
+            for (int j = 0; j < string.length(); j++) {
+                if (!ResourceLocation.isAllowedInResourceLocation(string.charAt(j))) {
+                    return false;
+                }
             }
+        } else {
+            var namespace = string.substring(0, i);
+            var path = string.substring(i + 1);
+            return ResourceLocation.isValidNamespace(namespace) && ResourceLocation.isValidPath(path);
         }
-
         return true;
 
     }
