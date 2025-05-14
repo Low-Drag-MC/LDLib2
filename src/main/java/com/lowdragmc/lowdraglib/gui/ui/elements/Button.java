@@ -1,16 +1,21 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib.gui.ui.style.ButtonStyle;
+import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.GuiGraphics;
+import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -21,6 +26,22 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 public class Button extends TextElement {
+    @Accessors(chain = true, fluent = true)
+    public static class ButtonStyle extends Style {
+        @Getter
+        @Setter
+        private IGuiTexture defaultTexture = Sprites.RECT_RD;
+        @Getter
+        @Setter
+        private IGuiTexture hoverTexture = Sprites.RECT_RD_LIGHT;
+        @Getter
+        @Setter
+        private IGuiTexture pressedTexture = Sprites.RECT_RD_DARK;
+
+        public ButtonStyle(UIElement holder) {
+            super(holder);
+        }
+    }
     public enum State {
         DEFAULT,
         HOVERED,
@@ -47,13 +68,11 @@ public class Button extends TextElement {
         addEventListener(UIEvents.MOUSE_ENTER, this::onMouseEnter, true);
         addEventListener(UIEvents.MOUSE_LEAVE, this::onMouseLeave, true);
         setText("Button");
-        setTextureByState(state);
     }
 
     public Button buttonStyle(Consumer<ButtonStyle> style) {
         style.accept(buttonStyle);
         onStyleChanged();
-        setTextureByState(state);
         return this;
     }
 
@@ -63,13 +82,20 @@ public class Button extends TextElement {
         buttonStyle.applyStyles(values);
     }
 
-    protected void setTextureByState(State state) {
+    @Override
+    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        // draw button texture
+        var texture = switch (state) {
+            case DEFAULT -> getButtonStyle().defaultTexture();
+            case HOVERED -> getButtonStyle().hoverTexture();
+            case PRESSED -> getButtonStyle().pressedTexture();
+        };
+        texture.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
+    }
+
+    protected void setButtonState(State state) {
         this.state = state;
-        switch (state) {
-            case DEFAULT -> getStyle().backgroundTexture(getButtonStyle().defaultTexture());
-            case HOVERED -> getStyle().backgroundTexture(getButtonStyle().hoverTexture());
-            case PRESSED -> getStyle().backgroundTexture(getButtonStyle().pressedTexture());
-        }
     }
 
     protected void onMouseDown(UIEvent event) {
@@ -80,20 +106,20 @@ public class Button extends TextElement {
                 onClick.accept(event);
             }
             // pressed state
-            setTextureByState(State.PRESSED);
+            setButtonState(State.PRESSED);
         }
     }
 
     protected void onMouseUp(UIEvent event) {
-        setTextureByState(State.HOVERED);
+        setButtonState(State.HOVERED);
     }
 
     protected void onMouseEnter(UIEvent event) {
-        setTextureByState(State.HOVERED);
+        setButtonState(State.HOVERED);
     }
 
     protected void onMouseLeave(UIEvent event) {
-        setTextureByState(State.DEFAULT);
+        setButtonState(State.DEFAULT);
     }
 
 }

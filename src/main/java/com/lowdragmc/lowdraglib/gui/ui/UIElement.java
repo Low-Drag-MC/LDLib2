@@ -2,12 +2,12 @@ package com.lowdragmc.lowdraglib.gui.ui;
 
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.style.BasicStyle;
-import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
@@ -21,6 +21,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
+import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -169,9 +170,9 @@ public class UIElement {
     /**
      * The absolute X offset relative to the screen.
      */
-    public final float getPositionXCache() {
+    public final float getPositionX() {
         if (positionXCache.isUndefined()) {
-            positionXCache = FloatOptional.of(getLayoutX() + (parent == null ? 0 : parent.getPositionXCache()));
+            positionXCache = FloatOptional.of(getLayoutX() + (parent == null ? 0 : parent.getPositionX()));
         }
         return positionXCache.getValue();
     }
@@ -179,9 +180,9 @@ public class UIElement {
     /**
      * The absolute Y offset relative to the screen.
      */
-    public final float getPositionYCache() {
+    public final float getPositionY() {
         if (positionYCache.isUndefined()) {
-            positionYCache = FloatOptional.of(getLayoutY() + (parent == null ? 0 : parent.getPositionYCache()));
+            positionYCache = FloatOptional.of(getLayoutY() + (parent == null ? 0 : parent.getPositionY()));
         }
         return positionYCache.getValue();
     }
@@ -198,7 +199,7 @@ public class UIElement {
      * Get the x position of the element excluding the border.
      */
     public final float getPaddingX() {
-        return getPositionXCache() + layoutNode.getLayoutBorder(YogaEdge.LEFT);
+        return getPositionX() + layoutNode.getLayoutBorder(YogaEdge.LEFT);
     }
 
     /**
@@ -212,7 +213,7 @@ public class UIElement {
      * Get the y position of the element excluding the border.
      */
     public final float getPaddingY() {
-        return getPositionYCache() + layoutNode.getLayoutBorder(YogaEdge.TOP);
+        return getPositionY() + layoutNode.getLayoutBorder(YogaEdge.TOP);
     }
 
     /**
@@ -223,7 +224,7 @@ public class UIElement {
     }
 
     public final float getPaddingWidth() {
-        return getSizeWidth() - layoutNode.getLayoutPadding(YogaEdge.LEFT) - layoutNode.getLayoutPadding(YogaEdge.RIGHT);
+        return getSizeWidth() - layoutNode.getLayoutBorder(YogaEdge.LEFT) - layoutNode.getLayoutBorder(YogaEdge.RIGHT);
     }
 
     public final float getContentWidth() {
@@ -231,7 +232,7 @@ public class UIElement {
     }
 
     public final float getPaddingHeight() {
-        return getSizeHeight() - layoutNode.getLayoutPadding(YogaEdge.TOP) - layoutNode.getLayoutPadding(YogaEdge.BOTTOM);
+        return getSizeHeight() - layoutNode.getLayoutBorder(YogaEdge.TOP) - layoutNode.getLayoutBorder(YogaEdge.BOTTOM);
     }
 
     public final float getContentHeight() {
@@ -461,7 +462,31 @@ public class UIElement {
 
     /// Interaction
     public boolean isMouseOverElement(double mouseX, double mouseY) {
-        return isMouseOver(getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
+        return isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
+    }
+
+    /**
+     * Return true if the top most element is hovered by the mouse.
+     */
+    public boolean isHover() {
+        return getModularUI() != null && getModularUI().getLastHoveredElement() == this;
+    }
+
+    /**
+     * Return true if the element is focused by the mouse.
+     */
+    public boolean isFocused() {
+        return getModularUI() != null && getModularUI().getFocusedElement() == this;
+    }
+
+    /**
+     * Start dragging the element. This will call the {@link com.lowdragmc.lowdraglib.gui.ui.event.DragHandler#startDrag} method.
+     */
+    public void startDrag(@Nullable Object draggingObject, @Nullable IGuiTexture dragTexture) {
+        var ui = getModularUI();
+        if (ui != null) {
+            ui.getDragHandler().startDrag(draggingObject, dragTexture, this);
+        }
     }
 
     /**
@@ -530,7 +555,7 @@ public class UIElement {
     }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
-        return isMouseOver(getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
+        return isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
     }
 
     public static boolean isMouseOver(float x, float y, float width, float height, double mouseX, double mouseY) {
@@ -660,7 +685,21 @@ public class UIElement {
         }
         if (display == YogaDisplay.FLEX) {
             drawBackgroundTexture(guiGraphics, mouseX, mouseY, partialTick);
+            var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN;
+            if (hidden) {
+                var trans = guiGraphics.pose().last().pose();
+                var x = getContentX();
+                var y = getContentY();
+                var width = getContentWidth();
+                var height = getContentHeight();
+                var realPos = trans.transform(new Vector4f(x, y, 0, 1));
+                var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
+                guiGraphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+            }
             drawBackgroundAdditional(guiGraphics, mouseX, mouseY, partialTick);
+            if (hidden) {
+                guiGraphics.disableScissor();
+            }
             drawBackgroundOverlay(guiGraphics, mouseX, mouseY, partialTick);
         }
         children.forEach(child -> child.drawInBackground(guiGraphics, mouseX, mouseY, partialTick));
@@ -673,8 +712,8 @@ public class UIElement {
      * Renders the background texture of the GUI element.
      */
     public void drawBackgroundTexture(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        style.backgroundTexture().draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
-        style.borderTexture().draw(graphics, mouseX, mouseY, getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), partialTicks);
+        style.backgroundTexture().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+        style.borderTexture().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
     }
 
     /**
@@ -705,7 +744,7 @@ public class UIElement {
     public List<Component> getDebugInfo() {
         var info = new ArrayList<Component>();
         info.add(Component.literal("[type: %s, pos: (%.1f %.1f), size: (%.1f, %.1f), children: %d]".formatted(
-                getElementName(), getPositionXCache(), getPositionYCache(), getSizeWidth(), getSizeHeight(), children.size())));
+                getElementName(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), children.size())));
         info.add(Component.literal("[id: %s, class: \"%s\"]".formatted(getId().isEmpty() ? "empty" : getId(), String.join(" ", classes))));
         return info;
     }

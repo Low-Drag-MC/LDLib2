@@ -21,7 +21,7 @@ public class DragHandler {
     @Getter
     private boolean isDragging;
     @Nullable
-    public UIElement dragTarget;
+    public UIElement dragSource;
     @Nullable
     public Object draggingObject;
     @Nullable
@@ -46,13 +46,13 @@ public class DragHandler {
     /**
      * Start dragging an object.
      */
-    public void startDrag(Object draggingObject, IGuiTexture dragTexture, UIElement dragTarget) {
+    public void startDrag(Object draggingObject, IGuiTexture dragTexture, UIElement dragSource) {
         if (isDragging) {
             stopDrag();
         }
         this.draggingObject = draggingObject;
         this.dragTexture = dragTexture;
-        this.dragTarget = dragTarget;
+        this.dragSource = dragSource;
         isDragging = true;
     }
 
@@ -74,14 +74,15 @@ public class DragHandler {
      * This will trigger {@link UIEvents#DRAG_END} event if the drag target is existing.
      */
     public void stopDrag(@Nullable UIElement dropElement) {
-        if (draggingObject != null) {
+        if (dragSource != null) {
             var event = UIEvent.create(UIEvents.DRAG_END);
+            event.target = dragSource;
             event.relatedTarget = dropElement;
             UIEventDispatcher.dispatchEvent(event);
         }
         draggingObject = null;
         dragTexture = null;
-        dragTarget = null;
+        dragSource = null;
         isDragging = false;
     }
 

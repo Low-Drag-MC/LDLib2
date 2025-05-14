@@ -1,11 +1,16 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.Icons;
+import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib.gui.ui.style.ToggleStyle;
+import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,6 +29,25 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 public class Toggle extends UIElement {
+    @Accessors(chain = true, fluent = true)
+    public static class ToggleStyle extends Style {
+        @Getter
+        @Setter
+        private IGuiTexture baseTexture = Sprites.RECT_DARK;
+        @Getter
+        @Setter
+        private IGuiTexture hoverTexture = new GuiTextureGroup(Sprites.RECT_DARK, ColorPattern.WHITE.borderTexture(-1));
+        @Getter
+        @Setter
+        private IGuiTexture unmarkTexture = IGuiTexture.EMPTY;
+        @Getter
+        @Setter
+        private IGuiTexture markTexture = Icons.CHECK_SPRITE;
+
+        public ToggleStyle(UIElement holder) {
+            super(holder);
+        }
+    }
     public final Button toggleButton;
     public final UIElement markIcon;
     public final Label toggleLabel;
@@ -109,4 +133,5 @@ public class Toggle extends UIElement {
         }
         return this;
     }
+
 }

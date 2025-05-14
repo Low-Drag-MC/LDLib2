@@ -308,6 +308,10 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (dragHandler.isDragging()) {
             var current = getLastHoveredElement();
+            if (dragHandler.dragSource != null) {
+                var event = UIEvent.create(UIEvents.DRAG_SOURCE_UPDATE);
+                dispatchDragEvent(mouseX, mouseY, dragX, dragY, dragHandler.dragSource, event);
+            }
             if (current != null) {
                 if (lastMouseDragElement == current) {
                     var event = UIEvent.create(UIEvents.DRAG_UPDATE);
@@ -382,7 +386,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     public boolean charTyped(char codePoint, int modifiers) {
         if (focusedElement != null) {
             var event = UIEvent.create(UIEvents.CHAR_TYPED);
-            event.keyCode = codePoint;
+            event.codePoint = codePoint;
             event.modifiers = modifiers;
             event.target = focusedElement;
             UIEventDispatcher.dispatchEvent(event);

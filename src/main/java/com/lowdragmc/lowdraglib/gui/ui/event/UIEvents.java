@@ -53,11 +53,15 @@ public interface UIEvents {
      */
     String DRAG_UPDATE = "dragUpdate";
     /**
+     * The {@code dragSourceUpdate} is sent to the {@link DragHandler#dragSource} (if existing) when the user drags any draggable object.
+     */
+    String DRAG_SOURCE_UPDATE = "dragSourceUpdate";
+    /**
      * The {@code dragPerform} is sent when the user drags any draggable object and releases the mouse pointer over an element.
      */
     String DRAG_PERFORM = "dragPerform";
     /**
-     * The {@code dragEnd} is sent to the {@link DragHandler#dragTarget} (if existing) when the user drags any draggable object and releases the mouse pointer over an element.
+     * The {@code dragEnd} is sent to the {@link DragHandler#dragSource} (if existing) when the user drags any draggable object and releases the mouse pointer over an element.
      * <li> relatedTarget: The element that dropped the object.
      */
     String DRAG_END = "dragEnd";

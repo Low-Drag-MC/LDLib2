@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -50,7 +51,7 @@ public class TestElements implements IUITest {
                                     layout.setPadding(YogaEdge.ALL, 5);
                                 }).setId("flex-1")
                                 .style(style -> style.backgroundTexture(Sprites.BORDER))
-                                .addChildren(new Button(), new Toggle()),
+                                .addChildren(new Button(), new Toggle(), new TextField()),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setWidthPercent(100);

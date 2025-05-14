@@ -6,15 +6,21 @@ import net.minecraft.resources.ResourceLocation;
 
 public class Sprites {
     public static ResourceLocation GDP = LDLib.id("textures/gui/gdp_styles.png");
-    public static SpriteTexture RECT = SpriteTexture.of(GDP).setSprite(29, 29, 13, 13).setBorder(4, 4, 4, 4);
-    public static SpriteTexture RECT_LIGHT = SpriteTexture.of(GDP).setSprite(29, 15, 13, 13).setBorder(4, 4, 4, 4);
-    public static SpriteTexture RECT_DARK = SpriteTexture.of(GDP).setSprite(29, 43, 13, 13).setBorder(4, 4, 4, 4);
-    public static SpriteTexture RECT_SOLID = SpriteTexture.of(GDP).setSprite(29, 1, 13, 13).setBorder(4, 4, 4, 4);
 
     public static SpriteTexture RECT_RD = SpriteTexture.of(GDP).setSprite(1, 29, 13, 13).setBorder(4, 4, 4, 4);
     public static SpriteTexture RECT_RD_LIGHT = SpriteTexture.of(GDP).setSprite(1, 15, 13, 13).setBorder(4, 4, 4, 4);
     public static SpriteTexture RECT_RD_DARK = SpriteTexture.of(GDP).setSprite(1, 43, 13, 13).setBorder(4, 4, 4, 4);
     public static SpriteTexture RECT_RD_SOLID = SpriteTexture.of(GDP).setSprite(1, 1, 13, 13).setBorder(4, 4, 4, 4);
+
+    public static SpriteTexture RECT_RD_T = SpriteTexture.of(GDP).setSprite(15, 29, 13, 13).setBorder(4, 4, 4, 4);
+    public static SpriteTexture RECT_RD_T_LIGHT = SpriteTexture.of(GDP).setSprite(15, 15, 13, 13).setBorder(4, 4, 4, 4);
+    public static SpriteTexture RECT_RD_T_DARK = SpriteTexture.of(GDP).setSprite(15, 43, 13, 13).setBorder(4, 4, 4, 4);
+    public static SpriteTexture RECT_RD_T_SOLID = SpriteTexture.of(GDP).setSprite(15, 1, 13, 13).setBorder(4, 4, 4, 4);
+
+    public static SpriteTexture RECT = SpriteTexture.of(GDP).setSprite(29, 29, 13, 13).setBorder(4, 4, 4, 4);
+    public static SpriteTexture RECT_LIGHT = SpriteTexture.of(GDP).setSprite(29, 15, 13, 13).setBorder(4, 4, 4, 4);
+    public static SpriteTexture RECT_DARK = SpriteTexture.of(GDP).setSprite(29, 43, 13, 13).setBorder(4, 4, 4, 4);
+    public static SpriteTexture RECT_SOLID = SpriteTexture.of(GDP).setSprite(29, 1, 13, 13).setBorder(4, 4, 4, 4);
 
     public static SpriteTexture BORDER = SpriteTexture.of(GDP).setSprite(86, 131, 16, 16).setBorder(5, 5, 5, 5);
     public static SpriteTexture BORDER_DARK = SpriteTexture.of(GDP).setSprite(86, 148, 16, 16).setBorder(5, 5, 5, 5);

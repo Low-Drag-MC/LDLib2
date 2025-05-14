@@ -44,6 +44,7 @@ public class UIEvent {
      * Key Event data
      */
     public int keyCode, scanCode, modifiers;
+    public char codePoint;
     @Nullable
     public Object customData;
     /**
