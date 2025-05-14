@@ -13,7 +13,6 @@ public class StyleContext {
     private final UIElement element;
     private final List<StyleRule> matchedRules = new ArrayList<>();
     private final Map<String, StyleValue<?>> inlineValues;
-    private final Map<String, StyleValue<?>> customValues = new ConcurrentHashMap<>();
     private final Map<String, StyleValue<?>> computedValues = new ConcurrentHashMap<>();
     private boolean isComputed = false;
     
@@ -22,10 +21,13 @@ public class StyleContext {
         this.inlineValues = inlineValues;
     }
 
-    protected void loadStyleRules() {
+    public void loadStyleRules() {
         matchedRules.clear();
         collectMatchedRules();
         sortRulesBySpecificity();
+        isComputed = false;
+        calculateComputedValues();
+        element.applyStyle(computedValues);
     }
 
     protected void collectMatchedRules() {
@@ -52,34 +54,11 @@ public class StyleContext {
         };
     }
 
-    protected Map<String, StyleValue<?>> getComputedValues() {
-        if (!isComputed) {
-            calculateComputedValues();
-        }
-        return computedValues;
-    }
-
     protected void calculateComputedValues() {
-        var removedValues = new HashMap<>(computedValues);
         computedValues.clear();
-        applyInheritedProperties();
         applyMatchedRules();
         applyInlineStyles();
-        applyCustomStyles();
         isComputed = true;
-        removedValues.keySet().removeAll(computedValues.keySet());
-        removedValues.forEach((key, value) -> element.applyStyle(key, null));
-        computedValues.forEach(element::applyStyle);
-        element.notifyStyleChanged();
-    }
-
-    protected void applyInheritedProperties() {
-        if (element.getParent() == null) return;
-        element.getParent().getStyleContext().getComputedValues().forEach((key, value) -> {
-            if (InheritableProperties.isInheritable(key) && element.supportStyle(key)) {
-                computedValues.put(key, value);
-            }
-        });
     }
 
     protected void applyMatchedRules() {
@@ -100,19 +79,4 @@ public class StyleContext {
         }
     }
 
-    protected void applyCustomStyles() {
-        for (var entry : customValues.entrySet()) {
-            if (element.supportStyle(entry.getKey())) {
-                computedValues.put(entry.getKey(), entry.getValue());
-            }
-        }
-    }
-
-    public void addCustomStyle(String key, StyleValue<?> value) {
-        customValues.put(key, value);
-    }
-
-    public StyleValue<?> removeCustomStyle(String key) {
-        return customValues.get(key);
-    }
 }

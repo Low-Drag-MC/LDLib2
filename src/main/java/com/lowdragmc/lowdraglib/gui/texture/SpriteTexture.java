@@ -175,7 +175,11 @@ public class SpriteTexture extends TransformTexture {
                     uCenterStart, vCenterStart, uCenterEnd, vCenterEnd, color);
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        try {
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
+        } catch (Exception e) {
+            LDLib.LOGGER.error("Failed to draw sprite texture", e);
+        }
     }
 
     @OnlyIn(Dist.CLIENT)

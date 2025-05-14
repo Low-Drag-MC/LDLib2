@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.style.TextStyle;
+import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib.utils.TextUtilities;
 import dev.latvian.mods.rhino.util.HideFromJS;
@@ -17,6 +19,8 @@ import net.minecraft.util.Tuple;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
@@ -26,6 +30,9 @@ public class TextElement extends UIElement {
     private Component text = Component.empty();
     @Getter
     private boolean isComputed = false;
+    @Getter
+    private final TextStyle textStyle = new TextStyle(this);
+
     /**
      * The formatted text to be displayed in each line and its width.
      */
@@ -34,6 +41,18 @@ public class TextElement extends UIElement {
     public void recompute() {
         this.isComputed = false;
         this.formattedLinesCache = Collections.emptyList();
+    }
+
+    public TextElement textStyle(Consumer<TextStyle> style) {
+        style.accept(textStyle);
+        onStyleChanged();
+        return this;
+    }
+
+    @Override
+    public void applyStyle(Map<String, StyleValue<?>> values) {
+        super.applyStyle(values);
+        textStyle.applyStyles(values);
     }
 
     @Override
@@ -77,8 +96,8 @@ public class TextElement extends UIElement {
             formattedLinesCache = TextUtilities.computeFormattedLines(
                     getFont(),
                     text,
-                    getStyle().fontSize(),
-                    getStyle().textWrap() == TextWrap.WRAP ? getContentWidth() : Float.MAX_VALUE
+                    getTextStyle().fontSize(),
+                    getTextStyle().textWrap() == TextWrap.WRAP ? getContentWidth() : Float.MAX_VALUE
             );
         }
         return formattedLinesCache;
@@ -95,12 +114,12 @@ public class TextElement extends UIElement {
             var y = getContentY();
             var width = getContentWidth();
             var height = getContentHeight();
-            var hAlign = getStyle().textAlignHorizontal();
-            var vAlign = getStyle().textAlignVertical();
-            var lineHeight = getStyle().fontSize();
-            var lineSpacing = getStyle().lineSpacing();
-            var color = getStyle().textColor();
-            var dropShadow = getStyle().textShadow();
+            var hAlign = getTextStyle().textAlignHorizontal();
+            var vAlign = getTextStyle().textAlignVertical();
+            var lineHeight = getTextStyle().fontSize();
+            var lineSpacing = getTextStyle().lineSpacing();
+            var color = getTextStyle().textColor();
+            var dropShadow = getTextStyle().textShadow();
             var scale = lineHeight / defaultLineHeight;
 
 

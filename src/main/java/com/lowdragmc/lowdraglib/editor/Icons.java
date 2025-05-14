@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib.editor;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import net.minecraft.Util;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +15,7 @@ import java.util.function.BiFunction;
  * @implNote Icons
  */
 public class Icons {
+    private static final ResourceLocation GDP_ICONS = LDLib.id("textures/gui/icon/gdp_icons.png");
     private static final BiFunction<String, String, ResourceTexture> CACHE = Util.memoize((modID, name) -> new ResourceTexture("%s:textures/gui/icon/%s.png".formatted(modID, name)));
     private static final Map<String, ResourceTexture> FILE_ICONS = new HashMap<>();
     public static ResourceTexture LEFT = new ResourceTexture("ldlib:textures/gui/left.png");
@@ -78,6 +81,9 @@ public class Icons {
     public static ResourceTexture ALIGN_V_D = icon("align_vertical_distribute");
     public static ResourceTexture ALIGN_V_T = icon("align_vertical_top");
     public static ResourceTexture ALIGN_V_B = icon("align_vertical_bottom");
+
+    public static SpriteTexture CHECK_SPRITE = SpriteTexture.of(GDP_ICONS).setSprite(72, 0, 12, 12);
+
 
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");

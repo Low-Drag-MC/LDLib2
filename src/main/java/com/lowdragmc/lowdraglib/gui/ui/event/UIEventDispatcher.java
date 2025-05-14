@@ -3,8 +3,6 @@ package com.lowdragmc.lowdraglib.gui.ui.event;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import lombok.experimental.UtilityClass;
 
-import java.util.LinkedList;
-
 @UtilityClass
 public final class UIEventDispatcher {
     public static void dispatchEvent(UIEvent event) {
@@ -15,7 +13,7 @@ public final class UIEventDispatcher {
         // 2. capture phase: root -> target.parent
         if (event.hasCapturePhase) {
             event.phase = UIEvent.EventPhase.CAPTURE;
-            for (int i = 0; i < path.size() - 2; i++) {
+            for (int i = 0; i < path.size() - 1; i++) {
                 UIElement elem = path.get(i);
                 event.currentElement = elem;
                 // call capture listeners

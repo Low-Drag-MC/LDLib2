@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
-import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib.gui.ui.elements.TextElement;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
@@ -33,38 +33,26 @@ public class TestElements implements IUITest {
                     layout.setGap(YogaGutter.ROW, 10);
                 }).setId("container")
                 .style(style -> style.backgroundTexture(Sprites.BORDER))
-                .addChildren(new TextElement()
+                .addChildren(new Label()
                                 .setText("Hello World!!")
+                                .textStyle(style -> style
+                                        .fontSize(20)
+                                        .textAlignHorizontal(Horizontal.CENTER)
+                                        .textAlignVertical(Vertical.CENTER))
                                 .layout(layout -> {
                                     layout.setHeight(60);
                                 }).setId("header")
-                                .style(style -> style
-                                        .fontSize(20)
-                                        .textAlignHorizontal(Horizontal.CENTER)
-                                        .textAlignVertical(Vertical.CENTER)
-                                        .backgroundTexture(Sprites.BORDER)),
+                                .style(style -> style.backgroundTexture(Sprites.BORDER)),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setFlex(1);
                                     layout.setMargin(YogaEdge.HORIZONTAL, 10);
+                                    layout.setPadding(YogaEdge.ALL, 5);
                                 }).setId("flex-1")
                                 .style(style -> style.backgroundTexture(Sprites.BORDER))
-                                .addChild(new Button()
-                                        .layout(layout -> {
-                                            layout.setWidth(60);
-                                            layout.setHeight(20);
-                                            layout.setAlignSelf(YogaAlign.CENTER);
-                                            layout.setMarginAuto(YogaEdge.VERTICAL);
-                                        })),
+                                .addChildren(new Button(), new Toggle()),
                         new UIElement()
                                 .layout(layout -> {
-                                    layout.setFlex(2);
-                                    layout.setMargin(YogaEdge.HORIZONTAL, 10);
-                                }).setId("flex-2")
-                                .style(style -> style.backgroundTexture(Sprites.BORDER)),
-                        new UIElement()
-                                .layout(layout -> {
-                                    layout.setPositionType(YogaPositionType.ABSOLUTE);
                                     layout.setWidthPercent(100);
                                     layout.setPosition(YogaEdge.BOTTOM, 0);
                                     layout.setHeight(64);

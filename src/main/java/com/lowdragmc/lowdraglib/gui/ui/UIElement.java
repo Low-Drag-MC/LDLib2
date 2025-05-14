@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
@@ -61,7 +62,7 @@ public class UIElement {
     @Getter
     private final StyleContext styleContext = createStyleContext();
     @Getter
-    private final Style style = createStyle();
+    private final BasicStyle style = new BasicStyle(this);
     // internal properties
     @Getter @Setter
     private boolean isVisible = true;
@@ -285,11 +286,18 @@ public class UIElement {
         return this;
     }
 
+    /**
+     * Internal elements are elements that can not be removed.
+     */
+    public boolean isInternalElement(UIElement child) {
+        return false;
+    }
+
     public boolean removeChild(@Nullable UIElement child) {
         if (child == null) {
             return false;
         }
-        if (!hasChild(child)) {
+        if (isInternalElement(child) || !hasChild(child)) {
             return false;
         }
         children.remove(child);
@@ -329,6 +337,26 @@ public class UIElement {
         return classes.contains(identifier);
     }
 
+    public UIElement removeClass(String identifier) {
+        if (!classes.contains(identifier)) {
+            return this;
+        }
+        classes.remove(identifier);
+        styleContext.loadStyleRules();
+        onStyleChanged();
+        return this;
+    }
+
+    public UIElement addClass(String identifier) {
+        if (classes.contains(identifier)) {
+            return this;
+        }
+        classes.add(identifier);
+        styleContext.loadStyleRules();
+        onStyleChanged();
+        return this;
+    }
+
     public String getElementName() {
         // TODO use LDLRegister instead
         return getClass().getSimpleName();
@@ -336,10 +364,6 @@ public class UIElement {
 
     protected StyleContext createStyleContext() {
         return new StyleContext(this, getInlineStyleValues());
-    }
-
-    protected Style createStyle() {
-        return new Style(this);
     }
 
     protected Map<String, StyleValue<?>> getInlineStyleValues() {
@@ -353,25 +377,20 @@ public class UIElement {
     /**
      * Apply a style to the element. it will be triggered by the {@link StyleContext}.
      * Apply the actual logic of the style to the element.
-     * @param key the style key
-     * @param value the style value. if null, it means the style is removed.
      */
-    public void applyStyle(String key, @Nullable StyleValue<?> value) {
+    public void applyStyle(Map<String, StyleValue<?>> values) {
+        style.applyStyles(values);
     }
 
-    public UIElement style(Consumer<Style> style) {
+    public UIElement style(Consumer<BasicStyle> style) {
         style.accept(this.style);
         onStyleChanged();
         return this;
     }
 
-    public final void notifyStyleChanged() {
-        onStyleChanged();
-    }
-
     /**
      * This method is called when the style of the element has changed.
-     * It will only be called when the style is changed by the {@link #style(Consumer)} or {@link #notifyStyleChanged()}.
+     * It will only be called when the style is changed by the {@link #style(Consumer)} or {@link #styleContext}.
      */
     protected void onStyleChanged() {
     }
