@@ -102,6 +102,14 @@ public class UIElement {
         }
     }
 
+    public void init(int screenWidth, int screenHeight) {
+        positionXCache = FloatOptional.of();
+        positionYCache = FloatOptional.of();
+        for (var child : children) {
+            child.init(screenWidth, screenHeight);
+        }
+    }
+
     /// Layout
     public YogaProps getLayout() {
         return layoutNode;
@@ -306,6 +314,7 @@ public class UIElement {
      * Internal elements are elements that can not be removed.
      */
     public boolean isInternalElement(UIElement child) {
+        // TODO
         return false;
     }
 
@@ -313,7 +322,7 @@ public class UIElement {
         if (child == null) {
             return false;
         }
-        if (isInternalElement(child) || !hasChild(child)) {
+        if (!hasChild(child)) {
             return false;
         }
         children.remove(child);
@@ -340,12 +349,21 @@ public class UIElement {
         }
     }
 
-    public void init(int screenWidth, int screenHeight) {
-        positionXCache = FloatOptional.of();
-        positionYCache = FloatOptional.of();
-        for (var child : children) {
-            child.init(screenWidth, screenHeight);
+    public boolean isAncestor(@Nullable UIElement element) {
+        if (element == null) {
+            return false;
         }
+        if (element == this) {
+            return true;
+        }
+        var parent = element.getParent();
+        while (parent != null) {
+            if (parent == this) {
+                return true;
+            }
+            parent = parent.getParent();
+        }
+        return false;
     }
 
     /// Style
@@ -426,9 +444,11 @@ public class UIElement {
         }
     }
 
-    public boolean hasFocus() {
-        var ui = getModularUI();
-        return ui != null && ui.getFocusedElement() == this;
+    /**
+     * Return true if the element is focused by the mouse.
+     */
+    public boolean isFocused() {
+        return getModularUI() != null && getModularUI().getFocusedElement() == this;
     }
 
     /// Tooltip
@@ -499,13 +519,6 @@ public class UIElement {
             hovered = hovered.getParent();
         }
         return false;
-    }
-
-    /**
-     * Return true if the element is focused by the mouse.
-     */
-    public boolean isFocused() {
-        return getModularUI() != null && getModularUI().getFocusedElement() == this;
     }
 
     /**

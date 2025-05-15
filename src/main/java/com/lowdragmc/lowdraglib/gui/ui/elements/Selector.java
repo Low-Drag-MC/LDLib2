@@ -89,7 +89,7 @@ public class Selector extends UIElement {
         this.dialog
                 .setId("selector#dialog")
                 .layout(layout -> {
-                    layout.setWidthPercent(40);
+                    layout.setWidthPercent(100);
                     layout.setHeight(60);
                     layout.setPositionType(YogaPositionType.ABSOLUTE);
                     layout.setPositionPercent(YogaEdge.TOP, 100);
