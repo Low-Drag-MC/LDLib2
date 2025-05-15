@@ -61,4 +61,14 @@ public class Sprites {
     public static SpriteTexture BORDER1_RT3 = SpriteTexture.of(GDP).setSprite(154, 205, 16, 16).setBorder(5, 5, 5, 5);
     public static SpriteTexture BORDER1_RT3_DARK = SpriteTexture.of(GDP).setSprite(154, 222, 16, 16).setBorder(5, 5, 5, 5);
     public static SpriteTexture BORDER1_RT3_TRANSLATE = SpriteTexture.of(GDP).setSprite(154, 239, 16, 16).setBorder(5, 5, 5, 5);
+
+    public static SpriteTexture SCROLL_CONTAINER_V = SpriteTexture.of(GDP).setSprite(48, 198, 5, 7).setBorder(2, 2, 2, 2);
+    public static SpriteTexture SCROLL_BAR_V = SpriteTexture.of(GDP).setSprite(48, 174, 5, 7).setBorder(2, 2, 2, 2);
+    public static SpriteTexture SCROLL_BAR_LIGHT_V = SpriteTexture.of(GDP).setSprite(48, 182, 5, 7).setBorder(2, 2, 2, 2);
+    public static SpriteTexture SCROLL_BAR_WHITE_V = SpriteTexture.of(GDP).setSprite(48, 190, 5, 7).setBorder(2, 2, 2, 2);
+
+    public static SpriteTexture SCROLL_CONTAINER_H = SpriteTexture.of(GDP).setSprite(55, 200, 7, 5).setBorder(2, 2, 2, 2);
+    public static SpriteTexture SCROLL_BAR_H = SpriteTexture.of(GDP).setSprite(55, 182, 7, 5).setBorder(2, 2, 2, 2);
+    public static SpriteTexture SCROLL_BAR_LIGHT_H = SpriteTexture.of(GDP).setSprite(55, 188, 7, 5).setBorder(2, 2, 2, 2);
+    public static SpriteTexture SCROLL_BAR_WHITE_H = SpriteTexture.of(GDP).setSprite(55, 194, 7, 5).setBorder(2, 2, 2, 2);
 }
