@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
@@ -54,8 +55,8 @@ public class SpriteTexture extends TransformTexture {
     @Configurable
     @NumberColor
     public int color = -1;
-    // TODO: wrap mode
     @Configurable
+    @Setter
     public WrapMode wrapMode = WrapMode.CLAMP;
     @Nullable
     private Size imageSizeCache;
@@ -96,10 +97,10 @@ public class SpriteTexture extends TransformTexture {
     @Override
     @OnlyIn(Dist.CLIENT)
     protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
         var poseStack = graphics.pose();
-
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-        RenderSystem.setShaderTexture(0, imageLocation);
 
         var imageSize = getImageSize();
         // uv
@@ -126,8 +127,9 @@ public class SpriteTexture extends TransformTexture {
 
         // rendering
         var matrix = poseStack.last().pose();
-        var tessellator = Tesselator.getInstance();
-        var buffer = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+        RenderSystem.setShaderTexture(0, imageLocation);
+        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);
 
         // 1. corners
         if (borderLeft > 0 && borderTop > 0) {
@@ -171,14 +173,40 @@ public class SpriteTexture extends TransformTexture {
 
         // 3. center area
         if (centerWidth > 0 && centerHeight > 0) {
-            drawQuad(buffer, matrix, x + borderLeft, y + borderTop, centerWidth, centerHeight,
-                    uCenterStart, vCenterStart, uCenterEnd, vCenterEnd, color);
+            if (wrapMode == WrapMode.CLAMP) {
+                drawQuad(buffer, matrix, x + borderLeft, y + borderTop, centerWidth, centerHeight,
+                        uCenterStart, vCenterStart, uCenterEnd, vCenterEnd, color);
+            } else {
+                // wrap mode
+                var centerSpriteWidth = spriteSize.getWidth() - borderLeft - borderRight;
+                var centerSpriteHeight = spriteSize.getHeight() - borderTop - borderBottom;
+                if (centerSpriteHeight <= 0 || centerSpriteWidth <= 0) {
+                    return;
+                }
+
+                // draw border first
+                var bufferData = buffer.build();
+                if (bufferData != null) {
+                    BufferUploader.drawWithShader(bufferData);
+                }
+
+                RenderSystem.setShader(Shaders::getSpriteBlitShader);
+                RenderSystem.setShaderTexture(0, imageLocation);
+                buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);
+                var shader = Shaders.getSpriteBlitShader();
+                shader.safeGetUniform("UVBounds").set(uCenterStart, vCenterStart, uCenterEnd, vCenterEnd);
+                shader.safeGetUniform("WrapMode").set(wrapMode.ordinal());
+
+                var u1 = centerWidth / centerSpriteWidth * (uCenterEnd - uCenterStart) + uCenterStart;
+                var v1 = centerHeight / centerSpriteHeight * (vCenterEnd - vCenterStart) + vCenterStart;
+                drawQuad(buffer, matrix, x + borderLeft, y + borderTop, centerWidth, centerHeight,
+                        uCenterStart, vCenterStart, u1, v1, color);
+            }
         }
 
-        try {
-            BufferUploader.drawWithShader(buffer.buildOrThrow());
-        } catch (Exception e) {
-            LDLib.LOGGER.error("Failed to draw sprite texture", e);
+        var bufferData = buffer.build();
+        if (bufferData != null) {
+            BufferUploader.drawWithShader(bufferData);
         }
     }
 

@@ -92,6 +92,8 @@ public class Shaders {
 	@Getter
 	private static ShaderInstance blitShader;
 	@Getter
+	private static ShaderInstance spriteBlitShader;
+	@Getter
 	private static ShaderInstance hsbShader;
 	@Getter
 	private static ShaderInstance compassLineShader;
@@ -115,6 +117,9 @@ public class Shaders {
 					Pair.of(new ShaderInstance(resourceProvider,
 									ResourceLocation.fromNamespaceAndPath(LDLib.MOD_ID, "fast_blit"), DefaultVertexFormat.POSITION),
 							shaderInstance -> blitShader = shaderInstance),
+					Pair.of(new ShaderInstance(resourceProvider,
+									ResourceLocation.fromNamespaceAndPath(LDLib.MOD_ID, "sprite_blit"), DefaultVertexFormat.POSITION_TEX_COLOR),
+							shaderInstance -> spriteBlitShader = shaderInstance),
 					Pair.of(new ShaderInstance(resourceProvider,
 									ResourceLocation.fromNamespaceAndPath(LDLib.MOD_ID, "hsb_block"), HSB_VERTEX_FORMAT),
 							shaderInstance -> hsbShader = shaderInstance),
