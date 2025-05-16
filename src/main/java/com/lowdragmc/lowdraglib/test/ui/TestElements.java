@@ -46,7 +46,7 @@ public class TestElements implements IUITest {
                                     layout.setFlex(1);
                                     layout.setMargin(YogaEdge.HORIZONTAL, 10);
                                     layout.setPadding(YogaEdge.ALL, 5);
-                                    layout.setGap(YogaGutter.ROW, 5);
+                                    layout.setGap(YogaGutter.ROW, 2);
                                 }).setId("flex-1")
                                 .style(style -> style.backgroundTexture(Sprites.BORDER))
                                 .addChildren(
@@ -57,8 +57,18 @@ public class TestElements implements IUITest {
                                         new TextField().setResourceLocationOnly(),
                                         new TextField().setNumbersOnlyInt(23, 145),
                                         new TextField().setNumbersOnlyFloat(-3, 3),
-                                        new Scroller.Horizontal()
-                                        ),
+                                        new Scroller.Horizontal(),
+                                        new ScrollerView()
+                                                .addScrollViewChildren(new Button(), new Button().layout(layout-> layout.setWidth(200)),
+                                                        new Button(), new Button(),
+                                                        new ScrollerView().addScrollViewChildren(new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button())
+                                                                .layout(layout -> {
+                                                                    layout.setWidth(120);
+                                                                    layout.setHeight(120);
+                                                                }),
+                                                        new Button(), new Button(), new Button(), new Button(), new Button())
+                                                .layout(layout -> layout.setFlexGrow(1))
+                                ),
                         new UIElement()
                                 .layout(layout -> {
                                     layout.setWidthPercent(100);

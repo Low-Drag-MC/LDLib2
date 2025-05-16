@@ -23,6 +23,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
@@ -73,6 +74,8 @@ public class TextField extends UIElement {
     }
     @Setter
     private Predicate<String> textValidator = Predicates.alwaysTrue();
+    @Setter
+    private Predicate<Character> charValidator = Predicates.alwaysTrue();
     @Setter
     private Consumer<String> textResponder = Consumers.nop();
     @Getter
@@ -320,6 +323,7 @@ public class TextField extends UIElement {
     }
 
     public TextField setResourceLocationOnly() {
+        setCharValidator(chr -> chr == ':' || ResourceLocation.isValidNamespace(Character.toString(chr)) || ResourceLocation.isAllowedInResourceLocation(chr));
         setTextValidator(LDLib::isValidResourceLocation);
         style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.resourcelocation")));
         return this;
@@ -334,6 +338,7 @@ public class TextField extends UIElement {
             } catch (NumberFormatException ignored) { }
             return false;
         });
+        setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == Long.MIN_VALUE && maxValue == Long.MAX_VALUE) {
             style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == Long.MIN_VALUE) {
@@ -355,6 +360,7 @@ public class TextField extends UIElement {
             } catch (NumberFormatException ignored) { }
             return false;
         });
+        setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == Integer.MIN_VALUE && maxValue == Integer.MAX_VALUE) {
             style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == Integer.MIN_VALUE) {
@@ -376,6 +382,7 @@ public class TextField extends UIElement {
             } catch (NumberFormatException ignored) { }
             return false;
         });
+        setCharValidator(chr -> chr == '.' || Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == -Float.MAX_VALUE && maxValue == Float.MAX_VALUE) {
             style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == -Float.MAX_VALUE) {
@@ -411,7 +418,7 @@ public class TextField extends UIElement {
 
     protected void onCharTyped(UIEvent event) {
         if (!isEditable()) return;
-        if (StringUtil.isAllowedChatCharacter(event.codePoint)) {
+        if (StringUtil.isAllowedChatCharacter(event.codePoint) && charValidator.test(event.codePoint)) {
             this.insertText(Character.toString(event.codePoint));
         }
     }

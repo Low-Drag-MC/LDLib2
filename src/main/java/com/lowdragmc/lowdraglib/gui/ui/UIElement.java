@@ -163,12 +163,7 @@ public class UIElement {
      * You can override this method to do something when the layout changes.
      */
     protected void onLayoutChanged() {
-        positionXCache = FloatOptional.of();
-        positionYCache = FloatOptional.of();
-        for (var child : children) {
-            child.positionXCache = FloatOptional.of();
-            child.positionYCache = FloatOptional.of();
-        }
+        clearLayoutCache();
         var event = UIEvent.create(UIEvents.LAYOUT_CHANGED);
         event.target = this;
         event.hasBubblePhase = false;
@@ -188,6 +183,18 @@ public class UIElement {
      */
     public final float getLayoutY() {
         return parent == null ? modularUI == null ? 0 : modularUI.getTopPos() : layoutNode.getLayoutY();
+    }
+
+    /**
+     * Clear the layout cache of the element and its children.
+     */
+    public final void clearLayoutCache() {
+        if (!positionXCache.isDefined() && !positionYCache.isDefined()) return;
+        positionXCache = FloatOptional.of();
+        positionYCache = FloatOptional.of();
+        for (var child : children) {
+            child.clearLayoutCache();
+        }
     }
 
     /**
@@ -584,10 +591,14 @@ public class UIElement {
         if (!isDisplayed() || !isVisible()) return null;
 
         UIElement hover = null;
-        for (var child : getSortedChildren()) {
-            var result = child.getHoverElement(mouseX, mouseY);
-            if (result != null && (hover == null || hover.style.zIndex() < result.style.zIndex())) {
-                hover = result;
+        var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
+
+        if (!hidden || isMouseOverContent(mouseX, mouseY)) {
+            for (var child : getSortedChildren()) {
+                var result = child.getHoverElement(mouseX, mouseY);
+                if (result != null && (hover == null || hover.style.zIndex() < result.style.zIndex())) {
+                    hover = result;
+                }
             }
         }
 
@@ -599,6 +610,10 @@ public class UIElement {
 
     public boolean isMouseOver(double mouseX, double mouseY) {
         return isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
+    }
+
+    public boolean isMouseOverContent(double mouseX, double mouseY) {
+        return isMouseOver(getContentX(), getContentY(), getContentWidth(), getContentWidth(), mouseX, mouseY);
     }
 
     public static boolean isMouseOver(float x, float y, float width, float height, double mouseX, double mouseY) {
@@ -745,24 +760,11 @@ public class UIElement {
         }
         if (display == YogaDisplay.FLEX) {
             drawBackgroundTexture(guiGraphics, mouseX, mouseY, partialTick);
-            var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN;
-            if (hidden) {
-                var trans = guiGraphics.pose().last().pose();
-                var x = getContentX();
-                var y = getContentY();
-                var width = getContentWidth();
-                var height = getContentHeight();
-                var realPos = trans.transform(new Vector4f(x, y, 0, 1));
-                var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
-                guiGraphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
-            }
-            drawBackgroundAdditional(guiGraphics, mouseX, mouseY, partialTick);
-            if (hidden) {
-                guiGraphics.disableScissor();
-            }
+            drawContents(guiGraphics, mouseX, mouseY, partialTick);
             drawBackgroundOverlay(guiGraphics, mouseX, mouseY, partialTick);
+        } else { // draw contents only
+            drawContents(guiGraphics, mouseX, mouseY, partialTick);
         }
-        children.forEach(child -> child.drawInBackground(guiGraphics, mouseX, mouseY, partialTick));
         if (zIndex != 0) {
             guiGraphics.pose().popPose();
         }
@@ -774,6 +776,28 @@ public class UIElement {
     public void drawBackgroundTexture(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         style.backgroundTexture().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         style.borderTexture().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+    }
+
+    /**
+     * Renders the contents of the GUI element. includes additional background and children
+     */
+    public void drawContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
+        if (hidden) {
+            var trans = graphics.pose().last().pose();
+            var x = getContentX();
+            var y = getContentY();
+            var width = getContentWidth();
+            var height = getContentHeight();
+            var realPos = trans.transform(new Vector4f(x, y, 0, 1));
+            var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
+            graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+        }
+        drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
+        children.forEach(child -> child.drawInBackground(graphics, mouseX, mouseY, partialTicks));
+        if (hidden) {
+            graphics.disableScissor();
+        }
     }
 
     /**
@@ -804,8 +828,18 @@ public class UIElement {
     public List<Component> getDebugInfo() {
         var info = new ArrayList<Component>();
         info.add(Component.literal("[type: %s, pos: (%.1f %.1f), size: (%.1f, %.1f), children: %d]".formatted(
-                getElementName(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), children.size())));
-        info.add(Component.literal("[id: %s, class: \"%s\"]".formatted(getId().isEmpty() ? "empty" : getId(), String.join(" ", classes))));
+                getElementName(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), children.size())).withColor(0xFFFF00FF));
+        info.add(Component.literal("[id: %s, class: \"%s\"]".formatted(getId().isEmpty() ? "empty" : getId(), String.join(" ", classes))).withColor(0xFF00FFFF));
+        var path = getStructurePath();
+        for (int i = 0; i < path.size(); i++) {
+            var element = path.get(i);
+            var data =Component.empty();
+            for (int i1 = 0; i1 < i; i1++) {
+                data = data.append(Component.literal("  "));
+            }
+            data = data.append("└").append(element.toString());
+            info.add(data.withColor(0xFF00FF00));
+        }
         return info;
     }
 }

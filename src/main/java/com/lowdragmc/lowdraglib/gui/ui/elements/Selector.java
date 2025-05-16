@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -111,6 +112,7 @@ public class Selector extends UIElement {
                 show();
                 focus();
             }
+            Widget.playButtonClickSound();
         }
     }
 

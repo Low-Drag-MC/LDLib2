@@ -83,10 +83,23 @@ public class Icons {
     public static ResourceTexture ALIGN_V_B = icon("align_vertical_bottom");
 
     public static SpriteTexture CHECK_SPRITE = SpriteTexture.of(GDP_ICONS).setSprite(72, 0, 12, 12);
+
     public static SpriteTexture DOWN_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(36, 24, 12, 12);
+    public static SpriteTexture DOWN_ARROW_NO_BAR_S = SpriteTexture.of(GDP_ICONS).setSprite(114, 230, 5, 5);
+    public static SpriteTexture DOWN_ARROW_NO_BAR_S_LIGHT = SpriteTexture.of(GDP_ICONS).setSprite(126, 230, 5, 5);
+    public static SpriteTexture DOWN_ARROW_NO_BAR_S_WHITE= SpriteTexture.of(GDP_ICONS).setSprite(132, 230, 5, 5);
     public static SpriteTexture UP_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(48, 24, 12, 12);
+    public static SpriteTexture UP_ARROW_NO_BAR_S = SpriteTexture.of(GDP_ICONS).setSprite(114, 226, 5, 5);
+    public static SpriteTexture UP_ARROW_NO_BAR_S_LIGHT = SpriteTexture.of(GDP_ICONS).setSprite(126, 226, 5, 5);
+    public static SpriteTexture UP_ARROW_NO_BAR_S_WHITE= SpriteTexture.of(GDP_ICONS).setSprite(132, 226, 5, 5);
     public static SpriteTexture LEFT_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(0, 24, 12, 12);
+    public static SpriteTexture LEFT_ARROW_NO_BAR_S = SpriteTexture.of(GDP_ICONS).setSprite(154, 240, 5, 5);
+    public static SpriteTexture LEFT_ARROW_NO_BAR_S_LIGHT = SpriteTexture.of(GDP_ICONS).setSprite(174, 240, 5, 5);
+    public static SpriteTexture LEFT_ARROW_NO_BAR_S_WHITE= SpriteTexture.of(GDP_ICONS).setSprite(184, 240, 5, 5);
     public static SpriteTexture RIGHT_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(12, 24, 12, 12);
+    public static SpriteTexture RIGHT_ARROW_NO_BAR_S = SpriteTexture.of(GDP_ICONS).setSprite(158, 240, 5, 5);
+    public static SpriteTexture RIGHT_ARROW_NO_BAR_S_LIGHT = SpriteTexture.of(GDP_ICONS).setSprite(178, 240, 5, 5);
+    public static SpriteTexture RIGHT_ARROW_NO_BAR_S_WHITE= SpriteTexture.of(GDP_ICONS).setSprite(188, 240, 5, 5);
 
 
     static {

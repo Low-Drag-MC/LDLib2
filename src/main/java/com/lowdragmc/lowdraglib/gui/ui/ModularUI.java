@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -466,12 +467,84 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             x += 10;
             y += 10;
             for (var info : hovered.getDebugInfo()) {
-                graphics.drawString(font, info, x, y, 0xffff0000, true);
+                graphics.drawString(font, info, x, y, -1, true);
                 y += 10;
             }
             x -= 10;
+
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 200);
+            // draw overlay
+            if (Widget.isShiftDown()) {
+                var posX = hovered.getPositionX();
+                var posY = hovered.getPositionY();
+                var sizeX = hovered.getSizeWidth();
+                var sizeY = hovered.getSizeHeight();
+                graphics.fill((int) posX, (int) posY, (int) (posX + sizeX), (int) (posY + sizeY), 0x80ff0000);
+                var paddingX = hovered.getPaddingX();
+                var paddingY = hovered.getPaddingY();
+                var paddingWidth = hovered.getPaddingWidth();
+                var paddingHeight = hovered.getPaddingHeight();
+                graphics.fill((int) paddingX, (int) paddingY, (int) (paddingX + paddingWidth), (int) (paddingY + paddingHeight), 0x8000ff00);
+                var contentX = hovered.getContentX();
+                var contentY = hovered.getContentY();
+                var contentWidth = hovered.getContentWidth();
+                var contentHeight = hovered.getContentHeight();
+                graphics.fill((int) contentX, (int) contentY, (int) (contentX + contentWidth), (int) (contentY + contentHeight), 0x800000ff);
+            }
+
+            // draw layout on the right
+            var sw = 250;
+            var sh = 250;
+            var sx = screenWidth - sw - 2;
+            var sy = 12;
+            var dist = 25;
+
+            String[] labels = {"margin", "border", "padding", "content"};
+            int[] colors = {0x80646669, 0x80ff0000, 0x8000ff00, 0x800000ff};
+
+            drawLayoutBox(graphics, font, sx, sy, sw, sh, dist, labels, colors);
+            graphics.pose().popPose();
         }
+
     }
 
+    private void drawLayoutBox(GuiGraphics graphics, Font font, int x, int y, int width, int height, int dist, String[] labels, int[] colors) {
+        for (int i = 0; i < 4; i++) {
+            int currentX = x + dist * i;
+            int currentY = y + dist * i;
+            int currentWidth = width - dist * i * 2;
+            int currentHeight = height - dist * i * 2;
+
+            // 绘制当前层边框
+            graphics.fill(currentX, currentY, currentX + currentWidth, currentY + currentHeight, colors[i]);
+
+            // 计算当前层的尺寸
+            String sizeText = (currentWidth) + " × " + (currentHeight);
+            int textWidth = font.width(sizeText);
+            int textHeight = font.lineHeight;
+
+            // 计算文字居中位置
+            int textX = currentX + (currentWidth - textWidth) / 2;
+            int textY = currentY + (currentHeight - textHeight) / 2;
+
+            // 绘制尺寸文字（黑色，带半透明背景）
+            graphics.drawString(font, sizeText, textX, textY, 0xFFFFFFFF, false);
+
+            // 绘制标签（如 "margin", "border" 等）
+            if (i < labels.length) {
+                String label = labels[i];
+                int labelWidth = font.width(label);
+                int labelX = x + dist * i + 5; // 稍微偏移避免贴边
+                int labelY = y + dist * i - textHeight - 2;
+
+                // 确保标签不会超出画布
+                if (labelY >= 0) {
+                    graphics.fill(labelX - 2, labelY - 2, labelX + labelWidth + 2, labelY + textHeight + 2, 0x80000000);
+                    graphics.drawString(font, label, labelX, labelY, 0xFFFFFFFF, false);
+                }
+            }
+        }
+    }
 
 }
