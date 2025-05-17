@@ -54,6 +54,9 @@ public class ScrollerView extends UIElement {
 
     @Getter
     private final ScrollerViewStyle scrollerViewStyle = new ScrollerViewStyle(this);
+    // runtime
+    private float lastPortWidth = 0;
+    private float lastPortHeight = 0;
 
     public ScrollerView() {
         this.verticalContainer = new UIElement();
@@ -163,6 +166,15 @@ public class ScrollerView extends UIElement {
             horizontalScroller.layout(layout -> {
                 layout.setMargin(YogaEdge.RIGHT, verticalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX ? scrollerViewStyle.horizontalScrollerMargin : 0);
             });
+        }
+
+        var lastPortWidth = viewPort.getSizeWidth();
+        var lastPortHeight = viewPort.getSizeHeight();
+        if (lastPortWidth != this.lastPortWidth || lastPortHeight != this.lastPortHeight) {
+            this.lastPortWidth = lastPortWidth;
+            this.lastPortHeight = lastPortHeight;
+            onHorizontalScroll(horizontalScroller.value);
+            onVerticalScroll(verticalScroller.value);
         }
     }
 

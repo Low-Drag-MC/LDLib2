@@ -65,6 +65,7 @@ public class TabView extends UIElement {
                 selectTab(tab);
             }
         });
+        content.setDisplay(YogaDisplay.NONE);
         tabHeaderContainer.addChildAt(tab, index);
         tabContentContainer.addChildAt(content, index);
         tabContents.put(tab, content);
