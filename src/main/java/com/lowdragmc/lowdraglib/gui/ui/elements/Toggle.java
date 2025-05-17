@@ -134,4 +134,19 @@ public class Toggle extends UIElement {
         return this;
     }
 
+    public Toggle toggleButton(Consumer<Button> button) {
+        button.accept(toggleButton);
+        return this;
+    }
+
+    public Toggle toggleLabel(Consumer<Label> label) {
+        label.accept(toggleLabel);
+        return this;
+    }
+
+    public Toggle markIcon(Consumer<UIElement> icon) {
+        icon.accept(markIcon);
+        return this;
+    }
+
 }

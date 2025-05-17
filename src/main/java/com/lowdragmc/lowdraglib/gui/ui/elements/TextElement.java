@@ -32,8 +32,9 @@ import java.util.function.Consumer;
 public class TextElement extends UIElement {
     @Accessors(chain = true, fluent = true)
     public static class TextStyle extends Style {
-        @Getter
-        @Setter
+        @Getter @Setter
+        private boolean adaptiveWidth = false;
+        @Getter @Setter
         private Horizontal textAlignHorizontal = Horizontal.LEFT;
         @Getter @Setter
         private Vertical textAlignVertical = Vertical.TOP;
@@ -54,19 +55,31 @@ public class TextElement extends UIElement {
     }
     @Getter
     private Component text = Component.empty();
-    @Getter
-    private boolean isComputed = false;
+
     @Getter
     private final TextStyle textStyle = new TextStyle(this);
 
     /**
      * The formatted text to be displayed in each line and its width.
      */
-    private List<Tuple<FormattedCharSequence, Float>> formattedLinesCache = Collections.emptyList();
+    private List<Tuple<FormattedCharSequence, Float>> formattedLines = Collections.emptyList();
 
     public void recompute() {
-        this.isComputed = false;
-        this.formattedLinesCache = Collections.emptyList();
+        var maxWidth = 0f;
+        if (getTextStyle().adaptiveWidth() || getTextStyle().textWrap() == TextWrap.NONE) {
+            maxWidth = Float.MAX_VALUE;
+        } else if (getTextStyle().textWrap() == TextWrap.WRAP) {
+            maxWidth = getContentWidth();
+        }
+        formattedLines = TextUtilities.computeFormattedLines(
+                getFont(),
+                text,
+                getTextStyle().fontSize(),
+                maxWidth
+        );
+        if (getTextStyle().adaptiveWidth()) {
+            layout(layout -> layout.setWidth(formattedLines.stream().findFirst().map(Tuple::getB).orElse(0f) + getSizeWidth() - getContentWidth()));
+        }
     }
 
     public TextElement textStyle(Consumer<TextStyle> style) {
@@ -117,21 +130,8 @@ public class TextElement extends UIElement {
         return Minecraft.getInstance().font;
     }
 
-    public List<Tuple<FormattedCharSequence, Float>> getFormattedLinesCache() {
-        if (!isComputed) {
-            formattedLinesCache = TextUtilities.computeFormattedLines(
-                    getFont(),
-                    text,
-                    getTextStyle().fontSize(),
-                    getTextStyle().textWrap() == TextWrap.WRAP ? getContentWidth() : Float.MAX_VALUE
-            );
-        }
-        return formattedLinesCache;
-    }
-
     @Override
     public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        var formattedLines = getFormattedLinesCache();
         if (formattedLines.isEmpty()) return;
         graphics.drawManaged(() -> {
             var font = getFont();
@@ -176,9 +176,6 @@ public class TextElement extends UIElement {
 
                 // calculate the Y coordinate of the current line (including line spacing)
                 var lineY = startY + i * (lineHeight + lineSpacing);
-
-                // make sure the text does not exceed the content area
-                if (lineY + lineHeight > y + height) break;
 
                 // draw the text line
                 graphics.pose().pushPose();

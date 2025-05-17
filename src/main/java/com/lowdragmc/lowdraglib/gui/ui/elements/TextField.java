@@ -162,14 +162,17 @@ public class TextField extends UIElement {
                 try {
                     setRawText(String.valueOf(Integer.parseInt(getRawText()) + (int) ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
                 } catch (NumberFormatException ignored) { }
+                event.stopPropagation();
             } else if (mode == Mode.NUMBER_LONG) {
                 try {
                     setRawText(String.valueOf(Long.parseLong(getRawText()) + (long) ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
                 } catch (NumberFormatException ignored) { }
+                event.stopPropagation();
             } else if (mode == Mode.NUMBER_FLOAT) {
                 try {
                     setRawText(numberInstance.format(Float.parseFloat(getRawText()) + ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
                 } catch (NumberFormatException ignored) { }
+                event.stopPropagation();
             }
         }
     }

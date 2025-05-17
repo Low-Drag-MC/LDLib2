@@ -187,7 +187,27 @@ public abstract class Scroller extends UIElement {
     protected abstract void onScrollWheel(UIEvent event);
 
     public float getNormalizedValue() {
-        return (value - minValue) / (maxValue - minValue);
+        return maxValue == minValue ? Float.NaN : (value - minValue) / (maxValue - minValue);
+    }
+
+    public Scroller headButton(Consumer<Button> button) {
+        button.accept(headButton);
+        return this;
+    }
+
+    public Scroller tailButton(Consumer<Button> button) {
+        button.accept(tailButton);
+        return this;
+    }
+
+    public Scroller scrollContainer(Consumer<UIElement> container) {
+        container.accept(scrollContainer);
+        return this;
+    }
+
+    public Scroller scrollBar(Consumer<Button> button) {
+        button.accept(scrollBar);
+        return this;
     }
 
     public static class Vertical extends Scroller {
@@ -312,7 +332,7 @@ public abstract class Scroller extends UIElement {
         @Override
         protected void onScrollWheel(UIEvent event) {
             if (event.deltaX != 0) scrollValue(event.deltaX > 0 ? -0.1f : 0.1f);
-            scrollValue(event.deltaY > 0 ? -0.1f : 0.1f);
+            else if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -0.1f : 0.1f);
         }
     }
 }

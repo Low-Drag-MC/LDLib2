@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -36,6 +35,12 @@ public class ScrollerView extends UIElement {
     public static class ScrollerViewStyle extends Style {
         @Getter @Setter
         private float horizontalScrollerMargin = 5;
+        @Getter
+        private Mode mode = Mode.BOTH;
+        @Getter
+        private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
+        @Getter
+        private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
 
         public ScrollerViewStyle(UIElement holder) {
             super(holder);
@@ -46,13 +51,6 @@ public class ScrollerView extends UIElement {
     public final UIElement viewContainer;
     public final Scroller horizontalScroller;
     public final Scroller verticalScroller;
-
-    @Getter
-    private Mode mode = Mode.BOTH;
-    @Getter
-    private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
-    @Getter
-    private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
 
     @Getter
     private final ScrollerViewStyle scrollerViewStyle = new ScrollerViewStyle(this);
@@ -79,8 +77,6 @@ public class ScrollerView extends UIElement {
                         .layout(layout -> layout.setFlex(1))
                         .addChild(viewContainer));
 
-
-        viewContainer.layout(layout -> layout.setPositionType(YogaPositionType.ABSOLUTE));
         viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onContainerLayoutChanged);
 
         // scroller
@@ -92,23 +88,23 @@ public class ScrollerView extends UIElement {
     /// events
     protected void onHorizontalScroll(float value) {
         viewContainer.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, -value * Math.max(0, viewContainer.getSizeWidth() - viewPort.getContentWidth()));
+            layout.setPosition(YogaEdge.LEFT, -value * Math.max(0, getContainerWidth() - viewPort.getContentWidth()));
         });
     }
 
     protected void onVerticalScroll(float value) {
         viewContainer.layout(layout -> {
-            layout.setPosition(YogaEdge.TOP, -value * Math.max(0, viewContainer.getSizeHeight() - viewPort.getContentHeight()));
+            layout.setPosition(YogaEdge.TOP, -value * Math.max(0, getContainerHeight() - viewPort.getContentHeight()));
         });
     }
 
     protected void onScrollWheel(UIEvent event) {
-        if (event.deltaY != 0 && (mode == Mode.VERTICAL || mode == Mode.BOTH)) {
+        if (event.deltaY != 0 && (scrollerViewStyle.mode == Mode.VERTICAL || scrollerViewStyle.mode == Mode.BOTH)) {
             verticalScroller.onScrollWheel(event);
         }
-        if (event.deltaX != 0 && (mode == Mode.HORIZONTAL || mode == Mode.BOTH)) {
+        if (event.deltaX != 0 && (scrollerViewStyle.mode == Mode.HORIZONTAL || scrollerViewStyle.mode == Mode.BOTH)) {
             horizontalScroller.onScrollWheel(event);
-        } else if (event.deltaY != 0 && mode == Mode.HORIZONTAL) {
+        } else if (event.deltaY != 0 && scrollerViewStyle.mode == Mode.HORIZONTAL) {
             horizontalScroller.onScrollWheel(event);
         }
     }
@@ -117,12 +113,30 @@ public class ScrollerView extends UIElement {
         updateScrollers();
     }
 
+    public float getContainerWidth() {
+        // cause we are using a flexbox, the width of the view container is not the same as the width of the view port
+        // so we need to calculate the width ourselves
+        var width = viewContainer.getSizeWidth();
+        for (UIElement child : viewContainer.getChildren()) {
+            if (child.isDisplayed()) {
+                width = Math.max(width, child.getSizeWidth() + child.getLayoutNode().getLayoutX());
+            }
+        }
+        return width;
+    }
+
+    public float getContainerHeight() {
+        return viewContainer.getSizeHeight();
+    }
+
     private void updateScrollers() {
-        if (mode == Mode.HORIZONTAL || mode == Mode.BOTH) {
-            var width = viewContainer.getSizeWidth();
+        if (scrollerViewStyle.mode == Mode.HORIZONTAL || scrollerViewStyle.mode == Mode.BOTH) {
+            // cause we are using a flexbox, the width of the view container is not the same as the width of the view port
+            // so we need to calculate the width ourselves
+            var width = getContainerWidth();
             var vp = Math.min(1, viewPort.getContentWidth() / width);
             horizontalScroller.setScrollBarSize(vp * 100);
-            if ((horizontalScrollDisplay == ScrollDisplay.AUTO && vp < 1) || horizontalScrollDisplay == ScrollDisplay.ALWAYS) {
+            if ((scrollerViewStyle.horizontalScrollDisplay == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay == ScrollDisplay.ALWAYS) {
                 horizontalScroller.setDisplay(YogaDisplay.FLEX);
 
             } else {
@@ -132,11 +146,11 @@ public class ScrollerView extends UIElement {
             horizontalScroller.setDisplay(YogaDisplay.NONE);
         }
 
-        if (mode == Mode.VERTICAL || mode == Mode.BOTH) {
-            var height = viewContainer.getSizeHeight();
+        if (scrollerViewStyle.mode == Mode.VERTICAL || scrollerViewStyle.mode == Mode.BOTH) {
+            var height = getContainerHeight();
             var hp = Math.min(1, viewPort.getContentHeight() / height);
             verticalScroller.setScrollBarSize(hp * 100);
-            if ((verticalScrollDisplay == ScrollDisplay.AUTO && hp < 1) || verticalScrollDisplay == ScrollDisplay.ALWAYS) {
+            if ((scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.ALWAYS) {
                 verticalScroller.setDisplay(YogaDisplay.FLEX);
             } else {
                 verticalScroller.setDisplay(YogaDisplay.NONE);
@@ -156,28 +170,36 @@ public class ScrollerView extends UIElement {
     public ScrollerView scrollerStyle(Consumer<ScrollerViewStyle> style) {
         style.accept(scrollerViewStyle);
         onStyleChanged();
-        return this;
-    }
-
-    public ScrollerView setMode(Mode mode) {
-        this.mode = mode;
-        updateScrollers();
-        return this;
-    }
-
-    public ScrollerView setVerticalScrollDisplay(ScrollDisplay display) {
-        this.verticalScrollDisplay = display;
-        updateScrollers();
-        return this;
-    }
-
-    public ScrollerView setHorizontalScrollDisplay(ScrollDisplay display) {
-        this.horizontalScrollDisplay = display;
         updateScrollers();
         return this;
     }
 
     /// structure
+    public ScrollerView viewContainer(Consumer<UIElement> view) {
+        view.accept(viewContainer);
+        return this;
+    }
+
+    public ScrollerView viewPort(Consumer<UIElement> view) {
+        view.accept(viewPort);
+        return this;
+    }
+
+    public ScrollerView verticalContainer(Consumer<UIElement> view) {
+        view.accept(verticalContainer);
+        return this;
+    }
+
+    public ScrollerView horizontalScroller(Consumer<Scroller> view) {
+        view.accept(horizontalScroller);
+        return this;
+    }
+
+    public ScrollerView verticalScroller(Consumer<Scroller> view) {
+        view.accept(verticalScroller);
+        return this;
+    }
+
     public boolean hasScrollViewChild(UIElement child) {
         return viewContainer.hasChild(child);
     }

@@ -21,6 +21,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
+import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -433,7 +434,8 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
 
         cleanTooltip();
 
-        lastHoveredElement = ui.rootElement.getHoverElement(mouseX, mouseY);
+        var hoverElement = ui.rootElement.getHoverElement(mouseX, mouseY);
+        lastHoveredElement = hoverElement == null ? null : hoverElement.getA();
         lastMouseX = mouseX;
         lastMouseY = mouseY;
 
@@ -494,57 +496,77 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             }
 
             // draw layout on the right
-            var sw = 250;
-            var sh = 250;
+            var sw = 200;
+            var sh = 200;
             var sx = screenWidth - sw - 2;
             var sy = 12;
             var dist = 25;
 
-            String[] labels = {"margin", "border", "padding", "content"};
-            int[] colors = {0x80646669, 0x80ff0000, 0x8000ff00, 0x800000ff};
+            drawLayoutBox(graphics, font, sx, sy, sw, sh, "margin", 0x80646669, new String[]{
+                    hovered.layoutNode.getMargin(YogaEdge.TOP).toString(),
+                    hovered.layoutNode.getMargin(YogaEdge.BOTTOM).toString(),
+                    hovered.layoutNode.getMargin(YogaEdge.LEFT).toString(),
+                    hovered.layoutNode.getMargin(YogaEdge.RIGHT).toString()
+            });
 
-            drawLayoutBox(graphics, font, sx, sy, sw, sh, dist, labels, colors);
+            sx += dist;
+            sy += dist;
+            sw -= dist * 2;
+            sh -= dist * 2;
+            drawLayoutBox(graphics, font, sx, sy, sw, sh, "border", 0x80ff0000, new String[]{
+                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.TOP)),
+                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.BOTTOM)),
+                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.LEFT)),
+                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.RIGHT))
+            });
+
+            sx += dist;
+            sy += dist;
+            sw -= dist * 2;
+            sh -= dist * 2;
+            drawLayoutBox(graphics, font, sx, sy, sw, sh, "padding", 0x8000ff00, new String[]{
+                    hovered.layoutNode.getPadding(YogaEdge.TOP).toString(),
+                    hovered.layoutNode.getPadding(YogaEdge.BOTTOM).toString(),
+                    hovered.layoutNode.getPadding(YogaEdge.LEFT).toString(),
+                    hovered.layoutNode.getPadding(YogaEdge.RIGHT).toString()
+            });
+
+            sx += dist;
+            sy += dist;
+            sw -= dist * 2;
+            sh -= dist * 2;
+            drawLayoutBox(graphics, font, sx, sy, sw, sh, "content", 0x800000ff, new String[]{
+                    hovered.getContentWidth() + " x " + hovered.getContentHeight()
+            });
+
             graphics.pose().popPose();
         }
-
     }
 
-    private void drawLayoutBox(GuiGraphics graphics, Font font, int x, int y, int width, int height, int dist, String[] labels, int[] colors) {
-        for (int i = 0; i < 4; i++) {
-            int currentX = x + dist * i;
-            int currentY = y + dist * i;
-            int currentWidth = width - dist * i * 2;
-            int currentHeight = height - dist * i * 2;
-
-            // 绘制当前层边框
-            graphics.fill(currentX, currentY, currentX + currentWidth, currentY + currentHeight, colors[i]);
-
-            // 计算当前层的尺寸
-            String sizeText = (currentWidth) + " × " + (currentHeight);
-            int textWidth = font.width(sizeText);
-            int textHeight = font.lineHeight;
-
-            // 计算文字居中位置
-            int textX = currentX + (currentWidth - textWidth) / 2;
-            int textY = currentY + (currentHeight - textHeight) / 2;
-
-            // 绘制尺寸文字（黑色，带半透明背景）
-            graphics.drawString(font, sizeText, textX, textY, 0xFFFFFFFF, false);
-
-            // 绘制标签（如 "margin", "border" 等）
-            if (i < labels.length) {
-                String label = labels[i];
-                int labelWidth = font.width(label);
-                int labelX = x + dist * i + 5; // 稍微偏移避免贴边
-                int labelY = y + dist * i - textHeight - 2;
-
-                // 确保标签不会超出画布
-                if (labelY >= 0) {
-                    graphics.fill(labelX - 2, labelY - 2, labelX + labelWidth + 2, labelY + textHeight + 2, 0x80000000);
-                    graphics.drawString(font, label, labelX, labelY, 0xFFFFFFFF, false);
-                }
-            }
+    private void drawLayoutBox(GuiGraphics graphics, Font font, int x, int y, int width, int height, String labels, int color, String[] value) {
+        // draw layout box
+        if (color != 0) {
+            graphics.fill(x, y, x + width, y + height, color);
         }
+        // draw label
+        if (!labels.isEmpty()) {
+            graphics.drawString(font, labels, x, y, 0xFFFFFFFF, true);
+        }
+        // draw values (top, bottom, left, right)
+        if (value.length == 4) {
+            var topText = value[0].replace("undefined", "und").replace("NaN", "0");
+            graphics.drawString(font, topText, x + (width - font.width(topText)) / 2, y, 0xFFFFFFFF, true);
+            var bottomText = value[1].replace("undefined", "und").replace("NaN", "0");
+            graphics.drawString(font, bottomText, x + (width - font.width(bottomText)) / 2, y + height - font.lineHeight, 0xFFFFFFFF, true);
+            var leftText = value[2].replace("undefined", "und").replace("NaN", "0");
+            graphics.drawString(font, leftText, x, y + (height - font.lineHeight) / 2, 0xFFFFFFFF, true);
+            var rightText = value[3].replace("undefined", "und").replace("NaN", "0");
+            graphics.drawString(font, rightText, x + width - font.width(rightText), y + (height - font.lineHeight) / 2, 0xFFFFFFFF, true);
+        } else if (value.length == 1) {
+            var centerText = value[0];
+            graphics.drawString(font, centerText, x + (width - font.width(centerText)) / 2, y + (height - font.lineHeight) / 2, 0xFFFFFFFF, true);
+        }
+
     }
 
 }

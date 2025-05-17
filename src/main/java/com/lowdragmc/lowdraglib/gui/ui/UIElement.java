@@ -22,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.joml.Vector4f;
+import oshi.util.tuples.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -584,28 +585,29 @@ public class UIElement {
 
     /**
      * Get the element that is hovered by the mouse.
-     * @return the element that is hovered, or null if no element is hovered
+     * @return the element that is hovered and its z-index, or null if no element is hovered
      */
     @Nullable
-    public UIElement getHoverElement(double mouseX, double mouseY) {
+    public Pair<UIElement, Integer> getHoverElement(double mouseX, double mouseY) {
         if (!isDisplayed() || !isVisible()) return null;
 
-        UIElement hover = null;
+        Pair<UIElement, Integer> hover = null;
         var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
 
         if (!hidden || isMouseOverContent(mouseX, mouseY)) {
             for (var child : getSortedChildren()) {
                 var result = child.getHoverElement(mouseX, mouseY);
-                if (result != null && (hover == null || hover.style.zIndex() < result.style.zIndex())) {
+                if (result != null && (hover == null || hover.getB() < result.getB())) {
                     hover = result;
                 }
             }
         }
 
-        if (isMouseOver(mouseX, mouseY) && (hover == null || hover.style.zIndex() < style.zIndex())) {
-            return this;
+        if (isMouseOver(mouseX, mouseY) && hover == null) {
+            return new Pair<>(this, style.zIndex());
         }
-        return hover;
+        if (hover == null) return null;
+        return new Pair<>(hover.getA(), hover.getB() + style.zIndex());
     }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
