@@ -37,10 +37,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             layout.setMinWidth(100);
             layout.setPadding(YogaEdge.ALL, 4);
         });
-        this.colorSelector.setOnColorChangeListener(color -> {
-            this.value = color;
-            updateValue();
-        });
+        this.colorSelector.setOnColorChangeListener(this::updateValueActively);
 
         inlineContainer.addChildren(colorPreview = new UIElement().layout(layout -> {
             layout.setHeight(14);
@@ -88,7 +85,6 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
                 hide();
             }
         }
-
     }
 
     protected void onClick(UIEvent event) {

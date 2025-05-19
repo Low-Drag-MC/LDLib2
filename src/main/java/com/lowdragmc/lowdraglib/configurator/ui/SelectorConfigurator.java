@@ -33,12 +33,7 @@ public class SelectorConfigurator<T> extends ValueConfigurator<T> {
                         .textAlignVertical(Vertical.CENTER))
                 .setText(candidate == null ? "---" : mapping.apply(candidate)));
         selector.setValue(value, false);
-        selector.setOnValueChanged(this::onSelectorUpdate);
-    }
-
-    private void onSelectorUpdate(T value) {
-        this.value = value;
-        updateValue();
+        selector.setOnValueChanged(this::updateValueActively);
     }
 
     @Override

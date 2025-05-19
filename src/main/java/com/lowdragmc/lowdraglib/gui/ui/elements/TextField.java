@@ -145,7 +145,10 @@ public class TextField extends UIElement {
     /// events
     protected void onDragSource(UIEvent event) {
         if (isNumberField()) {
-            handleNumber(event.deltaX * wheelDur);
+            var value = event.x - event.dragStartX > 4 ? wheelDur : event.x - event.dragStartX < -4 ? -wheelDur : 0;
+            if (value != 0) {
+                handleNumber(value);
+            }
         } else if (event.dragHandler.draggingObject instanceof Integer start) {
             var cursor = getCursorUnderMouseX(event.x);
             if (cursor != -1) {
@@ -156,35 +159,58 @@ public class TextField extends UIElement {
     }
 
     private boolean handleNumber(double value) {
+        String number = null;
         if (mode == Mode.NUMBER_INT) {
            try {
-               setRawText(String.valueOf(Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1))));
+               if (numberInstance != null) {
+                   number = numberInstance.format(Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)));
+               } else {
+                   number = String.valueOf(Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)));
+               }
            } catch (NumberFormatException ignored) { }
-            return true;
         } else if (mode == Mode.NUMBER_LONG) {
             try {
-                setRawText(String.valueOf(Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1))));
+                if (numberInstance != null) {
+                    number = numberInstance.format(Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1)));
+                } else {
+                    number = String.valueOf(Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1)));
+                }
             } catch (NumberFormatException ignored) { }
-            return true;
         } else if (mode == Mode.NUMBER_FLOAT) {
             try {
-                setRawText(numberInstance.format(Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)));
+                if (numberInstance != null) {
+                    number = numberInstance.format(Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                } else {
+                    number = String.valueOf(Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                }
             } catch (NumberFormatException ignored) { }
-            return true;
         }  else if (mode == Mode.NUMBER_DOUBLE) {
             try {
-                setRawText(numberInstance.format(Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)));
+                if (numberInstance != null) {
+                    number = numberInstance.format(Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                } else {
+                    number = String.valueOf(Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                }
             } catch (NumberFormatException ignored) { }
-            return true;
         } else if (mode == Mode.NUMBER_SHORT) {
             try {
-                setRawText(String.valueOf((short) (Short.parseShort(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)))));
+                if (numberInstance != null) {
+                    number = numberInstance.format(Short.parseShort(getRawText()) + (short) (value * (isShiftDown() ? 10 : 1)));
+                } else {
+                    number = String.valueOf(Short.parseShort(getRawText()) + (short) (value * (isShiftDown() ? 10 : 1)));
+                }
             } catch (NumberFormatException ignored) { }
-            return true;
         } else if (mode == Mode.NUMBER_BYTE) {
             try {
-                setRawText(String.valueOf((byte) (Byte.parseByte(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)))));
+                if (numberInstance != null) {
+                    number = numberInstance.format(Byte.parseByte(getRawText()) + (byte) (value * (isShiftDown() ? 10 : 1)));
+                } else {
+                    number = String.valueOf(Byte.parseByte(getRawText()) + (byte) (value * (isShiftDown() ? 10 : 1)));
+                }
             } catch (NumberFormatException ignored) { }
+        }
+        if (number != null) {
+            setRawText(number);
             return true;
         }
         return false;
@@ -315,13 +341,16 @@ public class TextField extends UIElement {
     /// logic
     public TextField setText(String text, boolean notify) {
         this.rawText = text;
+        if (isNumberField() && numberInstance != null) {
+            this.rawText = numberInstance.format(Double.parseDouble(text));
+        }
         if (!this.text.equals(text)) {
             this.text = text;
             if (notify && textResponder != null) {
                 textResponder.accept(rawText);
             }
         }
-        this.cursorPos = text.length();
+        this.cursorPos = rawText.length();
         this.selectionStart = cursorPos;
         this.selectionEnd = cursorPos;
         this.formattedLineCache = null;

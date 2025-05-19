@@ -15,7 +15,7 @@ public class BooleanConfigurator extends ValueConfigurator<Boolean> {
         inlineContainer.addChildren(toggle = new Toggle());
         toggle.toggleLabel.setText("");
         toggle.setOn(value, false);
-        toggle.setOnToggleChanged(this::onToggleUpdate);
+        toggle.setOnToggleChanged(this::updateValueActively);
     }
 
     @Override
@@ -24,10 +24,5 @@ public class BooleanConfigurator extends ValueConfigurator<Boolean> {
         if (newValue.equals(value)) return;
         super.onValueUpdatePassively(newValue);
         toggle.setOn(newValue, false);
-    }
-
-    protected void onToggleUpdate(boolean pressed) {
-        value = pressed;
-        updateValue();
     }
 }

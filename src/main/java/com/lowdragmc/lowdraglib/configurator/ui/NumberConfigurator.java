@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import lombok.Getter;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -20,6 +21,7 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
     @Getter
     protected ConfigNumber.Type numberType = ConfigNumber.Type.AUTO;
     @Getter
+    @Nullable
     protected Number min, max, wheel;
 
     public NumberConfigurator(String name, Supplier<Number> supplier, Consumer<Number> onUpdate, @Nonnull Number defaultValue, boolean forceUpdate) {
@@ -30,9 +32,6 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
         inlineContainer.addChildren(textField = new TextField());
         textField.setTextResponder(this::onNumberUpdate);
         textField.addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
-        min = value;
-        max = value;
-        wheel = 0;
         updateTextField();
     }
 
@@ -51,7 +50,7 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
             } else if (numberType == ConfigNumber.Type.BYTE || (numberType == ConfigNumber.Type.AUTO && value instanceof Byte)){
                 number = number.byteValue();
             }
-            updateNumber(number);
+            updateValueActively(number);
         }
     }
 
@@ -76,37 +75,28 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
     }
 
     protected void updateTextField() {
-        var wheelValue = wheel.floatValue();
+        float wheelValue = 0;
         if (numberType == ConfigNumber.Type.INTEGER || (numberType == ConfigNumber.Type.AUTO && value instanceof Integer)){
-            textField.setNumbersOnlyInt(min.intValue(), max.intValue());
-            if (wheelValue == 0) {
-                wheelValue = 1;
-            }
+            textField.setNumbersOnlyInt(min == null ? Integer.MIN_VALUE : min.intValue(), max == null ? Integer.MAX_VALUE : max.intValue());
+            wheelValue = 1;
         } else if (numberType == ConfigNumber.Type.LONG || (numberType == ConfigNumber.Type.AUTO && value instanceof Long)){
-            textField.setNumbersOnlyLong(min.longValue(), max.longValue());
-            if (wheelValue == 0) {
-                wheelValue = 1;
-            }
+            textField.setNumbersOnlyLong(min == null ? Long.MIN_VALUE : min.longValue(), max == null ? Long.MAX_VALUE : max.longValue());
+            wheelValue = 1;
         } else if (numberType == ConfigNumber.Type.FLOAT || (numberType == ConfigNumber.Type.AUTO && value instanceof Float)){
-            textField.setNumbersOnlyFloat(min.floatValue(), max.floatValue());
-            if (wheelValue == 0) {
-                wheelValue = 0.1f;
-            }
+            textField.setNumbersOnlyFloat(min == null ? -Float.MAX_VALUE : min.floatValue(), max == null ? Float.MAX_VALUE : max.floatValue());
+            wheelValue = 0.1f;
         } else if (numberType == ConfigNumber.Type.DOUBLE || (numberType == ConfigNumber.Type.AUTO && value instanceof Double)){
-            textField.setNumbersOnlyDouble(min.doubleValue(), max.doubleValue());
-            if (wheelValue == 0) {
-                wheelValue = 0.1f;
-            }
+            textField.setNumbersOnlyDouble(min == null ? -Double.MAX_VALUE : min.doubleValue(), max == null ? Double.MAX_VALUE : max.doubleValue());
+            wheelValue = 0.1f;
         } else if (numberType == ConfigNumber.Type.SHORT || (numberType == ConfigNumber.Type.AUTO && value instanceof Short)){
-            textField.setNumbersOnlyShort(min.shortValue(), max.shortValue());
-            if (wheelValue == 0) {
-                wheelValue = 1;
-            }
+            textField.setNumbersOnlyShort(min == null ? Short.MIN_VALUE : min.shortValue(), max == null ? Short.MAX_VALUE : max.shortValue());
+            wheelValue = 1;
         } else if (numberType == ConfigNumber.Type.BYTE || (numberType == ConfigNumber.Type.AUTO && value instanceof Byte)){
-            textField.setNumbersOnlyByte(min.byteValue(), max.byteValue());
-            if (wheelValue == 0) {
-                wheelValue = 1;
-            }
+            textField.setNumbersOnlyByte(min == null ? Byte.MIN_VALUE : min.byteValue(), max == null ? Byte.MAX_VALUE : max.byteValue());
+            wheelValue = 1;
+        }
+        if (wheel != null) {
+            wheelValue = wheel.floatValue();
         }
         textField.setWheelDur(wheelValue);
         updateTextFieldValue();
@@ -156,11 +146,6 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
             number = defaultValue;
         }
 
-        updateNumber(number);
-    }
-
-    private void updateNumber(Number number) {
-        value = number;
-        updateValue();
+        updateValueActively(number);
     }
 }

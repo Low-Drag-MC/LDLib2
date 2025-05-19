@@ -43,10 +43,18 @@ public abstract class ValueConfigurator<T> extends Configurator {
      * <br/>
      * you can update widget or do something else in this method.
      * <br/>
-     * to update the value, call {@link #updateValue()} as well
+     * to notify the value change, use {@link #updateValueActively} instead
      */
     protected void onValueUpdatePassively(T newValue) {
         value = newValue;
+    }
+
+    /**
+     * update value actively.
+     */
+    protected void updateValueActively(T value) {
+        this.value = value;
+        updateValue();
     }
 
     /**

@@ -21,14 +21,14 @@ public class StringConfigurator extends ValueConfigurator<String> {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
         if (value == null) value = defaultValue;
         inlineContainer.addChild(textField = new TextField());
-        textField.setTextResponder(this::onStringUpdate);
+        textField.setTextResponder(this::updateValueActively);
         textField.addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
         textField.setText(value, false);
     }
 
     private void onDragPerform(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof CharSequence string) {
-            onStringUpdate(string.toString());
+            updateValueActively(string.toString());
         }
     }
 
@@ -55,8 +55,4 @@ public class StringConfigurator extends ValueConfigurator<String> {
         textField.setText(newValue, false);
     }
 
-    private void onStringUpdate(String s) {
-        value = s;
-        updateValue();
-    }
 }

@@ -11,11 +11,17 @@ import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 
 @LDLRegisterClient(name="configurators", registry = "ui_test")
 @NoArgsConstructor
@@ -34,6 +40,16 @@ public class TestConfigurators implements IUITest, IConfigurable {
     private ResourceLocation resourceLocation = LDLib.id("test");
     @Configurable
     private Direction enumValue = Direction.NORTH;
+    @Configurable
+    private Vector3f vector3fValue = new Vector3f(0, 0, 0);
+    @Configurable
+    private Vector3i vector3iValue = new Vector3i(0, 0, 0);
+    @Configurable
+    private Quaternionf quaternionfValue = new Quaternionf(0, 0, 0, 1);
+    @Configurable
+    private BlockPos blockPosValue = BlockPos.ZERO;
+    @Configurable
+    private AABB aabbValue = new AABB(0, 0, 0, 1, 1, 1);
 
     @Override
     public ModularUI createUI(Player entityPlayer) {

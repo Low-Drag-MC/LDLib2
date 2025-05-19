@@ -39,7 +39,7 @@ public class Configurator extends UIElement {
                 this.label.textStyle(textStyle -> textStyle.adaptiveWidth(true).textAlignVertical(Vertical.CENTER)).setText(name).layout(layout -> {
                     layout.setHeight(14);
                 }),
-                this.inlineContainer.layout(layout -> layout.setFlexGrow(1)),
+                this.inlineContainer.layout(layout -> layout.setFlex(1)),
                 this.tip.layout(layout -> {
                     layout.setMargin(YogaEdge.TOP, 2f);
                     layout.setWidth(10);
@@ -49,6 +49,12 @@ public class Configurator extends UIElement {
             this.label.setDisplay(YogaDisplay.NONE);
         }
         this.tip.setDisplay(YogaDisplay.NONE);
+    }
+
+    public Configurator setLabel(String name) {
+        this.label.setText(name);
+        this.label.setDisplay(name.isEmpty() ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        return this;
     }
 
     public Configurator setTips(String... tips) {
