@@ -84,7 +84,7 @@ public class TextField extends UIElement {
     @Getter
     private String text = "";
     @Getter @Setter
-    private String placeholder = "input here...";
+    private String placeholder = "empty";
     @Getter
     private final TextFieldStyle textFieldStyle = new TextFieldStyle(this);
     @Getter
@@ -136,11 +136,17 @@ public class TextField extends UIElement {
         textFieldStyle.applyStyles(values);
     }
 
+    @Override
+    protected void onLayoutChanged() {
+        super.onLayoutChanged();
+        updateDisplayOffset();
+    }
+
     /// events
     protected void onDragSource(UIEvent event) {
-        handleNumber(event.deltaX * wheelDur);
-
-        if (event.dragHandler.draggingObject instanceof Integer start) {
+        if (isNumberField()) {
+            handleNumber(event.deltaX * wheelDur);
+        } else if (event.dragHandler.draggingObject instanceof Integer start) {
             var cursor = getCursorUnderMouseX(event.x);
             if (cursor != -1) {
                 setCursor(cursor);
@@ -198,13 +204,18 @@ public class TextField extends UIElement {
 
     protected void onMouseDown(UIEvent event) {
         if (event.button == 0 && isMouseOver(event.x, event.y)) {
-            if (isNumberField()) {
-                startDrag(null, null);
-            } else {
-                var cursor = getCursorUnderMouseX(event.x);
-                if (cursor != -1) {
-                    setCursor(cursor);
+            var cursor = getCursorUnderMouseX(event.x);
+            if (cursor != -1) {
+                var currentCursor = cursorPos;
+                setCursor(cursor);
+                if (isShiftDown()) {
+                    setSelection(currentCursor, cursorPos);
+                } else {
                     setSelection(cursorPos, cursorPos);
+                }
+                if (isNumberField()) {
+                    startDrag(null, null);
+                } else {
                     startDrag(cursorPos, null);
                 }
             }
@@ -340,14 +351,14 @@ public class TextField extends UIElement {
             } catch (Exception ignored) { }
             return false;
         });
-        style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.compound_tag")));
+        style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.compound_tag")));
         return this;
     }
 
     public TextField setResourceLocationOnly() {
         setCharValidator(chr -> chr == ':' || ResourceLocation.isValidNamespace(Character.toString(chr)) || ResourceLocation.isAllowedInResourceLocation(chr));
         setTextValidator(LDLib::isValidResourceLocation);
-        style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.resourcelocation")));
+        style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.resourcelocation")));
         return this;
     }
 
@@ -362,13 +373,13 @@ public class TextField extends UIElement {
         });
         setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == Long.MIN_VALUE && maxValue == Long.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == Long.MIN_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
         } else if (maxValue == Long.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
         } else {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
         }
         return setWheelDur(1);
     }
@@ -384,13 +395,13 @@ public class TextField extends UIElement {
         });
         setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == Integer.MIN_VALUE && maxValue == Integer.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == Integer.MIN_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
         } else if (maxValue == Integer.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
         } else {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
         }
         return setWheelDur(1);
     }
@@ -406,13 +417,13 @@ public class TextField extends UIElement {
         });
         setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == Byte.MIN_VALUE && maxValue == Byte.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == Byte.MIN_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
         } else if (maxValue == Byte.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
         } else {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
         }
         return setWheelDur(1);
     }
@@ -428,13 +439,13 @@ public class TextField extends UIElement {
         });
         setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == Short.MIN_VALUE && maxValue == Short.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == Short.MIN_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
         } else if (maxValue == Short.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
         } else {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
         }
         return setWheelDur(1);
     }
@@ -450,13 +461,13 @@ public class TextField extends UIElement {
         });
         setCharValidator(chr -> chr == '.' || Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == -Float.MAX_VALUE && maxValue == Float.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == -Float.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
         } else if (maxValue == Float.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
         } else {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
         }
         return setWheelDur(0.1f);
     }
@@ -472,13 +483,13 @@ public class TextField extends UIElement {
         });
         setCharValidator(chr -> chr == '.' || Character.isDigit(chr) || chr == '-' || chr == '+');
         if (minValue == -Double.MAX_VALUE && maxValue == Double.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == -Double.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
         } else if (maxValue == Double.MAX_VALUE) {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
         } else {
-            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+            style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
         }
         return setWheelDur(0.1f);
     }
@@ -615,7 +626,9 @@ public class TextField extends UIElement {
         var scale = textFieldStyle.fontSize / getFont().lineHeight;
         var cursorPosX = getFont().width(rawText.substring(0, cursorPos)) * scale;
         var width = getContentWidth();
-        if ((cursorPosX - displayOffset) > width - 1) {
+        if (width -1 > cursorPosX) {
+            displayOffset = 0;
+        } else if ((cursorPosX - displayOffset) > width - 1) {
             displayOffset = Math.max(cursorPosX - width + 1, 0);
         } else if ((cursorPosX - displayOffset) < 0) {
             displayOffset = Math.max(cursorPosX, 0);

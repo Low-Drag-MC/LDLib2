@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class BooleanConfigurator extends ValueConfigurator<Boolean> {
-    protected final Toggle toggle;
+    public final Toggle toggle;
 
     public BooleanConfigurator(String name, Supplier<Boolean> supplier, Consumer<Boolean> onUpdate, @Nonnull Boolean defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
@@ -19,10 +19,10 @@ public class BooleanConfigurator extends ValueConfigurator<Boolean> {
     }
 
     @Override
-    protected void onValueUpdate(Boolean newValue) {
+    protected void onValueUpdatePassively(Boolean newValue) {
         if (newValue == null) newValue = defaultValue;
         if (newValue.equals(value)) return;
-        super.onValueUpdate(newValue);
+        super.onValueUpdatePassively(newValue);
         toggle.setOn(newValue, false);
     }
 

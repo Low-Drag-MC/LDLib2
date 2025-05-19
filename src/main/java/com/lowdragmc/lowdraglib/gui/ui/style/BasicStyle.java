@@ -40,8 +40,20 @@ public class BasicStyle extends Style {
         return this;
     }
 
+    public BasicStyle setTooltips(Component... tooltips) {
+        this.tooltips.clear();
+        this.tooltips.addAll(Arrays.asList(tooltips));
+        return this;
+    }
+
     public BasicStyle appendTooltips(Component... tooltips) {
         this.tooltips.addAll(Arrays.asList(tooltips));
+        return this;
+    }
+
+    public BasicStyle setTooltips(String... tooltips) {
+        this.tooltips.clear();
+        this.tooltips.addAll(Arrays.stream(tooltips).map(Component::translatable).toList());
         return this;
     }
 

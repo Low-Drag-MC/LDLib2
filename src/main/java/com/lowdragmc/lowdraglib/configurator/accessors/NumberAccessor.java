@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib.configurator.accessors;
 
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.ui.ColorConfigurator;
 import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -65,10 +67,9 @@ public class NumberAccessor extends TypesAccessor<Number> {
 
     @Override
     public Configurator create(String name, Supplier<Number> supplier, Consumer<Number> consumer, boolean forceUpdate, Field field) {
-        // TODO
-//        if (field.isAnnotationPresent(ConfigColor.class)) {
-//            return new ColorConfigurator(name, supplier, consumer, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())), forceUpdate);
-//        }
+        if (field.isAnnotationPresent(ConfigColor.class)) {
+            return new ColorConfigurator(name, () -> supplier.get().intValue(), consumer::accept, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())).intValue(), forceUpdate);
+        }
         var configurator = new NumberConfigurator(name, supplier, consumer, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())), forceUpdate);
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             ConfigNumber range = field.getAnnotation(ConfigNumber.class);

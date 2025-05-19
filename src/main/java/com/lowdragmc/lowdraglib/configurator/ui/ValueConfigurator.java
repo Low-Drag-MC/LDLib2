@@ -29,7 +29,7 @@ public abstract class ValueConfigurator<T> extends Configurator {
 
     /**
      * when you update value, you have to call it to notify changes.
-     * if necessary you should call {@link #onValueUpdate(T)} to update the value. (e.g. do some widget update in the method)
+     * if necessary you should call {@link #onValueUpdatePassively(T)} to update the value. (e.g. do some widget update in the method)
      */
     protected void updateValue() {
         if (onUpdate != null) {
@@ -45,12 +45,18 @@ public abstract class ValueConfigurator<T> extends Configurator {
      * <br/>
      * to update the value, call {@link #updateValue()} as well
      */
-    protected void onValueUpdate(T newValue) {
+    protected void onValueUpdatePassively(T newValue) {
         value = newValue;
     }
 
-    public void setValue(T value) {
-        onValueUpdate(value);
+    /**
+     * Set value.
+     */
+    private void setValue(T value, boolean notify) {
+        onValueUpdatePassively(value);
+        if (notify) {
+            updateValue();
+        }
     }
 
     @Nullable
@@ -62,7 +68,7 @@ public abstract class ValueConfigurator<T> extends Configurator {
     public void screenTick() {
         super.screenTick();
         if (forceUpdate) {
-            onValueUpdate(supplier.get());
+            onValueUpdatePassively(supplier.get());
         }
     }
 }

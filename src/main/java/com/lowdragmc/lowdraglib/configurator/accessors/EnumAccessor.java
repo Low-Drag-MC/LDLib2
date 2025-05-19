@@ -1,10 +1,10 @@
-package com.lowdragmc.lowdraglib.editor.accessors;
+package com.lowdragmc.lowdraglib.configurator.accessors;
 
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.SelectorConfigurator;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
-import com.lowdragmc.lowdraglib.editor.configurator.SelectorConfigurator;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
 import net.minecraft.util.StringRepresentable;
 import org.apache.commons.lang3.ArrayUtils;

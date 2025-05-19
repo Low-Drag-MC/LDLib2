@@ -101,9 +101,9 @@ public class Shaders {
 	/**
 	 * the vertex format for HSB color, three four of float
 	 */
-	private static final VertexFormatElement HSB_Alpha = new VertexFormatElement(1, 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 4);
+	public static final VertexFormatElement HSB_Alpha = VertexFormatElement.register(VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 4);
 
-	public static final VertexFormat HSB_VERTEX_FORMAT = VertexFormat.builder()
+	public static VertexFormat HSB_VERTEX_FORMAT = VertexFormat.builder()
 			.add("Position", POSITION)
 			.add("HSB_ALPHA", HSB_Alpha)
 			.build();

@@ -127,6 +127,7 @@ public class SpriteTexture extends TransformTexture {
 
         // rendering
         var matrix = poseStack.last().pose();
+        RenderSystem.enableBlend();
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, imageLocation);
         var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);

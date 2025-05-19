@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.configurator.ui;
 
+import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConfiguratorGroup extends Configurator {
+    public final UIElement folderIcon;
     public final UIElement configuratorContainer;
     @Setter
     protected boolean canCollapse = true;
@@ -29,19 +31,24 @@ public class ConfiguratorGroup extends Configurator {
 
     public ConfiguratorGroup(String name, boolean isCollapse) {
         super(name);
-        this.isCollapse = isCollapse;
         configuratorContainer = new UIElement().layout(layout -> {
             layout.setMargin(YogaEdge.LEFT, 2);
-            layout.setGap(YogaGutter.ALL, 3);
+            layout.setGap(YogaGutter.ALL, 1);
             layout.setPadding(YogaEdge.ALL, 5);
-        }).style(style -> style.backgroundTexture(Sprites.BORDER))
-                .setDisplay(isCollapse ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        }).style(style -> style.backgroundTexture(Sprites.BORDER));
 
         lineContainer.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
                 .layout(layout -> layout.setPadding(YogaEdge.ALL, 2))
-                .addEventListener(UIEvents.MOUSE_DOWN, this::onLineContainerClick);
+                .addEventListener(UIEvents.MOUSE_DOWN, this::onLineContainerClick)
+                .addChildAt(folderIcon = new UIElement().layout(layout -> {
+                    layout.setMargin(YogaEdge.ALL, 3f);
+                    layout.setWidth(8);
+                    layout.setHeight(8);
+                }).style(style -> style.backgroundTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT)), 0);
 
         addChild(configuratorContainer);
+
+        setCollapse(isCollapse);
     }
 
     protected void onLineContainerClick(UIEvent event) {
@@ -54,6 +61,7 @@ public class ConfiguratorGroup extends Configurator {
     public void setCollapse(boolean collapse) {
         isCollapse = collapse;
         configuratorContainer.setDisplay(collapse ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        folderIcon.style(style -> style.backgroundTexture(collapse ? Icons.RIGHT_ARROW_NO_BAR_S_LIGHT : Icons.DOWN_ARROW_NO_BAR_S_LIGHT));
     }
 
     public ConfiguratorGroup addConfigurator(Configurator configurator, int index) {

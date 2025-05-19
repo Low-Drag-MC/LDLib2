@@ -78,7 +78,7 @@ public class Sprites {
     public static SpriteTexture BORDER1_RT1_DARK = SpriteTexture.of(GDP).setSprite(120, 222, 16, 16).setBorder(5, 5, 5, 5);
     public static SpriteTexture BORDER1_RT1_TRANSLATE = SpriteTexture.of(GDP).setSprite(120, 165, 16, 16).setBorder(3, 3, 3, 3);
 
-    public static SpriteTexture BORDER1_THICK_RT1 = SpriteTexture.of(GDP).setSprite(205, 205, 16, 16).setBorder(5, 5, 5, 5);
+    public static SpriteTexture BORDER1_THICK_RT1 = SpriteTexture.of(GDP).setSprite(205, 205, 16, 16).setBorder(6, 6, 6, 6);
     public static SpriteTexture BORDER1_THICK_RT1_DARK = SpriteTexture.of(GDP).setSprite(205, 222, 16, 16).setBorder(5, 5, 5, 5);
     public static SpriteTexture BORDER1_THICK_RT1_TRANSLATE = SpriteTexture.of(GDP).setSprite(205, 239, 16, 16).setBorder(3, 5, 3, 3);
 

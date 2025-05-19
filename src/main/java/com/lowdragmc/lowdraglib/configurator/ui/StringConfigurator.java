@@ -1,14 +1,20 @@
 package com.lowdragmc.lowdraglib.configurator.ui;
 
 import com.lowdragmc.lowdraglib.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
+import lombok.Getter;
+import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class StringConfigurator extends ValueConfigurator<String> {
-    protected final TextField textField;
+    public final TextField textField;
+    @Getter
     protected boolean isResourceLocation;
+    @Getter
     protected boolean isCompoundTag;
 
     public StringConfigurator(String name, Supplier<String> supplier, Consumer<String> onUpdate, @Nonnull String defaultValue, boolean forceUpdate) {
@@ -16,7 +22,14 @@ public class StringConfigurator extends ValueConfigurator<String> {
         if (value == null) value = defaultValue;
         inlineContainer.addChild(textField = new TextField());
         textField.setTextResponder(this::onStringUpdate);
+        textField.addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
         textField.setText(value, false);
+    }
+
+    private void onDragPerform(UIEvent event) {
+        if (event.dragHandler.draggingObject instanceof CharSequence string) {
+            onStringUpdate(string.toString());
+        }
     }
 
     public StringConfigurator setResourceLocation(boolean resourceLocation) {
@@ -32,10 +45,13 @@ public class StringConfigurator extends ValueConfigurator<String> {
     }
 
     @Override
-    protected void onValueUpdate(String newValue) {
+    protected void onValueUpdatePassively(String newValue) {
         if (newValue == null) newValue = defaultValue;
         if (newValue.equals(value)) return;
-        super.onValueUpdate(newValue);
+        if (isResourceLocation && value != null) {
+            if (ResourceLocation.parse(newValue).equals(ResourceLocation.parse(value))) return;
+        }
+        super.onValueUpdatePassively(newValue);
         textField.setText(newValue, false);
     }
 
