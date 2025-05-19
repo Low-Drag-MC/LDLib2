@@ -2,9 +2,9 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
@@ -52,14 +52,14 @@ public class HsbColorWidget extends Widget implements IConfigurableWidget {
 	 */
 	@Setter
 	@Configurable(name = "ldlib.gui.editor.name.gap")
-	@NumberRange(range = {0, Integer.MAX_VALUE})
+	@ConfigNumber(range = {0, Integer.MAX_VALUE})
 	private int gap;
 	/**
 	 * the slide width
 	 */
 	@Setter
 	@Configurable(name = "ldlib.gui.editor.name.barWidth")
-	@NumberRange(range = {0, Integer.MAX_VALUE})
+	@ConfigNumber(range = {0, Integer.MAX_VALUE})
 	private int barWidth;
 	/**
 	 * hue component, must range from 0f to 360f

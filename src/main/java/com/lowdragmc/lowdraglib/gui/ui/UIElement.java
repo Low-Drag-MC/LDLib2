@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.ui;
 
 import com.google.common.collect.ImmutableList;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;

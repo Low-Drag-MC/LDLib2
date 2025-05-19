@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.math.Position;
@@ -37,7 +37,7 @@ public class LabelWidget extends Widget implements IConfigurableWidget {
     private String lastTextValue = "";
 
     @Configurable(name = "ldlib.gui.editor.name.color")
-    @NumberColor
+    @ConfigColor
     private int color;
 
     @Configurable(name = "ldlib.gui.editor.name.isShadow")

@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Setter;
@@ -12,7 +12,6 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 import org.joml.Vector4f;
 
-import java.awt.*;
 import java.util.function.IntSupplier;
 
 @LDLRegisterClient(name = "color_rect_texture", registry = "ldlib:gui_texture")
@@ -20,28 +19,28 @@ import java.util.function.IntSupplier;
 public class ColorRectTexture extends TransformTexture{
 
     @Configurable
-    @NumberColor
+    @ConfigColor
     @Setter
     public int color;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusLT;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusLB;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusRT;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusRB;
 
     @Setter
@@ -55,7 +54,7 @@ public class ColorRectTexture extends TransformTexture{
         this.color = color;
     }
 
-    public ColorRectTexture(Color color) {
+    public ColorRectTexture(java.awt.Color color) {
         this.color = color.getRGB();
     }
 

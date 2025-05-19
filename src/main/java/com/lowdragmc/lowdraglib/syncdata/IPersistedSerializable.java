@@ -8,7 +8,7 @@ import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 
 /**
  * Class with this interface can serialize and deserialize itself by detecting fields with

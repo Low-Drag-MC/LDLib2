@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.*;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -64,11 +64,11 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
                 }, Fluids.EMPTY, forceUpdate));
         var min = 1;
         var max = 64;
-        if (field.isAnnotationPresent(NumberRange.class)) {
-            min = (int) field.getAnnotation(NumberRange.class).range()[0];
-            max = (int) field.getAnnotation(NumberRange.class).range()[1];
+        if (field.isAnnotationPresent(ConfigNumber.class)) {
+            min = (int) field.getAnnotation(ConfigNumber.class).range()[0];
+            max = (int) field.getAnnotation(ConfigNumber.class).range()[1];
         }
-        group.addConfigurators(new NumberConfigurator("ldlib.gui.editor.configurator.amount",
+        group.addConfigurators(new com.lowdragmc.lowdraglib.editor.configurator.NumberConfigurator("ldlib.gui.editor.configurator.amount",
                 () -> supplier.get().getAmount(),
                 count -> {
                     FluidStack copy = supplier.get().copy();

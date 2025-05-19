@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib.utils;
 
 import com.google.common.base.Strings;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.ManagedFieldUtils;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;

@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.configurator.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import lombok.AllArgsConstructor;

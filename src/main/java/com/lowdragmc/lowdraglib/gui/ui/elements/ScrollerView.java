@@ -35,11 +35,11 @@ public class ScrollerView extends UIElement {
     public static class ScrollerViewStyle extends Style {
         @Getter @Setter
         private float horizontalScrollerMargin = 5;
-        @Getter
+        @Getter @Setter
         private Mode mode = Mode.BOTH;
-        @Getter
+        @Getter @Setter
         private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
-        @Getter
+        @Getter @Setter
         private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
 
         public ScrollerViewStyle(UIElement holder) {

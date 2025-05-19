@@ -503,10 +503,10 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             var dist = 25;
 
             drawLayoutBox(graphics, font, sx, sy, sw, sh, "margin", 0x80646669, new String[]{
-                    hovered.layoutNode.getMargin(YogaEdge.TOP).toString(),
-                    hovered.layoutNode.getMargin(YogaEdge.BOTTOM).toString(),
-                    hovered.layoutNode.getMargin(YogaEdge.LEFT).toString(),
-                    hovered.layoutNode.getMargin(YogaEdge.RIGHT).toString()
+                    String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.TOP)),
+                    String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.BOTTOM)),
+                    String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.LEFT)),
+                    String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.RIGHT))
             });
 
             sx += dist;
@@ -514,10 +514,10 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             sw -= dist * 2;
             sh -= dist * 2;
             drawLayoutBox(graphics, font, sx, sy, sw, sh, "border", 0x80ff0000, new String[]{
-                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.TOP)),
-                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.BOTTOM)),
-                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.LEFT)),
-                    String.valueOf(hovered.layoutNode.getBorder(YogaEdge.RIGHT))
+                    String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.TOP)),
+                    String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.BOTTOM)),
+                    String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.LEFT)),
+                    String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.RIGHT))
             });
 
             sx += dist;
@@ -525,10 +525,10 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             sw -= dist * 2;
             sh -= dist * 2;
             drawLayoutBox(graphics, font, sx, sy, sw, sh, "padding", 0x8000ff00, new String[]{
-                    hovered.layoutNode.getPadding(YogaEdge.TOP).toString(),
-                    hovered.layoutNode.getPadding(YogaEdge.BOTTOM).toString(),
-                    hovered.layoutNode.getPadding(YogaEdge.LEFT).toString(),
-                    hovered.layoutNode.getPadding(YogaEdge.RIGHT).toString()
+                    String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.TOP)),
+                    String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.BOTTOM)),
+                    String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.LEFT)),
+                    String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.RIGHT)),
             });
 
             sx += dist;

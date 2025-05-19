@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
@@ -42,10 +42,10 @@ public class DraggableScrollableWidgetGroup extends WidgetGroup {
     @Getter
     protected int scrollYOffset;
     @Configurable(name = "ldlib.gui.editor.name.x_bar_height")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     protected int xBarHeight;
     @Configurable(name = "ldlib.gui.editor.name.y_bar_width")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     protected int yBarWidth;
     @Configurable(name = "ldlib.gui.editor.name.draggable")
     @Setter @Getter

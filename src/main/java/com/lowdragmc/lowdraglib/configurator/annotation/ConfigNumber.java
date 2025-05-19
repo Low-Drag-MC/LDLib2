@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.editor.annotation;
+package com.lowdragmc.lowdraglib.configurator.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,7 +7,18 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
-public @interface NumberRange {
+public @interface ConfigNumber {
+    enum Type {
+        AUTO,
+        INTEGER,
+        FLOAT,
+        DOUBLE,
+        LONG,
+        CHAR,
+        SHORT,
+        BYTE,
+    }
     double[] range();
     double wheel() default 0;
+    Type type() default Type.AUTO;
 }

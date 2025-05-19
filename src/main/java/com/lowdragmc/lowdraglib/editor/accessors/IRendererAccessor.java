@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.editor.accessors;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.IRendererConfigurator;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;

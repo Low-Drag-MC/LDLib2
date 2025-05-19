@@ -2,9 +2,9 @@ package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -53,7 +53,7 @@ public class SpriteTexture extends TransformTexture {
     @Setter
     public Position borderRB = Position.of(0, 0);
     @Configurable
-    @NumberColor
+    @ConfigColor
     public int color = -1;
     @Configurable
     @Setter

@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.lowdragmc.lowdraglib.editor.accessors.IConfiguratorAccessor;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;

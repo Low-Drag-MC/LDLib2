@@ -2,9 +2,9 @@ package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
@@ -37,22 +37,22 @@ public class ResourceTexture extends TransformTexture {
     public ResourceLocation imageLocation = LDLib.id("textures/gui/icon.png");
 
     @Configurable
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
     public float offsetX = 0;
 
     @Configurable
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
     public float offsetY = 0;
 
     @Configurable
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
     public float imageWidth = 1;
     @Configurable
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 0.02)
     public float imageHeight = 1;
 
     @Configurable
-    @NumberColor
+    @ConfigColor
     protected int color = -1;
     protected IntSupplier dynamicColor = () -> color;
 

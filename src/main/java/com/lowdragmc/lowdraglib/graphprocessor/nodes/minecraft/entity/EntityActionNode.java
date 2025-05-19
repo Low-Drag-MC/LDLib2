@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.graphprocessor.nodes.minecraft.entity;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.LinearTriggerNode;

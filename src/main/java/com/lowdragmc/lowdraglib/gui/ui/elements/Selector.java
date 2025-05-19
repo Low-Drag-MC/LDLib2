@@ -63,7 +63,7 @@ public class Selector<T> extends UIElement {
             .textStyle(style -> style
                     .textAlignHorizontal(Horizontal.LEFT)
                     .textAlignVertical(Vertical.CENTER))
-            .setText(candidate == null ? "---" : candidate.toString()).layout(layout -> layout.setHeight(10));
+            .setText(candidate == null ? "---" : candidate.toString());
     @Getter
     @Nullable
     private T value = null;

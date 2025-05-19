@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.graphprocessor.nodes.minecraft.fluid;
 
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;

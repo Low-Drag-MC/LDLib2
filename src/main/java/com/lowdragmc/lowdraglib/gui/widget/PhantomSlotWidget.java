@@ -2,10 +2,10 @@ package com.lowdragmc.lowdraglib.gui.widget;
 
 import com.google.common.collect.Lists;
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.ingredient.IGhostIngredientTarget;
 import com.lowdragmc.lowdraglib.gui.ingredient.Target;
@@ -38,7 +38,7 @@ public class PhantomSlotWidget extends SlotWidget implements IGhostIngredientTar
     private boolean clearSlotOnRightClick;
 
     @Configurable
-    @NumberRange(range = {0, 64})
+    @ConfigNumber(range = {0, 64})
     @Setter
     @Getter
     private int maxStackSize = 64;

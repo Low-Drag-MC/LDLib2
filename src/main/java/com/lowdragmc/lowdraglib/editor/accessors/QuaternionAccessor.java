@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.Vector3Configurator;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
@@ -41,8 +41,8 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
                     consumer.accept(q);
                 },
                 defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())).getEulerAnglesXYZ(new Vector3f()), forceUpdate);
-        if (field.isAnnotationPresent(NumberRange.class)) {
-            NumberRange range = field.getAnnotation(NumberRange.class);
+        if (field.isAnnotationPresent(ConfigNumber.class)) {
+            ConfigNumber range = field.getAnnotation(ConfigNumber.class);
             configurator = configurator.setRange(range.range()[0], range.range()[1]).setWheel(range.wheel());
         }
         return configurator;

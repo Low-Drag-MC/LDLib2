@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.editor.accessors;
 import com.lowdragmc.lowdraglib.editor.configurator.RangeConfigurator;
 import com.lowdragmc.lowdraglib.math.Range;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
 
@@ -25,8 +25,8 @@ public class RangeAccessor extends TypesAccessor<Range> {
 
     @Override
     public Range defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(NumberRange.class)) {
-            var range = field.getAnnotation(NumberRange.class);
+        if (field.isAnnotationPresent(ConfigNumber.class)) {
+            var range = field.getAnnotation(ConfigNumber.class);
             if (range.range().length > 1) {
                 return Range.of(range.range()[0], range.range()[1]);
             }
@@ -37,8 +37,8 @@ public class RangeAccessor extends TypesAccessor<Range> {
     @Override
     public Configurator create(String name, Supplier<Range> supplier, Consumer<Range> consumer, boolean forceUpdate, Field field) {
         var configurator = new RangeConfigurator(name, supplier, consumer, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())), forceUpdate);
-        if (field.isAnnotationPresent(NumberRange.class)) {
-            NumberRange range = field.getAnnotation(NumberRange.class);
+        if (field.isAnnotationPresent(ConfigNumber.class)) {
+            ConfigNumber range = field.getAnnotation(ConfigNumber.class);
             configurator = configurator.setRange(range.range()[0], range.range()[1]).setWheel(range.wheel());
         }
         return configurator;

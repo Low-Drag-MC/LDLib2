@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.graphprocessor.nodes.value;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
@@ -17,7 +17,7 @@ public class ColorNode extends BaseNode {
     public int out;
 
     @Configurable(showName = false)
-    @NumberColor
+    @ConfigColor
     @DefaultValue(numberValue = -1)
     public int internalValue = -1;
 

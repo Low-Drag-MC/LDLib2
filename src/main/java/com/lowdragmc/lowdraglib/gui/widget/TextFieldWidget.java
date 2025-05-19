@@ -1,6 +1,9 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.editor.annotation.*;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
@@ -38,7 +41,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
     protected EditBox textField;
 
     @Configurable(name = "ldlib.gui.editor.name.maxStringLength")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     protected int maxStringLength = Integer.MAX_VALUE;
     protected Function<String, String> textValidator = (s)->s;
     protected Supplier<String> textSupplier;
@@ -51,7 +54,7 @@ public class TextFieldWidget extends Widget implements IConfigurableWidget {
     protected boolean isBordered;
 
     @Configurable(name = "ldlib.gui.editor.name.color")
-    @NumberColor
+    @ConfigColor
     protected int textColor = -1;
 
     protected float wheelDur;

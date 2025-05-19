@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.graphprocessor.nodes.minecraft.item;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.utils.ConfiguratorParser;

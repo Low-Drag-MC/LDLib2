@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;

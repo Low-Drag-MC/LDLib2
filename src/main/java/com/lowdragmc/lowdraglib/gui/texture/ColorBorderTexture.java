@@ -1,10 +1,9 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib.math.Rect;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Setter;
 import net.neoforged.api.distmarker.Dist;
@@ -12,57 +11,55 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 import org.joml.Vector4f;
 
-import java.awt.*;
-
 @LDLRegisterClient(name = "color_border_texture", registry = "ldlib:gui_texture")
 public class ColorBorderTexture extends TransformTexture{
 
     @Configurable
-    @NumberColor
+    @ConfigColor
     public int color;
 
     @Configurable
-    @NumberRange(range = {-100, 100})
+    @ConfigNumber(range = {-100, 100})
     public int border;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusLTInner;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusLBInner;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusRTInner;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusRBInner;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusLTOuter;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusLBOuter;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusRTOuter;
 
     @Configurable
     @Setter
-    @NumberRange(range = {0, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {0, Float.MAX_VALUE}, wheel = 1)
     public float radiusRBOuter;
 
     public ColorBorderTexture() {
@@ -74,7 +71,7 @@ public class ColorBorderTexture extends TransformTexture{
         this.border = border;
     }
 
-    public ColorBorderTexture(int border, Color color) {
+    public ColorBorderTexture(int border, java.awt.Color color) {
         this.color = color.getRGB();
         this.border = border;
     }

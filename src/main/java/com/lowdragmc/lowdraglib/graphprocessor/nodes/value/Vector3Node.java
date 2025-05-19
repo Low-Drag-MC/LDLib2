@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.graphprocessor.nodes.value;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
@@ -29,7 +29,7 @@ public class Vector3Node extends BaseNode {
     public float outZ;
 
     @Configurable(showName = false)
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1f)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1f)
     public Vector3f internalValue = new Vector3f();
 
     @Override

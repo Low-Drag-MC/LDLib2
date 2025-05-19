@@ -1,7 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.annotation.*;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -29,18 +32,18 @@ public class TextTexture extends TransformTexture {
     public String text;
 
     @Configurable
-    @NumberColor
+    @ConfigColor
     public int color;
 
     @Configurable
-    @NumberColor
+    @ConfigColor
     public int backgroundColor;
 
     @Configurable(tips = "ldlib.gui.editor.tips.image_text_width")
-    @NumberRange(range = {1, Integer.MAX_VALUE})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     public int width;
     @Configurable
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Setter
     public float rollSpeed = 1;
     @Configurable

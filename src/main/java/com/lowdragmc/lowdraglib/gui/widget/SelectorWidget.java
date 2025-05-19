@@ -1,7 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.annotation.*;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
@@ -31,10 +34,10 @@ public class SelectorWidget extends WidgetGroup {
     @Configurable(name = "ldlib.gui.editor.name.currentValue")
     protected String currentValue;
     @Configurable(name = "ldlib.gui.editor.name.maxCount")
-    @NumberRange(range = {1, 20})
+    @ConfigNumber(range = {1, 20})
     protected int maxCount = 5;
     @Configurable(name = "ldlib.gui.editor.name.color")
-    @NumberColor
+    @ConfigColor
     protected int fontColor = -1;
     @Configurable(name = "ldlib.gui.editor.name.showUp")
     protected boolean showUp;

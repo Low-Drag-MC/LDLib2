@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.Vector3Configurator;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
@@ -35,8 +35,8 @@ public class Vector3Accessor extends TypesAccessor<Vector3f> {
     @Override
     public Configurator create(String name, Supplier<Vector3f> supplier, Consumer<Vector3f> consumer, boolean forceUpdate, Field field) {
         var configurator = new Vector3Configurator(name, supplier, consumer, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())), forceUpdate);
-        if (field.isAnnotationPresent(NumberRange.class)) {
-            NumberRange range = field.getAnnotation(NumberRange.class);
+        if (field.isAnnotationPresent(ConfigNumber.class)) {
+            ConfigNumber range = field.getAnnotation(ConfigNumber.class);
             configurator = configurator.setRange(range.range()[0], range.range()[1]).setWheel(range.wheel());
         }
         return configurator;

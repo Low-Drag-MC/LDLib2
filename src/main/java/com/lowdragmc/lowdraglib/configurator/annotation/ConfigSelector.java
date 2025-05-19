@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.editor.annotation;
+package com.lowdragmc.lowdraglib.configurator.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

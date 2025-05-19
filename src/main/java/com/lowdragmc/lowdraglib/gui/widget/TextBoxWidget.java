@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.widget;
 
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
@@ -35,7 +35,7 @@ public class TextBoxWidget extends Widget implements IConfigurableWidget {
     public int fontSize = 9;
 
     @Configurable(name = "ldlib.gui.editor.name.color")
-    @NumberColor
+    @ConfigColor
     public int fontColor = 0xff000000;
 
     @Configurable(name = "ldlib.gui.editor.name.isShadow")

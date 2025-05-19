@@ -6,7 +6,10 @@ import com.lowdragmc.lowdraglib.client.shader.management.Shader;
 import com.lowdragmc.lowdraglib.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib.client.shader.management.ShaderProgram;
 import com.lowdragmc.lowdraglib.client.shader.uniform.UniformCache;
-import com.lowdragmc.lowdraglib.editor.annotation.*;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -36,11 +39,11 @@ public class ShaderTexture extends TransformTexture {
     private Shader shader;
 
     @Configurable(tips = "ldlib.gui.editor.tips.shader_resolution")
-    @NumberRange(range = {1, 3})
+    @ConfigNumber(range = {1, 3})
     private float resolution = 2;
 
     @Configurable
-    @NumberColor
+    @ConfigColor
     private int color = -1;
 
     private Consumer<UniformCache> uniformCache;

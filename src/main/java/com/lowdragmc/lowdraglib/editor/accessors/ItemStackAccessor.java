@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.*;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import net.minecraft.core.NonNullList;
@@ -61,11 +61,11 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
                 }, Items.AIR, forceUpdate));
         var min = 1;
         var max = 64;
-        if (field.isAnnotationPresent(NumberRange.class)) {
-            min = (int) field.getAnnotation(NumberRange.class).range()[0];
-            max = (int) field.getAnnotation(NumberRange.class).range()[1];
+        if (field.isAnnotationPresent(ConfigNumber.class)) {
+            min = (int) field.getAnnotation(ConfigNumber.class).range()[0];
+            max = (int) field.getAnnotation(ConfigNumber.class).range()[1];
         }
-        group.addConfigurators(new NumberConfigurator("ldlib.gui.editor.configurator.count",
+        group.addConfigurators(new com.lowdragmc.lowdraglib.editor.configurator.NumberConfigurator("ldlib.gui.editor.configurator.count",
                 () -> supplier.get().getCount(),
                 count -> updateStack.accept(supplier.get().copyWithCount(count.intValue())), 1, forceUpdate)
                 .setRange(min, max));

@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberColor;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
@@ -38,27 +38,27 @@ public class AnimationTexture extends TransformTexture {
     public ResourceLocation imageLocation;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_size")
-    @NumberRange(range = {1, Integer.MAX_VALUE})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     @Getter
     protected int cellSize;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_from")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Getter
     protected int from;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_to")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Getter
     protected int to;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_animation")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Getter
     protected int animation;
 
     @Configurable
-    @NumberColor
+    @ConfigColor
     @Getter
     protected int color = -1;
 

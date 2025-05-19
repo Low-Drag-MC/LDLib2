@@ -70,7 +70,10 @@ public class TextField extends UIElement {
         RESOURCE_LOCATION,
         NUMBER_LONG,
         NUMBER_INT,
-        NUMBER_FLOAT
+        NUMBER_FLOAT,
+        NUMBER_DOUBLE,
+        NUMBER_SHORT,
+        NUMBER_BYTE,
     }
     @Setter
     private Predicate<String> textValidator = Predicates.alwaysTrue();
@@ -135,19 +138,9 @@ public class TextField extends UIElement {
 
     /// events
     protected void onDragSource(UIEvent event) {
-        if (mode == Mode.NUMBER_INT) {
-           try {
-               setRawText(String.valueOf(Integer.parseInt(getRawText()) + (int) (event.deltaX * wheelDur * (isShiftDown() ? 10 : 1))));
-           } catch (NumberFormatException ignored) { }
-        } else if (mode == Mode.NUMBER_LONG) {
-            try {
-                setRawText(String.valueOf(Long.parseLong(getRawText()) + (long) (event.deltaX * wheelDur * (isShiftDown() ? 10 : 1))));
-            } catch (NumberFormatException ignored) { }
-        } else if (mode == Mode.NUMBER_FLOAT) {
-            try {
-                setRawText(numberInstance.format(Float.parseFloat(getRawText()) + event.deltaX * wheelDur * (isShiftDown() ? 10 : 1)));
-            } catch (NumberFormatException ignored) { }
-        } if (event.dragHandler.draggingObject instanceof Integer start) {
+        handleNumber(event.deltaX * wheelDur);
+
+        if (event.dragHandler.draggingObject instanceof Integer start) {
             var cursor = getCursorUnderMouseX(event.x);
             if (cursor != -1) {
                 setCursor(cursor);
@@ -156,30 +149,56 @@ public class TextField extends UIElement {
         }
     }
 
+    private boolean handleNumber(double value) {
+        if (mode == Mode.NUMBER_INT) {
+           try {
+               setRawText(String.valueOf(Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1))));
+           } catch (NumberFormatException ignored) { }
+            return true;
+        } else if (mode == Mode.NUMBER_LONG) {
+            try {
+                setRawText(String.valueOf(Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1))));
+            } catch (NumberFormatException ignored) { }
+            return true;
+        } else if (mode == Mode.NUMBER_FLOAT) {
+            try {
+                setRawText(numberInstance.format(Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)));
+            } catch (NumberFormatException ignored) { }
+            return true;
+        }  else if (mode == Mode.NUMBER_DOUBLE) {
+            try {
+                setRawText(numberInstance.format(Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)));
+            } catch (NumberFormatException ignored) { }
+            return true;
+        } else if (mode == Mode.NUMBER_SHORT) {
+            try {
+                setRawText(String.valueOf((short) (Short.parseShort(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)))));
+            } catch (NumberFormatException ignored) { }
+            return true;
+        } else if (mode == Mode.NUMBER_BYTE) {
+            try {
+                setRawText(String.valueOf((byte) (Byte.parseByte(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)))));
+            } catch (NumberFormatException ignored) { }
+            return true;
+        }
+        return false;
+    }
+
     protected void onMouseWheel(UIEvent event) {
         if (isEditable()) {
-            if (mode == Mode.NUMBER_INT) {
-                try {
-                    setRawText(String.valueOf(Integer.parseInt(getRawText()) + (int) ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
-                } catch (NumberFormatException ignored) { }
-                event.stopPropagation();
-            } else if (mode == Mode.NUMBER_LONG) {
-                try {
-                    setRawText(String.valueOf(Long.parseLong(getRawText()) + (long) ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
-                } catch (NumberFormatException ignored) { }
-                event.stopPropagation();
-            } else if (mode == Mode.NUMBER_FLOAT) {
-                try {
-                    setRawText(numberInstance.format(Float.parseFloat(getRawText()) + ((event.deltaY > 0 ? 1 : -1) * wheelDur * (isShiftDown() ? 10 : 1))));
-                } catch (NumberFormatException ignored) { }
+            if (handleNumber((event.deltaY > 0 ? 1 : -1) * wheelDur)) {
                 event.stopPropagation();
             }
         }
     }
 
+    protected boolean isNumberField() {
+        return mode == Mode.NUMBER_INT || mode == Mode.NUMBER_LONG || mode == Mode.NUMBER_FLOAT || mode == Mode.NUMBER_DOUBLE || mode == Mode.NUMBER_SHORT || mode == Mode.NUMBER_BYTE;
+    }
+
     protected void onMouseDown(UIEvent event) {
         if (event.button == 0 && isMouseOver(event.x, event.y)) {
-            if (mode == Mode.NUMBER_INT || mode == Mode.NUMBER_LONG || mode == Mode.NUMBER_FLOAT) {
+            if (isNumberField()) {
                 startDrag(null, null);
             } else {
                 var cursor = getCursorUnderMouseX(event.x);
@@ -376,6 +395,50 @@ public class TextField extends UIElement {
         return setWheelDur(1);
     }
 
+    public TextField setNumbersOnlyByte(byte minValue, byte maxValue) {
+        mode = Mode.NUMBER_BYTE;
+        setTextValidator(s -> {
+            try {
+                int value = Byte.parseByte(s);
+                if (minValue <= value && value <= maxValue) return true;
+            } catch (NumberFormatException ignored) { }
+            return false;
+        });
+        setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
+        if (minValue == Byte.MIN_VALUE && maxValue == Byte.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+        } else if (minValue == Byte.MIN_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+        } else if (maxValue == Byte.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+        } else {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+        }
+        return setWheelDur(1);
+    }
+
+    public TextField setNumbersOnlyShort(short minValue, short maxValue) {
+        mode = Mode.NUMBER_SHORT;
+        setTextValidator(s -> {
+            try {
+                int value = Short.parseShort(s);
+                if (minValue <= value && value <= maxValue) return true;
+            } catch (NumberFormatException ignored) { }
+            return false;
+        });
+        setCharValidator(chr -> Character.isDigit(chr) || chr == '-' || chr == '+');
+        if (minValue == Short.MIN_VALUE && maxValue == Short.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+        } else if (minValue == Short.MIN_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+        } else if (maxValue == Short.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+        } else {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+        }
+        return setWheelDur(1);
+    }
+
     public TextField setNumbersOnlyFloat(float minValue, float maxValue) {
         mode = Mode.NUMBER_FLOAT;
         setTextValidator(s -> {
@@ -391,6 +454,28 @@ public class TextField extends UIElement {
         } else if (minValue == -Float.MAX_VALUE) {
             style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
         } else if (maxValue == Float.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
+        } else {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));
+        }
+        return setWheelDur(0.1f);
+    }
+
+    public TextField setNumbersOnlyDouble(double minValue, double maxValue) {
+        mode = Mode.NUMBER_DOUBLE;
+        setTextValidator(s -> {
+            try {
+                var value = Double.parseDouble(s);
+                if (minValue <= value && value <= maxValue) return true;
+            } catch (NumberFormatException ignored) { }
+            return false;
+        });
+        setCharValidator(chr -> chr == '.' || Character.isDigit(chr) || chr == '-' || chr == '+');
+        if (minValue == -Double.MAX_VALUE && maxValue == Double.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.3")));
+        } else if (minValue == -Double.MAX_VALUE) {
+            style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.2", maxValue)));
+        } else if (maxValue == Double.MAX_VALUE) {
             style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.1", minValue)));
         } else {
             style(style -> style.appendTooltips(Component.translatable("ldlib.gui.text_field.number.0", minValue, maxValue)));

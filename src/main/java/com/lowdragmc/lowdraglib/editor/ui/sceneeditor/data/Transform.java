@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.editor.ui.sceneeditor.data;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor.ui.sceneeditor.sceneobject.ISceneObject;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
@@ -36,7 +36,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
      */
     @Getter
     @Configurable(name = "transform.position", tips = "transform.position.tips")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
     private Vector3f localPosition = new Vector3f();
 
     /**
@@ -44,7 +44,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
      */
     @Getter
     @Configurable(name = "transform.rotation", tips = "transform.rotation.tips", forceUpdate = false)
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
     private Quaternionf localRotation = new Quaternionf();
 
     /**
@@ -52,7 +52,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
      */
     @Getter
     @Configurable(name = "transform.scale", tips = "transform.scale.tips")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
     private Vector3f localScale = new Vector3f(1, 1, 1);
 
     /**

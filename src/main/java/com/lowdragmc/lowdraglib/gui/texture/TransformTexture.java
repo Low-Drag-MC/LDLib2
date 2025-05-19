@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.gui.ui.data.Pivot;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -20,19 +20,19 @@ public abstract class TransformTexture implements IGuiTexture {
     @Configurable
     protected Pivot pivot = Pivot.CENTER;
     @Configurable
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
     protected float xOffset;
 
     @Configurable
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
     protected float yOffset;
 
     @Configurable
-    @NumberRange(range = {0, Float.MAX_VALUE})
+    @ConfigNumber(range = {0, Float.MAX_VALUE})
     protected float scale = 1;
 
     @Configurable
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 5)
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 5)
     protected float rotation;
 
     public TransformTexture rotate(float degree) {

@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.editor.accessors;
 
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor.configurator.Vector3iConfigurator;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
@@ -50,8 +50,8 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
             return new Vector3i(pos.getX(), pos.getY(), pos.getZ());
         }, vec3 -> consumer.accept(new BlockPos(vec3.x(), vec3.y(), vec3.z())),
                 new Vector3i(defaultValue.getX(), defaultValue.getY(), defaultValue.getZ()), forceUpdate);
-        if (field.isAnnotationPresent(NumberRange.class)) {
-            NumberRange range = field.getAnnotation(NumberRange.class);
+        if (field.isAnnotationPresent(ConfigNumber.class)) {
+            ConfigNumber range = field.getAnnotation(ConfigNumber.class);
             configurator = configurator.setRange((int)range.range()[0], (int)range.range()[1]).setWheel((int)Math.ceil(range.wheel()));
         }
         return configurator;
