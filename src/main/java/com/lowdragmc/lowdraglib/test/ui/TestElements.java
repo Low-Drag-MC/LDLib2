@@ -1,12 +1,15 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
+import com.lowdragmc.lowdraglib.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.elements.*;
+import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.Direction;
@@ -76,12 +79,31 @@ public class TestElements implements IUITest {
                                         new ProgressBar().label(label -> label.setText("30%")).setValue(0.3f),
                                         new TabView().addTab(new Tab().setText("tab1"), new UIElement().addChildren(
                                                 new ColorSelector().layout(layout -> {
-                                                    layout.setWidth(100);
+                                                    layout.setWidth(60);
                                                 })))
                                                 .addTab(new Tab().setText("second tab"), new UIElement().layout(layout -> layout.setHeight(60)))
                                 )
                 )
         );
+        // menu
+        root.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+           if (e.button == 1) {
+               root.addChildren(new Menu<>(TreeBuilder.Menu.start()
+                       .leaf("item1", () -> {})
+                       .leaf(Icons.COPY, "item2", () -> {})
+                       .crossLine()
+                       .branch("branch1", menu -> {
+                            menu.leaf("item3", () -> {});
+                            menu.leaf("item4", () -> {});
+                       })
+                       .leaf("item5", () -> {})
+                       .build(), TreeBuilder.Menu::uiProvider)
+                       .layout(layout -> {
+                           layout.setPosition(YogaEdge.LEFT, e.x - root.getPositionX());
+                           layout.setPosition(YogaEdge.TOP, e.y - root.getContentY());
+                       }));
+           }
+        });
         return new ModularUI(UI.of(root));
     }
 }

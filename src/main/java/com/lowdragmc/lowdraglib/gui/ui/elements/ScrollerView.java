@@ -55,8 +55,8 @@ public class ScrollerView extends UIElement {
     @Getter
     private final ScrollerViewStyle scrollerViewStyle = new ScrollerViewStyle(this);
     // runtime
-    private float lastPortWidth = 0;
-    private float lastPortHeight = 0;
+    private float lastPortWidth = 0, lastContainerWidth = 0;
+    private float lastPortHeight = 0, lastContainerHeight = 0;
 
     public ScrollerView() {
         this.verticalContainer = new UIElement();
@@ -133,11 +133,12 @@ public class ScrollerView extends UIElement {
     }
 
     private void updateScrollers() {
+        var lastContainerWidth = getContainerWidth();
+        var lastContainerHeight = getContainerHeight();
         if (scrollerViewStyle.mode == Mode.HORIZONTAL || scrollerViewStyle.mode == Mode.BOTH) {
             // cause we are using a flexbox, the width of the view container is not the same as the width of the view port
             // so we need to calculate the width ourselves
-            var width = getContainerWidth();
-            var vp = Math.min(1, viewPort.getContentWidth() / width);
+            var vp = Math.min(1, viewPort.getContentWidth() / lastContainerWidth);
             horizontalScroller.setScrollBarSize(vp * 100);
             if ((scrollerViewStyle.horizontalScrollDisplay == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay == ScrollDisplay.ALWAYS) {
                 horizontalScroller.setDisplay(YogaDisplay.FLEX);
@@ -150,8 +151,7 @@ public class ScrollerView extends UIElement {
         }
 
         if (scrollerViewStyle.mode == Mode.VERTICAL || scrollerViewStyle.mode == Mode.BOTH) {
-            var height = getContainerHeight();
-            var hp = Math.min(1, viewPort.getContentHeight() / height);
+            var hp = Math.min(1, viewPort.getContentHeight() / lastContainerHeight);
             verticalScroller.setScrollBarSize(hp * 100);
             if ((scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.ALWAYS) {
                 verticalScroller.setDisplay(YogaDisplay.FLEX);
@@ -168,11 +168,20 @@ public class ScrollerView extends UIElement {
             });
         }
 
+        var reloadValue = false;
         var lastPortWidth = viewPort.getSizeWidth();
         var lastPortHeight = viewPort.getSizeHeight();
         if (lastPortWidth != this.lastPortWidth || lastPortHeight != this.lastPortHeight) {
             this.lastPortWidth = lastPortWidth;
             this.lastPortHeight = lastPortHeight;
+            reloadValue = true;
+        }
+        if (lastContainerWidth != this.lastContainerWidth || lastContainerHeight != this.lastContainerHeight) {
+            this.lastContainerWidth = lastContainerWidth;
+            this.lastContainerHeight = lastContainerHeight;
+            reloadValue = true;
+        }
+        if (reloadValue) {
             onHorizontalScroll(horizontalScroller.value);
             onVerticalScroll(verticalScroller.value);
         }

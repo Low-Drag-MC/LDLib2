@@ -1,7 +1,17 @@
 package com.lowdragmc.lowdraglib.gui.util;
 
+import com.lowdragmc.lowdraglib.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import net.minecraft.util.Tuple;
+import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaEdge;
+import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaGutter;
 
 import java.util.Stack;
 import java.util.function.Consumer;
@@ -148,6 +158,31 @@ public class TreeBuilder<K, V> {
 
         public static boolean isCrossLine(Tuple<IGuiTexture, String> key) {
             return key == CROSS_LINE;
+        }
+
+        public static UIElement uiProvider(Tuple<IGuiTexture, String> node) {
+            if (node == CROSS_LINE) {
+                return new UIElement().layout(layout -> {
+                    layout.setHeight(1);
+                    layout.setMargin(YogaEdge.HORIZONTAL, 3);
+                }).style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
+            }
+            return new UIElement().layout(layout -> {
+                layout.setHeight(12);
+                layout.setWidthPercent(100);
+                layout.setGap(YogaGutter.ALL, 2);
+                layout.setFlexDirection(YogaFlexDirection.ROW);
+                layout.setAlignItems(YogaAlign.CENTER);
+            }).addChild(new UIElement().layout(layout -> {
+                layout.setMargin(YogaEdge.LEFT, 2);
+                layout.setWidth(10);
+                layout.setHeight(10);
+            }).style(style -> style.backgroundTexture(node.getA())))
+                    .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER))
+                            .setText(node.getB()).layout(layout -> {
+                                layout.setFlexGrow(1);
+                            }));
+
         }
     }
 

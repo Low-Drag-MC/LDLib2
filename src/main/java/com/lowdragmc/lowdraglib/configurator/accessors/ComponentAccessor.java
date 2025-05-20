@@ -1,10 +1,10 @@
-package com.lowdragmc.lowdraglib.editor.accessors;
+package com.lowdragmc.lowdraglib.configurator.accessors;
 
 
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.configurator.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
-import com.lowdragmc.lowdraglib.editor.configurator.StringConfigurator;
 import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Field;
@@ -18,6 +18,7 @@ import java.util.function.Supplier;
  */
 @LDLRegisterClient(name = "component", registry = "ldlib:configurator_accessor")
 public class ComponentAccessor implements IConfiguratorAccessor<Component> {
+
     @Override
     public boolean test(Class<?> type) {
         return type == Component.class;

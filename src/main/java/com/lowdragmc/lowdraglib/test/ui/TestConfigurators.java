@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -58,6 +59,8 @@ public class TestConfigurators implements IUITest, IConfigurable {
     private int[] intArray = new int[]{1, 2, 3};
     @Configurable
     private List<Boolean> booleanList = new ArrayList<>(List.of(true, false, true));
+    @Configurable
+    private Component componentValue = Component.translatable("ldlib.author");
 
     @Override
     public ModularUI createUI(Player entityPlayer) {

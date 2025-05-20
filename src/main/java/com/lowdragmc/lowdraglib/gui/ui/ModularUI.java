@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.ui;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.ui.event.DragHandler;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;
@@ -429,7 +430,14 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (ui.rootElement.layoutNode.isDirty()) {
-            ui.rootElement.calculateLayout();
+            int dirtyCount = 0;
+            while (ui.rootElement.layoutNode.isDirty() && dirtyCount < 10) {
+                dirtyCount++;
+                ui.rootElement.calculateLayout();
+            }
+            if (dirtyCount >= 10) {
+                LDLib.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your layout code.");
+            }
         }
 
         cleanTooltip();
@@ -462,6 +470,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         var x = 2;
         var y = 2;
         var font = Minecraft.getInstance().font;
+        // hover element
         var hovered = getLastHoveredElement();
         if (hovered != null) {
 

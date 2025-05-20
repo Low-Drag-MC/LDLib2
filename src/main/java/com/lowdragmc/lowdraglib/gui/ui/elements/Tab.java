@@ -61,8 +61,8 @@ public class Tab extends TextElement {
             textStyle.adaptiveWidth(true);
         });
 
-        addEventListener(UIEvents.MOUSE_ENTER, this::onMouseEnter);
-        addEventListener(UIEvents.MOUSE_LEAVE, this::onMouseLeave);
+        addEventListener(UIEvents.MOUSE_ENTER, this::onMouseEnter, true);
+        addEventListener(UIEvents.MOUSE_LEAVE, this::onMouseLeave, true);
     }
 
     public Tab tabStyle(Consumer<TabStyle> tabStyle) {
