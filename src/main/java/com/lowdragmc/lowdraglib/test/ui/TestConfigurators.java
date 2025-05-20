@@ -54,6 +54,8 @@ public class TestConfigurators implements IUITest, IConfigurable {
     @Configurable
     @ConfigNumber(range = {0, 1}, type = ConfigNumber.Type.FLOAT)
     private Range rangeValue = Range.of(0, 1);
+    @Configurable
+    private int[] intArray = new int[]{1, 2, 3};
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
@@ -66,6 +68,7 @@ public class TestConfigurators implements IUITest, IConfigurable {
         root.getStyle().backgroundTexture(Sprites.BORDER);
 
         var group = new ConfiguratorGroup("root");
+        group.setCollapse(false);
         group.setTips("Test tip 0", "Test tip 1", "Test tip 2");
         buildConfigurator(group);
 

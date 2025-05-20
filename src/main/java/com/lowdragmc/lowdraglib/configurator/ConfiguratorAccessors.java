@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.configurator;
 
 import com.lowdragmc.lowdraglib.LDLibRegistries;
+import com.lowdragmc.lowdraglib.configurator.accessors.ArrayConfiguratorAccessor;
 import com.lowdragmc.lowdraglib.configurator.accessors.IConfiguratorAccessor;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
 
@@ -20,24 +21,22 @@ public class ConfiguratorAccessors {
     private static final Map<Class<?>, IConfiguratorAccessor<?>> ACCESSOR_MAP = new ConcurrentHashMap<>();
 
     public static IConfiguratorAccessor<?> findByType(Type clazz) {
-        // TODO
-//        if (clazz instanceof GenericArrayType array) {
-//            var componentType = array.getGenericComponentType();
-//            var childAccessor = findByType(componentType);
-//            var rawType = ReflectionUtils.getRawType(componentType);
-//
-//            return new ArrayConfiguratorAccessor(rawType == null ? Object.class : rawType, childAccessor);
-//        }
+        if (clazz instanceof GenericArrayType array) {
+            var componentType = array.getGenericComponentType();
+            var childAccessor = findByType(componentType);
+            var rawType = ReflectionUtils.getRawType(componentType);
+
+            return new ArrayConfiguratorAccessor(rawType == null ? Object.class : rawType, childAccessor);
+        }
 
         var rawType = ReflectionUtils.getRawType(clazz);
 
         if (rawType != null) {
-            // TODO
-//            if (rawType.isArray()) {
-//                var componentType = rawType.getComponentType();
-//                var childAccessor = findByType(componentType);
-//                return new ArrayConfiguratorAccessor(componentType, childAccessor);
-//            }
+            if (rawType.isArray()) {
+                var componentType = rawType.getComponentType();
+                var childAccessor = findByType(componentType);
+                return new ArrayConfiguratorAccessor(componentType, childAccessor);
+            }
 
 //            if (Collection.class.isAssignableFrom(rawType)) {
 //                var componentType = ((ParameterizedType) clazz).getActualTypeArguments()[0];
