@@ -95,7 +95,7 @@ public class UIElement {
      * Set the Modular UI for this element. In general, this method should only be called automatically.
      * You should not call this method manually.
      */
-    protected void _setModularUIInternal(ModularUI gui) {
+    protected void _setModularUIInternal(@Nullable ModularUI gui) {
         if (this.modularUI == gui) return;
         this.modularUI = gui;
         for (var child : children) {
@@ -299,9 +299,7 @@ public class UIElement {
             child.getParent().removeChild(child);
         }
         child.parent = this;
-        if (this.modularUI != null) {
-            child.modularUI = modularUI;
-        }
+        child._setModularUIInternal(this.modularUI);
         children.add(index, child);
         layoutNode.addChildAt(child.layoutNode, index);
         clearSortedChildrenCache();
@@ -334,7 +332,8 @@ public class UIElement {
             return false;
         }
         children.remove(child);
-        layoutNode.removeChild(child.layoutNode);
+        child._setModularUIInternal(null);
+        layoutNode.removeChildAndInvalidate(child.layoutNode);
         child.parent = null;
         clearSortedChildrenCache();
         child.clearStructurePathCache();
@@ -615,7 +614,7 @@ public class UIElement {
     }
 
     public boolean isMouseOverContent(double mouseX, double mouseY) {
-        return isMouseOver(getContentX(), getContentY(), getContentWidth(), getContentWidth(), mouseX, mouseY);
+        return isMouseOver(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY);
     }
 
     public static boolean isMouseOver(float x, float y, float width, float height, double mouseX, double mouseY) {

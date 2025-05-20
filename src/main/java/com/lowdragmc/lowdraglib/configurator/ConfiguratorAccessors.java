@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib.configurator;
 
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.configurator.accessors.ArrayConfiguratorAccessor;
+import com.lowdragmc.lowdraglib.configurator.accessors.CollectionConfiguratorAccessor;
 import com.lowdragmc.lowdraglib.configurator.accessors.IConfiguratorAccessor;
 import com.lowdragmc.lowdraglib.utils.ReflectionUtils;
 
@@ -38,13 +39,13 @@ public class ConfiguratorAccessors {
                 return new ArrayConfiguratorAccessor(componentType, childAccessor);
             }
 
-//            if (Collection.class.isAssignableFrom(rawType)) {
-//                var componentType = ((ParameterizedType) clazz).getActualTypeArguments()[0];
-//                var childAccessor = findByType(componentType);
-//                var rawComponentType = ReflectionUtils.getRawType(componentType);
-//
-//                return new CollectionConfiguratorAccessor(rawType, rawComponentType == null ? Object.class : rawComponentType, childAccessor);
-//            }
+            if (Collection.class.isAssignableFrom(rawType)) {
+                var componentType = ((ParameterizedType) clazz).getActualTypeArguments()[0];
+                var childAccessor = findByType(componentType);
+                var rawComponentType = ReflectionUtils.getRawType(componentType);
+
+                return new CollectionConfiguratorAccessor(rawType, rawComponentType == null ? Object.class : rawComponentType, childAccessor);
+            }
 
             return findByClass(rawType);
         }

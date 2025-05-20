@@ -8,21 +8,21 @@ import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib.gui.ui.UI;
-import com.lowdragmc.lowdraglib.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib.math.Range;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import org.appliedenergistics.yoga.YogaEdge;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @LDLRegisterClient(name="configurators", registry = "ui_test")
 @NoArgsConstructor
@@ -56,22 +56,22 @@ public class TestConfigurators implements IUITest, IConfigurable {
     private Range rangeValue = Range.of(0, 1);
     @Configurable
     private int[] intArray = new int[]{1, 2, 3};
+    @Configurable
+    private List<Boolean> booleanList = new ArrayList<>(List.of(true, false, true));
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
-        var root = new UIElement();
+        var root = new ScrollerView();
         root.layout(layout -> {
             layout.setWidth(250);
-            layout.setHeight(300);
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.setHeight(350);
         }).setId("root");
-        root.getStyle().backgroundTexture(Sprites.BORDER);
 
         var group = new ConfiguratorGroup("root");
         group.setCollapse(false);
         group.setTips("Test tip 0", "Test tip 1", "Test tip 2");
         buildConfigurator(group);
 
-        return new ModularUI(UI.of(root.addChild(group)));
+        return new ModularUI(UI.of(root.addScrollViewChild(group)));
     }
 }

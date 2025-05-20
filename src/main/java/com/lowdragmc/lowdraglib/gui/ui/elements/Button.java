@@ -85,11 +85,11 @@ public class Button extends TextElement {
     @Override
     public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         // draw button texture
-        var texture = switch (state) {
+        var texture = isActive() ? switch (state) {
             case DEFAULT -> getButtonStyle().defaultTexture();
             case HOVERED -> getButtonStyle().hoverTexture();
             case PRESSED -> getButtonStyle().pressedTexture();
-        };
+        } : getButtonStyle().defaultTexture();
         texture.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
     }
@@ -100,7 +100,7 @@ public class Button extends TextElement {
 
     protected void onMouseDown(UIEvent event) {
         // Handle button click
-        if (event.button == 0) {
+        if (event.button == 0 && isActive()) {
             Widget.playButtonClickSound();
             if (onClick != null) {
                 onClick.accept(event);
