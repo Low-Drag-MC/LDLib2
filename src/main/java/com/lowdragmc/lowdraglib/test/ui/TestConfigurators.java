@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib.math.Range;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,6 +51,9 @@ public class TestConfigurators implements IUITest, IConfigurable {
     private BlockPos blockPosValue = BlockPos.ZERO;
     @Configurable
     private AABB aabbValue = new AABB(0, 0, 0, 1, 1, 1);
+    @Configurable
+    @ConfigNumber(range = {0, 1}, type = ConfigNumber.Type.FLOAT)
+    private Range rangeValue = Range.of(0, 1);
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
