@@ -61,4 +61,13 @@ public class BasicStyle extends Style {
         this.tooltips.addAll(Arrays.stream(tooltips).map(Component::translatable).toList());
         return this;
     }
+
+    public BasicStyle copyFrom(BasicStyle other) {
+        this.drawBackgroundWhenHover = other.drawBackgroundWhenHover;
+        this.backgroundTexture = other.backgroundTexture;
+        this.borderTexture = other.borderTexture;
+        this.tooltips = new ArrayList<>(other.tooltips);
+        this.zIndex = other.zIndex;
+        return this;
+    }
 }

@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.gui.util.TreeNode;
-import com.lowdragmc.lowdraglib.gui.widget.MenuWidget;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -46,6 +45,15 @@ public class Menu<K, T> extends UIElement {
         public MenuStyle(UIElement holder) {
             super(holder);
         }
+
+        public MenuStyle copyFrom(MenuStyle other) {
+            this.nodeTexture = other.nodeTexture;
+            this.leafTexture = other.leafTexture;
+            this.nodeHoverTexture = other.nodeHoverTexture;
+            this.leafHoverTexture = other.leafHoverTexture;
+            this.arrowIcon = other.arrowIcon;
+            return this;
+        }
     }
     public final TreeNode<K, T> root;
     @Getter
@@ -58,7 +66,11 @@ public class Menu<K, T> extends UIElement {
     protected boolean autoClose = true;
     @Getter
     protected final Map<TreeNode<K, T>, UIElement> nodeUIs = new LinkedHashMap<>();
-    protected MenuWidget<K, T> opened;
+    // runtime
+    @Nullable
+    protected TreeNode<K, T> openedNode;
+    @Nullable
+    protected Menu<K, T> opened;
 
     public Menu(TreeNode<K, T> root) {
         this(root, (key) -> new TextElement().setText(key.toString()));
@@ -163,6 +175,31 @@ public class Menu<K, T> extends UIElement {
                             }
                         }).addEventListener(UIEvents.MOUSE_ENTER, e -> {
                             e.currentElement.style(style -> style.backgroundTexture(child.isLeaf() ? menuStyle.leafHoverTexture : menuStyle.nodeHoverTexture));
+                            if (!child.isLeaf()) { // open a new menu
+                                if (opened != null) {
+                                    if (openedNode == child) return;
+                                    opened.close();
+                                }
+                                openedNode = child;
+                                opened = new Menu<>(child, uiProvider);
+                                opened.setAutoClose(autoClose);
+                                opened.getMenuStyle().copyFrom(menuStyle);
+                                opened.getStyle().copyFrom(this.getStyle());
+                                opened.getLayout().setAlignSelf(YogaAlign.FLEX_START);
+                                opened.getLayout().setPosition(YogaEdge.LEFT, e.currentElement.getSizeWidth());
+                                opened.setOnNodeClicked(node -> {
+                                    if (autoClose){
+                                        close();
+                                    }
+                                });
+                                e.currentElement.addChild(opened);
+                            } else {
+                                if (opened != null) {
+                                    opened.close();
+                                    openedNode = null;
+                                    focus();
+                                }
+                            }
                         }, true)
                         .addEventListener(UIEvents.MOUSE_LEAVE, e -> {
                             e.currentElement.style(style -> style.backgroundTexture(child.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture));
