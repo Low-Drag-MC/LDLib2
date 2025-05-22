@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -88,6 +89,13 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     public void init(int screenWidth, int screenHeight) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
+        if (ui.dynamicSize != null) {
+            var size = ui.dynamicSize.apply(Size.of(screenWidth, screenHeight));
+            ui.rootElement.layout(layout -> {
+                layout.setWidth(size.getWidth());
+                layout.setHeight(size.getHeight());
+            });
+        }
         var width = ui.rootElement.getLayout().getWidth();
         var height = ui.rootElement.getLayout().getHeight();
         this.width = switch (width.unit) {
@@ -102,7 +110,6 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             default -> 0;
         };
         this.topPos = (screenHeight - this.height) / 2;
-
         ui.rootElement._setModularUIInternal(this);
         ui.rootElement.init(screenWidth, screenHeight);
         ui.rootElement.calculateLayout();

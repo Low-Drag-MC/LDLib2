@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
-import com.lowdragmc.lowdraglib.editor.Icons;
+import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
@@ -17,7 +17,6 @@ import net.minecraft.world.entity.player.Player;
 import org.appliedenergistics.yoga.*;
 
 import java.util.Arrays;
-import java.util.List;
 
 @LDLRegisterClient(name="ui_elements", registry = "ui_test")
 @NoArgsConstructor

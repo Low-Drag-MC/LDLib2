@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib.editor.Icons;
+import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;

@@ -2,10 +2,10 @@ package com.lowdragmc.lowdraglib;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.configurator.accessors.IConfiguratorAccessor;
-import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib.editor.data.IProject;
-import com.lowdragmc.lowdraglib.editor.data.resource.Resource;
-import com.lowdragmc.lowdraglib.editor.ui.menu.MenuTab;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor_outdated.data.IProject;
+import com.lowdragmc.lowdraglib.editor_outdated.data.resource.Resource;
+import com.lowdragmc.lowdraglib.editor_outdated.ui.menu.MenuTab;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.registry.AutoRegistry;

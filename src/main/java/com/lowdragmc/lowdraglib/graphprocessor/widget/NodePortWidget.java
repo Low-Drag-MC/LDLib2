@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.graphprocessor.widget;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.Icons;
+import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseGraph;
 import com.lowdragmc.lowdraglib.graphprocessor.data.NodePort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.TriggerLink;

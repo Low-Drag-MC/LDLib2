@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.compass.component;
 import com.lowdragmc.lowdraglib.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib.compass.ILayoutComponent;
 import com.lowdragmc.lowdraglib.compass.LayoutPageWidget;
-import com.lowdragmc.lowdraglib.editor.Icons;
+import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;

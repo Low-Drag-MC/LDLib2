@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.editor.ui.Editor;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.editor_outdated.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;

@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib.graphprocessor.widget;
 
-import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.IConfiguratorContainer;
-import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
-import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.editor_outdated.IConfiguratorContainer;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.Configurator;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.graphprocessor.data.NodePort;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
@@ -13,7 +13,6 @@ import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.gui.widget.layout.Layout;
 import com.lowdragmc.lowdraglib.math.Position;
-import com.lowdragmc.lowdraglib.math.Rect;
 import com.lowdragmc.lowdraglib.math.Size;
 import lombok.Getter;
 import lombok.Setter;

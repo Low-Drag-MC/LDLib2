@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.utils.data;
 
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

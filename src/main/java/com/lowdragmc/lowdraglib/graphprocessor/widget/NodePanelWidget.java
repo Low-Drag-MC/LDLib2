@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.graphprocessor.widget;
 
-import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
 import com.lowdragmc.lowdraglib.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;

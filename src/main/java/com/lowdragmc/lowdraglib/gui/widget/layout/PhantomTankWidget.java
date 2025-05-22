@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.ingredient.IGhostIngredientTarget;
 import com.lowdragmc.lowdraglib.gui.ingredient.Target;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;

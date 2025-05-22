@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLibRegistries;
-import com.lowdragmc.lowdraglib.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.PersistedParser;

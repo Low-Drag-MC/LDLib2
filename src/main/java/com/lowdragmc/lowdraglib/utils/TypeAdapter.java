@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.utils;
 
 import com.lowdragmc.lowdraglib.LDLibRegistries;
-import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
 import com.lowdragmc.lowdraglib.graphprocessor.data.UnknownType;
 import com.lowdragmc.lowdraglib.graphprocessor.data.trigger.TriggerLink;
 import com.lowdragmc.lowdraglib.registry.ILDLRegister;

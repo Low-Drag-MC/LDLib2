@@ -1,17 +1,11 @@
 package com.lowdragmc.lowdraglib.utils;
 
-import com.lowdragmc.lowdraglib.editor.accessors.IConfiguratorAccessor;
-import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib.editor.configurator.Configurator;
-import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
 import lombok.experimental.UtilityClass;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
 import java.util.Map;
 
 /**

@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.factory;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.ui.UIEditor;
+import com.lowdragmc.lowdraglib.editor_outdated.ui.UIEditor;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import net.minecraft.network.RegistryFriendlyByteBuf;

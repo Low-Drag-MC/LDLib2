@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib.graphprocessor.nodes.minecraft.entity;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor.configurator.SelectorConfigurator;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.SelectorConfigurator;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;

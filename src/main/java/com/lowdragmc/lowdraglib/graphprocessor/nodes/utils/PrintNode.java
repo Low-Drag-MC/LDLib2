@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.graphprocessor.nodes.utils;
 
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;

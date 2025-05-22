@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.compass.component.animation;
 
-import com.lowdragmc.lowdraglib.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.TransformTexture;
 import net.minecraft.client.gui.GuiGraphics;
 

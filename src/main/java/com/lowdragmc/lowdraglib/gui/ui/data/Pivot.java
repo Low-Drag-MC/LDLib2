@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.ui.data;
 
-import com.lowdragmc.lowdraglib.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
 import com.mojang.serialization.Codec;
 import lombok.Data;
 import net.minecraft.Util;
