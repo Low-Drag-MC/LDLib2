@@ -20,7 +20,6 @@ import java.util.function.Supplier;
  * @date 2022/12/17
  * @implNote ViewMenu
  */
-@LDLRegisterClient(name = "view", group = "editor", priority = 100, registry = "ldlib:menu_tab")
 public class ViewMenu extends MenuTab {
     public final Map<String, FloatViewWidget> openedViews = new HashMap<>();
     public final List<Pair<String, Supplier<FloatViewWidget>>> views = new ArrayList<>();

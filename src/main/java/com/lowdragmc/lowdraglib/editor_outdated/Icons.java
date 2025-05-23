@@ -99,8 +99,10 @@ public class Icons {
     public static SpriteTexture RIGHT_ARROW_NO_BAR = SpriteTexture.of(GDP_ICONS).setSprite(12, 24, 12, 12);
     public static SpriteTexture RIGHT_ARROW_NO_BAR_S = SpriteTexture.of(GDP_ICONS).setSprite(158, 240, 5, 5);
     public static SpriteTexture RIGHT_ARROW_NO_BAR_S_LIGHT = SpriteTexture.of(GDP_ICONS).setSprite(178, 240, 5, 5);
-    public static SpriteTexture RIGHT_ARROW_NO_BAR_S_WHITE= SpriteTexture.of(GDP_ICONS).setSprite(188, 240, 5, 5);
+    public static SpriteTexture RIGHT_ARROW_NO_BAR_S_WHITE = SpriteTexture.of(GDP_ICONS).setSprite(188, 240, 5, 5);
 
+    public static SpriteTexture ARROW_LEFT_RIGHT = SpriteTexture.of(GDP_ICONS).setSprite(214, 191, 13, 7);
+    public static SpriteTexture ARROW_UP_DOWN = SpriteTexture.of(GDP_ICONS).setSprite(219, 233, 7, 11);
 
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");

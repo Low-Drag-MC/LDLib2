@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;

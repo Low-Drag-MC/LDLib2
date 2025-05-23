@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
  * @date 2022/12/17
  * @implNote FileMenu
  */
-@LDLRegisterClient(name = "file", group = "editor", priority = 101, registry = "ldlib:menu_tab")
 public class FileMenu extends MenuTab {
     @Setter
     protected Predicate<IProject> projectFilter = project -> project.group().startsWith(editor.name());

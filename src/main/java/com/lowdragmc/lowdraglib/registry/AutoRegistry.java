@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -109,6 +110,22 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
             return () ->  {
                 try {
                     return constructor.newInstance();
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            };
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <A1, T> Function<A1, T> oneArgCreator(Class<? extends T> clazz, Class<A1> argType) {
+        try {
+            var constructor = clazz.getDeclaredConstructor(argType);
+            constructor.setAccessible(true);
+            return (a) ->  {
+                try {
+                    return constructor.newInstance(a);
                 } catch (Throwable e) {
                     throw new RuntimeException(e);
                 }

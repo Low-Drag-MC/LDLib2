@@ -3,10 +3,7 @@ package com.lowdragmc.lowdraglib.gui.ui;
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib.gui.ui.event.UIEventDispatcher;
-import com.lowdragmc.lowdraglib.gui.ui.event.UIEventListener;
-import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib.gui.ui.event.*;
 import com.lowdragmc.lowdraglib.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
@@ -531,11 +528,13 @@ public class UIElement {
     /**
      * Start dragging the element. This will call the {@link com.lowdragmc.lowdraglib.gui.ui.event.DragHandler#startDrag} method.
      */
-    public void startDrag(@Nullable Object draggingObject, @Nullable IGuiTexture dragTexture) {
+    public DragHandler startDrag(@Nullable Object draggingObject, @Nullable IGuiTexture dragTexture) {
         var ui = getModularUI();
         if (ui != null) {
             ui.getDragHandler().startDrag(draggingObject, dragTexture, this);
+            return ui.getDragHandler();
         }
+        return new DragHandler();
     }
 
     /**

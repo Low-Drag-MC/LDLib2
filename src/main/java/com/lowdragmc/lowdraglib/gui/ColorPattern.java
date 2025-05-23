@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.editor_outdated;
+package com.lowdragmc.lowdraglib.gui;
 
 import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
@@ -49,6 +49,7 @@ public enum ColorPattern {
     T_MAGENTA(0x88aa44aa),
     LIGHT_BLUE(0xff44aaff),
     T_LIGHT_BLUE(0x8844aaff),
+    SLATE_PLUM(0xff47434f);
     ;
     public final int color;
 

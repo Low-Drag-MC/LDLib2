@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;

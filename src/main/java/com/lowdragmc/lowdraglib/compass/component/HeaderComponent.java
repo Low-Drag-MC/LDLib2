@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.compass.component;
 
 import com.lowdragmc.lowdraglib.compass.ILayoutComponent;
 import com.lowdragmc.lowdraglib.compass.LayoutPageWidget;
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.TextBoxWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;

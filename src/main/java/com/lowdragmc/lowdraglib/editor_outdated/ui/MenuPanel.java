@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib.editor_outdated.ui;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.menu.MenuTab;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
@@ -59,19 +59,19 @@ public class MenuPanel extends WidgetGroup {
         } catch (IOException e) {
             LDLib.LOGGER.error(e.getMessage());
         }
-        for (var holder : LDLibRegistries.MENU_TABS) {
-            if (editor.name().startsWith(holder.annotation().group())) {
-                var tab = holder.value().get();
-                tabs.put(holder.annotation().name(), tab);
-                var button = tab.createTabWidget();
-                button.addSelfPosition(x, 0);
-                x += button.getSize().getWidth();
-                addWidget(button);
-                if (tag.contains(tab.name())) {
-                    tab.deserializeNBT(tag.getCompound(tab.name()));
-                }
-            }
-        }
+//        for (var holder : LDLibRegistries.MENU_TABS) {
+//            if (editor.name().startsWith(holder.annotation().group())) {
+//                var tab = holder.value().get();
+//                tabs.put(holder.annotation().name(), tab);
+//                var button = tab.createTabWidget();
+//                button.addSelfPosition(x, 0);
+//                x += button.getSize().getWidth();
+//                addWidget(button);
+//                if (tag.contains(tab.name())) {
+//                    tab.deserializeNBT(tag.getCompound(tab.name()));
+//                }
+//            }
+//        }
     }
 
     public void saveMenuData() {

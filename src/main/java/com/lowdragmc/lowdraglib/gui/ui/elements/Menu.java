@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
@@ -188,6 +188,9 @@ public class Menu<K, T> extends UIElement {
                                 opened.getLayout().setAlignSelf(YogaAlign.FLEX_START);
                                 opened.getLayout().setPosition(YogaEdge.LEFT, e.currentElement.getSizeWidth());
                                 opened.setOnNodeClicked(node -> {
+                                    if (onNodeClicked != null) {
+                                        onNodeClicked.accept(node);
+                                    }
                                     if (autoClose){
                                         close();
                                     }

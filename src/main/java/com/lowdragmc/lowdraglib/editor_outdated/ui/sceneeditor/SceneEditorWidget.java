@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor_outdated.ui.sceneeditor;
 
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.sceneeditor.data.Ray;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.sceneeditor.data.Transform;

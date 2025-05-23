@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.editor_outdated.data.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.NumberConfigurator;

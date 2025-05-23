@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.graphprocessor.widget;
 
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.IConfiguratorContainer;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.Configurator;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;

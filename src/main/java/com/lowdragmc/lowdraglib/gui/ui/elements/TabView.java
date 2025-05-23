@@ -42,6 +42,7 @@ public class TabView extends UIElement {
         this.tabHeaderContainer.layout(layout -> {
             layout.setFlexDirection(YogaFlexDirection.ROW);
             layout.setPadding(YogaEdge.LEFT, 3);
+            layout.setWidthPercent(100);
         });
 
         this.tabContentContainer.layout(layout -> {

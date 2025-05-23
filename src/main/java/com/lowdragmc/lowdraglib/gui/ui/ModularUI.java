@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.math.Size;
+import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -24,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -434,6 +436,13 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     }
 
     /// rendering
+    public void setCursor(int cursorShape) {
+        RenderSystem.recordRenderCall(() -> {
+            var win = Minecraft.getInstance().getWindow().getWindow();
+            GLFW.glfwSetCursor(win, cursorShape);
+        });
+    }
+
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (ui.rootElement.layoutNode.isDirty()) {
@@ -462,7 +471,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         }
 
         if (dragHandler.isDragging() && dragHandler.dragTexture != null) {
-            dragHandler.dragTexture.draw(guiGraphics, mouseX, mouseY, mouseX - 20, mouseY - 20, 40, 40, partialTick);
+            dragHandler.dragTexture.draw(guiGraphics, mouseX, mouseY, mouseX + dragHandler.offsetX, mouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
         }
 
         if (!dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
@@ -479,7 +488,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         var font = Minecraft.getInstance().font;
         // hover element
         var hovered = getLastHoveredElement();
-        if (hovered != null) {
+        if (hovered != null && Widget.isShiftDown()) {
 
             graphics.drawString(font, "hovered element:", x, y, 0xffff0000, true);
             x += 10;
@@ -490,27 +499,28 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             }
             x -= 10;
 
+            // draw overlay
             graphics.pose().pushPose();
             graphics.pose().translate(0, 0, 200);
-            // draw overlay
-            if (Widget.isShiftDown()) {
-                var posX = hovered.getPositionX();
-                var posY = hovered.getPositionY();
-                var sizeX = hovered.getSizeWidth();
-                var sizeY = hovered.getSizeHeight();
-                graphics.fill((int) posX, (int) posY, (int) (posX + sizeX), (int) (posY + sizeY), 0x80ff0000);
-                var paddingX = hovered.getPaddingX();
-                var paddingY = hovered.getPaddingY();
-                var paddingWidth = hovered.getPaddingWidth();
-                var paddingHeight = hovered.getPaddingHeight();
-                graphics.fill((int) paddingX, (int) paddingY, (int) (paddingX + paddingWidth), (int) (paddingY + paddingHeight), 0x8000ff00);
-                var contentX = hovered.getContentX();
-                var contentY = hovered.getContentY();
-                var contentWidth = hovered.getContentWidth();
-                var contentHeight = hovered.getContentHeight();
-                graphics.fill((int) contentX, (int) contentY, (int) (contentX + contentWidth), (int) (contentY + contentHeight), 0x800000ff);
-            }
 
+            var posX = hovered.getPositionX();
+            var posY = hovered.getPositionY();
+            var sizeX = hovered.getSizeWidth();
+            var sizeY = hovered.getSizeHeight();
+            graphics.fill((int) posX, (int) posY, (int) (posX + sizeX), (int) (posY + sizeY), 0x80ff0000);
+            var paddingX = hovered.getPaddingX();
+            var paddingY = hovered.getPaddingY();
+            var paddingWidth = hovered.getPaddingWidth();
+            var paddingHeight = hovered.getPaddingHeight();
+            graphics.fill((int) paddingX, (int) paddingY, (int) (paddingX + paddingWidth), (int) (paddingY + paddingHeight), 0x8000ff00);
+            var contentX = hovered.getContentX();
+            var contentY = hovered.getContentY();
+            var contentWidth = hovered.getContentWidth();
+            var contentHeight = hovered.getContentHeight();
+            graphics.fill((int) contentX, (int) contentY, (int) (contentX + contentWidth), (int) (contentY + contentHeight), 0x800000ff);
+
+
+            ///  draw layout box
             // draw layout on the right
             var sw = 200;
             var sh = 200;
@@ -554,7 +564,6 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             drawLayoutBox(graphics, font, sx, sy, sw, sh, "content", 0x800000ff, new String[]{
                     hovered.getContentWidth() + " x " + hovered.getContentHeight()
             });
-
             graphics.pose().popPose();
         }
     }

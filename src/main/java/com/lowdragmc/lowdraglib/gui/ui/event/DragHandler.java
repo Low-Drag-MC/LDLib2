@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.gui.ui.event;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.annotation.Nullable;
 
@@ -26,6 +27,8 @@ public class DragHandler {
     public Object draggingObject;
     @Nullable
     public IGuiTexture dragTexture;
+    @Setter
+    public float offsetX = -20, offsetY = -20, width = 40, height = 40;
 
     public <T> T getDraggingObject() {
         return (T) draggingObject;
@@ -65,6 +68,13 @@ public class DragHandler {
         }
     }
 
+    public void setDragTexture(float x, float y, float width, float height) {
+        this.offsetX = x;
+        this.offsetY = y;
+        this.width = width;
+        this.height = height;
+    }
+
     public void stopDrag() {
         stopDrag(null);
     }
@@ -84,6 +94,10 @@ public class DragHandler {
         dragTexture = null;
         dragSource = null;
         isDragging = false;
+        offsetX = - 20;
+        offsetY = - 20;
+        width = 40;
+        height = 40;
     }
 
 }

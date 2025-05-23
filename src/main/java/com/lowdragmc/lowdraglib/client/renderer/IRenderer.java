@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib.client.renderer;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
-import com.lowdragmc.lowdraglib.editor_outdated.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
