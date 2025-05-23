@@ -41,6 +41,10 @@ public class ScrollerView extends UIElement {
         private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
         @Getter @Setter
         private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
+        @Getter @Setter
+        private boolean adaptiveWidth = false; // enable it to make the scroller width adaptive to the view container
+        @Getter @Setter
+        private boolean adaptiveHeight = false; // enable it to make the scroller height adaptive to the view container
 
         public ScrollerViewStyle(UIElement holder) {
             super(holder);
@@ -180,6 +184,12 @@ public class ScrollerView extends UIElement {
             this.lastContainerWidth = lastContainerWidth;
             this.lastContainerHeight = lastContainerHeight;
             reloadValue = true;
+            if (scrollerViewStyle.adaptiveWidth) {
+                getLayout().setWidth(lastContainerWidth + getSizeWidth() - viewPort.getContentWidth());
+            }
+            if (scrollerViewStyle.adaptiveHeight) {
+                getLayout().setHeight(lastContainerHeight + getSizeHeight() - viewPort.getContentHeight());
+            }
         }
         if (reloadValue) {
             onHorizontalScroll(horizontalScroller.value);

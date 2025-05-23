@@ -224,6 +224,7 @@
   "editor.view": "view",
   "ldlib.exist": "exist",
   "editor.inspector": "inspector",
+  "editor.resources": "resources",
   "ldlib.gui.compass.reset_view": "Reset View",
   "ldlib.gui.compass.edit_mode": "Edit Mode",
   "ldlib.gui.compass.mode.cursor": "Cursor",

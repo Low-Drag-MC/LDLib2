@@ -1,7 +1,6 @@
-package com.lowdragmc.lowdraglib.editor_outdated.data.resource;
+package com.lowdragmc.lowdraglib.editor.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.NumberConfigurator;
@@ -9,26 +8,22 @@ import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator
 import com.lowdragmc.lowdraglib.editor_outdated.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.resource.ResourceContainer;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.widget.HsbColorWidget;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
-import net.minecraft.core.HolderLookup;
 import com.mojang.datafixers.util.Either;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
-import javax.annotation.Nullable;
 
+import javax.annotation.Nullable;
 import java.io.File;
 
 import static com.lowdragmc.lowdraglib.editor_outdated.data.resource.ColorsResource.RESOURCE_NAME;
 
-/**
- * @author KilaBash
- * @date 2022/12/3
- * @implNote TextureResource
- */
 public class ColorsResource extends Resource<Integer> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.colors";

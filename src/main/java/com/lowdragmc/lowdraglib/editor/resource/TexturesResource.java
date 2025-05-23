@@ -1,10 +1,10 @@
-package com.lowdragmc.lowdraglib.editor_outdated.data.resource;
+package com.lowdragmc.lowdraglib.editor.resource;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.resource.TexturesResourceContainer;
-import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
 import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
@@ -17,9 +17,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
-import static com.lowdragmc.lowdraglib.editor_outdated.data.resource.TexturesResource.RESOURCE_NAME;
 import java.io.File;
 
+import static com.lowdragmc.lowdraglib.editor_outdated.data.resource.TexturesResource.RESOURCE_NAME;
 import static com.lowdragmc.lowdraglib.gui.widget.TabContainer.TABS_LEFT;
 
 /**
@@ -27,6 +27,7 @@ import static com.lowdragmc.lowdraglib.gui.widget.TabContainer.TABS_LEFT;
  * @date 2022/12/3
  * @implNote TextureResource
  */
+@LDLRegisterClient(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class TexturesResource extends Resource<IGuiTexture> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.textures";

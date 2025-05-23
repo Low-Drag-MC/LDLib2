@@ -53,7 +53,6 @@ public class Tab extends TextElement {
     public Tab() {
         getLayout().setHeight(16);
         getLayout().setPadding(YogaEdge.ALL, 3);
-        getLayout().setMargin(YogaEdge.BOTTOM, -2);
 
         textStyle(textStyle -> {
             textStyle.textAlignHorizontal(Horizontal.CENTER);

@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.editor_outdated.data.resource;
+package com.lowdragmc.lowdraglib.editor.resource;
 
 import com.lowdragmc.lowdraglib.editor_outdated.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.editor_outdated.ui.resource.EntriesResourceContainer;
@@ -9,17 +9,19 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
-import javax.annotation.Nullable;
 
-import static com.lowdragmc.lowdraglib.editor_outdated.data.resource.EntriesResource.RESOURCE_NAME;
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.lowdragmc.lowdraglib.editor_outdated.data.resource.EntriesResource.RESOURCE_NAME;
 
 /**
  * @author KilaBash
  * @date 2022/12/3
  * @implNote TextureResource
  */
+@LDLRegisterClient(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class EntriesResource extends Resource<String> {
 
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.entries";

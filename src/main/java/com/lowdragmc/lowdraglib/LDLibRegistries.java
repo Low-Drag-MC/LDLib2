@@ -2,9 +2,9 @@ package com.lowdragmc.lowdraglib;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.configurator.accessors.IConfiguratorAccessor;
+import com.lowdragmc.lowdraglib.editor.resource.Resource;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.editor_outdated.data.IProject;
-import com.lowdragmc.lowdraglib.editor_outdated.data.resource.Resource;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.registry.AutoRegistry;
@@ -34,10 +34,6 @@ public class LDLibRegistries {
     @OnlyIn(Dist.CLIENT)
     public final static AutoRegistry.LDLibRegisterClient<IGuiTexture, Supplier<IGuiTexture>> GUI_TEXTURES = AutoRegistry.LDLibRegisterClient
             .create(LDLib.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
-
-    @OnlyIn(Dist.CLIENT)
-    public final static AutoRegistry.LDLibRegisterClient<Resource, Supplier<Resource>> RESOURCES = AutoRegistry.LDLibRegisterClient
-            .create(LDLib.id("resource"), Resource.class, AutoRegistry::noArgsCreator);
 
     @OnlyIn(Dist.CLIENT)
     public final static AutoRegistry.LDLibRegisterClient<IProject, Supplier<IProject>> PROJECTS = AutoRegistry.LDLibRegisterClient

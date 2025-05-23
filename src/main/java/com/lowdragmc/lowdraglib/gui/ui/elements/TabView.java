@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
@@ -24,6 +25,7 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 public class TabView extends UIElement {
     public final UIElement tabHeaderContainer;
+    public final ScrollerView tabScroller;
     public final UIElement tabContentContainer;
     @Getter
     private final Map<Tab, UIElement> tabContents = new HashMap<>();
@@ -37,13 +39,22 @@ public class TabView extends UIElement {
         getLayout().setFlexDirection(YogaFlexDirection.COLUMN_REVERSE);
 
         this.tabHeaderContainer = new UIElement();
+        this.tabScroller = new ScrollerView();
         this.tabContentContainer = new UIElement();
 
         this.tabHeaderContainer.layout(layout -> {
             layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setPadding(YogaEdge.LEFT, 3);
+            layout.setPadding(YogaEdge.HORIZONTAL, 3);
             layout.setWidthPercent(100);
-        });
+        }).addChild(tabScroller);
+
+        this.tabScroller.viewPort(viewPort -> viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).layout(layout -> layout.setPadding(YogaEdge.ALL, 0)))
+                .viewContainer(viewContainer -> viewContainer.layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)))
+                .scrollerStyle(style -> style.mode(ScrollerView.Mode.HORIZONTAL).horizontalScrollDisplay(ScrollerView.ScrollDisplay.NEVER).adaptiveHeight(true))
+                .layout(layout -> {
+                    layout.setWidthPercent(100);
+                    layout.setMargin(YogaEdge.BOTTOM, -2);
+                });
 
         this.tabContentContainer.layout(layout -> {
             layout.setPadding(YogaEdge.ALL, 5);
@@ -67,7 +78,7 @@ public class TabView extends UIElement {
             }
         });
         content.setDisplay(YogaDisplay.NONE);
-        tabHeaderContainer.addChildAt(tab, index);
+        tabScroller.addScrollViewChildAt(tab, index);
         tabContentContainer.addChildAt(content, index);
         tabContents.put(tab, content);
         if (selectedTab == null) {
@@ -79,7 +90,7 @@ public class TabView extends UIElement {
     public TabView removeTab(Tab tab) {
         var content = tabContents.remove(tab);
         if (content != null) {
-            tabHeaderContainer.removeChild(tab);
+            tabScroller.removeScrollViewChild(tab);
             tabContentContainer.removeChild(content);
         }
         tab.setSelected(false);
@@ -112,6 +123,11 @@ public class TabView extends UIElement {
 
     public TabView tabHeaderContainer(Consumer<UIElement> style) {
         style.accept(tabHeaderContainer);
+        return this;
+    }
+
+    public TabView tabScroller(Consumer<ScrollerView> style) {
+        style.accept(tabScroller);
         return this;
     }
 

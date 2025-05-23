@@ -48,6 +48,17 @@ public class Window extends UIElement {
         addChild(tabView);
     }
 
+    public Window addView(View view) {
+        var tab = view.craeteTab();
+        tab.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (event.button == 0) {
+                // TODO move view
+            }
+        });
+        tabView.addTab(tab, view);
+        return this;
+    }
+
     protected void onDragSourceUpdate(UIEvent event) {
         if (event.dragHandler.draggingObject == YogaEdge.LEFT) {
             if (onLeftBorderDragging != null) {

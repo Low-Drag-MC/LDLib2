@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.editor_outdated.data.resource;
+package com.lowdragmc.lowdraglib.editor.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
@@ -18,6 +18,7 @@ import java.io.File;
 
 import static com.lowdragmc.lowdraglib.editor_outdated.data.resource.IRendererResource.RESOURCE_NAME;
 
+@LDLRegisterClient(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class IRendererResource extends Resource<IRenderer> {
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.renderer";
 

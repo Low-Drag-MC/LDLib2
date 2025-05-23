@@ -2,7 +2,8 @@ package com.lowdragmc.lowdraglib.editor.ui;
 
 import com.lowdragmc.lowdraglib.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib.editor.ui.menu.ViewMenu;
-import com.lowdragmc.lowdraglib.gui.ColorPattern;
+import com.lowdragmc.lowdraglib.editor.ui.view.InspectorView;
+import com.lowdragmc.lowdraglib.editor.ui.view.ResourceView;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Menu;
@@ -40,11 +41,14 @@ public class Editor extends UIElement {
     public final Window bottom;
 
     public final InspectorView inspectorView;
+    public final ResourceView resourceView;
 
     public Editor() {
         this.top = new UIElement();
         this.icon = new UIElement();
         this.menuContainer = new UIElement();
+        this.resourceView = new ResourceView();
+
         this.left = new Window();
         this.right = new Window();
         this.center = new Window();
@@ -54,7 +58,7 @@ public class Editor extends UIElement {
         inspectorView = new InspectorView();
 
         left.layout(layout -> {
-            layout.setWidthPercent(90);
+            layout.setWidthPercent(28);
             layout.setHeightPercent(100);
         });
         center.layout(layout -> {
@@ -112,6 +116,7 @@ public class Editor extends UIElement {
         ///  internal components
         initMenus();
         initInspectorView();
+        initResourceView();
     }
 
     /**
@@ -125,10 +130,18 @@ public class Editor extends UIElement {
      * Initialize the inspector view here.
      */
     protected void initInspectorView() {
-        right.tabView.addTab(new Tab().setText(Component.translatable("editor.inspector")), inspectorView);
+        right.addView(inspectorView);
         // test
         inspectorView.inspect(new TestConfigurators());
     }
+
+    /**
+     * Initialize the resource view here.
+     */
+    protected void initResourceView() {
+        bottom.addView(resourceView);
+    }
+
 
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, Function<T, UIElement> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
