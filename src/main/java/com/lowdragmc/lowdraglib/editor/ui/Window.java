@@ -43,7 +43,7 @@ public class Window extends UIElement {
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
 
         tabView.tabContentContainer.layout(layout -> {
-            layout.setFlexGrow(1);
+            layout.setFlex(1);
         });
         addChild(tabView);
     }

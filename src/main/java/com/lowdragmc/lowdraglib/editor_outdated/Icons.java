@@ -81,6 +81,13 @@ public class Icons {
     public static ResourceTexture ALIGN_V_D = icon("align_vertical_distribute");
     public static ResourceTexture ALIGN_V_T = icon("align_vertical_top");
     public static ResourceTexture ALIGN_V_B = icon("align_vertical_bottom");
+    public static ResourceTexture COLOR = icon("color");
+    public static ResourceTexture PICTURE = icon("picture");
+    public static ResourceTexture MATERIAL = icon("material");
+    public static ResourceTexture MODEL = icon("model");
+    public static ResourceTexture TRANSLATE = icon("translate");
+
+
 
     public static SpriteTexture CHECK_SPRITE = SpriteTexture.of(GDP_ICONS).setSprite(72, 0, 12, 12);
 

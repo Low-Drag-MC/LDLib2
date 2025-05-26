@@ -42,7 +42,7 @@ public class FileMenu extends MenuTab {
 //                .crossLine()
 //                .branch(Icons.IMPORT, "ldlib.gui.editor.menu.import", m -> m.leaf("ldlib.gui.editor.menu.resource", this::importResource))
 //                .branch(Icons.EXPORT, "ldlib.gui.editor.menu.export", m -> m.leaf("ldlib.gui.editor.menu.resource", this::exportResource));
-        menu.leaf("ldlib.exist", editor::close);
+        menu.leaf("editor.exist", editor::close);
         return menu;
     }
 

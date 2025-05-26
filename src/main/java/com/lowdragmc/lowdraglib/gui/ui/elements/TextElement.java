@@ -41,6 +41,8 @@ public class TextElement extends UIElement {
         @Getter @Setter
         private TextWrap textWrap = TextWrap.NONE;
         @Getter @Setter
+        private float rollSpeed = 1;
+        @Getter @Setter
         private float fontSize = 9;
         @Getter @Setter
         private float lineSpacing = 1;
@@ -66,9 +68,10 @@ public class TextElement extends UIElement {
 
     public void recompute() {
         var maxWidth = 0f;
-        if (getTextStyle().adaptiveWidth() || getTextStyle().textWrap() == TextWrap.NONE) {
+        var wrap = getTextStyle().textWrap();
+        if (getTextStyle().adaptiveWidth() || wrap == TextWrap.NONE || wrap == TextWrap.ROLL || wrap == TextWrap.HOVER_ROLL) {
             maxWidth = Float.MAX_VALUE;
-        } else if (getTextStyle().textWrap() == TextWrap.WRAP) {
+        } else {
             maxWidth = getContentWidth();
         }
         formattedLines = TextUtilities.computeFormattedLines(
@@ -150,7 +153,14 @@ public class TextElement extends UIElement {
 
 
             // calculate the total height of the text
-            var totalTextHeight = formattedLines.size() * (lineHeight + lineSpacing) - lineSpacing;
+            var displayLines = formattedLines;
+            var textWrap = getTextStyle().textWrap();
+            if (textWrap == TextWrap.HIDE) {
+                // display the first line only
+                displayLines = formattedLines.subList(0, Math.min(1, formattedLines.size()));
+            }
+
+            var totalTextHeight = displayLines.size() * (lineHeight + lineSpacing) - lineSpacing;
             var startY = y;
 
             // according to the vertical alignment, adjust the starting Y coordinate
@@ -161,17 +171,26 @@ public class TextElement extends UIElement {
             }
 
             // render each line of text
-            for (int i = 0; i < formattedLines.size(); i++) {
-                var tuple = formattedLines.get(i);
+            var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && isChildHover());
+            for (int i = 0; i < displayLines.size(); i++) {
+                var tuple = displayLines.get(i);
                 var line = tuple.getA();
                 float lineWidth = tuple.getB();
                 var lineX = x;
 
                 // according to the horizontal alignment, adjust the starting X coordinate
-                switch (hAlign) {
-                    case LEFT -> lineX = x;
-                    case CENTER -> lineX = x + (width - lineWidth) / 2;
-                    case RIGHT -> lineX = x + (width - lineWidth);
+                if (roll && lineWidth > width) {
+                    // for rolling text, always align to the left
+                    var rollSpeed = getTextStyle().rollSpeed();
+                    float totalW = width + lineWidth + 10;
+                    var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
+                    lineX = (float) (x + width - totalW * t);
+                } else {
+                    switch (hAlign) {
+                        case LEFT -> lineX = x;
+                        case CENTER -> lineX = (lineWidth > width) ? x : (x + (width - lineWidth) / 2);
+                        case RIGHT -> lineX = x + (width - lineWidth);
+                    }
                 }
 
                 // calculate the Y coordinate of the current line (including line spacing)

@@ -623,7 +623,7 @@ public class UIElement {
     /// Logic
     public void screenTick() {
         for (var child : children) {
-            if (child.isActive()) {
+            if (child.isActive() && child.isDisplayed()) {
                 child.screenTick();
             }
         }
@@ -774,8 +774,14 @@ public class UIElement {
      * Renders the background texture of the GUI element.
      */
     public void drawBackgroundTexture(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        style.backgroundTexture().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
-        style.borderTexture().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+        var background = style.backgroundTexture();
+        if (background != IGuiTexture.EMPTY) {
+            background.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+        }
+        var border = style.borderTexture();
+        if (border != IGuiTexture.EMPTY) {
+            border.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+        }
     }
 
     /**
@@ -811,7 +817,10 @@ public class UIElement {
      * Renders the overlay texture of the GUI element.
      */
     public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-
+        var overlay = style.overlayTexture();
+        if (overlay != IGuiTexture.EMPTY) {
+            overlay.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+        }
     }
 
     /**

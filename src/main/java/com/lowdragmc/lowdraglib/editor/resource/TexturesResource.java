@@ -1,67 +1,49 @@
 package com.lowdragmc.lowdraglib.editor.resource;
 
-import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
-import com.lowdragmc.lowdraglib.editor_outdated.ui.ResourcePanel;
-import com.lowdragmc.lowdraglib.editor_outdated.ui.resource.ResourceContainer;
-import com.lowdragmc.lowdraglib.editor_outdated.ui.resource.TexturesResourceContainer;
+import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceProviderContainer;
+import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
-import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
-import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
-import java.io.File;
-
-import static com.lowdragmc.lowdraglib.editor_outdated.data.resource.TexturesResource.RESOURCE_NAME;
-import static com.lowdragmc.lowdraglib.gui.widget.TabContainer.TABS_LEFT;
-
-/**
- * @author KilaBash
- * @date 2022/12/3
- * @implNote TextureResource
- */
-@LDLRegisterClient(name = RESOURCE_NAME, registry = "ldlib:resource")
 public class TexturesResource extends Resource<IGuiTexture> {
-
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.textures";
 
     public TexturesResource() {
-        super(new File(LDLib.getAssetsDir(), "ldlib/resources/textures"));
-        addBuiltinResource("empty", IGuiTexture.EMPTY);
+        addResource(IResourcePath.builtin("empty"), IGuiTexture.EMPTY);
     }
 
     @Override
     public void buildDefault() {
-        addBuiltinResource("border background", ResourceBorderTexture.BORDERED_BACKGROUND);
-        addBuiltinResource("button", ResourceBorderTexture.BUTTON_COMMON);
-        addBuiltinResource("slot", SlotWidget.ITEM_SLOT_TEXTURE.copy());
-        addBuiltinResource("fluid slot", TankWidget.FLUID_SLOT_TEXTURE.copy());
-        addBuiltinResource("tab", TABS_LEFT.getSubTexture(0, 0, 0.5f, 1f / 3));
-        addBuiltinResource("tab pressed", TABS_LEFT.getSubTexture(0.5f, 0, 0.5f, 1f / 3));
-        for (var holder : LDLibRegistries.GUI_TEXTURES) {
-            var name = holder.annotation().name();
-            if (name.equals("empty") || name .equals("ui_resource_texture")) {
-                continue;
-            }
-            addBuiltinResource(holder.annotation().name(), holder.value().get());
-        }
     }
 
     @Override
-    public String name() {
+    public IGuiTexture getIcon() {
+        return Icons.PICTURE;
+    }
+
+    @Override
+    public String getName() {
         return RESOURCE_NAME;
     }
 
     @Override
-    public ResourceContainer<IGuiTexture, ImageWidget> createContainer(ResourcePanel panel) {
-        return new TexturesResourceContainer(this, panel);
+    public ResourceProviderContainer<IGuiTexture> createResourceContainer() {
+        return super.createResourceContainer().setUiSupplier(key -> new UIElement().layout(layout -> {
+            layout.setWidthPercent(100);
+            layout.setHeightPercent(100);
+        }).style(style -> style.backgroundTexture(getResourceOrDefault(key, IGuiTexture.EMPTY))))
+                .setOnMenu((container, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+                    for (var holder : LDLibRegistries.GUI_TEXTURES) {
+                        String name = holder.annotation().name();
+                        if (name.equals("empty") || name.equals("ui_resource_texture")) continue;
+                        IGuiTexture icon = holder.value().get();
+                        menu.leaf(icon, name, () -> container.addNewResource(holder.value().get()));
+                    }
+                }));
     }
 
     @Override
@@ -75,23 +57,19 @@ public class TexturesResource extends Resource<IGuiTexture> {
     }
 
     @Override
-    public void deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
-        getBuiltinResources().clear();
-        addBuiltinResource("empty", IGuiTexture.EMPTY);
-        for (String key : nbt.getAllKeys()) {
-            addBuiltinResource(key, deserialize(nbt.get(key), provider));
-        }
+    public String getFileResourceSuffix() {
+        return "texture.nbt";
     }
 
     @Override
     public void onLoad() {
         super.onLoad();
-        UIResourceTexture.RESOURCE.set(this);
+//        UIResourceTexture.RESOURCE.set(this);
     }
 
     @Override
     public void unLoad() {
         super.unLoad();
-        UIResourceTexture.RESOURCE.remove();
+//        UIResourceTexture.RESOURCE.remove();
     }
 }

@@ -1,5 +1,10 @@
 package com.lowdragmc.lowdraglib.editor.ui;
 
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.editor.resource.ColorsResource;
+import com.lowdragmc.lowdraglib.editor.resource.LangResource;
+import com.lowdragmc.lowdraglib.editor.resource.IRendererResource;
+import com.lowdragmc.lowdraglib.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib.editor.ui.menu.ViewMenu;
 import com.lowdragmc.lowdraglib.editor.ui.view.InspectorView;
@@ -7,7 +12,6 @@ import com.lowdragmc.lowdraglib.editor.ui.view.ResourceView;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Menu;
-import com.lowdragmc.lowdraglib.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
@@ -15,7 +19,6 @@ import com.lowdragmc.lowdraglib.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib.test.ui.TestConfigurators;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -23,6 +26,7 @@ import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.io.File;
 import java.util.function.Function;
 
 @Getter
@@ -47,7 +51,7 @@ public class Editor extends UIElement {
         this.top = new UIElement();
         this.icon = new UIElement();
         this.menuContainer = new UIElement();
-        this.resourceView = new ResourceView();
+        this.resourceView = new ResourceView(this);
 
         this.left = new Window();
         this.right = new Window();
@@ -131,7 +135,7 @@ public class Editor extends UIElement {
      */
     protected void initInspectorView() {
         right.addView(inspectorView);
-        // test
+        // TODO remove test
         inspectorView.inspect(new TestConfigurators());
     }
 
@@ -140,6 +144,12 @@ public class Editor extends UIElement {
      */
     protected void initResourceView() {
         bottom.addView(resourceView);
+        // TODO remove test
+        resourceView.addResources(
+                new ColorsResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/colors")),
+                new LangResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/entries")),
+                new IRendererResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/renderer")),
+                new TexturesResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/textures")));
     }
 
 
@@ -154,7 +164,7 @@ public class Editor extends UIElement {
     }
 
     public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
-        if (menuBuilder == null) return;
+        if (menuBuilder == null || menuBuilder.isEmpty()) return;
         openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider).setOnNodeClicked(TreeBuilder.Menu::handle);
     }
 

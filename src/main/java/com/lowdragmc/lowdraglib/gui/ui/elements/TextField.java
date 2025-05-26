@@ -758,10 +758,10 @@ public class TextField extends UIElement {
 
     @Override
     public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawBackgroundOverlay(graphics, mouseX, mouseY, partialTicks);
         if (isChildHover() || isFocused()) {
             getTextFieldStyle().focusOverlay().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         }
+        super.drawBackgroundOverlay(graphics, mouseX, mouseY, partialTicks);
     }
 
     @Override

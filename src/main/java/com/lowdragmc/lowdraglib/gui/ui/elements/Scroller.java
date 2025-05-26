@@ -169,12 +169,12 @@ public abstract class Scroller extends UIElement {
     }
 
     private void moveHead() {
-        var newValue = value - (maxValue - minValue) * 0.1f;
+        var newValue = value - (maxValue - minValue) * scrollerStyle.scrollDelta;
         setValue(newValue);
     }
 
     private void moveTail() {
-        var newValue = value + (maxValue - minValue) * 0.1f;
+        var newValue = value + (maxValue - minValue) * scrollerStyle.scrollDelta;
         setValue(newValue);
     }
 
@@ -268,7 +268,7 @@ public abstract class Scroller extends UIElement {
 
         @Override
         protected void onScrollWheel(UIEvent event) {
-            if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -0.1f : 0.1f);
+            if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -getScrollerStyle().scrollDelta : getScrollerStyle().scrollDelta);
         }
     }
 
@@ -331,8 +331,9 @@ public abstract class Scroller extends UIElement {
 
         @Override
         protected void onScrollWheel(UIEvent event) {
-            if (event.deltaX != 0) scrollValue(event.deltaX > 0 ? -0.1f : 0.1f);
-            else if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -0.1f : 0.1f);
+            var delta = getScrollerStyle().scrollDelta;
+            if (event.deltaX != 0) scrollValue(event.deltaX > 0 ? -delta : delta);
+            else if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -delta : delta);
         }
     }
 }

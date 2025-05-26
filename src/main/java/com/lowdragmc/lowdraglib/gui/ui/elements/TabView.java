@@ -33,14 +33,16 @@ public class TabView extends UIElement {
     private Consumer<Tab> onTabSelected = Consumers.nop();
     // runtime
     @Nullable
+    @Getter
     private Tab selectedTab = null;
 
     public TabView() {
         getLayout().setFlexDirection(YogaFlexDirection.COLUMN_REVERSE);
 
-        this.tabHeaderContainer = new UIElement();
+        this.tabHeaderContainer = new UIElement().setId("tab_header");
         this.tabScroller = new ScrollerView();
-        this.tabContentContainer = new UIElement();
+        this.tabScroller.setId("tab_scroller");
+        this.tabContentContainer = new UIElement().setId("tab_container");
 
         this.tabHeaderContainer.layout(layout -> {
             layout.setFlexDirection(YogaFlexDirection.ROW);

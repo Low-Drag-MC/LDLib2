@@ -11,5 +11,17 @@ public enum TextWrap {
     /**
      * Wrap the text to the next line when it reaches the end of the container.
      */
-    WRAP
+    WRAP,
+    /**
+     * Wrap the text if it exceeds the container width and roll to the next line over the time.
+     */
+    ROLL,
+    /**
+     * Wrap the text if it exceeds the container width and roll to the next line when hovered.
+     */
+    HOVER_ROLL,
+    /**
+     * Discard the text if it exceeds the container width.
+     */
+    HIDE,
 }

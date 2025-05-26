@@ -282,9 +282,9 @@ public class Selector<T> extends UIElement {
     /// rendering
     @Override
     public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawBackgroundOverlay(graphics, mouseX, mouseY, partialTicks);
         if (isChildHover() || isFocused()) {
             getSelectorStyle().focusOverlay().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         }
+        super.drawBackgroundOverlay(graphics, mouseX, mouseY, partialTicks);
     }
 }

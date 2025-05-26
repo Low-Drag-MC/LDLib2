@@ -210,7 +210,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         if (lastMouseDownElement != null) {
             if (!lastMouseDownElement.isFocusable()) {
                 clearFocus();
-            } else {
+            } else if (lastMouseDownElement.isActive()) {
                 requestFocus(lastMouseDownElement);
             }
             var event = UIEvent.create(UIEvents.MOUSE_DOWN);
@@ -466,8 +466,15 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         ui.rootElement.drawInBackground(guiGraphics, mouseX, mouseY, partialTick);
         ui.rootElement.drawInForeground(guiGraphics, mouseX, mouseY, partialTick);
 
-        if (lastHoveredElement != null && tooltipTexts == null && !lastHoveredElement.getStyle().tooltips().isEmpty()) {
-            setHoverTooltip(lastHoveredElement.getStyle().tooltips(), ItemStack.EMPTY, null, null);
+        if (lastHoveredElement != null && tooltipTexts == null) {
+            var element = lastHoveredElement;
+            while (element != null) {
+                if (!element.getStyle().tooltips().isEmpty()) {
+                    setHoverTooltip(element.getStyle().tooltips(), ItemStack.EMPTY, null, null);
+                    break;
+                }
+                element = element.getParent();
+            }
         }
 
         if (dragHandler.isDragging() && dragHandler.dragTexture != null) {

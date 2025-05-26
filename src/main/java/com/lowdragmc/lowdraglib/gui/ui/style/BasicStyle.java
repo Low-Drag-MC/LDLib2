@@ -23,6 +23,8 @@ public class BasicStyle extends Style {
     @Getter @Setter
     private IGuiTexture borderTexture = IGuiTexture.EMPTY;
     @Getter @Setter
+    private IGuiTexture overlayTexture = IGuiTexture.EMPTY;
+    @Getter @Setter
     private List<Component> tooltips = new ArrayList<>();
     @Getter
     private int zIndex = 0;

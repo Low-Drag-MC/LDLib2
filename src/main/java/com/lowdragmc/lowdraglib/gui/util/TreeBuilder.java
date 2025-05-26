@@ -5,11 +5,9 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib.gui.ui.style.value.TextWrap;
 import net.minecraft.util.Tuple;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaGutter;
+import org.appliedenergistics.yoga.*;
 
 import java.util.Stack;
 import java.util.function.Consumer;
@@ -87,7 +85,16 @@ public class TreeBuilder<K, V> {
             return new Menu(new Tuple<>(IGuiTexture.EMPTY, ""));
         }
 
+        public boolean isEmpty() {
+            return stack.isEmpty() || stack.peek().getChildren() == null || stack.peek().getChildren().isEmpty();
+        }
+
         public Menu crossLine() {
+            if (stack.peek().getChildren() == null) {
+                return this;
+            } else if (stack.peek().getChildren().isEmpty() || stack.peek().getChildren().getLast().getKey() == CROSS_LINE) {
+                return this;
+            }
             stack.peek().createChild(CROSS_LINE);
             return this;
         }
@@ -176,10 +183,10 @@ public class TreeBuilder<K, V> {
                 layout.setWidth(10);
                 layout.setHeight(10);
             }).style(style -> style.backgroundTexture(node.getA())))
-                    .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER))
+                    .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                             .setText(node.getB()).layout(layout -> {
                                 layout.setFlexGrow(1);
-                            }));
+                            }).setOverflow(YogaOverflow.HIDDEN));
 
         }
     }

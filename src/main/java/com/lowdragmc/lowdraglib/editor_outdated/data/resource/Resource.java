@@ -67,10 +67,10 @@ public abstract class Resource<T> implements ILDLRegisterClient<Resource<?>, Sup
     public StaticResource<T> getStaticResource() {
         if (!supportStaticResource()) return StaticResource.empty();
         if (staticResource == null) {
-            staticResource = (StaticResource<T>) STATIC_RESOURCES.computeIfAbsent(name(),
-                    name -> LDLibRegistries.RESOURCES.getOptional(name)
-                            .map(r -> new StaticResource<T>(r.value().get()))
-                            .orElseGet(StaticResource::empty));
+//            staticResource = (StaticResource<T>) STATIC_RESOURCES.computeIfAbsent(name(),
+//                    name -> LDLibRegistries.RESOURCES.getOptional(name)
+//                            .map(r -> new StaticResource<T>(r.value().get()))
+//                            .orElseGet(StaticResource::empty));
         }
         return staticResource;
     }
