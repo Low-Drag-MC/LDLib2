@@ -2,7 +2,20 @@ package com.lowdragmc.lowdraglib.editor.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib.gui.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib.gui.ui.style.value.TextWrap;
+import net.minecraft.Util;
 import net.minecraft.nbt.NbtIo;
+import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaGutter;
+import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -20,13 +33,15 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         super(resource);
         this.resourceLocation = resourceLocation;
         this.resourceSuffix = resourceSuffix;
+        setName(resourceLocation.getName());
+        setIcon(Icons.FILE);
     }
 
     @Override
     public boolean supportResourcePath(IResourcePath path) {
-        if (path instanceof FilePath filePath) {
-            if (filePath.file().getName().endsWith(resourceSuffix)) {
-                return filePath.file().getParentFile().equals(resourceLocation);
+        if (path instanceof FilePath(File file)) {
+            if (file.getName().endsWith(resourceSuffix)) {
+                return file.getParentFile().equals(resourceLocation);
             }
         }
         return false;
@@ -34,15 +49,24 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
 
     @Override
     public IResourcePath createPath(String name) {
-        return new FilePath(new File(resourceLocation, name + "." + resourceSuffix));
+        return new FilePath(new File(resourceLocation, name + resourceSuffix));
+    }
+
+    @Override
+    public String getResourceName(IResourcePath path) {
+        if (path instanceof FilePath(File file)) {
+            if (file.getName().endsWith(resourceSuffix)) {
+                return file.getName().substring(0, file.getName().length() - resourceSuffix.length());
+            }
+        }
+        return super.getResourceName(path);
     }
 
     @Override
     public boolean addResource(IResourcePath path, T content) {
-        if (supportResourcePath(path) && path instanceof FilePath filePath) {
-            var file = filePath.file();
+        if (supportResourcePath(path) && path instanceof FilePath(File file)) {
             try {
-                var nbt = this.resource.serializeNBT(content, Platform.getFrozenRegistry());
+                var nbt = this.resourceHolder.serializeNBT(content, Platform.getFrozenRegistry());
                 if (nbt != null) {
                     NbtIo.write(nbt, file.toPath());
                     resourcesLastModified.put(file, file.lastModified());
@@ -67,6 +91,37 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         return null;
     }
 
+    @Override
+    public UIElement createProviderToggle() {
+        return new UIElement().layout(layout -> {
+            layout.setWidthPercent(100);
+            layout.setAlignItems(YogaAlign.CENTER);
+            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.setGap(YogaGutter.ALL, 2);
+        }).addChildren(
+                new UIElement().layout(layout -> {
+                    layout.setWidth(9);
+                    layout.setHeight(9);
+                }).style(style -> style.backgroundTexture(getIcon())),
+                new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
+                        .setText(getName())
+                        .layout(layout -> layout.setFlex(1))
+                        .setOverflow(YogaOverflow.HIDDEN),
+                new Button().buttonStyle(style -> {
+                    style.defaultTexture(Icons.FOLDER);
+                    style.hoverTexture(Icons.FOLDER.copy().setColor(ColorPattern.SLATE_PLUM.color));
+                    style.pressedTexture(Icons.FOLDER);
+                }).setOnClick(e -> {
+                    // avoid bauble event propagation
+                    e.stopPropagation();
+                    Util.getPlatform().openFile(resourceLocation);
+                }).setText("").layout(layout -> {
+                    layout.setWidth(7);
+                    layout.setHeight(7);
+                }).style(style -> style.setTooltips("ldlib.gui.tips.open_folder"))
+        );
+    }
+
     /**
      * Load and update resource
      * @return true resource changes.
@@ -77,7 +132,7 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         }
         var changed = false;
         var found = new HashSet<File>();
-        var files = resourceLocation.listFiles((file, name) -> file.isFile() && name.endsWith(resourceSuffix));
+        var files = resourceLocation.listFiles((file, name) -> name.endsWith(resourceSuffix));
         if (files != null) {
             for (var file : files) {
                 var path = new FilePath(file);
@@ -121,7 +176,7 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         try {
             var fileData = NbtIo.read(file.toPath());
             if (fileData != null) {
-                var data = resource.deserializeNBT(fileData, Platform.getFrozenRegistry());
+                var data = resourceHolder.deserializeNBT(fileData, Platform.getFrozenRegistry());
                 if (data != null) return data;
             }
             LDLib.LOGGER.error("Failed to load resource file {} from {}: ", file, this);

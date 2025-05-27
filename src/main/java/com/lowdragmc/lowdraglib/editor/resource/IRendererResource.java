@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib.editor.resource;
 
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
@@ -8,11 +10,17 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+
 public class IRendererResource extends Resource<IRenderer> {
-    public final static String RESOURCE_NAME = "ldlib.gui.editor.group.renderer";
+    public final FileResourceProvider<IRenderer> global;
 
     public IRendererResource() {
-        addResource(IResourcePath.builtin("empty"), IRenderer.EMPTY);
+        var builtinResource = new BuiltinResourceProvider<>(this);
+        builtinResource.addResource("empty", IRenderer.EMPTY);
+        addResourceProvider(builtinResource);
+        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")));
+        global.setName("global");
     }
 
     @Override
@@ -26,11 +34,7 @@ public class IRendererResource extends Resource<IRenderer> {
 
     @Override
     public String getName() {
-        return RESOURCE_NAME;
-    }
-
-    public ResourceProviderContainer<IRenderer> createResourceContainer() {
-        return super.createResourceContainer();
+        return "renderer";
     }
 
     @Nullable
@@ -45,7 +49,27 @@ public class IRendererResource extends Resource<IRenderer> {
     }
 
     @Override
-    public String getFileResourceSuffix() {
-        return "renderer.nbt";
+    public boolean canRemoveResourceProvider(ResourceProvider<IRenderer> provider) {
+        return provider != global && super.canRemoveResourceProvider(provider);
     }
+
+    @Override
+    public ResourceProviderContainer<IRenderer> createResourceProviderContainer(ResourceProvider<IRenderer> provider) {
+        return super.createResourceProviderContainer(provider)
+//                .setUiSupplier(path -> new UIElement().layout(layout -> {
+//                    layout.setWidthPercent(100);
+//                    layout.setHeightPercent(100);
+//                }).style(style -> style.backgroundTexture(provider.getResource(path))))
+                .setOnMenu((container, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+                    for (var holder : LDLibRegistries.RENDERERS) {
+                        var name = holder.annotation().name();
+                        menu.leaf(name, () -> {
+                            var renderer = holder.value().get();
+                            renderer.initRenderer();
+                            container.addNewResource(renderer);
+                        });
+                    }
+                }));
+    }
+
 }

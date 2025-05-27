@@ -36,7 +36,7 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
         public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
             Tesselator tessellator = Tesselator.getInstance();
             BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX);
-            RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
             RenderSystem.setShaderTexture(0, TextureManager.INTENTIONAL_MISSING_TEXTURE);
             var matrix4f = graphics.pose().last().pose();
             bufferbuilder.addVertex(matrix4f, x, y + height, 0).setUv(0, 1);

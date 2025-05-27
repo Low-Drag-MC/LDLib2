@@ -1,11 +1,27 @@
 package com.lowdragmc.lowdraglib.editor.resource;
 
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceProviderContainer;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
+import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaGutter;
+import org.appliedenergistics.yoga.YogaOverflow;
 
 import java.util.Map;
 import java.util.function.Supplier;
 
 public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, T>> {
+
+    String getName();
+
+    IGuiTexture getIcon();
+
+    Resource<T> getResourceHolder();
 
     boolean hasResource(IResourcePath key);
 
@@ -34,11 +50,20 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
     T getResource(IResourcePath path);
 
     /**
+     * Get the name of the resource from the resource path.
+v     */
+    default String getResourceName(IResourcePath path) {
+        return path.getResourceName();
+    }
+
+    /**
      * Create a container ui for this resource provider.
      * This is used to display the resources in the UI.
      * @return a new ResourceProviderContainer for this provider.
      */
-    ResourceProviderContainer<T> createContainer();
+    default ResourceProviderContainer<T> createContainer() {
+        return new ResourceProviderContainer<>(this);
+    }
 
     default T getResourceOrDefault(IResourcePath path, T defaultValue) {
         var resource = getResource(path);
@@ -73,6 +98,39 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
 
     default boolean canCopy(IResourcePath path) {
         return true;
+    }
+
+    default boolean supportAdd() {
+        return true;
+    }
+
+    /**
+     * Create a toggle UI element to switch resource provider.
+     */
+    default UIElement createProviderToggle() {
+        return new UIElement().layout(layout -> {
+            layout.setWidthPercent(100);
+            layout.setAlignItems(YogaAlign.CENTER);
+            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.setGap(YogaGutter.ALL, 2);
+        }).addChildren(
+                new UIElement().layout(layout -> {
+                    layout.setWidth(9);
+                    layout.setHeight(9);
+                }).style(style -> style.backgroundTexture(getIcon())),
+                new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
+                        .setText(getName())
+                        .layout(layout -> layout.setFlex(1))
+                        .setOverflow(YogaOverflow.HIDDEN)
+        );
+    }
+
+    /**
+     * Called when the open a menu for the resource provider.
+     * @param menu
+     */
+    default void onMenu(TreeBuilder.Menu menu) {
+
     }
 
 }

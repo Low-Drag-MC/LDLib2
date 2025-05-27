@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.resource;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
@@ -9,11 +10,18 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
+import java.io.File;
+
 public class TexturesResource extends Resource<IGuiTexture> {
-    public final static String RESOURCE_NAME = "ldlib.gui.editor.group.textures";
+    public final FileResourceProvider<IGuiTexture> global;
 
     public TexturesResource() {
-        addResource(IResourcePath.builtin("empty"), IGuiTexture.EMPTY);
+        var builtinResource = new BuiltinResourceProvider<>(this);
+        builtinResource.addResource("empty", IGuiTexture.EMPTY);
+        builtinResource.addResource("missing", IGuiTexture.MISSING_TEXTURE);
+        addResourceProvider(builtinResource);
+        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")));
+        global.setName("global");
     }
 
     @Override
@@ -27,23 +35,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
 
     @Override
     public String getName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
-    public ResourceProviderContainer<IGuiTexture> createResourceContainer() {
-        return super.createResourceContainer().setUiSupplier(key -> new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
-        }).style(style -> style.backgroundTexture(getResourceOrDefault(key, IGuiTexture.EMPTY))))
-                .setOnMenu((container, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
-                    for (var holder : LDLibRegistries.GUI_TEXTURES) {
-                        String name = holder.annotation().name();
-                        if (name.equals("empty") || name.equals("ui_resource_texture")) continue;
-                        IGuiTexture icon = holder.value().get();
-                        menu.leaf(icon, name, () -> container.addNewResource(holder.value().get()));
-                    }
-                }));
+        return "texture";
     }
 
     @Override
@@ -57,19 +49,24 @@ public class TexturesResource extends Resource<IGuiTexture> {
     }
 
     @Override
-    public String getFileResourceSuffix() {
-        return "texture.nbt";
+    public boolean canRemoveResourceProvider(ResourceProvider<IGuiTexture> provider) {
+        return provider != global && super.canRemoveResourceProvider(provider);
     }
 
     @Override
-    public void onLoad() {
-        super.onLoad();
-//        UIResourceTexture.RESOURCE.set(this);
-    }
-
-    @Override
-    public void unLoad() {
-        super.unLoad();
-//        UIResourceTexture.RESOURCE.remove();
+    public ResourceProviderContainer<IGuiTexture> createResourceProviderContainer(ResourceProvider<IGuiTexture> provider) {
+        return super.createResourceProviderContainer(provider)
+                .setUiSupplier(path -> new UIElement().layout(layout -> {
+                    layout.setWidthPercent(100);
+                    layout.setHeightPercent(100);
+                }).style(style -> style.backgroundTexture(provider.getResource(path))))
+                .setOnMenu((container, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+                    for (var holder : LDLibRegistries.GUI_TEXTURES) {
+                        String name = holder.annotation().name();
+                        if (name.equals("empty") || name.equals("ui_resource_texture")) continue;
+                        IGuiTexture icon = holder.value().get();
+                        menu.leaf(icon, name, () -> container.addNewResource(holder.value().get()));
+                    }
+                }));
     }
 }

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.util;
 
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -16,6 +17,7 @@ public class TreeNode<T, K> {
     protected final T key;
     protected K content;
     protected List<TreeNode<T, K>> children;
+    @Nullable
     protected Predicate<TreeNode<T, K>> valid;
 
     public TreeNode(int dimension, T key) {
@@ -68,7 +70,7 @@ public class TreeNode<T, K> {
         return null;
     }
 
-    public void addContent (T key, K content) {
+    public void addContent(T key, K content) {
         getOrCreateChild(key).content = content;
     }
 
@@ -93,6 +95,12 @@ public class TreeNode<T, K> {
                     return;
                 }
             }
+        }
+    }
+
+    public void removeChild(TreeNode<T, K> child) {
+        if (children != null) {
+            children.remove(child);
         }
     }
 

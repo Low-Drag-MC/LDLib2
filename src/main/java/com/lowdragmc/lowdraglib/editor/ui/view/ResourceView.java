@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib.editor.resource.Resource;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.editor.ui.View;
+import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.elements.ScrollerView;
@@ -92,10 +93,7 @@ public class ResourceView extends View {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         }).style(style -> style.backgroundTexture(resource.getIcon())));
-        var view = resource.createResourceContainer();
-        view.setEditor(editor);
-        view.reloadResourceContainer();
-        tabView.addTab(tab, view);
+        tabView.addTab(tab, new ResourceContainer(resource, editor));
     }
 
     public void addResources(Resource<?>... resources) {

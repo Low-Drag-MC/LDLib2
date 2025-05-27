@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.configurator.accessors.IConfiguratorAccessor;
-import com.lowdragmc.lowdraglib.editor.resource.Resource;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.editor_outdated.data.IProject;
 import com.lowdragmc.lowdraglib.graphprocessor.data.BaseNode;

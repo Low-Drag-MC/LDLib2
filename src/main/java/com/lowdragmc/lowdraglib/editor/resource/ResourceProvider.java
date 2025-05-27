@@ -1,19 +1,28 @@
 package com.lowdragmc.lowdraglib.editor.resource;
 
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@Accessors(chain = true)
 public abstract class ResourceProvider<T> implements IResourceProvider<T> {
-    public final Resource<T> resource;
+    @Getter
+    public final Resource<T> resourceHolder;
     @Getter
     protected final Map<IResourcePath, T> contents = new LinkedHashMap<>();
+    @Getter @Setter
+    private String name;
+    @Getter @Setter
+    private IGuiTexture icon;
     
-    protected ResourceProvider(Resource<T> resource) {
-        this.resource = resource;
+    protected ResourceProvider(Resource<T> resourceHolder) {
+        this.resourceHolder = resourceHolder;
     }
 
     public abstract boolean supportResourcePath(IResourcePath path);
@@ -37,11 +46,19 @@ public abstract class ResourceProvider<T> implements IResourceProvider<T> {
         return true;
     }
 
+    public boolean addResource(String name, T resource) {
+        return addResource(createPath(name), resource);
+    }
+
     public T removeResource(IResourcePath path) {
         if (supportResourcePath(path) && contents.containsKey(path)) {
             return contents.remove(path);
         }
         return null;
+    }
+
+    public T removeResource(String name) {
+        return removeResource(createPath(name));
     }
 
     @Override

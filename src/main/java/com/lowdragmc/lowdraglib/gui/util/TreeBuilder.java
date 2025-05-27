@@ -111,6 +111,9 @@ public class TreeBuilder<K, V> {
                     if (!child.isLeaf() && child.getKey().getB().equals(name)) {
                         stack.push(child);
                         menuConsumer.accept(this);
+                        if (child.getChildren() != null && !child.getChildren().isEmpty() && child.getChildren().getLast().getKey() == CROSS_LINE) {
+                            child.removeChild(child.getChildren().getLast());
+                        }
                         endBranch();
                         return this;
                     }
@@ -145,6 +148,15 @@ public class TreeBuilder<K, V> {
                 }
             }
             return this;
+        }
+
+        @Override
+        public TreeNode<Tuple<IGuiTexture, String>, Runnable> build() {
+            var root = super.build();
+            if (root.getChildren() != null && !root.getChildren().isEmpty() && root.getChildren().getLast().getKey() == CROSS_LINE) {
+                root.removeChild(root.getChildren().getLast());
+            }
+            return root;
         }
 
         public static IGuiTexture getIcon(Tuple<IGuiTexture, String> key) {

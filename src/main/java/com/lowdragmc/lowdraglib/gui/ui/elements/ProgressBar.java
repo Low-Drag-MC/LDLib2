@@ -44,7 +44,6 @@ public class ProgressBar extends BindableUIElement<Float> {
     private float minValue = 0;
     @Getter
     private float maxValue = 1;
-    @Getter
     private float value = 0;
 
     public ProgressBar() {
@@ -167,6 +166,11 @@ public class ProgressBar extends BindableUIElement<Float> {
             updateProgressBarStyle();
         }
         return this;
+    }
+
+    @Override
+    public Float getValue() {
+        return value;
     }
 
     public ProgressBar label(Consumer<Label> label) {

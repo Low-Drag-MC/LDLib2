@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.resource;
 
-import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceProviderContainer;
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import net.minecraft.core.HolderLookup;
@@ -8,10 +8,18 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
 import javax.annotation.Nullable;
+import java.io.File;
 
 public class LangResource extends Resource<String> {
+    public final FileResourceProvider<String> global;
 
-    public final static String RESOURCE_NAME = "ldlib.gui.editor.group.lang";
+    public LangResource() {
+        var builtinResource = new BuiltinResourceProvider<>(this);
+        builtinResource.addResource("ldlib.author", "KilaBash");
+        addResourceProvider(builtinResource);
+        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")));
+        global.setName("global");
+    }
 
     @Override
     public IGuiTexture getIcon() {
@@ -20,31 +28,8 @@ public class LangResource extends Resource<String> {
 
     @Override
     public String getName() {
-        return RESOURCE_NAME;
+        return "lang";
     }
-
-    @Override
-    public void buildDefault() {
-    }
-
-    @Override
-    public void onLoad() {
-        // TODO
-//        LocalizationUtils.setResource(this);
-    }
-
-    @Override
-    public void unLoad() {
-        // TODO
-//        LocalizationUtils.clearResource();
-    }
-
-    @Override
-    public ResourceProviderContainer<String> createResourceContainer() {
-        return super.createResourceContainer()
-                .setOnAdd(() -> "value");
-    }
-
 
     @Nullable
     @Override
@@ -58,8 +43,8 @@ public class LangResource extends Resource<String> {
     }
 
     @Override
-    public String getFileResourceSuffix() {
-        return "lang.nbt";
+    public boolean canRemoveResourceProvider(ResourceProvider<String> provider) {
+        return provider != global && super.canRemoveResourceProvider(provider);
     }
 
 }

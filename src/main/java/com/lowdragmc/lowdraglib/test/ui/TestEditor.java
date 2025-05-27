@@ -18,6 +18,6 @@ public class TestEditor implements IUITest, IConfigurable {
             layout.setHeightPercent(100);
         }).setId("editor");
 
-        return new ModularUI(UI.of(root, size -> size));
+        return new ModularUI(UI.of(root, size -> size)).shouldCloseOnEsc(false);
     }
 }

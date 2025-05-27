@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib.editor.ui;
 
-import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.editor.resource.ColorsResource;
 import com.lowdragmc.lowdraglib.editor.resource.LangResource;
 import com.lowdragmc.lowdraglib.editor.resource.IRendererResource;
@@ -26,7 +25,6 @@ import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.io.File;
 import java.util.function.Function;
 
 @Getter
@@ -144,12 +142,12 @@ public class Editor extends UIElement {
      */
     protected void initResourceView() {
         bottom.addView(resourceView);
-        // TODO remove test
         resourceView.addResources(
-                new ColorsResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/colors")),
-                new LangResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/entries")),
-                new IRendererResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/renderer")),
-                new TexturesResource().setResourceLocation(new File(LDLib.getAssetsDir(), "ldlib/resources/textures")));
+                new ColorsResource(),
+                new LangResource(),
+                new IRendererResource(),
+                new TexturesResource()
+        );
     }
 
 

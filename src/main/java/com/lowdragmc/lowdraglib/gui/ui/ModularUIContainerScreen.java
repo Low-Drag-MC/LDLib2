@@ -51,7 +51,7 @@ public class ModularUIContainerScreen<T extends AbstractContainerMenu> extends A
     }
 
     public boolean shouldCloseOnEsc() {
-        return true;
+        return modularUI.shouldCloseOnEsc();
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -35,6 +36,8 @@ import java.util.List;
 @MethodsReturnNonnullByDefault
 public class ModularUI implements GuiEventListener, NarratableEntry, Renderable {
     public final UI ui;
+    @Setter @Getter @Accessors(fluent = true, chain = true)
+    private boolean shouldCloseOnEsc = true;
     // runtime
     @Getter
     @Nullable

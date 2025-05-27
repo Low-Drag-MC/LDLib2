@@ -35,6 +35,8 @@ public class TextElement extends UIElement {
         @Getter @Setter
         private boolean adaptiveWidth = false;
         @Getter @Setter
+        private boolean adaptiveHeight = false;
+        @Getter @Setter
         private Horizontal textAlignHorizontal = Horizontal.LEFT;
         @Getter @Setter
         private Vertical textAlignVertical = Vertical.TOP;
@@ -82,6 +84,9 @@ public class TextElement extends UIElement {
         );
         if (getTextStyle().adaptiveWidth()) {
             layout(layout -> layout.setWidth(formattedLines.stream().findFirst().map(Tuple::getB).orElse(0f) + getSizeWidth() - getContentWidth()));
+        }
+        if (getTextStyle().adaptiveHeight()) {
+            layout(layout -> layout.setHeight(formattedLines.size() * (getTextStyle().fontSize() + getTextStyle().lineSpacing()) - getTextStyle().lineSpacing() + getSizeHeight() - getContentHeight()));
         }
     }
 
