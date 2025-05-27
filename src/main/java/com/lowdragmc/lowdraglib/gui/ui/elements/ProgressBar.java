@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
+import com.lowdragmc.lowdraglib.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
@@ -24,7 +25,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class ProgressBar extends UIElement {
+public class ProgressBar extends BindableUIElement<Float> {
     @Accessors(chain = true, fluent = true)
     public static class ProgressBarStyle extends Style {
         @Getter @Setter
@@ -45,8 +46,6 @@ public class ProgressBar extends UIElement {
     private float maxValue = 1;
     @Getter
     private float value = 0;
-    @Setter
-    protected FloatConsumer onValueChanged = v -> {};
 
     public ProgressBar() {
         getLayout().setHeight(14);
@@ -139,25 +138,35 @@ public class ProgressBar extends UIElement {
     public ProgressBar setRange(float minValue, float maxValue) {
         this.minValue = minValue;
         this.maxValue = maxValue;
-        setValue(this.value);
+        setProgress(this.value);
         updateProgressBarStyle();
         return this;
     }
 
-    public ProgressBar setValue(float value, boolean notify) {
+    public ProgressBar setProgress(float value, boolean notify) {
+        return setValue(value, notify);
+    }
+
+    public ProgressBar setProgress(float value) {
+        return setProgress(value, true);
+    }
+
+    public ProgressBar setOnProgressChange(FloatConsumer onProgressChange) {
+        registerValueListener(v -> onProgressChange.accept(v.floatValue()));
+        return this;
+    }
+
+    @Override
+    public ProgressBar setValue(Float value, boolean notify) {
         var newValue = Math.max(minValue, Math.min(maxValue, value));
         if (newValue != this.value) {
             this.value = newValue;
-            if (notify && onValueChanged != null) {
-                onValueChanged.accept(this.value);
+            if (notify) {
+                notifyListeners();
             }
             updateProgressBarStyle();
         }
         return this;
-    }
-
-    public ProgressBar setValue(float value) {
-        return setValue(value, true);
     }
 
     public ProgressBar label(Consumer<Label> label) {

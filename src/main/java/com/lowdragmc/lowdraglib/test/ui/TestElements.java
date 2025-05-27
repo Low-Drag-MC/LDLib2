@@ -75,7 +75,7 @@ public class TestElements implements IUITest {
                                                                 }),
                                                         new Button(), new Button(), new Button(), new Button(), new Button())
                                                 .layout(layout -> layout.setFlexGrow(1)),
-                                        new ProgressBar().label(label -> label.setText("30%")).setValue(0.3f),
+                                        new ProgressBar().label(label -> label.setText("30%")).setProgress(0.3f),
                                         new TabView().addTab(new Tab().setText("tab1"), new UIElement().addChildren(
                                                 new ColorSelector().layout(layout -> {
                                                     layout.setWidth(60);

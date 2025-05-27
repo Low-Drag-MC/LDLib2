@@ -4,6 +4,7 @@ import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
@@ -28,7 +29,6 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.minecraft.util.Tuple;
-import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
@@ -43,7 +43,7 @@ import java.util.function.Predicate;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class TextField extends UIElement {
+public class TextField extends BindableUIElement<String> {
     @Accessors(chain = true, fluent = true)
     public static class TextFieldStyle extends Style {
         @Getter
@@ -79,8 +79,6 @@ public class TextField extends UIElement {
     private Predicate<String> textValidator = Predicates.alwaysTrue();
     @Setter
     private Predicate<Character> charValidator = Predicates.alwaysTrue();
-    @Setter
-    private Consumer<String> textResponder = Consumers.nop();
     @Getter
     private String text = "";
     @Getter @Setter
@@ -340,14 +338,28 @@ public class TextField extends UIElement {
 
     /// logic
     public TextField setText(String text, boolean notify) {
-        this.rawText = text;
+        return setValue(text, notify);
+    }
+
+    public TextField setText(String text) {
+        return setText(text, true);
+    }
+
+    @Override
+    public String getValue() {
+        return text;
+    }
+
+    @Override
+    public TextField setValue(String value, boolean notify) {
+        this.rawText = value;
         if (isNumberField() && numberInstance != null) {
-            this.rawText = numberInstance.format(Double.parseDouble(text));
+            this.rawText = numberInstance.format(Double.parseDouble(value));
         }
-        if (!this.text.equals(text)) {
-            this.text = text;
-            if (notify && textResponder != null) {
-                textResponder.accept(rawText);
+        if (!this.text.equals(value)) {
+            this.text = value;
+            if (notify) {
+                notifyListeners();
             }
         }
         this.cursorPos = rawText.length();
@@ -358,8 +370,9 @@ public class TextField extends UIElement {
         return this;
     }
 
-    public TextField setText(String text) {
-        return setText(text, true);
+    public TextField setTextResponder(Consumer<String> textResponder) {
+        registerValueListener(textResponder);
+        return this;
     }
 
     protected TextField setRawText(String text) {
@@ -706,9 +719,7 @@ public class TextField extends UIElement {
             isError = false;
             if (!text.equals(rawText)) {
                 text = rawText;
-                if (textResponder != null) {
-                    textResponder.accept(rawText);
-                }
+                notifyListeners();
             }
         } else {
             isError = true;

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
@@ -23,7 +24,7 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public abstract class Scroller extends UIElement {
+public abstract class Scroller extends BindableUIElement<Float> {
     @Accessors(chain = true, fluent = true)
     public static class ScrollerStyle extends Style {
         @Getter
@@ -40,13 +41,10 @@ public abstract class Scroller extends UIElement {
     public final Button scrollBar;
     @Getter
     private final ScrollerStyle scrollerStyle = new ScrollerStyle(this);
-    @Setter
-    protected FloatConsumer onValueChanged = v -> {};
     @Getter
     protected float minValue = 0;
     @Getter
     protected float maxValue = 1;
-    @Getter
     protected float value = 0;
     @Getter
     protected float scrollBarSize = 20; // in percent
@@ -131,20 +129,29 @@ public abstract class Scroller extends UIElement {
     /**
      * Set the value of the scroller.
      */
-    public Scroller setValue(float value, boolean notifyChange) {
+    public Scroller setValue(Float value, boolean notifyChange) {
         var newValue = Math.max(minValue, Math.min(maxValue, value));
         if (newValue != this.value) {
             this.value = newValue;
             updateScrollBarPosition();
             if (notifyChange) {
-                onValueChanged.accept(this.value);
+                notifyListeners();
             }
         }
         return this;
     }
 
-    public Scroller setValue(float value) {
+    public Scroller setOnValueChanged(FloatConsumer onValueChanged) {
+        registerValueListener(v -> onValueChanged.accept(v.floatValue()));
+        return this;
+    }
+
+    public Scroller setValue(Float value) {
         return setValue(value, true);
+    }
+
+    public Float getValue() {
+        return value;
     }
 
     public Scroller setNormalizedValue(float normalizedValue, boolean notifyChange) {

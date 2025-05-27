@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.gui.ui.elements;
 import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
@@ -31,7 +32,7 @@ import java.util.function.Function;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class Selector<T> extends UIElement {
+public class Selector<T> extends BindableUIElement<T> {
     @Accessors(chain = true, fluent = true)
     public static class SelectorStyle extends Style {
         @Getter @Setter
@@ -67,9 +68,6 @@ public class Selector<T> extends UIElement {
     @Getter
     @Nullable
     private T value = null;
-    @Setter
-    @Nullable
-    private Consumer<T> onValueChanged = null;
 
     // runtime
     @Getter
@@ -163,7 +161,7 @@ public class Selector<T> extends UIElement {
                 scrollerView.addScrollViewChild(createItemUI(candidate));
             }
         }
-        setValue(this.value, false, true);
+        setSelected(this.value, false, true);
     }
 
     private UIElement createItemUI(T candidate) {
@@ -173,7 +171,7 @@ public class Selector<T> extends UIElement {
                         .hoverTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
                         .pressedTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
                 .setOnClick(e -> {
-                    setValue(candidate);
+                    setSelected(candidate);
                     if (selectorStyle.closeAfterSelect) {
                         hide();
                     }
@@ -190,17 +188,21 @@ public class Selector<T> extends UIElement {
         return candidateUI;
     }
 
-    public Selector<T> setValue(T value) {
-        return setValue(value, true);
+    public Selector<T> setSelected(T value) {
+        return setSelected(value, true);
     }
 
-    public Selector<T> setValue(T value, boolean notify) {
-        return setValue(value, notify, false);
+    public Selector<T> setSelected(T value, boolean notify) {
+        return setSelected(value, notify, false);
     }
 
-    private Selector<T> setValue(@Nullable T value, boolean notify, boolean force) {
+    private Selector<T> setSelected(@Nullable T value, boolean notify, boolean force) {
         if (!force && this.value == value) return this;
+        return setValue(value, notify);
+    }
 
+    @Override
+    public Selector<T> setValue(@Nullable T value, boolean notify) {
         // update overlay button style
         var currentValue = candidateButtons.get(this.value);
         if (currentValue != null) {
@@ -217,9 +219,14 @@ public class Selector<T> extends UIElement {
         this.preview.addChild(candidateUI);
 
         // notify
-        if (notify && onValueChanged != null) {
-            onValueChanged.accept(value);
+        if (notify) {
+            notifyListeners();
         }
+        return this;
+    }
+
+    public Selector<T> setOnValueChanged(Consumer<T> onValueChanged) {
+        registerValueListener(onValueChanged);
         return this;
     }
 

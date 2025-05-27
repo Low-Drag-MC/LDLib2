@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
@@ -20,7 +21,6 @@ import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
-import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -28,7 +28,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class Toggle extends UIElement {
+public class Toggle extends BindableUIElement<Boolean> {
     @Accessors(chain = true, fluent = true)
     public static class ToggleStyle extends Style {
         @Getter
@@ -55,9 +55,6 @@ public class Toggle extends UIElement {
     private final ToggleStyle toggleStyle = new ToggleStyle(this);
     @Getter
     private boolean isOn = false;
-    @Nullable
-    @Setter
-    private BooleanConsumer onToggleChanged = null;
 
     public Toggle() {
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
@@ -126,11 +123,26 @@ public class Toggle extends UIElement {
     }
 
     public Toggle setOn(boolean on, boolean notifyChange) {
-        isOn = on;
+        return setValue(on, notifyChange);
+    }
+
+    @Override
+    public Boolean getValue() {
+        return isOn;
+    }
+
+    @Override
+    public Toggle setValue(Boolean value, boolean notify) {
+        isOn = value;
         markIcon.getStyle().backgroundTexture(isOn ? toggleStyle.markTexture() : toggleStyle.unmarkTexture());
-        if (onToggleChanged != null && notifyChange) {
-            onToggleChanged.accept(isOn);
+        if (notify) {
+            notifyListeners();
         }
+        return this;
+    }
+
+    public Toggle setOnToggleChanged(BooleanConsumer onToggleChanged) {
+        registerValueListener(v -> onToggleChanged.accept(v.booleanValue()));
         return this;
     }
 

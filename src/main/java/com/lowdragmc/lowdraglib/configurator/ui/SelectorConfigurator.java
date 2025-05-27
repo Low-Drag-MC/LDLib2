@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Selector;
-import lombok.Getter;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -32,7 +31,7 @@ public class SelectorConfigurator<T> extends ValueConfigurator<T> {
                         .textAlignHorizontal(Horizontal.LEFT)
                         .textAlignVertical(Vertical.CENTER))
                 .setText(candidate == null ? "---" : mapping.apply(candidate)));
-        selector.setValue(value, false);
+        selector.setSelected(value, false);
         selector.setOnValueChanged(this::updateValueActively);
     }
 
@@ -41,7 +40,7 @@ public class SelectorConfigurator<T> extends ValueConfigurator<T> {
         if (newValue == null) newValue = defaultValue;
         if (newValue.equals(value)) return;
         super.onValueUpdatePassively(newValue);
-        selector.setValue(newValue, false);
+        selector.setSelected(newValue, false);
     }
 
 }

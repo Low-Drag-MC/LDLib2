@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib.core.mixins.accessor.BufferBuilderAccessor;
-import com.lowdragmc.lowdraglib.gui.ui.UI;
+import com.lowdragmc.lowdraglib.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
@@ -13,8 +13,6 @@ import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import org.appliedenergistics.yoga.YogaAlign;
@@ -23,10 +21,9 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.lwjgl.system.MemoryUtil;
 
-import javax.annotation.Nullable;
 import java.util.function.IntConsumer;
 
-public class ColorSelector extends UIElement {
+public class ColorSelector extends BindableUIElement<Integer> {
     public final UIElement pickerContainer;
     public final UIElement colorPreview;
     public final UIElement colorSlider;
@@ -74,10 +71,6 @@ public class ColorSelector extends UIElement {
      */
     private int argb;
     private HSB_MODE mode = HSB_MODE.H;
-    @Setter
-    @Nullable
-    @Accessors(chain = true)
-    private IntConsumer onColorChangeListener = null;
 
     public ColorSelector() {
         this.pickerContainer = new UIElement();
@@ -145,18 +138,7 @@ public class ColorSelector extends UIElement {
                         }).style(style -> style.backgroundTexture(this::drawColorPreview)),
                         hexConfigurator = new StringConfigurator("", () -> String.format("#%08x", argb), s -> {
                             try {
-                                var color = Integer.parseUnsignedInt(s.substring(1), 16);
-                                if (this.argb == color) return;
-                                this.argb = color;
-                                this.alpha = ColorUtils.alpha(argb);
-                                var hsb = ColorUtils.RGBtoHSB(argb);
-                                hsb[0] *= 360f;
-                                this.h = hsb[0];
-                                this.s = hsb[1];
-                                this.b = hsb[2];
-                                if (onColorChangeListener != null) {
-                                    onColorChangeListener.accept(argb);
-                                }
+                                setValue(Integer.parseUnsignedInt(s.substring(1), 16));
                             } catch (Exception ignored) {}}, "#FFFFFFFF", false),
                         new Button().setOnClick(this::onCopy).textStyle(textStyle -> textStyle.fontSize(6).adaptiveWidth(true))
                                 .setText("Copy").layout(layout -> {
@@ -198,9 +180,7 @@ public class ColorSelector extends UIElement {
         if (event.type.equals(UIEvents.MOUSE_DOWN)) {
             event.target.startDrag(null, null);
         }
-        if (onColorChangeListener != null) {
-            onColorChangeListener.accept(argb);
-        }
+        notifyListeners();
     }
 
     protected void onAdjustAlphaSlider(UIEvent event) {
@@ -212,9 +192,7 @@ public class ColorSelector extends UIElement {
         if (event.type.equals(UIEvents.MOUSE_DOWN)) {
             event.target.startDrag(null, null);
         }
-        if (onColorChangeListener != null) {
-            onColorChangeListener.accept(argb);
-        }
+        notifyListeners();
     }
 
     private void onAdjustHsbContext(UIEvent event) {
@@ -242,24 +220,11 @@ public class ColorSelector extends UIElement {
         if (event.type.equals(UIEvents.MOUSE_DOWN)) {
             event.target.startDrag(null, null);
         }
-        if (onColorChangeListener != null) {
-            onColorChangeListener.accept(argb);
-        }
+        notifyListeners();
     }
 
     public ColorSelector setColor(int argb, boolean notify) {
-        if (this.argb == argb) return this;
-        this.alpha = ColorUtils.alpha(argb);
-        var hsb = ColorUtils.RGBtoHSB(argb);
-        hsb[0] *= 360f;
-        this.h = hsb[0];
-        this.s = hsb[1];
-        this.b = hsb[2];
-        refreshRGB();
-        if (notify && onColorChangeListener != null) {
-            onColorChangeListener.accept(argb);
-        }
-        return this;
+        return setValue(argb, notify);
     }
 
     public ColorSelector setColor(int argb) {
@@ -268,6 +233,33 @@ public class ColorSelector extends UIElement {
 
     public int getColor() {
         return argb;
+    }
+
+    /// Data bindings
+    @Override
+    public Integer getValue() {
+        return argb;
+    }
+
+    @Override
+    public ColorSelector setValue(Integer value, boolean notify) {
+        if (this.argb == value) return this;
+        this.alpha = ColorUtils.alpha(value);
+        var hsb = ColorUtils.RGBtoHSB(value);
+        hsb[0] *= 360f;
+        this.h = hsb[0];
+        this.s = hsb[1];
+        this.b = hsb[2];
+        refreshRGB();
+        if (notify) {
+            notifyListeners();
+        }
+        return this;
+    }
+
+    public ColorSelector setOnColorChangeListener(IntConsumer listener) {
+        registerValueListener(listener::accept);
+        return this;
     }
 
     protected void onSwitchHSB(UIEvent event) {
