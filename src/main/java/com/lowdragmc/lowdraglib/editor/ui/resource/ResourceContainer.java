@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.configurator.ui.ArrayConfiguratorGroup;
+import com.lowdragmc.lowdraglib.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib.editor.resource.Resource;
 import com.lowdragmc.lowdraglib.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
@@ -13,7 +13,6 @@ import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
@@ -92,22 +91,23 @@ public class ResourceContainer extends UIElement {
 
     private void onRemoveFileResourceProvider(UIEvent event) {
         if (selectedProvider != null) {
-            new Dialog().darkenBackground()
-                    .setTitle("ldlib.gui.editor.menu.remove")
-                    .addContent(new UIElement().layout(layout -> {
-                        layout.setWidth(50);
-                        layout.setHeight(50);
-                    }))
-                    .addButton(new Button())
-                    .addButton(new Button())
-                    .show(editor);
-            ((Resource)resource).removeResourceProvider(selectedProvider);
+            Dialog.showCheckBox("ldlib.gui.resource.remove_provider", "editor.remove.confirm", result -> {
+                if (result) {
+                    ((Resource)resource).removeResourceProvider(selectedProvider);
+                    selectProvider(null);
+                }
+            }).show(editor);
         }
     }
 
     private void onAddFileResourceProvider(UIEvent event) {
-        Dialog.showFileDialog("title", LDLib.getAssetsDir(), false, file -> true, result -> {
-
+        Dialog.showFileDialog("title", LDLib.getAssetsDir(), true, file -> true, result -> {
+            if (result.isFile()) {
+                result = result.getParentFile();
+            }
+            if (result.isDirectory()) {
+                ((Resource)resource).addResourceProvider(resource.createNewFileResourceProvider(result));
+            }
         }).show(editor);
     }
 
