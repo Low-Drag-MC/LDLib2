@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.Platform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
@@ -38,6 +39,12 @@ public class ModularUIContainerScreen<T extends AbstractContainerMenu> extends A
         this.imageHeight = (int) modularUI.getHeight();
         this.addRenderableWidget(modularUI);
         super.init();
+    }
+
+    @Override
+    public void removed() {
+        super.removed();
+        modularUI.onRemoved();
     }
 
     @Override

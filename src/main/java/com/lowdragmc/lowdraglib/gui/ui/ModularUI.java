@@ -116,12 +116,20 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         };
         this.topPos = (screenHeight - this.height) / 2;
         ui.rootElement._setModularUIInternal(this);
-        ui.rootElement.init(screenWidth, screenHeight);
+        ui.rootElement.initScreen(screenWidth, screenHeight);
         ui.rootElement.calculateLayout();
     }
 
     public void tick() {
         ui.rootElement.screenTick();
+    }
+
+    /**
+     * Called when the UI is removed.
+     * This method can be overridden to perform cleanup tasks.
+     */
+    public void onRemoved() {
+        ui.rootElement.onRemoved();
     }
 
     @Override
@@ -603,5 +611,4 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         }
 
     }
-
 }

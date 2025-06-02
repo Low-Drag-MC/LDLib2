@@ -100,11 +100,24 @@ public class UIElement {
         }
     }
 
-    public void init(int screenWidth, int screenHeight) {
+    /**
+     * This method is called when the screen is initialized with new width and height.
+     */
+    public void initScreen(int screenWidth, int screenHeight) {
         positionXCache = FloatOptional.of();
         positionYCache = FloatOptional.of();
         for (var child : children) {
-            child.init(screenWidth, screenHeight);
+            child.initScreen(screenWidth, screenHeight);
+        }
+    }
+
+    /**
+     * This method is called when the element is removed from the screen.
+     * You can override this method to do something when the element is removed.
+     */
+    public void onRemoved() {
+        for (var child : children) {
+            child.onRemoved();
         }
     }
 
