@@ -48,6 +48,8 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     private float leftPos, topPos, width, height;
     @Getter
     private final DragHandler dragHandler = new DragHandler();
+    @Getter
+    private long tickCounter = 0;
 
     // UI state
     @Getter @Setter
@@ -64,9 +66,9 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     @Getter
     private UIElement lastMouseDragElement;
     @Getter
-    private int lastMouseDownButton, lastMouseClickButton;
+    private int lastMouseDownButton = -1, lastMouseClickButton = -1;
     @Getter
-    private int lastPressedKeyCode, lastPressedScanCode, lastPressedModifiers;
+    private int lastPressedKeyCode = - 1, lastPressedScanCode = -1, lastPressedModifiers = -1;
     @Getter
     private long lastMouseClickTime;
     @Getter
@@ -122,6 +124,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
 
     public void tick() {
         ui.rootElement.screenTick();
+        tickCounter++;
     }
 
     /**
@@ -237,6 +240,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        lastMouseDownButton = -1;
         var releasedElement = getLastHoveredElement();
         if (dragHandler.isDragging()) {
             if (releasedElement != null) {
@@ -339,6 +343,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
                     if (lastMouseDragElement != null) {
                         var event = UIEvent.create(UIEvents.DRAG_LEAVE);
                         event.hasBubblePhase = false;
+                        event.relatedTarget = current;
                         dispatchDragEvent(mouseX, mouseY, dragX, dragY, lastMouseDragElement, event);
                     }
                     lastMouseDragElement = current;

@@ -57,6 +57,11 @@ public class TreeBuilder<K, V> {
         return this;
     }
 
+    public TreeBuilder<K, V> content(V content) {
+        stack.peek().content = content;
+        return this;
+    }
+
     public TreeBuilder<K, V> leaf(K key, V content) {
         stack.peek().addContent(key, content);
         return this;

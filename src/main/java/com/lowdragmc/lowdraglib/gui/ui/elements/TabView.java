@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.ui.elements;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
@@ -16,8 +18,6 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -28,7 +28,7 @@ public class TabView extends UIElement {
     public final ScrollerView tabScroller;
     public final UIElement tabContentContainer;
     @Getter
-    private final Map<Tab, UIElement> tabContents = new HashMap<>();
+    private final BiMap<Tab, UIElement> tabContents = HashBiMap.create();
     @Setter
     private Consumer<Tab> onTabSelected = Consumers.nop();
     // runtime

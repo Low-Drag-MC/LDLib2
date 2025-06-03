@@ -93,7 +93,7 @@ public class Menu<K, T> extends UIElement {
     }
 
     protected void onBlur(UIEvent event) {
-        if (event.relatedTarget != null && this.isAncestor(event.relatedTarget)) { // focus on children
+        if (event.relatedTarget != null && this.isAncestorOf(event.relatedTarget)) { // focus on children
             return;
         }
 

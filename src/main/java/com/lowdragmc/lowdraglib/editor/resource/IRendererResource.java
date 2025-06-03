@@ -55,21 +55,24 @@ public class IRendererResource extends Resource<IRenderer> {
 
     @Override
     public ResourceProviderContainer<IRenderer> createResourceProviderContainer(ResourceProvider<IRenderer> provider) {
-        return super.createResourceProviderContainer(provider)
+        var container = super.createResourceProviderContainer(provider);
 //                .setUiSupplier(path -> new UIElement().layout(layout -> {
 //                    layout.setWidthPercent(100);
 //                    layout.setHeightPercent(100);
 //                }).style(style -> style.backgroundTexture(provider.getResource(path))))
-                .setOnMenu((container, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
-                    for (var holder : LDLibRegistries.RENDERERS) {
-                        var name = holder.annotation().name();
-                        menu.leaf(name, () -> {
-                            var renderer = holder.value().get();
-                            renderer.initRenderer();
-                            container.addNewResource(renderer);
-                        });
-                    }
-                }));
+        if (provider.supportAdd()) {
+            container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+                for (var holder : LDLibRegistries.RENDERERS) {
+                    var name = holder.annotation().name();
+                    menu.leaf(name, () -> {
+                        var renderer = holder.value().get();
+                        renderer.initRenderer();
+                        c.addNewResource(renderer);
+                    });
+                }
+            }));
+        }
+        return container;
     }
 
 }

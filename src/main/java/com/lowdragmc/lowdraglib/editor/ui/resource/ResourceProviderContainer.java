@@ -60,8 +60,6 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected BiConsumer<ResourceProviderContainer<T>, TreeBuilder.Menu> onMenu;
 
     // runtime
-    protected boolean isList = false;
-    protected int uiWidth = 30;
     @Getter @Nullable
     protected IResourcePath selected = null;
     @Getter @Setter
@@ -100,19 +98,19 @@ public class ResourceProviderContainer<T> extends UIElement {
 
     protected UIElement createResourceUI(IResourcePath key) {
         return new UIElement().layout(layout -> {
-            if (isList) {
+            if (resourceProvider.getResourceHolder().isList()) {
                 layout.setWidthPercent(100);
                 layout.setFlexDirection(YogaFlexDirection.ROW);
                 layout.setMargin(YogaEdge.VERTICAL, 1);
             } else {
-                layout.setWidth(uiWidth);
+                layout.setWidth(resourceProvider.getResourceHolder().getUiWidth());
                 layout.setFlexDirection(YogaFlexDirection.COLUMN);
                 layout.setMargin(YogaEdge.ALL, 3);
             }
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(new UIElement().layout(layout -> {
-            if (isList) {
-                layout.setWidth(uiWidth);
+            if (resourceProvider.getResourceHolder().isList()) {
+                layout.setWidth(resourceProvider.getResourceHolder().getUiWidth());
             } else {
                 layout.setWidthPercent(100);
             }
@@ -120,13 +118,13 @@ public class ResourceProviderContainer<T> extends UIElement {
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setJustifyContent(YogaJustify.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
-            if (isList) {
+            if (resourceProvider.getResourceHolder().isList()) {
                 style.textAlignHorizontal(Horizontal.LEFT).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
             } else {
                 style.textAlignHorizontal(Horizontal.CENTER).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
             }
         }).setText(nameSupplier.apply(key)).setOverflow(YogaOverflow.HIDDEN).layout(layout -> {
-            if (isList) {
+            if (resourceProvider.getResourceHolder().isList()) {
                 layout.setFlex(1);
                 layout.setHeightPercent(100);
                 layout.setJustifyContent(YogaJustify.CENTER);
@@ -173,9 +171,9 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void setUiWidth(int uiWidth) {
-        if (this.uiWidth != uiWidth && uiWidth > 0) {
-            this.uiWidth = uiWidth;
-            if (isList) {
+        if (resourceProvider.getResourceHolder().getUiWidth() != uiWidth && uiWidth > 0) {
+            resourceProvider.getResourceHolder().setUiWidth(uiWidth);
+            if (resourceProvider.getResourceHolder().isList()) {
                 reloadResourceContainer();
             } else {
                 for (UIElement element : resourceUIs.values()) {
@@ -194,20 +192,22 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void setList(boolean isList) {
-        if (this.isList != isList) {
-            this.isList = isList;
+        if (resourceProvider.getResourceHolder().isList() != isList) {
+            resourceProvider.getResourceHolder().setList(isList);
             reloadResourceContainer();
         }
     }
 
     protected TreeBuilder.Menu getMenu() {
         var menu = TreeBuilder.Menu.start();
-        menu.leaf(this.isList ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.list", () -> setList(!isList));
+        var isList = resourceProvider.getResourceHolder().isList();
+        var uiWidth = resourceProvider.getResourceHolder().getUiWidth();
+        menu.leaf(isList ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.list", () -> setList(!isList));
         menu.branch("ldlib.gui.editor.group.size", m -> {
-            m.leaf(this.uiWidth == 15 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.small", () -> setUiWidth(15));
-            m.leaf(this.uiWidth == 30 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.medium", () -> setUiWidth(30));
-            m.leaf(this.uiWidth == 50 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.large", () -> setUiWidth(50));
-            m.leaf(this.uiWidth == 100 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.extra_large", () -> setUiWidth(100));
+            m.leaf(uiWidth == 15 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.small", () -> setUiWidth(15));
+            m.leaf(uiWidth == 30 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.medium", () -> setUiWidth(30));
+            m.leaf(uiWidth == 50 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.large", () -> setUiWidth(50));
+            m.leaf(uiWidth == 100 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.extra_large", () -> setUiWidth(100));
         });
         menu.crossLine();
         if (selected != null && canEdit.test(selected)) {

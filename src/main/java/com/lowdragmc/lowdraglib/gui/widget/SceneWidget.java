@@ -219,7 +219,7 @@ public class SceneWidget extends WidgetGroup {
         if (world == null) return;
         core = new HashSet<>();
         dummyWorld = new TrackedDummyWorld(world);
-        dummyWorld.setRenderFilter(pos -> renderer.renderedBlocksMap.keySet().stream().anyMatch(c -> c.contains(pos)));
+        dummyWorld.setBlockFilter(pos -> renderer.renderedBlocksMap.keySet().stream().anyMatch(c -> c.contains(pos)));
         if (renderer != null) {
             renderer.deleteCacheBuffer();
         }
@@ -262,7 +262,6 @@ public class SceneWidget extends WidgetGroup {
 
     public SceneWidget setClearColor(int color) {
         if (isRemote()) {
-            renderer.setClearColor(color);
         }
         return this;
     }

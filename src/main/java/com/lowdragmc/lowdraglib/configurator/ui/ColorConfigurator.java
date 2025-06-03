@@ -68,7 +68,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
     }
 
     protected void onBlur(UIEvent event) {
-        if (event.relatedTarget != null && this.colorSelector.isAncestor(event.relatedTarget)) { // focus on children
+        if (event.relatedTarget != null && this.colorSelector.isAncestorOf(event.relatedTarget)) { // focus on children
             return;
         }
 

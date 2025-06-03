@@ -1,35 +1,31 @@
 package com.lowdragmc.lowdraglib.utils.virtuallevel;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraft.world.level.chunk.LightChunk;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.function.BooleanSupplier;
 
 public class DummyChunkSource extends ChunkSource {
-
     private final DummyWorld world;
-    public final HashMap<Long, VirtualChunk> chunks = new HashMap<>();
+    private final Long2ObjectMap<VirtualChunk> chunks = new Long2ObjectOpenHashMap<>();
+    private final LevelLightEngine lightEngine;
 
     public DummyChunkSource(DummyWorld world) {
         this.world = world;
+        this.lightEngine = new LevelLightEngine(this, true, true);
     }
 
     @Override
-    public void tick(BooleanSupplier p_202162_, boolean p_202163_) {
+    public void tick(BooleanSupplier booleanSupplier, boolean p_202163_) {
 
-    }
-
-    @Override
-    public LightChunk getChunkForLighting(int x, int z) {
-        return getChunk(x, z);
     }
 
     @Nullable
@@ -40,7 +36,6 @@ public class DummyChunkSource extends ChunkSource {
 
     public ChunkAccess getChunk(int x, int z) {
         long pos = ChunkPos.asLong(x, z);
-
         return chunks.computeIfAbsent(pos, $ -> new VirtualChunk(world, x, z));
     }
 
@@ -58,7 +53,7 @@ public class DummyChunkSource extends ChunkSource {
     @Override
     @Nonnull
     public LevelLightEngine getLightEngine() {
-        return world.getLightEngine();
+        return lightEngine;
     }
 
     @Override

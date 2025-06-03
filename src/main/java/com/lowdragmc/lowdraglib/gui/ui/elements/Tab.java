@@ -17,6 +17,8 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
@@ -25,7 +27,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class Tab extends TextElement {
+public class Tab extends UIElement {
     @Accessors(chain = true, fluent = true)
     public static class TabStyle extends Style {
         @Getter @Setter
@@ -39,7 +41,7 @@ public class Tab extends TextElement {
             super(holder);
         }
     }
-
+    public final TextElement text = new TextElement();
     @Getter
     private final TabStyle tabStyle = new TabStyle(this);
     @Setter
@@ -53,8 +55,10 @@ public class Tab extends TextElement {
     public Tab() {
         getLayout().setHeight(16);
         getLayout().setPadding(YogaEdge.ALL, 3);
+        getLayout().setFlexDirection(YogaFlexDirection.ROW);
 
-        textStyle(textStyle -> {
+        text.layout(layout -> layout.setHeightPercent(100));
+        text.textStyle(textStyle -> {
             textStyle.textAlignHorizontal(Horizontal.CENTER);
             textStyle.textAlignVertical(Vertical.CENTER);
             textStyle.adaptiveWidth(true);
@@ -62,6 +66,7 @@ public class Tab extends TextElement {
 
         addEventListener(UIEvents.MOUSE_ENTER, this::onMouseEnter, true);
         addEventListener(UIEvents.MOUSE_LEAVE, this::onMouseLeave, true);
+        addChild(text);
     }
 
     public Tab tabStyle(Consumer<TabStyle> tabStyle) {
@@ -76,24 +81,23 @@ public class Tab extends TextElement {
         tabStyle.applyStyles(values);
     }
 
-    @Override
     public Tab setText(String text, boolean translate) {
-        return (Tab) super.setText(text, translate);
+        this.text.setText(text, translate);
+        return this;
     }
 
-    @Override
     public Tab setText(String text) {
-        return (Tab) super.setText(text);
+        return setText(text, false);
     }
 
-    @Override
     public Tab setText(Component text) {
-        return (Tab) super.setText(text);
+        this.text.setText(text);
+        return this;
     }
 
-    @Override
-    public Tab textStyle(Consumer<TextStyle> style) {
-        return (Tab) super.textStyle(style);
+    public Tab textStyle(Consumer<TextElement.TextStyle> style) {
+        text.textStyle(style);
+        return this;
     }
 
     public void setSelected(boolean selected) {

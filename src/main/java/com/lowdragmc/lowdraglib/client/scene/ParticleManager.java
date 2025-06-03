@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -100,14 +99,17 @@ public class ParticleManager {
             if (iterable != null) {
                 RenderSystem.setShader(GameRenderer::getParticleShader);
                 RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-                Tesselator tesselator = Tesselator.getInstance();
-                BufferBuilder bufferBuilder = particlerendertype.begin(tesselator, this.textureManager);
+                var tesselator = Tesselator.getInstance();
+                var bufferBuilder = particlerendertype.begin(tesselator, this.textureManager);
+                if (bufferBuilder == null) continue;
 
                 for(var particle : iterable) {
                     particle.render(bufferBuilder, pActiveRenderInfo, pPartialTicks);
                 }
 
-                BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
+                var data = bufferBuilder.build();
+                if (data == null) continue;
+                BufferUploader.drawWithShader(data);
             }
         }
 

@@ -45,6 +45,7 @@ public interface UIEvents {
     /**
      * The {@code dragLeave} is sent when the pointer exits an element as the user moves a draggable object.
      * When a drop area element receives a {@code dragLeave}, it needs to stop providing drop feedback.
+     * If the relatedTarget is not null, it means that the pointer is still over a drop area element, so you can continue providing drop feedback.
      */
     String DRAG_LEAVE = "dragLeave";
     /**

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.utils.data;
 
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
@@ -41,8 +42,6 @@ public class BlockInfo implements IPersistedSerializable, IConfigurable {
     private ItemStack itemStack;
     @Setter
     private Consumer<BlockEntity> postCreate;
-    // runtime
-    private BlockEntity lastEntity;
 
     public BlockInfo(Block block) {
         this(block.defaultBlockState());
@@ -55,6 +54,7 @@ public class BlockInfo implements IPersistedSerializable, IConfigurable {
     public BlockInfo(BlockState blockState, boolean hasBlockEntity) {
         this(blockState, hasBlockEntity, null, null);
     }
+
     public BlockInfo(BlockState blockState, Consumer<BlockEntity> postCreate) {
         this(blockState, true, null, postCreate);
     }
@@ -90,34 +90,18 @@ public class BlockInfo implements IPersistedSerializable, IConfigurable {
         return hasBlockEntity;
     }
 
-    public BlockEntity getBlockEntity(BlockPos pos, HolderLookup.Provider provider) {
-        if (hasBlockEntity && blockState.getBlock() instanceof EntityBlock entityBlock) {
-            if (lastEntity != null && lastEntity.getBlockPos().equals(pos)) {
-                return lastEntity;
+    public void postEntity(BlockEntity blockEntity) {
+        if (tag != null && blockEntity != null) {
+            var compoundTag2 = blockEntity.saveWithoutMetadata(Platform.getFrozenRegistry());
+            var compoundTag3 = compoundTag2.copy();
+            compoundTag2.merge(tag);
+            if (!compoundTag2.equals(compoundTag3)) {
+                blockEntity.loadWithComponents(compoundTag2, Platform.getFrozenRegistry());
             }
-            lastEntity = entityBlock.newBlockEntity(pos, blockState);
-            if (tag != null && lastEntity != null) {
-                var compoundTag2 = lastEntity.saveWithoutMetadata(provider);
-                var compoundTag3 = compoundTag2.copy();
-                compoundTag2.merge(tag);
-                if (!compoundTag2.equals(compoundTag3)) {
-                    lastEntity.loadWithComponents(compoundTag2, provider);
-                }
-            }
-            if (postCreate != null) {
-                postCreate.accept(lastEntity);
-            }
-            return lastEntity;
         }
-        return null;
-    }
-
-    public BlockEntity getBlockEntity(HolderLookup.Provider provider, Level level, BlockPos pos) {
-        BlockEntity entity = getBlockEntity(pos, provider);
-        if (entity != null) {
-            entity.setLevel(level);
+        if (postCreate != null && blockEntity != null) {
+            postCreate.accept(blockEntity);
         }
-        return entity;
     }
 
     public ItemStack getItemStackForm() {
@@ -129,15 +113,4 @@ public class BlockInfo implements IPersistedSerializable, IConfigurable {
         return blockState.getBlock().getCloneItemStack(level, pos, blockState);
     }
 
-    public void apply(HolderLookup.Provider provider, Level world, BlockPos pos) {
-        world.setBlockAndUpdate(pos, blockState);
-        BlockEntity blockEntity = getBlockEntity(pos, provider);
-        if (blockEntity != null) {
-            world.setBlockEntity(blockEntity);
-        }
-    }
-
-    public void clearBlockEntityCache() {
-        lastEntity = null;
-    }
 }

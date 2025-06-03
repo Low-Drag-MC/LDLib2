@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -133,7 +134,13 @@ public class ScrollerView extends UIElement {
     }
 
     public float getContainerHeight() {
-        return viewContainer.getSizeHeight();
+        var height = viewContainer.getSizeHeight();
+        for (UIElement child : viewContainer.getChildren()) {
+            if (child.isDisplayed()) {
+                height = Math.max(height, child.getSizeHeight() + child.getLayoutNode().getLayoutY());
+            }
+        }
+        return height;
     }
 
     private void updateScrollers() {

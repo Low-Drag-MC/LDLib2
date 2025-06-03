@@ -55,18 +55,21 @@ public class TexturesResource extends Resource<IGuiTexture> {
 
     @Override
     public ResourceProviderContainer<IGuiTexture> createResourceProviderContainer(ResourceProvider<IGuiTexture> provider) {
-        return super.createResourceProviderContainer(provider)
+        var container = super.createResourceProviderContainer(provider)
                 .setUiSupplier(path -> new UIElement().layout(layout -> {
                     layout.setWidthPercent(100);
                     layout.setHeightPercent(100);
-                }).style(style -> style.backgroundTexture(provider.getResource(path))))
-                .setOnMenu((container, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
-                    for (var holder : LDLibRegistries.GUI_TEXTURES) {
-                        String name = holder.annotation().name();
-                        if (name.equals("empty") || name.equals("ui_resource_texture")) continue;
-                        IGuiTexture icon = holder.value().get();
-                        menu.leaf(icon, name, () -> container.addNewResource(holder.value().get()));
-                    }
-                }));
+                }).style(style -> style.backgroundTexture(provider.getResource(path))));
+        if (provider.supportAdd()) {
+            container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+                for (var holder : LDLibRegistries.GUI_TEXTURES) {
+                    String name = holder.annotation().name();
+                    if (name.equals("empty") || name.equals("ui_resource_texture")) continue;
+                    IGuiTexture icon = holder.value().get();
+                    menu.leaf(icon, name, () -> c.addNewResource(holder.value().get()));
+                }
+            }));
+        }
+        return container;
     }
 }

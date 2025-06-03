@@ -1,22 +1,20 @@
 package com.lowdragmc.lowdraglib.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib.editor.resource.Resource;
 import com.lowdragmc.lowdraglib.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib.editor.ui.util.SplitView;
 import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.*;
 
 import javax.annotation.Nullable;
@@ -26,7 +24,7 @@ import java.util.Map;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class ResourceContainer extends UIElement {
-    public final UIElement providerList = new UIElement();
+    public final ScrollerView providerList = new ScrollerView();
     public final UIElement providerContainer = new UIElement();
     public final Resource<?> resource;
     public final Editor editor;
@@ -45,7 +43,7 @@ public class ResourceContainer extends UIElement {
 
         this.resource = resource;
         this.editor = editor;
-        addChildren(new UIElement().layout(layout -> {
+        addChildren(new SplitView.Horizontal().left(new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         }).addChildren(new UIElement().layout(layout -> {
@@ -64,21 +62,10 @@ public class ResourceContainer extends UIElement {
         ), providerList.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
-        })), providerContainer.layout(layout -> {
+        }))).right(providerContainer.layout(layout -> {
             layout.setHeightPercent(100);
-            layout.setWidthPercent(87);
-        }).addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            // drag left border
-            if (event.button == 0 && isMouseOver(providerContainer.getPositionX(), providerContainer.getPositionY(),
-                    3, providerContainer.getSizeHeight(), event.x, event.y)) {
-                providerContainer.startDrag(YogaEdge.LEFT, Icons.ARROW_LEFT_RIGHT).setDragTexture(-7, -4, 13, 7);
-            }
-        }).addEventListener(UIEvents.DRAG_SOURCE_UPDATE, event -> {
-            if (event.dragHandler.draggingObject == YogaEdge.LEFT) {
-                var x = 1 - (event.x - getPositionX()) / getSizeWidth();
-                providerContainer.layout(layout -> layout.setWidthPercent(Mth.clamp(x * 100, 10, 90)));
-            }
-        }));
+            layout.setWidthPercent(100);
+        })).setPercentage(13));
 
         if (resource.canAddFileResourceProvider()) {
             addButton.setActive(resource.canAddFileResourceProvider());
@@ -114,7 +101,7 @@ public class ResourceContainer extends UIElement {
     public void loadResource() {
         var lastSelectedProvider = selectedProvider;
         providerToggles.clear();
-        providerList.clearAllChildren();
+        providerList.clearAllScrollViewChildren();
         providerContainer.clearAllChildren();
 
         for (var provider : resource.getProviders()) {
@@ -129,7 +116,7 @@ public class ResourceContainer extends UIElement {
                     selectProvider(provider);
                 }
             });
-            providerList.addChild(toggle);
+            providerList.addScrollViewChild(toggle);
             providerToggles.put(provider, toggle);
         }
 
@@ -184,18 +171,6 @@ public class ResourceContainer extends UIElement {
         }
         if (changed) {
             loadResource();
-        }
-    }
-
-    @Override
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
-        if (isChildHover() && isMouseOver(providerContainer.getPositionX(), providerContainer.getPositionY(),
-                3, providerContainer.getSizeHeight(), mouseX, mouseY)) {
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 200);
-            Icons.ARROW_LEFT_RIGHT.draw(graphics, mouseX, mouseY, mouseX - 7, mouseY - 4, 13, 7, partialTicks);
-            graphics.pose().popPose();
         }
     }
 }

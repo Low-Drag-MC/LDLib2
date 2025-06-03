@@ -121,6 +121,9 @@
   "editor.error": "error",
   "editor.file_not_found": "file not found",
   "editor.invalid_file_path": "invalid file path",
+  "editor.ui.hierarchy": "UI Hierarchy",
+  "editor.ui.editor": "UI Editor",
+
   "ldlib.gui.editor.menu.edit": "edit",
   "ldlib.gui.editor.menu.add_resource": "add a new resource",
   "ldlib.gui.resource.remove_provider": "remove provider",

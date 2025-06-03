@@ -112,8 +112,8 @@ public class UIElement {
     }
 
     /**
-     * This method is called when the element is removed from the screen.
-     * You can override this method to do something when the element is removed.
+     * This method is called when the element is removed from the ui structure.
+     * You can override this method to do something when the element is removed. e.g. clean up resources, stop animations, etc.
      */
     public void onRemoved() {
         for (var child : children) {
@@ -342,6 +342,7 @@ public class UIElement {
             return false;
         }
         children.remove(child);
+        child.onRemoved();
         child._setModularUIInternal(null);
         layoutNode.removeChildAndInvalidate(child.layoutNode);
         child.parent = null;
@@ -366,7 +367,7 @@ public class UIElement {
         }
     }
 
-    public boolean isAncestor(@Nullable UIElement element) {
+    public boolean isAncestorOf(@Nullable UIElement element) {
         if (element == null) {
             return false;
         }
@@ -788,11 +789,11 @@ public class UIElement {
      */
     public void drawBackgroundTexture(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         var background = style.backgroundTexture();
-        if (background != IGuiTexture.EMPTY) {
+        if (background != null && background != IGuiTexture.EMPTY) {
             background.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         }
         var border = style.borderTexture();
-        if (border != IGuiTexture.EMPTY) {
+        if (border != null && border != IGuiTexture.EMPTY) {
             border.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         }
     }
@@ -831,13 +832,14 @@ public class UIElement {
      */
     public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         var overlay = style.overlayTexture();
-        if (overlay != IGuiTexture.EMPTY) {
+        if (overlay != null && overlay != IGuiTexture.EMPTY) {
             overlay.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
         }
     }
 
     /**
-     * Renders the graphical user interface (GUI) element in Foreground.
+     * Renders the graphical user interface (GUI) element in Foreground. In general, this method is used to render the element in the foreground.
+     * You can do tooltips here.
      */
     public void drawInForeground(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
     }

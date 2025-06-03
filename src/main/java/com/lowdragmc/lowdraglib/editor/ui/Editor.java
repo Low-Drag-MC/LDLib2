@@ -6,19 +6,22 @@ import com.lowdragmc.lowdraglib.editor.resource.IRendererResource;
 import com.lowdragmc.lowdraglib.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib.editor.ui.menu.ViewMenu;
+import com.lowdragmc.lowdraglib.editor.ui.util.SplitView;
 import com.lowdragmc.lowdraglib.editor.ui.view.InspectorView;
 import com.lowdragmc.lowdraglib.editor.ui.view.ResourceView;
+import com.lowdragmc.lowdraglib.editor.ui.view.ui.UIEditorView;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
+import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Menu;
-import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib.test.ui.TestConfigurators;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -60,33 +63,21 @@ public class Editor extends UIElement {
         inspectorView = new InspectorView();
 
         left.layout(layout -> {
-            layout.setWidthPercent(28);
+            layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         });
         center.layout(layout -> {
-            layout.setFlex(1);
+            layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         });
         right.layout(layout -> {
-            layout.setWidthPercent(20);
+            layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         });
         bottom.layout(layout -> {
-            layout.setHeightPercent(25);
             layout.setWidthPercent(100);
+            layout.setHeightPercent(100);
         });
-
-        left.setOnRightBorderDragging(this::onDragLeftBorder);
-        center.setOnLeftBorderDragging(this::onDragLeftBorder);
-
-        right.setOnLeftBorderDragging(this::onDragRightBorder);
-        bottom.setOnRightBorderDragging(this::onDragRightBorder);
-        center.setOnRightBorderDragging(this::onDragRightBorder);
-
-        bottom.setOnTopBorderDragging(this::onDragBottomBorder);
-        left.setOnBottomBorderDragging(this::onDragBottomBorder);
-        center.setOnBottomBorderDragging(this::onDragBottomBorder);
-
 
         addChildren(top.layout(layout -> {
             layout.setPadding(YogaEdge.ALL, 1);
@@ -103,22 +94,29 @@ public class Editor extends UIElement {
             layout.setHeightPercent(100);
             layout.setFlexDirection(YogaFlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
-        })), new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
-        }).addChildren(new UIElement().layout(layout -> {
-            layout.setFlex(1);
-            layout.setHeightPercent(100);
-        }).addChildren(new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setFlex(1);
-        }).addChildren(left, center), bottom), right));
+        })), new SplitView.Horizontal()
+                .left(new SplitView.Vertical()
+                        .top(new SplitView.Horizontal()
+                                .left(left)
+                                .right(center)
+                                .setPercentage(28)
+                                .setMinPercentage(1)
+                                .setMaxPercentage(99))
+                        .bottom(bottom)
+                        .setPercentage(75)
+                        .setMinPercentage(1)
+                        .setMaxPercentage(99))
+                .right(right)
+                .setPercentage(80)
+                .setMinPercentage(1)
+                .setMaxPercentage(99));
 
         ///  internal components
         initMenus();
-        initInspectorView();
-        initResourceView();
+        initLeftWindow();
+        initRightWindow();
+        initBottomWindow();
+        initCenterWindow();
     }
 
     /**
@@ -128,19 +126,17 @@ public class Editor extends UIElement {
         menuContainer.addChildren(fileMenu.createMenuTab(), viewMenu.createMenuTab());
     }
 
-    /**
-     * Initialize the inspector view here.
-     */
-    protected void initInspectorView() {
+    protected void initLeftWindow() {
+
+    }
+
+    protected void initRightWindow() {
         right.addView(inspectorView);
         // TODO remove test
         inspectorView.inspect(new TestConfigurators());
     }
 
-    /**
-     * Initialize the resource view here.
-     */
-    protected void initResourceView() {
+    protected void initBottomWindow() {
         bottom.addView(resourceView);
         resourceView.addResources(
                 new ColorsResource(),
@@ -150,6 +146,13 @@ public class Editor extends UIElement {
         );
     }
 
+    protected void initCenterWindow() {
+        center.addView(new UIEditorView(UI.of(new UIElement().layout(layout -> {
+            layout.setWidth(250);
+            layout.setHeight(250);
+            layout.setPadding(YogaEdge.ALL, 10);
+        }).addChildren(new Button(), new Button(), new Label()).style(style -> style.backgroundTexture(Sprites.BORDER)))));
+    }
 
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, Function<T, UIElement> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
@@ -173,33 +176,4 @@ public class Editor extends UIElement {
         }
     }
 
-    protected void onDragLeftBorder(UIEvent event) {
-        var mui = getModularUI();
-        if (mui != null) {
-            var screenWidth = mui.getWidth();
-            var percent = (event.x - mui.getLeftPos()) / (screenWidth - right.getSizeWidth());
-            left.layout(layout -> layout.setWidthPercent(Mth.clamp(percent * 100, 0, 100)));
-        }
-    }
-
-    protected void onDragRightBorder(UIEvent event) {
-        var mui = getModularUI();
-        if (mui != null) {
-            var screenWidth = mui.getWidth();
-            var leftWidth = left.getSizeWidth();
-            var percent = 1 - (event.x - mui.getLeftPos()) / screenWidth;
-            right.layout(layout -> layout.setWidthPercent(Mth.clamp(percent * 100, 0, 100)));
-            var leftPercent = leftWidth / (event.x - mui.getLeftPos());
-            left.layout(layout -> layout.setWidthPercent(Mth.clamp(leftPercent * 100, 0, 100)));
-        }
-    }
-
-    protected void onDragBottomBorder(UIEvent event) {
-        var mui = getModularUI();
-        if (mui != null) {
-            var screenHeight = mui.getHeight();
-            var percent = 1- (event.y - mui.getTopPos() - top.getSizeHeight()) / (screenHeight - top.getSizeHeight());
-            bottom.layout(layout -> layout.setHeightPercent(Mth.clamp(percent * 100, 0, 100)));
-        }
-    }
 }

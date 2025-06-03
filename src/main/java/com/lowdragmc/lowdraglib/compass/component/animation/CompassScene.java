@@ -316,7 +316,7 @@ public class CompassScene extends WidgetGroup implements ISceneBlockRenderHook, 
             }
 
             if (tickScene && useScene) {
-                world.tickWorld();
+                world.tickEntities();
             }
         }
     }
@@ -414,7 +414,8 @@ public class CompassScene extends WidgetGroup implements ISceneBlockRenderHook, 
     public void addEntity(EntityInfo entityInfo, @Nullable Vector3f pos, boolean update) {
         Entity entity = null;
         if (update) {
-            entity = world.entities.get(entityInfo.getId());
+            // todo
+//            entity = world.entities.get(entityInfo.getId());
         }
         entity = (entity == null && entityInfo.getEntityType() != null) ? entityInfo.getEntityType().create(world) : entity;
         if (entity == null && entityInfo.getEntityType() == EntityType.PLAYER) {
@@ -433,11 +434,12 @@ public class CompassScene extends WidgetGroup implements ISceneBlockRenderHook, 
     }
 
     public void removeEntity(EntityInfo entityInfo, boolean force) {
-        if (force) {
-            world.entities.remove(entityInfo.getId());
-        } else {
-            Optional.ofNullable(world.entities.get(entityInfo.getId())).ifPresent(Entity::discard);
-        }
+        // todo
+//        if (force) {
+//            world.entities.remove(entityInfo.getId());
+//        } else {
+//            Optional.ofNullable(world.entities.get(entityInfo.getId())).ifPresent(Entity::discard);
+//        }
     }
 
 

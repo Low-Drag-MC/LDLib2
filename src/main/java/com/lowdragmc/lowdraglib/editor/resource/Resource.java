@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.editor.resource;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -17,6 +18,10 @@ import net.minecraft.network.chat.Component;
 public abstract class Resource<T> {
     @Getter
     protected final List<ResourceProvider<T>> providers = new ArrayList<>();
+    @Getter @Setter
+    private boolean isList = false;
+    @Getter @Setter
+    private int uiWidth = 30;
 
     public Resource() {
     }

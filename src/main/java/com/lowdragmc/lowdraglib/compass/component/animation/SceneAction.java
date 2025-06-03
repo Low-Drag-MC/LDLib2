@@ -131,12 +131,7 @@ public class SceneAction extends Action {
     public void performAction(AnimationFrame frame, CompassScene scene, boolean anima) {
         for (Tuple<BlockAnima, BlockInfo> tuple : addedBlocks) {
             var blockInfo = tuple.getB();
-            blockInfo.clearBlockEntityCache();
             scene.addBlock(tuple.getA().pos(), blockInfo, anima ? tuple.getA() : null);
-        }
-
-        for (BlockInfo blockInfo : modifiedTags.values()) {
-            blockInfo.clearBlockEntityCache();
         }
 
         for (var block : removedBlocks) {

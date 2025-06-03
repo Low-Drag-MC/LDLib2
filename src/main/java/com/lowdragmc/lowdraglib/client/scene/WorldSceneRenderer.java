@@ -11,6 +11,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -62,8 +63,8 @@ import static net.minecraft.world.level.block.RenderShape.INVISIBLE;
  * @date 2022/05/25
  * @implNote render a scene, through VBO compilation scene, greatly optimize rendering performance.
  */
-@SuppressWarnings("ALL")
 @OnlyIn(Dist.CLIENT)
+@Accessors(chain = true)
 public abstract class WorldSceneRenderer {
     protected static final FloatBuffer MODELVIEW_MATRIX_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
     protected static final FloatBuffer PROJECTION_MATRIX_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
@@ -71,7 +72,7 @@ public abstract class WorldSceneRenderer {
     protected static final FloatBuffer PIXEL_DEPTH_BUFFER = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asFloatBuffer();
     protected static final FloatBuffer OBJECT_POS_BUFFER = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
     enum CacheState {
-        UNUSED,
+        UNCREATED,
         NEED,
         COMPILING,
         COMPILED
@@ -79,8 +80,10 @@ public abstract class WorldSceneRenderer {
 
     public final Level world;
     public final Map<Collection<BlockPos>, ISceneBlockRenderHook> renderedBlocksMap;
+    @Nullable
     protected VertexBuffer[] vertexBuffers;
     protected Set<BlockPos> tileEntities;
+    @Getter
     protected boolean useCache;
     @Getter @Setter
     protected boolean endBatchLast = false;// if true, endBatch will be called after all rendering
@@ -89,33 +92,47 @@ public abstract class WorldSceneRenderer {
     protected int maxProgress;
     protected int progress;
     protected Thread thread;
+    @Getter
     protected ParticleManager particleManager;
     protected Camera camera;
     protected CameraEntity cameraEntity;
-    private Consumer<WorldSceneRenderer> beforeRender;
-    private Consumer<WorldSceneRenderer> afterRender;
+    @Setter @Nullable
+    private Consumer<WorldSceneRenderer> beforeWorldRender;
+    @Setter @Nullable
+    private Consumer<WorldSceneRenderer> afterWorldRender;
     @Setter @Nullable
     private BiConsumer<MultiBufferSource, Float> beforeBatchEnd;
+    @Setter @Nullable
     private Consumer<BlockHitResult> onLookingAt;
     @Setter @Nullable
     private ISceneEntityRenderHook sceneEntityRenderHook;
-    protected int clearColor;
     @Getter
     private Vector3f lastHit;
     @Getter
     private BlockHitResult lastTraceResult;
+    @Setter
     private Set<BlockPos> blocked;
-    private Vector3f eyePos = new Vector3f(0, 0, 10f);
-    private Vector3f lookAt = new Vector3f(0, 0, 0);
-    private Vector3f worldUp = new Vector3f(0, 1, 0);
     @Getter
+    private Vector3f eyePos = new Vector3f(0, 0, 10f);
+    @Getter
+    private Vector3f lookAt = new Vector3f(0, 0, 0);
+    @Getter
+    private Vector3f worldUp = new Vector3f(0, 1, 0);
+    @Getter @Setter
     private float fov = 60f;
     private float minX, maxX, minY, maxY, minZ, maxZ;
 
     public WorldSceneRenderer(Level world) {
         this.world = world;
         renderedBlocksMap = new LinkedHashMap<>();
-        cacheState = new AtomicReference<>(CacheState.UNUSED);
+        cacheState = new AtomicReference<>(CacheState.UNCREATED);
+    }
+
+    /**
+     * Release all resources used by this renderer. this should be called in the render thread.
+     */
+    public void releaseResource() {
+        deleteCacheBuffer();
     }
 
     public WorldSceneRenderer setParticleManager(ParticleManager particleManager) {
@@ -136,26 +153,12 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
-    public ParticleManager getParticleManager() {
-        return particleManager;
-    }
-
     public WorldSceneRenderer useCacheBuffer(boolean useCache) {
         if (this.useCache || !Minecraft.getInstance().isSameThread()) return this;
-        deleteCacheBuffer();
-        if (useCache) {
-            List<RenderType> layers = RenderType.chunkBufferLayers();
-            this.vertexBuffers = new VertexBuffer[layers.size()];
-            for (int j = 0; j < layers.size(); ++j) {
-                this.vertexBuffers[j] = new VertexBuffer(VertexBuffer.Usage.STATIC);
-            }
-            if (cacheState.get() == CacheState.COMPILING && thread != null) {
-                thread.interrupt();
-                thread = null;
-            }
-            cacheState.set(CacheState.NEED);
-        }
         this.useCache = useCache;
+        if (!useCache) {
+            deleteCacheBuffer();
+        }
         return this;
     }
 
@@ -165,39 +168,44 @@ public abstract class WorldSceneRenderer {
     }
 
     public WorldSceneRenderer deleteCacheBuffer() {
-        if (useCache) {
+        if (vertexBuffers != null) {
             for (int i = 0; i < RenderType.chunkBufferLayers().size(); ++i) {
                 if (this.vertexBuffers[i] != null) {
                     this.vertexBuffers[i].close();
                 }
             }
-            if (cacheState.get() == CacheState.COMPILING && thread != null) {
+            if (thread != null) {
                 thread.interrupt();
                 thread = null;
             }
+            this.vertexBuffers = null;
         }
         this.tileEntities = null;
-        useCache = false;
-        cacheState.set(CacheState.UNUSED);
+        cacheState.set(CacheState.UNCREATED);
         return this;
     }
 
+    protected void makeSureCacheBufferCreated() {
+        if (vertexBuffers == null) {
+            List<RenderType> layers = RenderType.chunkBufferLayers();
+            this.vertexBuffers = new VertexBuffer[layers.size()];
+            for (int j = 0; j < layers.size(); ++j) {
+                this.vertexBuffers[j] = new VertexBuffer(VertexBuffer.Usage.STATIC);
+            }
+            if (thread != null) {
+                thread.interrupt();
+                thread = null;
+            }
+            cacheState.set(CacheState.NEED);
+        }
+    }
+
     public WorldSceneRenderer needCompileCache() {
-        if (cacheState.get() == CacheState.COMPILING && thread != null) {
+        if (thread != null) {
             thread.interrupt();
             thread = null;
         }
         cacheState.set(CacheState.NEED);
-        return this;
-    }
-
-    public WorldSceneRenderer setBeforeWorldRender(Consumer<WorldSceneRenderer> callback) {
-        this.beforeRender = callback;
-        return this;
-    }
-
-    public WorldSceneRenderer setAfterWorldRender(Consumer<WorldSceneRenderer> callback) {
-        this.afterRender = callback;
         return this;
     }
 
@@ -206,24 +214,6 @@ public abstract class WorldSceneRenderer {
             this.renderedBlocksMap.put(blocks, renderHook);
         }
         return this;
-    }
-
-    public WorldSceneRenderer setBlocked(Set<BlockPos> blocked) {
-        this.blocked = blocked;
-        return this;
-    }
-
-    public WorldSceneRenderer setOnLookingAt(Consumer<BlockHitResult> onLookingAt) {
-        this.onLookingAt = onLookingAt;
-        return this;
-    }
-
-    public boolean isUseCache() {
-        return useCache;
-    }
-
-    public void setClearColor(int clearColor) {
-        this.clearColor = clearColor;
     }
 
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY) {
@@ -263,18 +253,6 @@ public abstract class WorldSceneRenderer {
         }
         // resetCamera
         resetCamera();
-    }
-
-    public Vector3f getEyePos() {
-        return eyePos;
-    }
-
-    public Vector3f getLookAt() {
-        return lookAt;
-    }
-
-    public Vector3f getWorldUp() {
-        return worldUp;
     }
 
     public void setCameraLookAt(Vector3f eyePos, Vector3f lookAt, Vector3f worldUp) {
@@ -361,7 +339,7 @@ public abstract class WorldSceneRenderer {
             RenderSystem.setProjectionMatrix(new Matrix4f().setPerspective(fov * 0.01745329238474369F, aspectRatio, 0.1f, 10000.0f), VertexSorting.byDistance(camera.getPosition().toVector3f()));
         }
 
-        //setup modelview matrix
+        //setup model view matrix
         Matrix4fStack posesStack = RenderSystem.getModelViewStack();
         posesStack.pushMatrix();
         posesStack.identity();
@@ -381,16 +359,11 @@ public abstract class WorldSceneRenderer {
     }
 
     protected void clearView(int x, int y, int width, int height) {
-        int i = (clearColor & 0xFF0000) >> 16;
-        int j = (clearColor & 0xFF00) >> 8;
-        int k = (clearColor & 0xFF);
-        RenderSystem.clearColor(i / 255.0f, j / 255.0f, k / 255.0f, (clearColor >> 24) / 255.0f);
+        RenderSystem.clearColor(0, 0, 0, 0);
         RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
     }
 
     protected void resetCamera() {
-        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
-
         //reset viewport
         Minecraft minecraft = Minecraft.getInstance();
         RenderSystem.viewport(0, 0, minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight());
@@ -407,12 +380,11 @@ public abstract class WorldSceneRenderer {
         RenderSystem.disableDepthTest();
         RenderSystem.enableBlend();
         ShaderManager.getInstance().clearViewPort();
-
     }
 
     protected void drawWorld() {
-        if (beforeRender != null) {
-            beforeRender.accept(this);
+        if (beforeWorldRender != null) {
+            beforeWorldRender.accept(this);
         }
 
         Minecraft mc = Minecraft.getInstance();
@@ -431,12 +403,7 @@ public abstract class WorldSceneRenderer {
                         PoseStack poseStack = new PoseStack();
 
                         if (layer == RenderType.translucent()) { // render tesr before translucent
-                            if (hook != null) {
-                                hook.apply(true, layer);
-                            } else {
-                                setDefaultRenderLayerState(null);
-                            }
-
+                            setDefaultRenderLayerState(null);
                             renderTESR(renderedBlocks, poseStack, buffers, hook, particleTicks);
 
                             if (hook != null || !endBatchLast) {
@@ -444,10 +411,9 @@ public abstract class WorldSceneRenderer {
                             }
                         }
 
+                        setDefaultRenderLayerState(layer);
                         if (hook != null) {
-                            hook.apply(false, layer);
-                        } else {
-                            setDefaultRenderLayerState(layer);
+                            hook.apply(layer);
                         }
 
                         var buffer = buffers.getBuffer(layer);
@@ -482,8 +448,8 @@ public abstract class WorldSceneRenderer {
             particleManager.render(poseStack, camera, particleTicks);
         }
 
-        if (afterRender != null) {
-            afterRender.accept(this);
+        if (afterWorldRender != null) {
+            afterWorldRender.accept(this);
         }
     }
 
@@ -500,7 +466,8 @@ public abstract class WorldSceneRenderer {
 
     private void renderCacheBuffer(Minecraft mc, MultiBufferSource.BufferSource buffers, float particleTicks) {
         List<RenderType> layers = RenderType.chunkBufferLayers();
-        if (cacheState.get() == CacheState.NEED) {
+        if (cacheState.get() == CacheState.NEED || cacheState.get() == CacheState.UNCREATED) {
+            makeSureCacheBufferCreated();
             progress = 0;
             maxProgress = renderedBlocksMap.keySet().stream().map(Collection::size).reduce(0, Integer::sum) * (layers.size() + 1);
             thread = new Thread(() -> {
@@ -554,8 +521,10 @@ public abstract class WorldSceneRenderer {
                 if (Thread.interrupted())
                     return;
                 tileEntities = poses;
-                cacheState.set(CacheState.COMPILED);
-                thread = null;
+                if (thread != null) {
+                    cacheState.set(CacheState.COMPILED);
+                    thread = null;
+                }
                 maxProgress = -1;
             });
             thread.start();
@@ -710,7 +679,7 @@ public abstract class WorldSceneRenderer {
     }
 
     private void renderEntities(TrackedDummyWorld level, PoseStack poseStack, MultiBufferSource buffer, @Nullable ISceneEntityRenderHook hook, float partialTicks) {
-        for (Entity entity : level.getAllEntities()) {
+        for (Entity entity : level.getAllRenderedEntities()) {
             poseStack.pushPose();
             if (entity.tickCount == 0) {
                 entity.xOld = entity.getX();
