@@ -132,6 +132,8 @@ public class Scene extends UIElement {
         this.useOrtho = useOrtho;
         if (renderer != null) {
             renderer.useOrtho(useOrtho);
+            renderer.setCameraOrtho(range * zoom, range * zoom, range * zoom);
+            renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         }
         return this;
     }

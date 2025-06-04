@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -17,6 +18,7 @@ public class ItemStackTexture extends TransformTexture {
     public ItemStack[] items;
     private int index = 0;
     private int ticks = 0;
+    @ConfigColor
     @Configurable(name = "ldlib.gui.editor.name.color")
     private int color = -1;
     private long lastTick;

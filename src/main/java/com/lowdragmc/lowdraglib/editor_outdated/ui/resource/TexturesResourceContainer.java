@@ -43,34 +43,34 @@ public class TexturesResourceContainer extends ResourceContainer<IGuiTexture, Im
     }
 
     private void openTextureConfigurator(Either<String, File> key, IGuiTexture current) {
-        if (resource.getResourceName(key).equals("empty") || !current.isLDLRegister()) return;
-        getPanel().getEditor().getConfigPanel().openConfigurator(ConfigPanel.Tab.RESOURCE, new IConfigurable() {
-            @Override
-            public void buildConfigurator(ConfiguratorGroup father) {
-                final var defaultHolder = current.getRegistryHolder();
-                var selectorConfigurator = new SelectorConfigurator<>(
-                        "ldlib.gui.editor.name.texture_type",
-                        () -> defaultHolder,
-                        holder -> {
-                            if (holder != defaultHolder) {
-                                var newTexture = holder.value().get();
-                                getResource().addResource(key, newTexture);
-                                getWidgets().get(key).setImage(newTexture);
-                                openTextureConfigurator(key, newTexture);
-                            }
-                        },
-                        defaultHolder,
-                        false,
-                        LDLibRegistries.GUI_TEXTURES.values().stream().filter(value -> {
-                            var name = value.annotation().name();
-                            return !name.equals("empty") && !name.equals("ui_resource_texture");
-                        }).toList(),
-                        holder -> holder.annotation().name()
-                );
-                selectorConfigurator.setTips("ldlib.gui.editor.tips.texture_type");
-                father.addConfigurators(selectorConfigurator);
-                current.buildConfigurator(father);
-            }
-        });
+//        if (resource.getResourceName(key).equals("empty") || !current.isLDLRegister()) return;
+//        getPanel().getEditor().getConfigPanel().openConfigurator(ConfigPanel.Tab.RESOURCE, new IConfigurable() {
+//            @Override
+//            public void buildConfigurator(ConfiguratorGroup father) {
+//                final var defaultHolder = current.getRegistryHolder();
+//                var selectorConfigurator = new SelectorConfigurator<>(
+//                        "ldlib.gui.editor.name.texture_type",
+//                        () -> defaultHolder,
+//                        holder -> {
+//                            if (holder != defaultHolder) {
+//                                var newTexture = holder.value().get();
+//                                getResource().addResource(key, newTexture);
+//                                getWidgets().get(key).setImage(newTexture);
+//                                openTextureConfigurator(key, newTexture);
+//                            }
+//                        },
+//                        defaultHolder,
+//                        false,
+//                        LDLibRegistries.GUI_TEXTURES.values().stream().filter(value -> {
+//                            var name = value.annotation().name();
+//                            return !name.equals("empty") && !name.equals("ui_resource_texture");
+//                        }).toList(),
+//                        holder -> holder.annotation().name()
+//                );
+//                selectorConfigurator.setTips("ldlib.gui.editor.tips.texture_type");
+//                father.addConfigurators(selectorConfigurator);
+//                current.buildConfigurator(father);
+//            }
+//        });
     }
 }

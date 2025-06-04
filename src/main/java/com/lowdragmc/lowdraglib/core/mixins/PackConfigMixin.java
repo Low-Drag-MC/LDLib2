@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.core.mixins;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.utils.CustomResourcePack;
 import net.minecraft.server.WorldLoader;
 import net.minecraft.server.packs.PackResources;
@@ -23,7 +24,7 @@ public abstract class PackConfigMixin {
     ))
     private List<PackResources> injectCreateReload(List<PackResources> resourcePacks) {
         var mutableList = new ArrayList<>(resourcePacks);
-        mutableList.add(new CustomResourcePack(LDLib.getAssetsDir(), LDLib.MOD_ID, PackType.SERVER_DATA));
+        mutableList.add(new CustomResourcePack(Platform.getGamePath().toFile(), LDLib.MOD_ID, PackType.SERVER_DATA));
         return mutableList;
     }
 

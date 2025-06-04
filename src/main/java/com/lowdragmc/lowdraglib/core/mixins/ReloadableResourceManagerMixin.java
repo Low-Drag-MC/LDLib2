@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib.core.mixins;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.client.model.custommodel.LDLMetadataSection;
 import com.lowdragmc.lowdraglib.gui.texture.ShaderTexture;
 import com.lowdragmc.lowdraglib.utils.CustomResourcePack;
@@ -27,7 +28,7 @@ public abstract class ReloadableResourceManagerMixin {
         }
         
         var mutableList = new ArrayList<>(resourcePacks);
-        mutableList.add(new CustomResourcePack(LDLib.getAssetsDir(), LDLib.MOD_ID, PackType.CLIENT_RESOURCES));
+        mutableList.add(new CustomResourcePack(Platform.getGamePath().toFile(), LDLib.MOD_ID, PackType.CLIENT_RESOURCES));
 
         return mutableList;
     }

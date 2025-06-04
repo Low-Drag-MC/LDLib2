@@ -1,25 +1,31 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
-import com.lowdragmc.lowdraglib.gui.ColorPattern;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.utils.PersistedParser;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
+import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaEdge;
+import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
@@ -88,11 +94,6 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
     @OnlyIn(Dist.CLIENT)
     void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
 
-    @OnlyIn(Dist.CLIENT)
-    default void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
-        draw(graphics, 0, 0, x, y, (int) width, (int) height, partialTicks);
-    }
-
     default IGuiTexture copy() {
         return CODEC.encodeStart(NbtOps.INSTANCE, this).result().map(tag -> CODEC.parse(NbtOps.INSTANCE, tag).result()
                 .orElse(IGuiTexture.MISSING_TEXTURE))
@@ -100,15 +101,53 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
     }
 
     // ***************** EDITOR  ***************** //
+    @OnlyIn(Dist.CLIENT)
     default void createPreview(ConfiguratorGroup father) {
-        father.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview",
-                new ImageWidget(0, 0, 100, 100, this)
-                        .setBorder(2, ColorPattern.T_WHITE.color)));
+        father.addConfigurators(new Configurator("ldlib.gui.editor.group.preview")
+                .addChild(new UIElement().layout(layout -> {
+                    layout.setAspectRatio(1.0f);
+                    layout.setWidthPercent(80);
+                    layout.setAlignSelf(YogaAlign.CENTER);
+                    layout.setPadding(YogaEdge.ALL, 3);
+                }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                        .addChild(new UIElement().layout(layout -> {
+                            layout.setWidthPercent(100);
+                            layout.setHeightPercent(100);
+                        }).style(style -> style.backgroundTexture(this)))));
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     default void buildConfigurator(ConfiguratorGroup father) {
         createPreview(father);
         IConfigurable.super.buildConfigurator(father);
+    }
+
+    @Nullable
+    default ResourceLocation getTextureFromFile(File filePath) {
+        String fullPath = filePath.getPath().replace('\\', '/');
+
+        // find the "assets/" directory in the path
+        var assetsIndex = fullPath.indexOf("assets/");
+        if (assetsIndex == -1) {
+            return null;
+        }
+
+        var relativePath = fullPath.substring(assetsIndex + "assets/".length());
+
+        // find mod_id
+        int slashIndex = relativePath.indexOf('/');
+        if (slashIndex == -1) {
+            return null;
+        }
+
+        var modId = relativePath.substring(0, slashIndex);
+        var subPath = relativePath.substring(slashIndex + 1);
+        var location = modId + ":" + subPath;
+
+        if (LDLib.isValidResourceLocation(location)) {
+            return ResourceLocation.parse(location);
+        }
+        return null;
     }
 }

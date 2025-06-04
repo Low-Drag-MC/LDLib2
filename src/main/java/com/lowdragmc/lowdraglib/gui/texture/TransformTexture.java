@@ -80,20 +80,7 @@ public abstract class TransformTexture implements IGuiTexture {
         postDraw(graphics, x, y, width, height);
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public final void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
-            preDraw(graphics, x, y, width, height);
-            drawSubAreaInternal(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight, partialTicks);
-            postDraw(graphics, x, y, width, height);
-    }
-
     @OnlyIn(Dist.CLIENT)
     protected abstract void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
-        drawInternal(graphics, 0, 0, x, y, width, height, partialTicks);
-    }
 
 }

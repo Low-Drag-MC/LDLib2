@@ -5,18 +5,13 @@ import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IItemRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.ColorPattern;
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.ui.Dialog;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.StringConfigurator;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.editor_outdated.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import net.minecraft.client.renderer.RenderType;
@@ -40,6 +35,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
+import org.appliedenergistics.yoga.YogaAlign;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,7 +47,7 @@ import java.util.function.Consumer;
 @LDLRegisterClient(name = "json_model", registry = "ldlib:renderer")
 public class IModelRenderer implements IRenderer {
     @Getter
-    @Configurable(forceUpdate = false)
+    @Configurable
     protected ResourceLocation modelLocation;
 
     @OnlyIn(Dist.CLIENT)
@@ -239,27 +235,22 @@ public class IModelRenderer implements IRenderer {
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         IRenderer.super.buildConfigurator(father);
-        var locationConfigurator = father.getConfigurators().stream()
-                .filter(configurator -> configurator instanceof StringConfigurator stringConfigurator && stringConfigurator.getName().equals("modelLocation"))
-                .map(configurator -> (StringConfigurator) configurator)
-                .findFirst();
-        father.addConfigurators(new WrapperConfigurator(wrapper -> new ButtonWidget(0, 0, 90, 10,
-                new GuiTextureGroup(ColorPattern.T_GRAY.rectTexture().setRadius(5), new TextTexture("ldlib.gui.editor.tips.select_model")), cd -> {
-            if (Editor.INSTANCE == null) return;
-            File path = new File(Editor.INSTANCE.getWorkSpace(), "models");
-            DialogWidget.showFileDialog(Editor.INSTANCE, "ldlib.gui.editor.tips.select_model", path, true,
-                    DialogWidget.suffixFilter(".json"), r -> {
-                        if (r != null && r.isFile()) {
-                            var newModel = getModelFromFile(path, r);
-                            if (newModel.equals(modelLocation)) return;
-                            locationConfigurator.ifPresent(stringConfigurator -> stringConfigurator.setValue(newModel.toString()));
-                            updateModelWithReloadingResource(newModel);
-                            wrapper.notifyChanges();
-                        }
-                    });
-        })).setRemoveTitleBar(true));
+        var buttonConfigurator = new Configurator();
+        father.addConfigurators(buttonConfigurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_model").setOnClick(e -> {
+            var mui = e.currentElement.getModularUI();
+            if (mui == null) return;
+            Dialog.showFileDialog("ldlib.gui.editor.tips.select_model", LDLib.getAssetsDir(), true, Dialog.suffixFilter(".json"), r -> {
+                if (r != null && r.isFile()) {
+                    var newModel = getModelFromFile(LDLib.getAssetsDir(), r);
+                    if (newModel.equals(modelLocation)) return;
+                    updateModelWithReloadingResource(newModel);
+                    buttonConfigurator.notifyChanges();
+                }
+            }).show(mui.ui.rootElement);
+        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))));
     }
 
     private static ResourceLocation getModelFromFile(File path, File r){

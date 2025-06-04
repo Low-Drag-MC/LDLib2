@@ -20,6 +20,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaJustify;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class Toggle extends BindableUIElement<Boolean> {
     public Toggle() {
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
         getLayout().setAlignItems(YogaAlign.CENTER);
-        getLayout().setPadding(YogaEdge.ALL, 2);
+        getLayout().setPadding(YogaEdge.ALL, 1);
         getLayout().setHeight(14);
 
         this.toggleButton = new Button();
@@ -69,8 +70,9 @@ public class Toggle extends BindableUIElement<Boolean> {
                         .defaultTexture(toggleStyle.baseTexture())
                         .hoverTexture(toggleStyle.hoverTexture())
                         .pressedTexture(toggleStyle.hoverTexture()))
-                .setText("")
+                .noText()
                 .layout(layout -> {
+                    layout.setPadding(YogaEdge.ALL, 0);
                     layout.setWidth(12);
                     layout.setHeight(12);
                 })

@@ -262,7 +262,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
                 clickEvent.y = (float) mouseY;
                 clickEvent.button = button;
                 clickEvent.target = releasedElement;
-                UIEventDispatcher. dispatchEvent(clickEvent);
+                UIEventDispatcher.dispatchEvent(clickEvent);
                 if (lastMouseClickElement == releasedElement && button == lastMouseClickButton) {
                     if (System.currentTimeMillis() - lastMouseClickTime < 300) { // 300ms follow HTML5 spec
                         var doubleClickEvent = UIEvent.create(UIEvents.DOUBLE_CLICK);

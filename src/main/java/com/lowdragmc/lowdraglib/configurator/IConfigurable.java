@@ -2,6 +2,8 @@ package com.lowdragmc.lowdraglib.configurator;
 
 import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegister;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * @author KilaBash
@@ -18,6 +20,7 @@ public interface IConfigurable {
      * Add configurators into given group
      * @param father father group
      */
+    @OnlyIn(Dist.CLIENT)
     default void buildConfigurator(ConfiguratorGroup father) {
         ConfiguratorParser.createConfigurators(father, this);
     }

@@ -37,6 +37,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.model.data.ModelData;
+import org.checkerframework.checker.units.qual.C;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;
@@ -94,8 +95,8 @@ public abstract class WorldSceneRenderer {
     protected Thread thread;
     @Getter
     protected ParticleManager particleManager;
-    protected Camera camera;
-    protected CameraEntity cameraEntity;
+    protected final Camera camera = new Camera();
+    protected final CameraEntity cameraEntity;
     @Setter @Nullable
     private Consumer<WorldSceneRenderer> beforeWorldRender;
     @Setter @Nullable
@@ -126,6 +127,7 @@ public abstract class WorldSceneRenderer {
         this.world = world;
         renderedBlocksMap = new LinkedHashMap<>();
         cacheState = new AtomicReference<>(CacheState.UNCREATED);
+        cameraEntity = new CameraEntity(world);
     }
 
     /**
@@ -136,19 +138,10 @@ public abstract class WorldSceneRenderer {
     }
 
     public WorldSceneRenderer setParticleManager(ParticleManager particleManager) {
-        if (particleManager == null) {
-            this.particleManager = null;
-            this.camera = null;
-            this.cameraEntity = null;
-            return this;
-        }
         this.particleManager = particleManager;
         if (this.world instanceof DummyWorld dummyWorld) {
             dummyWorld.setParticleManager(particleManager);
         }
-        this.particleManager.setLevel(world);
-        this.camera = new Camera();
-        this.cameraEntity = new CameraEntity(world);
         setCameraLookAt(eyePos, lookAt, worldUp);
         return this;
     }
@@ -209,7 +202,7 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
-    public WorldSceneRenderer addRenderedBlocks(Collection<BlockPos> blocks, ISceneBlockRenderHook renderHook) {
+    public WorldSceneRenderer addRenderedBlocks(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook) {
         if (blocks != null) {
             this.renderedBlocksMap.put(blocks, renderHook);
         }
@@ -259,22 +252,20 @@ public abstract class WorldSceneRenderer {
         this.eyePos = eyePos;
         this.lookAt = lookAt;
         this.worldUp = worldUp;
-        if (camera != null) {
-            Vector3f xzProduct = new Vector3f(lookAt.x() - eyePos.x(), 0, lookAt.z() - eyePos.z());
-            double angleYaw = Math.toDegrees(xzProduct.angle(new Vector3f(0, 0, 1)));
-            if (xzProduct.angle(new Vector3f(1, 0, 0)) < Math.PI / 2) {
-                angleYaw = -angleYaw;
-            }
-            double anglePitch = Math.toDegrees(new Vector3f(lookAt).sub(new Vector3f(eyePos)).angle(new Vector3f(0, 1, 0))) - 90;
-            cameraEntity.setPos(eyePos.x(), eyePos.y() - cameraEntity.getEyeHeight(), eyePos.z());
-            cameraEntity.xo = cameraEntity.getX();
-            cameraEntity.yo = cameraEntity.getY();
-            cameraEntity.zo = cameraEntity.getZ();
-            cameraEntity.setYRot((float) angleYaw);
-            cameraEntity.setXRot((float) anglePitch);
-            cameraEntity.yRotO = cameraEntity.getYRot();
-            cameraEntity.xRotO = cameraEntity.getXRot();
+        Vector3f xzProduct = new Vector3f(lookAt.x() - eyePos.x(), 0, lookAt.z() - eyePos.z());
+        double angleYaw = Math.toDegrees(xzProduct.angle(new Vector3f(0, 0, 1)));
+        if (xzProduct.angle(new Vector3f(1, 0, 0)) < Math.PI / 2) {
+            angleYaw = -angleYaw;
         }
+        double anglePitch = Math.toDegrees(new Vector3f(lookAt).sub(new Vector3f(eyePos)).angle(new Vector3f(0, 1, 0))) - 90;
+        cameraEntity.setPos(eyePos.x(), eyePos.y() - cameraEntity.getEyeHeight(), eyePos.z());
+        cameraEntity.xo = cameraEntity.getX();
+        cameraEntity.yo = cameraEntity.getY();
+        cameraEntity.zo = cameraEntity.getZ();
+        cameraEntity.setYRot((float) angleYaw);
+        cameraEntity.setXRot((float) anglePitch);
+        cameraEntity.yRotO = cameraEntity.getYRot();
+        cameraEntity.xRotO = cameraEntity.getXRot();
     }
 
     public void setCameraLookAt(Vector3f lookAt, double radius, double rotationPitch, double rotationYaw) {
@@ -282,10 +273,6 @@ public abstract class WorldSceneRenderer {
         Vector3f vecY = new Vector3f(0, (float) (Math.tan(rotationYaw) * vecX.length()), 0);
         Vector3f pos = new Vector3f(vecX).add(vecY).normalize().mul((float) radius);
         setCameraLookAt(pos.add(lookAt.x(), lookAt.y(), lookAt.z()), lookAt, worldUp);
-    }
-
-    public void setFov(float fov) {
-        this.fov = fov;
     }
 
     public void setCameraOrtho(float x, float y, float z) {
@@ -332,7 +319,9 @@ public abstract class WorldSceneRenderer {
         //setup projection matrix to perspective
         RenderSystem.backupProjectionMatrix();
 
+        Minecraft mc = Minecraft.getInstance();
         float aspectRatio = width / (height * 1.0f);
+        camera.setup(world, cameraEntity, false, false, mc.getTimer().getGameTimeDeltaPartialTick(false));
         if (ortho) {
             RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(minX, maxX, minY / aspectRatio, maxY / aspectRatio, minZ, maxZ), VertexSorting.byDistance(camera.getPosition().toVector3f()));
         } else {
@@ -348,12 +337,8 @@ public abstract class WorldSceneRenderer {
 
         RenderSystem.activeTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
 
-        Minecraft mc = Minecraft.getInstance();
         RenderSystem.enableCull();
 
-        if (camera != null) {
-            camera.setup(world, cameraEntity, false, false, mc.getTimer().getGameTimeDeltaPartialTick(false));
-        }
         ShaderManager.getInstance().setViewPort(viewport);
 
     }

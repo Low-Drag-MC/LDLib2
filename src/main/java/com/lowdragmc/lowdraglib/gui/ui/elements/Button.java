@@ -10,12 +10,14 @@ import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import dev.latvian.mods.rhino.util.HideFromJS;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
-import org.appliedenergistics.yoga.YogaEdge;
+import net.minecraft.network.chat.Component;
+import org.appliedenergistics.yoga.*;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -25,7 +27,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class Button extends TextElement {
+public class Button extends UIElement {
     @Accessors(chain = true, fluent = true)
     public static class ButtonStyle extends Style {
         @Getter
@@ -47,6 +49,7 @@ public class Button extends TextElement {
         HOVERED,
         PRESSED
     }
+    public final TextElement text = new TextElement();
     @Getter
     private final ButtonStyle buttonStyle = new ButtonStyle(this);
     @Nullable
@@ -57,17 +60,54 @@ public class Button extends TextElement {
 
     public Button() {
         super();
-        getLayout().setWidth(60);
+        getLayout().setFlexDirection(YogaFlexDirection.ROW);
         getLayout().setHeight(14);
-        getTextStyle()
+        getLayout().setPadding(YogaEdge.ALL, 2);
+        getLayout().setWidthFitContent();
+        getLayout().setAlignSelf(YogaAlign.FLEX_START);
+        getLayout().setJustifyContent(YogaJustify.CENTER);
+
+        text.getLayout().setHeightPercent(100);
+        text.getLayout().setMargin(YogaEdge.HORIZONTAL, 2);
+        text.getTextStyle()
                 .textAlignHorizontal(Horizontal.CENTER)
-                .textAlignVertical(Vertical.CENTER);
+                .textAlignVertical(Vertical.CENTER)
+                .adaptiveWidth(true);
 
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.MOUSE_UP, this::onMouseUp);
         addEventListener(UIEvents.MOUSE_ENTER, this::onMouseEnter, true);
         addEventListener(UIEvents.MOUSE_LEAVE, this::onMouseLeave, true);
         setText("Button");
+
+        addChild(text);
+    }
+
+    public Button textStyle(Consumer<TextElement.TextStyle> style) {
+        text.textStyle(style);
+        return this;
+    }
+
+    public Button noText() {
+        text.setDisplay(YogaDisplay.NONE);
+        return this;
+    }
+
+    @HideFromJS
+    public Button setText(Component text) {
+        this.text.setText(text);
+        return this;
+    }
+
+    @HideFromJS
+    public Button setText(String text) {
+        this.text.setText(text);
+        return this;
+    }
+
+    public Button setText(String text, boolean translate) {
+        this.text.setText(text, translate);
+        return this;
     }
 
     public Button buttonStyle(Consumer<ButtonStyle> style) {

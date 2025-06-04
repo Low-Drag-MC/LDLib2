@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -12,6 +11,7 @@ import net.minecraft.client.gui.GuiGraphics;
  * @date 2022/12/3
  * @implNote WidgetDraggingTexture
  */
+@Deprecated
 public class WidgetTexture extends TransformTexture{
     private final Widget widget;
     private int centerX;

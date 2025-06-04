@@ -41,14 +41,6 @@ public class GuiTextureGroup extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    protected void drawSubAreaInternal(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
-        for (IGuiTexture texture : textures) {
-            texture.drawSubArea(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight, partialTicks);
-        }
-    }
-
     @Override
     public IGuiTexture copy() {
         return new GuiTextureGroup(textures);

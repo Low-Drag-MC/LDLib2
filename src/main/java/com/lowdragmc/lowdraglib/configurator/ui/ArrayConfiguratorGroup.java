@@ -131,11 +131,12 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     }
 
     @Override
-    public void setCollapse(boolean collapse) {
+    public ArrayConfiguratorGroup<T> setCollapse(boolean collapse) {
         super.setCollapse(collapse);
         if (buttonGroup != null) {
             buttonGroup.setDisplay(collapse ? YogaDisplay.NONE : YogaDisplay.FLEX);
         }
+        return this;
     }
 
     public void notifyListUpdate() {

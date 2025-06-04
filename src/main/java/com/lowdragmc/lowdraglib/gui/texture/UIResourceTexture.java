@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor_outdated.data.resource.Resource;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
@@ -66,12 +66,6 @@ public final class UIResourceTexture implements IGuiTexture, IPersistedSerializa
     @OnlyIn(Dist.CLIENT)
     public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         getTexture().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawSubArea(GuiGraphics graphics, float x, float y, float width, float height, float drawnU, float drawnV, float drawnWidth, float drawnHeight, float partialTicks) {
-        getTexture().drawSubArea(graphics, x, y, width, height, drawnU, drawnV, drawnWidth, drawnHeight, partialTicks);
     }
 
     @Override

@@ -43,15 +43,12 @@ public class ProgressTexture extends TransformTexture {
 
     @OnlyIn(Dist.CLIENT)
     public void updateTick() {
-        if (Minecraft.getInstance().level != null) {
+        if (demo && Minecraft.getInstance().level != null) {
             long tick = Minecraft.getInstance().level.getGameTime();
             if (tick == lastTick) return;
             lastTick = tick;
-            if (demo) {
-                progress = Math.abs(System.currentTimeMillis() % 2000) / 2000.0;
-            }
+            progress = Math.abs(System.currentTimeMillis() % 2000) / 2000.0;
         }
-
     }
 
     public ProgressTexture(IGuiTexture emptyBarArea, IGuiTexture filledBarArea) {
@@ -85,9 +82,9 @@ public class ProgressTexture extends TransformTexture {
             float W = width * drawnWidth;
             float H = height * drawnHeight;
 
-            filledBarArea.drawSubArea(graphics, X, Y, W, H, drawnU, drawnV,
-                    ((drawnWidth * width)) / (width),
-                    ((drawnHeight * height)) / (height), partialTicks);
+//            filledBarArea.drawSubArea(graphics, X, Y, W, H, drawnU, drawnV,
+//                    ((drawnWidth * width)) / (width),
+//                    ((drawnHeight * height)) / (height), partialTicks);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib;
 
+import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib.gui.factory.*;
 import com.lowdragmc.lowdraglib.integration.kjs.ui.BlockUIJSFactory;
 import com.lowdragmc.lowdraglib.integration.kjs.ui.ItemUIJSFactory;
@@ -45,6 +46,7 @@ public class CommonProxy {
             BLOCKS.register("test_2", () -> NoRendererTestBlock.BLOCK);
             ITEMS.register("test_2", () -> new BlockItem(NoRendererTestBlock.BLOCK, new Item.Properties()));
         }
+        BLOCKS.register("renderer_block", () -> RendererBlock.BLOCK);
 
         // used for forge events (ClientProxy + CommonProxy)
         // eventBus.register(this); //TODO: uncomment if @SubscribeEvent is used in this class

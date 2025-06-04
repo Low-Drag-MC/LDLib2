@@ -115,7 +115,7 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
                     // avoid bauble event propagation
                     e.stopPropagation();
                     Util.getPlatform().openFile(resourceLocation);
-                }).setText("").layout(layout -> {
+                }).noText().layout(layout -> {
                     layout.setWidth(7);
                     layout.setHeight(7);
                 }).style(style -> style.setTooltips("ldlib.gui.tips.open_folder"))

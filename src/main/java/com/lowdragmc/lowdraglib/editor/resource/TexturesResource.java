@@ -60,6 +60,11 @@ public class TexturesResource extends Resource<IGuiTexture> {
                     layout.setWidthPercent(100);
                     layout.setHeightPercent(100);
                 }).style(style -> style.backgroundTexture(provider.getResource(path))));
+        container.setOnEdit((c, path) -> {
+            var texture = provider.getResource(path);
+            if (texture == null) return;
+            c.getEditor().inspectorView.inspect(texture, configurator -> c.markResourceDirty(path));
+        });
         if (provider.supportAdd()) {
             container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
                 for (var holder : LDLibRegistries.GUI_TEXTURES) {

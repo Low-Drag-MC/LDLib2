@@ -309,11 +309,11 @@ public class Dialog extends UIElement {
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(textField.layout(layout -> layout.setFlex(1)), new Button().setOnClick(e -> {
             Util.getPlatform().openFile(dir.isDirectory() ? dir : dir.getParentFile());
-        }).setText("").layout(layout -> {
+        }).noText().layout(layout -> {
             layout.setWidth(14);
             layout.setHeight(14);
             layout.setPadding(YogaEdge.ALL, 3);
-        }).addChild(new UIElement().layout(layout -> layout.setHeightPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
+        }).addChild(new UIElement().layout(layout -> layout.setWidthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
         dialog.addContent(new ScrollerView().addScrollViewChild(treeList
                 .setOnSelected(node -> {
                     if (isSelector) {
@@ -375,6 +375,21 @@ public class Dialog extends UIElement {
                 .setOnClick(e -> dialog.close())
                 .setText("ldlib.gui.tips.cancel"));
         return dialog;
+    }
+
+    /**
+     * Creates a predicate that filters out nodes based on their suffixes.
+     * @param suffixes the suffixes to filter out, e.g. ".txt", ".jpg"
+     */
+    public static Predicate<TreeNode<File, File>> suffixFilter(String... suffixes) {
+        return node -> {
+            for (String suffix : suffixes) {
+                if (!(node.isLeaf() && node.getContent().isFile() && !node.getContent().getName().toLowerCase().endsWith(suffix.toLowerCase()))) {
+                    return true;
+                }
+            }
+            return false;
+        };
     }
 
 }

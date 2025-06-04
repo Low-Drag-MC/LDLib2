@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib.gui.ui.event;
 
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+
 public interface UIEvents {
     /// Mouse Events
     /**
@@ -94,6 +96,7 @@ public interface UIEvents {
      */
     String FOCUS_OUT = "focusOut";
 
+
     /// Keyboard Events
     /**
      * The {@code keyDown} is sent when the user presses a key on the keyboard.
@@ -116,4 +119,15 @@ public interface UIEvents {
      * The {@code layoutChanged} is sent when the layout of an element changes.
      */
     String LAYOUT_CHANGED = "layoutChanged";
+    /**
+     * The {@code removed} is sent when the element is removed from the UI tree.
+     */
+    String REMOVED = "removed";
+
+
+    /// Lifecycle Events
+    /**
+     * The {@code tick} is sent per tick when the element is {@link UIElement#isActive()} and {@link UIElement#isDisplayed()}.
+     */
+    String TICK = "tick";
 }

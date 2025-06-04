@@ -119,6 +119,13 @@ public class UIElement {
         for (var child : children) {
             child.onRemoved();
         }
+        if (bubbleListeners.containsKey(UIEvents.REMOVED) || captureListeners.containsKey(UIEvents.REMOVED)) {
+            var event = UIEvent.create(UIEvents.REMOVED);
+            event.target = this;
+            event.hasBubblePhase = false;
+            event.hasCapturePhase = false;
+            UIEventDispatcher.dispatchEvent(event);
+        }
     }
 
     /// Layout
@@ -175,11 +182,13 @@ public class UIElement {
      */
     protected void onLayoutChanged() {
         clearLayoutCache();
-        var event = UIEvent.create(UIEvents.LAYOUT_CHANGED);
-        event.target = this;
-        event.hasBubblePhase = false;
-        event.hasCapturePhase = false;
-        UIEventDispatcher.dispatchEvent(event);
+        if (bubbleListeners.containsKey(UIEvents.LAYOUT_CHANGED) || captureListeners.containsKey(UIEvents.LAYOUT_CHANGED)) {
+            var event = UIEvent.create(UIEvents.LAYOUT_CHANGED);
+            event.target = this;
+            event.hasBubblePhase = false;
+            event.hasCapturePhase = false;
+            UIEventDispatcher.dispatchEvent(event);
+        }
     }
 
     /**
@@ -280,6 +289,58 @@ public class UIElement {
         return getPaddingHeight() - layoutNode.getLayoutPadding(YogaEdge.TOP) - layoutNode.getLayoutPadding(YogaEdge.BOTTOM);
     }
 
+    /**
+     * Adapt the position of the element to be within the screen.
+     */
+    public void adaptPositionToScreen() {
+        var mui = getModularUI();
+        if (mui != null) {
+            // if outside the screen, move it back to the screen
+            var screenWidth = mui.getScreenWidth();
+            var screenHeight = mui.getScreenHeight();
+            var x = getPositionX();
+            var y = getPositionY();
+            var width = getSizeWidth();
+            var height = getSizeHeight();
+            // check head out of screen
+            if (y < 0) {
+                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() - y));
+            } else if (y + height > screenHeight) {
+                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() + screenHeight - (y + height)));
+            }
+            if (x < 0) {
+                layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - x));
+            } else if (x + width > screenWidth) {
+                if (x > width) {
+                    // move to the left first
+                    layout(layout -> layout.setPosition(YogaEdge.LEFT, 0 - width));
+                } else {
+                    layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
+                }
+            }
+        }
+    }
+
+    public void adaptPositionToElement(UIElement element) {
+        var elementX = element.getContentX();
+        var elementY = element.getContentY();
+        var elementWidth = element.getContentWidth();
+        var elementHeight = element.getContentHeight();
+        var x = getPositionX();
+        var y = getPositionY();
+        // check head out of parent
+        if (y < elementY) {
+            layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() - (y - elementY)));
+        } else if (y + getSizeHeight() > elementY + elementHeight) {
+            layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() + (elementY + elementHeight - (y + getSizeHeight()))));
+        }
+        if (x < elementX) {
+            layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - (x - elementX)));
+        } else if (x + getSizeWidth() > elementX + elementWidth) {
+            layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + (elementX + elementWidth - (x + getSizeWidth()))));
+        }
+    }
+    
     /// Structure
     @Nullable
     public UIElement getParent() {
@@ -652,6 +713,13 @@ public class UIElement {
                 waitToAdded.forEach(this::addChild);
                 waitToAdded.clear();
             }
+        }
+        if (bubbleListeners.containsKey(UIEvents.TICK) || captureListeners.containsKey(UIEvents.TICK)) {
+            var event = UIEvent.create(UIEvents.TICK);
+            event.target = this;
+            event.hasBubblePhase = false;
+            event.hasCapturePhase = false;
+            UIEventDispatcher.dispatchEvent(event);
         }
     }
 

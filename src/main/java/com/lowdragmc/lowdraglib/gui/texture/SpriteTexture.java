@@ -2,9 +2,16 @@ package com.lowdragmc.lowdraglib.gui.texture;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
+import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.gui.ui.Dialog;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -22,13 +29,15 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaEdge;
 import org.joml.Matrix4f;
 
 import javax.annotation.Nullable;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
-@LDLRegisterClient(name = "shader_texture", registry = "ldlib:sprite_texture")
+@LDLRegisterClient(name = "sprite_texture", registry = "ldlib:gui_texture")
 @Accessors(chain = true)
 public class SpriteTexture extends TransformTexture {
     public enum WrapMode {
@@ -37,19 +46,23 @@ public class SpriteTexture extends TransformTexture {
         MIRRORED_REPEAT
     }
 
-    @Configurable(name = "ldlib.gui.editor.name.resource", forceUpdate = false)
+    @Configurable(name = "ldlib.gui.editor.name.resource")
     @Getter
     private ResourceLocation imageLocation = LDLib.id("textures/gui/icon.png");
     @Configurable
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Setter
     public Position spritePosition = Position.of(0, 0);
     @Configurable
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Setter
-    public Size spriteSize = Size.of(1, 1);
+    public Size spriteSize = Size.of(0, 0);
     @Configurable
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Setter
     public Position borderLT = Position.of(0, 0);
     @Configurable
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Setter
     public Position borderRB = Position.of(0, 0);
     @Configurable
@@ -58,11 +71,16 @@ public class SpriteTexture extends TransformTexture {
     @Configurable
     @Setter
     public WrapMode wrapMode = WrapMode.CLAMP;
+    // runtime
     @Nullable
     private Size imageSizeCache;
 
     public static SpriteTexture of(ResourceLocation imageLocation) {
         return new SpriteTexture().setImageLocation(imageLocation);
+    }
+
+    public static SpriteTexture of(String imageLocation) {
+        return of(ResourceLocation.parse(imageLocation));
     }
 
     @ConfigSetter(field = "imageLocation")
@@ -72,12 +90,30 @@ public class SpriteTexture extends TransformTexture {
         return this;
     }
 
+    /**
+     * Sets the sprite position and size.
+     *
+     * @param x      The x position of the sprite in the image.
+     * @param y      The y position of the sprite in the image.
+     * @param width  The width of the sprite in pixels.
+     * @param height The height of the sprite in pixels.
+     * @return This SpriteTexture instance for chaining.
+     */
     public SpriteTexture setSprite(int x, int y, int width, int height) {
         this.spritePosition = Position.of(x, y);
         this.spriteSize = Size.of(width, height);
         return this;
     }
 
+    /**
+     * Sets the border size for the sprite.
+     *
+     * @param left   The left border size in pixels.
+     * @param top    The top border size in pixels.
+     * @param right  The right border size in pixels.
+     * @param bottom The bottom border size in pixels.
+     * @return This SpriteTexture instance for chaining.
+     */
     public SpriteTexture setBorder(int left, int top, int right, int bottom) {
         this.borderLT = Position.of(left, top);
         this.borderRB = Position.of(right, bottom);
@@ -88,8 +124,12 @@ public class SpriteTexture extends TransformTexture {
     @OnlyIn(Dist.CLIENT)
     public Size getImageSize() {
         if (imageSizeCache == null) {
-            var abstracttexture = Minecraft.getInstance().getTextureManager().getTexture(imageLocation);
-            imageSizeCache = abstracttexture instanceof ITextureSize textureSize ? Size.of(textureSize.ldlib$getImageWidth(), textureSize.ldlib$getImageHeight()) : Size.of(0, 0);
+            try {
+                imageSizeCache = Minecraft.getInstance().getTextureManager().getTexture(imageLocation) instanceof ITextureSize textureSize ?
+                        Size.of(textureSize.ldlib$getImageWidth(), textureSize.ldlib$getImageHeight()) : Size.of(0, 0);
+            } catch (Exception e) {
+                imageSizeCache = Size.of(0, 0);
+            }
         }
         return imageSizeCache;
     }
@@ -103,6 +143,11 @@ public class SpriteTexture extends TransformTexture {
         var poseStack = graphics.pose();
 
         var imageSize = getImageSize();
+        var spriteSize = this.spriteSize;
+        // if the sprite size is not set, use the image size
+        if (spriteSize.getWidth() <= 0 || spriteSize.getHeight() <= 0) {
+            spriteSize = imageSize;
+        }
         // uv
         float uStart = spritePosition.getX() * 1f / imageSize.getWidth();
         float vStart = spritePosition.getY() * 1f / imageSize.getHeight();
@@ -224,5 +269,84 @@ public class SpriteTexture extends TransformTexture {
         buffer.addVertex(matrix, x + w, y + h, 0).setUv(u2, v2).setColor(r, g, b, a);
         buffer.addVertex(matrix, x + w, y, 0).setUv(u2, v1).setColor(r, g, b, a);
         buffer.addVertex(matrix, x, y, 0).setUv(u1, v1).setColor(r, g, b, a);
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void createPreview(ConfiguratorGroup father) {
+        super.createPreview(father);
+        var configurator = new Configurator("ldlib.gui.editor.group.base_image");
+        father.addConfigurators(configurator
+                .addChildren(
+                        // raw image preview
+                        new UIElement().layout(layout -> {
+                                    layout.setAspectRatio(1.0f);
+                                    layout.setWidthPercent(80);
+                                    layout.setPadding(YogaEdge.ALL, 3);
+                                    layout.setAlignSelf(YogaAlign.CENTER);
+                                }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                                .addChild(new UIElement().layout(layout -> {
+                                    layout.setWidthPercent(100);
+                                    layout.setHeightPercent(100);
+                                }).style(style -> style.backgroundTexture(this::drawRawTextureGuides))),
+                        // button to select image
+                        new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
+                            var mui = e.currentElement.getModularUI();
+                            if (mui == null) return;
+                            Dialog.showFileDialog("ldlib.gui.editor.tips.select_image", LDLib.getAssetsDir(), true, Dialog.suffixFilter(".png"), r -> {
+                                if (r != null && r.isFile()) {
+                                    var location = getTextureFromFile(r);
+                                    if (location == null) return;
+                                    setImageLocation(location);
+                                    var size = getImageSize();
+                                    setSprite(0, 0, size.getWidth(), size.getHeight());
+                                    configurator.notifyChanges();
+                                }
+                            }).show(mui.ui.rootElement);
+                        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
+                ));
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    protected void drawRawTextureGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        SpriteTexture.of(imageLocation.toString()).draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+        // draw border guides
+        var imageSize = getImageSize();
+        var spriteSize = this.spriteSize;
+        // if the sprite size is not set, use the image size
+        if (spriteSize.getWidth() <= 0 || spriteSize.getHeight() <= 0) {
+            spriteSize = imageSize;
+        }
+        // draw sprite box
+        var spriteX = x + spritePosition.x * width / imageSize.width;
+        var spriteY = y + spritePosition.y * height / imageSize.height;
+        var spriteWidth = spriteSize.width * width / imageSize.width;
+        var spriteHeight = spriteSize.height * height / imageSize.height;
+        new ColorBorderTexture(1,0xFFFF0000).draw(graphics, mouseX, mouseY,
+                (int) spriteX, (int) spriteY, (int) spriteWidth, (int) spriteHeight, partialTicks);
+        // left
+        graphics.fill(
+                (int) (spriteX + borderLT.getX() * width / imageSize.width),
+                (int) spriteY,
+                (int) (spriteX + borderLT.getX() * width / imageSize.width + 1),
+                (int) (spriteY + spriteHeight), 0xFFFF0000);
+        // top
+        graphics.fill(
+                (int) spriteX,
+                (int) (spriteY + borderLT.getY() * height / imageSize.height),
+                (int) (spriteX + spriteWidth),
+                (int) (spriteY + borderLT.getY() * height / imageSize.height + 1), 0xFFFF0000);
+        // right
+        graphics.fill(
+                (int) (spriteX + spriteWidth - borderRB.getX() * width / imageSize.width),
+                (int) spriteY,
+                (int) (spriteX + spriteWidth - borderRB.getX() * width / imageSize.width + 1),
+                (int) (spriteY + spriteHeight), 0xFFFF0000);
+        // bottom
+        graphics.fill(
+                (int) spriteX,
+                (int) (spriteY + spriteHeight - borderRB.getY() * height / imageSize.height),
+                (int) (spriteX + spriteWidth),
+                (int) (spriteY + spriteHeight - borderRB.getY() * height / imageSize.height + 1), 0xFFFF0000);
     }
 }

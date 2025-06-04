@@ -26,6 +26,7 @@ import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.function.*;
 
@@ -51,7 +52,8 @@ public class ResourceProviderContainer<T> extends UIElement {
     @Setter
     protected BooleanSupplier supportAdd;
     @Setter
-    protected BiConsumer<ResourceProviderContainer<T>, IResourcePath> onEdit = (c, k) -> {};
+    @Nullable
+    protected BiConsumer<ResourceProviderContainer<T>, IResourcePath> onEdit = null;
     @Setter
     @Nullable
     protected Supplier<T> addDefault = null;
@@ -60,6 +62,8 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected BiConsumer<ResourceProviderContainer<T>, TreeBuilder.Menu> onMenu;
 
     // runtime
+    @Getter
+    protected HashSet<IResourcePath> dirtyResources = new HashSet<>();
     @Getter @Nullable
     protected IResourcePath selected = null;
     @Getter @Setter
@@ -144,6 +148,23 @@ public class ResourceProviderContainer<T> extends UIElement {
         resourceProvider.forEach(entry -> appendResourceUI(entry.getKey()));
     }
 
+    /**
+     * Reloads a specific resource UI by its path.
+     * If the resource does not exist, it will not do anything.
+     * @param path the resource path to reload
+     */
+    public void reloadSpecificResource(IResourcePath path) {
+        if (path == null || !resourceUIs.containsKey(path) || !resourceProvider.hasResource(path)) return;
+        var ui = createResourceUI(path);
+        var index = scrollerView.viewContainer.getChildren().indexOf(resourceUIs.get(path));
+        scrollerView.removeScrollViewChild(resourceUIs.get(path));
+        scrollerView.addScrollViewChildAt(ui, index);
+        resourceUIs.put(path, ui);
+        if (selected != null && selected.equals(path)) {
+            selectResource(path);
+        }
+    }
+
     public void appendResourceUI(IResourcePath resourcePath) {
         if (resourcePath == null || resourceUIs.containsKey(resourcePath) || !resourceProvider.hasResource(resourcePath)) return;
         var ui = createResourceUI(resourcePath);
@@ -183,12 +204,30 @@ public class ResourceProviderContainer<T> extends UIElement {
         }
     }
 
+    /**
+     * Marks a resource as dirty, which means it will be reloaded on the next tick.
+     */
+    public void markResourceDirty(IResourcePath resourcePath) {
+        if (resourcePath != null && resourceProvider.hasResource(resourcePath)) {
+            dirtyResources.add(resourcePath);
+        }
+    }
+
     @Override
     public void screenTick() {
         super.screenTick();
         if (resourceProvider.tickResourceProvider()) {
             reloadResourceContainer();
+            dirtyResources.clear();
         }
+        // check for dirty resources and reload them
+        for (var dirtyResource : dirtyResources) {
+            var resource = resourceProvider.getResource(dirtyResource);
+            if (resource == null) continue;
+            resourceProvider.addResource(dirtyResource, resource);
+            reloadSpecificResource(dirtyResource);
+        }
+        dirtyResources.clear();
     }
 
     public void setList(boolean isList) {
@@ -210,7 +249,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             m.leaf(uiWidth == 100 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.extra_large", () -> setUiWidth(100));
         });
         menu.crossLine();
-        if (selected != null && canEdit.test(selected)) {
+        if (selected != null && canEdit.test(selected) && onEdit != null) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> editResource(selected));
         }
         if (selected != null && canRename.test(selected)) {
@@ -306,7 +345,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void editResource(IResourcePath key) {
-        if (key != null && canEdit.test(key)) {
+        if (key != null && canEdit.test(key) && onEdit != null) {
             onEdit.accept(this, key);
         }
     }

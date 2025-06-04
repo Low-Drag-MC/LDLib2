@@ -1,16 +1,15 @@
 package com.lowdragmc.lowdraglib.gui.texture;
 
-import com.lowdragmc.lowdraglib.gui.ColorPattern;
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.editor_outdated.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.gui.ui.Dialog;
+import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -21,8 +20,8 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-
-import java.io.File;
+import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaEdge;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
@@ -156,41 +155,42 @@ public class AnimationTexture extends TransformTexture {
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void createPreview(ConfiguratorGroup father) {
         super.createPreview(father);
-        WrapperConfigurator base = new WrapperConfigurator("ldlib.gui.editor.group.base_image", wrapper -> {
-            WidgetGroup widgetGroup = new WidgetGroup(0, 0, 100, 100);
-            ImageWidget imageWidget;
-            widgetGroup.addWidget(imageWidget = new ImageWidget(0, 0, 100, 100, new GuiTextureGroup(new ResourceTexture(imageLocation.toString()), this::drawGuides)).setBorder(2, ColorPattern.T_WHITE.color));
-            widgetGroup.addWidget(new ButtonWidget(0, 0, 100, 100, IGuiTexture.EMPTY, cd -> {
-                if (Editor.INSTANCE == null) return;
-                File path = new File(Editor.INSTANCE.getWorkSpace(), "textures");
-                DialogWidget.showFileDialog(Editor.INSTANCE, "ldlib.gui.editor.tips.select_image", path, true,
-                        DialogWidget.suffixFilter(".png"), r -> {
-                            if (r != null && r.isFile()) {
-                                imageLocation = getTextureFromFile(path, r);
-                                cellSize = 1;
-                                from = 0;
-                                to = 0;
-                                animation = 0;
-                                imageWidget.setImage(new GuiTextureGroup(new ResourceTexture(imageLocation.toString()), this::drawGuides));
-                                wrapper.notifyChanges();
-                            }
-                        });
-            }));
-            return widgetGroup;
-        });
-        base.setTips("ldlib.gui.editor.tips.click_select_image");
-        father.addConfigurators(base);
-    }
-
-    private ResourceLocation getTextureFromFile(File path, File r){
-        var id = path.getPath().replace('\\', '/').split("assets/")[1].split("/")[0];
-        return ResourceLocation.fromNamespaceAndPath(id, r.getPath().replace(path.getPath(), "textures").replace('\\', '/'));
+        var configurator = new Configurator("ldlib.gui.editor.group.base_image");
+        father.addConfigurators(configurator
+                .addChildren(
+                        // raw image preview
+                        new UIElement().layout(layout -> {
+                                    layout.setAspectRatio(1.0f);
+                                    layout.setWidthPercent(80);
+                                    layout.setPadding(YogaEdge.ALL, 3);
+                                    layout.setAlignSelf(YogaAlign.CENTER);
+                                }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                                .addChild(new UIElement().layout(layout -> {
+                                    layout.setWidthPercent(100);
+                                    layout.setHeightPercent(100);
+                                }).style(style -> style.backgroundTexture(this::drawRawTextureGuides))),
+                        // button to select image
+                        new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
+                            var mui = e.currentElement.getModularUI();
+                            if (mui == null) return;
+                            Dialog.showFileDialog("ldlib.gui.editor.tips.select_image", LDLib.getAssetsDir(), true, Dialog.suffixFilter(".png"), r -> {
+                                if (r != null && r.isFile()) {
+                                    var location = getTextureFromFile(r);
+                                    if (location == null) return;
+                                    imageLocation = location;
+                                    configurator.notifyChanges();
+                                }
+                            }).show(mui.ui.rootElement);
+                        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
+                ));
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawRawTextureGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        SpriteTexture.of(imageLocation.toString()).draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         float cell = 1f / this.cellSize;
         int X = from % cellSize;
         int Y = from / cellSize;

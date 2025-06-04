@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib.client.scene;
 
-import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.mojang.blaze3d.pipeline.MainTarget;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -10,7 +10,6 @@ import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -82,16 +81,38 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         return winPos;
     }
 
-    public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, float mouseX, float mouseY) {
+    public IGuiTexture drawAsTexture() {
+        drawScene(0, 0, this.resolutionWidth, this.resolutionHeight, 0, 0);
+        return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+            var poseStack = graphics.pose();
+            var pose = poseStack.last().pose();
+
+            var bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            RenderSystem.setShaderTexture(0, fbo.getColorTextureId());
+
+            bufferbuilder.addVertex(pose, x + width, y + height, 0).setUv(1, 0);
+            bufferbuilder.addVertex(pose, x + width, y, 0).setUv(1, 1);
+            bufferbuilder.addVertex(pose, x, y, 0).setUv(0, 1);
+            bufferbuilder.addVertex(pose, x, y + height, 0).setUv(0, 0);
+
+            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        };
+    }
+
+    public void drawScene(float x, float y, float width, float height, float mouseX, float mouseY) {
         // bind to FBO
         int lastID = bindFBO();
         super.render(new PoseStack(), 0, 0, this.resolutionWidth, this.resolutionHeight, (int) (this.resolutionWidth * (mouseX - x) / width), (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
         // unbind FBO
         unbindFBO(lastID);
+    }
+
+    public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, float mouseX, float mouseY) {
+        drawScene(x, y, width, height, mouseX, mouseY);
 
         // render rect with FBO texture
-        Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, fbo.getColorTextureId());
 
@@ -101,7 +122,6 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         bufferbuilder.addVertex(pose, x, y, 0).setUv(0, 1);
         bufferbuilder.addVertex(pose, x, y + height, 0).setUv(0, 0);
         BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
-
     }
 
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY) {

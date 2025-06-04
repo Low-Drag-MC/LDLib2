@@ -119,32 +119,7 @@ public class Menu<K, T> extends UIElement {
     @Override
     protected void onLayoutChanged() {
         super.onLayoutChanged();
-        var mui = getModularUI();
-        if (mui != null) {
-            // if outside the screen, move it back to the screen
-            var screenWidth = mui.getScreenWidth();
-            var screenHeight = mui.getScreenHeight();
-            var x = getPositionX();
-            var y = getPositionY();
-            var width = getSizeWidth();
-            var height = getSizeHeight();
-            // check head out of screen
-            if (y < 0) {
-                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() - y));
-            } else if (y + height > screenHeight) {
-                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() + screenHeight - (y + height)));
-            }
-            if (x < 0) {
-                layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - x));
-            } else if (x + width > screenWidth) {
-                if (x > width) {
-                    // move to the left first
-                    layout(layout -> layout.setPosition(YogaEdge.LEFT, 0 - width));
-                } else {
-                    layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
-                }
-            }
-        }
+        adaptPositionToScreen();
     }
 
     @Override

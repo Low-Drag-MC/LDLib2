@@ -59,13 +59,13 @@ public abstract class Scroller extends BindableUIElement<Float> {
         this.scrollContainer = new UIElement();
         this.scrollBar = new Button();
 
-        this.headButton.setText("").layout(layout -> {
+        this.headButton.noText().layout(layout -> {
             layout.setWidth(5);
             layout.setHeight(5);
         });
         this.headButton.setOnClick(e -> moveHead());
 
-        this.tailButton.setText("").layout(layout -> {
+        this.tailButton.noText().layout(layout -> {
             layout.setWidth(5);
             layout.setHeight(5);
         });
@@ -75,7 +75,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
             layout.setAlignSelf(YogaAlign.STRETCH);
             layout.setFlexGrow(1);
         }).addChild(new UIElement().layout(layout -> layout.setFlex(1)).addChild(scrollBar));
-        scrollBar.setText("").layout(layout -> {
+        scrollBar.noText().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         });

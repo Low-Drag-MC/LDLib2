@@ -116,6 +116,7 @@ public class Selector<T> extends BindableUIElement<T> {
                 .addChildren(listView = new UIElement().layout(layout -> layout.setPadding(YogaEdge.ALL, 2)), scrollerView = new ScrollerView())
                 .setDisplay(YogaDisplay.NONE)
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
+                .addEventListener(UIEvents.LAYOUT_CHANGED, e -> e.currentElement.adaptPositionToScreen())
                 .stopInteractionEventsPropagation();
         scrollerView.verticalScroller.headButton.setDisplay(YogaDisplay.NONE);
         scrollerView.verticalScroller.tailButton.setDisplay(YogaDisplay.NONE);
@@ -176,7 +177,7 @@ public class Selector<T> extends BindableUIElement<T> {
                         hide();
                     }
                 })
-                .setText("")
+                .noText()
                 .layout(layout -> {
                     layout.setPositionType(YogaPositionType.ABSOLUTE);
                     layout.setHeightPercent(100);
@@ -276,6 +277,7 @@ public class Selector<T> extends BindableUIElement<T> {
         }
         this.isOpen = true;
         this.dialog.setDisplay(YogaDisplay.FLEX);
+        this.dialog.layout(layout -> layout.setPositionPercent(YogaEdge.TOP, 100));
     }
 
     public void hide() {

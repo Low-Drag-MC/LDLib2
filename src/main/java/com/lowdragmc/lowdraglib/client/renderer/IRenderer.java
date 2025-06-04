@@ -3,12 +3,11 @@ package com.lowdragmc.lowdraglib.client.renderer;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
-import com.lowdragmc.lowdraglib.gui.ColorPattern;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.gui.texture.ColorBorderTexture;
-import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
+import com.lowdragmc.lowdraglib.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Scene;
+import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.utils.PersistedParser;
@@ -47,6 +46,8 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
+import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -240,6 +241,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
     /**
      * Preview of the renderer.
      */
+    @OnlyIn(Dist.CLIENT)
     default void createPreview(ConfiguratorGroup father) {
         var level = new TrackedDummyWorld();
         level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(RendererBlock.BLOCK));
@@ -249,18 +251,25 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
             }
         });
 
-        var sceneWidget = new SceneWidget(0, 0, 100, 100, level);
-        sceneWidget.setRenderFacing(false);
-        sceneWidget.setRenderSelect(false);
-        sceneWidget.createScene(level);
-        sceneWidget.getRenderer().setOnLookingAt(null); // better performance
-        sceneWidget.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
-        sceneWidget.setBackground(new ColorBorderTexture(2, ColorPattern.T_WHITE.color));
+        var scene = new Scene();
+        scene.setRenderFacing(false);
+        scene.setRenderSelect(false);
+        scene.createScene(level);
+        scene.getRenderer().setOnLookingAt(null); // better performance
+        scene.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
+        scene.layout(layout -> {
+            layout.setAspectRatio(1.0f);
+            layout.setWidthPercent(80);
+            layout.setAlignSelf(YogaAlign.CENTER);
+            layout.setPadding(YogaEdge.ALL, 3);
+        });
+        scene.style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
 
-        father.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", sceneWidget));
+        father.addConfigurators(new Configurator("ldlib.gui.editor.group.preview").addChild(scene));
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     default void buildConfigurator(ConfiguratorGroup father) {
         createPreview(father);
         IConfigurable.super.buildConfigurator(father);

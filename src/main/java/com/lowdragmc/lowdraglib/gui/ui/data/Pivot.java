@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib.gui.ui.data;
 
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.editor_outdated.configurator.IConfigurable;
 import com.mojang.serialization.Codec;
 import lombok.Data;
 import net.minecraft.Util;
@@ -11,7 +9,7 @@ import net.minecraft.network.codec.StreamCodec;
 import java.util.List;
 
 @Data
-public final class Pivot implements IConfigurable {
+public final class Pivot {
     public final static Codec<Pivot> CODEC = Codec.FLOAT.listOf().comapFlatMap(
             list -> Util.fixedSize(list, 2).map(l -> Pivot.of(l.get(0), l.get(1))),
             pivot -> List.of(pivot.x, pivot.y)
@@ -40,8 +38,8 @@ public final class Pivot implements IConfigurable {
             BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
     };
 
-    private final float x;
-    private final float y;
+    public final float x;
+    public final float y;
 
     private Pivot(float x, float y) {
         this.x = x;
@@ -60,8 +58,4 @@ public final class Pivot implements IConfigurable {
         return y;
     }
 
-    @Override
-    public void buildConfigurator(ConfiguratorGroup father) {
-        // TODO: Implement configurator for Pivot
-    }
 }

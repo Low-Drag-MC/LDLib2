@@ -1,13 +1,15 @@
 package com.lowdragmc.lowdraglib.editor.resource;
 
 import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib.gui.ui.elements.ColorSelector;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
@@ -61,6 +63,18 @@ public class ColorsResource extends Resource<Integer> {
                 .setUiSupplier(path -> new UIElement().layout(layout -> {
                     layout.setWidthPercent(100);
                     layout.setHeightPercent(100);
-                }).style(style -> style.backgroundTexture(new ColorRectTexture(provider.getResource(path)))));
+                }).style(style -> style.backgroundTexture(new ColorRectTexture(provider.getResource(path)))))
+                .setOnEdit((container, path) -> {
+                    var colorSelector = new ColorSelector().setColor(provider.getResource(path));
+                    var dialog = new Dialog();
+                    dialog.addContent(colorSelector.layout(layout -> layout.setWidthPercent(100)))
+                            .addButton(new Button().setOnClick(e -> {
+                                provider.addResource(path, colorSelector.getColor());
+                                container.reloadSpecificResource(path);
+                                dialog.close();
+                            }).setText("ldlib.gui.tips.confirm"))
+                            .addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel"))
+                            .show(container.getEditor());
+                });
     }
 }
