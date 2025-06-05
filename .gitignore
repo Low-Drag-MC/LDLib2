@@ -24,3 +24,5 @@ runs
 run-data
 
 repo
+
+*.DS_Store
