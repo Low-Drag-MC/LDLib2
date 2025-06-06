@@ -63,8 +63,6 @@ public class Button extends UIElement {
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
         getLayout().setHeight(14);
         getLayout().setPadding(YogaEdge.ALL, 2);
-        getLayout().setWidthFitContent();
-        getLayout().setAlignSelf(YogaAlign.FLEX_START);
         getLayout().setJustifyContent(YogaJustify.CENTER);
 
         text.getLayout().setHeightPercent(100);

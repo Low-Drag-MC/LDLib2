@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib.editor.ui.view;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib.editor.resource.Resource;
+import com.lowdragmc.lowdraglib.editor.resource.Resources;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.editor.ui.View;
 import com.lowdragmc.lowdraglib.editor.ui.resource.ResourceContainer;
@@ -102,12 +103,25 @@ public class ResourceView extends View {
         }
     }
 
+    public void addResources(Resources resources) {
+        for (Resource<?> resource : resources.resources.values()) {
+            addResource(resource);
+        }
+    }
+
     public void removeResource(Resource<?> resource) {
         var tab = resourceTabs.remove(resource.getName());
         if (tab != null) {
             tabView.removeTab(tab);
         }
         resources.remove(resource.getName());
+    }
+
+    public void clear() {
+        tabView.clear();
+        resourceTabs.clear();
+        resources.clear();
+        selectedResource = null;
     }
 
     public void selectResource(Resource<?> resource) {

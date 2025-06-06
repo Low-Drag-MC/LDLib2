@@ -106,6 +106,13 @@ public class TabView extends UIElement {
         return this;
     }
 
+    public TabView clear() {
+        tabContents.clear();
+        tabScroller.clearAllScrollViewChildren();
+        tabContentContainer.clearAllChildren();
+        return this;
+    }
+
     public TabView selectTab(Tab tab) {
         if (tab == selectedTab) {
             return this;

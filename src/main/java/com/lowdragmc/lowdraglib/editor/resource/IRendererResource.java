@@ -24,18 +24,17 @@ import java.util.List;
 import java.util.Optional;
 
 public class IRendererResource extends Resource<IRenderer> {
-    public final FileResourceProvider<IRenderer> global;
 
     public IRendererResource() {
         var builtinResource = new BuiltinResourceProvider<>(this);
         builtinResource.addResource("empty", IRenderer.EMPTY);
         addResourceProvider(builtinResource);
-        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")));
-        global.setName("global");
+
     }
 
     @Override
     public void buildDefault() {
+        addResourceProvider(createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")).setName("global"));
     }
 
     @Override
@@ -50,18 +49,13 @@ public class IRendererResource extends Resource<IRenderer> {
 
     @Nullable
     @Override
-    public Tag serialize(IRenderer renderer, HolderLookup.Provider provider) {
+    public Tag serializeResource(IRenderer renderer, HolderLookup.Provider provider) {
         return renderer.serializeWrapper();
     }
 
     @Override
-    public IRenderer deserialize(Tag tag, HolderLookup.Provider provider) {
+    public IRenderer deserializeResource(Tag tag, HolderLookup.Provider provider) {
         return IRenderer.deserializeWrapper(tag);
-    }
-
-    @Override
-    public boolean canRemoveResourceProvider(ResourceProvider<IRenderer> provider) {
-        return provider != global && super.canRemoveResourceProvider(provider);
     }
 
     @Override
@@ -89,7 +83,7 @@ public class IRendererResource extends Resource<IRenderer> {
         container.setOnEdit((c, path) -> {
             var renderer = provider.getResource(path);
             if (renderer == null) return;
-            c.getEditor().inspectorView.inspect(renderer, configurator -> c.markResourceDirty(path));
+            c.getEditor().inspectorView.inspect(renderer, configurator -> c.markResourceDirty(path), null);
         });
 
         if (provider.supportAdd()) {

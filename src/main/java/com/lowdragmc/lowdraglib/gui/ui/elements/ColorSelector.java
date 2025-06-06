@@ -272,7 +272,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, argb);
+        DrawerHelper.drawSolidRect(graphics, x, y, width, height, argb);
     }
 
     protected void drawHsbContext(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
@@ -393,7 +393,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
             }
         }
 
-        DrawerHelper.drawSolidRect(graphics, (int) (x + mainX * width) - 1, (int) (y + mainY * height) - 1, 2, 2, b > 0.5f ? 0xff000000 : 0xffffffff);
+        DrawerHelper.drawSolidRect(graphics, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2, b > 0.5f ? 0xff000000 : 0xffffffff);
     }
 
     protected void drawColorSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
@@ -468,7 +468,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                 color = (1 - b);
             }
         }
-        DrawerHelper.drawSolidRect(graphics, (int) (x - 2), (int) (y + color * height), (int) width + 4, 1, 0xffff0000);
+        DrawerHelper.drawSolidRect(graphics, (x - 2), (y + color * height), width + 4, 1, 0xffff0000);
 
     }
 
@@ -476,7 +476,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         DrawerHelper.drawGradientRect(graphics, x, y, width, height, argb & 0x00ffffff, argb | 0xff000000, true);
 
         // draw indicator
-        DrawerHelper.drawSolidRect(graphics, (int) (x + alpha * width), (int) (y - 2), 1, (int) (height + 4), 0xffff0000);
+        DrawerHelper.drawSolidRect(graphics, (x + alpha * width), (y - 2), 1, (height + 4), 0xffff0000);
     }
 
     /**

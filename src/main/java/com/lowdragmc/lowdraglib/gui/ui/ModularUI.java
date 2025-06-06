@@ -526,22 +526,23 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             graphics.pose().pushPose();
             graphics.pose().translate(0, 0, 200);
 
-            var posX = hovered.getPositionX();
-            var posY = hovered.getPositionY();
-            var sizeX = hovered.getSizeWidth();
-            var sizeY = hovered.getSizeHeight();
-            graphics.fill((int) posX, (int) posY, (int) (posX + sizeX), (int) (posY + sizeY), 0x80ff0000);
-            var paddingX = hovered.getPaddingX();
-            var paddingY = hovered.getPaddingY();
-            var paddingWidth = hovered.getPaddingWidth();
-            var paddingHeight = hovered.getPaddingHeight();
-            graphics.fill((int) paddingX, (int) paddingY, (int) (paddingX + paddingWidth), (int) (paddingY + paddingHeight), 0x8000ff00);
-            var contentX = hovered.getContentX();
-            var contentY = hovered.getContentY();
-            var contentWidth = hovered.getContentWidth();
-            var contentHeight = hovered.getContentHeight();
-            graphics.fill((int) contentX, (int) contentY, (int) (contentX + contentWidth), (int) (contentY + contentHeight), 0x800000ff);
-
+            graphics.drawManaged(() -> {
+                var posX = hovered.getPositionX();
+                var posY = hovered.getPositionY();
+                var sizeX = hovered.getSizeWidth();
+                var sizeY = hovered.getSizeHeight();
+                DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000, false);
+                var paddingX = hovered.getPaddingX();
+                var paddingY = hovered.getPaddingY();
+                var paddingWidth = hovered.getPaddingWidth();
+                var paddingHeight = hovered.getPaddingHeight();
+                DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00, false);
+                var contentX = hovered.getContentX();
+                var contentY = hovered.getContentY();
+                var contentWidth = hovered.getContentWidth();
+                var contentHeight = hovered.getContentHeight();
+                DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff, false);
+            });
 
             ///  draw layout box
             // draw layout on the right
@@ -594,7 +595,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     private void drawLayoutBox(GuiGraphics graphics, Font font, int x, int y, int width, int height, String labels, int color, String[] value) {
         // draw layout box
         if (color != 0) {
-            graphics.fill(x, y, x + width, y + height, color);
+            DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
         }
         // draw label
         if (!labels.isEmpty()) {

@@ -66,6 +66,10 @@ public class Menu<K, T> extends UIElement {
     protected boolean autoClose = true;
     @Getter
     protected final Map<TreeNode<K, T>, UIElement> nodeUIs = new LinkedHashMap<>();
+    @Setter
+    protected Function<TreeNode<K, T>, IGuiTexture> textureProvider = node -> node.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture;
+    @Setter
+    protected Function<TreeNode<K, T>, IGuiTexture> hoverTextureProvider = node -> node.isLeaf() ? menuStyle.leafHoverTexture : menuStyle.nodeHoverTexture;
     // runtime
     @Nullable
     protected TreeNode<K, T> openedNode;
@@ -141,7 +145,7 @@ public class Menu<K, T> extends UIElement {
         menuStyle.accept(this.menuStyle);
         onStyleChanged();
         nodeUIs.forEach((node, element) -> {
-            element.style(style -> style.backgroundTexture(node.isLeaf() ? this.menuStyle.leafTexture : this.menuStyle.nodeTexture));
+            element.style(style -> style.backgroundTexture(textureProvider.apply(node)));
         });
         return this;
     }
@@ -164,7 +168,7 @@ public class Menu<K, T> extends UIElement {
                 var container = new UIElement().layout(layout -> {
                     layout.setFlexDirection(YogaFlexDirection.ROW);
                     layout.setAlignItems(YogaAlign.CENTER);
-                }).style(style -> style.backgroundTexture(child.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture))
+                }).style(style -> style.backgroundTexture(textureProvider.apply(child)))
                         .addChild(new UIElement().layout(layout -> {
                             layout.setFlex(1);
                         }).addChild(uiProvider.apply(child.getKey())))
@@ -180,7 +184,7 @@ public class Menu<K, T> extends UIElement {
                                 }
                             }
                         }).addEventListener(UIEvents.MOUSE_ENTER, e -> {
-                            e.currentElement.style(style -> style.backgroundTexture(child.isLeaf() ? menuStyle.leafHoverTexture : menuStyle.nodeHoverTexture));
+                            e.currentElement.style(style -> style.backgroundTexture(hoverTextureProvider.apply(child)));
                             if (!child.isLeaf()) { // open a new menu
                                 if (opened != null) {
                                     if (openedNode == child) return;
@@ -190,6 +194,8 @@ public class Menu<K, T> extends UIElement {
                                 opened = new Menu<>(child, uiProvider);
                                 opened.setAutoClose(autoClose);
                                 opened.getMenuStyle().copyFrom(menuStyle);
+                                opened.setTextureProvider(textureProvider);
+                                opened.setHoverTextureProvider(hoverTextureProvider);
                                 opened.getStyle().copyFrom(this.getStyle());
                                 opened.getLayout().setAlignSelf(YogaAlign.FLEX_START);
                                 opened.getLayout().setPosition(YogaEdge.LEFT, e.currentElement.getSizeWidth());
@@ -211,7 +217,7 @@ public class Menu<K, T> extends UIElement {
                             }
                         }, true)
                         .addEventListener(UIEvents.MOUSE_LEAVE, e -> {
-                            e.currentElement.style(style -> style.backgroundTexture(child.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture));
+                            e.currentElement.style(style -> style.backgroundTexture(textureProvider.apply(child)));
                         }, true);
                 if (!child.isLeaf()) {
                     container.addChild(new UIElement().layout(layout -> {

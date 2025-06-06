@@ -242,9 +242,18 @@ public class IModelRenderer implements IRenderer {
         father.addConfigurators(buttonConfigurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_model").setOnClick(e -> {
             var mui = e.currentElement.getModularUI();
             if (mui == null) return;
-            Dialog.showFileDialog("ldlib.gui.editor.tips.select_model", LDLib.getAssetsDir(), true, Dialog.suffixFilter(".json"), r -> {
+            Dialog.showFileDialog("ldlib.gui.editor.tips.select_model", LDLib.getAssetsDir(), true, node -> {
+                if (!(node.isLeaf() && node.getContent().isFile() && !node.getContent().getName().toLowerCase().endsWith(".json".toLowerCase()))) {
+                    if (node.isLeaf() && node.getContent().isFile()) {
+                        return getModelFromFile(node.getContent()) != null;
+                    }
+                    return true; // allow directories
+                }
+                return false;
+            }, r -> {
                 if (r != null && r.isFile()) {
-                    var newModel = getModelFromFile(LDLib.getAssetsDir(), r);
+                    var newModel = getModelFromFile(r);
+                    if (newModel == null) return;
                     if (newModel.equals(modelLocation)) return;
                     updateModelWithReloadingResource(newModel);
                     buttonConfigurator.notifyChanges();
@@ -253,8 +262,43 @@ public class IModelRenderer implements IRenderer {
         }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))));
     }
 
-    private static ResourceLocation getModelFromFile(File path, File r){
-        var id = path.getPath().replace('\\', '/').split("assets/")[1].split("/")[0];
-        return ResourceLocation.fromNamespaceAndPath(id, r.getPath().replace(path.getPath(), "").replace(".json", "").replace('\\', '/').substring(1));
+    @Nullable
+    public ResourceLocation getModelFromFile(File filePath) {
+        String fullPath = filePath.getPath().replace('\\', '/');
+
+        // find the "assets/" directory in the path
+        var assetsIndex = fullPath.indexOf("assets/");
+        if (assetsIndex == -1) {
+            return null;
+        }
+
+        var relativePath = fullPath.substring(assetsIndex + "assets/".length());
+
+        // find mod_id
+        var slashIndex = relativePath.indexOf('/');
+        if (slashIndex == -1) {
+            return null;
+        }
+
+        var modId = relativePath.substring(0, slashIndex);
+        var subPath = relativePath.substring(slashIndex + 1);
+
+        // find model location
+        var modelIndex = subPath.indexOf("models/");
+        if (modelIndex == -1) {
+            return null;
+        }
+
+        var modelPath = subPath.substring(modelIndex + "models/".length());
+        if (!modelPath.endsWith(".json")) {
+            return null;
+        }
+
+        var location = modId + ":" + modelPath.substring(0, modelPath.length() - 5); // remove ".json" suffix
+
+        if (LDLib.isValidResourceLocation(location)) {
+            return ResourceLocation.parse(location);
+        }
+        return null;
     }
 }

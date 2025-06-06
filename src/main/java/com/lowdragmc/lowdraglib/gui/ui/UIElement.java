@@ -17,6 +17,9 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
+import org.appliedenergistics.yoga.config.MutableYogaConfig;
+import org.appliedenergistics.yoga.config.YogaConfig;
+import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.joml.Vector4f;
 import oshi.util.tuples.Pair;
@@ -37,6 +40,13 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class UIElement {
+    public static final YogaConfig DEFAULT_YOGA_CONFIG;
+    static {
+        MutableYogaConfig config = YogaConfig.create(YogaLogger.getDefaultLogger());
+        config.setPointScaleFactor(0);
+        DEFAULT_YOGA_CONFIG = config;
+    }
+
     // core ui
     @Getter
     protected final YogaNode layoutNode;
@@ -84,7 +94,7 @@ public class UIElement {
     protected final List<Component> tooltipTexts = new ArrayList<>();
 
     public UIElement() {
-        layoutNode = new YogaNode();
+        layoutNode = new YogaNode(DEFAULT_YOGA_CONFIG);
         layoutNode.setContext(this);
     }
 
@@ -319,6 +329,36 @@ public class UIElement {
                 }
             }
         }
+    }
+
+    /**
+     * Set the focus enforcement for the element.
+     * This will ensure that the element will own the focus when it's children lose focus.
+     * It will lose focus when the element itself loses focus or when the focus is moved to another non child element.
+     * @param lostFocusHandler the handler to call when the element loses focus.
+     */
+    public UIElement setEnforceFocus(Consumer<UIEvent> lostFocusHandler) {
+        setFocusable(true);
+        addEventListener(UIEvents.BLUR, event -> {
+            if (event.relatedTarget != null && this.isAncestorOf(event.relatedTarget)) { // focus on children
+                return;
+            }
+
+            if (event.target == this) { // lose focus
+                if (this.isChildHover()) {
+                    this.focus();
+                } else {
+                    lostFocusHandler.accept(event);
+                }
+            } else { // child lose focus
+                if (event.relatedTarget == null && isChildHover()) {
+                    this.focus();
+                } else {
+                    lostFocusHandler.accept(event);
+                }
+            }
+        }, true);
+        return this;
     }
 
     public void adaptPositionToElement(UIElement element) {

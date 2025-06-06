@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
+import com.lowdragmc.lowdraglib.syncdata.ISubscription;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
 
@@ -16,9 +17,8 @@ import java.util.*;
 import java.util.function.BiConsumer;
 
 public abstract class MenuTab {
-
     public final Editor editor;
-    private final List<BiConsumer<MenuTab, TreeBuilder.Menu>> menuCreator = new ArrayList<>();
+    private final List<BiConsumer<MenuTab, TreeBuilder.Menu>> menuCreators = new ArrayList<>();
 
     protected MenuTab(Editor editor) {
         this.editor = editor;
@@ -27,8 +27,9 @@ public abstract class MenuTab {
     /**
      * Append menu creator to attach additional leafs to the menu or remove existing ones.
      */
-    public void registerMenuCreator(BiConsumer<MenuTab, TreeBuilder.Menu> menuCreator) {
-        this.menuCreator.add(menuCreator);
+    public ISubscription registerMenuCreator(BiConsumer<MenuTab, TreeBuilder.Menu> menuCreator) {
+        this.menuCreators.add(menuCreator);
+        return () -> this.menuCreators.remove(menuCreator);
     }
 
     /**
@@ -43,7 +44,7 @@ public abstract class MenuTab {
 
     private TreeBuilder.Menu createMenu() {
         var menu = createDefaultMenu();
-        for (var creator : menuCreator) {
+        for (var creator : menuCreators) {
             creator.accept(this, menu);
         }
         return menu;

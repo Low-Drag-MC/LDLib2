@@ -20,6 +20,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -123,12 +124,20 @@ public class DrawerHelper {
         RenderSystem.enableBlend();
     }
 
-    public static void drawBorder(@Nonnull GuiGraphics graphics, int x, int y, int width, int height, int color, int border) {
+    public static void drawBorder(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, int color, int border) {
         graphics.drawManaged(() -> {
-            drawSolidRect(graphics,x - border, y - border, width + 2 * border, border, color);
-            drawSolidRect(graphics,x - border, y + height, width + 2 * border, border, color);
-            drawSolidRect(graphics,x - border, y, border, height, color);
-            drawSolidRect(graphics,x + width, y, border, height, color);
+            if (border >= 0) {
+                drawSolidRect(graphics,x - border, y + height, width + 2 * border, border, color, false);
+                drawSolidRect(graphics,x - border, y, border, height, color, false);
+                drawSolidRect(graphics,x + width, y, border, height, color, false);
+                drawSolidRect(graphics,x - border, y - border, width + 2 * border, border, color, false);
+            } else {
+                float absBorder = Math.abs(border);
+                drawSolidRect(graphics, x, y, width - absBorder, absBorder, color, false);
+                drawSolidRect(graphics, x, y + absBorder, absBorder, height - absBorder, color, false);
+                drawSolidRect(graphics, x + absBorder, y + height - absBorder, width - absBorder, absBorder, color, false);
+                drawSolidRect(graphics, x + width - absBorder, y, absBorder, height - absBorder, color, false);
+            }
         });
     }
 
@@ -195,16 +204,33 @@ public class DrawerHelper {
         return Screen.getTooltipFromItem(mc, itemStack);
     }
 
-    public static void drawSolidRect(@Nonnull GuiGraphics graphics, int x, int y, int width, int height, int color) {
-        graphics.fill(x, y, x + width, y + height, color);
-        RenderSystem.enableBlend();
-    }
-
     public static void drawSolidRect(@Nonnull GuiGraphics graphics, Rect rect, int color) {
         drawSolidRect(graphics, rect.left, rect.up, rect.right, rect.down, color);
     }
 
-    public static void drawRectShadow(@Nonnull GuiGraphics graphics, int x, int y, int width, int height, int distance) {
+    public static void drawSolidRect(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, int color) {
+        drawSolidRect(graphics, x, y, width, height, color, true);
+    }
+
+    public static void drawSolidRect(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, int color, boolean flush) {
+        drawSolidRect(graphics, RenderType.gui(), x, y, width, height, color, flush);
+    }
+
+    public static void drawSolidRect(@Nonnull GuiGraphics graphics, RenderType type, float x, float y, float width, float height, int color) {
+        drawSolidRect(graphics, type, x, y, width, height, color, true);
+    }
+
+    public static void drawSolidRect(@Nonnull GuiGraphics graphics, RenderType type, float x, float y, float width, float height, int color, boolean flush) {
+        Matrix4f matrix4f = graphics.pose().last().pose();
+        VertexConsumer vertexconsumer = graphics.bufferSource().getBuffer(type);
+        vertexconsumer.addVertex(matrix4f, x, y, 0).setColor(color);
+        vertexconsumer.addVertex(matrix4f, x, y + height, 0).setColor(color);
+        vertexconsumer.addVertex(matrix4f, x + width, y + height, 0).setColor(color);
+        vertexconsumer.addVertex(matrix4f, x + width, y, 0).setColor(color);
+        if (flush) graphics.flush();
+    }
+
+    public static void drawRectShadow(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, int distance) {
         drawGradientRect(graphics, x + distance, y + height, width - distance, distance, 0x4f000000, 0, false);
         drawGradientRect(graphics, x + width, y + distance, distance, height - distance, 0x4f000000, 0, true);
 
@@ -227,7 +253,7 @@ public class DrawerHelper {
         BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
-    public static void drawGradientRect(@Nonnull GuiGraphics graphics, int x, int y, int width, int height, int startColor, int endColor) {
+    public static void drawGradientRect(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, int startColor, int endColor) {
         drawGradientRect(graphics, x, y, width, height, startColor, endColor, false);
     }
 

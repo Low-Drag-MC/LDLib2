@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.editor.ui.View;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.elements.ScrollerView;
+import lombok.Getter;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -15,6 +16,12 @@ import java.util.function.Consumer;
 
 public class InspectorView extends View {
     public final ScrollerView scrollerView;
+    // runtime
+    @Getter
+    @Nullable
+    private IConfigurable inspectedConfigurable;
+    @Nullable
+    private Runnable onClose;
 
     public InspectorView() {
         super("editor.inspector");
@@ -33,8 +40,19 @@ public class InspectorView extends View {
         addChild(scrollerView);
     }
 
+    public void clear() {
+        if (inspectedConfigurable != null) {
+            if (this.onClose != null) {
+                this.onClose.run();
+            }
+            scrollerView.clearAllScrollViewChildren();
+        }
+        inspectedConfigurable = null;
+        onClose = null;
+    }
+
     public ConfiguratorGroup inspect(IConfigurable configurable) {
-        return inspect(configurable, null);
+        return inspect(configurable, null, null);
     }
 
     /**
@@ -42,7 +60,10 @@ public class InspectorView extends View {
      * @param configurable the configurable object to inspect
      * @param listener an optional listener that can be notified while making changes.
      */
-    public ConfiguratorGroup inspect(IConfigurable configurable, @Nullable Consumer<Configurator> listener) {
+    public ConfiguratorGroup inspect(IConfigurable configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose) {
+        clear();
+        inspectedConfigurable = configurable;
+        this.onClose = onClose;
         scrollerView.clearAllScrollViewChildren();
         var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
         if (listener != null) {

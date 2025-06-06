@@ -1,33 +1,30 @@
 package com.lowdragmc.lowdraglib.editor.ui;
 
-import com.lowdragmc.lowdraglib.editor.resource.ColorsResource;
-import com.lowdragmc.lowdraglib.editor.resource.LangResource;
-import com.lowdragmc.lowdraglib.editor.resource.IRendererResource;
-import com.lowdragmc.lowdraglib.editor.resource.TexturesResource;
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib.editor.project.IProject;
 import com.lowdragmc.lowdraglib.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib.editor.ui.menu.ViewMenu;
 import com.lowdragmc.lowdraglib.editor.ui.util.SplitView;
 import com.lowdragmc.lowdraglib.editor.ui.view.InspectorView;
 import com.lowdragmc.lowdraglib.editor.ui.view.ResourceView;
-import com.lowdragmc.lowdraglib.editor.ui.view.ui.UIEditorView;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.gui.ui.UI;
+import com.lowdragmc.lowdraglib.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.util.TreeNode;
-import com.lowdragmc.lowdraglib.test.ui.TestConfigurators;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.nbt.NbtIo;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.io.File;
 import java.util.function.Function;
 
 @Getter
@@ -47,6 +44,14 @@ public class Editor extends UIElement {
 
     public final InspectorView inspectorView;
     public final ResourceView resourceView;
+
+    // runtime
+    @Getter
+    @Nullable
+    private IProject currentProject;
+    @Getter
+    @Nullable
+    protected File currentProjectFile;
 
     public Editor() {
         this.top = new UIElement();
@@ -90,7 +95,7 @@ public class Editor extends UIElement {
             layout.setHeight(11);
             layout.setMargin(YogaEdge.ALL, 1);
             layout.setMargin(YogaEdge.HORIZONTAL, 5);
-        }).style(style -> style.backgroundTexture(new ResourceTexture())), menuContainer.layout(layout -> {
+        }).style(style -> style.backgroundTexture(new SpriteTexture())), menuContainer.layout(layout -> {
             layout.setHeightPercent(100);
             layout.setFlexDirection(YogaFlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
@@ -132,26 +137,13 @@ public class Editor extends UIElement {
 
     protected void initRightWindow() {
         right.addView(inspectorView);
-        // TODO remove test
-        inspectorView.inspect(new TestConfigurators());
     }
 
     protected void initBottomWindow() {
         bottom.addView(resourceView);
-        resourceView.addResources(
-                new ColorsResource(),
-                new LangResource(),
-                new IRendererResource(),
-                new TexturesResource()
-        );
     }
 
     protected void initCenterWindow() {
-        center.addView(new UIEditorView(UI.of(new UIElement().layout(layout -> {
-            layout.setWidth(250);
-            layout.setHeight(250);
-            layout.setPadding(YogaEdge.ALL, 10);
-        }).addChildren(new Button(), new Button(), new Label()).style(style -> style.backgroundTexture(Sprites.BORDER)))));
     }
 
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, Function<T, UIElement> uiProvider) {
@@ -166,13 +158,133 @@ public class Editor extends UIElement {
 
     public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
         if (menuBuilder == null || menuBuilder.isEmpty()) return;
-        openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider).setOnNodeClicked(TreeBuilder.Menu::handle);
+        openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider)
+                .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
+                .setOnNodeClicked(TreeBuilder.Menu::handle);
     }
 
     public void close() {
-        // TODO close editor with save state checking
-        if (getModularUI() != null && getModularUI().getScreen() != null) {
-            getModularUI().getScreen().onClose();
+        askToSaveProject(() -> {
+            if (getModularUI() != null && getModularUI().getScreen() != null) {
+                getModularUI().getScreen().onClose();
+            }
+        });
+
+    }
+
+    /**
+     * Check if the current project is dirty if the project file exists.
+     * It will compare the current project serialized data with the saved file.
+     */
+    public boolean isCurrentProjectDirty() {
+        if (currentProject == null) {
+            return false; // No project loaded
+        }
+        if (currentProjectFile == null) {
+            return true; // Project is dirty if it has not been saved yet
+        }
+        var data = currentProject.serializeNBT(Platform.getFrozenRegistry());
+        try {
+            var fileData = NbtIo.read(currentProjectFile.toPath());
+            return !data.equals(fileData);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /**
+     * Ask the user to save the current project if it is dirty.
+     * @param onFinish Runnable to run after the dialog is closed, regardless of whether the project was saved or not.
+     */
+    public void askToSaveProject(@Nullable Runnable onFinish) {
+        if (isCurrentProjectDirty()) {
+            Dialog.showCheckBox("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
+                if (doSave) {
+                    saveProject(onFinish);
+                }
+                if (onFinish != null) {
+                    onFinish.run();
+                }
+            }).show(this);
+            return;
+        }
+        if (onFinish != null) {
+            onFinish.run();
+        }
+    }
+
+    /**
+     * Save the current project to its file if it exists, or prompt to save as if it does not.
+     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     */
+    public void saveProject(@Nullable Runnable onFinish) {
+        if (currentProject != null) {
+            if (currentProjectFile == null) {
+                saveAsProject(onFinish);
+            } else {
+                try {
+                    var fileData = currentProject.serializeNBT(Platform.getFrozenRegistry());
+                    NbtIo.write(fileData, currentProjectFile.toPath());
+                } catch (Exception ignored) {}
+                Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
+                        .show(this);
+            }
+        }
+    }
+
+    /**
+     * Save the current project as a new file.
+     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     */
+    public void saveAsProject(@Nullable Runnable onFinish) {
+        if (currentProject != null) {
+            String suffix = currentProject.getSuffix();
+            Dialog.showFileDialog("ldlib.gui.editor.tips.save_as", LDLib.getAssetsDir(), false,
+                    Dialog.suffixFilter(suffix), file -> {
+                        if (file != null && !file.isDirectory()) {
+                            if (!file.getName().endsWith(suffix)) {
+                                file = new File(file.getParentFile(), file.getName() + suffix);
+                            }
+                            try {
+                                var fileData = currentProject.serializeNBT(Platform.getFrozenRegistry());
+                                NbtIo.write(fileData, file.toPath());
+                                currentProjectFile = file;
+                            } catch (Exception ignored) {}
+                        }
+                        if (onFinish != null) {
+                            onFinish.run();
+                        }
+                    }).show(this);
+        }
+    }
+
+    /**
+     * Load a project into the editor.
+     */
+    public void loadProject(IProject project, @Nullable File projectFile) {
+        if (currentProject != null) {
+            closeCurrentProject(true);
+        }
+        currentProject = project;
+        currentProjectFile = projectFile;
+        // load project resource
+        resourceView.addResources(project.getResources());
+        project.onLoad(this);
+    }
+
+    /**
+     * Close the current project and clear the views.
+     */
+    public void closeCurrentProject(boolean checkSave) {
+        inspectorView.clear();
+        resourceView.clear();
+        if (currentProject != null) {
+            if (checkSave) {
+                askToSaveProject(null);
+            }
+            currentProject.onClosed(this);
+            currentProject = null;
+            currentProjectFile = null;
         }
     }
 

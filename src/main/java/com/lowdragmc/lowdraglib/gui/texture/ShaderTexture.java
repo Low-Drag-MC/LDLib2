@@ -10,6 +10,10 @@ import com.lowdragmc.lowdraglib.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib.gui.ui.Dialog;
+import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -20,7 +24,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import org.appliedenergistics.yoga.YogaAlign;
 
+import javax.annotation.Nullable;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -229,5 +236,73 @@ public class ShaderTexture extends TransformTexture {
         } else {
             DrawerHelper.drawText(graphics, "Error compiling shader", x + 2, y + 2, 1, 0xffff0000);
         }
+    }
+
+    @Override
+    public void createPreview(ConfiguratorGroup father) {
+        super.createPreview(father);
+        var configurator = new Configurator();
+        // button to select image
+        father.addConfigurator(configurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_shader").setOnClick(e -> {
+            var mui = e.currentElement.getModularUI();
+            if (mui == null) return;
+            Dialog.showFileDialog("ldlib.gui.editor.tips.select_shader", LDLib.getAssetsDir(), true, node -> {
+                if (!(node.isLeaf() && node.getContent().isFile() && !node.getContent().getName().toLowerCase().endsWith(".fsh".toLowerCase()))) {
+                    if (node.isLeaf() && node.getContent().isFile()) {
+                            return getShaderFromFile(node.getContent()) != null;
+                        }
+                        return true; // allow directories
+                    }
+                    return false;
+                }, r -> {
+                    if (r != null && r.isFile()) {
+                        var location = getShaderFromFile(r);
+                        if (location == null) return;
+                        updateShader(location);
+                        configurator.notifyChanges();
+                    }
+                }).show(mui.ui.rootElement);
+            }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
+        );
+    }
+
+    @Nullable
+    public ResourceLocation getShaderFromFile(File filePath) {
+        String fullPath = filePath.getPath().replace('\\', '/');
+
+        // find the "assets/" directory in the path
+        var assetsIndex = fullPath.indexOf("assets/");
+        if (assetsIndex == -1) {
+            return null;
+        }
+
+        var relativePath = fullPath.substring(assetsIndex + "assets/".length());
+
+        // find mod_id
+        var slashIndex = relativePath.indexOf('/');
+        if (slashIndex == -1) {
+            return null;
+        }
+
+        var modId = relativePath.substring(0, slashIndex);
+        var subPath = relativePath.substring(slashIndex + 1);
+
+        // find shader location
+        var shaderIndex = subPath.indexOf("shaders/");
+        if (shaderIndex == -1) {
+            return null;
+        }
+
+        var shaderPath = subPath.substring(shaderIndex + "shaders/".length());
+        if (!shaderPath.endsWith(".fsh")) {
+            return null;
+        }
+
+        var location = modId + ":" + shaderPath.substring(0, shaderPath.length() - 4); // remove ".fsh" suffix
+
+        if (LDLib.isValidResourceLocation(location)) {
+            return ResourceLocation.parse(location);
+        }
+        return null;
     }
 }

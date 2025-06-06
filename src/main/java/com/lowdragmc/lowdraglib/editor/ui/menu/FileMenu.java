@@ -3,25 +3,37 @@ package com.lowdragmc.lowdraglib.editor.ui.menu;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib.editor.project.IProject;
 import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.lowdragmc.lowdraglib.registry.AutoRegistry;
-import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
-import lombok.Setter;
+import com.lowdragmc.lowdraglib.syncdata.ISubscription;
+import lombok.Data;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.function.Predicate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class FileMenu extends MenuTab {
-//    @Setter
-//    protected Predicate<IProject> projectFilter = project -> project.group().startsWith(editor.name());
+    @Data(staticConstructor = "of")
+    public static class ProjectProvider {
+        public final IGuiTexture icon;
+        public final String name;
+        public final String suffix;
+        public final Supplier<IProject> projectCreator;
+    }
+
+    private final List<ProjectProvider> projectProviders = new ArrayList<>();
+    private final List<BiConsumer<MenuTab, TreeBuilder.Menu>> newMenuCreators = new ArrayList<>();
 
     public FileMenu(Editor editor) {
         super(editor);
@@ -30,18 +42,27 @@ public class FileMenu extends MenuTab {
     @Override
     protected TreeBuilder.Menu createDefaultMenu() {
         var menu = TreeBuilder.Menu.start();
-//                .branch("ldlib.gui.editor.menu.new", this::newProject)
-//                .crossLine()
-//                .leaf(Icons.OPEN_FILE, "ldlib.gui.editor.menu.open", this::openProject);
-//        if (editor.getCurrentProjectFile() != null) {
-//            menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save", () -> editor.saveProject(result -> {
-//            }));
-//        }
-//        menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save_as", () -> editor.saveAsProject(result -> {
-//                }))
-//                .crossLine()
-//                .branch(Icons.IMPORT, "ldlib.gui.editor.menu.import", m -> m.leaf("ldlib.gui.editor.menu.resource", this::importResource))
-//                .branch(Icons.EXPORT, "ldlib.gui.editor.menu.export", m -> m.leaf("ldlib.gui.editor.menu.resource", this::exportResource));
+        menu.branch("ldlib.gui.editor.menu.new", newMenu -> {
+            for (var provider : projectProviders) {
+                newMenu.leaf(provider.icon, provider.name, () -> {
+                    // open a new project
+                    var newProject = provider.projectCreator.get();
+                    newProject.initNewProject();
+                    editor.loadProject(newProject, null);
+                });
+            }
+            newMenu.crossLine();
+            newMenuCreators.forEach(creator -> creator.accept(this, newMenu));
+        });
+        menu.leaf(Icons.OPEN_FILE, "ldlib.gui.editor.menu.open", this::onOpenProject);
+        menu.crossLine();
+        if (editor.getCurrentProject() != null) {
+            if (editor.getCurrentProjectFile() != null) {
+                menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save", () -> editor.saveProject(null));
+            }
+            menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save_as", () -> editor.saveAsProject(null));
+        }
+        menu.crossLine();
         menu.leaf("editor.exist", editor::close);
         return menu;
     }
@@ -51,104 +72,43 @@ public class FileMenu extends MenuTab {
         return Component.translatable("editor.file");
     }
 
+    /**
+     * Add a project provider to the file menu. It will be displayed in the {@code new} branch
+     * @param projectProvider the project provider to add
+     */
+    public void addProjectProvider(ProjectProvider projectProvider) {
+        this.projectProviders.add(projectProvider);
+    }
 
-//    private void exportResource() {
-//        var resources = editor.getResourcePanel().getResources();
-//        if (resources != null) {
-//            DialogWidget.showFileDialog(editor, "ldlib.gui.editor.tips.save_resource", editor.getWorkSpace(), false,
-//                    DialogWidget.suffixFilter(".resource"), r -> {
-//                        if (r != null && !r.isDirectory()) {
-//                            if (!r.getName().endsWith(".resource")) {
-//                                r = new File(r.getParentFile(), r.getName() + ".resource");
-//                            }
-//                            try {
-//                                NbtIo.write(resources.serializeNBT(Platform.getFrozenRegistry()), r.toPath());
-//                            } catch (IOException exception) {
-//                                LDLib.LOGGER.error("Failed to save resource", exception);
-//                            }
-//                        }
-//                    });
-//        }
-//    }
-//
-//    private void importResource() {
-//        var currentProject = editor.getCurrentProject();
-//        if (currentProject != null) {
-//            DialogWidget.showFileDialog(editor, "ldlib.gui.editor.tips.load_resource", editor.getWorkSpace(), true,
-//                    DialogWidget.suffixFilter(".resource"), r -> {
-//                        if (r != null && r.isFile()) {
-//                            try {
-//                                var tag = NbtIo.read(r.toPath());
-//                                if (tag != null) {
-//                                    editor.getResourcePanel().loadResource(currentProject.loadResources(tag), true);
-//                                }
-//                            } catch (IOException exception) {
-//                                LDLib.LOGGER.error("Failed to load resource", exception);
-//                            }
-//                        }
-//                    });
-//        }
-//    }
-//
-//    protected Predicate<IProject> getProjectPredicate() {
-//        return projectFilter;
-//    }
-//
-//    private void newProject(TreeBuilder.Menu menu) {
-//        for (var project : LDLibRegistries.PROJECTS.values().stream()
-//                .map(AutoRegistry.Holder::value).map(Supplier::get).filter(getProjectPredicate()).toList()) {
-//            menu = menu.leaf(project.getTranslateKey(), () -> {
-//                if (editor.isCurrentProjectSaved()) {
-//                    editor.loadProject(project.newEmptyProject());
-//                } else {
-//                    editor.askToSaveProject(result -> {
-//                        editor.loadProject(project.newEmptyProject());
-//                    });
-//                }
-//            });
-//        }
-//    }
-//
-//    private void openProject() {
-//        var suffixes = LDLibRegistries.PROJECTS.values().stream()
-//                .map(AutoRegistry.Holder::value).map(Supplier::get)
-//                .filter(getProjectPredicate()).map(IProject::getSuffix).collect(Collectors.toSet());
-//        DialogWidget.showFileDialog(editor, "ldlib.gui.editor.tips.load_project", editor.getWorkSpace(), true,
-//                node -> {
-//                    if (node.isLeaf() && node.getContent().isFile()) {
-//                        String file = node.getContent().getName().toLowerCase();
-//                        for (String suffix : suffixes) {
-//                            if (file.endsWith(suffix.toLowerCase())) {
-//                                return true;
-//                            }
-//                        }
-//                        return false;
-//                    }
-//                    return true;
-//                }, r -> {
-//                    if (r != null && r.isFile()) {
-//                        String file = r.getName().toLowerCase();
-//                        for (var project : LDLibRegistries.PROJECTS.values().stream()
-//                                .map(AutoRegistry.Holder::value).map(Supplier::get)
-//                                .filter(getProjectPredicate()).toList()) {
-//                            if (file.endsWith("." + project.getSuffix())) {
-//                                var p = project.loadProject(r.toPath());
-//                                if (p != null) {
-//                                    if (editor.isCurrentProjectSaved()) {
-//                                        editor.loadProject(p);
-//                                        editor.setCurrentProjectFile(r);
-//                                    } else {
-//                                        editor.askToSaveProject(result -> {
-//                                            editor.loadProject(p);
-//                                            editor.setCurrentProjectFile(r);
-//                                        });
-//                                    }
-//                                    break;
-//                                }
-//                            }
-//                        }
-//                    }
-//                });
-//    }
+    /**
+     * Append new menu creator to attach additional leafs to the menu or remove existing ones.
+     */
+    public ISubscription registerNewMenuCreator(BiConsumer<MenuTab, TreeBuilder.Menu> newCreator) {
+        this.newMenuCreators.add(newCreator);
+        return () -> this.newMenuCreators.remove(newCreator);
+    }
+
+    protected void onOpenProject() {
+        var suffixes = projectProviders.stream().map(ProjectProvider::getSuffix).toArray(String[]::new);
+        Dialog.showFileDialog("ldlib.gui.editor.tips.load_project", LDLib.getAssetsDir(), true,
+                Dialog.suffixFilter(suffixes), r -> {
+                    if (r != null && r.isFile()) {
+                        var fileName = r.getName();
+                        projectProviders.stream()
+                                .filter(provider -> fileName.endsWith(provider.getSuffix()))
+                                .findFirst()
+                                .ifPresent(provider -> {
+                                    try {
+                                        var data = NbtIo.read(r.toPath());
+                                        var project = provider.getProjectCreator().get();
+                                        project.deserializeNBT(Platform.getFrozenRegistry(), Objects.requireNonNull(data));
+                                        editor.loadProject(project, r);
+                                    } catch (Exception e) {
+                                        Dialog.showNotification("editor.error", "editor.loading_failed", null).show(editor);
+                                    }
+                                });
+                    }
+                }).show(editor);
+    }
 
 }

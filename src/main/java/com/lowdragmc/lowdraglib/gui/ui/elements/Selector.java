@@ -70,16 +70,12 @@ public class Selector<T> extends BindableUIElement<T> {
     private T value = null;
 
     // runtime
-    @Getter
-    private boolean isOpen = false;
     protected final Map<T, Button> candidateButtons = new HashMap<>();
 
     public Selector() {
         getLayout().setHeight(14);
         getStyle().backgroundTexture(Sprites.RECT_RD_LIGHT);
-        setFocusable(true);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
-        addEventListener(UIEvents.BLUR, this::onBlur);
         this.preview = new UIElement().layout(layout -> {
                     layout.setHeightPercent(100);
                     layout.setFlexGrow(1);
@@ -108,16 +104,21 @@ public class Selector<T> extends BindableUIElement<T> {
         this.dialog
                 .setId("selector#dialog")
                 .layout(layout -> {
-                    layout.setWidthPercent(100);
                     layout.setHeight(StyleSizeLength.AUTO);
                     layout.setPositionType(YogaPositionType.ABSOLUTE);
-                    layout.setPositionPercent(YogaEdge.TOP, 100);
                 })
                 .addChildren(listView = new UIElement().layout(layout -> layout.setPadding(YogaEdge.ALL, 2)), scrollerView = new ScrollerView())
-                .setDisplay(YogaDisplay.NONE)
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
+                .setEnforceFocus(e -> {
+                    if (e.target == this.dialog && this.isChildHover()) {
+                        this.dialog.focus();
+                        return;
+                    }
+                    hide();
+                })
                 .addEventListener(UIEvents.LAYOUT_CHANGED, e -> e.currentElement.adaptPositionToScreen())
                 .stopInteractionEventsPropagation();
+
         scrollerView.verticalScroller.headButton.setDisplay(YogaDisplay.NONE);
         scrollerView.verticalScroller.tailButton.setDisplay(YogaDisplay.NONE);
         scrollerView.horizontalScroller.headButton.setDisplay(YogaDisplay.NONE);
@@ -127,7 +128,7 @@ public class Selector<T> extends BindableUIElement<T> {
         scrollerView.layout(layout -> layout.setFlexGrow(1));
         scrollerView.setDisplay(YogaDisplay.NONE);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
-        addChildren(display, dialog);
+        addChildren(display);
     }
 
     public Selector<T> setCandidates(List<T> candidates) {
@@ -234,22 +235,12 @@ public class Selector<T> extends BindableUIElement<T> {
     ///  events
     protected void onMouseDown(UIEvent event) {
         if (event.button == 0) {
-            if (isOpen) {
+            if (isOpen()) {
                 hide();
-                blur();
             } else {
                 show();
-                focus();
             }
             Widget.playButtonClickSound();
-        }
-    }
-
-    protected void onBlur(UIEvent event) {
-        if (isChildHover()) {
-            focus();
-        } else {
-            hide();
         }
     }
 
@@ -271,21 +262,34 @@ public class Selector<T> extends BindableUIElement<T> {
     }
 
     /// Logic
+    public boolean isOpen() {
+        return this.dialog.getParent() != null;
+    }
+
     public void show() {
-        if (this.isOpen) {
+        if (this.isOpen()) {
             return;
         }
-        this.isOpen = true;
-        this.dialog.setDisplay(YogaDisplay.FLEX);
-        this.dialog.layout(layout -> layout.setPositionPercent(YogaEdge.TOP, 100));
+        var mui = getModularUI();
+        if (mui != null) {
+            var root = mui.ui.rootElement;
+            root.addChild(dialog.layout(layout -> {
+                var x = this.getPositionX();
+                var y = this.getPositionY();
+                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
+                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY() + this.getSizeHeight());
+                layout.setWidth(this.getSizeWidth());
+            }));
+            this.dialog.focus();
+        }
     }
 
     public void hide() {
-        if (!this.isOpen) {
-            return;
+        var parent = this.dialog.getParent();
+        if (parent != null) {
+            this.dialog.blur();
+            parent.removeChild(this.dialog);
         }
-        this.isOpen = false;
-        this.dialog.setDisplay(YogaDisplay.NONE);
     }
 
     /// rendering

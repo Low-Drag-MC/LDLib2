@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 
 public class ColorsResource extends Resource<Integer> {
-    public final FileResourceProvider<Integer> global;
 
     public ColorsResource() {
         var builtinResource = new BuiltinResourceProvider<>(this);
@@ -26,8 +25,11 @@ public class ColorsResource extends Resource<Integer> {
             builtinResource.addResource(value.colorName, value.color);
         }
         addResourceProvider(builtinResource);
-        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")));
-        global.setName("global");
+    }
+
+    @Override
+    public void buildDefault() {
+        addResourceProvider(createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")).setName("global"));
     }
 
     @Override
@@ -42,18 +44,13 @@ public class ColorsResource extends Resource<Integer> {
 
     @Nullable
     @Override
-    public Tag serialize(Integer value, HolderLookup.Provider provider) {
+    public Tag serializeResource(Integer value, HolderLookup.Provider provider) {
         return IntTag.valueOf(value);
     }
 
     @Override
-    public Integer deserialize(Tag nbt, HolderLookup.Provider provider) {
+    public Integer deserializeResource(Tag nbt, HolderLookup.Provider provider) {
         return nbt instanceof IntTag intTag ? intTag.getAsInt() : -1;
-    }
-
-    @Override
-    public boolean canRemoveResourceProvider(ResourceProvider<Integer> provider) {
-        return provider != global && super.canRemoveResourceProvider(provider);
     }
 
     @Override

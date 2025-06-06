@@ -198,9 +198,9 @@ public class AnimationTexture extends TransformTexture {
         float imageU = X * cell;
         float imageV = Y * cell;
 
-        new ColorBorderTexture(-1, 0xff00ff00).draw(graphics, 0, 0,
+        new ColorBorderTexture(1, 0xff00ff00).draw(graphics, 0, 0,
                 x + width * imageU, y + height * imageV,
-                (int) (width * (cell)), (int) (height * (cell)), partialTicks);
+                (width * (cell)), (height * (cell)), partialTicks);
 
         X = to % cellSize;
         Y = to / cellSize;
@@ -208,8 +208,8 @@ public class AnimationTexture extends TransformTexture {
         imageU = X * cell;
         imageV = Y * cell;
 
-        new ColorBorderTexture(-1, 0xffff0000).draw(graphics, 0, 0,
+        new ColorBorderTexture(1, 0xffff0000).draw(graphics, 0, 0,
                 x + width * imageU, y + height * imageV,
-                (int) (width * (cell)), (int) (height * (cell)), partialTicks);
+                (width * (cell)), (height * (cell)), partialTicks);
     }
 }

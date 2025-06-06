@@ -298,9 +298,9 @@ public class ResourceProviderContainer<T> extends UIElement {
         if (key != null && canCopy.test(key)) {
             var value = resourceProvider.getResource(key);
             if (value != null) {
-                var tag = resourceProvider.getResourceHolder().serialize(value, Platform.getFrozenRegistry());
+                var tag = resourceProvider.getResourceHolder().serializeResource(value, Platform.getFrozenRegistry());
                 if (tag != null) {
-                    var copied = resourceProvider.getResourceHolder().deserialize(tag, Platform.getFrozenRegistry());
+                    var copied = resourceProvider.getResourceHolder().deserializeResource(tag, Platform.getFrozenRegistry());
                     if (copied != null) {
                         var count = 1;
                         var newKey = resourceProvider.createPath(resourceProvider.getResourceName(key) + " copy");

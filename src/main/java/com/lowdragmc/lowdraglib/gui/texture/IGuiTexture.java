@@ -136,7 +136,7 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
         var relativePath = fullPath.substring(assetsIndex + "assets/".length());
 
         // find mod_id
-        int slashIndex = relativePath.indexOf('/');
+        var slashIndex = relativePath.indexOf('/');
         if (slashIndex == -1) {
             return null;
         }

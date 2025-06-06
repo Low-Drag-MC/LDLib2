@@ -183,7 +183,7 @@ public class ColorBorderTexture extends TransformTexture{
                     new Vector4f(Math.min(radius, radiusRTOuter), Math.min(radiusRBOuter, radius), Math.min(radius, radiusLTOuter), Math.min(radius, radiusLBOuter)),
                     color);
         } else {
-            DrawerHelper.drawBorder(graphics, (int)x, (int)y, (int)width, (int)height, color, border);
+            DrawerHelper.drawBorder(graphics, x, y, width, height, color, border);
         }
     }
 }

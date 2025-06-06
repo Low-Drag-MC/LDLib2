@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.utils.TextUtilities;
 import lombok.Getter;
 import lombok.Setter;
@@ -120,7 +121,9 @@ public class TextField extends BindableUIElement<String> {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSource);
         addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
+        addEventListener(UIEvents.BLUR, this::onBlur);
     }
+
 
     public TextField textFieldStyle(Consumer<TextFieldStyle> style) {
         style.accept(textFieldStyle);
@@ -219,6 +222,13 @@ public class TextField extends BindableUIElement<String> {
             if (handleNumber((event.deltaY > 0 ? 1 : -1) * wheelDur)) {
                 event.stopPropagation();
             }
+        }
+    }
+
+    protected void onBlur(UIEvent event) {
+        // remove highlight if lose focus
+        if (selectionStart != selectionEnd) {
+            setSelection(cursorPos, cursorPos);
         }
     }
 
@@ -799,23 +809,24 @@ public class TextField extends BindableUIElement<String> {
         graphics.pose().popPose();
 
         // draw highlight
-        if (selectionStart != selectionEnd) {
+        if (isFocused() && selectionStart != selectionEnd) {
             var minX = font.width(rawText.substring(0, selectionStart)) * scale - displayOffset;
             var maxX = font.width(rawText.substring(0, selectionEnd)) * scale - displayOffset;
-            graphics.fill(RenderType.guiTextHighlight(),
-                    (int) (x + minX),
-                    (int) lineY,
-                    (int) (x + maxX),
-                    (int) (lineY + textFieldStyle.fontSize), -16776961);
+            DrawerHelper.drawSolidRect(graphics,
+                    RenderType.guiTextHighlight(),
+                    x + minX,
+                    lineY,
+                    maxX - minX,
+                    textFieldStyle.fontSize * scale, -16776961);
         }
         // draw cursor
         var cursorPosX = font.width(rawText.substring(0, cursorPos)) * scale;
         if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
-            graphics.fill(
-                    (int) (x + cursorPosX - displayOffset),
-                    (int) lineY,
-                    (int) (x + cursorPosX - displayOffset + 1),
-                    (int) (lineY + textFieldStyle.fontSize),
+            DrawerHelper.drawSolidRect(graphics,
+                    x + cursorPosX - displayOffset,
+                    lineY,
+                    1,
+                    textFieldStyle.fontSize * scale,
                     textFieldStyle.cursorColor);
         }
     }

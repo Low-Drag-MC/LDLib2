@@ -176,8 +176,12 @@ public class ClientProxy extends CommonProxy {
         for (var entry : Minecraft.getInstance().getResourceManager().listResources("models",
                 id -> id.getNamespace().equals("ldlib") && id.getPath().endsWith(".json")).entrySet()) {
             if (entry.getValue().sourcePackId().equals("ldlib")) {
-                event.register(ModelResourceLocation.vanilla(entry.getKey().getNamespace(),
-                        entry.getKey().getPath().replace("models/", "").replace(".json", "")));
+                var modelLocation = ResourceLocation.fromNamespaceAndPath(
+                        entry.getKey().getNamespace(),
+                        entry.getKey().getPath()
+                                .replace("models/", "")
+                                .replace(".json", ""));
+                event.register(ModelResourceLocation.standalone(modelLocation));
             }
         }
         for (IRenderer renderer : IRenderer.EVENT_REGISTERS) {

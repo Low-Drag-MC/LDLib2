@@ -6,16 +6,20 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.util.*;
 
 import com.lowdragmc.lowdraglib.editor.ui.view.ResourceView;
 import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
-public abstract class Resource<T> {
+public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
     @Getter
     protected final List<ResourceProvider<T>> providers = new ArrayList<>();
     @Getter @Setter
@@ -106,30 +110,34 @@ public abstract class Resource<T> {
      * Serialize resource to nbt for persistence.
      */
     @Nullable
-    public abstract Tag serialize(T value, HolderLookup.Provider provider);
+    public abstract Tag serializeResource(T value, HolderLookup.Provider provider);
 
     /**
      * Deserialize resource from nbt.
      */
     @Nullable
-    public abstract T deserialize(Tag nbt, HolderLookup.Provider provider);
+    public abstract T deserializeResource(Tag nbt, HolderLookup.Provider provider);
 
-    @Nullable
-    public CompoundTag serializeNBT(T value, HolderLookup.Provider provider) {
-        var tag = serialize(value, provider);
-        if (tag == null) return null;
-        var nbt = new CompoundTag();
-        nbt.put("data", tag);
-        nbt.putString("type", getName());
-        return nbt;
+    @Override
+    public @Nonnull CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
+        var data = new CompoundTag();
+        var providerList = new ListTag();
+        for (var resourceProvider : providers) {
+            if (resourceProvider instanceof FileResourceProvider<T> fileResourceProvider) {
+                providerList.add(fileResourceProvider.serializeNBT());
+            }
+        }
+        data.put("providers", providerList);
+        return data;
     }
 
-    @Nullable
-    public T deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
-        if (nbt.getString("type").equals(getName())) {
-            return deserialize(nbt.get("data"), provider);
+    @Override
+    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt) {
+        providers.removeIf(FileResourceProvider.class::isInstance); // Clear existing file resource providers
+        var providerList = nbt.getList("providers", Tag.TAG_COMPOUND);
+        for (var tag : providerList) {
+            addResourceProvider(FileResourceProvider.fromNBT(this, (CompoundTag) tag));
         }
-        return null;
     }
 
     @Override

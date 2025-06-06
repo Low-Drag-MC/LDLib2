@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib.test.ui;
 
-import com.lowdragmc.lowdraglib.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib.gui.ui.UI;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -12,7 +11,7 @@ import net.minecraft.world.entity.player.Player;
 public class TestEditor implements IUITest {
     @Override
     public ModularUI createUI(Player entityPlayer) {
-        var root = new Editor().layout(layout -> {
+        var root = new com.lowdragmc.lowdraglib.test.TestEditor().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         }).setId("editor");

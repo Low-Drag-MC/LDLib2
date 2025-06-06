@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib.editor.ui.util;
 
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.event.UIEvent;
@@ -24,7 +23,7 @@ public abstract class SplitView extends UIElement{
     public final UIElement first = new UIElement();
     public final UIElement second = new UIElement();
     @Getter @Setter
-    private int borderSize = 1;
+    private int borderSize = 2;
     @Getter @Setter
     private int minPercentage = 5;
     @Getter @Setter
@@ -49,7 +48,8 @@ public abstract class SplitView extends UIElement{
     public abstract float getPercentage();
 
     protected void onMouseDown(UIEvent event) {
-        if (event.button == 0 && isHoverDragging(event.x, event.y)){
+        // use int mouse coordinates to avoid issues with floating point precision
+        if (event.button == 0 && isHoverDragging((int) event.x, (int) event.y)){
             var icon = getDraggingIcon();
             var width = icon.spriteSize.width;
             var height = icon.spriteSize.height;

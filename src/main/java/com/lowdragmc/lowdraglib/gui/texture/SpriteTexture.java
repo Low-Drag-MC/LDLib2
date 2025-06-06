@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.math.Position;
 import com.lowdragmc.lowdraglib.math.Size;
 import com.lowdragmc.lowdraglib.registry.annotation.LDLRegisterClient;
@@ -323,30 +324,32 @@ public class SpriteTexture extends TransformTexture {
         var spriteWidth = spriteSize.width * width / imageSize.width;
         var spriteHeight = spriteSize.height * height / imageSize.height;
         new ColorBorderTexture(1,0xFFFF0000).draw(graphics, mouseX, mouseY,
-                (int) spriteX, (int) spriteY, (int) spriteWidth, (int) spriteHeight, partialTicks);
+                spriteX, spriteY, spriteWidth, spriteHeight, partialTicks);
         // left
-        graphics.fill(
-                (int) (spriteX + borderLT.getX() * width / imageSize.width),
-                (int) spriteY,
-                (int) (spriteX + borderLT.getX() * width / imageSize.width + 1),
-                (int) (spriteY + spriteHeight), 0xFFFF0000);
-        // top
-        graphics.fill(
-                (int) spriteX,
-                (int) (spriteY + borderLT.getY() * height / imageSize.height),
-                (int) (spriteX + spriteWidth),
-                (int) (spriteY + borderLT.getY() * height / imageSize.height + 1), 0xFFFF0000);
-        // right
-        graphics.fill(
-                (int) (spriteX + spriteWidth - borderRB.getX() * width / imageSize.width),
-                (int) spriteY,
-                (int) (spriteX + spriteWidth - borderRB.getX() * width / imageSize.width + 1),
-                (int) (spriteY + spriteHeight), 0xFFFF0000);
-        // bottom
-        graphics.fill(
-                (int) spriteX,
-                (int) (spriteY + spriteHeight - borderRB.getY() * height / imageSize.height),
-                (int) (spriteX + spriteWidth),
-                (int) (spriteY + spriteHeight - borderRB.getY() * height / imageSize.height + 1), 0xFFFF0000);
+        graphics.drawManaged(() -> {
+            DrawerHelper.drawSolidRect(graphics,
+                    spriteX + borderLT.getX() * width / imageSize.width,
+                    spriteY,
+                    1,
+                    spriteHeight, 0xFFFF0000, false);
+            // top
+            DrawerHelper.drawSolidRect(graphics,
+                    spriteX,
+                    spriteY + borderLT.getY() * height / imageSize.height,
+                    spriteWidth,
+                    1, 0xFFFF0000, false);
+            // right
+            DrawerHelper.drawSolidRect(graphics,
+                    spriteX + spriteWidth - borderRB.getX() * width / imageSize.width,
+                    spriteY,
+                    1,
+                    spriteHeight, 0xFFFF0000, false);
+            // bottom
+            DrawerHelper.drawSolidRect(graphics,
+                    spriteX,
+                    spriteY + spriteHeight - borderRB.getY() * height / imageSize.height,
+                    spriteWidth,
+                    1, 0xFFFF0000, false);
+        });
     }
 }

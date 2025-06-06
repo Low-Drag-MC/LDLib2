@@ -106,7 +106,7 @@ public class ColorRectTexture extends TransformTexture{
             DrawerHelper.drawRoundBox(graphics, x, y, width, height,
                     new Vector4f(Math.min(radius, radiusRT), Math.min(radiusRB, radius), Math.min(radius, radiusLT), Math.min(radius, radiusLB)), color);
         } else {
-            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, color);
+            DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
         }
     }
 }

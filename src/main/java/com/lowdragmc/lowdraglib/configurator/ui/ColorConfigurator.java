@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import net.minecraft.client.gui.GuiGraphics;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaPositionType;
 
@@ -21,15 +20,13 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
 
     public ColorConfigurator(String name, Supplier<Integer> supplier, Consumer<Integer> onUpdate, @Nonnull Integer defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
-        setFocusable(true);
-        addEventListener(UIEvents.BLUR, this::onBlur, true);
 
         if (value == null) {
             value = defaultValue;
         }
 
         this.colorSelector = new ColorSelector();
-        this.colorSelector.style(style -> style.zIndex(1).backgroundTexture(Sprites.BORDER)).setDisplay(YogaDisplay.NONE);
+        this.colorSelector.style(style -> style.zIndex(1).backgroundTexture(Sprites.BORDER));
         this.colorSelector.layout(layout -> {
             layout.setPositionType(YogaPositionType.ABSOLUTE);
             layout.setWidthPercent(100);
@@ -38,6 +35,8 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             layout.setPadding(YogaEdge.ALL, 4);
         });
         this.colorSelector.setOnColorChangeListener(this::updateValueActively);
+        this.colorSelector.setFocusable(true);
+        this.colorSelector.setEnforceFocus(e -> hide());
         this.colorSelector.addEventListener(UIEvents.LAYOUT_CHANGED, e -> colorSelector.adaptPositionToScreen());
 
         inlineContainer.addChildren(colorPreview = new UIElement().layout(layout -> {
@@ -47,7 +46,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
                 .addChildren(new UIElement()
                         .layout(layout -> layout.setHeightPercent(100))
                         .style(style -> style.backgroundTexture(this::drawColorPreview))
-                        .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)), colorSelector);
+                        .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
         this.colorSelector.setColor(value, false);
     }
@@ -61,52 +60,48 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
     }
 
     public void show() {
-        this.colorSelector.setDisplay(YogaDisplay.FLEX);
-        this.colorSelector.layout(layout -> layout.setPositionPercent(YogaEdge.TOP, 0));
+        var parent = this.colorSelector.getParent();
+        if (parent != null) {
+            return;
+        }
+        var mui = getModularUI();
+        if (mui != null) {
+            var root = mui.ui.rootElement;
+            root.addChild(colorSelector.layout(layout -> {
+                var x = colorPreview.getPositionX();
+                var y = colorPreview.getPositionY();
+                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
+                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY());
+                layout.setWidth(colorPreview.getSizeWidth());
+            }));
+            this.colorSelector.focus();
+        }
     }
 
     public void hide() {
-        this.colorSelector.setDisplay(YogaDisplay.NONE);
-    }
-
-    protected void onBlur(UIEvent event) {
-        if (event.relatedTarget != null && this.colorSelector.isAncestorOf(event.relatedTarget)) { // focus on children
-            return;
-        }
-
-        if (event.target == this) { // lose focus
-            if (isChildHover()) {
-                focus();
-            } else {
-                hide();
-            }
-        } else { // child lose focus
-            if (event.relatedTarget == null && isChildHover()) {
-                focus();
-            } else {
-                hide();
-            }
+        var parent = this.colorSelector.getParent();
+        if (parent != null) {
+            this.colorSelector.blur();
+            parent.removeChild(this.colorSelector);
         }
     }
 
     protected void onClick(UIEvent event) {
-        if (this.colorSelector.isDisplayed()) {
+        if (this.colorSelector.getParent() != null) {
             hide();
-            blur();
         } else {
             show();
-            focus();
         }
     }
 
     protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         int color = value == null ? defaultValue : value;
         graphics.drawManaged(() -> {
-            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, color);
-            DrawerHelper.drawSolidRect(graphics, (int) x - 1, (int) y, (int) 1, (int) height, color);
-            DrawerHelper.drawSolidRect(graphics, (int) x + (int) width, (int) y, (int) 1, (int) height, color);
-            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y - 1, (int) width, (int) 1, color);
-            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y + (int) height, (int) width, (int) 1, color);
+            DrawerHelper.drawSolidRect(graphics, x, y, width, height, color, false);
+            DrawerHelper.drawSolidRect(graphics, x - 1, y, 1, height, color, false);
+            DrawerHelper.drawSolidRect(graphics, x + width, y, 1, height, color, false);
+            DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, color, false);
+            DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, color, false);
         });
     }
 

@@ -4,19 +4,21 @@ import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib.gui.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib.gui.ui.style.value.TextWrap;
 import net.minecraft.Util;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
@@ -24,10 +26,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class FileResourceProvider<T> extends ResourceProvider<T> {
+public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public final File resourceLocation;
     public final String resourceSuffix;
-    protected final Map<File, Long> resourcesLastModified = new LinkedHashMap<>();
+    private final Map<File, Long> resourcesLastModified = new LinkedHashMap<>();
 
     public FileResourceProvider(Resource<T> resource, File resourceLocation, String resourceSuffix) {
         super(resource);
@@ -62,11 +64,29 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         return super.getResourceName(path);
     }
 
+    @Nullable
+    public CompoundTag serializeNBT(T value, HolderLookup.Provider provider) {
+        var tag = resourceHolder.serializeResource(value, provider);
+        if (tag == null) return null;
+        var nbt = new CompoundTag();
+        nbt.put("data", tag);
+        nbt.putString("type", resourceHolder.getName());
+        return nbt;
+    }
+
+    @Nullable
+    public T deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
+        if (nbt.getString("type").equals(resourceHolder.getName())) {
+            return resourceHolder.deserializeResource(nbt.get("data"), provider);
+        }
+        return null;
+    }
+
     @Override
     public boolean addResource(IResourcePath path, T content) {
         if (supportResourcePath(path) && path instanceof FilePath(File file)) {
             try {
-                var nbt = this.resourceHolder.serializeNBT(content, Platform.getFrozenRegistry());
+                var nbt = this.serializeNBT(content, Platform.getFrozenRegistry());
                 if (nbt != null) {
                     NbtIo.write(nbt, file.toPath());
                     resourcesLastModified.put(file, file.lastModified());
@@ -130,45 +150,50 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         if (resourceLocation == null) {
             return false;
         }
-        var changed = false;
-        var found = new HashSet<File>();
-        var files = resourceLocation.listFiles((file, name) -> name.endsWith(resourceSuffix));
-        if (files != null) {
-            for (var file : files) {
-                var path = new FilePath(file);
-                if (contents.containsKey(path)) {
-                    if (!resourcesLastModified.containsKey(file) || resourcesLastModified.get(file) != file.lastModified()) {
-                        var res = readResourceFromFile(file);
-                        if (res != null) {
-                            contents.put(path, res);
+        try {
+            var changed = false;
+            var found = new HashSet<File>();
+            var files = resourceLocation.listFiles((file, name) -> name.endsWith(resourceSuffix));
+            if (files != null) {
+                for (var file : files) {
+                    var path = new FilePath(file);
+                    if (contents.containsKey(path)) {
+                        if (!resourcesLastModified.containsKey(file) || resourcesLastModified.get(file) != file.lastModified()) {
+                            var res = readResourceFromFile(file);
+                            if (res != null) {
+                                contents.put(path, res);
+                                resourcesLastModified.put(file, file.lastModified());
+                                changed = true;
+                                found.add(file);
+                            }
+                        } else {
+                            found.add(file);
+                        }
+                    } else {
+                        var resource = readResourceFromFile(file);
+                        if (resource != null) {
+                            contents.put(path, resource);
                             resourcesLastModified.put(file, file.lastModified());
                             changed = true;
                             found.add(file);
                         }
-                    } else {
-                        found.add(file);
-                    }
-                } else {
-                    var resource = readResourceFromFile(file);
-                    if (resource != null) {
-                        contents.put(path, resource);
-                        resourcesLastModified.put(file, file.lastModified());
-                        changed = true;
-                        found.add(file);
                     }
                 }
             }
+            if (found.size() != resourcesLastModified.size()) {
+                var removed = new HashSet<>(resourcesLastModified.keySet());
+                removed.removeAll(found);
+                removed.forEach(file -> {
+                    resourcesLastModified.remove(file);
+                    contents.remove(new FilePath(file));
+                });
+                changed = true;
+            }
+            return changed;
+        } catch (Exception e) {
+            LDLib.LOGGER.error("Failed to tick file resources provider from {}: ", resourceLocation, e);
+            return false;
         }
-        if (found.size() != resourcesLastModified.size()) {
-            var removed = new HashSet<>(resourcesLastModified.keySet());
-            removed.removeAll(found);
-            removed.forEach(file -> {
-                resourcesLastModified.remove(file);
-                contents.remove(new FilePath(file));
-            });
-            changed = true;
-        }
-        return changed;
     }
 
     @Nullable
@@ -176,7 +201,7 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         try {
             var fileData = NbtIo.read(file.toPath());
             if (fileData != null) {
-                var data = resourceHolder.deserializeNBT(fileData, Platform.getFrozenRegistry());
+                var data = deserializeNBT(fileData, Platform.getFrozenRegistry());
                 if (data != null) return data;
             }
             LDLib.LOGGER.error("Failed to load resource file {} from {}: ", file, this);
@@ -186,4 +211,17 @@ public class FileResourceProvider<T> extends ResourceProvider<T> {
         return null;
     }
 
+    public @Nonnull CompoundTag serializeNBT() {
+        var data = new CompoundTag();
+        data.putString("name", getName());
+        data.putString("location", resourceLocation.getPath());
+        data.putString("suffix", resourceSuffix);
+        return data;
+    }
+
+    public static <T> FileResourceProvider<T> fromNBT(Resource<T> resourceHolder, @Nonnull CompoundTag nbt) {
+        var location = new File(nbt.getString("location"));
+        var resourceSuffix = nbt.getString("suffix");
+        return (FileResourceProvider<T>) new FileResourceProvider<T>(resourceHolder, location, resourceSuffix).setName(nbt.getString("name"));
+    }
 }

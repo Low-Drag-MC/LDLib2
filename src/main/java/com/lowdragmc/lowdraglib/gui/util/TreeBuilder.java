@@ -105,7 +105,14 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu branch(IGuiTexture icon, String name, Consumer<Menu> menuConsumer) {
-            branch(new Tuple<>(icon, name), builder -> menuConsumer.accept(this));
+            var key = new Tuple<>(icon, name);
+            var child = stack.peek().getOrCreateChild(key);
+            stack.push(child);
+            menuConsumer.accept(this);
+            if (child.getChildren() != null && !child.getChildren().isEmpty() && child.getChildren().getLast().getKey() == CROSS_LINE) {
+                child.removeChild(child.getChildren().getLast());
+            }
+            endBranch();
             return this;
         }
 
@@ -205,6 +212,10 @@ public class TreeBuilder<K, V> {
                                 layout.setFlexGrow(1);
                             }).setOverflow(YogaOverflow.HIDDEN));
 
+        }
+
+        public static IGuiTexture hoverTextureProvider(TreeNode<Tuple<IGuiTexture, String>, Runnable> node) {
+            return isCrossLine(node.getKey()) ? IGuiTexture.EMPTY :ColorPattern.BLUE.rectTexture();
         }
     }
 

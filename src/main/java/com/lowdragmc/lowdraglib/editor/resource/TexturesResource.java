@@ -13,19 +13,17 @@ import net.minecraft.nbt.Tag;
 import java.io.File;
 
 public class TexturesResource extends Resource<IGuiTexture> {
-    public final FileResourceProvider<IGuiTexture> global;
 
     public TexturesResource() {
         var builtinResource = new BuiltinResourceProvider<>(this);
         builtinResource.addResource("empty", IGuiTexture.EMPTY);
         builtinResource.addResource("missing", IGuiTexture.MISSING_TEXTURE);
         addResourceProvider(builtinResource);
-        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")));
-        global.setName("global");
     }
 
     @Override
     public void buildDefault() {
+        addResourceProvider(createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")).setName("global"));
     }
 
     @Override
@@ -39,18 +37,13 @@ public class TexturesResource extends Resource<IGuiTexture> {
     }
 
     @Override
-    public Tag serialize(IGuiTexture value, HolderLookup.Provider provider) {
+    public Tag serializeResource(IGuiTexture value, HolderLookup.Provider provider) {
         return IGuiTexture.CODEC.encodeStart(NbtOps.INSTANCE, value).result().orElse(null);
     }
 
     @Override
-    public IGuiTexture deserialize(Tag nbt, HolderLookup.Provider provider) {
+    public IGuiTexture deserializeResource(Tag nbt, HolderLookup.Provider provider) {
         return IGuiTexture.CODEC.parse(NbtOps.INSTANCE, nbt).result().orElse(IGuiTexture.MISSING_TEXTURE);
-    }
-
-    @Override
-    public boolean canRemoveResourceProvider(ResourceProvider<IGuiTexture> provider) {
-        return provider != global && super.canRemoveResourceProvider(provider);
     }
 
     @Override
@@ -63,7 +56,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
         container.setOnEdit((c, path) -> {
             var texture = provider.getResource(path);
             if (texture == null) return;
-            c.getEditor().inspectorView.inspect(texture, configurator -> c.markResourceDirty(path));
+            c.getEditor().inspectorView.inspect(texture, configurator -> c.markResourceDirty(path), null);
         });
         if (provider.supportAdd()) {
             container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
