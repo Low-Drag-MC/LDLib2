@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.lowdragmc.lowdraglib.client.ClientProxy;
 import com.lowdragmc.lowdraglib.core.mixins.MixinPluginShared;
 import com.lowdragmc.lowdraglib.integration.emi.EMIPlugin;
-import com.lowdragmc.lowdraglib.json.IGuiTextureTypeAdapter;
 import com.lowdragmc.lowdraglib.integration.rei.REIPlugin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -31,9 +30,7 @@ public class LDLib {
     public static final String MODID_REI = "roughlyenoughitems";
     public static final String MODID_EMI = "emi";
     public static final RandomSource RANDOM = RandomSource.createThreadSafe();
-    public static final Gson GSON = new GsonBuilder()
-            .registerTypeAdapterFactory(IGuiTextureTypeAdapter.INSTANCE)
-            .create();
+    public static final Gson GSON = new GsonBuilder().create();
     private static File assetsLocation;
 
     public LDLib(IEventBus eventBus, ModContainer modContainer) {

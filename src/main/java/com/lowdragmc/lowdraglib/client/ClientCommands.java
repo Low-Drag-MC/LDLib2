@@ -3,12 +3,9 @@ package com.lowdragmc.lowdraglib.client;
 import com.lowdragmc.lowdraglib.LDLibRegistries;
 import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.shader.management.ShaderManager;
-import com.lowdragmc.lowdraglib.compass.CompassManager;
 import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
-import com.lowdragmc.lowdraglib.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib.gui.ui.ModularUIContainerScreen;
-import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
@@ -39,12 +36,6 @@ public class ClientCommands {
                             ShaderManager.getInstance().reload();
                             return 1;
                         })),
-                createLiteral("compass").then(createLiteral("dev_mode")
-                        .then(Commands.argument("mode", BoolArgumentType.bool())
-                                .executes(context -> {
-                                    CompassManager.INSTANCE.devMode = BoolArgumentType.getBool(context, "mode");
-                                    return 1;
-                                }))),
                 createTestCommands()
         );
     }

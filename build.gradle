@@ -52,9 +52,10 @@ repositories {
     maven { url = "https://jitpack.io/" } // Mixin Extras, Fabric ASM
     maven {
         // saps.dev Maven (KubeJS and Rhino)
-        url = "https://maven.saps.dev/minecraft"
+        url "https://maven.latvian.dev/releases"
         content {
             includeGroup "dev.latvian.mods"
+            includeGroup "dev.latvian.apps"
         }
     }
     maven {

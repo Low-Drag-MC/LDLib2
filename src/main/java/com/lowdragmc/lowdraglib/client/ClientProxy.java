@@ -14,7 +14,6 @@ import com.lowdragmc.lowdraglib.client.shader.Shaders;
 import com.lowdragmc.lowdraglib.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib.core.mixins.ParticleEngineAccessor;
 import com.lowdragmc.lowdraglib.core.mixins.accessor.ModelBakeryAccessor;
-import com.lowdragmc.lowdraglib.compass.CompassManager;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.util.WidgetTooltipComponent;
 import com.mojang.datafixers.util.Pair;
@@ -27,7 +26,6 @@ import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.resources.model.*;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
@@ -50,16 +48,6 @@ public class ClientProxy extends CommonProxy {
         eventBus.register(this);
     }
 
-
-    /**
-     * should be called when Minecraft is prepared.
-     */
-    public static void init() {
-        Shaders.init();
-        DrawerHelper.init();
-        CompassManager.INSTANCE.init();
-    }
-
     @SubscribeEvent
     public void onRegisterClientTooltipComponentFactoriesEvent(final RegisterClientTooltipComponentFactoriesEvent event) {
         event.register(WidgetTooltipComponent.class, WidgetClientTooltipComponent::new);
@@ -75,9 +63,8 @@ public class ClientProxy extends CommonProxy {
     @SubscribeEvent
     public void clientSetup(final FMLClientSetupEvent e) {
         e.enqueueWork(() -> {
-            ((ReloadableResourceManager) Minecraft.getInstance().getResourceManager()).registerReloadListener(CompassManager.INSTANCE);
-            CompassManager.INSTANCE.onResourceManagerReload(Minecraft.getInstance().getResourceManager());
-            ClientProxy.init();
+            Shaders.init();
+            DrawerHelper.init();
         });
     }
 
