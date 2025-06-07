@@ -292,7 +292,7 @@ public class Dialog extends UIElement {
      * @param valid a predicate to validate the selected file or directory, can be null to allow all files
      * @param result a consumer that will receive the selected file or directory when the confirm button is clicked
      */
-    public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable Predicate<TreeNode<File, File>> valid, Consumer<File> result) {
+    public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable Predicate<TreeNode<File, Void>> valid, Consumer<File> result) {
         var dialog = new Dialog();
         var textField = new TextField();
         var treeList = new TreeList<>(new FileNode(dir).setValid(valid));
@@ -315,28 +315,31 @@ public class Dialog extends UIElement {
             layout.setPadding(YogaEdge.ALL, 3);
         }).addChild(new UIElement().layout(layout -> layout.setWidthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
         dialog.addContent(new ScrollerView().addScrollViewChild(treeList
-                .setOnSelected(node -> {
+                .setOnSelectedChanged(selected -> {
+                    if (selected.isEmpty()) return;
+                    var first = selected.stream().findFirst().get();
                     if (isSelector) {
-                        textField.setText(node.getKey().toString(), false);
-                    } else if (node.getKey().isFile()) {
-                        textField.setText(node.getKey().getName(), false);
+                        textField.setText(first.getKey().toString(), false);
+                    } else if (first.getKey().isFile()) {
+                        textField.setText(first.getKey().getName(), false);
                     } else {
                         textField.setText("", false);
                     }
                 })
-                .setOnDoubleClickLeaf(node -> {
+                .setOnDoubleClickNode(node -> {
                     var file = node.getKey();
-                    if (isSelector && file != null) {
+                    if (isSelector && file.isFile()) {
                         dialog.close();
                         if (result != null) result.accept(file);
                     }
                 })
-                .setCanSelectNode(true)
-                .setContentNameSupplier(File::getName)
-                .setKeyNameSupplier(File::getName)
-                .setKeyIconSupplier(file -> Icons.FOLDER)
-                .setContentIconSupplier(file -> Icons.getIcon(file.getName().substring(file.getName().lastIndexOf('.') + 1)))
-                .initList()).layout(layout -> {
+                .setNodeUISupplier(TreeList.iconTextTemplate(
+                        node -> node.getKey().isDirectory() ?
+                                Icons.FOLDER :
+                                Icons.getIcon(node.getKey().getName()
+                                        .substring(node.getKey().getName().lastIndexOf('.') + 1)),
+                        node -> node.getKey().getName()))
+                .reloadList()).layout(layout -> {
                     layout.setWidthPercent(100);
                     layout.setHeight(180);
                 })
@@ -357,9 +360,10 @@ public class Dialog extends UIElement {
                             Dialog.showNotification("editor.error", "editor.file_not_found", null).show(parent);
                         }
                     } else {
-                        var node = treeList.getSelected();
-                        if (node != null) {
-                            var file = node.getKey();
+                        var nodes = treeList.getSelected();
+                        if (!nodes.isEmpty()) {
+                            var first = nodes.stream().findFirst().get();
+                            var file = first.getKey();
                             var fileName = textField.getText();
                             if (file.isFile()) {
                                 file = file.getParentFile();
@@ -381,10 +385,10 @@ public class Dialog extends UIElement {
      * Creates a predicate that filters out nodes based on their suffixes.
      * @param suffixes the suffixes to filter out, e.g. ".txt", ".jpg"
      */
-    public static Predicate<TreeNode<File, File>> suffixFilter(String... suffixes) {
+    public static Predicate<TreeNode<File, Void>> suffixFilter(String... suffixes) {
         return node -> {
             for (String suffix : suffixes) {
-                if (!(node.isLeaf() && node.getContent().isFile() && !node.getContent().getName().toLowerCase().endsWith(suffix.toLowerCase()))) {
+                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(suffix.toLowerCase())) {
                     return true;
                 }
             }

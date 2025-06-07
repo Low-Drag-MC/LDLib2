@@ -247,9 +247,9 @@ public class ShaderTexture extends TransformTexture {
             var mui = e.currentElement.getModularUI();
             if (mui == null) return;
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_shader", LDLib.getAssetsDir(), true, node -> {
-                if (!(node.isLeaf() && node.getContent().isFile() && !node.getContent().getName().toLowerCase().endsWith(".fsh".toLowerCase()))) {
-                    if (node.isLeaf() && node.getContent().isFile()) {
-                            return getShaderFromFile(node.getContent()) != null;
+                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".fsh".toLowerCase())) {
+                    if (node.getKey().isFile()) {
+                            return getShaderFromFile(node.getKey()) != null;
                         }
                         return true; // allow directories
                     }

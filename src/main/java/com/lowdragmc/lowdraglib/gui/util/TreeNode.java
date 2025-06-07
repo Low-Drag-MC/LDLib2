@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib.gui.util;
 
-
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -15,7 +15,9 @@ import java.util.stream.Collectors;
 public class TreeNode<T, K> {
     public final int dimension;
     protected final T key;
+    @Nullable
     protected K content;
+    @Nullable
     protected List<TreeNode<T, K>> children;
     @Nullable
     protected Predicate<TreeNode<T, K>> valid;
@@ -31,12 +33,16 @@ public class TreeNode<T, K> {
     }
 
     public boolean isLeaf(){
-        return getChildren() == null || getChildren().isEmpty();
+        return children == null || getChildren().isEmpty();
+    }
+
+    public boolean isBranch(){
+        return !isLeaf();
     }
 
     public TreeNode<T, K> getOrCreateChild (T childKey) {
         TreeNode<T, K> result;
-        if (getChildren() != null) {
+        if (children != null) {
             result = getChildren().stream().filter(child->child.key.equals(childKey)).findFirst().orElseGet(()->{
                 TreeNode<T, K> newNode = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
                 getChildren().add(newNode);
@@ -51,7 +57,7 @@ public class TreeNode<T, K> {
     }
 
     public TreeNode<T, K> createChild (T childKey) {
-        if (getChildren() == null) {
+        if (children == null) {
             children = new ArrayList<>();
         }
         TreeNode<T, K> result = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
@@ -78,11 +84,13 @@ public class TreeNode<T, K> {
         return key;
     }
 
+    @Nullable
     public K getContent() {
         return content;
     }
 
     public List<TreeNode<T, K>> getChildren() {
+        if (children == null) return Collections.emptyList();
         if (valid == null) return children;
         return children.stream().filter(valid).collect(Collectors.toList());
     }

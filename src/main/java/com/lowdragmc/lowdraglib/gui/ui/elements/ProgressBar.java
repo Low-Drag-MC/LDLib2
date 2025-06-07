@@ -49,6 +49,7 @@ public class ProgressBar extends BindableUIElement<Float> {
     public ProgressBar() {
         getLayout().setHeight(14);
 
+
         this.barContainer = new UIElement();
         this.label = new Label();
         this.bar = new UIElement();

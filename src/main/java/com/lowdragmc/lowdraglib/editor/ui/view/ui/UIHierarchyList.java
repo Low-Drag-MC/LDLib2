@@ -22,7 +22,7 @@ public class UIHierarchyList extends UIElement {
            layout.setHeightPercent(100);
         });
 
-        scrollerView.addScrollViewChild(new TreeList<>(rootNode).setCanSelectNode(true));
+//        scrollerView.addScrollViewChild(new TreeList<>(rootNode).setCanSelectNode(true));
         this.addChild(scrollerView);
     }
 

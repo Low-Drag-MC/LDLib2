@@ -13,6 +13,10 @@ public class DynamicTexture implements IGuiTexture {
         this.textureSupplier = rendererSupplier;
     }
 
+    public static DynamicTexture of(Supplier<IGuiTexture> rendererSupplier) {
+        return new DynamicTexture(rendererSupplier);
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {

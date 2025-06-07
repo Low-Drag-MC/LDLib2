@@ -243,9 +243,9 @@ public class IModelRenderer implements IRenderer {
             var mui = e.currentElement.getModularUI();
             if (mui == null) return;
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_model", LDLib.getAssetsDir(), true, node -> {
-                if (!(node.isLeaf() && node.getContent().isFile() && !node.getContent().getName().toLowerCase().endsWith(".json".toLowerCase()))) {
-                    if (node.isLeaf() && node.getContent().isFile()) {
-                        return getModelFromFile(node.getContent()) != null;
+                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".json".toLowerCase())) {
+                    if (node.getKey().isFile()) {
+                        return getModelFromFile(node.getKey()) != null;
                     }
                     return true; // allow directories
                 }
