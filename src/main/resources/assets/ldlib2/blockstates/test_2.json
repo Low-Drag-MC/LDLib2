@@ -1,0 +1,27 @@
+{
+    "variants": {
+        "facing=north": {
+            "model": "ldlib2:block/test_2",
+            "y": 180
+        },
+        "facing=south": {
+            "model": "ldlib2:block/test_2"
+        },
+        "facing=west": {
+            "model": "ldlib2:block/test_2",
+            "y": 90
+        },
+        "facing=east": {
+            "model": "ldlib2:block/test_2",
+            "y": 270
+        },
+        "facing=up": {
+            "model": "ldlib2:block/test_2",
+            "x": 90
+        },
+        "facing=down": {
+            "model": "ldlib2:block/test_2",
+            "x": 270
+        }
+    }
+}

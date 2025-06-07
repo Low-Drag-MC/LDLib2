@@ -1,1 +1,1 @@
-com.lowdragmc.lowdraglib.integration.kjs.LDLibKubeJSPlugin
+com.lowdragmc.lowdraglib2.integration.kjs.LDLibKubeJSPlugin

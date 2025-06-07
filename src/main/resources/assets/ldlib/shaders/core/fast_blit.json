@@ -1,8 +1,0 @@
-{
-    "vertex": "ldlib:fast_blit",
-    "fragment": "ldlib:fast_blit",
-    "attributes": [ "Position" ],
-    "samplers": [
-        { "name": "DiffuseSampler" }
-    ]
-}

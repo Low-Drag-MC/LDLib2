@@ -1,9 +1,9 @@
-package com.lowdragmc.lowdraglib.test.sync;
+package com.lowdragmc.lowdraglib2.test.sync;
 
-import com.lowdragmc.lowdraglib.syncdata.IManaged;
-import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
-import com.lowdragmc.lowdraglib.test.TestBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.IManaged;
+import com.lowdragmc.lowdraglib2.syncdata.field.FieldManagedStorage;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.test.TestBlockEntity;
 import lombok.Getter;
 import lombok.Setter;
 

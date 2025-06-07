@@ -1,9 +1,0 @@
-{
-	"vertex": "ldlib:hsb_block",
-	"fragment": "ldlib:hsb_block",
-	"attributes": [ "Position" , "HSB_ALPHA" ],
-	"uniforms": [
-		{ "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
-		{ "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] }
-	]
-}
