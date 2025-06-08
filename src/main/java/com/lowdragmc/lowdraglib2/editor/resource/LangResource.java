@@ -17,7 +17,7 @@
 //        var builtinResource = new BuiltinResourceProvider<>(this);
 //        builtinResource.addResource("ldlib.author", "KilaBash");
 //        addResourceProvider(builtinResource);
-//        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib/resources")));
+//        addResourceProvider(global = createNewFileResourceProvider(new File(LDLib.getAssetsDir(), "ldlib2/resources")));
 //        global.setName("global");
 //    }
 //

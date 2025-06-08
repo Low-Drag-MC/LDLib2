@@ -24,7 +24,10 @@ import java.util.concurrent.*;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class AsyncThreadData extends SavedData {
-    private final ServerLevel serverLevel;
+    private static final String THREAD_NAME_FORMAT = "LDLib Async Thread-%d";
+    private static final int DEFAULT_SCHEDULE_PERIOD_MS = 50;
+
+    public final ServerLevel serverLevel;
 
     public static AsyncThreadData getOrCreate(ServerLevel serverLevel) {
         return serverLevel.getDataStorage().computeIfAbsent(new SavedData.Factory<>(() -> new AsyncThreadData(serverLevel), (tag, provider) -> new AsyncThreadData(serverLevel, tag)), LDLib2.MOD_ID);
@@ -48,7 +51,7 @@ public class AsyncThreadData extends SavedData {
     private final CopyOnWriteArrayList<IAsyncLogic> asyncLogics = new CopyOnWriteArrayList<>();
     private ScheduledExecutorService executorService;
     private final static ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder()
-            .setNameFormat("LDLib Async Thread-%d")
+            .setNameFormat(THREAD_NAME_FORMAT)
             .setDaemon(true)
             .build();
     private static final ThreadLocal<Boolean> IN_SERVICE = ThreadLocal.withInitial(() -> false);
@@ -58,7 +61,7 @@ public class AsyncThreadData extends SavedData {
     public void createExecutorService() {
         if (executorService != null && !executorService.isShutdown()) return;
         executorService = Executors.newSingleThreadScheduledExecutor(THREAD_FACTORY);
-        executorService.scheduleAtFixedRate(this::searchingTask, 0, 50, TimeUnit.MILLISECONDS);
+        executorService.scheduleAtFixedRate(this::searchingTask, 0, DEFAULT_SCHEDULE_PERIOD_MS, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -86,11 +89,12 @@ public class AsyncThreadData extends SavedData {
             if (Platform.isServerNotSafe()) return;
             IN_SERVICE.set(true);
             for (IAsyncLogic logic : asyncLogics) {
-                logic.asyncTick(periodID);
+                try {
+                    logic.asyncTick(periodID);
+                } catch (Throwable e) {
+                    LDLib2.LOGGER.error("asyncThreadLogic error with an async logic {}", logic, e);
+                }
             }
-        } catch (Throwable e) {
-            e.printStackTrace();
-            LDLib2.LOGGER.error("asyncThreadLogic error: {}", e.getMessage());
         } finally {
             IN_SERVICE.set(false);
         }

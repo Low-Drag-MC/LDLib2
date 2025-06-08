@@ -93,13 +93,21 @@ public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
     }
 
     /**
+     * Creates a new {@link FileResourceProvider} instance using the data from the given NBT tag.
+     * @param tag The {@link CompoundTag} containing the serialized data for the file resource provider.
+     * @return A {@link FileResourceProvider} created from the data in the given {@link CompoundTag}.
+     */
+    protected FileResourceProvider<T> createFileResourceProviderFromNBT(CompoundTag tag) {
+        return FileResourceProvider.fromNBT(this, tag);
+    }
+
+    /**
      * Create a resource provider container for the given provider. You should override it to attach additional UI elements or behaviors.
      * e.g. how to add a new resource, how to display the resource in the UI, etc.
      */
     public ResourceProviderContainer<T> createResourceProviderContainer(ResourceProvider<T> provider) {
         return provider.createContainer();
     }
-
 
     public Component getDisplayName() {
         return Component.translatable(getName());
@@ -127,6 +135,8 @@ public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
             }
         }
         data.put("providers", providerList);
+        data.putBoolean("isList", isList);
+        data.putInt("uiWidth", uiWidth);
         return data;
     }
 
@@ -135,8 +145,10 @@ public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
         providers.removeIf(FileResourceProvider.class::isInstance); // Clear existing file resource providers
         var providerList = nbt.getList("providers", Tag.TAG_COMPOUND);
         for (var tag : providerList) {
-            addResourceProvider(FileResourceProvider.fromNBT(this, (CompoundTag) tag));
+            addResourceProvider(createFileResourceProviderFromNBT((CompoundTag) tag));
         }
+        isList = nbt.getBoolean("isList");
+        uiWidth = nbt.getInt("uiWidth");
     }
 
     @Override

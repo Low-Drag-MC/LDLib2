@@ -23,7 +23,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
 
     @Override
     public void buildDefault() {
-        addResourceProvider(createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib/resources")).setName("global"));
+        addResourceProvider(createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources")).setName("global"));
     }
 
     @Override

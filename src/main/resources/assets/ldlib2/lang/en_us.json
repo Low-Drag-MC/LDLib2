@@ -183,7 +183,7 @@
   "ldlib.gui.editor.tips.click_select_image": "clicking to select an image",
   "ldlib.gui.editor.tips.image_text_width": "Text width, text out of range will be hidden, roll, or new line according to type",
   "ldlib.gui.editor.tips.image_text_type": "Text Type",
-  "ldlib.gui.editor.tips.shader_location": "Shader Source, it should be a vsh file under the `./assets/ldlib/shader/..`",
+  "ldlib.gui.editor.tips.shader_location": "Shader Source, it should be a vsh file under the `./assets/ldlib2/shader/..`",
   "ldlib.gui.editor.tips.shader_resolution": "Render resolution, raise it if you think the image is blurry",
   "ldlib.gui.editor.tips.cell_size": "Refer to how many cells does the animation texture need to be divided into (side length)",
   "ldlib.gui.editor.tips.cell_from": "Start cell index",

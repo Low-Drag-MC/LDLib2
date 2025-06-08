@@ -30,7 +30,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.textures";
 
     public TexturesResource() {
-        super(new File(LDLib2.getAssetsDir(), "ldlib/resources/textures"));
+        super(new File(LDLib2.getAssetsDir(), "ldlib2/resources/textures"));
         addBuiltinResource("empty", IGuiTexture.EMPTY);
     }
 

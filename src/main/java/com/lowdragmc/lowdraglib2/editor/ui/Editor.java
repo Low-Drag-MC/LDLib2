@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
@@ -198,7 +199,7 @@ public class Editor extends UIElement {
      */
     public void askToSaveProject(@Nullable Runnable onFinish) {
         if (isCurrentProjectDirty()) {
-            Dialog.showCheckBox("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
+            var dialog = Dialog.showCheckBox("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
                 if (doSave) {
                     saveProject(onFinish);
                 }
@@ -206,6 +207,9 @@ public class Editor extends UIElement {
                     onFinish.run();
                 }
             }).show(this);
+            if (dialog.buttonContainer.getChildren().get(0) instanceof Button button) {
+                button.setText("ldlib.gui.editor.menu.save");
+            }
             return;
         }
         if (onFinish != null) {

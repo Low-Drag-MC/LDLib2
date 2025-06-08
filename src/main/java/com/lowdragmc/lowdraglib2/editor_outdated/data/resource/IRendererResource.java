@@ -19,7 +19,7 @@ public class IRendererResource extends Resource<IRenderer> {
     public final static String RESOURCE_NAME = "ldlib.gui.editor.group.renderer";
 
     public IRendererResource() {
-        super(new File(LDLib2.getAssetsDir(), "ldlib/resources/renderers"));
+        super(new File(LDLib2.getAssetsDir(), "ldlib2/resources/renderers"));
         addBuiltinResource("empty", IRenderer.EMPTY);
     }
 

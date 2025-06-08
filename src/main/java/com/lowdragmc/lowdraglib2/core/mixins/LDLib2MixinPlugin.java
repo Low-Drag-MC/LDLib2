@@ -7,12 +7,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import java.util.List;
 import java.util.Set;
 
-/**
- * @author KilaBash
- * @date 2023/2/11
- * @implNote LDLibMixinPlugin
- */
-public class LDLibMixinPlugin implements IMixinConfigPlugin, MixinPluginShared {
+public class LDLib2MixinPlugin implements IMixinConfigPlugin, MixinPluginShared {
     @Override
     public void onLoad(String mixinPackage) {
 

@@ -93,7 +93,7 @@
   "ldlib.gui.editor.tips.click_select_image": "clicando para selecionar uma imagem",
   "ldlib.gui.editor.tips.image_text_width": "Largura do texto, texto fora do intervalo será oculto, rolado ou nova linha de acordo com o tipo",
   "ldlib.gui.editor.tips.image_text_type": "Tipo de texto",
-  "ldlib.gui.editor.tips.shader_location": "Shader Source, deve ser um arquivo vsh sob o `./assets/ldlib/shader/..`",
+  "ldlib.gui.editor.tips.shader_location": "Shader Source, deve ser um arquivo vsh sob o `./assets/ldlib2/shader/..`",
   "ldlib.gui.editor.tips.shader_resolution": "Resolução de renderização, aumente se achar que a imagem está embaçada",
   "ldlib.gui.editor.tips.cell_size": "Consulte em quantas células a textura da animação precisa ser dividida (comprimento lateral)",
   "ldlib.gui.editor.tips.cell_from": "Índice da célula inicial",

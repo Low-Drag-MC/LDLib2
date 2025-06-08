@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "com.lowdragmc.lowdraglib2.core.mixins",
   "compatibilityLevel": "JAVA_21",
-  "plugin": "com.lowdragmc.lowdraglib2.core.mixins.LDLibMixinPlugin",
+  "plugin": "com.lowdragmc.lowdraglib2.core.mixins.LDLib2MixinPlugin",
   "client": [
     "BlockEntityRendererDispatcherMixin",
     "BlockModelShaperMixin",

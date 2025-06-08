@@ -92,7 +92,7 @@
   "ldlib.gui.editor.tips.click_select_image": "单击以选择图像",
   "ldlib.gui.editor.tips.image_text_width": "文本宽度，超出范围的文本将根据类型隐藏、滚动或换行",
   "ldlib.gui.editor.tips.image_text_type": "文本类型",
-  "ldlib.gui.editor.tips.shader_location": "着色器源，应该是`./assets/ldlib/shader/..`下的 vsh 文件",
+  "ldlib.gui.editor.tips.shader_location": "着色器源，应该是`./assets/ldlib2/shader/..`下的 vsh 文件",
   "ldlib.gui.editor.tips.shader_resolution": "渲染分辨率，如果您认为图像模糊，请提高它",
   "ldlib.gui.editor.tips.cell_size": "参考动画纹理需要分成多少个单元格（边长）",
   "ldlib.gui.editor.tips.cell_from": "起始单元格索引",
