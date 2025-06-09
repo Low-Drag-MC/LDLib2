@@ -1,11 +1,11 @@
-package com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.data;
+package com.lowdragmc.lowdraglib2.math;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.ISceneObject;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneObject;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;

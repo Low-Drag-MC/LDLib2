@@ -1,6 +1,6 @@
-package com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject;
+package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject;
 
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.data.Ray;
+import com.lowdragmc.lowdraglib2.math.Ray;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;

@@ -1,7 +1,7 @@
-package com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.utils;
+package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils;
 
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.ISceneRendering;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.SceneObject;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;

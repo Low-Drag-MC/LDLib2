@@ -1,6 +1,6 @@
-package com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject;
+package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject;
 
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.data.Transform;
+import com.lowdragmc.lowdraglib2.math.Transform;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 

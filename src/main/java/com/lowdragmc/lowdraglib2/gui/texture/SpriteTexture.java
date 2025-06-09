@@ -121,6 +121,21 @@ public class SpriteTexture extends TransformTexture {
         return this;
     }
 
+    @Override
+    public SpriteTexture setColor(int color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public SpriteTexture copy() {
+        return new SpriteTexture()
+                .setImageLocation(imageLocation)
+                .setSprite(spritePosition.getX(), spritePosition.getY(), spriteSize.getWidth(), spriteSize.getHeight())
+                .setBorder(borderLT.getX(), borderLT.getY(), borderRB.getX(), borderRB.getY())
+                .setColor(color)
+                .setWrapMode(wrapMode);
+    }
 
     @OnlyIn(Dist.CLIENT)
     public Size getImageSize() {

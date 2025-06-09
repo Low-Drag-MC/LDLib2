@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.data;
+package com.lowdragmc.lowdraglib2.math;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.BlockHitResult;

@@ -20,6 +20,18 @@ import java.util.List;
 @OnlyIn(Dist.CLIENT)
 public class RenderBufferUtils {
 
+    public static void drawLine(PoseStack.Pose pose, VertexConsumer buffer, Vector3f from, Vector3f to,
+                                float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
+        var normalDir = new Vector3f(to.x - from.x, to.y - from.y, to.z - from.z).normalize();
+        buffer.addVertex(pose, from.x, from.y, from.z).setColor(sr, sg, sb, sa)
+                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z);
+        buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
+                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z);
+        if (buffer instanceof MultiBufferSource.BufferSource source) {
+            source.endLastBatch();
+        }
+    }
+
     public static void drawLine(Matrix4f pose, VertexConsumer buffer, Vector3f from, Vector3f to,
                                 float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
         var normalDir = new Vector3f(to.x - from.x, to.y - from.y, to.z - from.z).normalize();

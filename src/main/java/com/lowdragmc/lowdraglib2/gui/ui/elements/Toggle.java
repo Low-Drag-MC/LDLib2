@@ -12,23 +12,69 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
 public class Toggle extends BindableUIElement<Boolean> {
+    public static class ToggleGroup {
+        @Setter
+        @Accessors(chain = true)
+        private boolean allowEmpty = false;
+        @Getter
+        private List<Toggle> toggles = new ArrayList<>();
+        @Getter
+        @Nullable
+        private Toggle currentToggle;
+
+        protected void registerToggle(Toggle toggle) {
+            toggles.add(toggle);
+            if (!allowEmpty && currentToggle == null || toggle.isOn()) {
+                setCurrentToggle(toggle);
+            }
+        }
+
+        protected void unregisterToggle(Toggle toggle) {
+            toggles.remove(toggle);
+            if (currentToggle == toggle) {
+                clearCurrentToggle();
+                if (!allowEmpty) {
+                    toggles.stream().findAny().ifPresent(t -> t.setOn(true));
+                }
+            }
+        }
+
+        protected void clearCurrentToggle() {
+            currentToggle = null;
+        }
+
+        protected void setCurrentToggle(Toggle toggle) {
+            if (toggle == currentToggle) return;
+            if (currentToggle != null) {
+                currentToggle.setOn(false);
+            }
+            currentToggle = toggle;
+        }
+    }
     @Accessors(chain = true, fluent = true)
     public static class ToggleStyle extends Style {
         @Getter
@@ -55,6 +101,9 @@ public class Toggle extends BindableUIElement<Boolean> {
     private final ToggleStyle toggleStyle = new ToggleStyle(this);
     @Getter
     private boolean isOn = false;
+    @Getter
+    @Nullable
+    private ToggleGroup toggleGroup;
 
     public Toggle() {
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
@@ -98,6 +147,11 @@ public class Toggle extends BindableUIElement<Boolean> {
     public Toggle toggleStyle(Consumer<ToggleStyle> style) {
         style.accept(toggleStyle);
         onStyleChanged();
+        this.markIcon.getStyle().backgroundTexture(isOn ? toggleStyle.markTexture() : toggleStyle.unmarkTexture());
+        this.toggleButton.buttonStyle(buttonStyle -> buttonStyle
+                .defaultTexture(toggleStyle.baseTexture())
+                .hoverTexture(toggleStyle.hoverTexture())
+                .pressedTexture(toggleStyle.hoverTexture()));
         return this;
     }
 
@@ -127,6 +181,55 @@ public class Toggle extends BindableUIElement<Boolean> {
         return setValue(on, notifyChange);
     }
 
+    /**
+     * Sets the {@code ToggleGroup} for this {@code Toggle}. A {@code ToggleGroup} manages a collection of toggles
+     * where only one toggle can be active at a time unless the group is configured to allow empty selection.
+     *
+     * If a new {@code ToggleGroup} is assigned, this {@code Toggle} will be registered to the new group.
+     * If the group is set to {@code null}, this {@code Toggle} will be unregistered from its current group, if any.
+     *
+     * @param group the {@code ToggleGroup} to associate with this {@code Toggle}, or {@code null}
+     *              to disassociate it from any group
+     * @return the current {@code Toggle} instance for method chaining
+     */
+    public Toggle setToggleGroup(@Nullable ToggleGroup group) {
+        if (group != null) {
+            group.registerToggle(this);
+        } else if (this.toggleGroup != null) {
+            this.toggleGroup.unregisterToggle(this);
+        }
+        this.toggleGroup = group;
+        return this;
+    }
+
+    @Override
+    public void onRemoved() {
+        super.onRemoved();
+        if (toggleGroup != null) {
+            toggleGroup.unregisterToggle(this);
+        }
+    }
+
+    @HideFromJS
+    public Toggle setText(String text) {
+        toggleLabel.setText(text);
+        return this;
+    }
+
+    @HideFromJS
+    public Toggle setText(Component text) {
+        toggleLabel.setText(text);
+        return this;
+    }
+
+    public Toggle setText(String text, boolean translate) {
+        return setText(translate ? Component.translatable(text) : Component.literal(text));
+    }
+
+    public Toggle kjs$setText(Component text) {
+        return setText(text);
+    }
+
     @Override
     public Boolean getValue() {
         return isOn;
@@ -134,11 +237,22 @@ public class Toggle extends BindableUIElement<Boolean> {
 
     @Override
     public Toggle setValue(Boolean value, boolean notify) {
+        if (value == isOn) return this;
         isOn = value;
+        if (toggleGroup != null) {
+            if (value) {
+                toggleGroup.setCurrentToggle(this);
+            } else if (toggleGroup.currentToggle == this) {
+                if (toggleGroup.allowEmpty) {
+                    toggleGroup.clearCurrentToggle();
+                }
+            }
+        }
         markIcon.getStyle().backgroundTexture(isOn ? toggleStyle.markTexture() : toggleStyle.unmarkTexture());
         if (notify) {
             notifyListeners();
         }
+
         return this;
     }
 

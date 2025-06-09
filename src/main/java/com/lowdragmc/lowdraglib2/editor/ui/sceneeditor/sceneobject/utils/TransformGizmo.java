@@ -1,13 +1,13 @@
-package com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.utils;
+package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.SceneEditorWidget;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.data.Ray;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.data.Transform;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.ISceneInteractable;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.ISceneRendering;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.sceneeditor.sceneobject.SceneObject;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor;
+import com.lowdragmc.lowdraglib2.math.Ray;
+import com.lowdragmc.lowdraglib2.math.Transform;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInteractable;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
@@ -67,13 +67,17 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         }
     }
 
+    public boolean isMoving() {
+        return isMovingX || isMovingY || isMovingZ;
+    }
+
     public boolean hasTargetTransform() {
         return targetTransform != null;
     }
 
     public boolean isHoverAxis(Direction.Axis axis) {
         var scene = getScene();
-        if (scene instanceof SceneEditorWidget editor && targetTransform != null) {
+        if (scene instanceof SceneEditor editor && targetTransform != null) {
             return switch (mode) {
                 case TRANSLATE -> editor.getMouseRay()
                         .map(ray -> ray.worldToLocal(transform()).toInfinite())
@@ -120,14 +124,16 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     @OnlyIn(Dist.CLIENT)
     public void updateFrame(float partialTicks) {
         super.updateFrame(partialTicks);
-        if (getScene() instanceof SceneEditorWidget editor) {
-            var distance = editor.getRenderer().getEyePos().distance(transform().position());
+        if (getScene() instanceof SceneEditor editor && editor.getModularUI() != null) {
+            var renderer = editor.scene.getRenderer();
+            if (renderer == null) return;
+            var distance = renderer.getEyePos().distance(transform().position());
             float baseScale = 0.23F;
-            float gizmoScale = distance * (float) Math.tan(editor.getRenderer().getFov() * 0.5f * Math.PI / 180) * baseScale;
-            if (lastScale != gizmoScale) {
-                transform().scale(new Vector3f(gizmoScale));
-                lastScale = gizmoScale;
-            }
+            float gizmoScale = distance * (float) Math.tan(renderer.getFov() * 0.5f * Math.PI / 180) * baseScale;
+//            if (lastScale != gizmoScale) {
+//                transform().scale(new Vector3f(gizmoScale));
+//                lastScale = gizmoScale;
+//            }
             if (targetTransform == null) return;
             if (!transform().position().equals(targetTransform.position())) {
                 transform().position(targetTransform.position());
@@ -135,13 +141,16 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             if (!transform().rotation().equals(targetTransform.rotation())) {
                 transform().rotation(targetTransform.rotation());
             }
-            if (isMovingX || isMovingY || isMovingZ) {
+            if (isMoving()) {
+                var lastMouseX = editor.getModularUI().getLastMouseX();
+                var lastMouseY = editor.getModularUI().getLastMouseY();
                 var currentPosition = transform().position();
 
                 var moveD = transform().localToWorldMatrix().transformDirection(new Vector3f(moveDirection));
                 var screenStart = editor.project(currentPosition);
                 var screenEnd = editor.project(new Vector3f(currentPosition).add(moveD));
-                var screenAxis = new Vector2f(screenEnd).sub(screenStart);
+                if (screenStart.isEmpty() || screenEnd.isEmpty()) return;
+                var screenAxis = new Vector2f(screenEnd.get()).sub(screenStart.get());
 
                 if (screenAxis.length() > 0) {
                     screenAxis.normalize();
@@ -149,7 +158,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     return;
                 }
 
-                var mouseDelta = new Vector2f(editor.getLastMouseX(), editor.getLastMouseY()).sub(startMouse);
+                assert editor.getModularUI() != null;
+                var mouseDelta = new Vector2f(lastMouseX, lastMouseY).sub(startMouse);
                 if (mode == Mode.ROTATE) {
                     mouseDelta.set(-mouseDelta.y, mouseDelta.x);
                 }
@@ -157,9 +167,9 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 if (projectedLength == 0) {
                     return;
                 }
-                var distanceToCamera = editor.getRenderer().getEyePos().distance(currentPosition);
+                var distanceToCamera = renderer.getEyePos().distance(currentPosition);
 
-                var fov = editor.getRenderer().getFov();
+                var fov = renderer.getFov();
                 var screenHeight = editor.getSizeHeight();
                 float worldHeight = 2.0f * distanceToCamera * (float) Math.tan(Math.toRadians(fov / 2));
                 float pixelToWorldScale = worldHeight / screenHeight;
@@ -182,7 +192,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     targetTransform.localRotation(localRotation);
                 }
 
-                startMouse.set(editor.getLastMouseX(), editor.getLastMouseY());
+                startMouse.set(lastMouseX, lastMouseY);
             }
         }
     }
@@ -192,7 +202,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
         if (targetTransform == null) return;
         var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
-        var pose = poseStack.last().pose();
         var hoverColor = 0xFFFFFFFF;
         var isHoverX = isHoverAxis(Direction.Axis.X);
         var isHoverY = !isHoverX && isHoverAxis(Direction.Axis.Y);
@@ -215,24 +224,24 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         if (mode == Mode.SCALE || mode == Mode.TRANSLATE) {
             var scale = targetTransform.scale();
             // draw x axis
-            RenderBufferUtils.drawLine(pose, buffer, new Vector3f(0, 0, 0), new Vector3f(mode == Mode.TRANSLATE ? 1 : scale.x, 0, 0),
+            RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(mode == Mode.TRANSLATE ? 1 : scale.x, 0, 0),
                     xR, xG, xB, xA, xR, xG, xB, xA);
             if (isMovingX) {
-                RenderBufferUtils.drawLine(pose, buffer, new Vector3f(-50, 0, 0), new Vector3f(50, 0, 0),
+                RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(-50, 0, 0), new Vector3f(50, 0, 0),
                         xR, xG, xB, xA, xR, xG, xB, xA);
             }
             // draw y axis
-            RenderBufferUtils.drawLine(pose, buffer, new Vector3f(0, 0, 0), new Vector3f(0, mode == Mode.TRANSLATE ? 1 : scale.y, 0),
+            RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, mode == Mode.TRANSLATE ? 1 : scale.y, 0),
                     yR, yG, yB, yA, yR, yG, yB, yA);
             if (isMovingY) {
-                RenderBufferUtils.drawLine(pose, buffer, new Vector3f(0, -50, 0), new Vector3f(0, 50, 0),
+                RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, -50, 0), new Vector3f(0, 50, 0),
                         yR, yG, yB, yA, yR, yG, yB, yA);
             }
             // draw z axis
-            RenderBufferUtils.drawLine(pose, buffer, new Vector3f(0, 0, 0), new Vector3f(0, 0, mode == Mode.TRANSLATE ? 1 : scale.z),
+            RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, 0, mode == Mode.TRANSLATE ? 1 : scale.z),
                     zR, zG, zB, zA, zR, zG, zB, zA);
             if (isMovingZ) {
-                RenderBufferUtils.drawLine(pose, buffer, new Vector3f(0, 0, -50), new Vector3f(0, 0, 50),
+                RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, -50), new Vector3f(0, 0, 50),
                         zR, zG, zB, zA, zR, zG, zB, zA);
             }
 
@@ -300,21 +309,23 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     @Override
     public boolean onMouseClick(Ray mouseRay) {
-        if (getScene() instanceof SceneEditorWidget editor) {
+        if (getScene() instanceof SceneEditor editor && editor.getModularUI() != null) {
+            var lastMouseX = editor.getModularUI().getLastMouseX();
+            var lastMouseY = editor.getModularUI().getLastMouseY();
             if (isHoverAxis(Direction.Axis.X)) {
                 isMovingX = true;
                 moveDirection = new Vector3f(1, 0, 0);
-                startMouse = new Vector2f(editor.getLastMouseX(), editor.getLastMouseY());
+                startMouse = new Vector2f(lastMouseX, lastMouseY);
                 return true;
             } else if (isHoverAxis(Direction.Axis.Y)) {
                 isMovingY = true;
                 moveDirection = new Vector3f(0, 1, 0);
-                startMouse = new Vector2f(editor.getLastMouseX(), editor.getLastMouseY());
+                startMouse = new Vector2f(lastMouseX, lastMouseY);
                 return true;
             } else if (isHoverAxis(Direction.Axis.Z)) {
                 isMovingZ = true;
                 moveDirection = new Vector3f(0, 0, 1);
-                startMouse = new Vector2f(editor.getLastMouseX(), editor.getLastMouseY());
+                startMouse = new Vector2f(lastMouseX, lastMouseY);
                 return true;
             }
         }
