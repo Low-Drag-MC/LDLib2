@@ -19,8 +19,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -49,10 +47,7 @@ public class CommonProxy {
         BLOCKS.register("renderer_block", () -> RendererBlock.BLOCK);
 
         // used for forge events (ClientProxy + CommonProxy)
-        // eventBus.register(this); //TODO: uncomment if @SubscribeEvent is used in this class
         eventBus.addListener(LDLNetworking::registerPayloads);
-        // register server commands
-        NeoForge.EVENT_BUS.addListener(this::registerCommand);
         // init common features
         CommonProxy.init();
         // load ldlib2 plugin
@@ -80,8 +75,4 @@ public class CommonProxy {
         LDLib2Registries.init();
     }
 
-    public void registerCommand(RegisterCommandsEvent event) {
-        var dispatcher = event.getDispatcher();
-        ServerCommands.createServerCommands().forEach(dispatcher::register);
-    }
 }
