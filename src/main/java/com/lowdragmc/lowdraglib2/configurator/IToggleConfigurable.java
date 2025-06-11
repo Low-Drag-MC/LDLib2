@@ -25,6 +25,7 @@ public interface IToggleConfigurable extends IConfigurable, IPersistedSerializab
         father.lineContainer.addChildAt(new Toggle()
                 .setOn(!father.isCollapse(),false)
                 .setOnToggleChanged(isOn -> {
+                    setEnable(isOn);
                     father.setCollapse(!isOn);
                     father.setCanCollapse(isOn);
                     father.notifyChanges();

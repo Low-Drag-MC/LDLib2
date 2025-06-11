@@ -102,7 +102,6 @@ public class TestConfigurators implements IUITest, IConfigurable, IPersistedSeri
     }
 
     public static class TestToggleGroup implements IToggleConfigurable {
-        @Persisted
         @Getter
         @Setter
         private boolean isEnable = false;

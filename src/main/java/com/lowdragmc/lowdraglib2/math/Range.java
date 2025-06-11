@@ -2,12 +2,11 @@ package com.lowdragmc.lowdraglib2.math;
 
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Data;
-import net.minecraft.Util;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -18,10 +17,10 @@ import java.util.Objects;
 @Data(staticConstructor = "of")
 public final class Range {
 
-    public final static Codec<Range> CODEC = LDLibExtraCodecs.NUMBER.listOf().comapFlatMap(
-            list -> Util.fixedSize(list, 2).map(p_253489_ -> new Range(list.get(0), list.get(1))),
-            range -> List.of(range.a, range.b)
-    );
+    public final static Codec<Range> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LDLibExtraCodecs.NUMBER.fieldOf("a").forGetter(range -> range.a),
+            LDLibExtraCodecs.NUMBER.fieldOf("b").forGetter(range -> range.b)
+    ).apply(instance, Range::of));
 
     public final static StreamCodec<FriendlyByteBuf, Range> STREAM_CODEC = StreamCodec.of(
             (byteBuf, range) -> {

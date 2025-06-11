@@ -77,7 +77,7 @@ public class ConfiguratorGroup extends Configurator {
         return this;
     }
 
-    public ConfiguratorGroup addConfigurator(Configurator configurator, int index) {
+    public ConfiguratorGroup addConfiguratorAt(Configurator configurator, int index) {
         this.configurators.add(index, configurator);
         configuratorContainer.addChildAt(configurator, index);
         return this;

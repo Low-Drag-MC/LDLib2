@@ -134,7 +134,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
             var field = getReadOnlyVar();
             assert field.getManagedVar() != null;
             return op.mapBuilder()
-                    .add("uid", NbtOps.INSTANCE.convertMap(op, field.getManagedVar().serializeUid(value)))
+                    .add("uid", NbtOps.INSTANCE.convertTo(op, field.getManagedVar().serializeUid(value)))
                     .add("payload", readReadOnlySync(op))
                     .build(op.empty()).getOrThrow();
         } else {
@@ -182,7 +182,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
                 return LDLibExtraCodecs.createStringNull(op);
             }
             return op.mapBuilder()
-                    .add("uid", NbtOps.INSTANCE.convertMap(op, field.getManagedVar().serializeUid(value)))
+                    .add("uid", NbtOps.INSTANCE.convertTo(op, field.getManagedVar().serializeUid(value)))
                     .add("payload", readReadOnlyPersisted(op))
                     .build(op.empty()).getOrThrow();
         } else {

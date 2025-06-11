@@ -17,7 +17,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +24,7 @@ import lombok.Setter;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -83,7 +83,7 @@ public class TestSerialization implements IUITest {
             return IntTag.valueOf(groups.size());
         }
 
-        public List<TestGroup> testGroupSerialize(IntTag tag) {
+        public List<TestGroup> testGroupDeserialize(IntTag tag) {
             var groups = new ArrayList<TestGroup>();
             for (int i = 0; i < tag.getAsInt(); i++) {
                 groups.add(addDefaultTestGroup());
@@ -92,7 +92,6 @@ public class TestSerialization implements IUITest {
         }
 
         public static class TestToggleGroup implements IToggleConfigurable {
-            @Persisted
             @Getter
             @Setter
             private boolean isEnable = false;
@@ -129,7 +128,6 @@ public class TestSerialization implements IUITest {
         group.setCollapse(false);
         data.buildConfigurator(group);
         var text = new TextElement();
-        text.setText(serialized.toString(), false);
         root.addChildren(
                 new ScrollerView().addScrollViewChild(group).layout(layout -> {
                     layout.setFlex(1);
@@ -141,7 +139,7 @@ public class TestSerialization implements IUITest {
                 }).addChildren(
                         new Button().setText("serialize").setOnClick(e -> {
                             serialized = data.serializeNBT(Platform.getFrozenRegistry());
-                            text.setText(serialized.toString(), false);
+                            text.setText(NbtUtils.toPrettyComponent(serialized));
                         }),
                         new Button().setText("deserialize").setOnClick(e -> {
                             data.deserializeNBT(Platform.getFrozenRegistry(), serialized);

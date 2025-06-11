@@ -16,10 +16,12 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author KilaBash
@@ -94,6 +96,42 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         addChild(buttonGroup.addChildren(addButton, removeButton));
     }
 
+    @Override
+    public void screenTick() {
+        super.screenTick();
+        if (forceUpdate) {
+            var current = source.get();
+            var items = configurators.stream().filter(ItemConfigurator.class::isInstance)
+                    .map(ItemConfigurator.class::cast)
+                    .collect(Collectors.toList());
+            // remove overflow
+            while (items.size() > current.size()) {
+                removeConfigurator(items.getLast());
+                if (selected == items.removeLast()) {
+                    setSelected(null);
+                }
+            }
+            // check items
+            for (int i = 0; i < current.size(); i++) {
+                var expected = current.get(i);
+                if (items.size() > i) {
+                    var item = items.get(i);
+                    if (!Objects.equals(item.object, expected)) {
+                        var index = configurators.indexOf(item);
+                        removeConfigurator(item);
+                        var newItem = new ItemConfigurator(expected, configuratorProvider);
+                        addConfiguratorAt(newItem, index);
+                        if (selected == item) {
+                            setSelected(newItem);
+                        }
+                    }
+                } else {
+                    addConfigurator(new ItemConfigurator(expected, configuratorProvider));
+                }
+            }
+        }
+    }
+
     protected void onRemove(UIEvent event) {
         if (selected != null && canRemove) {
             if (onRemove != null) {
@@ -118,7 +156,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
                         .map(ItemConfigurator.class::cast)
                         .toList();
                 var index = items.indexOf(selected);
-                addConfigurator(configurator, index + 1);
+                addConfiguratorAt(configurator, index + 1);
             } else {
                 addConfigurator(configurator);
             }
@@ -226,13 +264,13 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
                 } else {
                     removeConfigurator(this);
                     if (index < selfIndex) {
-                        addConfigurator(this, index + 1);
+                        addConfiguratorAt(this, index + 1);
                         if (onReorder != null) {
                             onReorder.accept(index + 1, object);
                         }
                         notifyListUpdate();
                     } else {
-                        addConfigurator(this, index);
+                        addConfiguratorAt(this, index);
                         if (onReorder != null) {
                             onReorder.accept(index, object);
                         }
@@ -241,7 +279,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
                 }
             } else if (selfIndex != 0) {
                 removeConfigurator(this);
-                addConfigurator(this, 0);
+                addConfiguratorAt(this, 0);
                 if (onReorder != null) {
                     onReorder.accept(0, object);
                 }

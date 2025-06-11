@@ -5,8 +5,7 @@ import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.PrimitiveCodec;
 import lombok.experimental.UtilityClass;
 import net.minecraft.Util;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
 import net.minecraft.util.ExtraCodecs;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
@@ -53,17 +52,28 @@ public final class LDLibExtraCodecs {
         }
     };
 
-    public final static Codec<Number> NUMBER = Codec.either(Codec.LONG, Codec.DOUBLE)
-            .xmap(
-                    either -> either.map(i -> i, d -> (Number)d),
-                    number -> {
-                        if (number instanceof Integer || number instanceof Long || number instanceof Short || number instanceof Byte) {
-                            return Either.left(number.longValue());
-                        } else {
-                            return Either.right(number.doubleValue());
-                        }
-                    }
-            );
+    public final static Codec<Number> NUMBER = TAG.xmap(
+            tag -> switch (tag) {
+                case IntTag intTag -> intTag.getAsInt();
+                case LongTag longTag -> longTag.getAsLong();
+                case ByteTag byteTag -> byteTag.getAsByte();
+                case ShortTag shortTag -> shortTag.getAsShort();
+                case FloatTag floatTag -> floatTag.getAsFloat();
+                case DoubleTag doubleTag -> doubleTag.getAsDouble();
+                case null -> null;
+                default -> throw new IllegalArgumentException("Invalid tag type: " + tag.getClass().getName());
+            },
+            number -> switch (number) {
+                case Integer value -> IntTag.valueOf(value);
+                case Long value -> LongTag.valueOf(value);
+                case Byte value -> ByteTag.valueOf(value);
+                case Short value -> ShortTag.valueOf(value);
+                case Float value -> FloatTag.valueOf(value);
+                case Double value -> DoubleTag.valueOf(value);
+                case null -> null;
+                default -> DoubleTag.valueOf(number.doubleValue());
+            }
+    );
 
     public static final Codec<Vector3i> VECTOR3I = Codec.INT
             .listOf()

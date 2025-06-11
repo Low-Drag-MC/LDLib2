@@ -16,7 +16,7 @@ public interface IReadOnlyManagedVar<TYPE> {
             }
             try {
                 return (Tag)serializeMethod.invoke(instance, obj);
-            } catch (IllegalAccessException | InvocationTargetException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -28,7 +28,7 @@ public interface IReadOnlyManagedVar<TYPE> {
             }
             try {
                 return (TYPE) deserializeMethod.invoke(instance, uid);
-            } catch (IllegalAccessException | InvocationTargetException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -42,7 +42,7 @@ public interface IReadOnlyManagedVar<TYPE> {
         public boolean checkIsDirty() {
             try {
                 return onDirtyMethod != null && (boolean) onDirtyMethod.invoke(instance);
-            } catch (IllegalAccessException | InvocationTargetException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
