@@ -611,7 +611,7 @@ public abstract class WorldSceneRenderer {
             }
 
             if (block == Blocks.AIR) continue;
-            if (state.getRenderShape() != INVISIBLE && canRenderInLayer(state, layer)) {
+            if (state.getRenderShape() != INVISIBLE) {
                 poseStack.pushPose();
                 poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
                 renderBlocksForge(blockrendererdispatcher, state, pos, world, poseStack, wrapperBuffer, world.random, layer);
@@ -627,10 +627,6 @@ public abstract class WorldSceneRenderer {
                 progress++;
             }
         }
-    }
-
-    public static boolean canRenderInLayer(BlockState state, RenderType renderType) {
-        return ItemBlockRenderTypes.getRenderLayers(state).contains(renderType);
     }
 
     public static void renderBlocksForge(BlockRenderDispatcher blockRenderDispatcher, BlockState state, BlockPos pos, BlockAndTintGetter level, @Nonnull PoseStack poseStack, VertexConsumer consumer, RandomSource random, RenderType renderType) {
