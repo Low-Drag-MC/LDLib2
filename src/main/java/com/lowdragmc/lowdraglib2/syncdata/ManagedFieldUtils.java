@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.*;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCMethodMeta;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -67,13 +67,22 @@ public class ManagedFieldUtils {
             var clazz = field.getDeclaringClass();
             var rawType = field.getType();
             try {
-                var onDirtyMethod = readOnlyManaged.onDirtyMethod().isEmpty() ? null : clazz.getDeclaredMethod(readOnlyManaged.onDirtyMethod(), rawType);
-                var serializeMethod = clazz.getDeclaredMethod(readOnlyManaged.serializeMethod(), rawType);
-                var deserializeMethod = clazz.getDeclaredMethod(readOnlyManaged.deserializeMethod(), CompoundTag.class);
+                Method onDirtyMethod = readOnlyManaged.onDirtyMethod().isEmpty() ? null : clazz.getDeclaredMethod(readOnlyManaged.onDirtyMethod(), rawType);
+                Method serializeMethod = clazz.getDeclaredMethod(readOnlyManaged.serializeMethod(), rawType);
+                Method deserializeMethod = null;
+                for (Method m : clazz.getDeclaredMethods()) {
+                    if (!m.getName().equals(readOnlyManaged.deserializeMethod())) continue;
+                    if (m.getParameterCount() != 1) continue;
+                    if (Tag.class.isAssignableFrom(m.getParameterTypes()[0])) {
+                        deserializeMethod = m;
+                        break;
+                    }
+                }
                 if (onDirtyMethod != null) {
                     onDirtyMethod.setAccessible(true);
                 }
                 serializeMethod.setAccessible(true);
+                if (deserializeMethod == null) throw new NoSuchMethodException();
                 deserializeMethod.setAccessible(true);
                 managedKey.setRedOnlyManaged(onDirtyMethod, serializeMethod, deserializeMethod);
             } catch (NoSuchMethodException e) {
