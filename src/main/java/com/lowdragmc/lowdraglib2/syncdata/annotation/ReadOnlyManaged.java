@@ -29,15 +29,15 @@ public @interface ReadOnlyManaged {
     String onDirtyMethod() default "";
 
     /**
-     * return a unique id (CompoundTag) of given instance.
-     * e.g. {@code CompoundTag methodName(@Nonnull T obj)}
+     * return a unique id (Tag) of given instance.
+     * e.g. {@code Tag methodName(@Nonnull T obj)}
      * T - field type
      */
     String serializeMethod();
 
     /**
      * create an instance via given uid from server.
-     * e.g. {@code T methodName(@Nonnull CompoundTag tag)}
+     * e.g. {@code T methodName(@Nonnull Tag tag)}
      * T - field type
      */
     String deserializeMethod();

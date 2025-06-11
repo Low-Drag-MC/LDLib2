@@ -230,6 +230,18 @@ public class AccessorRegistries {
                 .streamCodec(ByteBufCodecs.VECTOR3F)
                 .copyMark(Vector3f::new)
                 .build());
+        registerAccessor(CustomDirectAccessor.builder(Vector3i.class)
+                .codec(LDLibExtraCodecs.VECTOR3I)
+                .streamCodec(StreamCodec.of(
+                        (byteBuf, vector) -> {
+                            byteBuf.writeVarInt(vector.x);
+                            byteBuf.writeVarInt(vector.y);
+                            byteBuf.writeVarInt(vector.z);
+                        },
+                        byteBuf -> new Vector3i(byteBuf.readVarInt(), byteBuf.readVarInt(), byteBuf.readVarInt())
+                ))
+                .copyMark(Vector3i::new)
+                .build());
         registerAccessor(CustomDirectAccessor.builder(Vector4f.class)
                 .codec(ExtraCodecs.VECTOR4F)
                 .streamCodec(StreamCodec.of(

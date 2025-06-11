@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,7 +33,7 @@ import java.util.function.Supplier;
 
 @LDLRegisterClient(name="configurators", registry = "ui_test")
 @NoArgsConstructor
-public class TestConfigurators implements IUITest, IConfigurable {
+public class TestConfigurators implements IUITest, IConfigurable, IPersistedSerializable {
     @Configurable
     @ConfigNumber(range = {-5, 5})
     private float numberFloat = 0.0f;

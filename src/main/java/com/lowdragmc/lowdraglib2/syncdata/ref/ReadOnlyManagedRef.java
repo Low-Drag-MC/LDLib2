@@ -7,8 +7,8 @@ import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import javax.annotation.Nullable;
@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
     @Getter
     private final ReadOnlyVar<TYPE> readOnlyVar;
-    protected @Nullable CompoundTag oldUid;
+    protected @Nullable Tag oldUid;
 
     protected ReadOnlyManagedRef(ReadOnlyVar<TYPE> readOnlyVar, ManagedKey key, IAccessor<TYPE> accessor) {
         super(key, accessor);
@@ -56,10 +56,17 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
         }
         if (newValue != null) {
             var field = getReadOnlyVar();
-            assert field.getManagedVar() != null;
-            var newUid = field.getManagedVar().serializeUid(newValue);
+            var managedVar = field.getManagedVar();
+            assert managedVar != null;
+            var newUid = managedVar.serializeUid(newValue);
             if (newUid.equals(oldUid)) {
-                readOnlyUpdate();
+                if (managedVar.hasDirtyChecker()) {
+                    if (managedVar.checkIsDirty()) {
+                        markAsDirty();
+                    }
+                } else {
+                    readOnlyUpdate();
+                }
             } else {
                 markAsDirty();
                 oldUid = newUid;
@@ -147,7 +154,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
             if (LDLibExtraCodecs.isEmptyOrStringNull(op, payload)) {
                 field.set(null);
             } else {
-                var uid = op.get(payload, "uid").result().map(data -> op.convertTo(NbtOps.INSTANCE, data)).map(CompoundTag.class::cast).orElseThrow();
+                var uid = op.get(payload, "uid").result().map(data -> op.convertTo(NbtOps.INSTANCE, data)).orElseThrow();
                 var value = readRaw();
                 var managedVar = field.getManagedVar();
                 if (value == null || !managedVar.serializeUid(value).equals(uid)) {
@@ -195,7 +202,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
             if (LDLibExtraCodecs.isEmptyOrStringNull(op, payload)) {
                 field.set(null);
             } else {
-                var uid = op.get(payload, "uid").result().map(data -> op.convertTo(NbtOps.INSTANCE, data)).map(CompoundTag.class::cast).orElseThrow();
+                var uid = op.get(payload, "uid").result().map(data -> op.convertTo(NbtOps.INSTANCE, data)).orElseThrow();
                 var value = readRaw();
                 var managedVar = field.getManagedVar();
                 if (value == null || !managedVar.serializeUid(value).equals(uid)) {

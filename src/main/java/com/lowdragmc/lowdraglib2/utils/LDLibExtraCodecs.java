@@ -10,6 +10,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.util.ExtraCodecs;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
+import org.joml.Vector3i;
 
 import java.util.List;
 import java.util.UUID;
@@ -62,6 +63,13 @@ public final class LDLibExtraCodecs {
                             return Either.right(number.doubleValue());
                         }
                     }
+            );
+
+    public static final Codec<Vector3i> VECTOR3I = Codec.INT
+            .listOf()
+            .comapFlatMap(
+                    list -> Util.fixedSize(list, 3).map(l -> new Vector3i(l.get(0), l.get(1), l.get(2))),
+                    vec3i -> List.of(vec3i.x, vec3i.y, vec3i.z)
             );
 
     public static final Codec<Vector2f> VECTOR2F = Codec.FLOAT
