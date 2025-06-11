@@ -31,7 +31,7 @@ public class PivotAccessor extends TypesAccessor<Pivot> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Pivot> supplier, Consumer<Pivot> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Pivot> supplier, Consumer<Pivot> consumer, boolean forceUpdate, Field field, Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator x, y;
 

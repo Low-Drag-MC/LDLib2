@@ -32,7 +32,7 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<ResourceLocation> supplier, Consumer<ResourceLocation> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<ResourceLocation> supplier, Consumer<ResourceLocation> consumer, boolean forceUpdate, Field field, Object owner) {
         return new StringConfigurator(name,
                 () -> supplier.get().toString(),
                 s -> consumer.accept(ResourceLocation.parse(s)),

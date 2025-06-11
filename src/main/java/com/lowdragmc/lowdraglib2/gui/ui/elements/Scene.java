@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Accessors(chain = true)
 public class Scene extends UIElement {
@@ -219,8 +220,7 @@ public class Scene extends UIElement {
                 new FBOWorldSceneRenderer(dummyWorld, fboSize == null ? 1080 : fboSize.width, fboSize == null ? 1080 : fboSize.height) :
                 new ImmediateWorldSceneRenderer(dummyWorld);
         this.renderer = renderer;
-
-        dummyWorld.setBlockFilter(pos -> renderer.renderedBlocksMap.keySet().stream().anyMatch(c -> c.contains(pos)));
+        dummyWorld.setBlockFilter(core::contains);
         center = new Vector3f(0, 0, 0);
         renderer.useOrtho(useOrtho);
         renderer.setOnLookingAt(ray -> {});
@@ -253,6 +253,7 @@ public class Scene extends UIElement {
      * @return
      */
     public Scene setRenderedCore(Collection<BlockPos> blocks, ISceneBlockRenderHook renderHook, boolean autoCamera) {
+        if (renderer == null) return this;
         core.clear();
         core.addAll(blocks);
         int minX = Integer.MAX_VALUE;
@@ -415,7 +416,7 @@ public class Scene extends UIElement {
     /// Event handlers
     protected void onMouseDown(UIEvent event) {
         if (!intractable) return;
-        if (isHover()) {
+        if (event.button == 0 && isHover()) {
             if (draggable) {
                 dragging = true;
                 startDrag(DRAGGING, null);
@@ -511,10 +512,10 @@ public class Scene extends UIElement {
     }
 
     public Scene setCameraYawAndPitch(float rotationYaw, float rotationPitch) {
-        this.rotationPitch = rotationYaw;
-        this.rotationYaw = rotationPitch;
+        this.rotationYaw = rotationYaw;
+        this.rotationPitch = rotationPitch;
         if (renderer != null) {
-            renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
+            renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         }
         return this;
     }

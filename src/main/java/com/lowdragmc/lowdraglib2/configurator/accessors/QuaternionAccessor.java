@@ -32,7 +32,7 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Quaternionf> supplier, Consumer<Quaternionf> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Quaternionf> supplier, Consumer<Quaternionf> consumer, boolean forceUpdate, Field field, Object owner) {
         Supplier<Vector3f> supplier2 = () -> supplier.get().getEulerAnglesXYZ(new Vector3f()).mul(57.29577951308232f);
         Consumer<Vector3f> consumer2 = v -> {
             var q = new Quaternionf();

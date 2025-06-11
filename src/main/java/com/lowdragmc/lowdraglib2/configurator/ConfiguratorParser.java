@@ -107,7 +107,7 @@ public final class ConfiguratorParser {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                }, configurable.forceUpdate(), field).setTips(configurable.tips());
+                }, configurable.forceUpdate(), field, object).setTips(configurable.tips());
                 father.addConfigurators(configurator);
             }
         }

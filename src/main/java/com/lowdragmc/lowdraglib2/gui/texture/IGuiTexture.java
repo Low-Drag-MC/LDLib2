@@ -124,7 +124,7 @@ public interface IGuiTexture extends IConfigurable, ILDLRegisterClient<IGuiTextu
     }
 
     @Nullable
-    default ResourceLocation getTextureFromFile(File filePath) {
+    static ResourceLocation getTextureFromFile(File filePath) {
         String fullPath = filePath.getPath().replace('\\', '/');
 
         // find the "assets/" directory in the path

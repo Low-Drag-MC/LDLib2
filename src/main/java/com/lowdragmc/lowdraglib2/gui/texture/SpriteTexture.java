@@ -311,7 +311,7 @@ public class SpriteTexture extends TransformTexture {
                             if (mui == null) return;
                             Dialog.showFileDialog("ldlib.gui.editor.tips.select_image", LDLib2.getAssetsDir(), true, Dialog.suffixFilter(".png"), r -> {
                                 if (r != null && r.isFile()) {
-                                    var location = getTextureFromFile(r);
+                                    var location = IGuiTexture.getTextureFromFile(r);
                                     if (location == null) return;
                                     setImageLocation(location);
                                     var size = getImageSize();

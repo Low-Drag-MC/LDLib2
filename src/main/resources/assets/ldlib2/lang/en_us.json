@@ -125,6 +125,10 @@
   "editor.ui.hierarchy": "UI Hierarchy",
   "editor.ui.editor": "UI Editor",
 
+  "editor.camera.mode": "camera mode",
+  "editor.camera.prospective": "Pros",
+  "editor.camera.ortho": "Ortho",
+
   "ldlib.gui.editor.menu.edit": "edit",
   "ldlib.gui.editor.menu.add_resource": "add a new resource",
   "ldlib.gui.resource.remove_provider": "remove provider",

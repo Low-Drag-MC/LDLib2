@@ -9,6 +9,16 @@ plugins {
 version = mod_version
 group = maven_group
 
+// Enable the Jar-in-Jar system for your mod
+jarJar.enable()
+
+configurations {
+    libraries
+    // This will make sure that all dependencies that you add to the libraries configuration will also be added to the implementation configuration
+    // This way, you only need one dependency declaration for both runtime and compile dependencies
+    implementation.extendsFrom libraries
+}
+
 repositories {
     mavenCentral()
     mavenLocal()
@@ -99,7 +109,7 @@ runs {
         modSource project.sourceSets.main
 
         dependencies {
-            runtime 'org.appliedenergistics.yoga:yoga:1.0.0'
+            runtime project.configurations.libraries
         }
     }
 
@@ -168,7 +178,8 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     // Yoga
-    implementation 'org.appliedenergistics.yoga:yoga:1.0.0'
+    libraries("org.appliedenergistics.yoga:yoga:${yoga_version}")
+    jarJar(group: 'org.appliedenergistics.yoga', name: 'yoga', version: "[${yoga_version},)")
 }
 
 tasks.withType(ProcessResources).configureEach {
@@ -189,6 +200,13 @@ tasks.withType(ProcessResources).configureEach {
     filesMatching(['META-INF/neoforge.mods.toml']) {
         expand replaceProperties + [project: project]
     }
+}
+
+// Configure the 'jarJar' task
+// 'all' is the default classifier
+tasks.named('jarJar') {
+    // ...
+
 }
 
 // Example configuration to allow publishing using the maven-publish plugin

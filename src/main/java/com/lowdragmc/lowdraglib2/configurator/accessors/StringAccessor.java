@@ -30,7 +30,7 @@ public class StringAccessor extends TypesAccessor<String> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<String> supplier, Consumer<String> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<String> supplier, Consumer<String> consumer, boolean forceUpdate, Field field, Object owner) {
         return new StringConfigurator(name, supplier, consumer, defaultValue(field, String.class), forceUpdate);
     }
 }

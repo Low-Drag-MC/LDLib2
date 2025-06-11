@@ -36,7 +36,7 @@ public class SizeAccessor extends TypesAccessor<Size> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Size> supplier, Consumer<Size> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Size> supplier, Consumer<Size> consumer, boolean forceUpdate, Field field, Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator width, height;
         configurator.inlineContainer.addChildren(

@@ -30,7 +30,7 @@ public class BooleanAccessor extends TypesAccessor<Boolean> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Boolean> supplier, Consumer<Boolean> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Boolean> supplier, Consumer<Boolean> consumer, boolean forceUpdate, Field field, Object owner) {
         return new BooleanConfigurator(name, supplier, consumer, defaultValue(field, boolean.class), forceUpdate);
     }
 }

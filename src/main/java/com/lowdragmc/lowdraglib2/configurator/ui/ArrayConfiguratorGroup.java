@@ -27,12 +27,26 @@ import java.util.function.Supplier;
  * @implNote ArrayConfigurator
  */
 public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
+    @FunctionalInterface
+    public interface IConfiguratorProvider<T> extends BiFunction<Supplier<T>, Consumer<T>, Configurator> {
+        Configurator getConfigurator(Supplier<T> getter, Consumer<T> setter);
+
+        @Override
+        @Deprecated
+        default Configurator apply(Supplier<T> tSupplier, Consumer<T> tConsumer) {
+            return getConfigurator(tSupplier, tConsumer);
+        }
+    }
+
+    @FunctionalInterface
+    public interface IAddDefault<T> extends Supplier<T> { }
+
     public final UIElement buttonGroup;
     public final Button addButton;
     public final Button removeButton;
     public final Supplier<List<T>> source;
-    public final BiFunction<Supplier<T>, Consumer<T>, Configurator> configuratorProvider;
-    protected Supplier<T> addDefault;
+    public final IConfiguratorProvider<T> configuratorProvider;
+    protected IAddDefault<T> addDefault;
     @Setter
     protected Consumer<List<T>> onUpdate;
     protected Consumer<T> onAdd, onRemove;
@@ -46,7 +60,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     protected ItemConfigurator selected;
 
     public ArrayConfiguratorGroup(String name, boolean isCollapse, Supplier<List<T>> source,
-                                  BiFunction<Supplier<T>, Consumer<T>, Configurator> configuratorProvider,
+                                  IConfiguratorProvider<T> configuratorProvider,
                                   boolean forceUpdate) {
         super(name, isCollapse);
         this.buttonGroup = new UIElement();
@@ -112,7 +126,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         }
     }
 
-    public ArrayConfiguratorGroup<T> setAddDefault(Supplier<T> addDefault) {
+    public ArrayConfiguratorGroup<T> setAddDefault(IAddDefault<T> addDefault) {
         this.addDefault = addDefault;
         addButton.setDisplay((addDefault != null && canAdd) ? YogaDisplay.FLEX : YogaDisplay.NONE);
         return this;
@@ -127,6 +141,11 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     public ArrayConfiguratorGroup<T> setCanRemove(boolean canRemove) {
         this.canRemove = canRemove;
         removeButton.setDisplay(canRemove ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        return this;
+    }
+
+    public ArrayConfiguratorGroup<T> setCanReorder(boolean canReorder) {
+        this.canReorder = canReorder;
         return this;
     }
 
@@ -172,6 +191,10 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
 
         public ItemConfigurator(T object, BiFunction<Supplier<T>, Consumer<T>, Configurator> provider) {
             super("=");
+            label.layout(layout -> {
+                layout.setMargin(YogaEdge.LEFT, 1f);
+                layout.setAlignSelf(YogaAlign.CENTER);
+            }).style(style -> style.setTooltips("ldlib.gui.editor.tips.drag_item"));
             getLayout().setPadding(YogaEdge.LEFT, 2f);
             this.object = object;
             inner = provider.apply(this::getter, this::setter);

@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigList;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
@@ -37,13 +39,53 @@ public class CollectionConfiguratorAccessor implements IConfiguratorAccessor<Col
     }
 
     @Override
-    public Configurator create(String name, Supplier<Collection> supplier, Consumer<Collection> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Collection> supplier, Consumer<Collection> consumer, boolean forceUpdate, Field field, Object owner) {
         boolean isCollapse = true;
         boolean canCollapse = true;
 
         if (field.isAnnotationPresent(Configurable.class)) {
             isCollapse = field.getAnnotation(Configurable.class).collapse();
             canCollapse = field.getAnnotation(Configurable.class).canCollapse();
+        }
+
+
+        ArrayConfiguratorGroup.IConfiguratorProvider<Object> provider = (getter, setter) -> childAccessor.create("", getter, setter, forceUpdate, field, owner);
+        ArrayConfiguratorGroup.IAddDefault<Object> addDefault = () -> childAccessor.defaultValue(field, childType);
+
+        ConfigList configList = field.isAnnotationPresent(ConfigList.class) ? field.getAnnotation(ConfigList.class) : null;
+        if (configList != null) {
+            if (!configList.configuratorMethod().isEmpty()) {
+                var declaringClass = field.getDeclaringClass();
+                try {
+                    var customCreator = declaringClass.getDeclaredMethod(configList.configuratorMethod(), Supplier.class, Consumer.class);
+                    customCreator.setAccessible(true);
+                    provider = (getter, setter) -> {
+                        try {
+                            return (Configurator) customCreator.invoke(owner, getter, setter);
+                        } catch (Exception e) {
+                            return childAccessor.create("", getter, setter, forceUpdate, field, owner);
+                        }
+                    };
+                } catch (NoSuchMethodException e) {
+                    LDLib2.LOGGER.error("Could not find method {} in class {} while using @ConfigList for a field {}", configList.configuratorMethod(), declaringClass.getName(), field);
+                }
+            }
+            if (!configList.addDefaultMethod().isEmpty()) {
+                var declaringClass = field.getDeclaringClass();
+                try {
+                    var customAddDefault = declaringClass.getDeclaredMethod(configList.addDefaultMethod());
+                    customAddDefault.setAccessible(true);
+                    addDefault = () -> {
+                        try {
+                            return customAddDefault.invoke(owner);
+                        } catch (Exception e) {
+                            return childAccessor.defaultValue(field, childType);
+                        }
+                    };
+                } catch (NoSuchMethodException e) {
+                    LDLib2.LOGGER.error("Could not find method {} in class {} while using @ConfigList for a field {}", configList.addDefaultMethod(), declaringClass.getName(), field);
+                }
+            }
         }
 
         var arrayGroup = new ArrayConfiguratorGroup<>(name, isCollapse, () -> {
@@ -53,12 +95,17 @@ public class CollectionConfiguratorAccessor implements IConfiguratorAccessor<Col
             }
             ArrayList<Object> objectList = new ArrayList<>(collection);
             return objectList;
-        }, (getter, setter) -> childAccessor.create("", getter, setter, forceUpdate, field), forceUpdate);
+        }, provider, forceUpdate);
 
-        arrayGroup.setAddDefault(() -> childAccessor.defaultValue(field, childType));
+        arrayGroup.setAddDefault(addDefault);
 
         arrayGroup.setOnUpdate(list -> consumer.accept(updateCollection(supplier.get(), list)));
         arrayGroup.setCanCollapse(canCollapse);
+        if (configList != null) {
+            arrayGroup.setCanAdd(configList.canAdd());
+            arrayGroup.setCanRemove(configList.canRemove());
+            arrayGroup.setCanReorder(configList.canReorder());
+        }
         return arrayGroup;
     }
 

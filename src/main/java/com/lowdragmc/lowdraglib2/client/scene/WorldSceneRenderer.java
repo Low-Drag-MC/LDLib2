@@ -267,9 +267,9 @@ public abstract class WorldSceneRenderer {
         cameraEntity.xRotO = cameraEntity.getXRot();
     }
 
-    public void setCameraLookAt(Vector3f lookAt, double radius, double rotationPitch, double rotationYaw) {
-        Vector3f vecX = new Vector3f((float) Math.cos(rotationPitch), (float) 0, (float) Math.sin(rotationPitch));
-        Vector3f vecY = new Vector3f(0, (float) (Math.tan(rotationYaw) * vecX.length()), 0);
+    public void setCameraLookAt(Vector3f lookAt, double radius, double yaw, double pitch) {
+        Vector3f vecX = new Vector3f((float) Math.cos(yaw), (float) 0, (float) Math.sin(yaw));
+        Vector3f vecY = new Vector3f(0, (float) (Math.tan(pitch) * vecX.length()), 0);
         Vector3f pos = new Vector3f(vecX).add(vecY).normalize().mul((float) radius);
         setCameraLookAt(pos.add(lookAt.x(), lookAt.y(), lookAt.z()), lookAt, worldUp);
     }

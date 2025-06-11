@@ -7,9 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -61,9 +59,11 @@ public class SceneEditor extends UIElement implements IScene {
     public SceneEditor() {
         this.topBar = new UIElement();
         topBar.layout(layout -> {
+            layout.setFlexDirection(YogaFlexDirection.ROW);
             layout.setWidthPercent(100);
             layout.setHeight(16);
             layout.setPadding(YogaEdge.ALL, 1);
+            layout.setGap(YogaGutter.ALL, 1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
         this.scene = new Scene() {
@@ -83,10 +83,10 @@ public class SceneEditor extends UIElement implements IScene {
         gizmoBar.layout(layout -> {
             layout.setPositionType(YogaPositionType.ABSOLUTE);
             layout.setPosition(YogaEdge.TOP, 18);
-            layout.setWidth(16);
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.setWidth(20);
+            layout.setPadding(YogaEdge.ALL, 3);
             layout.setGap(YogaGutter.ALL, 1);
-        }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
+        }).style(style -> style.backgroundTexture(Sprites.BORDER_RT0));
 
         this.screenTips = new TextElement();
         screenTips.textStyle(style -> {
@@ -102,6 +102,7 @@ public class SceneEditor extends UIElement implements IScene {
         transformGizmo = new TransformGizmo();
         transformGizmo.setScene(this);
 
+        initTopBar();
         initGizmos();
 
         addChildren(topBar, scene, gizmoBar);
@@ -122,6 +123,21 @@ public class SceneEditor extends UIElement implements IScene {
     public void setTransformGizmoTarget(@Nullable Transform transform) {
         transformGizmo.setTargetTransform(transform);
         gizmoBar.setActive(transform != null);
+    }
+
+    public void initTopBar() {
+        topBar.addChild(new Selector<Boolean>()
+                .setCandidates(List.of(true, false))
+                .setValue(scene.isUseOrtho(), false)
+                .setOnValueChanged(scene::useOrtho)
+                .setCandidateUIProvider(candidate -> new Label()
+                        .textStyle(style -> style
+                                .textAlignHorizontal(Horizontal.LEFT)
+                                .textAlignVertical(Vertical.CENTER))
+                        .setText(candidate == null ? "---" : candidate ? "editor.camera.ortho" : "editor.camera.prospective"))
+                .layout(layout -> layout.setWidth(50))
+                .style(style -> style.setTooltips("editor.camera.mode")));
+
     }
 
     public void initGizmos() {
@@ -194,7 +210,12 @@ public class SceneEditor extends UIElement implements IScene {
         var renderer = scene.getRenderer();
         if (renderer == null) return Optional.empty();
         var lastHit = renderer.getLastHit();
-        return lastHit == null ? Optional.empty() : Optional.of(Ray.create(renderer.getEyePos(), lastHit));
+        var startPos = renderer.getEyePos();
+        if (scene.isUseOrtho()) {
+            var lookAt = renderer.getLookAt();
+            startPos = new Vector3f(startPos).add(new Vector3f(startPos.x - lookAt.x(), startPos.y - lookAt.y(), startPos.z - lookAt.z()).mul(500, 500, 500));
+        }
+        return lastHit == null ? Optional.empty() : Optional.of(Ray.create(startPos, lastHit));
     }
 
     public Optional<Ray> unProject(int mouseX, int mouseY) {
@@ -329,13 +350,14 @@ public class SceneEditor extends UIElement implements IScene {
                 var cross = new Vector3f(lookDir).cross(worldUp).normalize();
                 lookDir = new Vector3f(lookDir).rotate(new Quaternionf(new AxisAngle4f((float) Math.toRadians(-event.deltaY + 360), cross)));
                 lookDir = new Vector3f(lookDir).rotate(new Quaternionf(new AxisAngle4f((float) Math.toRadians(-event.deltaX + 360), worldUp)));
-                scene.setCenter(new Vector3f(eyePos).add(new Vector3f(lookDir)));
+                var center = new Vector3f(eyePos).add(new Vector3f(lookDir));
+                scene.setCenter(center);
                 Vector3f pos = new Vector3f(eyePos).sub(lookAt);
                 scene.setCameraYawAndPitch(
                         (float) Math.toDegrees(Math.atan2(pos.z, pos.x)),
                         (float) Math.toDegrees(Math.atan2(pos.y, Math.sqrt(pos.x * pos.x + pos.z * pos.z)))
                 );
-//                renderer.setCameraLookAt(eyePos, scene.getCenter(), worldUp);
+                renderer.setCameraLookAt(eyePos, center, worldUp);
             }
         }
     }

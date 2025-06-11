@@ -33,7 +33,7 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<AABB> supplier, Consumer<AABB> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<AABB> supplier, Consumer<AABB> consumer, boolean forceUpdate, Field field, Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator minX, minY, minZ;
         NumberConfigurator maxX, maxY, maxZ;

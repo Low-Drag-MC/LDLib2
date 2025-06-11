@@ -66,7 +66,7 @@ public class NumberAccessor extends TypesAccessor<Number> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Number> supplier, Consumer<Number> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Number> supplier, Consumer<Number> consumer, boolean forceUpdate, Field field, Object owner) {
         if (field.isAnnotationPresent(ConfigColor.class)) {
             return new ColorConfigurator(name, () -> supplier.get().intValue(), consumer::accept, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())).intValue(), forceUpdate);
         }

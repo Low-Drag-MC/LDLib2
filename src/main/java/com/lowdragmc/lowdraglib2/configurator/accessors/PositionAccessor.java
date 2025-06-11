@@ -31,7 +31,7 @@ public class PositionAccessor extends TypesAccessor<Position> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Position> supplier, Consumer<Position> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Position> supplier, Consumer<Position> consumer, boolean forceUpdate, Field field, Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator x, y;
         configurator.inlineContainer.addChildren(

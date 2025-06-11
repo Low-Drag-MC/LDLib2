@@ -56,8 +56,8 @@ public abstract class TransformTexture implements IGuiTexture {
         graphics.pose().pushPose();
         graphics.pose().translate(xOffset, yOffset, 0);
 
-        var xPivot = pivot.getX() * width;
-        var yPivot = pivot.getY() * height;
+        var xPivot = pivot.x * width;
+        var yPivot = pivot.y * height;
         var translationX = x + xPivot;
         var translationY = y + yPivot;
 

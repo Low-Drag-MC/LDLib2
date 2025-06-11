@@ -33,7 +33,7 @@ public class ComponentAccessor implements IConfiguratorAccessor<Component> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Component> supplier, Consumer<Component> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Component> supplier, Consumer<Component> consumer, boolean forceUpdate, Field field, Object owner) {
         return new StringConfigurator(name, () -> {
             Component component = supplier.get();
             return component.getString();

@@ -21,6 +21,13 @@ public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfigurat
      */
     boolean test(Class<?> type);
 
+    /**
+     * Retrieves the default value for a given field and type. Make sure the return value is a new instance, which will also be used by {@link ArrayConfiguratorAccessor}
+     *
+     * @param field the field for which the default value is being retrieved
+     * @param type the class type of the field
+     * @return the default value of the specified type, or null if no default value is specified
+     */
     default T defaultValue(Field field, Class<?> type) {
         return null;
     }
@@ -31,9 +38,10 @@ public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfigurat
      * @param consumer the consumer for the value
      * @param forceUpdate whether to force update the configurator
      * @param field the field to be configured
+     * @param owner the field owner
      * @return a new configurator instance
      */
-    default Configurator create(String name, Supplier<T> supplier, Consumer<T> consumer, boolean forceUpdate, Field field) {
+    default Configurator create(String name, Supplier<T> supplier, Consumer<T> consumer, boolean forceUpdate, Field field, Object owner) {
         return new Configurator(name);
     }
 }

@@ -44,7 +44,7 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Vec3i> supplier, Consumer<Vec3i> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Vec3i> supplier, Consumer<Vec3i> consumer, boolean forceUpdate, Field field, Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator x, y, z;
         configurator.inlineContainer.addChildren(

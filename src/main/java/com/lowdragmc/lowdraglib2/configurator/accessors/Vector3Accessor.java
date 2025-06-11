@@ -36,7 +36,7 @@ public class Vector3Accessor extends TypesAccessor<Vector3f> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Vector3f> supplier, Consumer<Vector3f> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Vector3f> supplier, Consumer<Vector3f> consumer, boolean forceUpdate, Field field, Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator x, y, z;
 

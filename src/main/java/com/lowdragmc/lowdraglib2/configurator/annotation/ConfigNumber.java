@@ -18,7 +18,22 @@ public @interface ConfigNumber {
         SHORT,
         BYTE,
     }
+
+    /**
+     * Defines the range of valid numeric values.
+     *
+     * @return an array of two double values, where the first value specifies the lower bound
+     *         and the second value specifies the upper bound of the range
+     */
     double[] range();
+
+    /**
+     * Defines the default wheel value associated with the annotated field or resource texture operation.
+     */
     double wheel() default 0;
+
+    /**
+     * Specifies the numeric type for the annotated field.
+     */
     Type type() default Type.AUTO;
 }

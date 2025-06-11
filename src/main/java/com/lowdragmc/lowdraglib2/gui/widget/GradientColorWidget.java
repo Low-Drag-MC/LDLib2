@@ -13,9 +13,9 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec2;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
@@ -49,13 +49,13 @@ public class GradientColorWidget extends WidgetGroup {
                 })
                 .setOnChanged(color -> {
                     if (selectedAlphaPoint >= 0) {
-                        gradientColor.getAP().set(selectedAlphaPoint, new Vec2(gradientColor.getAP().get(selectedAlphaPoint).x, ColorUtils.alpha(color)));
+                        gradientColor.getAP().set(selectedAlphaPoint, new Vector2f(gradientColor.getAP().get(selectedAlphaPoint).x, ColorUtils.alpha(color)));
                         notifyChanged();
                     }
                     if (selectedRGBPoint >= 0) {
-                        gradientColor.getRP().set(selectedRGBPoint, new Vec2(gradientColor.getRP().get(selectedRGBPoint).x, ColorUtils.red(color)));
-                        gradientColor.getGP().set(selectedRGBPoint, new Vec2(gradientColor.getGP().get(selectedRGBPoint).x, ColorUtils.green(color)));
-                        gradientColor.getBP().set(selectedRGBPoint, new Vec2(gradientColor.getBP().get(selectedRGBPoint).x, ColorUtils.blue(color)));
+                        gradientColor.getRP().set(selectedRGBPoint, new Vector2f(gradientColor.getRP().get(selectedRGBPoint).x, ColorUtils.red(color)));
+                        gradientColor.getGP().set(selectedRGBPoint, new Vector2f(gradientColor.getGP().get(selectedRGBPoint).x, ColorUtils.green(color)));
+                        gradientColor.getBP().set(selectedRGBPoint, new Vector2f(gradientColor.getBP().get(selectedRGBPoint).x, ColorUtils.blue(color)));
                         notifyChanged();
                     }
                 }));

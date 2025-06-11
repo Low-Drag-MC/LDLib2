@@ -74,6 +74,7 @@ public final class UIResourceTexture implements IGuiTexture, IPersistedSerializa
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         getTexture().buildConfigurator(father);
     }

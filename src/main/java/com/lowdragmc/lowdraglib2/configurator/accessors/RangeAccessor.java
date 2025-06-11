@@ -38,7 +38,7 @@ public class RangeAccessor extends TypesAccessor<Range> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Range> supplier, Consumer<Range> consumer, boolean forceUpdate, Field field) {
+    public Configurator create(String name, Supplier<Range> supplier, Consumer<Range> consumer, boolean forceUpdate, Field field, Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator min, max;
 

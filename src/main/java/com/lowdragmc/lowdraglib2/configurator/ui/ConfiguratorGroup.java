@@ -31,6 +31,10 @@ public class ConfiguratorGroup extends Configurator {
     @Getter
     protected List<Configurator> configurators = new ArrayList<>();
 
+    public ConfiguratorGroup() {
+        this("");
+    }
+
     public ConfiguratorGroup(String name) {
         this(name, true);
     }

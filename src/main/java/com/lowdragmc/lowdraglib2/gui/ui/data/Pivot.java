@@ -50,12 +50,4 @@ public final class Pivot {
         return new Pivot(x, y);
     }
 
-    public float getX() {
-        return x;
-    }
-
-    public float getY() {
-        return y;
-    }
-
 }
