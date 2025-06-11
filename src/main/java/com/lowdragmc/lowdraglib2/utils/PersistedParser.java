@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.ManagedFieldUtils;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import lombok.experimental.UtilityClass;
@@ -104,7 +105,7 @@ public final class PersistedParser {
             }
 
             String key = field.getName();
-
+            Either<Configurable, Persisted> persistent;
             if (field.isAnnotationPresent(Configurable.class)) {
                 Configurable configurable = field.getAnnotation(Configurable.class);
                 if (!configurable.persisted()) {
@@ -112,25 +113,28 @@ public final class PersistedParser {
                 } else if (!Strings.isNullOrEmpty(configurable.key())) {
                     key = configurable.key();
                 }
+                persistent = Either.left(configurable);
             } else if (field.isAnnotationPresent(Persisted.class)) {
                 Persisted persisted = field.getAnnotation(Persisted.class);
                 if (!Strings.isNullOrEmpty(persisted.key())) {
                     key = persisted.key();
                 }
+                persistent = Either.right(persisted);
             } else {
                 continue;
             }
 
             T data = null;
-            // sub configurable
-            if ((field.isAnnotationPresent(Configurable.class) && field.getAnnotation(Configurable.class).subConfigurable()) ||
-                    (field.isAnnotationPresent(Persisted.class) && field.getAnnotation(Persisted.class).subPersisted())) {
+            if (persistent.map(Configurable::subConfigurable, Persisted::subPersisted)) {
+                // sub configurable
                 try {
                     field.setAccessible(true);
                     var value = field.get(object);
                     if (value != null) {
                         if (value instanceof INBTSerializable<?> serializable) {
-                            data = op == NbtOps.INSTANCE ? (T) serializable.serializeNBT(provider) : NbtOps.INSTANCE.convertTo(op, serializable.serializeNBT(provider));
+                            data = op == NbtOps.INSTANCE ? 
+                                    (T) serializable.serializeNBT(provider) : 
+                                    NbtOps.INSTANCE.convertTo(op, serializable.serializeNBT(provider));
                         } else {
                             var builder = op.mapBuilder();
                             serializeInternal(false, builder, op, ReflectionUtils.getRawType(field.getGenericType()), value, provider);
@@ -186,6 +190,7 @@ public final class PersistedParser {
 
             String key = field.getName();
 
+            Either<Configurable, Persisted> persistent;
             if (field.isAnnotationPresent(Configurable.class)) {
                 Configurable configurable = field.getAnnotation(Configurable.class);
                 if (!configurable.persisted()) {
@@ -193,20 +198,21 @@ public final class PersistedParser {
                 } else if (!Strings.isNullOrEmpty(configurable.key())) {
                     key = configurable.key();
                 }
+                persistent = Either.left(configurable);
             } else if (field.isAnnotationPresent(Persisted.class)) {
                 Persisted persisted = field.getAnnotation(Persisted.class);
                 if (!Strings.isNullOrEmpty(persisted.key())) {
                     key = persisted.key();
                 }
+                persistent = Either.right(persisted);
             } else {
                 continue;
             }
 
             T data = map.get(key);
-            // sub configurable
             if (data != null) {
-                if ((field.isAnnotationPresent(Configurable.class) && field.getAnnotation(Configurable.class).subConfigurable()) ||
-                        (field.isAnnotationPresent(Persisted.class) && field.getAnnotation(Persisted.class).subPersisted())) {
+                if (persistent.map(Configurable::subConfigurable, Persisted::subPersisted)) {
+                    // sub configurable
                     try {
                         field.setAccessible(true);
                         var value = field.get(object);
@@ -218,7 +224,8 @@ public final class PersistedParser {
                                     serializable.deserializeNBT(provider, op.convertTo(NbtOps.INSTANCE, data));
                                 }
                             } else {
-                                op.getMap(data).ifSuccess(mapData -> deserializeInternal(true, mapData, op, new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider));
+                                op.getMap(data).ifSuccess(mapData -> deserializeInternal(true, mapData, op,
+                                        new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider));
                             }
                         }
                     } catch (IllegalAccessException ignored) {}

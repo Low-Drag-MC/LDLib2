@@ -43,14 +43,12 @@ public class LDLib2Registries {
             .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
 
     @OnlyIn(Dist.CLIENT)
-    public final static AutoRegistry.LDLibRegisterClient<IUITest, Supplier<IUITest>> UI_TESTS;
+    public static AutoRegistry.LDLibRegisterClient<IUITest, Supplier<IUITest>> UI_TESTS;
 
     static {
-//        if (LDLib2.isClient() && Platform.isDevEnv()) {
+        if (LDLib2.isClient() && Platform.isDevEnv()) {
             UI_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_test"), IUITest.class, AutoRegistry::noArgsCreator);
-//        } else {
-//            UI_TESTS = null;
-//        }
+        }
     }
 
     public static void init() {
