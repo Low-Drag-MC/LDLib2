@@ -15,15 +15,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.math.Range;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -36,6 +37,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+@LDLRegisterClient(name="serialization", registry = "ui_test")
+@NoArgsConstructor
 public class TestSerialization implements IUITest {
     public class TestData implements IConfigurable, IPersistedSerializable {
         @Configurable
@@ -98,7 +101,7 @@ public class TestSerialization implements IUITest {
             private Direction enumValue = Direction.NORTH;
         }
 
-        public static class TestGroup implements IConfigurable {
+        public static class TestGroup implements IConfigurable, IPersistedSerializable {
             @Configurable
             @ConfigNumber(range = {0, 1}, type = ConfigNumber.Type.FLOAT)
             private Range rangeValue = Range.of(0, 1);
@@ -143,15 +146,15 @@ public class TestSerialization implements IUITest {
                         new Button().setText("deserialize").setOnClick(e -> {
                             data.deserializeNBT(Platform.getFrozenRegistry(), serialized);
                         }),
-                        new ScrollerView().layout(layout -> {
-                            layout.setFlex(1);
-                            layout.setWidthPercent(100);
-                        }).addChild(text.textStyle(style -> {
+                        new ScrollerView().addScrollViewChild(text.textStyle(style -> {
                             style.adaptiveHeight(true);
                             style.textWrap(TextWrap.WRAP);
                         }).layout(layout -> {
                             layout.setWidthPercent(100);
-                        }))));
+                        })).layout(layout -> {
+                            layout.setFlex(1);
+                            layout.setWidthPercent(100);
+                        })));
 
         return new ModularUI(UI.of(root));
     }
