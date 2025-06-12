@@ -24,4 +24,6 @@ public @interface ConfigSelector {
      * @return the maximum value as an integer, with a default value of 5
      */
     int max() default 5;
+
+    String subConfiguratorBuilder() default "";
 }

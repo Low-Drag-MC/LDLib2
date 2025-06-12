@@ -28,6 +28,7 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -69,8 +70,10 @@ public class TestSerialization implements IUITest {
 
         public Configurator buildTestGroupConfigurator(Supplier<TestGroup> getter, Consumer<TestGroup> setter) {
             var instance = getter.get();
-            if (instance != null) {
-                return instance.createDirectConfigurator();
+            if (instance != null && instance.createDirectConfigurator() instanceof ConfiguratorGroup group) {
+                group.setCollapse(false);
+                group.lineContainer.setDisplay(YogaDisplay.NONE);
+                return group;
             }
             return new Configurator();
         }

@@ -46,14 +46,14 @@ public abstract class ValueConfigurator<T> extends Configurator {
      * to notify the value change, use {@link #updateValueActively} instead
      */
     protected void onValueUpdatePassively(T newValue) {
-        value = newValue;
+        this.value = newValue;
     }
 
     /**
      * update value actively.
      */
-    protected void updateValueActively(T value) {
-        this.value = value;
+    protected void updateValueActively(T newValue) {
+        this.value = newValue;
         updateValue();
     }
 

@@ -12,7 +12,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -72,6 +71,12 @@ public class TestConfigurators implements IUITest, IConfigurable, IPersistedSeri
     @Configurable
     @ConfigList(configuratorMethod="buildTestGroupConfigurator", addDefaultMethod = "addDefaultTestGroup")
     private final List<TestGroup> groupList = new ArrayList<>();
+    @Configurable
+    @ConfigSelector(candidate = {"A", "B", "C"})
+    private String stringSelector = "A";
+    @Configurable
+    @ConfigSelector(candidate = {"north", "west", "east"} , subConfiguratorBuilder = "subConfiguratorBuilder")
+    private Direction subConfiguratorSelector = Direction.NORTH;
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
@@ -89,7 +94,7 @@ public class TestConfigurators implements IUITest, IConfigurable, IPersistedSeri
         return new ModularUI(UI.of(root.addScrollViewChild(group)));
     }
 
-    public Configurator buildTestGroupConfigurator(Supplier<TestGroup> getter, Consumer<TestGroup> setter) {
+    private Configurator buildTestGroupConfigurator(Supplier<TestGroup> getter, Consumer<TestGroup> setter) {
         var instance = getter.get();
         if (instance != null) {
             return instance.createDirectConfigurator();
@@ -97,8 +102,17 @@ public class TestConfigurators implements IUITest, IConfigurable, IPersistedSeri
         return new Configurator();
     }
 
-    public TestGroup addDefaultTestGroup() {
+    private TestGroup addDefaultTestGroup() {
         return new TestGroup();
+    }
+
+    private void subConfiguratorBuilder(Direction direction, ConfiguratorGroup group) {
+        switch (direction) {
+            case NORTH -> group.addConfigurator(new Configurator("NORTH"));
+            case WEST -> {}
+            case EAST -> group.addConfigurator(new Configurator("EAST"));
+            default -> group.addConfigurator(new Configurator("DEFAULT"));
+        }
     }
 
     public static class TestToggleGroup implements IToggleConfigurable {
