@@ -59,7 +59,7 @@ public class View extends UIElement {
             tab.addChildAt(new UIElement().layout(layout -> {
                 layout.setHeightPercent(100);
                 layout.setAspectRatio(1f);
-            }).style(style -> style.backgroundTexture(Icons.FOLDER)), 0);
+            }).style(style -> style.backgroundTexture(icon)), 0);
         }
         tab.addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (e.button == 0) {

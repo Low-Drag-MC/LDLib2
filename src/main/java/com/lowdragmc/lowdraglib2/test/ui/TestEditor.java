@@ -16,6 +16,6 @@ public class TestEditor implements IUITest {
             layout.setHeightPercent(100);
         }).setId("editor");
 
-        return new ModularUI(UI.of(root, size -> size)).shouldCloseOnEsc(false);
+        return new ModularUI(UI.of(root, size -> size)).shouldCloseOnEsc(false).shouldCloseOnKeyInventory(false);
     }
 }

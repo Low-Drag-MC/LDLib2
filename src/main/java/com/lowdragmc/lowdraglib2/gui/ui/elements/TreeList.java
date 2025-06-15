@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
+import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -21,8 +21,10 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.*;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -33,7 +35,7 @@ import java.util.function.Function;
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
+public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @Accessors(chain = true, fluent = true)
     @Getter @Setter
     public static class TreeListStyle extends Style {
@@ -47,11 +49,10 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
         }
     }
 
-    public final NODE root;
     @Getter
     private final TreeListStyle treeListStyle = new TreeListStyle(this);
-    @Setter
     protected Function<NODE, UIElement> nodeUISupplier = iconTextTemplate(node -> IGuiTexture.EMPTY, Object::toString);
+    protected BiConsumer<NODE, UIElement> onNodeUICreated = (node, ui) -> {};
     @Setter
     protected Consumer<Set<NODE>> onSelectedChanged = Consumers.nop();
     @Setter
@@ -62,21 +63,46 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
     protected boolean staticTree = false;
 
     // runtime
+    @Nullable
+    @Getter
+    protected NODE root;
     protected final BiMap<NODE, UIElement> nodeUIs = HashBiMap.create();
     protected final Set<NODE> selectedNodes = new HashSet<>();
     protected final Set<NODE> expandedNodes = new HashSet<>();
+    protected final Map<NODE, List<NODE>> displayedChildren = new HashMap<>();
 
-    public TreeList(NODE root) {
+    public TreeList() {
         getLayout().setWidthPercent(100);
         getLayout().setGap(YogaGutter.ALL, 1);
-        this.root = root;
-        reloadList();
+    }
+
+    public TreeList(NODE root) {
+        this();
+        setRoot(root);
     }
 
     public TreeList<NODE> menuStyle(Consumer<TreeListStyle> treeListStyle) {
         treeListStyle.accept(this.treeListStyle);
         onStyleChanged();
-         return this;
+        return this;
+    }
+
+    public TreeList<NODE> setNodeUISupplier(Function<NODE, UIElement> nodeUISupplier) {
+        this.nodeUISupplier = nodeUISupplier;
+        reloadList();
+        return this;
+    }
+
+    public TreeList<NODE> setOnNodeUICreated(BiConsumer<NODE, UIElement> onNodeUICreated) {
+        this.onNodeUICreated = onNodeUICreated;
+        reloadList();
+        return this;
+    }
+
+    public TreeList<NODE> setRoot(@Nullable NODE root) {
+        this.root = root;
+        reloadList();
+        return this;
     }
 
     @Override
@@ -125,8 +151,9 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
             if (nodeIndex >= 0) {
                 var children = node.getChildren();
                 for (int i = children.size() - 1; i >= 0; i--) {
-                    var child = (NODE) children.get(i);
-                    addNodeUI(child, nodeIndex + 1);
+                    var childNode = (NODE) children.get(i);
+                    displayedChildren.computeIfAbsent(node, n -> new ArrayList<>()).addFirst(childNode);
+                    addNodeUI(childNode, nodeIndex + 1);
                 }
             }
         }
@@ -142,10 +169,11 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
      */
     public void collapseNode(NODE node) {
         if (!isNodeExpanded(node) || node.isLeaf()) return;
-        expandedNodes.remove(node);
-        for (TreeNode<?, ?> child : node.getChildren()) {
+        for (var child : node.getChildren()) {
             removeNodeUI((NODE) child);
         }
+        expandedNodes.remove(node);
+        displayedChildren.remove(node);
     }
 
     /**
@@ -155,7 +183,9 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
         nodeUIs.clear();
         selectedNodes.clear();
         expandedNodes.clear();
+        displayedChildren.clear();
         clearAllChildren();
+        if (root == null) return this;
         addNodeUI(root, 0);
         return this;
     }
@@ -167,19 +197,53 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
         if (node.isBranch() && isNodeExpanded(node)) {
             var children = node.getChildren();
             for (int i = children.size() - 1; i >= 0; i--) {
-                addNodeUI((NODE) children.get(i), index + 1);
+                var childNode = (NODE) children.get(i);
+                displayedChildren.computeIfAbsent(node, n -> new ArrayList<>()).addFirst(childNode);
+                addNodeUI(childNode, index + 1);
+            }
+        }
+        if (!staticTree) {
+            ui.addEventListener(UIEvents.TICK, e -> checkNodeChildrenValid(node));
+        }
+    }
+
+    protected void checkNodeChildrenValid(NODE node) {
+        if (isNodeExpanded(node)) {
+            var currentChildren = (List<NODE>) node.getChildren();
+            var displayedChildren = this.displayedChildren.getOrDefault(node, Collections.emptyList());
+            if (currentChildren.equals(displayedChildren)) return;
+            var removed = new ArrayList<>(displayedChildren);
+            removed.removeAll(currentChildren);
+            for (var displayed : new ArrayList<>(displayedChildren)) {
+                removeNodeUI(displayed, removed.contains(displayed));
+            }
+            this.displayedChildren.remove(node);
+            var index = getChildren().indexOf(nodeUIs.get(node));
+            for (int i = currentChildren.size() - 1; i >= 0; i--) {
+                var childNode = currentChildren.get(i);
+                this.displayedChildren.computeIfAbsent(node, n -> new ArrayList<>()).addFirst(childNode);
+                addNodeUI(childNode, index + 1);
             }
         }
     }
 
     protected void removeNodeUI(NODE node) {
+        removeNodeUI(node, true);
+    }
+
+    protected void removeNodeUI(NODE node, boolean removeExpanded) {
         var ui = nodeUIs.remove(node);
+        displayedChildren.remove(node);
         if (ui != null) {
             removeChild(ui);
         }
         if (node.isBranch() && isNodeExpanded(node)) {
-            for (TreeNode<?, ?> child : node.getChildren()) {
-                removeNodeUI((NODE) child);
+            for (var child : node.getChildren()) {
+                removeNodeUI((NODE) child, removeExpanded);
+            }
+            if (removeExpanded) {
+                expandedNodes.remove(node);
+                displayedChildren.remove(node);
             }
         }
     }
@@ -201,7 +265,7 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
             style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.selectedTexture : treeListStyle.nodeTexture));
         });
         var arrow = new UIElement().layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 5 * node.dimension);
+            layout.setMargin(YogaEdge.LEFT, 5 * node.getDimension());
             layout.setWidth(7);
             layout.setHeight(7);
         }).style(style -> style.backgroundTexture(DynamicTexture.of(() -> node.isBranch() ?
@@ -222,6 +286,7 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
         container.addChildren(arrow, ui);
         container.addEventListener(UIEvents.MOUSE_DOWN, e -> onNodeClicked(e, node));
         container.addEventListener(UIEvents.DOUBLE_CLICK, e -> onNodeDoubleClicked(e, node));
+        onNodeUICreated.accept(node, ui);
         return container;
     }
 
@@ -249,7 +314,7 @@ public class TreeList<NODE extends TreeNode<?, ?>> extends UIElement {
     }
 
     /// Template
-    public static <NODE extends TreeNode<?, ?>> Function<NODE, UIElement> iconTextTemplate(
+    public static <NODE extends ITreeNode<?, ?>> Function<NODE, UIElement> iconTextTemplate(
             Function<NODE, IGuiTexture> iconMapper,
             Function<NODE, String> textMapper) {
         return node -> {

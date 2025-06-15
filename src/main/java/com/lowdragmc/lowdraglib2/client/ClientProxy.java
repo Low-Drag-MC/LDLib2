@@ -58,6 +58,7 @@ public class ClientProxy extends CommonProxy {
         if (Platform.isDevEnv()) {
             event.registerBlockEntityRenderer(CommonProxy.TEST_BE_TYPE.get(), ATESRRendererProvider::new);
         }
+        event.registerBlockEntityRenderer(CommonProxy.RENDERER_BE_TYPE.get(), ATESRRendererProvider::new);
     }
 
     @SubscribeEvent

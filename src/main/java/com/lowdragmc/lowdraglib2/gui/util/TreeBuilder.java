@@ -179,7 +179,7 @@ public class TreeBuilder<K, V> {
             return key.getB();
         }
 
-        public static void handle(TreeNode<Tuple<IGuiTexture, String>, Runnable> node) {
+        public static void handle(ITreeNode<Tuple<IGuiTexture, String>, Runnable> node) {
             if (node.isLeaf() && node.getContent() != null) {
                 node.getContent().run();
             }
@@ -214,7 +214,7 @@ public class TreeBuilder<K, V> {
 
         }
 
-        public static IGuiTexture hoverTextureProvider(TreeNode<Tuple<IGuiTexture, String>, Runnable> node) {
+        public static IGuiTexture hoverTextureProvider(ITreeNode<Tuple<IGuiTexture, String>, Runnable> node) {
             return isCrossLine(node.getKey()) ? IGuiTexture.EMPTY :ColorPattern.BLUE.rectTexture();
         }
     }

@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import lombok.Getter;
@@ -24,7 +25,7 @@ public class InspectorView extends View {
     private Runnable onClose;
 
     public InspectorView() {
-        super("editor.inspector");
+        super("editor.inspector", Icons.SETTINGS);
         this.scrollerView = new ScrollerView();
         this.layout(layout -> {
             layout.setWidthPercent(100);

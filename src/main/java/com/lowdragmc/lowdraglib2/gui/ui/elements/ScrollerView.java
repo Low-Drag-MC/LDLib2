@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,6 +46,10 @@ public class ScrollerView extends UIElement {
         private boolean adaptiveWidth = false; // enable it to make the scroller width adaptive to the view container
         @Getter @Setter
         private boolean adaptiveHeight = false; // enable it to make the scroller height adaptive to the view container
+        @Getter @Setter
+        private float minScrollPixel = 5;
+        @Getter @Setter
+        private float maxScrollPixel = 7;
 
         public ScrollerViewStyle(UIElement holder) {
             super(holder);
@@ -66,8 +71,8 @@ public class ScrollerView extends UIElement {
         this.verticalContainer = new UIElement();
         this.viewPort = new UIElement().setId("viewPort");
         this.viewContainer = new UIElement().setId("viewContainer");
-        this.horizontalScroller = new Scroller.Horizontal().setRange(0, 1f);
-        this.verticalScroller = new Scroller.Vertical().setRange(0, 1f);
+        this.horizontalScroller = new Scroller.Horizontal().setRange(0, 1f).setClampNormalizedValue(this::horizontalClamp);
+        this.verticalScroller = new Scroller.Vertical().setRange(0, 1f).setClampNormalizedValue(this::verticalClamp);
         this.addEventListener(UIEvents.MOUSE_WHEEL, UIEvent::stopPropagation);
 
         verticalContainer.layout(layout -> {
@@ -114,6 +119,22 @@ public class ScrollerView extends UIElement {
         } else if (event.deltaY != 0 && scrollerViewStyle.mode == Mode.HORIZONTAL) {
             horizontalScroller.onScrollWheel(event);
         }
+    }
+
+    protected float horizontalClamp(float normalizedValue) {
+        var containerWidth = getContainerWidth();
+        return Mth.clamp(Mth.abs(normalizedValue),
+                scrollerViewStyle.minScrollPixel / containerWidth,
+                scrollerViewStyle.maxScrollPixel / containerWidth)
+                * (normalizedValue > 0 ? 1 : -1);
+    }
+
+    protected float verticalClamp(float normalizedValue) {
+        var containerHeight = getContainerHeight();
+        return Mth.clamp(Mth.abs(normalizedValue),
+                scrollerViewStyle.minScrollPixel / containerHeight,
+                scrollerViewStyle.maxScrollPixel / containerHeight)
+                * (normalizedValue > 0 ? 1 : -1);
     }
 
     protected void onContainerLayoutChanged(UIEvent event) {

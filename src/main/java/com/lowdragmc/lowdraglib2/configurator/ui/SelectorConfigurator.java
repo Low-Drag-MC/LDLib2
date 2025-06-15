@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -28,9 +30,11 @@ public class SelectorConfigurator<T> extends ValueConfigurator<T> {
         selector.setCandidates(candidates);
         selector.setCandidateUIProvider(candidate -> new Label()
                 .textStyle(style -> style
+                        .textWrap(TextWrap.HOVER_ROLL)
                         .textAlignHorizontal(Horizontal.LEFT)
                         .textAlignVertical(Vertical.CENTER))
-                .setText(candidate == null ? "---" : mapping.apply(candidate)));
+                .setText(candidate == null ? "---" : mapping.apply(candidate))
+                .setOverflow(YogaOverflow.HIDDEN));
         selector.setSelected(value, false);
         selector.setOnValueChanged(this::updateValueActively);
     }

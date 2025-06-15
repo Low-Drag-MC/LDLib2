@@ -132,6 +132,7 @@
   "ldlib.gui.editor.menu.edit": "edit",
   "ldlib.gui.editor.menu.add_resource": "add a new resource",
   "ldlib.gui.resource.remove_provider": "remove provider",
+  "ldlib.gui.resource.add_provider": "add resource provider",
   "ldlib.gui.editor.menu.remove": "remove",
   "editor.remove.confirm": "Are you sure you want to remove it?",
   "ldlib.gui.editor.menu.rename": "rename",

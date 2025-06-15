@@ -88,6 +88,9 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
             try {
                 var nbt = this.serializeNBT(content, Platform.getFrozenRegistry());
                 if (nbt != null) {
+                    if (!file.getParentFile().exists()) {
+                        file.getParentFile().mkdirs();
+                    }
                     NbtIo.write(nbt, file.toPath());
                     resourcesLastModified.put(file, file.lastModified());
                     return super.addResource(path, content);

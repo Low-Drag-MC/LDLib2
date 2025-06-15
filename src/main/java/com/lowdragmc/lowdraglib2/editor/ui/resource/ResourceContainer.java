@@ -88,7 +88,7 @@ public class ResourceContainer extends UIElement {
     }
 
     private void onAddFileResourceProvider(UIEvent event) {
-        Dialog.showFileDialog("title", LDLib2.getAssetsDir(), true, file -> true, result -> {
+        Dialog.showFileDialog("ldlib.gui.resource.add_provider", LDLib2.getAssetsDir(), true, file -> true, result -> {
             if (result.isFile()) {
                 result = result.getParentFile();
             }

@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
+import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -55,32 +55,32 @@ public class Menu<K, T> extends UIElement {
             return this;
         }
     }
-    public final TreeNode<K, T> root;
+    public final ITreeNode<K, T> root;
     @Getter
     private final MenuStyle menuStyle = new MenuStyle(this);
     @Nonnull
     protected Function<K, UIElement> uiProvider;
     @Setter @Nullable
-    protected Consumer<TreeNode<K, T>> onNodeClicked;
+    protected Consumer<ITreeNode<K, T>> onNodeClicked;
     @Setter
     protected boolean autoClose = true;
     @Getter
-    protected final Map<TreeNode<K, T>, UIElement> nodeUIs = new LinkedHashMap<>();
+    protected final Map<ITreeNode<K, T>, UIElement> nodeUIs = new LinkedHashMap<>();
     @Setter
-    protected Function<TreeNode<K, T>, IGuiTexture> textureProvider = node -> node.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture;
+    protected Function<ITreeNode<K, T>, IGuiTexture> textureProvider = node -> node.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture;
     @Setter
-    protected Function<TreeNode<K, T>, IGuiTexture> hoverTextureProvider = node -> node.isLeaf() ? menuStyle.leafHoverTexture : menuStyle.nodeHoverTexture;
+    protected Function<ITreeNode<K, T>, IGuiTexture> hoverTextureProvider = node -> node.isLeaf() ? menuStyle.leafHoverTexture : menuStyle.nodeHoverTexture;
     // runtime
     @Nullable
-    protected TreeNode<K, T> openedNode;
+    protected ITreeNode<K, T> openedNode;
     @Nullable
     protected Menu<K, T> opened;
 
-    public Menu(TreeNode<K, T> root) {
+    public Menu(ITreeNode<K, T> root) {
         this(root, (key) -> new TextElement().setText(key.toString()));
     }
 
-    public Menu(TreeNode<K, T> root, Function<K, UIElement> uiProvider) {
+    public Menu(ITreeNode<K, T> root, Function<K, UIElement> uiProvider) {
         this.root = root;
         this.uiProvider = uiProvider;
 
@@ -164,7 +164,7 @@ public class Menu<K, T> extends UIElement {
 
     protected void initMenu() {
         if (!root.isLeaf()) {
-            for (TreeNode<K, T> child : root.getChildren()) {
+            for (var child : root.getChildren()) {
                 var container = new UIElement().layout(layout -> {
                     layout.setFlexDirection(YogaFlexDirection.ROW);
                     layout.setAlignItems(YogaAlign.CENTER);

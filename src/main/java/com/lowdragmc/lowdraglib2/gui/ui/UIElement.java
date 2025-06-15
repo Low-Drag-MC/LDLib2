@@ -737,7 +737,8 @@ public class UIElement {
 
     /// Logic
     public void screenTick() {
-        for (var child : children) {
+        var safeChildren = new ArrayList<>(children);
+        for (var child : safeChildren) {
             if (child.isActive() && child.isDisplayed()) {
                 child.screenTick();
             }
@@ -772,9 +773,9 @@ public class UIElement {
      */
     public UIElement addEventListener(String eventType, UIEventListener listener, boolean useCapture) {
         if (useCapture) {
-            captureListeners.computeIfAbsent(eventType, k -> new ArrayList<>()).add(listener);
+            captureListeners.computeIfAbsent(eventType, k -> new ArrayList<>()).addFirst(listener);
         } else {
-            bubbleListeners.computeIfAbsent(eventType, k -> new ArrayList<>()).add(listener);
+            bubbleListeners.computeIfAbsent(eventType, k -> new ArrayList<>()).addFirst(listener);
         }
         return this;
     }

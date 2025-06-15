@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import lombok.Getter;
@@ -62,9 +63,11 @@ public class Selector<T> extends BindableUIElement<T> {
     private List<T> candidates = List.of();
     private Function<T, UIElement> candidateUIProvider = candidate -> new Label()
             .textStyle(style -> style
+                    .textWrap(TextWrap.HOVER_ROLL)
                     .textAlignHorizontal(Horizontal.LEFT)
                     .textAlignVertical(Vertical.CENTER))
-            .setText(candidate == null ? "---" : candidate.toString());
+            .setText(candidate == null ? "---" : candidate.toString())
+            .setOverflow(YogaOverflow.HIDDEN);
     @Getter
     @Nullable
     private T value = null;
@@ -78,7 +81,7 @@ public class Selector<T> extends BindableUIElement<T> {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         this.preview = new UIElement().layout(layout -> {
                     layout.setHeightPercent(100);
-                    layout.setFlexGrow(1);
+                    layout.setFlex(1);
                 });
 
         this.buttonIcon = new UIElement();
@@ -167,7 +170,7 @@ public class Selector<T> extends BindableUIElement<T> {
     }
 
     private UIElement createItemUI(T candidate) {
-        var candidateUI = candidateUIProvider.apply(candidate);
+        var candidateUI = new UIElement().layout(layout -> layout.setWidthPercent(100));
         var overlayButton = new Button();
         overlayButton.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY)
                         .hoverTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
@@ -185,7 +188,7 @@ public class Selector<T> extends BindableUIElement<T> {
                     layout.setWidthPercent(100);
                 })
                 .setId("selector#overlayButton");
-        candidateUI.addChild(overlayButton);
+        candidateUI.addChild(candidateUIProvider.apply(candidate).addChild(overlayButton));
         candidateButtons.put(candidate, overlayButton);
         return candidateUI;
     }

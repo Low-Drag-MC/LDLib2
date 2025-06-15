@@ -46,9 +46,8 @@ public class Configurator extends UIElement {
                 }),
                 this.inlineContainer.layout(layout -> layout.setFlex(1)),
                 this.tip.layout(layout -> {
-                    layout.setMargin(YogaEdge.TOP, 2f);
-                    layout.setWidth(10);
-                    layout.setHeight(10);
+                    layout.setWidth(14);
+                    layout.setHeight(14);
                 }).style(style -> style.backgroundTexture(Icons.HELP))));
         if (name.isEmpty()) {
             this.label.setDisplay(YogaDisplay.NONE);

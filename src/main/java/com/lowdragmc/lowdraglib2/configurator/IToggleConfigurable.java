@@ -20,10 +20,9 @@ public interface IToggleConfigurable extends IConfigurable, IPersistedSerializab
 
     @Override
     default void buildConfigurator(ConfiguratorGroup father) {
-        father.setCollapse(!isEnable());
         father.setCanCollapse(isEnable());
         father.lineContainer.addChildAt(new Toggle()
-                .setOn(!father.isCollapse(),false)
+                .setOn(isEnable(),false)
                 .setOnToggleChanged(isOn -> {
                     setEnable(isOn);
                     father.setCollapse(!isOn);

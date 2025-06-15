@@ -14,6 +14,6 @@ public class RendererBlockEntity extends BlockEntity {
     IRenderer renderer = IRenderer.EMPTY;
 
     public RendererBlockEntity(BlockPos pos, BlockState blockState) {
-        super(CommonProxy.TEST_BE_TYPE.get(), pos, blockState);
+        super(CommonProxy.RENDERER_BE_TYPE.get(), pos, blockState);
     }
 }

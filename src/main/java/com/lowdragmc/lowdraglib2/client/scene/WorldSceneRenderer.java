@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.gui.screens.LoadingOverlay;
+import net.minecraft.client.particle.ParticleRenderType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Camera;
@@ -379,39 +380,45 @@ public abstract class WorldSceneRenderer {
             renderCacheBuffer(mc, buffers, particleTicks);
         } else {
             BlockRenderDispatcher blockrendererdispatcher = mc.getBlockRenderer();
-            try { // render the blocks in each layer
-                renderedBlocksMap.forEach((renderedBlocks, hook) -> {
-                    for (RenderType layer : RenderType.chunkBufferLayers()) {
-                        layer.setupRenderState();
-                        Random random = new Random();
-                        PoseStack poseStack = new PoseStack();
+            // render the blocks in each layer
+            renderedBlocksMap.forEach((renderedBlocks, hook) -> {
+                for (RenderType layer : RenderType.chunkBufferLayers()) {
+                    layer.setupRenderState();
+                    Random random = new Random();
+                    PoseStack poseStack = new PoseStack();
 
-                        if (layer == RenderType.translucent()) { // render tesr before translucent
-                            setDefaultRenderLayerState(null);
-                            renderTESR(renderedBlocks, poseStack, buffers, hook, particleTicks);
+                    if (layer == RenderType.translucent()) { // render tesr and particle before translucent
+                        setDefaultRenderLayerState(null);
+                        renderTESR(renderedBlocks, poseStack, buffers, hook, particleTicks);
 
-                            if (hook != null || !endBatchLast) {
-                                buffers.endBatch();
-                            }
-                        }
-
-                        setDefaultRenderLayerState(layer);
-                        if (hook != null) {
-                            hook.apply(layer);
-                        }
-
-                        var buffer = buffers.getBuffer(layer);
-
-                        renderBlocks(poseStack, blockrendererdispatcher, layer, new VertexConsumerWrapper(buffer), renderedBlocks, hook, particleTicks);
-
-                        if (!endBatchLast) {
+                        if (hook != null || !endBatchLast) {
                             buffers.endBatch();
                         }
-                        layer.clearRenderState();
+
+                        if (particleManager != null) {
+                            poseStack.pushPose();
+                            poseStack.setIdentity();
+                            poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
+                            particleManager.render(poseStack, camera, particleTicks, type -> !type.isTranslucent());
+                            poseStack.popPose();
+                        }
                     }
-                });
-            } finally {
-            }
+
+                    setDefaultRenderLayerState(layer);
+                    if (hook != null) {
+                        hook.apply(layer);
+                    }
+
+                    var buffer = buffers.getBuffer(layer);
+
+                    renderBlocks(poseStack, blockrendererdispatcher, layer, new VertexConsumerWrapper(buffer), renderedBlocks, hook, particleTicks);
+
+                    if (!endBatchLast) {
+                        buffers.endBatch();
+                    }
+                    layer.clearRenderState();
+                }
+            });
         }
 
         if (world instanceof TrackedDummyWorld level) {
@@ -425,11 +432,11 @@ public abstract class WorldSceneRenderer {
 
         buffers.endBatch();
 
-        if (particleManager != null) {
+        if (particleManager != null) { // render translucent particles
             @Nonnull PoseStack poseStack = new PoseStack();
             poseStack.setIdentity();
             poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
-            particleManager.render(poseStack, camera, particleTicks);
+            particleManager.render(poseStack, camera, particleTicks, ParticleRenderType::isTranslucent);
         }
 
         if (afterWorldRender != null) {
@@ -526,6 +533,14 @@ public abstract class WorldSceneRenderer {
                     renderTESR(tileEntities, matrixstack, mc.renderBuffers().bufferSource(), null, particleTicks);
                     if (!endBatchLast) {
                         buffers.endBatch();
+                    }
+
+                    if (particleManager != null) {
+                        matrixstack.pushPose();
+                        matrixstack.setIdentity();
+                        matrixstack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
+                        particleManager.render(matrixstack, camera, particleTicks, type -> !type.isTranslucent());
+                        matrixstack.popPose();
                     }
                 }
 

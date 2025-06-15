@@ -86,7 +86,13 @@ public class Icons {
     public static ResourceTexture MATERIAL = icon("material");
     public static ResourceTexture MODEL = icon("model");
     public static ResourceTexture TRANSLATE = icon("translate");
-
+    public static ResourceTexture GRADIENT = icon("gradient");
+    public static ResourceTexture CURVE = icon("curve");
+    public static ResourceTexture SETTINGS = icon("settings");
+    public static ResourceTexture LEFT_CLICK = icon("left_click");
+    public static ResourceTexture RIGHT_CLICK = icon("right_click");
+    public static ResourceTexture SCREEN = icon("screen");
+    public static ResourceTexture CAMERA = icon("camera");
 
 
     public static SpriteTexture CHECK_SPRITE = SpriteTexture.of(GDP_ICONS).setSprite(72, 0, 12, 12);

@@ -38,6 +38,8 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     public final UI ui;
     @Setter @Getter @Accessors(fluent = true, chain = true)
     private boolean shouldCloseOnEsc = true;
+    @Setter @Getter @Accessors(fluent = true, chain = true)
+    private boolean shouldCloseOnKeyInventory = true;
     // runtime
     @Getter
     @Nullable

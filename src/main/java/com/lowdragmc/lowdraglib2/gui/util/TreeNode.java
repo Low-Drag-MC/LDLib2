@@ -1,5 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.util;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,10 +16,13 @@ import java.util.stream.Collectors;
  * @param <T> key
  * @param <K> leaf
  */
-public class TreeNode<T, K> {
+public class TreeNode<T, K> implements ITreeNode<T, K> {
+    @Getter
     public final int dimension;
+    @Getter
     protected final T key;
     @Nullable
+    @Getter
     protected K content;
     @Nullable
     protected List<TreeNode<T, K>> children;
@@ -27,31 +34,30 @@ public class TreeNode<T, K> {
         this.key = key;
     }
 
+    @Nonnull
+    public List<? extends TreeNode<T, K>> getChildren() {
+        if (children == null) return Collections.emptyList();
+        if (valid == null) return children;
+        return children.stream().filter(valid).collect(Collectors.toList());
+    }
+
     public TreeNode<T, K> setValid(Predicate<TreeNode<T, K>> valid) {
         this.valid = valid;
         return this;
     }
 
-    public boolean isLeaf(){
-        return children == null || getChildren().isEmpty();
-    }
-
-    public boolean isBranch(){
-        return !isLeaf();
-    }
-
-    public TreeNode<T, K> getOrCreateChild (T childKey) {
+    public TreeNode<T, K> getOrCreateChild(T childKey) {
         TreeNode<T, K> result;
         if (children != null) {
-            result = getChildren().stream().filter(child->child.key.equals(childKey)).findFirst().orElseGet(()->{
+            result = children.stream().filter(child->child.key.equals(childKey)).findFirst().orElseGet(()->{
                 TreeNode<T, K> newNode = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
-                getChildren().add(newNode);
+                children.add(newNode);
                 return newNode;
             });
         } else {
             children = new ArrayList<>();
             result = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
-            getChildren().add(result);
+            children.add(result);
         }
         return result;
     }
@@ -61,38 +67,12 @@ public class TreeNode<T, K> {
             children = new ArrayList<>();
         }
         TreeNode<T, K> result = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
-        getChildren().add(result);
+        children.add(result);
         return result;
-    }
-
-    public TreeNode<T, K> getChild(T key) {
-        if (getChildren() != null) {
-            for (TreeNode<T, K> child : getChildren()) {
-                if (child.key.equals(key)) {
-                    return child;
-                }
-            }
-        }
-        return null;
     }
 
     public void addContent(T key, K content) {
         getOrCreateChild(key).content = content;
-    }
-
-    public T getKey() {
-        return key;
-    }
-
-    @Nullable
-    public K getContent() {
-        return content;
-    }
-
-    public List<TreeNode<T, K>> getChildren() {
-        if (children == null) return Collections.emptyList();
-        if (valid == null) return children;
-        return children.stream().filter(valid).collect(Collectors.toList());
     }
 
     public void removeChild(T key) {

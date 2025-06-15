@@ -170,7 +170,6 @@ public class Editor extends UIElement {
                 getModularUI().getScreen().onClose();
             }
         });
-
     }
 
     /**
@@ -265,10 +264,15 @@ public class Editor extends UIElement {
     /**
      * Load a project into the editor.
      */
-    public void loadProject(IProject project, @Nullable File projectFile) {
+    public final void loadProject(IProject project, @Nullable File projectFile) {
         if (currentProject != null) {
-            closeCurrentProject(true);
+            closeCurrentProject(true, () -> loadNewProject(project, projectFile));
+        } else {
+            loadNewProject(project, projectFile);
         }
+    }
+
+    protected void loadNewProject(IProject project, @Nullable File projectFile) {
         currentProject = project;
         currentProjectFile = projectFile;
         // load project resource
@@ -276,20 +280,36 @@ public class Editor extends UIElement {
         project.onLoad(this);
     }
 
+
     /**
      * Close the current project and clear the views.
      */
-    public void closeCurrentProject(boolean checkSave) {
-        inspectorView.clear();
-        resourceView.clear();
+    public final void closeCurrentProject(boolean checkSave, @Nullable Runnable onFinish) {
         if (currentProject != null) {
             if (checkSave) {
-                askToSaveProject(null);
+                askToSaveProject(() -> {
+                    closeCurrentProject();
+                    if (onFinish != null) {
+                        onFinish.run();
+                    }
+                });
+            } else {
+                closeCurrentProject();
+                if (onFinish != null) {
+                    onFinish.run();
+                }
             }
+        }
+    }
+
+    protected void closeCurrentProject() {
+        if (currentProject != null) {
             currentProject.onClosed(this);
             currentProject = null;
             currentProjectFile = null;
         }
+        inspectorView.clear();
+        resourceView.clear();
     }
 
 }

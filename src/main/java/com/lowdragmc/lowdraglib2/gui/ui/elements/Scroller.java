@@ -21,6 +21,7 @@ import org.appliedenergistics.yoga.YogaGutter;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -48,6 +49,9 @@ public abstract class Scroller extends BindableUIElement<Float> {
     protected float value = 0;
     @Getter
     protected float scrollBarSize = 20; // in percent
+    @Getter @Setter
+    @Accessors(chain = true)
+    protected Function<Float, Float> clampNormalizedValue = Function.identity();
     // runtime
     @Getter
     protected boolean isDragging = false;
@@ -114,7 +118,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
     }
 
     public void scrollValue(float normalizedValue) {
-        setNormalizedValue(getNormalizedValue() + normalizedValue);
+        setNormalizedValue(getNormalizedValue() + clampNormalizedValue.apply(normalizedValue));
     }
 
     /**

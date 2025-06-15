@@ -326,19 +326,19 @@ public class DialogWidget extends WidgetGroup {
 
         AtomicReference<File> selected = new AtomicReference<>();
         selected.set(dir);
-        container.addWidget(new TreeListWidget<>(3, 15, size.width - 6, size.height - 20 - 15,
-                new FileNode(dir), node -> selected.set(node.getKey()))
-                .setKeyIconSupplier(file -> Icons.FOLDER)
-//                .setContentIconSupplier(file -> Icons.getIcon(file.getName().substring(file.getName().lastIndexOf('.') + 1)))
-                .canSelectNode(true)
-                .setOnDoubleClickLeaf(node -> {
-                    var file = node.getKey();
-                    if (isSelector && file != null) {
-                        dialog.close();
-                        if (result != null) result.accept(file);
-                    }
-                })
-                .setBackground(ColorPattern.GRAY.borderTexture(-1)));
+//        container.addWidget(new TreeListWidget<>(3, 15, size.width - 6, size.height - 20 - 15,
+//                new FileNode(dir), node -> selected.set(node.getKey()))
+//                .setKeyIconSupplier(file -> Icons.FOLDER)
+////                .setContentIconSupplier(file -> Icons.getIcon(file.getName().substring(file.getName().lastIndexOf('.') + 1)))
+//                .canSelectNode(true)
+//                .setOnDoubleClickLeaf(node -> {
+//                    var file = node.getKey();
+//                    if (isSelector && file != null) {
+//                        dialog.close();
+//                        if (result != null) result.accept(file);
+//                    }
+//                })
+//                .setBackground(ColorPattern.GRAY.borderTexture(-1)));
 
         createButton(container, ((size.width / 2) - 60) / 2, size.height - 20 + 3, 60, 15, "ldlib.gui.tips.confirm", () -> {
             dialog.close();

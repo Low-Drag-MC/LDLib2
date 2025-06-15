@@ -9,6 +9,8 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.joml.Vector2f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -17,42 +19,37 @@ import java.util.Objects;
 
 public class GradientColor implements INBTSerializable<CompoundTag> {
     @Getter
-    protected List<Vector2f> aP, rP, gP, bP;
+    protected List<Vector2f> aP;
+    @Getter
+    protected List<Vector4f> rgbP;
 
     public GradientColor() {
         this.aP = new ArrayList<>(List.of(new Vector2f(0, 1), new Vector2f(1, 1)));
-        this.rP = new ArrayList<>(List.of(new Vector2f(0, 1), new Vector2f(1, 1)));
-        this.gP = new ArrayList<>(List.of(new Vector2f(0, 1), new Vector2f(1, 1)));
-        this.bP = new ArrayList<>(List.of(new Vector2f(0, 1), new Vector2f(1, 1)));
+        this.rgbP = new ArrayList<>(List.of(new Vector4f(0, 1, 1, 1), new Vector4f(1, 1, 1, 1)));
     }
 
     public GradientColor(int... colors) {
         this.aP = new ArrayList<>();
-        this.rP = new ArrayList<>();
-        this.gP = new ArrayList<>();
-        this.bP = new ArrayList<>();
+        this.rgbP = new ArrayList<>();
         if (colors.length == 1) {
             this.aP.add(new Vector2f(0.5f, ColorUtils.alpha(colors[0])));
-            this.rP.add(new Vector2f(0.5f, ColorUtils.red(colors[0])));
-            this.gP.add(new Vector2f(0.5f, ColorUtils.green(colors[0])));
-            this.bP.add(new Vector2f(0.5f, ColorUtils.blue(colors[0])));
-        }
-        for (int i = 0; i < colors.length; i++) {
-            var t = i / (colors.length - 1f);
-            this.aP.add(new Vector2f(t, ColorUtils.alpha(colors[i])));
-            this.rP.add(new Vector2f(t, ColorUtils.red(colors[i])));
-            this.gP.add(new Vector2f(t, ColorUtils.green(colors[i])));
-            this.bP.add(new Vector2f(t, ColorUtils.blue(colors[i])));
+            this.rgbP.add(new Vector4f(0.5f, ColorUtils.red(colors[0]), ColorUtils.green(colors[0]), ColorUtils.blue(colors[0])));
+        } else {
+            for (int i = 0; i < colors.length; i++) {
+                var t = i / (colors.length - 1f);
+                this.aP.add(new Vector2f(t, ColorUtils.alpha(colors[i])));
+                this.rgbP.add(new Vector4f(t, ColorUtils.red(colors[i]), ColorUtils.green(colors[i]), ColorUtils.blue(colors[i])));
+            }
         }
     }
 
-    public float get(List<Vector2f> data, float t) {
-        var value = data.getFirst().y;
-        var found = t < data.getFirst().x;
+    public float getAlpha(float t) {
+        var value = aP.getFirst().y;
+        var found = t < aP.getFirst().x;
         if (!found) {
-            for (int i = 0; i < data.size() - 1; i++) {
-                var s = data.get(i);
-                var e = data.get(i + 1);
+            for (int i = 0; i < aP.size() - 1; i++) {
+                var s = aP.get(i);
+                var e = aP.get(i + 1);
                 if (t >= s.x && t <= e.x) {
                     value = s.y * (e.x - t) / (e.x - s.x) + e.y * (t - s.x) / (e.x - s.x);
                     found = true;
@@ -61,99 +58,151 @@ public class GradientColor implements INBTSerializable<CompoundTag> {
             }
         }
         if (!found) {
-            value = data.getLast().y;
+            value = aP.getLast().y;
+        }
+        return value;
+    }
+
+    public Vector3f getRGB(float t) {
+        var value = new Vector3f(rgbP.getFirst().y, rgbP.getFirst().z, rgbP.getFirst().w);
+        var found = t < rgbP.getFirst().x;
+        if (!found) {
+            for (int i = 0; i < rgbP.size() - 1; i++) {
+                var s = rgbP.get(i);
+                var e = rgbP.get(i + 1);
+                if (t >= s.x && t <= e.x) {
+                    value = new Vector3f(
+                            s.y * (e.x - t) / (e.x - s.x) + e.y * (t - s.x) / (e.x - s.x),
+                            s.z * (e.x - t) / (e.x - s.x) + e.z * (t - s.x) / (e.x - s.x),
+                            s.w * (e.x - t) / (e.x - s.x) + e.w * (t - s.x) / (e.x - s.x)
+                    );
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            value = new Vector3f(rgbP.getLast().y, rgbP.getLast().z, rgbP.getLast().w);
         }
         return value;
     }
 
     public int getColor(float t) {
-        return ColorUtils.color(get(aP, t), get(rP, t), get(gP, t), get(bP, t));
+        var alpha = getAlpha(t);
+        var rgb = getRGB(t);
+        return ColorUtils.color(alpha, rgb.x, rgb.y, rgb.z);
     }
 
     public int getRGBColor(float t) {
-        return ColorUtils.color(1, get(rP, t), get(gP, t), get(bP, t));
-    }
-
-    public int add(List<Vector2f> data, float t, float value) {
-        if (data.isEmpty()) {
-            data.add(new Vector2f(t, value));
-            return 0;
-        }
-        if (t < data.getFirst().x) {
-            data.addFirst(new Vector2f(t, value));
-            return 0;
-        }
-        for (int i = 0; i < data.size() - 1; i++) {
-            if (t >= data.get(i).x && t <=  data.get(i + 1).x) {
-                data.add(i + 1, new Vector2f(t, value));
-                return i + 1;
-            }
-        }
-        data.add(new Vector2f(t, value));
-        return data.size() - 1;
+        var rgb = getRGB(t);
+        return ColorUtils.color(1, rgb.x, rgb.y, rgb.z);
     }
 
     public int addAlpha(float t, float value) {
-        return add(aP, t, value);
+        if (aP.isEmpty()) {
+            aP.add(new Vector2f(t, value));
+            return 0;
+        }
+        if (t < aP.getFirst().x) {
+            aP.addFirst(new Vector2f(t, value));
+            return 0;
+        }
+        for (int i = 0; i < aP.size() - 1; i++) {
+            if (t >= aP.get(i).x && t <=  aP.get(i + 1).x) {
+                aP.add(i + 1, new Vector2f(t, value));
+                return i + 1;
+            }
+        }
+        aP.add(new Vector2f(t, value));
+        return aP.size() - 1;
     }
 
     public int addRGB(float t, float r, float g, float b) {
-        add(rP, t, r);
-        add(gP, t, g);
-        return add(bP, t, b);
+        if (rgbP.isEmpty()) {
+            rgbP.add(new Vector4f(t, r, g, b));
+            return 0;
+        }
+        if (t < rgbP.getFirst().x) {
+            rgbP.addFirst(new Vector4f(t, r, g, b));
+            return 0;
+        }
+        for (int i = 0; i < rgbP.size() - 1; i++) {
+            if (t >= rgbP.get(i).x && t <=  rgbP.get(i + 1).x) {
+                rgbP.add(i + 1, new Vector4f(t, r, g, b));
+                return i + 1;
+            }
+        }
+        rgbP.add(new Vector4f(t, r, g, b));
+        return rgbP.size() - 1;
     }
 
-    private ListTag saveAsTag(List<Vector2f> data) {
+    private ListTag saveAlpha(List<Vector2f> data) {
         var list = new ListTag();
-        for (Vector2f Vector2f : data) {
+        for (var Vector2f : data) {
             list.add(FloatTag.valueOf(Vector2f.x));
             list.add(FloatTag.valueOf(Vector2f.y));
         }
         return list;
     }
 
-    private void loadFromTag(List<Vector2f> data, ListTag list) {
+    private ListTag saveRGB(List<Vector4f> data) {
+        var list = new ListTag();
+        for (var Vector4f : data) {
+            list.add(FloatTag.valueOf(Vector4f.x));
+            list.add(FloatTag.valueOf(Vector4f.y));
+            list.add(FloatTag.valueOf(Vector4f.z));
+            list.add(FloatTag.valueOf(Vector4f.w));
+        }
+        return list;
+    }
+
+    private void loadAlphaFromTag(List<Vector2f> data, ListTag list) {
         data.clear();
         for (int i = 0; i < list.size(); i += 2) {
             data.add(new Vector2f(list.getFloat(i), list.getFloat(i + 1)));
         }
     }
 
+    private void loadRGBFromTag(List<Vector4f> data, ListTag list) {
+        data.clear();
+        for (int i = 0; i < list.size(); i += 4) {
+            data.add(new Vector4f(list.getFloat(i), list.getFloat(i + 1), list.getFloat(i + 2), list.getFloat(i + 3)));
+        }
+    }
+
     @Override
     public CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        tag.put("a", saveAsTag(aP));
-        tag.put("r", saveAsTag(rP));
-        tag.put("g", saveAsTag(gP));
-        tag.put("b", saveAsTag(bP));
+        tag.put("a", saveAlpha(aP));
+        tag.put("rgb", saveRGB(rgbP));
         return tag;
     }
 
     @Override
     public void deserializeNBT(@Nonnull HolderLookup.Provider provider, CompoundTag nbt) {
-        loadFromTag(aP, nbt.getList("a", Tag.TAG_FLOAT));
-        loadFromTag(rP, nbt.getList("r", Tag.TAG_FLOAT));
-        loadFromTag(gP, nbt.getList("g", Tag.TAG_FLOAT));
-        loadFromTag(bP, nbt.getList("b", Tag.TAG_FLOAT));
+        loadAlphaFromTag(aP, nbt.getList("a", Tag.TAG_FLOAT));
+        loadRGBFromTag(rgbP, nbt.getList("rgb", Tag.TAG_FLOAT));
     }
     
     public GradientColor copy() {
         var copy = new GradientColor();
         copy.aP.clear();
-        copy.rP.clear();
-        copy.gP.clear();
-        copy.bP.clear();
+        copy.rgbP.clear();
         this.aP.forEach(Vector2f -> copy.aP.add(new Vector2f(Vector2f.x, Vector2f.y)));
-        this.rP.forEach(Vector2f -> copy.rP.add(new Vector2f(Vector2f.x, Vector2f.y)));
-        this.gP.forEach(Vector2f -> copy.gP.add(new Vector2f(Vector2f.x, Vector2f.y)));
-        this.bP.forEach(Vector2f -> copy.bP.add(new Vector2f(Vector2f.x, Vector2f.y)));
+        this.rgbP.forEach(Vector2f -> copy.rgbP.add(new Vector4f(Vector2f.x, Vector2f.y, Vector2f.z, Vector2f.w)));
         return copy;
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(aP, rgbP);
+    }
+
+    @Override
     public boolean equals(Object o) {
+        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GradientColor that = (GradientColor) o;
-        return Objects.equals(aP, that.aP) && Objects.equals(rP, that.rP) && Objects.equals(gP, that.gP) && Objects.equals(bP, that.bP);
+        return Objects.equals(aP, that.aP) && Objects.equals(rgbP, that.rgbP);
     }
 }

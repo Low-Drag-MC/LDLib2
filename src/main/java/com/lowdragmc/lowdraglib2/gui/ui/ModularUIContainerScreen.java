@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -67,6 +68,17 @@ public class ModularUIContainerScreen<T extends AbstractContainerMenu> extends A
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
         modularUI.mouseMoved(mouseX, mouseY);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (!modularUI.shouldCloseOnKeyInventory()) {
+            InputConstants.Key mouseKey = InputConstants.getKey(keyCode, scanCode);
+            if (minecraft.options.keyInventory.isActiveAndMatches(mouseKey)) {
+                return modularUI.keyPressed(keyCode, scanCode, modifiers);
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override

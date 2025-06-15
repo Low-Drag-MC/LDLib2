@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
-import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -292,10 +291,10 @@ public class Dialog extends UIElement {
      * @param valid a predicate to validate the selected file or directory, can be null to allow all files
      * @param result a consumer that will receive the selected file or directory when the confirm button is clicked
      */
-    public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable Predicate<TreeNode<File, Void>> valid, Consumer<File> result) {
+    public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable Predicate<FileNode> valid, Consumer<File> result) {
         var dialog = new Dialog();
         var textField = new TextField();
-        var treeList = new TreeList<>(new FileNode(dir).setValid(valid));
+        var treeList = new TreeList<FileNode>();
         if (!dir.isDirectory()) {
             if (!dir.mkdirs()) {
                 return dialog;
@@ -314,8 +313,7 @@ public class Dialog extends UIElement {
             layout.setHeight(14);
             layout.setPadding(YogaEdge.ALL, 3);
         }).addChild(new UIElement().layout(layout -> layout.setWidthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
-        dialog.addContent(new ScrollerView().addScrollViewChild(treeList
-                .setOnSelectedChanged(selected -> {
+        dialog.addContent(new ScrollerView().addScrollViewChild(treeList.setOnSelectedChanged(selected -> {
                     if (selected.isEmpty()) return;
                     var first = selected.stream().findFirst().get();
                     if (isSelector) {
@@ -325,24 +323,23 @@ public class Dialog extends UIElement {
                     } else {
                         textField.setText("", false);
                     }
-                })
-                .setOnDoubleClickNode(node -> {
+                }).setOnDoubleClickNode(node -> {
                     var file = node.getKey();
                     if (isSelector && file.isFile()) {
                         dialog.close();
                         if (result != null) result.accept(file);
                     }
-                })
-                .setNodeUISupplier(TreeList.iconTextTemplate(
+                }).setNodeUISupplier(TreeList.iconTextTemplate(
                         node -> node.getKey().isDirectory() ?
                                 Icons.FOLDER :
                                 Icons.getIcon(node.getKey().getName()
                                         .substring(node.getKey().getName().lastIndexOf('.') + 1)),
                         node -> node.getKey().getName()))
-                .reloadList()).layout(layout -> {
-                    layout.setWidthPercent(100);
-                    layout.setHeight(180);
-                })
+                        .setRoot(new FileNode(dir).setValid(valid))
+                ).layout(layout -> {
+                            layout.setWidthPercent(100);
+                            layout.setHeight(180);
+                        })
         );
         dialog.addButton(new Button()
                 .setOnClick(e -> {
@@ -385,7 +382,7 @@ public class Dialog extends UIElement {
      * Creates a predicate that filters out nodes based on their suffixes.
      * @param suffixes the suffixes to filter out, e.g. ".txt", ".jpg"
      */
-    public static Predicate<TreeNode<File, Void>> suffixFilter(String... suffixes) {
+    public static Predicate<FileNode> suffixFilter(String... suffixes) {
         return node -> {
             for (String suffix : suffixes) {
                 if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(suffix.toLowerCase())) {

@@ -19,6 +19,7 @@ import net.minecraft.world.level.Level;
 import org.joml.Matrix4fStack;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * @author KilaBash
@@ -58,6 +59,7 @@ public class ParticleManager {
     }
 
     public void tick() {
+        this.particles.forEach((particleRenderType, particleQueue) -> this.tickParticleList(particleQueue));
         if (!waitToAdded.isEmpty()) {
             synchronized (waitToAdded) {
                 for (var particle : waitToAdded) {
@@ -66,7 +68,6 @@ public class ParticleManager {
                 waitToAdded.clear();
             }
         }
-        this.particles.forEach((particleRenderType, particleQueue) -> this.tickParticleList(particleQueue));
     }
 
     private void tickParticleList(Collection<Particle> pParticles) {
@@ -83,7 +84,7 @@ public class ParticleManager {
 
     }
 
-    public void render(PoseStack pMatrixStack, Camera pActiveRenderInfo, float pPartialTicks) {
+    public void render(PoseStack pMatrixStack, Camera pActiveRenderInfo, float pPartialTicks, Predicate<ParticleRenderType> renderTypePredicate) {
         Minecraft.getInstance().gameRenderer.lightTexture().turnOnLightLayer();
         RenderSystem.enableDepthTest();
         RenderSystem.activeTexture(org.lwjgl.opengl.GL13.GL_TEXTURE2);
@@ -94,7 +95,7 @@ public class ParticleManager {
         RenderSystem.applyModelViewMatrix();
 
         for(ParticleRenderType particlerendertype : this.particles.keySet()) {
-            if (particlerendertype == ParticleRenderType.NO_RENDER) continue;
+            if (particlerendertype == ParticleRenderType.NO_RENDER || !renderTypePredicate.test(particlerendertype)) continue;
             var iterable = this.particles.get(particlerendertype);
             if (iterable != null) {
                 RenderSystem.setShader(GameRenderer::getParticleShader);

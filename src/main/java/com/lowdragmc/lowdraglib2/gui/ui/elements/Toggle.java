@@ -137,7 +137,7 @@ public class Toggle extends BindableUIElement<Boolean> {
                         .textAlignVertical(Vertical.CENTER))
                 .layout(layout -> {
                     layout.setHeightPercent(100);
-                    layout.setFlexGrow(1);
+                    layout.setFlex(1);
                     layout.setMargin(YogaEdge.LEFT, 2);
                 });
         this.toggleLabel.setText("Toggle");
@@ -205,9 +205,6 @@ public class Toggle extends BindableUIElement<Boolean> {
     @Override
     public void onRemoved() {
         super.onRemoved();
-        if (toggleGroup != null) {
-            toggleGroup.unregisterToggle(this);
-        }
     }
 
     @HideFromJS
