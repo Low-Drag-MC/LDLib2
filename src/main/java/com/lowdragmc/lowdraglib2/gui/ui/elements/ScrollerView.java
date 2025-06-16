@@ -122,7 +122,7 @@ public class ScrollerView extends UIElement {
     }
 
     protected float horizontalClamp(float normalizedValue) {
-        var containerWidth = getContainerWidth();
+        var containerWidth = getContainerWidth() - viewPort.getContentWidth();
         return Mth.clamp(Mth.abs(normalizedValue),
                 scrollerViewStyle.minScrollPixel / containerWidth,
                 scrollerViewStyle.maxScrollPixel / containerWidth)
@@ -130,7 +130,7 @@ public class ScrollerView extends UIElement {
     }
 
     protected float verticalClamp(float normalizedValue) {
-        var containerHeight = getContainerHeight();
+        var containerHeight = getContainerHeight() - viewPort.getContentHeight();
         return Mth.clamp(Mth.abs(normalizedValue),
                 scrollerViewStyle.minScrollPixel / containerHeight,
                 scrollerViewStyle.maxScrollPixel / containerHeight)
