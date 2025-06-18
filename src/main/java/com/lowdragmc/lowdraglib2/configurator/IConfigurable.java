@@ -2,6 +2,8 @@ package com.lowdragmc.lowdraglib2.configurator;
 
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
+import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -24,6 +26,15 @@ public interface IConfigurable {
         var group = new ConfiguratorGroup();
         buildConfigurator(group);
         return group;
+    }
+
+    /**
+     * Obtain the name of this configurable
+     */
+    default String getConfigurableName() {
+        if (this instanceof ILDLRegister<?,?> register) return register.name();
+        if (this instanceof ILDLRegisterClient<?,?> register) return register.name();
+        return getClass().getSimpleName();
     }
 
 }

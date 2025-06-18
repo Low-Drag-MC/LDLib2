@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.client.shader.Shaders;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.BufferBuilderAccessor;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -13,7 +14,6 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -159,7 +159,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     protected void onCopy(UIEvent event) {
-        Minecraft.getInstance().keyboardHandler.setClipboard(String.format("#%08x", argb));
+        ClipboardManager.INSTANCE.copyDirect(String.format("#%08x", argb));
     }
 
     private void refreshRGB() {

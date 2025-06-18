@@ -121,11 +121,24 @@ public class UIElement {
         }
     }
 
+    protected void onAdded() {
+        for (var child : children) {
+            child.onAdded();
+        }
+        if (bubbleListeners.containsKey(UIEvents.ADDED) || captureListeners.containsKey(UIEvents.ADDED)) {
+            var event = UIEvent.create(UIEvents.ADDED);
+            event.target = this;
+            event.hasBubblePhase = false;
+            event.hasCapturePhase = false;
+            UIEventDispatcher.dispatchEvent(event);
+        }
+    }
+
     /**
      * This method is called when the element is removed from the ui structure.
      * You can override this method to do something when the element is removed. e.g. clean up resources, stop animations, etc.
      */
-    public void onRemoved() {
+    protected void onRemoved() {
         for (var child : children) {
             child.onRemoved();
         }
@@ -415,6 +428,7 @@ public class UIElement {
         layoutNode.addChildAt(child.layoutNode, index);
         clearSortedChildrenCache();
         child.clearStructurePathCache();
+        child.onAdded();
         return this;
     }
 

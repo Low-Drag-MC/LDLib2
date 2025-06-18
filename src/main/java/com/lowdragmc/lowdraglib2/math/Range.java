@@ -1,9 +1,11 @@
 package com.lowdragmc.lowdraglib2.math;
 
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Data;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -48,6 +50,10 @@ public final class Range {
 
     public Number getMax() {
         return a.doubleValue() > b.doubleValue() ? a : b;
+    }
+
+    public Range copy() {
+        return new Range(a, b);
     }
 
 }

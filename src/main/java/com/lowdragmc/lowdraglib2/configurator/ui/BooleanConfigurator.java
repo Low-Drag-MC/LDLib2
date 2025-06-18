@@ -11,6 +11,7 @@ public class BooleanConfigurator extends ValueConfigurator<Boolean> {
 
     public BooleanConfigurator(String name, Supplier<Boolean> supplier, Consumer<Boolean> onUpdate, @Nonnull Boolean defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
+        setCopiable(value -> value);
         if (value == null) value = defaultValue;
         inlineContainer.addChildren(toggle = new Toggle());
         toggle.toggleLabel.setText("");

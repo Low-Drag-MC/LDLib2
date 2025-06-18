@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.BindableUIElement;
@@ -45,6 +46,8 @@ import java.util.function.Predicate;
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 public class TextField extends BindableUIElement<String> {
+    private record NumberStart(double value){}
+    private record CursorStart(int value){}
     @Accessors(chain = true, fluent = true)
     public static class TextFieldStyle extends Style {
         @Getter
@@ -146,67 +149,71 @@ public class TextField extends BindableUIElement<String> {
     /// events
     protected void onDragSource(UIEvent event) {
         if (isNumberField()) {
-            var value = event.x - event.dragStartX > 4 ? wheelDur : event.x - event.dragStartX < -4 ? -wheelDur : 0;
-            if (value != 0) {
-                handleNumber(value);
+            if (event.dragHandler.draggingObject instanceof NumberStart(double numberStart)) {
+                if (Mth.abs(event.x - event.dragStartX) < 4) {
+                    handleNumber(numberStart, false);
+                } else {
+                    var value = (event.x - event.dragStartX > 0 ? (event.x - event.dragStartX - 4) : (event.x - event.dragStartX + 4)) * (isShiftDown() ? 1 : 0.1) + numberStart;
+                    handleNumber(value, false);
+                }
             }
-        } else if (event.dragHandler.draggingObject instanceof Integer start) {
+        } else if (event.dragHandler.draggingObject instanceof CursorStart(int cursorStart)) {
             var cursor = getCursorUnderMouseX(event.x);
             if (cursor != -1) {
                 setCursor(cursor);
-                setSelection(start, cursorPos);
+                setSelection(cursorStart, cursorPos);
             }
         }
     }
 
-    private boolean handleNumber(double value) {
+    private boolean handleNumber(double value, boolean append) {
         String number = null;
         if (mode == Mode.NUMBER_INT) {
            try {
                if (numberInstance != null) {
-                   number = numberInstance.format(Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)));
+                   number = numberInstance.format(append ? (Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1))) : (int) value);
                } else {
-                   number = String.valueOf(Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1)));
+                   number = String.valueOf(append ? (Integer.parseInt(getRawText()) + (int) (value * (isShiftDown() ? 10 : 1))) : (int) value);
                }
            } catch (NumberFormatException ignored) { }
         } else if (mode == Mode.NUMBER_LONG) {
             try {
                 if (numberInstance != null) {
-                    number = numberInstance.format(Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1)));
+                    number = numberInstance.format(append ? (Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1))) : (long) value);
                 } else {
-                    number = String.valueOf(Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1)));
+                    number = String.valueOf(append ? (Long.parseLong(getRawText()) + (long) (value * (isShiftDown() ? 10 : 1))) : (long) value);
                 }
             } catch (NumberFormatException ignored) { }
         } else if (mode == Mode.NUMBER_FLOAT) {
             try {
                 if (numberInstance != null) {
-                    number = numberInstance.format(Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                    number = numberInstance.format(append ? (Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)) : (float) value);
                 } else {
-                    number = String.valueOf(Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                    number = String.valueOf(append ? (Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)) : (float) value);
                 }
             } catch (NumberFormatException ignored) { }
         }  else if (mode == Mode.NUMBER_DOUBLE) {
             try {
                 if (numberInstance != null) {
-                    number = numberInstance.format(Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                    number = numberInstance.format(append ? (Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)) : value);
                 } else {
-                    number = String.valueOf(Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1));
+                    number = String.valueOf(append ? (Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)) : value);
                 }
             } catch (NumberFormatException ignored) { }
         } else if (mode == Mode.NUMBER_SHORT) {
             try {
                 if (numberInstance != null) {
-                    number = numberInstance.format(Short.parseShort(getRawText()) + (short) (value * (isShiftDown() ? 10 : 1)));
+                    number = numberInstance.format(append ? (Short.parseShort(getRawText()) + (short) (value * (isShiftDown() ? 10 : 1))) : (short) value);
                 } else {
-                    number = String.valueOf(Short.parseShort(getRawText()) + (short) (value * (isShiftDown() ? 10 : 1)));
+                    number = String.valueOf(append ? (Short.parseShort(getRawText()) + (short) (value * (isShiftDown() ? 10 : 1))) : (short) value);
                 }
             } catch (NumberFormatException ignored) { }
         } else if (mode == Mode.NUMBER_BYTE) {
             try {
                 if (numberInstance != null) {
-                    number = numberInstance.format(Byte.parseByte(getRawText()) + (byte) (value * (isShiftDown() ? 10 : 1)));
+                    number = numberInstance.format(append ? (Byte.parseByte(getRawText()) + (byte) (value * (isShiftDown() ? 10 : 1))) : (byte) value);
                 } else {
-                    number = String.valueOf(Byte.parseByte(getRawText()) + (byte) (value * (isShiftDown() ? 10 : 1)));
+                    number = String.valueOf(append ? (Byte.parseByte(getRawText()) + (byte) (value * (isShiftDown() ? 10 : 1))) : (byte) value);
                 }
             } catch (NumberFormatException ignored) { }
         }
@@ -219,7 +226,7 @@ public class TextField extends BindableUIElement<String> {
 
     protected void onMouseWheel(UIEvent event) {
         if (isEditable()) {
-            if (handleNumber((event.deltaY > 0 ? 1 : -1) * wheelDur)) {
+            if (handleNumber((event.deltaY > 0 ? 1 : -1) * wheelDur, true)) {
                 event.stopPropagation();
             }
         }
@@ -248,9 +255,13 @@ public class TextField extends BindableUIElement<String> {
                     setSelection(cursorPos, cursorPos);
                 }
                 if (isNumberField()) {
-                    startDrag(null, null);
+                    var startValue = 0d;
+                    try {
+                        startValue = Double.parseDouble(getRawText());
+                    } catch (NumberFormatException ignored) {}
+                    startDrag(new NumberStart(startValue), null);
                 } else {
-                    startDrag(cursorPos, null);
+                    startDrag(new CursorStart(cursorPos), null);
                 }
             }
         }
@@ -329,14 +340,14 @@ public class TextField extends BindableUIElement<String> {
                     setCursor(rawText.length());
                     setSelection(0, rawText.length());
                 } else if (Screen.isCopy(event.keyCode)) {
-                    Minecraft.getInstance().keyboardHandler.setClipboard(this.getHighlighted());
+                    ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
                 } else if (Screen.isPaste(event.keyCode)) {
                     if (this.isEditable()) {
                         this.insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
                     }
                 } else {
                     if (Screen.isCut(event.keyCode)) {
-                        Minecraft.getInstance().keyboardHandler.setClipboard(this.getHighlighted());
+                        ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
                         if (this.isEditable()) {
                             this.insertText("");
                         }

@@ -203,7 +203,7 @@ public class Toggle extends BindableUIElement<Boolean> {
     }
 
     @Override
-    public void onRemoved() {
+    protected void onRemoved() {
         super.onRemoved();
     }
 

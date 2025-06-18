@@ -20,6 +20,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
 
     public ColorConfigurator(String name, Supplier<Integer> supplier, Consumer<Integer> onUpdate, @Nonnull Integer defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
+        setCopiable(value -> value);
 
         if (value == null) {
             value = defaultValue;

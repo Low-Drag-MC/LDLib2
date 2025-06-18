@@ -19,17 +19,12 @@ public class StringConfigurator extends ValueConfigurator<String> {
 
     public StringConfigurator(String name, Supplier<String> supplier, Consumer<String> onUpdate, @Nonnull String defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
+        setCopiable(value -> value);
+
         if (value == null) value = defaultValue;
         inlineContainer.addChild(textField = new TextField());
         textField.setTextResponder(this::updateValueActively);
-        textField.addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
         textField.setText(value, false);
-    }
-
-    private void onDragPerform(UIEvent event) {
-        if (event.dragHandler.draggingObject instanceof CharSequence string) {
-            updateValueActively(string.toString());
-        }
     }
 
     public StringConfigurator setResourceLocation(boolean resourceLocation) {

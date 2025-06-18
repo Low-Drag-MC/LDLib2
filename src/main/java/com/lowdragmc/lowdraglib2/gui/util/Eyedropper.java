@@ -22,7 +22,7 @@ package com.lowdragmc.lowdraglib2.gui.util;
 //
 ///**
 // * @author KilaBash
-// * @date 2022/12/11
+// * @data 2022/12/11
 // * @implNote Eyedropper
 // */
 //@OnlyIn(Dist.CLIENT)

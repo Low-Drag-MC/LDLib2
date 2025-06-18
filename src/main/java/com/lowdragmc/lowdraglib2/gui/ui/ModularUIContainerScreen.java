@@ -87,7 +87,6 @@ public class ModularUIContainerScreen<T extends AbstractContainerMenu> extends A
 
         if (Platform.isDevEnv()) {
             modularUI.renderDebugInfo(graphics, mouseX, mouseY, partialTicks);
-
         }
     }
 

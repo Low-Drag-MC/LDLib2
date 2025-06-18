@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.math.Position;
+import net.minecraft.core.Vec3i;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -60,6 +61,12 @@ public class PositionAccessor extends TypesAccessor<Position> {
             x.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
         }
+
+        configurator.setCopiable(() -> {
+            var current = supplier.get();
+            return () -> current;
+        });
+        configurator.setPastable(Position.class, consumer);
         return configurator;
     }
 

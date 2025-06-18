@@ -19,6 +19,7 @@ import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Created with IntelliJ IDEA.
@@ -33,7 +34,9 @@ import javax.annotation.Nonnull;
  */
 @OnlyIn(Dist.CLIENT)
 public class FBOWorldSceneRenderer extends WorldSceneRenderer {
+    @Getter
     private int resolutionWidth = 1080;
+    @Getter
     private int resolutionHeight = 1080;
     @Getter
     private RenderTarget fbo;
@@ -43,17 +46,9 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         setFBOSize(resolutionWidth, resolutionHeight);
     }
 
-    public FBOWorldSceneRenderer(Level world, RenderTarget fbo) {
+    public FBOWorldSceneRenderer(Level world, @Nonnull RenderTarget fbo) {
         super(world);
         this.fbo = fbo;
-    }
-
-    public int getResolutionWidth() {
-        return resolutionWidth;
-    }
-
-    public int getResolutionHeight() {
-        return resolutionHeight;
     }
 
     /***
@@ -82,8 +77,12 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     }
 
     public IGuiTexture drawAsTexture() {
-        drawScene(0, 0, this.resolutionWidth, this.resolutionHeight, 0, 0);
         return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+            if (!checkFBOValid()) {
+                createFBO();
+                drawScene(0, 0, this.resolutionWidth, this.resolutionHeight, 0, 0);
+            }
+
             var poseStack = graphics.pose();
             var pose = poseStack.last().pose();
 
@@ -129,8 +128,8 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     }
 
     private int bindFBO(){
-        if (fbo == null) {
-            fbo = new MainTarget(resolutionWidth, resolutionHeight);
+        if (!checkFBOValid()) {
+            createFBO();
         }
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
         int lastID = GL11.glGetInteger(EXTFramebufferObject.GL_FRAMEBUFFER_BINDING_EXT);
@@ -148,12 +147,25 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
     }
 
+    private boolean checkFBOValid() {
+        if (fbo == null) return false;
+        return fbo.frameBufferId >= 0;
+    }
+
+    private void createFBO() {
+        int lastID = GL11.glGetInteger(EXTFramebufferObject.GL_FRAMEBUFFER_BINDING_EXT);
+        releaseFBO();
+        fbo = new MainTarget(resolutionWidth, resolutionHeight);
+        GlStateManager._glBindFramebuffer(36160, lastID);
+    }
+
     public void releaseFBO() {
         if (fbo != null) {
-            RenderSystem.recordRenderCall(() -> {
+            if (RenderSystem.isOnRenderThread()) {
                 fbo.destroyBuffers();
-                fbo = null;
-            });
+            } else {
+                RenderSystem.recordRenderCall(() -> fbo.destroyBuffers());
+            }
         }
     }
 

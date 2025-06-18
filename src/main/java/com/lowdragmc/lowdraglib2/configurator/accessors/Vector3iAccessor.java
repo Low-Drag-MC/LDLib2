@@ -73,6 +73,12 @@ public class Vector3iAccessor extends TypesAccessor<Vector3i> {
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             z.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
         }
+
+        configurator.setCopiable(() -> {
+            var current = new Vector3i(supplier.get());
+            return () -> new Vector3i(current);
+        });
+        configurator.setPastable(Vector3i.class, consumer);
         return configurator;
     }
 

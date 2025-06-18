@@ -1,16 +1,25 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -24,6 +33,13 @@ public class Configurator extends UIElement {
     public final Label label;
     public final UIElement inlineContainer;
     public final UIElement tip;
+
+    @Nullable
+    protected Supplier<Supplier<?>> copyFunction;
+    @Nullable
+    protected Predicate<Class<?>> canPaste;
+    @Nullable
+    protected Consumer<?> onPaste;
 
     public Configurator() {
         this("");
@@ -53,12 +69,18 @@ public class Configurator extends UIElement {
             this.label.setDisplay(YogaDisplay.NONE);
         }
         this.tip.setDisplay(YogaDisplay.NONE);
+
+        this.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
     }
 
     public Configurator setLabel(String name) {
         this.label.setText(name);
         this.label.setDisplay(name.isEmpty() ? YogaDisplay.NONE : YogaDisplay.FLEX);
         return this;
+    }
+
+    public Component getLabel() {
+        return this.label.getText();
     }
 
     public Configurator setTips(String... tips) {
@@ -105,6 +127,66 @@ public class Configurator extends UIElement {
         var event = UIEvent.create(CHANGE_EVENT);
         event.target = source;
         UIEventDispatcher.dispatchEvent(event);
+    }
+
+    public Configurator setCopiable(Supplier<Supplier<?>> copyFunction) {
+        this.copyFunction = copyFunction;
+        return this;
+    }
+
+    public Configurator setPastable(Predicate<Class<?>> canPaste, Consumer<?> onPaste) {
+        this.canPaste = canPaste;
+        this.onPaste = onPaste;
+        return this;
+    }
+
+    public <T> Configurator setPastable(Class<T> canPaste, Consumer<T> onPaste) {
+        return setPastable(canPaste::isAssignableFrom, onPaste);
+    }
+
+    /// Menu
+    protected void onMouseDown(UIEvent event) {
+        if (event.button == 1) {
+            var menu = createMenu();
+            if (menu != null && !menu.isEmpty()) {
+                var mui = getModularUI();
+                if (mui != null) {
+                    var root = mui.ui.rootElement;
+                    root.addChild(new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
+                            .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
+                            .setOnNodeClicked(TreeBuilder.Menu::handle)
+                            .layout(layout -> {
+                                layout.setPosition(YogaEdge.LEFT, event.x - root.getContentX());
+                                layout.setPosition(YogaEdge.TOP, event.y - root.getContentY());
+                            })
+                    );
+                }
+
+            }
+        }
+    }
+
+    @Nullable
+    protected TreeBuilder.Menu createMenu() {
+        var menu = TreeBuilder.Menu.start();
+        if (copyFunction != null) {
+            menu.leaf(Icons.COPY, Component.translatable("ldlib.gui.editor.menu.copy.type", copyFunction.get().get().getClass().getSimpleName()), () -> {
+                try {
+                    ClipboardManager.INSTANCE.copy(copyFunction.get());
+                } catch (Exception ignored) {}
+            });
+        }
+        if (canPaste != null && ClipboardManager.INSTANCE.getClipboardType() != null && canPaste.test(ClipboardManager.INSTANCE.getClipboardType())) {
+            menu.leaf(Icons.PASTE, Component.translatable("ldlib.gui.editor.menu.paste.type", ClipboardManager.INSTANCE.getClipboardType().getSimpleName()), () -> {
+                try {
+                    var pasted = ClipboardManager.INSTANCE.paste();
+                    if (pasted != null) {
+                        ((Consumer)onPaste).accept(pasted);
+                    }
+                } catch (Exception ignored) {}
+            });
+        }
+        return menu;
     }
 
 }

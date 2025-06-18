@@ -117,6 +117,12 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
             maxY.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             maxZ.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
         }
+
+        configurator.setCopiable(() -> {
+            var current = supplier.get();
+            return () -> current;
+        });
+        configurator.setPastable(AABB.class, consumer);
         return configurator;
     }
 }

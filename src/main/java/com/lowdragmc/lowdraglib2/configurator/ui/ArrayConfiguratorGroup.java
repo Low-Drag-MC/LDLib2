@@ -237,7 +237,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             this.object = object;
             inner = provider.apply(this::getter, this::setter);
             inlineContainer.addChild(inner);
-            this.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown, true);
+            this.addEventListener(UIEvents.MOUSE_DOWN, this::onItemMouseDown, true);
             this.label.addEventListener(UIEvents.MOUSE_DOWN, this::onLabelMouseDown);
             this.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
         }
@@ -294,9 +294,11 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             }
         }
 
-        private void onMouseDown(UIEvent event) {
-            // select this configurator
-            ArrayConfiguratorGroup.this.setSelected(this);
+        private void onItemMouseDown(UIEvent event) {
+            if (event.button == 0) {
+                // select this configurator
+                ArrayConfiguratorGroup.this.setSelected(this);
+            }
         }
 
         private void setter(T t) {

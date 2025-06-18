@@ -35,11 +35,7 @@ public class ResourceView extends View {
     public ResourceView(Editor editor) {
         super("editor.resources");
         this.editor = editor;
-        this.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-        });
+        getLayout().setFlexDirection(YogaFlexDirection.ROW);
 
         tabView.layout(layout -> {
             layout.setFlexDirection(YogaFlexDirection.ROW_REVERSE);

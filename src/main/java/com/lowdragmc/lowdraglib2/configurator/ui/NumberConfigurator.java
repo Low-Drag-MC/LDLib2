@@ -2,8 +2,6 @@ package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import lombok.Getter;
 
 import javax.annotation.Nonnull;
@@ -26,17 +24,32 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
 
     public NumberConfigurator(String name, Supplier<Number> supplier, Consumer<Number> onUpdate, @Nonnull Number defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
+        setCopiable(value -> value);
+
         if (value == null) {
             value = defaultValue;
         }
         inlineContainer.addChildren(textField = new TextField());
         textField.setTextResponder(this::onNumberUpdate);
-        textField.addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
         updateTextField();
     }
 
-    private void onDragPerform(UIEvent event) {
-        if (event.dragHandler.draggingObject instanceof Number number) {
+    @Override
+    protected void onPaste(Number pasted) {
+        if ((max == null || pasted.doubleValue() <= max.doubleValue()) &&
+                (min == null || pasted.doubleValue() >= min.doubleValue())) {
+            super.onPaste(pasted);
+        }
+    }
+
+    @Override
+    protected boolean canDropObject(@Nonnull Object object) {
+        return object instanceof Number;
+    }
+
+    @Override
+    protected void onDropObject(@Nonnull Object object) {
+        if (object instanceof Number number) {
             if (numberType == ConfigNumber.Type.INTEGER || (numberType == ConfigNumber.Type.AUTO && value instanceof Integer)){
                 number = number.intValue();
             } else if (numberType == ConfigNumber.Type.LONG || (numberType == ConfigNumber.Type.AUTO && value instanceof Long)){
@@ -51,6 +64,7 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
                 number = number.byteValue();
             }
             updateValueActively(number);
+            updateTextFieldValue();
         }
     }
 

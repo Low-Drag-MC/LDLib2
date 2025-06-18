@@ -127,10 +127,10 @@ public class Menu<K, T> extends UIElement {
     }
 
     @Override
-    protected void _setModularUIInternal(@Nullable ModularUI gui) {
-        super._setModularUIInternal(gui);
-        if (gui != null) {
-            gui.requestFocus(this);
+    protected void onAdded() {
+        var mui = getModularUI();
+        if (mui != null) {
+            mui.requestFocus(this);
         }
     }
 

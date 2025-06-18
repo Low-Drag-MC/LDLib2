@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -24,13 +23,18 @@ public class View extends UIElement {
     @Nullable
     private Window window;
 
-    public View() {}
+    public View() {
+        getLayout().setWidthPercent(100);
+        getLayout().setHeightPercent(100);
+    }
 
     public View(String name) {
+        this();
         this.name = name;
     }
 
     public View(String name, IGuiTexture icon) {
+        this();
         this.name = name;
         this.icon = icon;
     }

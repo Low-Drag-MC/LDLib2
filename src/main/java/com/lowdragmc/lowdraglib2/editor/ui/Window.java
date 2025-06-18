@@ -45,6 +45,13 @@ public class Window extends UIElement {
         return this;
     }
 
+    public Window addViews(View... views) {
+        for (var view : views) {
+            addView(view);
+        }
+        return this;
+    }
+
     public boolean hasView(View view) {
         return tabView.getTabContents().containsValue(view);
     }

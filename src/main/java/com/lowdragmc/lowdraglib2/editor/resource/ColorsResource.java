@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -13,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -68,8 +70,15 @@ public class ColorsResource extends Resource<Integer> {
                     var dialog = new Dialog();
                     dialog.addContent(colorSelector.layout(layout -> layout.setWidthPercent(100)))
                             .addButton(new Button().setOnClick(e -> {
-                                provider.addResource(path, colorSelector.getColor());
-                                container.reloadSpecificResource(path);
+                                var previousColor = provider.getResource(path);
+                                var newColor = colorSelector.getColor();
+                                container.getEditor().historyView.pushHistory(Component.translatable("editor.edit_color"), EditAction.of(() -> {
+                                    provider.addResource(path, newColor);
+                                    container.reloadSpecificResource(path);
+                                }, () -> {
+                                    provider.addResource(path, previousColor);
+                                    container.reloadSpecificResource(path);
+                                }));
                                 dialog.close();
                             }).setText("ldlib.gui.tips.confirm"))
                             .addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel"))

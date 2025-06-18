@@ -161,7 +161,7 @@ public class Scene extends UIElement {
     }
 
     @Override
-    public void onRemoved() {
+    protected void onRemoved() {
         super.onRemoved();
         if (autoReleased) {
             releaseRendererResource();

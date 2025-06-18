@@ -78,7 +78,7 @@ public class IRendererResource extends Resource<IRenderer> {
                 layout.setHeightPercent(100);
             }).style(style -> style.backgroundTexture(fboRenderer.drawAsTexture()))
                     // release resources here
-                    .addEventListener(UIEvents.REMOVED, e -> fboRenderer.releaseFBO());
+                    .addEventListener(UIEvents.REMOVED, e -> fboRenderer.releaseResource());
         });
         container.setOnEdit((c, path) -> {
             var renderer = provider.getResource(path);

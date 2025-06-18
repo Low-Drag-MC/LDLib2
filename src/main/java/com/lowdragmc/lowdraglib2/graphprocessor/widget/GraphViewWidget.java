@@ -343,7 +343,7 @@ public class GraphViewWidget extends WidgetGroup {
         openMenu(posX, posY, menuBuilder.build())
                 .setCrossLinePredicate(TreeBuilder.Menu::isCrossLine)
                 .setKeyIconSupplier(TreeBuilder.Menu::getIcon)
-                .setKeyNameSupplier(TreeBuilder.Menu::getName)
+//                .setKeyNameSupplier(TreeBuilder.Menu::getName)
                 .setOnNodeClicked(TreeBuilder.Menu::handle);
     }
 

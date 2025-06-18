@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.ViewMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.util.SplitView;
+import com.lowdragmc.lowdraglib2.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.InspectorView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
@@ -19,6 +20,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -38,6 +40,7 @@ public class Editor extends UIElement {
     public final FileMenu fileMenu;
     public final ViewMenu viewMenu;
 
+    public final UIElement mainView;
     public final Window left;
     public final Window right;
     public final Window center;
@@ -45,8 +48,12 @@ public class Editor extends UIElement {
 
     public final InspectorView inspectorView;
     public final ResourceView resourceView;
+    public final HistoryView historyView;
 
     // runtime
+    @Getter
+    @Nullable
+    private EditorWindow window;
     @Getter
     @Nullable
     private IProject currentProject;
@@ -55,18 +62,23 @@ public class Editor extends UIElement {
     protected File currentProjectFile;
 
     public Editor() {
+        getLayout().setWidthPercent(100);
+        getLayout().setHeightPercent(100);
+
         this.top = new UIElement();
         this.icon = new UIElement();
         this.menuContainer = new UIElement();
+        this.inspectorView = new InspectorView(this);
         this.resourceView = new ResourceView(this);
+        this.historyView = new HistoryView(this);
 
+        this.mainView = new UIElement();
         this.left = new Window();
         this.right = new Window();
         this.center = new Window();
         this.bottom = new Window();
         this.fileMenu = new FileMenu(this);
         this.viewMenu = new ViewMenu(this);
-        inspectorView = new InspectorView();
 
         left.layout(layout -> {
             layout.setWidthPercent(100);
@@ -100,7 +112,10 @@ public class Editor extends UIElement {
             layout.setHeightPercent(100);
             layout.setFlexDirection(YogaFlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
-        })), new SplitView.Horizontal()
+        })), mainView.layout(layout -> {
+            layout.setWidthPercent(100);
+            layout.setFlex(1);
+        }).addChild(new SplitView.Horizontal()
                 .left(new SplitView.Vertical()
                         .top(new SplitView.Horizontal()
                                 .left(left)
@@ -115,7 +130,7 @@ public class Editor extends UIElement {
                 .right(right)
                 .setPercentage(80)
                 .setMinPercentage(1)
-                .setMaxPercentage(99));
+                .setMaxPercentage(99)));
 
         ///  internal components
         initMenus();
@@ -123,6 +138,10 @@ public class Editor extends UIElement {
         initRightWindow();
         initBottomWindow();
         initCenterWindow();
+    }
+
+    protected void _setEditorWindowInternal(@Nullable EditorWindow window) {
+        this.window = window;
     }
 
     /**
@@ -137,7 +156,7 @@ public class Editor extends UIElement {
     }
 
     protected void initRightWindow() {
-        right.addView(inspectorView);
+        right.addViews(inspectorView, historyView);
     }
 
     protected void initBottomWindow() {
@@ -147,10 +166,22 @@ public class Editor extends UIElement {
     protected void initCenterWindow() {
     }
 
+    public Component getTitle() {
+        if (currentProject == null) {
+            return Component.translatable("editor.empty_editor");
+        } else {
+            var title = Component.translatable("editor.open_project", currentProject.getName());
+            if (currentProjectFile != null) {
+                title.append(" - ").append(currentProjectFile.getPath());
+            }
+            return title;
+        }
+    }
+
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, Function<T, UIElement> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
         menu.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, posX - getPositionX());
+            layout.setPosition(YogaEdge.LEFT, posX - getContentX());
             layout.setPosition(YogaEdge.TOP, posY - getContentY());
         });
         addChildren(menu);
@@ -164,10 +195,14 @@ public class Editor extends UIElement {
                 .setOnNodeClicked(TreeBuilder.Menu::handle);
     }
 
-    public void close() {
+    public void exit() {
         askToSaveProject(() -> {
-            if (getModularUI() != null && getModularUI().getScreen() != null) {
-                getModularUI().getScreen().onClose();
+            if (window != null) {
+                window.removeEditor(this);
+            } else {
+                if (getModularUI() != null && getModularUI().getScreen() != null) {
+                    getModularUI().getScreen().onClose();
+                }
             }
         });
     }
@@ -266,7 +301,17 @@ public class Editor extends UIElement {
      */
     public final void loadProject(IProject project, @Nullable File projectFile) {
         if (currentProject != null) {
-            closeCurrentProject(true, () -> loadNewProject(project, projectFile));
+            if (window != null) {
+                Dialog.showCheckBox("","Do you want to open the project in a new window?", result -> {
+                   if (result) {
+                       window.createNewEditor().loadNewProject(project, projectFile);
+                   } else {
+                       closeCurrentProject(true, () -> loadNewProject(project, projectFile));
+                   }
+                }).show(window);
+            } else {
+                closeCurrentProject(true, () -> loadNewProject(project, projectFile));
+            }
         } else {
             loadNewProject(project, projectFile);
         }
@@ -277,6 +322,7 @@ public class Editor extends UIElement {
         currentProjectFile = projectFile;
         // load project resource
         resourceView.addResources(project.getResources());
+        historyView.recordSerializableObject(Component.translatable("editor.open"), currentProject);
         project.onLoad(this);
     }
 
@@ -310,6 +356,7 @@ public class Editor extends UIElement {
         }
         inspectorView.clear();
         resourceView.clear();
+        historyView.clearHistory();
     }
 
 }

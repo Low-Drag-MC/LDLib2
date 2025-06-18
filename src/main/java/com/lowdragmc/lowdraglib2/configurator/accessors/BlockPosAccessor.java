@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.world.phys.AABB;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -81,6 +82,12 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             z.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
         }
+
+        configurator.setCopiable(() -> {
+            var current = supplier.get();
+            return () -> current;
+        });
+        configurator.setPastable(Vec3i.class, consumer);
         return configurator;
     }
 

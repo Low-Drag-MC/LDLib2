@@ -1,10 +1,15 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import lombok.Setter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class ValueConfigurator<T> extends Configurator {
@@ -25,6 +30,29 @@ public abstract class ValueConfigurator<T> extends Configurator {
         this.defaultValue = defaultValue;
         this.forceUpdate = forceUpdate;
         this.value = supplier.get();
+
+        inlineContainer.addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
+        inlineContainer.addEventListener(UIEvents.DRAG_ENTER, this::onDragEnter, true);
+        inlineContainer.addEventListener(UIEvents.DRAG_LEAVE, this::onDragLeave, true);
+
+        setPastable(defaultValue.getClass(), pasted -> {
+            if (pasted != null) {
+                onPaste((T) pasted);
+            }
+        });
+    }
+
+    public ValueConfigurator<T> setCopiable(Function<T, T> copyFunction) {
+        setCopiable(() -> {
+           var copied = copyFunction.apply(value);
+           return () -> copyFunction.apply(copied);
+        });
+        return this;
+    }
+
+    protected void onPaste(T pasted) {
+        onValueUpdatePassively(pasted);
+        updateValue();
     }
 
     /**
@@ -78,5 +106,42 @@ public abstract class ValueConfigurator<T> extends Configurator {
         if (forceUpdate) {
             onValueUpdatePassively(supplier.get());
         }
+    }
+
+    /// Drag value handler
+    protected boolean canDropObject(@Nonnull Object object) {
+        return defaultValue.getClass().isAssignableFrom(object.getClass());
+    }
+
+    protected void onDropObject(@Nonnull Object object) {
+        if (canDropObject(object)) {
+            onValueUpdatePassively((T) object);
+            updateValue();
+        }
+    }
+
+    protected void onDragEnter(UIEvent event) {
+        if (event.dragHandler.draggingObject != null && canDropObject(event.dragHandler.draggingObject) && event.dragHandler.dragSource != this) {
+            showDroppableOverlay();
+        }
+    }
+
+    protected void showDroppableOverlay() {
+        inlineContainer.style(style -> style.overlayTexture(ColorPattern.T_BLUE.rectTexture()));
+    }
+
+    protected void onDragLeave(UIEvent event) {
+        hideDroppableOverlay();
+    }
+
+    protected void hideDroppableOverlay() {
+        inlineContainer.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+    }
+
+    protected void onDragPerform(UIEvent event) {
+        if (event.dragHandler.draggingObject != null && canDropObject(event.dragHandler.draggingObject) && event.dragHandler.dragSource != this) {
+            onDropObject(event.dragHandler.draggingObject);
+        }
+        hideDroppableOverlay();
     }
 }

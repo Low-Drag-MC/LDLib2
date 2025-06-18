@@ -1,0 +1,157 @@
+package com.lowdragmc.lowdraglib2.editor.ui.view;
+
+import com.lowdragmc.lowdraglib2.configurator.EditAction;
+import com.lowdragmc.lowdraglib2.configurator.SerializableRecordAction;
+import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import lombok.Getter;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.common.util.INBTSerializable;
+import org.appliedenergistics.yoga.YogaGutter;
+
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
+
+public class HistoryView extends View {
+    public record HistoryItem(Component name, EditAction action, @Nullable Object source) { }
+
+    public final ScrollerView scrollerView = new ScrollerView();
+    public final Editor editor;
+
+    // runtime
+    @Getter
+    private final Stack<HistoryItem> undoStack = new Stack<>();
+    @Getter
+    private final Stack<HistoryItem> redoStack = new Stack<>();
+    @Nullable
+    @Getter
+    private HistoryItem currentHistory;
+    private final Map<HistoryItem, UIElement> historyUIs = new HashMap<>();
+
+    public HistoryView(Editor editor) {
+        super("editor.history", Icons.HISTORY);
+        this.editor = editor;
+        scrollerView.layout(layout -> {
+            layout.setWidthPercent(100);
+            layout.setFlex(1);
+        });
+        scrollerView.viewContainer.layout(layout -> {
+            layout.setGap(YogaGutter.ALL, 1);
+        });
+        addChild(scrollerView);
+    }
+
+    public void clearHistory() {
+        undoStack.clear();
+        redoStack.clear();
+        currentHistory = null;
+        scrollerView.clearAllScrollViewChildren();
+        historyUIs.clear();
+    }
+
+    public <T extends Tag> void recordSerializableObject(Component name, INBTSerializable<T> object) {
+        recordSerializableObject(name, object, null);
+    }
+
+    public <T extends Tag> void recordSerializableObject(Component name, INBTSerializable<T> object, @Nullable  Object source) {
+        pushHistory(name, SerializableRecordAction.of(object), source, false);
+    }
+
+    public void pushHistory(Component name, EditAction action) {
+        pushHistory(name, action, null, true);
+    }
+
+    public void pushHistory(Component name, EditAction action, boolean execute) {
+        pushHistory(name, action, null, execute);
+    }
+
+    public void pushHistory(Component name, EditAction action, @Nullable Object source, boolean execute) {
+        if (execute) {
+            action.execute();
+        }
+        if (currentHistory != null) {
+            if (!undoStack.isEmpty()) {
+                var popped = undoStack.pop();
+                if (popped.source != null && popped.source.equals(source) && popped.name.equals(name)) {
+                    // merge action here
+                    popped = new HistoryItem(name, action.mergeExecuteAfter(popped.action), source);
+                }
+                undoStack.push(popped);
+            }
+            for (HistoryItem historyItem : redoStack) {
+                var ui = historyUIs.get(historyItem);
+                if (ui != null) {
+                    scrollerView.viewContainer.removeChild(ui);
+                }
+                historyUIs.remove(historyItem);
+            }
+            redoStack.clear();
+        }
+        if (currentHistory != null) {
+            var ui = historyUIs.get(currentHistory);
+            if (ui != null) {
+                ui.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+            }
+        }
+        var newHistory = new HistoryItem(name, action, source);
+        currentHistory = newHistory;
+        undoStack.push(currentHistory);
+        // update ui
+        var ui = new Label().setText(name).textStyle(style -> {
+            style.textAlignVertical(Vertical.CENTER);
+            style.textWrap(TextWrap.HOVER_ROLL);
+        }).layout(layout -> {
+            layout.setWidthPercent(100);
+        }).style(style -> {
+            style.overlayTexture(ColorPattern.T_BLUE.rectTexture());
+        }).addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            jumpToHistory(newHistory);
+        });
+        historyUIs.put(newHistory, ui);
+        scrollerView.addScrollViewChild(ui);
+    }
+
+
+    public void jumpToHistory(HistoryItem historyItem) {
+        if (currentHistory == historyItem) return;
+        if (currentHistory != null) {
+            var ui = historyUIs.get(currentHistory);
+            if (ui != null) {
+                ui.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+            }
+        }
+        if (undoStack.contains(historyItem)) {
+            while(undoStack.peek() != historyItem) {
+                var popped = undoStack.pop();
+                popped.action.undo();
+                redoStack.push(popped);
+            }
+            currentHistory = undoStack.peek();
+        } else if (redoStack.contains(historyItem)) {
+            while (redoStack.peek() != historyItem) {
+                var popped = redoStack.pop();
+                popped.action.execute();
+                undoStack.push(popped);
+            }
+            currentHistory = redoStack.pop();
+            currentHistory.action.execute();
+            undoStack.push(currentHistory);
+        }
+        if (currentHistory != null) {
+            var ui = historyUIs.get(currentHistory);
+            ui.style(style -> style.overlayTexture(ColorPattern.T_BLUE.rectTexture()));
+        }
+    }
+}

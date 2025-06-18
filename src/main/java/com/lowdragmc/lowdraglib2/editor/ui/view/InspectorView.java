@@ -3,11 +3,14 @@ package com.lowdragmc.lowdraglib2.editor.ui.view;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import lombok.Getter;
+import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -17,6 +20,7 @@ import java.util.function.Consumer;
 
 public class InspectorView extends View {
     public final ScrollerView scrollerView;
+    public final Editor editor;
     // runtime
     @Getter
     @Nullable
@@ -24,13 +28,10 @@ public class InspectorView extends View {
     @Nullable
     private Runnable onClose;
 
-    public InspectorView() {
+    public InspectorView(Editor editor) {
         super("editor.inspector", Icons.SETTINGS);
+        this.editor = editor;
         this.scrollerView = new ScrollerView();
-        this.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
-        });
         scrollerView.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
@@ -67,13 +68,24 @@ public class InspectorView extends View {
         this.onClose = onClose;
         scrollerView.clearAllScrollViewChildren();
         var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
-        if (listener != null) {
-            group.addEventListener(Configurator.CHANGE_EVENT, e -> {
-                if (e.target instanceof Configurator configurator) {
+        if (configurable instanceof INBTSerializable<?> serializable) {
+            editor.historyView.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable);
+        }
+        group.addEventListener(Configurator.CHANGE_EVENT, e -> {
+            if (e.target instanceof Configurator configurator) {
+                if (listener != null) {
                     listener.accept(configurator);
                 }
-            });
-        }
+                if (configurable instanceof INBTSerializable<?> serializable) {
+                    var top = editor.historyView.getCurrentHistory();
+                    if (top != null && top.source() == configurator) return;
+                    var label = configurator.getLabel();
+                    editor.historyView.recordSerializableObject(label.getString().isEmpty() ?
+                            Component.literal(configurable.getConfigurableName()) : label,
+                            serializable, configurator);
+                }
+            }
+        });
         group.lineContainer.setDisplay(YogaDisplay.NONE);
         group.configuratorContainer.layout(layout -> {
             layout.setMargin(YogaEdge.LEFT, 0);

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import net.minecraft.core.Vec3i;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -83,6 +84,12 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             z.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
         }
+
+        configurator.setCopiable(() -> {
+            var current = new Quaternionf(supplier.get());
+            return () -> new Quaternionf(current);
+        });
+        configurator.setPastable(Quaternionf.class, consumer);
         return configurator;
     }
 

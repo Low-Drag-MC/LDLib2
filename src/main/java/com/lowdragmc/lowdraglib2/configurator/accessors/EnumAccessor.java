@@ -90,6 +90,7 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
             }
             if (selector == null) {
                 selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate, candidates.toList(), EnumAccessor::getEnumName);
+                selector.setCopiable(value -> value);
             }
             if (configSelector != null) {
                 final var maxItems = configSelector.max();

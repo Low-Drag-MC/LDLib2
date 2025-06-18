@@ -9,6 +9,7 @@ import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaWrap;
+import org.joml.Quaternionf;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -70,6 +71,12 @@ public class RangeAccessor extends TypesAccessor<Range> {
             min.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel()).setType(config.type());
             max.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel()).setType(config.type());
         }
+
+        configurator.setCopiable(() -> {
+            var current = supplier.get().copy();
+            return current::copy;
+        });
+        configurator.setPastable(Range.class, consumer);
         return configurator;
     }
 }

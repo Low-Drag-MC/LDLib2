@@ -33,10 +33,17 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
 
     @Override
     public Configurator create(String name, Supplier<ResourceLocation> supplier, Consumer<ResourceLocation> consumer, boolean forceUpdate, Field field, Object owner) {
-        return new StringConfigurator(name,
+        var configurator = new StringConfigurator(name,
                 () -> supplier.get().toString(),
                 s -> consumer.accept(ResourceLocation.parse(s)),
                 defaultValue(field, String.class).toString(),
                 forceUpdate).setResourceLocation(true);
+        configurator.setPastable(String.class, pasted -> {
+            if (pasted != null && LDLib2.isValidResourceLocation(pasted)) {
+                consumer.accept(ResourceLocation.parse(pasted));
+                configurator.notifyChanges();
+            }
+        });
+        return configurator;
     }
 }

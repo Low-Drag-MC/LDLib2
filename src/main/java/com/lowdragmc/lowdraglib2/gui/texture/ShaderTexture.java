@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+// TODO refactor Shader Texture
 @LDLRegisterClient(name = "shader_texture", registry = "ldlib2:gui_texture")
 public class ShaderTexture extends TransformTexture {
     private static final Map<ResourceLocation, ShaderTexture> CACHE = new HashMap<>();
@@ -72,6 +73,23 @@ public class ShaderTexture extends TransformTexture {
             program.attach(Shaders.GUI_IMAGE_V);
             program.attach(shader);
         }
+    }
+
+    @Override
+    public void beforeSerialize() {
+        super.beforeSerialize();
+        dispose();
+    }
+
+    @Override
+    public void afterSerialize() {
+        super.afterSerialize();
+        Shader shader = Shaders.load(Shader.ShaderType.FRAGMENT, location);
+        if (shader == null) return;
+        this.program = new ShaderProgram();
+        this.shader = shader;
+        program.attach(Shaders.GUI_IMAGE_V);
+        program.attach(shader);
     }
 
     public static void clearCache() {

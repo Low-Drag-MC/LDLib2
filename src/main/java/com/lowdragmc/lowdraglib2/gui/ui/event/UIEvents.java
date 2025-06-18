@@ -123,6 +123,10 @@ public interface UIEvents {
      * The {@code removed} is sent when the element is removed from the UI tree.
      */
     String REMOVED = "removed";
+    /**
+     * The {@code added} is sent when the element is added to the UI tree.
+     */
+    String ADDED = "added";
 
 
     /// Lifecycle Events

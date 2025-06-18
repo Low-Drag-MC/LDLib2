@@ -1,12 +1,14 @@
 package com.lowdragmc.lowdraglib2.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -21,6 +23,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 
@@ -49,6 +52,8 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected Predicate<IResourcePath> canEdit;
     @Setter
     protected Predicate<IResourcePath> canCopy;
+    @Getter
+    protected Function<IResourcePath, ?> onDragProvider;
     @Setter
     protected BooleanSupplier supportAdd;
     @Setter
@@ -68,6 +73,8 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected IResourcePath selected = null;
     @Getter @Setter
     protected Editor editor;
+    @Nullable
+    protected IResourcePath lastClickPath;
 
     public ResourceProviderContainer(IResourceProvider<T> resourceProvider) {
         getLayout().setWidthPercent(100);
@@ -79,6 +86,7 @@ public class ResourceProviderContainer<T> extends UIElement {
         this.canEdit = resourceProvider::canEdit;
         this.canCopy = resourceProvider::canCopy;
         this.supportAdd = resourceProvider::supportAdd;
+        this.onDragProvider = resourceProvider::getResource;
 
         this.scrollerView.scrollerStyle(style -> {
             style.mode(ScrollerView.Mode.VERTICAL).verticalScrollDisplay(ScrollerView.ScrollDisplay.ALWAYS);
@@ -135,8 +143,21 @@ public class ResourceProviderContainer<T> extends UIElement {
             } else {
                 layout.setHeight(14);
             }
-        })).addEventListener(UIEvents.MOUSE_DOWN, e -> selectResource(key))
-                .addEventListener(UIEvents.DOUBLE_CLICK, e-> editResource(key));
+        }))
+                .addEventListener(UIEvents.MOUSE_DOWN, e -> selectResource(key))
+                .addEventListener(UIEvents.DOUBLE_CLICK, e-> editResource(key))
+                .addEventListener(UIEvents.MOUSE_DOWN, e -> {
+                    if (e.button == 0) {
+                        lastClickPath = key;
+                    }
+                }).addEventListener(UIEvents.MOUSE_UP, e -> {
+                    lastClickPath = null; // Reset click time
+                }).addEventListener(UIEvents.MOUSE_LEAVE, e -> {
+                    if (lastClickPath == key && isMouseDown(0)) {
+                        e.currentElement.startDrag(onDragProvider.apply(key), new TextTexture(nameSupplier.apply(key)));
+                    }
+                    lastClickPath = null;
+                }, true);
     }
 
     /**
@@ -289,9 +310,9 @@ public class ResourceProviderContainer<T> extends UIElement {
             key = resourceProvider.createPath("new resource (" + count + ")");
             count++;
         }
-        resourceProvider.addResource(key, value);
-        appendResourceUI(key);
-        selectResource(key);
+        IResourcePath finalKey = key;
+        editor.historyView.pushHistory(Component.translatable("editor.new_resource"), EditAction.of(
+                () -> addResourceInternal(value, finalKey), () -> removeResourceInternal(finalKey)));
     }
 
     public void copyResource(IResourcePath key) {
@@ -308,8 +329,11 @@ public class ResourceProviderContainer<T> extends UIElement {
                             newKey = resourceProvider.createPath(resourceProvider.getResourceName(key) + " copy (" + count + ")");
                             count++;
                         }
-                        resourceProvider.addResource(newKey, copied);
-                        appendResourceUI(newKey);
+                        IResourcePath finalNewKey = newKey;
+                        editor.historyView.pushHistory(Component.translatable("editor.copy_resource"), EditAction.of(
+                                () -> addResourceInternal(copied, finalNewKey),
+                                () -> removeResourceInternal(finalNewKey)));
+
                     }
                 }
             }
@@ -318,29 +342,37 @@ public class ResourceProviderContainer<T> extends UIElement {
 
     public void removeResource(IResourcePath key, boolean confirm) {
         if (key != null && canRemove.test(key)) {
+            var value = resourceProvider.getResource(key);
             if (confirm) {
                 Dialog.showCheckBox("ldlib.gui.editor.menu.remove", "editor.remove.confirm", result -> {
                     if (result) {
-                        resourceProvider.removeResource(key);
-                        var ui = resourceUIs.remove(key);
-                        if (ui != null) {
-                            scrollerView.removeScrollViewChild(ui);
-                        }
-                        if (selected == key) {
-                            selected = null;
-                        }
+                        editor.historyView.pushHistory(Component.translatable("editor.remove_resource"), EditAction.of(
+                                () -> removeResourceInternal(key),
+                                () -> addResourceInternal(value, key)));
                     }
                 }).show(editor);
             } else {
-                resourceProvider.removeResource(key);
-                var ui = resourceUIs.remove(key);
-                if (ui != null) {
-                    scrollerView.removeScrollViewChild(ui);
-                }
-                if (selected == key) {
-                    selected = null;
-                }
+                editor.historyView.pushHistory(Component.translatable("editor.remove_resource"), EditAction.of(
+                        () -> removeResourceInternal(key),
+                        () -> addResourceInternal(value, key)));
             }
+        }
+    }
+
+    private void addResourceInternal(T value, IResourcePath finalKey) {
+        resourceProvider.addResource(finalKey, value);
+        appendResourceUI(finalKey);
+        selectResource(finalKey);
+    }
+
+    private void removeResourceInternal(IResourcePath key) {
+        resourceProvider.removeResource(key);
+        var ui = resourceUIs.remove(key);
+        if (ui != null) {
+            scrollerView.removeScrollViewChild(ui);
+        }
+        if (selected == key) {
+            selected = null;
         }
     }
 
@@ -371,11 +403,20 @@ public class ResourceProviderContainer<T> extends UIElement {
                         count++;
                         newPath = resourceProvider.createPath(newName + " (" + count + ")");
                     }
-                    resourceProvider.addResource(newPath, resourceProvider.getResource(key));
-                    resourceProvider.removeResource(key);
-                    removeResource(key, false);
-                    appendResourceUI(newPath);
-                    selectResource(newPath);
+                    IResourcePath finalNewPath = newPath;
+                    editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(() -> {
+                        resourceProvider.addResource(finalNewPath, resourceProvider.getResource(key));
+                        resourceProvider.removeResource(key);
+                        removeResource(key, false);
+                        appendResourceUI(finalNewPath);
+                        selectResource(finalNewPath);
+                    }, () -> {
+                        resourceProvider.addResource(key, resourceProvider.getResource(finalNewPath));
+                        resourceProvider.removeResource(finalNewPath);
+                        removeResource(finalNewPath, false);
+                        appendResourceUI(key);
+                        selectResource(key);
+                    }));
                 });
                 textField.addEventListener(UIEvents.KEY_DOWN, e -> {
                     if (e.keyCode == GLFW.GLFW_KEY_ENTER) {

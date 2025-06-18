@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.configurator.accessors;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Pivot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -65,6 +66,12 @@ public class SizeAccessor extends TypesAccessor<Size> {
             width.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             height.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
         }
+
+        configurator.setCopiable(() -> {
+            var current = supplier.get();
+            return () -> current;
+        });
+        configurator.setPastable(Size.class, consumer);
         return configurator;
     }
 

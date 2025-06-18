@@ -59,7 +59,7 @@ public class FileMenu extends MenuTab {
             menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save_as", () -> editor.saveAsProject(null));
         }
         menu.crossLine();
-        menu.leaf("editor.exist", editor::close);
+        menu.leaf("editor.exit", editor::exit);
         return menu;
     }
 

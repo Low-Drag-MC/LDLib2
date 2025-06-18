@@ -17,8 +17,6 @@ public class UIEditorView extends View {
         super("editor.ui.editor");
         this.ui = ui;
         this.hierarchyList = new UIHierarchyList(this);
-        getLayout().setWidthPercent(100);
-        getLayout().setHeightPercent(100);
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
 
         hierarchyList.layout(layout -> {
