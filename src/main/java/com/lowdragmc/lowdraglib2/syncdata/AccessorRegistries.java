@@ -152,12 +152,14 @@ public class AccessorRegistries {
                 var childAccessor = findByType(componentType);
                 return findArrayAccessor(childAccessor, componentType);
             }
-            if (Collection.class.isAssignableFrom(rawType)) {
-                var componentType = ((ParameterizedType) type).getActualTypeArguments()[0];
-                var childAccessor = findByType(componentType);
-                var rawComponentType = ReflectionUtils.getRawType(componentType);
+            if (Collection.class.isAssignableFrom(rawType) && type instanceof ParameterizedType parameterizedType) {
+                if (parameterizedType.getActualTypeArguments().length == 1) {
+                    var componentType = parameterizedType.getActualTypeArguments()[0];
+                    var childAccessor = findByType(componentType);
+                    var rawComponentType = ReflectionUtils.getRawType(componentType);
 
-                return findCollectionAccessor(childAccessor, rawComponentType == null ? Object.class : rawComponentType);
+                    return findCollectionAccessor(childAccessor, rawComponentType == null ? Object.class : rawComponentType);
+                }
             }
             return findByClass(rawType);
         }
@@ -225,6 +227,11 @@ public class AccessorRegistries {
                 .build());
 
         setPriority(1000);
+        registerAccessor(CustomDirectAccessor.builder(Number.class)
+                .codec(LDLibExtraCodecs.NUMBER)
+                .streamCodec(ByteBufCodecs.fromCodec(LDLibExtraCodecs.NUMBER))
+                .codecMark()
+                .build());
         registerAccessor(CustomDirectAccessor.builder(Vector3f.class)
                 .codec(ExtraCodecs.VECTOR3F)
                 .streamCodec(ByteBufCodecs.VECTOR3F)

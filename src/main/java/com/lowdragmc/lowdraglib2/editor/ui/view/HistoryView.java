@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.util.INBTSerializable;
@@ -25,11 +26,15 @@ import java.util.Map;
 import java.util.Stack;
 
 public class HistoryView extends View {
+    public static final int MAX_HISTORY_COUNT = 30;
     public record HistoryItem(Component name, EditAction action, @Nullable Object source) { }
 
     public final ScrollerView scrollerView = new ScrollerView();
     public final Editor editor;
 
+    @Getter
+    @Setter
+    private int maxHistoryCount = MAX_HISTORY_COUNT;
     // runtime
     @Getter
     private final Stack<HistoryItem> undoStack = new Stack<>();
@@ -51,6 +56,26 @@ public class HistoryView extends View {
             layout.setGap(YogaGutter.ALL, 1);
         });
         addChild(scrollerView);
+    }
+
+    private void checkStackSize() {
+        checkStackSize(undoStack);
+        checkStackSize(redoStack);
+    }
+
+    private void checkStackSize(Stack<HistoryItem> stack) {
+        if (stack.size() > maxHistoryCount) {
+            // Remove only the excess items
+            var toRemove = stack.subList(0, stack.size() - maxHistoryCount);
+            for (HistoryItem historyItem : toRemove) {
+                var ui = historyUIs.get(historyItem);
+                if (ui != null) {
+                    scrollerView.removeScrollViewChild(ui);
+                }
+                historyUIs.remove(historyItem);
+            }
+            toRemove.clear();
+        }
     }
 
     public void clearHistory() {
@@ -121,6 +146,7 @@ public class HistoryView extends View {
         });
         historyUIs.put(newHistory, ui);
         scrollerView.addScrollViewChild(ui);
+        checkStackSize();
     }
 
 
@@ -153,5 +179,6 @@ public class HistoryView extends View {
             var ui = historyUIs.get(currentHistory);
             ui.style(style -> style.overlayTexture(ColorPattern.T_BLUE.rectTexture()));
         }
+        checkStackSize();
     }
 }

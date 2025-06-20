@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.math.curve;
 
 import com.lowdragmc.lowdraglib2.math.Interpolations;
+import lombok.EqualsAndHashCode;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
@@ -10,11 +11,7 @@ import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 
-/**
- * @author KilaBash
- * @date 2022/6/17
- * @implNote CubicBezierCurve3
- */
+@EqualsAndHashCode(callSuper = false)
 public class CubicBezierCurve3 extends Curve<Vector3f> implements INBTSerializable<ListTag> {
     public Vector3f p0, c0, c1, p1;
 

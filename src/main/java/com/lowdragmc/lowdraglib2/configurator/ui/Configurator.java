@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -23,6 +24,7 @@ import java.util.function.Supplier;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@Accessors(chain = true)
 public class Configurator extends UIElement {
     /**
      * The {@code configurator.change} is sent when a change is made by a configurator.
@@ -40,6 +42,9 @@ public class Configurator extends UIElement {
     protected Predicate<Class<?>> canPaste;
     @Nullable
     protected Consumer<?> onPaste;
+    // runtime
+    @Setter @Nullable
+    private Component notifyName;
 
     public Configurator() {
         this("");
@@ -83,6 +88,10 @@ public class Configurator extends UIElement {
         return this.label.getText();
     }
 
+    public Component getNotifyName() {
+        return notifyName == null ? getLabel() : notifyName;
+    }
+
     public Configurator setTips(String... tips) {
         this.tip.style(style -> style.appendTooltipsString(tips));
         this.tip.setDisplay(tips.length > 0 ? YogaDisplay.FLEX : YogaDisplay.NONE);
@@ -119,11 +128,11 @@ public class Configurator extends UIElement {
         return (Configurator) super.addChildren(children);
     }
 
-    public final void notifyChanges() {
+    public void notifyChanges() {
         notifyChanges(this);
     }
 
-    public void notifyChanges(Configurator source) {
+    public final void notifyChanges(Configurator source) {
         var event = UIEvent.create(CHANGE_EVENT);
         event.target = source;
         UIEventDispatcher.dispatchEvent(event);

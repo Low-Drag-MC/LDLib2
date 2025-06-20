@@ -14,7 +14,6 @@ public @interface ConfigNumber {
         FLOAT,
         DOUBLE,
         LONG,
-        CHAR,
         SHORT,
         BYTE,
     }

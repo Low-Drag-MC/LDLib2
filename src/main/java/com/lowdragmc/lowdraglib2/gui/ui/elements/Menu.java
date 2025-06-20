@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -70,7 +71,11 @@ public class Menu<K, T> extends UIElement {
     protected Function<ITreeNode<K, T>, IGuiTexture> textureProvider = node -> node.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture;
     @Setter
     protected Function<ITreeNode<K, T>, IGuiTexture> hoverTextureProvider = node -> node.isLeaf() ? menuStyle.leafHoverTexture : menuStyle.nodeHoverTexture;
+    @Setter
+    protected Runnable onClose = Runnables.doNothing();
     // runtime
+    @Nullable
+    protected Menu<K, T> parentMenu;
     @Nullable
     protected ITreeNode<K, T> openedNode;
     @Nullable
@@ -105,7 +110,9 @@ public class Menu<K, T> extends UIElement {
             if (isChildHover() && event.relatedTarget == null) {
                 focus();
             } else {
-                if(autoClose) {
+                if (parentMenu != null && getParent() != null && getParent().isChildHover()) {
+                    focus();
+                } else if(autoClose) {
                     close();
                 }
             }
@@ -123,7 +130,32 @@ public class Menu<K, T> extends UIElement {
     @Override
     protected void onLayoutChanged() {
         super.onLayoutChanged();
-        adaptPositionToScreen();
+        var mui = getModularUI();
+        if (mui != null) {
+            // if outside the screen, move it back to the screen
+            var screenWidth = mui.getScreenWidth();
+            var screenHeight = mui.getScreenHeight();
+            var x = getPositionX();
+            var y = getPositionY();
+            var width = getSizeWidth();
+            var height = getSizeHeight();
+            // check head out of screen
+            if (y < 0) {
+                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() - y));
+            } else if (y + height > screenHeight) {
+                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() + screenHeight - (y + height)));
+            }
+            if (x < 0) {
+                layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - x));
+            } else if (x + width > screenWidth) {
+                if (x > width && parentMenu != null) {
+                    // move to the left first
+                    layout(layout -> layout.setPosition(YogaEdge.LEFT, 0 - width));
+                } else {
+                    layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
+                }
+            }
+        }
     }
 
     @Override
@@ -160,6 +192,7 @@ public class Menu<K, T> extends UIElement {
         if (this.getParent() != null) {
             this.getParent().removeChild(this);
         }
+        onClose.run();
     }
 
     protected void initMenu() {
@@ -192,6 +225,7 @@ public class Menu<K, T> extends UIElement {
                                 }
                                 openedNode = child;
                                 opened = new Menu<>(child, uiProvider);
+                                opened.parentMenu = this;
                                 opened.setAutoClose(autoClose);
                                 opened.getMenuStyle().copyFrom(menuStyle);
                                 opened.setTextureProvider(textureProvider);

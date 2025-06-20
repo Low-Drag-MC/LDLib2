@@ -79,9 +79,9 @@ public class InspectorView extends View {
                 if (configurable instanceof INBTSerializable<?> serializable) {
                     var top = editor.historyView.getCurrentHistory();
                     if (top != null && top.source() == configurator) return;
-                    var label = configurator.getLabel();
-                    editor.historyView.recordSerializableObject(label.getString().isEmpty() ?
-                            Component.literal(configurable.getConfigurableName()) : label,
+                    var notifyName = configurator.getNotifyName();
+                    editor.historyView.recordSerializableObject(notifyName.getString().isEmpty() ?
+                            Component.literal(configurable.getConfigurableName()) : notifyName,
                             serializable, configurator);
                 }
             }

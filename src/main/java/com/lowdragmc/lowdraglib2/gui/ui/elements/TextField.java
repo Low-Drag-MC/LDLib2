@@ -153,7 +153,8 @@ public class TextField extends BindableUIElement<String> {
                 if (Mth.abs(event.x - event.dragStartX) < 4) {
                     handleNumber(numberStart, false);
                 } else {
-                    var value = (event.x - event.dragStartX > 0 ? (event.x - event.dragStartX - 4) : (event.x - event.dragStartX + 4)) * (isShiftDown() ? 1 : 0.1) + numberStart;
+                    var value = ((int)((event.x - event.dragStartX) / 4))
+                            * (isShiftDown() ? wheelDur * 10 : wheelDur) + numberStart;
                     handleNumber(value, false);
                 }
             }

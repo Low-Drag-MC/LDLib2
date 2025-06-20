@@ -334,12 +334,7 @@ public class UIElement {
             if (x < 0) {
                 layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - x));
             } else if (x + width > screenWidth) {
-                if (x > width) {
-                    // move to the left first
-                    layout(layout -> layout.setPosition(YogaEdge.LEFT, 0 - width));
-                } else {
-                    layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
-                }
+                layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
             }
         }
     }

@@ -2,17 +2,16 @@ package com.lowdragmc.lowdraglib2.math.curve;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.math.Interpolations;
+import lombok.EqualsAndHashCode;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.joml.Vector2f;
 
-/**
- * @author KilaBash
- * @date 2022/6/17
- * @implNote ExplicitCubicBezierCurve2
- */
+import javax.annotation.Nonnull;
+
+@EqualsAndHashCode(callSuper = false)
 public class ExplicitCubicBezierCurve2 extends Curve<Vector2f> implements INBTSerializable<ListTag> {
     public Vector2f p0, c0, c1, p1;
 
@@ -46,7 +45,7 @@ public class ExplicitCubicBezierCurve2 extends Curve<Vector2f> implements INBTSe
     }
 
     @Override
-    public ListTag serializeNBT(HolderLookup.Provider provider) {
+    public ListTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
         var list = new ListTag();
         list.add(FloatTag.valueOf(p0.x));
         list.add(FloatTag.valueOf(p0.y));
@@ -63,7 +62,7 @@ public class ExplicitCubicBezierCurve2 extends Curve<Vector2f> implements INBTSe
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, ListTag list) {
+    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, ListTag list) {
         p0 = new Vector2f(list.getFloat(0), list.getFloat(1));
         c0 = new Vector2f(list.getFloat(2), list.getFloat(3));
         c1 = new Vector2f(list.getFloat(4), list.getFloat(5));

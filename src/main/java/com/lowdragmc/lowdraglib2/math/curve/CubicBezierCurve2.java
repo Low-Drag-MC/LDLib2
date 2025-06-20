@@ -1,21 +1,17 @@
 package com.lowdragmc.lowdraglib2.math.curve;
 
 import com.lowdragmc.lowdraglib2.math.Interpolations;
+import lombok.EqualsAndHashCode;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.world.phys.Vec2;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.UnknownNullability;
 import org.joml.Vector2f;
 
 import javax.annotation.Nonnull;
 
-/**
- * @author KilaBash
- * @date 2022/6/17
- * @implNote CubicBezierCurve2
- */
+@EqualsAndHashCode(callSuper = false)
 public class CubicBezierCurve2 extends Curve<Vector2f> implements INBTSerializable<ListTag> {
     public Vector2f p0, c0, c1, p1;
 
