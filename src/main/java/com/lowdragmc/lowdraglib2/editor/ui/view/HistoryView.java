@@ -15,7 +15,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -26,7 +25,7 @@ import java.util.Map;
 import java.util.Stack;
 
 public class HistoryView extends View {
-    public static final int MAX_HISTORY_COUNT = 30;
+    public static final int MAX_HISTORY_COUNT = 20;
     public record HistoryItem(Component name, EditAction action, @Nullable Object source) { }
 
     public final ScrollerView scrollerView = new ScrollerView();
@@ -86,12 +85,14 @@ public class HistoryView extends View {
         historyUIs.clear();
     }
 
-    public <T extends Tag> void recordSerializableObject(Component name, INBTSerializable<T> object) {
-        recordSerializableObject(name, object, null);
+    public <T extends INBTSerializable<?>> SerializableRecordAction<T> recordSerializableObject(Component name, T object) {
+        return recordSerializableObject(name, object, null);
     }
 
-    public <T extends Tag> void recordSerializableObject(Component name, INBTSerializable<T> object, @Nullable  Object source) {
-        pushHistory(name, SerializableRecordAction.of(object), source, false);
+    public <T extends INBTSerializable<?>> SerializableRecordAction<T> recordSerializableObject(Component name, T object, @Nullable  Object source) {
+        var recordAction = SerializableRecordAction.of(object);
+        pushHistory(name, recordAction, source, false);
+        return recordAction;
     }
 
     public void pushHistory(Component name, EditAction action) {

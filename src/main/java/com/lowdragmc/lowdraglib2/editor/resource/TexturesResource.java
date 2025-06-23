@@ -56,7 +56,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
         container.setOnEdit((c, path) -> {
             var texture = provider.getResource(path);
             if (texture == null) return;
-            c.getEditor().inspectorView.inspect(texture, configurator -> c.markResourceDirty(path), null);
+            c.getEditor().inspectorView.inspect(texture, configurator -> c.markResourceDirty(path));
         });
         if (provider.supportAdd()) {
             container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {

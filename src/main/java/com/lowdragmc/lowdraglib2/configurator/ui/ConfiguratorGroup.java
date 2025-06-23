@@ -24,7 +24,7 @@ import java.util.List;
 public class ConfiguratorGroup extends Configurator {
     public final UIElement folderIcon;
     public final UIElement configuratorContainer;
-    @Setter
+    @Getter @Setter
     protected boolean canCollapse = true;
     @Getter
     protected boolean isCollapse;

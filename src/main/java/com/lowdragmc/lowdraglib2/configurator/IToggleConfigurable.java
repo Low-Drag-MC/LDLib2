@@ -32,7 +32,17 @@ public interface IToggleConfigurable extends IConfigurable, IPersistedSerializab
                     if (e.button == 0) {
                         e.stopPropagation();
                     }
-                }), 1);
+                }), 1)
+                .addEventListener(UIEvents.TICK, e -> {
+                    var canCollapse = father.isCanCollapse();
+                    var isEnable = isEnable();
+                    if (canCollapse != isEnable) {
+                        setEnable(isEnable);
+                        if (!isEnable && !father.isCollapse()) {
+                            father.setCollapse(true);
+                        }
+                    }
+                });
         IConfigurable.super.buildConfigurator(father);
     }
 

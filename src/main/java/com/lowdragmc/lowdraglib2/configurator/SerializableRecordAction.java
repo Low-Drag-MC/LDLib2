@@ -1,33 +1,58 @@
 package com.lowdragmc.lowdraglib2.configurator;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
-public class SerializableRecordAction<T extends Tag> implements EditAction {
-    private final INBTSerializable<T> serializable;
-    private T snapshot;
+import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
-    private SerializableRecordAction(INBTSerializable<T> serializable) {
+@Accessors(chain = true)
+public class SerializableRecordAction<T extends INBTSerializable<?>> implements EditAction {
+    public final T serializable;
+    @Nullable
+    @Setter
+    private Consumer<T> onExecute;
+    @Nullable
+    @Setter
+    private Consumer<T> onUndo;
+    // runtime
+    private Tag snapshot;
+
+    private SerializableRecordAction(T serializable) {
         this.serializable = serializable;
         this.snapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
     }
 
-    public static <T extends Tag> SerializableRecordAction<T> of(INBTSerializable<T> serializable) {
+    public static <T extends INBTSerializable<?>> SerializableRecordAction<T> of(T serializable) {
         return new SerializableRecordAction<>(serializable);
+    }
+
+    public SerializableRecordAction<T> setOnAction(@Nullable Consumer<T> onAction) {
+        setOnExecute(onAction);
+        setOnUndo(onAction);
+        return this;
     }
 
     @Override
     public void execute() {
         var currentSnapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
-        serializable.deserializeNBT(Platform.getFrozenRegistry(), snapshot);
+        ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
         snapshot = currentSnapshot;
+        if (onExecute != null) {
+            onExecute.accept(serializable);
+        }
     }
 
     @Override
     public void undo() {
         var currentSnapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
-        serializable.deserializeNBT(Platform.getFrozenRegistry(), snapshot);
+        ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
         snapshot = currentSnapshot;
+        if (onUndo != null) {
+            onUndo.accept(serializable);
+        }
     }
 }

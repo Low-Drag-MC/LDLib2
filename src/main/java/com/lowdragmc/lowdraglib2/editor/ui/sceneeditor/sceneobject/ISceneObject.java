@@ -6,7 +6,6 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -30,7 +29,7 @@ public interface ISceneObject {
     Transform transform();
 
     default void setTransform(Transform transform) {
-        transform.set(transform);
+        transform().set(transform);
     }
 
     /**
@@ -45,22 +44,37 @@ public interface ISceneObject {
     void setSceneInternal(IScene scene);
 
     /**
-     * Set the scene. you should not call this method directly.
+     * Sets the scene for the object and manages its association with the scene.
+     * If the object is already part of another scene, it will be removed from that scene before being added to the new scene.
+     * This method also updates the scene association for all child objects recursively.
+     *
+     * @param scene the scene to set for this object. Can be null to remove the object from its current scene.
      */
-    default void setScene(IScene scene) {
+    default void setScene(@Nullable IScene scene) {
         if (getScene() != scene) {
+            if (getScene() != null) {
+                getScene().removeSceneObjectInternal(this);
+            }
             setSceneInternal(scene);
+            if (scene == null) {
+                onDestroy();
+            } else {
+                scene.addSceneObjectInternal(this);
+                awake();
+            }
             children().forEach(child -> child.setScene(scene));
+            if (scene != null) {
+                transform().rebuildChildOrder();
+            }
         }
     }
 
-    /**
-     * Destroy the object.
-     */
     default void destroy() {
-        transform().parent(null);
-        Optional.ofNullable(getScene()).ifPresent(scene -> scene.removeSceneObjectInternal(this));
-        children().forEach(ISceneObject::destroy);
+        setScene(null);
+    }
+
+    default void onDestroy() {
+        transform().destroy();
     }
 
     /**
@@ -69,6 +83,11 @@ public interface ISceneObject {
      */
     default List<ISceneObject> children() {
         return transform().children().stream().map(Transform::sceneObject).toList();
+    }
+
+    default List<ISceneObject> getAllFlatChildren() {
+        List<ISceneObject> children = children();
+        return children.stream().flatMap(child -> child.getAllFlatChildren().stream()).toList();
     }
 
     /**

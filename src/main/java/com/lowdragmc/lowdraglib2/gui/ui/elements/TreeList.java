@@ -169,8 +169,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
      */
     public void collapseNode(NODE node) {
         if (!isNodeExpanded(node) || node.isLeaf()) return;
+        var selected = getSelected();
         for (var child : node.getChildren()) {
             removeNodeUI((NODE) child);
+        }
+        if (!selected.equals(getSelected())) {
+            onSelectedChanged.accept(getSelected());
         }
         expandedNodes.remove(node);
         displayedChildren.remove(node);
@@ -214,6 +218,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             if (currentChildren.equals(displayedChildren)) return;
             var removed = new ArrayList<>(displayedChildren);
             removed.removeAll(currentChildren);
+            var selected = getSelected();
             for (var displayed : new ArrayList<>(displayedChildren)) {
                 removeNodeUI(displayed, removed.contains(displayed));
             }
@@ -224,6 +229,9 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                 this.displayedChildren.computeIfAbsent(node, n -> new ArrayList<>()).addFirst(childNode);
                 addNodeUI(childNode, index + 1);
             }
+            if (!selected.equals(getSelected())) {
+                onSelectedChanged.accept(getSelected());
+            }
         }
     }
 
@@ -233,19 +241,20 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     protected void removeNodeUI(NODE node, boolean removeExpanded) {
         var ui = nodeUIs.remove(node);
-        displayedChildren.remove(node);
+        selectedNodes.remove(node);
         if (ui != null) {
             removeChild(ui);
         }
-        if (node.isBranch() && isNodeExpanded(node)) {
-            for (var child : node.getChildren()) {
-                removeNodeUI((NODE) child, removeExpanded);
-            }
-            if (removeExpanded) {
-                expandedNodes.remove(node);
-                displayedChildren.remove(node);
+        if (displayedChildren.containsKey(node)) {
+            var children = displayedChildren.get(node);
+            for (var child : children) {
+                removeNodeUI(child, removeExpanded);
             }
         }
+        if (removeExpanded) {
+            expandedNodes.remove(node);
+        }
+        displayedChildren.remove(node);
     }
 
     /**
@@ -286,7 +295,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         container.addChildren(arrow, ui);
         container.addEventListener(UIEvents.MOUSE_DOWN, e -> onNodeClicked(e, node));
         container.addEventListener(UIEvents.DOUBLE_CLICK, e -> onNodeDoubleClicked(e, node));
-        onNodeUICreated.accept(node, ui);
+        onNodeUICreated.accept(node, container);
         return container;
     }
 

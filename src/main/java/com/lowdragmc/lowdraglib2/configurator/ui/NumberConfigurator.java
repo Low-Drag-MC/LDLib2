@@ -44,7 +44,7 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
 
     @Override
     protected boolean canDropObject(@Nonnull Object object) {
-        return object instanceof Number;
+        return object instanceof Number || super.canDropObject(object);
     }
 
     @Override

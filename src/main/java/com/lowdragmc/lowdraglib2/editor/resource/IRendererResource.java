@@ -83,7 +83,7 @@ public class IRendererResource extends Resource<IRenderer> {
         container.setOnEdit((c, path) -> {
             var renderer = provider.getResource(path);
             if (renderer == null) return;
-            c.getEditor().inspectorView.inspect(renderer, configurator -> c.markResourceDirty(path), null);
+            c.getEditor().inspectorView.inspect(renderer, configurator -> c.markResourceDirty(path));
         });
 
         if (provider.supportAdd()) {

@@ -14,13 +14,13 @@ public interface IScene {
      * Add a scene object to the scene root.
      */
     default void addSceneObject(ISceneObject sceneObject) {
-        sceneObject.destroy();
-        sceneObject.transform().parent(null);
-        addSceneObjectInternal(sceneObject);
+        sceneObject.setScene(this);
     }
 
     default void removeSceneObject(ISceneObject sceneObject) {
-        sceneObject.destroy();
+        if (sceneObject.getScene() == this) {
+            sceneObject.setScene(null);
+        }
     }
 
     void addSceneObjectInternal(ISceneObject sceneObject);
@@ -29,14 +29,5 @@ public interface IScene {
      * Remove a scene object from the scene root.
      */
     void removeSceneObjectInternal(ISceneObject sceneObject);
-
-    /**
-     * it will be called when the scene objects are all added, but before the scene object is ready for used.
-     */
-    default void awake() {
-        for (var sceneObject : getAllSceneObjects()) {
-            sceneObject.awake();
-        }
-    }
 
 }

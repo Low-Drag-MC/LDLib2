@@ -5,14 +5,17 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public abstract class ValueConfigurator<T> extends Configurator {
+@Accessors(chain = true)
+public class ValueConfigurator<T> extends Configurator {
     protected boolean forceUpdate;
     @Nullable
     protected T value;
@@ -22,6 +25,8 @@ public abstract class ValueConfigurator<T> extends Configurator {
     protected Consumer<T> onUpdate;
     @Setter
     protected Supplier<T> supplier;
+    @Setter
+    protected Predicate<Object> canDropPredicate = t -> defaultValue.getClass().isAssignableFrom(t.getClass());
 
     public ValueConfigurator(String name, Supplier<T> supplier, Consumer<T> onUpdate, @Nonnull T defaultValue, boolean forceUpdate) {
         super(name);
@@ -110,7 +115,7 @@ public abstract class ValueConfigurator<T> extends Configurator {
 
     /// Drag value handler
     protected boolean canDropObject(@Nonnull Object object) {
-        return defaultValue.getClass().isAssignableFrom(object.getClass());
+        return canDropPredicate.test(object);
     }
 
     protected void onDropObject(@Nonnull Object object) {

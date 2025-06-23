@@ -189,7 +189,7 @@ public class Configurator extends UIElement {
             menu.leaf(Icons.PASTE, Component.translatable("ldlib.gui.editor.menu.paste.type", ClipboardManager.INSTANCE.getClipboardType().getSimpleName()), () -> {
                 try {
                     var pasted = ClipboardManager.INSTANCE.paste();
-                    if (pasted != null) {
+                    if (pasted != null && onPaste != null) {
                         ((Consumer)onPaste).accept(pasted);
                     }
                 } catch (Exception ignored) {}

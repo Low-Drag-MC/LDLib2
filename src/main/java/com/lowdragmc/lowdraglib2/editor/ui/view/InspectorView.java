@@ -54,23 +54,36 @@ public class InspectorView extends View {
     }
 
     public ConfiguratorGroup inspect(IConfigurable configurable) {
-        return inspect(configurable, null, null);
+        return inspect(configurable, null);
+    }
+
+    public ConfiguratorGroup inspect(IConfigurable configurable, @Nullable Consumer<Configurator> listener) {
+        return inspect(configurable, listener, null);
+    }
+
+    public ConfiguratorGroup inspect(IConfigurable configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose) {
+        return inspect(configurable, listener, onClose, null);
     }
 
     /**
-     * Inspect a configurable object and display its configurators.
-     * @param configurable the configurable object to inspect
-     * @param listener an optional listener that can be notified while making changes.
+     * Inspects a configurable instance and generates a configurable group for editor interaction.
+     * This method allows observing changes in the configurators, managing history actions,
+     * and handling closure of the inspection.
+     *
+     * @param <T>           the type of the configurable instance, which must extend {@link IConfigurable}
+     * @param configurable  the configurable instance to inspect
+     * @param listener      an optional {@link Consumer} that is triggered whenever a configurator's value changes,
+     *                      providing the changed configurator as its argument
+     * @param onClose       an optional {@link Runnable} that is executed when the inspection session is closed
+     * @param historyAction an optional {@link Consumer} for handling undo/redo operations during history actions,
+     *                      receiving configurable instances when executed
+     * @return a {@link ConfiguratorGroup} representing the configurable instance's structure and properties
      */
-    public ConfiguratorGroup inspect(IConfigurable configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose) {
+    public <T extends IConfigurable> ConfiguratorGroup inspect(T configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose, @Nullable Consumer<T> historyAction) {
         clear();
-        inspectedConfigurable = configurable;
+        this.inspectedConfigurable = configurable;
         this.onClose = onClose;
-        scrollerView.clearAllScrollViewChildren();
-        var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
-        if (configurable instanceof INBTSerializable<?> serializable) {
-            editor.historyView.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable);
-        }
+        var group = inspectInternal(configurable);
         group.addEventListener(Configurator.CHANGE_EVENT, e -> {
             if (e.target instanceof Configurator configurator) {
                 if (listener != null) {
@@ -80,12 +93,32 @@ public class InspectorView extends View {
                     var top = editor.historyView.getCurrentHistory();
                     if (top != null && top.source() == configurator) return;
                     var notifyName = configurator.getNotifyName();
-                    editor.historyView.recordSerializableObject(notifyName.getString().isEmpty() ?
-                            Component.literal(configurable.getConfigurableName()) : notifyName,
+                    var recordHistory = editor.historyView.recordSerializableObject(notifyName.getString().isEmpty() ?
+                                    Component.literal(configurable.getConfigurableName()) : notifyName,
                             serializable, configurator);
+                    if (historyAction != null) {
+                        recordHistory.setOnExecute(value -> historyAction.accept((T) value));
+                        recordHistory.setOnUndo(value -> historyAction.accept((T) value));
+                    }
                 }
             }
         });
+
+        if (configurable instanceof INBTSerializable<?> serializable) {
+            editor.historyView.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable)
+                    .setOnExecute(value -> {
+                        clear();
+                        scrollerView.addScrollViewChild(group);
+                        inspectedConfigurable = configurable;
+                        this.onClose = onClose;
+                    })
+                    .setOnUndo(value -> clear());
+        }
+        return group;
+    }
+
+    private <T extends IConfigurable> ConfiguratorGroup inspectInternal(T configurable) {
+        var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
         group.lineContainer.setDisplay(YogaDisplay.NONE);
         group.configuratorContainer.layout(layout -> {
             layout.setMargin(YogaEdge.LEFT, 0);

@@ -100,7 +100,7 @@ public class SceneEditor extends UIElement implements IScene {
 //        this.scene.addChild(screenTips);
 
         transformGizmo = new TransformGizmo();
-        transformGizmo.setScene(this);
+        transformGizmo.setSceneInternal(this);
 
         initTopBar();
         initGizmos();
@@ -253,7 +253,6 @@ public class SceneEditor extends UIElement implements IScene {
 
     @Override
     public void addSceneObjectInternal(ISceneObject sceneObject) {
-        sceneObject.setScene(this);
         sceneObjects.put(sceneObject.id(), sceneObject);
     }
 

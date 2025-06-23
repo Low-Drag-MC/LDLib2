@@ -68,7 +68,9 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
      * The children transforms of the transform.
      */
     @Getter
-    private List<Transform> children = new ArrayList<>();
+    private final List<Transform> children = new ArrayList<>();
+    @Persisted
+    private final List<UUID> _childrenId = new ArrayList<>();
 
     /**
      * The transform owner.
@@ -78,6 +80,8 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
     private final ISceneObject sceneObject;
 
     // runtime
+    @Getter
+    private boolean isValid = false;
     @Nullable
     private Vector3f position = null;
     @Nullable
@@ -136,16 +140,13 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
         var lastScale = keepWorldTransform ? scale() : null;
 
         if (this.parent != null) {
-            this.parent.children.remove(this);
-            this.parent.sceneObject.onChildChanged();
+            this.parent.removeChildInternal(this);
         }
 
         this.parent = parent;
         this._parentId = parent == null ? null : parent.id();
         if (parent != null) {
-            parent.children.add(this);
-            this.sceneObject.setScene(parent.sceneObject.getScene());
-            parent.sceneObject.onChildChanged();
+            parent.addChildInternal(this);
         }
         if (keepWorldTransform) {
             onTransformChanged();
@@ -166,6 +167,43 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
             return true;
         }
         return this.parent.isInheritedParent(parent);
+    }
+
+    private void addChildInternal(Transform transform) {
+        this.children.add(transform);
+        if (!this._childrenId.contains(transform.id)) {
+            this._childrenId.add(transform.id());
+        }
+        transform.sceneObject.setScene(this.sceneObject.getScene());
+        this.sceneObject.onChildChanged();
+    }
+
+    private void removeChildInternal(Transform transform) {
+        this.children.remove(transform);
+        this._childrenId.remove(transform.id());
+        this.sceneObject.onChildChanged();
+    }
+
+    public int getSiblingIndex() {
+        return parent == null ? -1 : parent.children.indexOf(this);
+    }
+
+    public void setSiblingIndex(int newIndex) {
+        if (parent == null) return;
+
+        List<Transform> siblings = parent.children;
+        int currentIndex = siblings.indexOf(this);
+        if (currentIndex == -1 || currentIndex == newIndex) return;
+
+        siblings.remove(currentIndex);
+        parent._childrenId.remove(currentIndex);
+
+        int clampedIndex = Math.max(0, Math.min(newIndex, siblings.size()));
+
+        siblings.add(clampedIndex, this);
+        parent._childrenId.add(clampedIndex, this.id());
+
+        parent.sceneObject.onChildChanged();
     }
 
     /**
@@ -304,14 +342,38 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
         onTransformChanged();
     }
 
+    public void destroy() {
+        if (this.parent != null && this.parent.isValid) {
+            this.parent.children.remove(this);
+            this.parent.sceneObject.onChildChanged();
+            this.parent = null;
+        }
+        isValid = false;
+    }
+
     public void awake() {
-        if (_parentId != null && sceneObject.getScene() != null) {
+        if (isValid) return;
+        if (sceneObject.getScene() == null) {
+            throw new RuntimeException("trying to awake transform before set scene");
+        }
+        if ( _parentId != null && parent == null) {
             var parent = sceneObject.getScene().getSceneObject(_parentId);
             if (parent != null) {
                 parent(parent.transform(), false);
             } else {
                 LDLib2.LOGGER.warn("Parent transform {} not found.", _parentId);
             }
+        }
+        isValid = true;
+    }
+
+    public void rebuildChildOrder() {
+        if (children.size() > 1 && !_childrenId.isEmpty()) {
+            children.sort((a, b) -> {
+                int ai = _childrenId.indexOf(a.id());
+                int bi = _childrenId.indexOf(b.id());
+                return Integer.compare(ai, bi);
+            });
         }
     }
 
