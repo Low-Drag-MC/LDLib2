@@ -23,11 +23,11 @@ public abstract class SplitView extends UIElement{
     public final UIElement first = new UIElement();
     public final UIElement second = new UIElement();
     @Getter @Setter
-    private int borderSize = 2;
+    private float borderSize = 2;
     @Getter @Setter
-    private int minPercentage = 5;
+    private float minPercentage = 5;
     @Getter @Setter
-    private int maxPercentage = 95;
+    private float maxPercentage = 95;
 
     public SplitView() {
         getLayout().setFlex(1);
@@ -46,6 +46,18 @@ public abstract class SplitView extends UIElement{
     public abstract SplitView setPercentage(float percentage);
 
     public abstract float getPercentage();
+
+    public SplitView first(UIElement first) {
+        this.first.clearAllChildren();
+        this.first.addChild(first);
+        return this;
+    }
+
+    public SplitView second(UIElement second) {
+        this.second.clearAllChildren();
+        this.second.addChild(second);
+        return this;
+    }
 
     protected void onMouseDown(UIEvent event) {
         // use int mouse coordinates to avoid issues with floating point precision
@@ -95,12 +107,12 @@ public abstract class SplitView extends UIElement{
         }
 
         public Horizontal left(UIElement left) {
-            first.addChild(left);
+            first(left);
             return this;
         }
 
         public Horizontal right(UIElement right) {
-            second.addChild(right);
+            second(right);
             return this;
         }
 
@@ -148,12 +160,12 @@ public abstract class SplitView extends UIElement{
         }
 
         public Vertical top(UIElement top) {
-            first.addChild(top);
+            first(top);
             return this;
         }
 
         public Vertical bottom(UIElement bottom) {
-            second.addChild(bottom);
+            second(bottom);
             return this;
         }
 

@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.ViewMenu;
-import com.lowdragmc.lowdraglib2.editor.ui.util.SplitView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.InspectorView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
@@ -41,10 +40,12 @@ public class Editor extends UIElement {
     public final ViewMenu viewMenu;
 
     public final UIElement mainView;
-    public final Window left;
-    public final Window right;
-    public final Window center;
-    public final Window bottom;
+
+    public final SplittableWindow rootWindow;
+    public final SplittableWindow leftWindow;
+    public final SplittableWindow rightWindow;
+    public final SplittableWindow centerWindow;
+    public final SplittableWindow bottomWindow;
 
     public final InspectorView inspectorView;
     public final ResourceView resourceView;
@@ -73,29 +74,23 @@ public class Editor extends UIElement {
         this.historyView = new HistoryView(this);
 
         this.mainView = new UIElement();
-        this.left = new Window();
-        this.right = new Window();
-        this.center = new Window();
-        this.bottom = new Window();
         this.fileMenu = new FileMenu(this);
         this.viewMenu = new ViewMenu(this);
 
-        left.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
-        });
-        center.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
-        });
-        right.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
-        });
-        bottom.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
-        });
+        rootWindow = new SplittableWindow().setImmortal(true);
+        var split1 = rootWindow
+                .splitStyle(style -> style.percentage(80).minPercentage(1).maxPercentage(99))
+                .splitNew(YogaEdge.LEFT);
+        rightWindow = split1.getSecond().setImmortal(true);
+        var split2 = split1.getFirst()
+                .splitStyle(style -> style.percentage(75).minPercentage(1).maxPercentage(99))
+                .splitNew(YogaEdge.TOP);
+        bottomWindow = split2.getSecond().setImmortal(true);
+        var split3 = split2.getFirst()
+                .splitStyle(style -> style.percentage(28).minPercentage(1).maxPercentage(99))
+                .splitNew(YogaEdge.LEFT);
+        centerWindow = split3.getSecond().setImmortal(true);
+        leftWindow = split3.getFirst().setImmortal(true);
 
         addChildren(top.layout(layout -> {
             layout.setPadding(YogaEdge.ALL, 1);
@@ -115,22 +110,7 @@ public class Editor extends UIElement {
         })), mainView.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
-        }).addChild(new SplitView.Horizontal()
-                .left(new SplitView.Vertical()
-                        .top(new SplitView.Horizontal()
-                                .left(left)
-                                .right(center)
-                                .setPercentage(28)
-                                .setMinPercentage(1)
-                                .setMaxPercentage(99))
-                        .bottom(bottom)
-                        .setPercentage(75)
-                        .setMinPercentage(1)
-                        .setMaxPercentage(99))
-                .right(right)
-                .setPercentage(80)
-                .setMinPercentage(1)
-                .setMaxPercentage(99)));
+        }).addChild(rootWindow));
 
         ///  internal components
         initMenus();
@@ -156,11 +136,11 @@ public class Editor extends UIElement {
     }
 
     protected void initRightWindow() {
-        right.addViews(inspectorView, historyView);
+        rightWindow.getRightTop().addViews(inspectorView, historyView);
     }
 
     protected void initBottomWindow() {
-        bottom.addView(resourceView);
+        bottomWindow.getLeftBottom().addView(resourceView);
     }
 
     protected void initCenterWindow() {

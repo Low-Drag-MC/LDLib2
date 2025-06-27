@@ -93,6 +93,7 @@ public class TextElement extends UIElement {
     public TextElement textStyle(Consumer<TextStyle> style) {
         style.accept(textStyle);
         onStyleChanged();
+        recompute();
         return this;
     }
 
@@ -100,12 +101,6 @@ public class TextElement extends UIElement {
     public void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
         textStyle.applyStyles(values);
-    }
-
-    @Override
-    protected void onStyleChanged() {
-        super.onStyleChanged();
-        recompute();
     }
 
     @Override

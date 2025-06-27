@@ -58,7 +58,11 @@ public class FileNode implements ITreeNode<File, Void> {
                     return -1;
                 }
                 return 1;
-            }).forEach(file -> children.add(new FileNode(dimension + 1, file).setValid(valid)));
+            }).forEach(file -> {
+                var node = new FileNode(dimension + 1, file);
+                if (valid != null && !valid.test(node)) return;
+                children.add(node.setValid(valid));
+            });
         }
         return children;
     }

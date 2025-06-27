@@ -1,0 +1,376 @@
+package com.lowdragmc.lowdraglib2.editor.ui;
+
+import com.lowdragmc.lowdraglib2.editor.ui.util.SplitView;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.mojang.datafixers.util.Pair;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.GuiGraphics;
+import org.appliedenergistics.yoga.YogaEdge;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+@Accessors(chain = true)
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class SplittableWindow extends UIElement {
+    @Accessors(chain = true, fluent = true)
+    public static class SplitStyle extends Style {
+        @Getter @Setter
+        private float percentage = 50;
+        @Getter @Setter
+        private float minPercentage = 5;
+        @Getter @Setter
+        private float maxPercentage = 95;
+
+        public SplitStyle(UIElement holder) {
+            super(holder);
+        }
+    }
+    @Getter
+    private final SplitStyle splitStyle = new SplitStyle(this);
+    @Nullable
+    @Getter @Setter
+    protected SplittableWindow parentWindow;
+    @Getter @Setter
+    protected boolean immortal = false;
+
+    // runtime
+    @Nullable
+    @Getter
+    private ViewContainer viewContainer;
+    @Nullable
+    @Getter
+    private SplitView splitView;
+    @Nullable
+    @Getter
+    private SplittableWindow first, second;
+
+    public SplittableWindow() {
+        this(null);
+    }
+
+    public SplittableWindow(@Nullable SplittableWindow parent) {
+        this(parent, new ViewContainer());
+    }
+
+    public SplittableWindow(@Nullable SplittableWindow parent, @Nonnull ViewContainer viewContainer) {
+        getLayout().setWidthPercent(100);
+        getLayout().setHeightPercent(100);
+        this.parentWindow = parent;
+        this.viewContainer = viewContainer;
+
+        addChild(viewContainer);
+
+        addEventListener(UIEvents.DRAG_ENTER, this::onDragEnter, true);
+        addEventListener(UIEvents.DRAG_LEAVE, this::onDragLeave, true);
+        addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
+    }
+
+    public SplittableWindow splitStyle(Consumer<SplitStyle> styleConsumer) {
+        styleConsumer.accept(splitStyle);
+        onStyleChanged();
+        if (splitView != null) {
+            this.splitView.setPercentage(splitStyle.percentage)
+                    .setMinPercentage(splitStyle.minPercentage)
+                    .setMaxPercentage(splitStyle.maxPercentage);
+        }
+        return this;
+    }
+
+    @Override
+    public void applyStyle(Map<String, StyleValue<?>> values) {
+        super.applyStyle(values);
+        splitStyle.applyStyles(values);
+    }
+
+    public SplittableWindow setViewContainer(@Nonnull ViewContainer viewContainer) {
+        if (this.viewContainer != null) {
+            this.viewContainer.removeSelf();
+        }
+        if (splitView != null) {
+            splitView.removeSelf();
+            splitView = null;
+        }
+        this.viewContainer = viewContainer;
+        addChild(viewContainer);
+        return this;
+    }
+
+    public ViewContainer getLeftTop() {
+        if (this.viewContainer != null) return this.viewContainer;
+        if (splitView instanceof SplitView.Vertical) {
+            if (first != null) return first.getLeftTop();
+            if (second != null) return second.getLeftTop();
+        } else if (splitView instanceof SplitView.Horizontal) {
+            if (first != null) return first.getLeftTop();
+            if (second != null) return second.getLeftTop();
+        }
+        setViewContainer(new ViewContainer());
+        return this.viewContainer;
+    }
+
+    public ViewContainer getLeftBottom() {
+        if (this.viewContainer != null) return this.viewContainer;
+        if (splitView instanceof SplitView.Vertical) {
+            if (second != null) return second.getLeftBottom();
+            if (first != null) return first.getLeftBottom();
+        } else if (splitView instanceof SplitView.Horizontal) {
+            if (first != null) return first.getLeftBottom();
+            if (second != null) return second.getLeftBottom();
+        }
+        setViewContainer(new ViewContainer());
+        return this.viewContainer;
+    }
+
+    public ViewContainer getRightTop() {
+        if (this.viewContainer != null) return this.viewContainer;
+        if (splitView instanceof SplitView.Vertical) {
+            if (first != null) return first.getRightTop();
+            if (second != null) return second.getRightTop();
+        } else if (splitView instanceof SplitView.Horizontal) {
+            if (second != null) return second.getRightTop();
+            if (first != null) return first.getRightTop();
+        }
+        setViewContainer(new ViewContainer());
+        return this.viewContainer;
+    }
+
+    public ViewContainer getRightBottom() {
+        if (this.viewContainer != null) return this.viewContainer;
+        if (splitView instanceof SplitView.Vertical) {
+            if (second != null) return second.getRightBottom();
+            if (first != null) return first.getRightBottom();
+        } else if (splitView instanceof SplitView.Horizontal) {
+            if (second != null) return second.getRightBottom();
+            if (first != null) return first.getRightBottom();
+        }
+        setViewContainer(new ViewContainer());
+        return this.viewContainer;
+    }
+
+    public boolean isSplit() {
+        return splitView != null;
+    }
+
+    /**
+     * Splits the current window horizontally or vertically based on the specified edge and
+     * creates two new windows in the process.
+     *
+     * @param edge the edge of the window to split, which can be one of {@code YogaEdge.TOP}, {@code YogaEdge.BOTTOM},
+     *             {@code YogaEdge.LEFT}, or {@code YogaEdge.RIGHT}
+     * @param newWindow the new window to be placed on the specified edge after splitting
+     * @return a pair of SplittableWindows: the split window on the specified edge and the remaining portion
+     *         of the original window
+     */
+    public Pair<SplittableWindow, SplittableWindow> splitWidth(YogaEdge edge, SplittableWindow newWindow) {
+        if (this.splitView != null) throw new IllegalStateException("Cannot split a split window");
+        if (this.viewContainer == null) throw new IllegalStateException("Cannot split a window that is empty");
+        if (edge == YogaEdge.TOP) {
+            this.splitView = new SplitView.Vertical()
+                    .top(first = newWindow)
+                    .bottom(second = new SplittableWindow(this, this.viewContainer));
+        } else if (edge == YogaEdge.BOTTOM) {
+            this.splitView = new SplitView.Vertical()
+                    .top(first = new SplittableWindow(this, this.viewContainer))
+                    .bottom(second = newWindow);
+        } else if (edge == YogaEdge.LEFT) {
+            this.splitView = new SplitView.Horizontal()
+                    .left(first = newWindow)
+                    .right(second = new SplittableWindow(this, this.viewContainer));
+        } else if (edge == YogaEdge.RIGHT) {
+            this.splitView = new SplitView.Horizontal()
+                    .left(first = new SplittableWindow(this, this.viewContainer))
+                    .right(second = newWindow);
+        } else {
+            throw new IllegalArgumentException("Invalid edge: " + edge);
+        }
+        this.splitView.setPercentage(splitStyle.percentage);
+        this.splitView.setMinPercentage(splitStyle.minPercentage);
+        this.splitView.setMaxPercentage(splitStyle.maxPercentage);
+        addChild(splitView);
+        return Pair.of(first, second);
+    }
+
+    /**
+     * Splits the current window into two new windows based on the specified edge and returns the resulting pair of windows.
+     *
+     * @param edge the edge of the window to split, which can be one of {@code YogaEdge.TOP}, {@code YogaEdge.BOTTOM},
+     *             {@code YogaEdge.LEFT}, or {@code YogaEdge.RIGHT}
+     * @return a pair of SplittableWindows, where the first element is the window created on the specified edge
+     *         and the second element is the remaining portion of the original window
+     */
+    public Pair<SplittableWindow, SplittableWindow> splitNew(YogaEdge edge) {
+        SplittableWindow newWindow = new SplittableWindow(this);
+        return splitWidth(edge, newWindow);
+    }
+
+    protected ViewContainer getEmptyOrSplitContainer(YogaEdge edge) {
+        if (splitView != null) {
+            splitView.removeSelf();
+            splitView = null;
+        }
+        if (this.viewContainer == null) {
+            setViewContainer(new ViewContainer());
+            return this.viewContainer;
+        }
+        if (this.viewContainer.isEmptyWindow()) {
+            return this.viewContainer;
+        }
+        if (edge == YogaEdge.TOP) {
+            return Objects.requireNonNull(splitNew(edge).getFirst().getViewContainer());
+        } else if (edge == YogaEdge.BOTTOM) {
+            return Objects.requireNonNull(splitNew(edge).getSecond().getViewContainer());
+        } else if (edge == YogaEdge.LEFT) {
+            return Objects.requireNonNull(splitNew(edge).getFirst().getViewContainer());
+        } else if (edge == YogaEdge.RIGHT) {
+            return Objects.requireNonNull(splitNew(edge).getSecond().getViewContainer());
+        } else {
+            throw new IllegalArgumentException("Invalid edge: " + edge);
+        }
+    }
+
+    private boolean isWindowHovering(float mouseX, float mouseY) {
+        var container = viewContainer == null ? this : viewContainer.tabView.tabContentContainer;
+        return container.isMouseOverElement(mouseX, mouseY);
+    }
+
+    private boolean isBorderHovering(YogaEdge edge, float mouseX, float mouseY) {
+        var borderPercent = 0.2f;
+        var container = viewContainer == null ? this : viewContainer.tabView.tabContentContainer;
+        var x = container.getPositionX();
+        var y = container.getPositionY();
+        var w = container.getSizeWidth();
+        var h = container.getSizeHeight();
+        if (edge == YogaEdge.TOP) {
+            return isMouseOver(x, y, w, h * borderPercent, mouseX, mouseY);
+        } else if (edge == YogaEdge.BOTTOM) {
+            return isMouseOver(x, y + h * (1 - borderPercent), w, h * borderPercent, mouseX, mouseY);
+        } else if (edge == YogaEdge.LEFT) {
+            return isMouseOver(x, y, w * borderPercent, h, mouseX, mouseY);
+        } else if (edge == YogaEdge.RIGHT) {
+            return isMouseOver(x + w * (1 - borderPercent), y, w * borderPercent, h, mouseX, mouseY);
+        } else {
+            throw new IllegalArgumentException("Invalid edge: " + edge);
+        }
+    }
+
+    protected void onDragEnter(UIEvent event) {
+        if (isSplit()) return;
+        // check if a view is being dragged into the view
+        if (event.dragHandler.draggingObject instanceof View) {
+            style(style -> style.overlayTexture(this::drawOverlay));
+        }
+    }
+
+    protected void onDragLeave(UIEvent event) {
+        if (isSplit()) return;
+        if (event.relatedTarget == null || !this.isAncestorOf(event.relatedTarget)) {
+            style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+        }
+    }
+
+    protected void onDragPerform(UIEvent event) {
+        if (isSplit()) return;
+        style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+        if (event.dragHandler.draggingObject instanceof View view) {
+            if (isBorderHovering(YogaEdge.TOP, event.x, event.y)) {
+                tryMoveToNewWindow(view, YogaEdge.TOP);
+            } else if (isBorderHovering(YogaEdge.BOTTOM, event.x, event.y)) {
+                tryMoveToNewWindow(view, YogaEdge.BOTTOM);
+            } else if (isBorderHovering(YogaEdge.LEFT, event.x, event.y)) {
+                tryMoveToNewWindow(view, YogaEdge.LEFT);
+            } else if (isBorderHovering(YogaEdge.RIGHT, event.x, event.y)) {
+                tryMoveToNewWindow(view, YogaEdge.RIGHT);
+            } else if (isWindowHovering(event.x, event.y)) {
+                if (viewContainer == null) {
+                    setViewContainer(new ViewContainer());
+                }
+                if (!viewContainer.hasView(view)) {
+                    viewContainer.addView(view);
+                    viewContainer.selectView(view);
+                }
+            }
+        }
+    }
+
+    protected void onWindowsEmpty() {
+        if (immortal) return;
+        if (parentWindow != null) {
+            parentWindow.removeSplitWindow(this);
+        }
+    }
+
+    protected void removeSplitWindow(SplittableWindow window) {
+        if (this.parentWindow == null) return;
+        var target = window == this.first ? this.second : this.first;
+        if (target != null && this.parentWindow.splitView != null) {
+            if (this == this.parentWindow.first) {
+                this.parentWindow.first = target;
+                this.parentWindow.splitView.first(target);
+            } else {
+                this.parentWindow.second = target;
+                this.parentWindow.splitView.second(target);
+            }
+            target.parentWindow = this.parentWindow;
+        }
+    }
+
+    protected void tryMoveToNewWindow(View view, YogaEdge edge) {
+        var oldContainer = view.getViewContainer();
+        if (oldContainer == this.viewContainer && oldContainer != null && oldContainer.tabView.getTabContents().size() == 1) {
+            return;
+        }
+        getEmptyOrSplitContainer(edge).addView(view);
+    }
+
+    private void drawOverlay(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        var isWindowEmpty = viewContainer == null || viewContainer.isEmptyWindow();
+        var mui = getModularUI();
+        if (mui != null) {
+            if (mui.getDragHandler().getDraggingObject() instanceof View view) {
+                var oldContainer = view.getViewContainer();
+                if (oldContainer == this.viewContainer && oldContainer != null && oldContainer.tabView.getTabContents().size() == 1) {
+                    isWindowEmpty = true;
+                }
+            }
+        }
+        var container = viewContainer == null ? this : viewContainer.tabView.tabContentContainer;
+        x = container.getPositionX();
+        y = container.getPositionY();
+        width = container.getSizeWidth();
+        height = container.getSizeHeight();
+        if (isWindowHovering(mouseX, mouseY)) {
+            if (!isWindowEmpty) {
+                if (isBorderHovering(YogaEdge.TOP, mouseX, mouseY)) {
+                    DrawerHelper.drawSolidRect(graphics, x, y, width, height * 0.5f, ColorPattern.T_BLUE.color);
+                } else if (isBorderHovering(YogaEdge.BOTTOM, mouseX, mouseY)) {
+                    DrawerHelper.drawSolidRect(graphics, x, y + height * 0.5f, width, height * 0.5f, ColorPattern.T_BLUE.color);
+                } else if (isBorderHovering(YogaEdge.LEFT, mouseX, mouseY)) {
+                    DrawerHelper.drawSolidRect(graphics, x, y, width * 0.5f, height, ColorPattern.T_BLUE.color);
+                } else if (isBorderHovering(YogaEdge.RIGHT, mouseX, mouseY)) {
+                    DrawerHelper.drawSolidRect(graphics, x + width * 0.5f, y, width * 0.5f, height, ColorPattern.T_BLUE.color);
+                } else {
+                    DrawerHelper.drawSolidRect(graphics, x, y, width, height, ColorPattern.T_BLUE.color);
+                }
+            } else {
+                DrawerHelper.drawSolidRect(graphics, x, y, width, height, ColorPattern.T_BLUE.color);
+            }
+        }
+
+    }
+}

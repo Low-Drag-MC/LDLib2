@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -8,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
+import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.Nullable;
@@ -21,7 +24,7 @@ public class View extends UIElement {
     // runtime
     @Getter
     @Nullable
-    private Window window;
+    private ViewContainer viewContainer;
 
     public View() {
         getLayout().setWidthPercent(100);
@@ -39,11 +42,21 @@ public class View extends UIElement {
         this.icon = icon;
     }
 
+    @Override
+    public boolean removeSelf() {
+        if (viewContainer != null) {
+            viewContainer.removeView(this);
+            return true;
+        } else {
+            return super.removeSelf();
+        }
+    }
+
     /**
      * Set the window for this view. This is used internally to manage the view's lifecycle and interactions.
      */
-    protected void _setWindowInternal(Window window) {
-        this.window = window;
+    protected void _setWindowInternal(ViewContainer viewContainer) {
+        this.viewContainer = viewContainer;
     }
 
     /**
@@ -75,10 +88,17 @@ public class View extends UIElement {
         });
         tab.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
             if (lastClickTime != 0 && isMouseDown(0)) {
-                tab.startDrag(this, new TextTexture(name));
+                var w = tab.getSizeWidth();
+                var h = tab.getSizeHeight();
+                tab.startDrag(this, new GuiTextureGroup(ColorPattern.T_WHITE.rectTexture(), new TextTexture(name).setWidth((int) w)))
+                        .setDragTexture(- w / 2, -h / 2, w, h);
+                tab.setDisplay(YogaDisplay.NONE);
             }
             lastClickTime = 0;
         }, true);
+        tab.addEventListener(UIEvents.DRAG_END, e -> {
+            tab.setDisplay(YogaDisplay.FLEX);
+        });
         return tab;
     }
 

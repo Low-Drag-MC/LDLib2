@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.util.INBTSerializable;
+import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.Nullable;
@@ -51,6 +52,9 @@ public class HistoryView extends View {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         });
+        scrollerView.viewPort.layout(layout -> {
+            layout.setPadding(YogaEdge.ALL, 1);
+        }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
         scrollerView.viewContainer.layout(layout -> {
             layout.setGap(YogaGutter.ALL, 1);
         });

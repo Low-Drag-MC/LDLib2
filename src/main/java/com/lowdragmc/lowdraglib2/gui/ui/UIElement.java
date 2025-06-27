@@ -444,6 +444,13 @@ public class UIElement {
         return false;
     }
 
+    public boolean removeSelf() {
+        if (getParent() != null) {
+            return getParent().removeChild(this);
+        }
+        return false;
+    }
+
     public boolean removeChild(@Nullable UIElement child) {
         if (child == null) {
             return false;
@@ -625,7 +632,7 @@ public class UIElement {
 
     /// Interaction
     public boolean isMouseOverElement(double mouseX, double mouseY) {
-        return isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
+        return isDisplayed() && isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
     }
 
     /**
@@ -880,7 +887,7 @@ public class UIElement {
      * <li> 3. Overlay
      * <li> 4. Children
      */
-    public void drawInBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public final void drawInBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         var display = layoutNode.getDisplay();
         if (display == YogaDisplay.NONE || !isVisible()) {
             return;
@@ -890,15 +897,19 @@ public class UIElement {
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(0, 0, zIndex);
         }
-        if (display == YogaDisplay.FLEX) {
+        drawInBackgroundInternal(guiGraphics, mouseX, mouseY, partialTick);
+        if (zIndex != 0) {
+            guiGraphics.pose().popPose();
+        }
+    }
+
+    public final void drawInBackgroundInternal(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (layoutNode.getDisplay() == YogaDisplay.FLEX) {
             drawBackgroundTexture(guiGraphics, mouseX, mouseY, partialTick);
             drawContents(guiGraphics, mouseX, mouseY, partialTick);
             drawBackgroundOverlay(guiGraphics, mouseX, mouseY, partialTick);
         } else { // draw contents only
             drawContents(guiGraphics, mouseX, mouseY, partialTick);
-        }
-        if (zIndex != 0) {
-            guiGraphics.pose().popPose();
         }
     }
 

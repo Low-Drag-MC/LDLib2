@@ -20,7 +20,7 @@ public class TestEditor extends Editor {
     @Override
     protected void initCenterWindow() {
         super.initCenterWindow();
-        center.addView(new UIEditorView(UI.of(new UIElement().layout(layout -> {
+        centerWindow.getLeftTop().addView(new UIEditorView(UI.of(new UIElement().layout(layout -> {
             layout.setWidth(250);
             layout.setHeight(250);
             layout.setPadding(YogaEdge.ALL, 10);

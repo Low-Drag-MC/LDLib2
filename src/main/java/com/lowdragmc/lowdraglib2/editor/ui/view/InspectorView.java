@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.util.INBTSerializable;
@@ -36,6 +37,9 @@ public class InspectorView extends View {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         });
+        scrollerView.viewPort.layout(layout -> {
+            layout.setPadding(YogaEdge.ALL, 1);
+        }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
         scrollerView.viewContainer.layout(layout -> {
             layout.setGap(YogaGutter.ALL, 1);
         });
