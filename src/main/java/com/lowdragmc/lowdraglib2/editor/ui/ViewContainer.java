@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -22,6 +23,8 @@ public class ViewContainer extends UIElement {
     // runtime
     @Nullable
     private UIElement tabPlaceHolder;
+    @Nullable @Getter
+    private SplittableWindow window;
 
     public ViewContainer() {
         this.tabView = new TabView();
@@ -41,6 +44,10 @@ public class ViewContainer extends UIElement {
         tabView.tabHeaderContainer.addEventListener(UIEvents.DRAG_LEAVE, this::onTabHeaderDragLeave, true);
         tabView.tabHeaderContainer.addEventListener(UIEvents.DRAG_UPDATE, this::onTabHeaderDragUpdate, true);
         tabView.tabHeaderContainer.addEventListener(UIEvents.DRAG_PERFORM, this::onTabHeaderDragPerform);
+    }
+
+    protected void _setWindowInternal(SplittableWindow splittableWindow) {
+        this.window = splittableWindow;
     }
 
     protected void onTabHeaderDragEnter(UIEvent event) {
@@ -201,4 +208,5 @@ public class ViewContainer extends UIElement {
             }
         }
     }
+
 }

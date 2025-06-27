@@ -30,7 +30,7 @@ public class InspectorView extends View {
     private Runnable onClose;
 
     public InspectorView(Editor editor) {
-        super("editor.inspector", Icons.SETTINGS);
+        super("editor.view.inspector", Icons.SETTINGS);
         this.editor = editor;
         this.scrollerView = new ScrollerView();
         scrollerView.layout(layout -> {

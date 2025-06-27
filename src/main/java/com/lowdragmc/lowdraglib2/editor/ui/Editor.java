@@ -114,10 +114,9 @@ public class Editor extends UIElement {
 
         ///  internal components
         initMenus();
-        initLeftWindow();
-        initRightWindow();
-        initBottomWindow();
-        initCenterWindow();
+        onPrepareInspectorView();
+        onPrepareHistoryView();
+        onPrepareResourceView();
     }
 
     protected void _setEditorWindowInternal(@Nullable EditorWindow window) {
@@ -131,19 +130,16 @@ public class Editor extends UIElement {
         menuContainer.addChildren(fileMenu.createMenuTab(), viewMenu.createMenuTab());
     }
 
-    protected void initLeftWindow() {
-
+    protected void onPrepareInspectorView() {
+        rightWindow.getRightTop().addView(inspectorView);
     }
 
-    protected void initRightWindow() {
-        rightWindow.getRightTop().addViews(inspectorView, historyView);
+    protected void onPrepareHistoryView() {
+        rightWindow.getRightTop().addViews(historyView);
     }
 
-    protected void initBottomWindow() {
+    protected void onPrepareResourceView() {
         bottomWindow.getLeftBottom().addView(resourceView);
-    }
-
-    protected void initCenterWindow() {
     }
 
     public Component getTitle() {

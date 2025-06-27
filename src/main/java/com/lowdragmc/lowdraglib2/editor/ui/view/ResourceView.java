@@ -33,7 +33,7 @@ public class ResourceView extends View {
     private Resource<?> selectedResource = null;
 
     public ResourceView(Editor editor) {
-        super("editor.resources");
+        super("editor.view.resources");
         this.editor = editor;
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
 

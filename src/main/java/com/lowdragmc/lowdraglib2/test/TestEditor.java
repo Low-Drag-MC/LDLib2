@@ -11,19 +11,17 @@ import org.appliedenergistics.yoga.YogaEdge;
 
 public class TestEditor extends Editor {
 
-    @Override
-    protected void initMenus() {
-        super.initMenus();
-        fileMenu.addProjectProvider(TestProject.PROVIDER);
-    }
-
-    @Override
-    protected void initCenterWindow() {
-        super.initCenterWindow();
+    public TestEditor() {
         centerWindow.getLeftTop().addView(new UIEditorView(UI.of(new UIElement().layout(layout -> {
             layout.setWidth(250);
             layout.setHeight(250);
             layout.setPadding(YogaEdge.ALL, 10);
         }).addChildren(new Button(), new Button(), new Label()).style(style -> style.backgroundTexture(Sprites.BORDER)))));
+    }
+
+    @Override
+    protected void initMenus() {
+        super.initMenus();
+        fileMenu.addProjectProvider(TestProject.PROVIDER);
     }
 }

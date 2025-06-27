@@ -46,7 +46,7 @@ public class HistoryView extends View {
     private final Map<HistoryItem, UIElement> historyUIs = new HashMap<>();
 
     public HistoryView(Editor editor) {
-        super("editor.history", Icons.HISTORY);
+        super("editor.view.history", Icons.HISTORY);
         this.editor = editor;
         scrollerView.layout(layout -> {
             layout.setWidthPercent(100);

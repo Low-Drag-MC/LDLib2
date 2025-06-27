@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
-import com.lowdragmc.lowdraglib2.editor.ui.util.SplitView;
+import com.lowdragmc.lowdraglib2.gui.ui.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -15,6 +15,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.nbt.CompoundTag;
 import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nonnull;
@@ -72,9 +73,7 @@ public class SplittableWindow extends UIElement {
         getLayout().setWidthPercent(100);
         getLayout().setHeightPercent(100);
         this.parentWindow = parent;
-        this.viewContainer = viewContainer;
-
-        addChild(viewContainer);
+        setViewContainer(viewContainer);
 
         addEventListener(UIEvents.DRAG_ENTER, this::onDragEnter, true);
         addEventListener(UIEvents.DRAG_LEAVE, this::onDragLeave, true);
@@ -88,6 +87,25 @@ public class SplittableWindow extends UIElement {
             this.splitView.setPercentage(splitStyle.percentage)
                     .setMinPercentage(splitStyle.minPercentage)
                     .setMaxPercentage(splitStyle.maxPercentage);
+        }
+        return this;
+    }
+
+    public LayoutConfig getLayoutConfig() {
+        return new LayoutConfig(splitStyle.percentage,
+                first != null ? first.getLayoutConfig() : null,
+                second != null ? second.getLayoutConfig() : null);
+    }
+
+    public SplittableWindow applyLayoutConfig(LayoutConfig layoutConfig) {
+        splitStyle(style -> style.percentage(layoutConfig.percentage));
+        if (isSplit()) {
+            if (first != null && layoutConfig.first != null) {
+                first.applyLayoutConfig(layoutConfig.first);
+            }
+            if (second != null && layoutConfig.second != null) {
+                second.applyLayoutConfig(layoutConfig.second);
+            }
         }
         return this;
     }
@@ -107,6 +125,7 @@ public class SplittableWindow extends UIElement {
             splitView = null;
         }
         this.viewContainer = viewContainer;
+        viewContainer._setWindowInternal(this);
         addChild(viewContainer);
         return this;
     }
@@ -199,6 +218,7 @@ public class SplittableWindow extends UIElement {
         } else {
             throw new IllegalArgumentException("Invalid edge: " + edge);
         }
+        this.viewContainer = null;
         this.splitView.setPercentage(splitStyle.percentage);
         this.splitView.setMinPercentage(splitStyle.minPercentage);
         this.splitView.setMaxPercentage(splitStyle.maxPercentage);
@@ -373,4 +393,23 @@ public class SplittableWindow extends UIElement {
         }
 
     }
+
+
+    public record LayoutConfig(float percentage, @Nullable LayoutConfig first, @Nullable LayoutConfig second) {
+        public CompoundTag serialize() {
+            var tag = new CompoundTag();
+            tag.putFloat("percentage", percentage);
+            if (first != null) tag.put("first", first.serialize());
+            if (second != null) tag.put("second", second.serialize());
+            return tag;
+        }
+
+        public static LayoutConfig deserialize(CompoundTag tag) {
+            var percentage = tag.getFloat("percentage");
+            var first = tag.contains("first") ? deserialize(tag.getCompound("first")) : null;
+            var second = tag.contains("second") ? deserialize(tag.getCompound("second")) : null;
+            return new LayoutConfig(percentage, first, second);
+        }
+    }
+
 }

@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
 import com.lowdragmc.lowdraglib2.editor.ui.View;
-import com.lowdragmc.lowdraglib2.editor.ui.util.SplitView;
+import com.lowdragmc.lowdraglib2.gui.ui.SplitView;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
@@ -14,7 +14,7 @@ public class UIEditorView extends View {
     public final ScrollerView scrollerView = new ScrollerView();
 
     public UIEditorView(UI ui) {
-        super("editor.ui.editor");
+        super("editor.view.ui_editor");
         this.ui = ui;
         this.hierarchyList = new UIHierarchyList(this);
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
