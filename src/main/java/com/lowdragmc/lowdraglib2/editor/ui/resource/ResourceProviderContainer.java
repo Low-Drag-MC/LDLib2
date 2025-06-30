@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -110,19 +111,19 @@ public class ResourceProviderContainer<T> extends UIElement {
 
     protected UIElement createResourceUI(IResourcePath key) {
         return new UIElement().layout(layout -> {
-            if (resourceProvider.getResourceHolder().isList()) {
+            if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.setWidthPercent(100);
                 layout.setFlexDirection(YogaFlexDirection.ROW);
                 layout.setMargin(YogaEdge.VERTICAL, 1);
             } else {
-                layout.setWidth(resourceProvider.getResourceHolder().getUiWidth());
+                layout.setWidth(resourceProvider.getResourceInstance().getUiWidth());
                 layout.setFlexDirection(YogaFlexDirection.COLUMN);
                 layout.setMargin(YogaEdge.ALL, 3);
             }
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(new UIElement().layout(layout -> {
-            if (resourceProvider.getResourceHolder().isList()) {
-                layout.setWidth(resourceProvider.getResourceHolder().getUiWidth());
+            if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
+                layout.setWidth(resourceProvider.getResourceInstance().getUiWidth());
             } else {
                 layout.setWidthPercent(100);
             }
@@ -130,13 +131,13 @@ public class ResourceProviderContainer<T> extends UIElement {
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setJustifyContent(YogaJustify.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
-            if (resourceProvider.getResourceHolder().isList()) {
+            if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 style.textAlignHorizontal(Horizontal.LEFT).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
             } else {
                 style.textAlignHorizontal(Horizontal.CENTER).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
             }
         }).setText(nameSupplier.apply(key)).setOverflow(YogaOverflow.HIDDEN).layout(layout -> {
-            if (resourceProvider.getResourceHolder().isList()) {
+            if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.setFlex(1);
                 layout.setHeightPercent(100);
                 layout.setJustifyContent(YogaJustify.CENTER);
@@ -213,9 +214,9 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void setUiWidth(int uiWidth) {
-        if (resourceProvider.getResourceHolder().getUiWidth() != uiWidth && uiWidth > 0) {
-            resourceProvider.getResourceHolder().setUiWidth(uiWidth);
-            if (resourceProvider.getResourceHolder().isList()) {
+        if (resourceProvider.getResourceInstance().getUiWidth() != uiWidth && uiWidth > 0) {
+            resourceProvider.getResourceInstance().setUiWidth(uiWidth);
+            if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 reloadResourceContainer();
             } else {
                 for (UIElement element : resourceUIs.values()) {
@@ -251,18 +252,19 @@ public class ResourceProviderContainer<T> extends UIElement {
         dirtyResources.clear();
     }
 
-    public void setList(boolean isList) {
-        if (resourceProvider.getResourceHolder().isList() != isList) {
-            resourceProvider.getResourceHolder().setList(isList);
+    public void setDisplayMode(Resource.DisplayMode mode) {
+        if (resourceProvider.getResourceInstance().getDisplayMode() == mode) {
+            resourceProvider.getResourceInstance().setDisplayMode(mode);
             reloadResourceContainer();
         }
     }
 
     protected TreeBuilder.Menu getMenu() {
         var menu = TreeBuilder.Menu.start();
-        var isList = resourceProvider.getResourceHolder().isList();
-        var uiWidth = resourceProvider.getResourceHolder().getUiWidth();
-        menu.leaf(isList ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.list", () -> setList(!isList));
+        var isList = resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST;
+        var uiWidth = resourceProvider.getResourceInstance().getUiWidth();
+        menu.leaf(isList ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.list", () -> setDisplayMode(isList ?
+                Resource.DisplayMode.GRID : Resource.DisplayMode.LIST));
         menu.branch("ldlib.gui.editor.group.size", m -> {
             m.leaf(uiWidth == 15 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.small", () -> setUiWidth(15));
             m.leaf(uiWidth == 30 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.medium", () -> setUiWidth(30));
@@ -319,9 +321,9 @@ public class ResourceProviderContainer<T> extends UIElement {
         if (key != null && canCopy.test(key)) {
             var value = resourceProvider.getResource(key);
             if (value != null) {
-                var tag = resourceProvider.getResourceHolder().serializeResource(value, Platform.getFrozenRegistry());
+                var tag = resourceProvider.getResourceInstance().resource.serializeResource(value, Platform.getFrozenRegistry());
                 if (tag != null) {
-                    var copied = resourceProvider.getResourceHolder().deserializeResource(tag, Platform.getFrozenRegistry());
+                    var copied = resourceProvider.getResourceInstance().resource.deserializeResource(tag, Platform.getFrozenRegistry());
                     if (copied != null) {
                         var count = 1;
                         var newKey = resourceProvider.createPath(resourceProvider.getResourceName(key) + " copy");

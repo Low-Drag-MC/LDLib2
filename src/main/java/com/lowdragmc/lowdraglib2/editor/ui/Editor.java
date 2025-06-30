@@ -297,7 +297,7 @@ public class Editor extends UIElement {
         currentProject = project;
         currentProjectFile = projectFile;
         // load project resource
-        resourceView.addResources(project.getResources());
+        resourceView.loadResources(project.getResources());
         historyView.recordSerializableObject(Component.translatable("editor.open"), currentProject);
         project.onLoad(this);
     }

@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.editor.ui.view;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.Resources;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
@@ -26,11 +27,11 @@ public class ResourceView extends View {
     public final TabView tabView = new TabView();
     public final Editor editor;
     @Getter
-    private final Map<String, Resource<?>> resources = new HashMap<>();
+    private final Map<Resource<?>, ResourceInstance<?>> resources = new HashMap<>();
     @Getter
-    private final BiMap<String, Tab> resourceTabs= HashBiMap.create();
+    private final BiMap<Resource<?>, Tab> resourceTabs= HashBiMap.create();
     @Getter @Nullable
-    private Resource<?> selectedResource = null;
+    private ResourceInstance<?> selectedResourceInstance = null;
 
     public ResourceView(Editor editor) {
         super("editor.view.resources");
@@ -71,11 +72,11 @@ public class ResourceView extends View {
     private void onResourceSelected(Tab tab) {
         var resource = resourceTabs.inverse().get(tab);
         if (resource != null) {
-            selectedResource = getResourceByName(resource);
+            selectedResourceInstance = getResourceInstance(resource);
         }
     }
 
-    public void addResource(Resource<?> resource) {
+    public void addResourceInstance(ResourceInstance<?> resourceInstance) {
         var tab = new Tab().tabStyle(style -> {
             style.baseTexture(IGuiTexture.EMPTY);
             style.hoverTexture(Sprites.RECT_RD_T);
@@ -86,23 +87,22 @@ public class ResourceView extends View {
             layout.setHeight(14);
             layout.setPadding(YogaEdge.ALL, 1);
             layout.setMargin(YogaEdge.ALL, 1);
-        }).style(style -> style.setTooltips(resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
+        }).style(style -> style.setTooltips(resourceInstance.resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
-        }).style(style -> style.backgroundTexture(resource.getIcon())));
-        tabView.addTab(tab, new ResourceContainer(resource, editor));
+        }).style(style -> style.backgroundTexture(resourceInstance.resource.getIcon())));
+        tabView.addTab(tab, new ResourceContainer<>(resourceInstance, editor));
+        resources.put(resourceInstance.resource, resourceInstance);
     }
 
-    public void addResources(Resource<?>... resources) {
-        for (Resource<?> resource : resources) {
-            addResource(resource);
+    public void addResourceInstances(ResourceInstance<?>... resources) {
+        for (var resource : resources) {
+            addResourceInstance(resource);
         }
     }
 
-    public void addResources(Resources resources) {
-        for (Resource<?> resource : resources.resources.values()) {
-            addResource(resource);
-        }
+    public void loadResources(Resources resources) {
+        resources.resources.values().forEach(this::addResourceInstance);
     }
 
     public void removeResource(Resource<?> resource) {
@@ -117,10 +117,10 @@ public class ResourceView extends View {
         tabView.clear();
         resourceTabs.clear();
         resources.clear();
-        selectedResource = null;
+        selectedResourceInstance = null;
     }
 
-    public void selectResource(Resource<?> resource) {
+    public void selectResourceInstance(Resource<?> resource) {
         selectResourceByName(resource.getName());
     }
 
@@ -135,8 +135,8 @@ public class ResourceView extends View {
      * Get a resource by its name.
      */
     @Nullable
-    public <T> Resource<T> getResourceByName(String resourceName) {
-        return (Resource<T>) resources.get(resourceName);
+    public <T> ResourceInstance<T> getResourceInstance(Resource<?> resource) {
+        return (ResourceInstance<T>) resources.get(resource);
     }
 
 }

@@ -144,7 +144,7 @@ public class SpriteTexture extends TransformTexture {
                 imageSizeCache = Minecraft.getInstance().getTextureManager().getTexture(imageLocation) instanceof ITextureSize textureSize ?
                         Size.of(textureSize.ldlib2$getImageWidth(), textureSize.ldlib2$getImageHeight()) : Size.of(0, 0);
             } catch (Exception e) {
-                imageSizeCache = Size.of(0, 0);
+                imageSizeCache = Size.of(1, 1);
             }
         }
         return imageSizeCache;

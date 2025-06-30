@@ -20,16 +20,16 @@ import java.util.Map;
 public class Resources implements INBTSerializable<CompoundTag> {
     public static final Resources EMPTY = new Resources(Map.of());
 
-    public final ImmutableMap<String, Resource<?>> resources;
+    public final ImmutableMap<Resource<?>, ResourceInstance<?>> resources;
 
-    public Resources(Map<String, Resource<?>> resources) {
+    public Resources(Map<Resource<?>, ResourceInstance<?>> resources) {
         this.resources = ImmutableMap.copyOf(resources);
     }
 
     public static Resources of(Resource<?>... resources) { // default
-        Map<String, Resource<?>> map = new LinkedHashMap<>();
+        Map<Resource<?>, ResourceInstance<?>> map = new LinkedHashMap<>();
         for (Resource<?> resource : resources) {
-            map.put(resource.getName(), resource);
+            map.put(resource, new ResourceInstance<>(resource));
         }
         return new Resources(map);
     }
@@ -38,17 +38,17 @@ public class Resources implements INBTSerializable<CompoundTag> {
      * Prepare the default resources.
      */
     public void buildDefault() {
-        resources.values().forEach(Resource::buildDefault);
+        resources.values().forEach(ResourceInstance::buildDefault);
     }
 
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
-        resources.forEach((key, resource) -> tag.put(key, resource.serializeNBT(provider)));
+        resources.forEach((key, resource) -> tag.put(key.getName(), resource.serializeNBT(provider)));
         return tag;
     }
 
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        resources.forEach((k, v) -> v.deserializeNBT(provider, nbt.getCompound(k)));
+        resources.forEach((k, v) -> v.deserializeNBT(provider, nbt.getCompound(k.getName())));
     }
 
 

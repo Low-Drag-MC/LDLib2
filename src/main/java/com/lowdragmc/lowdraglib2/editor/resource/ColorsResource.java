@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
@@ -17,7 +16,6 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 
 import javax.annotation.Nullable;
-import java.io.File;
 
 public class ColorsResource extends Resource<Integer> {
 
@@ -27,13 +25,8 @@ public class ColorsResource extends Resource<Integer> {
             builtinResource.addResource(value.colorName, value.color);
         }
         addResourceProvider(builtinResource);
-        setList(true);
-        setUiWidth(15);
-    }
-
-    @Override
-    public void buildDefault() {
-        addResourceProvider(createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources")).setName("global"));
+        setDefaultDisplayMode(DisplayMode.LIST);
+        setDefaultUIWidth(15);
     }
 
     @Override

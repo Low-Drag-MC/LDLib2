@@ -1,30 +1,31 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.util.*;
 
-import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.INBTSerializable;
 
-public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
+public abstract class Resource<T> {
+    public enum DisplayMode {
+        LIST,
+        GRID,
+    }
     @Getter
     protected final List<ResourceProvider<T>> providers = new ArrayList<>();
     @Getter @Setter
-    private boolean isList = false;
+    private DisplayMode defaultDisplayMode = DisplayMode.GRID;
     @Getter @Setter
-    private int uiWidth = 30;
+    private int defaultUIWidth = 30;
 
     public Resource() {
     }
@@ -35,7 +36,7 @@ public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
     public abstract IGuiTexture getIcon();
 
     /**
-     * Resource name, it can also be used to obtain the resource from the resource view. also see {@link ResourceView#getResourceByName(String)}
+     * Resource name, it can also be used to obtain the resource from the resource view.
      */
     public abstract String getName();
 
@@ -49,25 +50,8 @@ public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
     /**
      * Generate default resources.
      */
-    public void buildDefault() {
-    }
-
-    /**
-     * Add a resource provider to this resource.
-     */
-    public void addResourceProvider(ResourceProvider<T> provider) {
-        providers.add(provider);
-    }
-
-    /**
-     * Remove a resource provider from this resource.
-     */
-    public void removeResourceProvider(ResourceProvider<T> provider) {
-        providers.remove(provider);
-    }
-
-    public boolean displayPreviewName() {
-        return true;
+    public void buildDefault(ResourceInstance<T> instance) {
+        instance.addResourceProvider(createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources")).setName("global"));
     }
 
     /**
@@ -124,32 +108,6 @@ public abstract class Resource<T> implements INBTSerializable<CompoundTag> {
      */
     @Nullable
     public abstract T deserializeResource(Tag nbt, HolderLookup.Provider provider);
-
-    @Override
-    public @Nonnull CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
-        var data = new CompoundTag();
-        var providerList = new ListTag();
-        for (var resourceProvider : providers) {
-            if (resourceProvider instanceof FileResourceProvider<T> fileResourceProvider) {
-                providerList.add(fileResourceProvider.serializeNBT());
-            }
-        }
-        data.put("providers", providerList);
-        data.putBoolean("isList", isList);
-        data.putInt("uiWidth", uiWidth);
-        return data;
-    }
-
-    @Override
-    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt) {
-        providers.removeIf(FileResourceProvider.class::isInstance); // Clear existing file resource providers
-        var providerList = nbt.getList("providers", Tag.TAG_COMPOUND);
-        for (var tag : providerList) {
-            addResourceProvider(createFileResourceProviderFromNBT((CompoundTag) tag));
-        }
-        isList = nbt.getBoolean("isList");
-        uiWidth = nbt.getInt("uiWidth");
-    }
 
     @Override
     public String toString() {

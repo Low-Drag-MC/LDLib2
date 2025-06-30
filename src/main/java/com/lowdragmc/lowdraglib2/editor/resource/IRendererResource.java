@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
@@ -19,7 +18,6 @@ import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,11 +28,6 @@ public class IRendererResource extends Resource<IRenderer> {
         builtinResource.addResource("empty", IRenderer.EMPTY);
         addResourceProvider(builtinResource);
 
-    }
-
-    @Override
-    public void buildDefault() {
-        addResourceProvider(createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources")).setName("global"));
     }
 
     @Override

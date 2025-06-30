@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.editor.resource.Resource;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.ui.SplitView;
@@ -23,25 +23,25 @@ import java.util.Map;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ResourceContainer extends UIElement {
+public class ResourceContainer<T> extends UIElement {
     public final ScrollerView providerList = new ScrollerView();
     public final UIElement providerContainer = new UIElement();
-    public final Resource<?> resource;
+    public final ResourceInstance<T> resourceInstance;
     public final Editor editor;
-    private final Button addButton, removeButton;
+    public final Button addButton, removeButton;
 
     // runtime
-    private final Map<ResourceProvider<?>, UIElement> providerToggles = new java.util.HashMap<>();
+    private final Map<ResourceProvider<T>, UIElement> providerToggles = new java.util.HashMap<>();
     @Getter
     @Nullable
-    private ResourceProvider<?> selectedProvider = null;
+    private ResourceProvider<T> selectedProvider = null;
 
-    public ResourceContainer(Resource<?> resource, Editor editor) {
+    public ResourceContainer(ResourceInstance<T> resourceInstance, Editor editor) {
         getLayout().setFlex(1);
         getLayout().setHeightPercent(100);
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
 
-        this.resource = resource;
+        this.resourceInstance = resourceInstance;
         this.editor = editor;
         addChildren(new SplitView.Horizontal().left(new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
@@ -67,8 +67,8 @@ public class ResourceContainer extends UIElement {
             layout.setWidthPercent(100);
         })).setPercentage(13));
 
-        if (resource.canAddFileResourceProvider()) {
-            addButton.setActive(resource.canAddFileResourceProvider());
+        if (resourceInstance.resource.canAddFileResourceProvider()) {
+            addButton.setActive(resourceInstance.resource.canAddFileResourceProvider());
             addButton.textStyle(textStyle -> textStyle.textColor(ColorPattern.WHITE.color));
         }
         removeButton.setActive(false);
@@ -80,7 +80,7 @@ public class ResourceContainer extends UIElement {
         if (selectedProvider != null) {
             Dialog.showCheckBox("ldlib.gui.resource.remove_provider", "editor.remove.confirm", result -> {
                 if (result) {
-                    ((Resource)resource).removeResourceProvider(selectedProvider);
+                    resourceInstance.removeResourceProvider(selectedProvider);
                     selectProvider(null);
                 }
             }).show(editor);
@@ -93,7 +93,7 @@ public class ResourceContainer extends UIElement {
                 result = result.getParentFile();
             }
             if (result.isDirectory()) {
-                ((Resource)resource).addResourceProvider(resource.createNewFileResourceProvider(result));
+                resourceInstance.addResourceProvider(resourceInstance.resource.createNewFileResourceProvider(result));
             }
         }).show(editor);
     }
@@ -104,7 +104,7 @@ public class ResourceContainer extends UIElement {
         providerList.clearAllScrollViewChildren();
         providerContainer.clearAllChildren();
 
-        for (var provider : resource.getProviders()) {
+        for (var provider : resourceInstance.getProviders()) {
             var toggle = new UIElement().layout(layout -> {
                 layout.setHeight(12);
                 layout.setWidthPercent(100);
@@ -120,18 +120,18 @@ public class ResourceContainer extends UIElement {
             providerToggles.put(provider, toggle);
         }
 
-        if (!resource.getProviders().isEmpty()) {
-            if (lastSelectedProvider != null && resource.getProviders().contains(lastSelectedProvider)) {
+        if (!resourceInstance.getProviders().isEmpty()) {
+            if (lastSelectedProvider != null && resourceInstance.getProviders().contains(lastSelectedProvider)) {
                 selectProvider(lastSelectedProvider);
             } else {
-                selectProvider(resource.getProviders().getFirst());
+                selectProvider(resourceInstance.getProviders().getFirst());
             }
         } else {
             selectProvider(null);
         }
     }
 
-    public void selectProvider(@Nullable ResourceProvider<?> provider) {
+    public void selectProvider(@Nullable ResourceProvider<T> provider) {
         if (selectedProvider == provider) return;
         if (selectedProvider != null) {
             var oldToggle = providerToggles.get(selectedProvider);
@@ -146,12 +146,12 @@ public class ResourceContainer extends UIElement {
             if (toggle != null) {
                 toggle.style(style -> style.overlayTexture(ColorPattern.T_DARK_GRAY.rectTexture()));
             }
-            var providerView = ((Resource)resource).createResourceProviderContainer(selectedProvider);
+            var providerView = resourceInstance.resource.createResourceProviderContainer(selectedProvider);
             providerView.setEditor(editor);
             providerView.reloadResourceContainer();
             providerContainer.addChild(providerView);
         }
-        var canRemove = selectedProvider != null && ((Resource)resource).canRemoveResourceProvider(selectedProvider);
+        var canRemove = selectedProvider != null && resourceInstance.resource.canRemoveResourceProvider(selectedProvider);
         removeButton.setActive(canRemove);
         removeButton.textStyle(textStyle -> textStyle.textColor(canRemove ? ColorPattern.WHITE.color : ColorPattern.GRAY.color));
     }
@@ -160,9 +160,9 @@ public class ResourceContainer extends UIElement {
     public void screenTick() {
         super.screenTick();
         // check if the providers have changed
-        boolean changed = resource.getProviders().size() != providerToggles.size();
+        boolean changed = resourceInstance.getProviders().size() != providerToggles.size();
         if (!changed) {
-            for (var provider : resource.getProviders()) {
+            for (var provider : resourceInstance.getProviders()) {
                 if (!providerToggles.containsKey(provider)) {
                     changed = true;
                     break;

@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
@@ -10,8 +9,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
-import java.io.File;
-
 public class TexturesResource extends Resource<IGuiTexture> {
 
     public TexturesResource() {
@@ -19,11 +16,6 @@ public class TexturesResource extends Resource<IGuiTexture> {
         builtinResource.addResource("empty", IGuiTexture.EMPTY);
         builtinResource.addResource("missing", IGuiTexture.MISSING_TEXTURE);
         addResourceProvider(builtinResource);
-    }
-
-    @Override
-    public void buildDefault() {
-        addResourceProvider(createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources")).setName("global"));
     }
 
     @Override

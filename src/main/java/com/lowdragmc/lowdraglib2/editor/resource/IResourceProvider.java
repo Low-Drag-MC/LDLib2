@@ -21,7 +21,7 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
 
     IGuiTexture getIcon();
 
-    Resource<T> getResourceHolder();
+    ResourceInstance<T> getResourceInstance();
 
     boolean hasResource(IResourcePath key);
 
