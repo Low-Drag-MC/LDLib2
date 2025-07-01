@@ -2,18 +2,19 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 
 @LDLRegisterClient(name = "group_texture", registry = "ldlib2:gui_texture")
 public class GuiTextureGroup extends TransformTexture {
-
     @Configurable(collapse = false)
-    public IGuiTexture[] textures;
+    @Getter
+    private IGuiTexture[] textures;
 
     public GuiTextureGroup() {
-        this(ResourceBorderTexture.BORDERED_BACKGROUND, new ResourceTexture());
+        this(new ColorBorderTexture(1, -1), new SpriteTexture());
     }
 
     public GuiTextureGroup(IGuiTexture... textures) {

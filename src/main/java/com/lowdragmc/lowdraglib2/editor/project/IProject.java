@@ -50,7 +50,6 @@ public interface IProject extends INBTSerializable<CompoundTag> {
      * Initialize a new empty project. This method will be called when creating a new project and before {@link #onLoad(Editor)}.
      */
     default void initNewProject() {
-        getResources().buildDefault();
     }
 
     /**
@@ -89,14 +88,12 @@ public interface IProject extends INBTSerializable<CompoundTag> {
     default CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
         var data = new CompoundTag();
         data.put("meta", getMetadata());
-        data.put("resources", getResources().serializeNBT(provider));
         data.put("data", serializeProject(provider));
         return data;
     }
 
     @Override
     default void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt) {
-        getResources().deserializeNBT(provider, nbt.getCompound("resources"));
         deserializeProject(provider, nbt.getCompound("data"));
     }
 }

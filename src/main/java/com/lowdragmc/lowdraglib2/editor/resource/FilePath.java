@@ -5,6 +5,16 @@ import java.io.File;
 public record FilePath(File file) implements IResourcePath {
 
     @Override
+    public boolean isBuiltin() {
+        return false;
+    }
+
+    @Override
+    public String getPath() {
+        return file.getPath();
+    }
+
+    @Override
     public String getResourceName() {
         var name = file.getName();
         var dotIndex = name.lastIndexOf('.');

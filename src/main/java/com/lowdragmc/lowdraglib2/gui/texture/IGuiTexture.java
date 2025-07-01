@@ -32,11 +32,21 @@ import java.util.function.Supplier;
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
 public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
-    IGuiTexture MISSING_TEXTURE = new IGuiTexture() {
+    //region builtin textures
+    @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", manual = true)
+    final class EmptyTexture implements IGuiTexture {
         @Override
-        public IGuiTexture copy() {
-            return this;
-        }
+        public IGuiTexture copy() { return EMPTY; }
+
+        @OnlyIn(Dist.CLIENT)
+        @Override
+        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {}
+    }
+
+    @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", manual = true)
+    final class MissingTexture implements IGuiTexture {
+        @Override
+        public IGuiTexture copy() { return MISSING_TEXTURE; }
 
         @OnlyIn(Dist.CLIENT)
         @Override
@@ -52,23 +62,14 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
             bufferbuilder.addVertex(matrix4f, x, y, 0).setUv(0, 0);
             BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
         }
-    };
+    }
+    //endregion
+    EmptyTexture EMPTY = new EmptyTexture();
+    MissingTexture MISSING_TEXTURE = new MissingTexture();
 
     Codec<IGuiTexture> CODEC = LDLib2Registries.GUI_TEXTURES.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
             optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
                     .orElseGet(() -> MapCodec.unit(MISSING_TEXTURE)));
-
-    @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", manual = true)
-    final class EmptyTexture implements IGuiTexture {
-        @Override
-        public IGuiTexture copy() { return EMPTY; }
-
-        @OnlyIn(Dist.CLIENT)
-        @Override
-        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {}
-    }
-
-    EmptyTexture EMPTY = new EmptyTexture();
 
     default IGuiTexture setColor(int color){
         return this;

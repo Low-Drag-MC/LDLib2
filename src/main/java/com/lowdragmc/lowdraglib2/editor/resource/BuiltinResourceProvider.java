@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 
 public class BuiltinResourceProvider<T> extends ResourceProvider<T>{
-    public BuiltinResourceProvider(Resource<T> resourceHolder) {
-        super(resourceHolder);
+    public BuiltinResourceProvider(ResourceInstance<T> resourceInstance) {
+        super(resourceInstance);
         setName("editor.builtin");
         setIcon(Icons.RESOURCE);
     }

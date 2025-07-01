@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor_outdated.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.editor_outdated.configurator.Configurator;
 import com.lowdragmc.lowdraglib2.editor_outdated.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurable;

@@ -102,15 +102,15 @@ public class ResourceView extends View {
     }
 
     public void loadResources(Resources resources) {
-        resources.resources.values().forEach(this::addResourceInstance);
+        resources.resources.stream().map(Resource::getResourceInstance).forEach(this::addResourceInstance);
     }
 
     public void removeResource(Resource<?> resource) {
-        var tab = resourceTabs.remove(resource.getName());
+        var tab = resourceTabs.remove(resource);
         if (tab != null) {
             tabView.removeTab(tab);
         }
-        resources.remove(resource.getName());
+        resources.remove(resource);
     }
 
     public void clear() {
@@ -121,11 +121,7 @@ public class ResourceView extends View {
     }
 
     public void selectResourceInstance(Resource<?> resource) {
-        selectResourceByName(resource.getName());
-    }
-
-    public void selectResourceByName(String resourceName) {
-        var tab = resourceTabs.get(resourceName);
+        var tab = resourceTabs.get(resource);
         if (tab != null) {
             tabView.selectTab(tab);
         }

@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
@@ -53,7 +53,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected Predicate<IResourcePath> canEdit;
     @Setter
     protected Predicate<IResourcePath> canCopy;
-    @Getter
+    @Setter
     protected Function<IResourcePath, ?> onDragProvider;
     @Setter
     protected BooleanSupplier supportAdd;
@@ -238,7 +238,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
-        if (resourceProvider.tickResourceProvider()) {
+        if (resourceProvider.checkAndUpdateResourceProvider()) {
             reloadResourceContainer();
             dirtyResources.clear();
         }
@@ -253,7 +253,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void setDisplayMode(Resource.DisplayMode mode) {
-        if (resourceProvider.getResourceInstance().getDisplayMode() == mode) {
+        if (resourceProvider.getResourceInstance().getDisplayMode() != mode) {
             resourceProvider.getResourceInstance().setDisplayMode(mode);
             reloadResourceContainer();
         }
@@ -345,6 +345,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public void removeResource(IResourcePath key, boolean confirm) {
         if (key != null && canRemove.test(key)) {
             var value = resourceProvider.getResource(key);
+            if (value == null) return;
             if (confirm) {
                 Dialog.showCheckBox("ldlib.gui.editor.menu.remove", "editor.remove.confirm", result -> {
                     if (result) {

@@ -39,6 +39,10 @@ public class UIEvent {
      * Key Event data
      */
     public int keyCode, scanCode, modifiers;
+    /**
+     * Command name
+     */
+    public String command;
     public char codePoint;
     @Nullable
     public Object customData;
@@ -73,6 +77,7 @@ public class UIEvent {
         this.type = type;
     }
 
+    //TODO Shall we use an Event Pool here to avoid the cost of creating instances?
     public static UIEvent create(String type) {
         return new UIEvent(type);
     }

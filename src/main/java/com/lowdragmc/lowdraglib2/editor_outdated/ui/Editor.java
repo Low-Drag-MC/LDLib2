@@ -114,7 +114,6 @@ public abstract class Editor extends WidgetGroup {
         this.toolPanel = new ToolPanel(this);
         this.configPanel = new ConfigPanel(this);
         this.tabPages = new StringTabContainer(this);
-        this.resourcePanel = new ResourcePanel(this);
         this.menuPanel = new MenuPanel(this);
         this.floatView = new WidgetGroup(0, 0, this.getSize().width, this.getSize().height);
 

@@ -80,7 +80,7 @@ v     */
      * This can be used to reload resources, check for changes, etc.
      * @return true if the resource provider has changed, false otherwise.
      */
-    default boolean tickResourceProvider() {
+    default boolean checkAndUpdateResourceProvider() {
         return false;
     }
 

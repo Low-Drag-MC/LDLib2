@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.configurator.accessors.IConfiguratorAccessor;
 import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib2.editor_outdated.data.IProject;
 import com.lowdragmc.lowdraglib2.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
@@ -35,10 +34,6 @@ public class LDLib2Registries {
             .create(LDLib2.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
 
     @OnlyIn(Dist.CLIENT)
-    public final static AutoRegistry.LDLibRegisterClient<IProject, Supplier<IProject>> PROJECTS = AutoRegistry.LDLibRegisterClient
-            .create(LDLib2.id("project"), IProject.class, AutoRegistry::noArgsCreator);
-
-    @OnlyIn(Dist.CLIENT)
     public final static AutoRegistry.LDLibRegisterClient<IRenderer, Supplier<IRenderer>> RENDERERS = AutoRegistry.LDLibRegisterClient
             .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
 
@@ -53,7 +48,18 @@ public class LDLib2Registries {
 
     public static void init() {
         if (LDLib2.isClient()) {
-            GUI_TEXTURES.register("empty", AutoRegistry.Holder.of(IGuiTexture.EmptyTexture.class.getAnnotation(LDLRegisterClient.class), IGuiTexture.EmptyTexture.class, () -> IGuiTexture.EMPTY));
+            GUI_TEXTURES.register("empty", AutoRegistry.Holder.of(
+                    IGuiTexture.EmptyTexture.class.getAnnotation(LDLRegisterClient.class),
+                    IGuiTexture.EmptyTexture.class,
+                    () -> IGuiTexture.EMPTY));
+            GUI_TEXTURES.register("missing", AutoRegistry.Holder.of(
+                    IGuiTexture.MissingTexture.class.getAnnotation(LDLRegisterClient.class),
+                    IGuiTexture.MissingTexture.class,
+                    () -> IGuiTexture.MISSING_TEXTURE));
+            RENDERERS.register("empty", AutoRegistry.Holder.of(
+                    IRenderer.EmptyRenderer.class.getAnnotation(LDLRegisterClient.class),
+                    IRenderer.EmptyRenderer.class,
+                    () -> IRenderer.EMPTY));
         }
     }
 }

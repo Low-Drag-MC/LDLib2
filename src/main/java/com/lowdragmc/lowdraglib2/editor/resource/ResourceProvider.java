@@ -13,7 +13,7 @@ import java.util.Map;
 @Accessors(chain = true)
 public abstract class ResourceProvider<T> implements IResourceProvider<T> {
     @Getter
-    public final Resource<T> resourceHolder;
+    public final ResourceInstance<T> resourceInstance;
     @Getter
     protected final Map<IResourcePath, T> contents = new LinkedHashMap<>();
     @Getter @Setter
@@ -21,8 +21,8 @@ public abstract class ResourceProvider<T> implements IResourceProvider<T> {
     @Getter @Setter
     private IGuiTexture icon;
     
-    protected ResourceProvider(Resource<T> resourceHolder) {
-        this.resourceHolder = resourceHolder;
+    protected ResourceProvider(ResourceInstance<T> resourceHolder) {
+        this.resourceInstance = resourceHolder;
     }
 
     public abstract boolean supportResourcePath(IResourcePath path);

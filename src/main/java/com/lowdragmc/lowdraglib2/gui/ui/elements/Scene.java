@@ -43,7 +43,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 @Accessors(chain = true)
 public class Scene extends UIElement {

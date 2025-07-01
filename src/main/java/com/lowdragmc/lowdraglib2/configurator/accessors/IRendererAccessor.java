@@ -1,12 +1,11 @@
-package com.lowdragmc.lowdraglib2.editor_outdated.accessors;
+package com.lowdragmc.lowdraglib2.configurator.accessors;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
-import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib2.editor_outdated.configurator.Configurator;
-import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IRendererConfigurator;
-import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.IRendererConfigurator;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.resources.ResourceLocation;
 
 import java.lang.reflect.Field;
@@ -29,7 +28,7 @@ public class IRendererAccessor extends TypesAccessor<IRenderer> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<IRenderer> supplier, Consumer<IRenderer> consumer, boolean forceUpdate, Field field) {
-        return new IRendererConfigurator(name, supplier, consumer, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())), forceUpdate);
+    public Configurator create(String name, Supplier<IRenderer> supplier, Consumer<IRenderer> consumer, boolean forceUpdate, Field field, Object owner) {
+        return new IRendererConfigurator(name, supplier, consumer, defaultValue(field, field.getType()), forceUpdate);
     }
 }

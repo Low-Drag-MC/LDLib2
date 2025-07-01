@@ -2,20 +2,21 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
 public class TexturesResource extends Resource<IGuiTexture> {
+    public static final TexturesResource INSTANCE = new TexturesResource();
 
-    public TexturesResource() {
-        var builtinResource = new BuiltinResourceProvider<>(this);
-        builtinResource.addResource("empty", IGuiTexture.EMPTY);
-        builtinResource.addResource("missing", IGuiTexture.MISSING_TEXTURE);
-        addResourceProvider(builtinResource);
+    @Override
+    public void buildBuiltin(BuiltinResourceProvider<IGuiTexture> provider) {
+        provider.addResource("empty", IGuiTexture.EMPTY);
+        provider.addResource("missing", IGuiTexture.MISSING_TEXTURE);
     }
 
     @Override
@@ -50,11 +51,12 @@ public class TexturesResource extends Resource<IGuiTexture> {
             if (texture == null) return;
             c.getEditor().inspectorView.inspect(texture, configurator -> c.markResourceDirty(path));
         });
+        container.setOnDragProvider(UIResourceTexture::new);
         if (provider.supportAdd()) {
             container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
                 for (var holder : LDLib2Registries.GUI_TEXTURES) {
                     String name = holder.annotation().name();
-                    if (name.equals("empty") || name.equals("ui_resource_texture")) continue;
+                    if (name.equals("empty") || name.equals("missing") || name.equals("ui_resource_texture")) continue;
                     IGuiTexture icon = holder.value().get();
                     menu.leaf(icon, name, () -> c.addNewResource(holder.value().get()));
                 }

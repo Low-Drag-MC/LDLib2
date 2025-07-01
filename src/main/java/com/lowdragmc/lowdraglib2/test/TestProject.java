@@ -20,9 +20,9 @@ public class TestProject implements IProject {
 
     public TestProject() {
         this.resources = Resources.of(
-          new ColorsResource(),
-          new TexturesResource(),
-          new IRendererResource()
+                ColorsResource.INSTANCE,
+                TexturesResource.INSTANCE,
+                IRendererResource.INSTANCE
         );
     }
 

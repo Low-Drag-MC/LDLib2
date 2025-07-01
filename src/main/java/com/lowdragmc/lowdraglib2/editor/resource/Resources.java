@@ -1,14 +1,10 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author KilaBash
@@ -17,39 +13,17 @@ import java.util.Map;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class Resources implements INBTSerializable<CompoundTag> {
-    public static final Resources EMPTY = new Resources(Map.of());
+public class Resources {
+    public static final Resources EMPTY = new Resources(List.of());
 
-    public final ImmutableMap<Resource<?>, ResourceInstance<?>> resources;
+    public final ImmutableList<Resource<?>> resources;
 
-    public Resources(Map<Resource<?>, ResourceInstance<?>> resources) {
-        this.resources = ImmutableMap.copyOf(resources);
+    public Resources(List<Resource<?>> resources) {
+        this.resources = ImmutableList.copyOf(resources);
     }
 
     public static Resources of(Resource<?>... resources) { // default
-        Map<Resource<?>, ResourceInstance<?>> map = new LinkedHashMap<>();
-        for (Resource<?> resource : resources) {
-            map.put(resource, new ResourceInstance<>(resource));
-        }
-        return new Resources(map);
+        return new Resources(Arrays.stream(resources).toList());
     }
-
-    /**
-     * Prepare the default resources.
-     */
-    public void buildDefault() {
-        resources.values().forEach(ResourceInstance::buildDefault);
-    }
-
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        CompoundTag tag = new CompoundTag();
-        resources.forEach((key, resource) -> tag.put(key.getName(), resource.serializeNBT(provider)));
-        return tag;
-    }
-
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        resources.forEach((k, v) -> v.deserializeNBT(provider, nbt.getCompound(k.getName())));
-    }
-
 
 }

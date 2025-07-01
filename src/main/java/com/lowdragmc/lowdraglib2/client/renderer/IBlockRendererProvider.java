@@ -11,11 +11,6 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 
-/**
- * Author: KilaBash
- * Date: 2022/04/21
- * Description: 
- */
 public interface IBlockRendererProvider {
 
     /**
@@ -34,7 +29,7 @@ public interface IBlockRendererProvider {
         } else {
             int i = world.getBrightness(LightLayer.SKY, pos);
             int j = world.getBrightness(LightLayer.BLOCK, pos);
-            int k = state.getLightEmission();
+            int k = state.getLightEmission(world, pos);
             if (j < k) {
                 j = k;
             }

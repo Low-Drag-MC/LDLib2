@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
@@ -67,8 +68,8 @@ public class ResourceContainer<T> extends UIElement {
             layout.setWidthPercent(100);
         })).setPercentage(13));
 
-        if (resourceInstance.resource.canAddFileResourceProvider()) {
-            addButton.setActive(resourceInstance.resource.canAddFileResourceProvider());
+        if (resourceInstance.canAddFileResourceProvider()) {
+            addButton.setActive(resourceInstance.canAddFileResourceProvider());
             addButton.textStyle(textStyle -> textStyle.textColor(ColorPattern.WHITE.color));
         }
         removeButton.setActive(false);
@@ -77,10 +78,10 @@ public class ResourceContainer<T> extends UIElement {
     }
 
     private void onRemoveFileResourceProvider(UIEvent event) {
-        if (selectedProvider != null) {
+        if (selectedProvider instanceof FileResourceProvider<T> resourceProvider) {
             Dialog.showCheckBox("ldlib.gui.resource.remove_provider", "editor.remove.confirm", result -> {
                 if (result) {
-                    resourceInstance.removeResourceProvider(selectedProvider);
+                    resourceInstance.removeResourceProvider(resourceProvider);
                     selectProvider(null);
                 }
             }).show(editor);
@@ -93,7 +94,7 @@ public class ResourceContainer<T> extends UIElement {
                 result = result.getParentFile();
             }
             if (result.isDirectory()) {
-                resourceInstance.addResourceProvider(resourceInstance.resource.createNewFileResourceProvider(result));
+                resourceInstance.addFileResourceProvider(resourceInstance.createNewFileResourceProvider(result));
             }
         }).show(editor);
     }
@@ -104,7 +105,7 @@ public class ResourceContainer<T> extends UIElement {
         providerList.clearAllScrollViewChildren();
         providerContainer.clearAllChildren();
 
-        for (var provider : resourceInstance.getProviders()) {
+        for (var provider : resourceInstance.getFileResourceProviders()) {
             var toggle = new UIElement().layout(layout -> {
                 layout.setHeight(12);
                 layout.setWidthPercent(100);
@@ -120,11 +121,11 @@ public class ResourceContainer<T> extends UIElement {
             providerToggles.put(provider, toggle);
         }
 
-        if (!resourceInstance.getProviders().isEmpty()) {
-            if (lastSelectedProvider != null && resourceInstance.getProviders().contains(lastSelectedProvider)) {
+        if (!resourceInstance.getFileResourceProviders().isEmpty()) {
+            if (lastSelectedProvider != null && resourceInstance.getFileResourceProviders().contains(lastSelectedProvider)) {
                 selectProvider(lastSelectedProvider);
             } else {
-                selectProvider(resourceInstance.getProviders().getFirst());
+                selectProvider(resourceInstance.getFileResourceProviders().getFirst());
             }
         } else {
             selectProvider(null);
@@ -151,7 +152,7 @@ public class ResourceContainer<T> extends UIElement {
             providerView.reloadResourceContainer();
             providerContainer.addChild(providerView);
         }
-        var canRemove = selectedProvider != null && resourceInstance.resource.canRemoveResourceProvider(selectedProvider);
+        var canRemove = selectedProvider != null && resourceInstance.canRemoveResourceProvider(selectedProvider);
         removeButton.setActive(canRemove);
         removeButton.textStyle(textStyle -> textStyle.textColor(canRemove ? ColorPattern.WHITE.color : ColorPattern.GRAY.color));
     }
@@ -160,9 +161,9 @@ public class ResourceContainer<T> extends UIElement {
     public void screenTick() {
         super.screenTick();
         // check if the providers have changed
-        boolean changed = resourceInstance.getProviders().size() != providerToggles.size();
+        boolean changed = resourceInstance.getFileResourceProviders().size() != providerToggles.size();
         if (!changed) {
-            for (var provider : resourceInstance.getProviders()) {
+            for (var provider : resourceInstance.getFileResourceProviders()) {
                 if (!providerToggles.containsKey(provider)) {
                     changed = true;
                     break;

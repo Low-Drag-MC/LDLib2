@@ -136,6 +136,7 @@
   "editor.copy_resource": "copy resource",
   "editor.remove_resource": "remove resource",
   "editor.rename_resource": "rename resource",
+  "editor.drag_drop_resource": "drag and drop resource",
 
   "ldlib.gui.editor.menu.edit": "edit",
   "ldlib.gui.editor.menu.add_resource": "add a new resource",
@@ -286,6 +287,7 @@
   "ldlib.compass.c_press": "Press [C] open compass",
 
   "json_model": "Json Model",
+  "renderer_group": "Renderer Group",
   "ldlib.renderer.block_model": "BlockState Model",
   "ldlib.gui.editor.config_panel.tabs.widget": "basic configurator",
   "ldlib.gui.editor.config_panel.tabs.resource": "resource configurator",

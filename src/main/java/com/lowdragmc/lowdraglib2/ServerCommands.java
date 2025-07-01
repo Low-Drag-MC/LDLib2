@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.lowdragmc.lowdraglib2.gui.factory.UIEditorFactory;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -32,12 +31,6 @@ public class ServerCommands {
 	public static List<LiteralArgumentBuilder<CommandSourceStack>> createServerCommands() {
 		return List.of(
 				Commands.literal("ldlib2")
-						.then(Commands.literal("ui_editor")
-								.executes(context -> {
-									UIEditorFactory.INSTANCE.openUI(UIEditorFactory.INSTANCE,
-											context.getSource().getPlayerOrException());
-									return 1;
-								}))
 						.then(Commands.literal("copy_block_tag")
 								.then(Commands.argument("pos", BlockPosArgument.blockPos())
 										.executes(context -> {

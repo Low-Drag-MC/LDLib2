@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.editor_outdated.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.editor_outdated.ui.menu.MenuTab;
 import com.lowdragmc.lowdraglib2.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib2.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib2.gui.widget.WidgetGroup;
@@ -24,8 +23,6 @@ public class MenuPanel extends WidgetGroup {
 
     @Getter
     protected final Editor editor;
-    @Getter
-    protected final Map<String, MenuTab> tabs = new LinkedHashMap<>();
 
     public MenuPanel(Editor editor) {
         super(0, 0, editor.getSize().getWidth() - ConfigPanel.WIDTH, HEIGHT);
@@ -41,10 +38,6 @@ public class MenuPanel extends WidgetGroup {
             initTabs();
         }
         super.initWidget();
-    }
-
-    public <T extends MenuTab> T getTab(String name) {
-        return (T) tabs.get(name);
     }
 
     protected void initTabs() {
@@ -72,20 +65,4 @@ public class MenuPanel extends WidgetGroup {
 //            }
 //        }
     }
-
-    public void saveMenuData() {
-        var tag = new CompoundTag();
-        for (MenuTab tab : tabs.values()) {
-            var nbt = tab.serializeNBT();
-            if (!nbt.isEmpty()) {
-                tag.put(tab.name(), nbt);
-            }
-        }
-        try {
-            NbtIo.write(tag, editor.getWorkSpace().toPath().resolve("settings/menu.cfg"));
-        } catch (IOException e) {
-            LDLib2.LOGGER.error(e.getMessage());
-        }
-    }
-
 }

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.syncdata;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Pivot;
 import com.lowdragmc.lowdraglib2.math.Position;
@@ -338,6 +339,10 @@ public class AccessorRegistries {
                         Recipe.CODEC.fieldOf("recipe").forGetter(RecipeHolder::value)
                 ).apply(instance, RecipeHolder::new)))
                 .streamCodec((StreamCodec<RegistryFriendlyByteBuf, RecipeHolder>) (Object)RecipeHolder.STREAM_CODEC)
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(IResourcePath.class)
+                .codec(IResourcePath.CODEC)
+                .streamCodec(ByteBufCodecs.fromCodec(IResourcePath.CODEC))
                 .build());
 
 

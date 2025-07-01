@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 @Mixin(SpriteSourceList.class)
 public class SpriteSourceListMixin {
 
+    // TODO do we really need CTM here?
     // load ctm textures
     @Inject(method = "list", at = @At(value = "INVOKE", target = "Lcom/google/common/collect/ImmutableList;builder()Lcom/google/common/collect/ImmutableList$Builder;"))
     private void ldlib2$injectList(ResourceManager resourceManager, CallbackInfoReturnable<List<Supplier<SpriteContents>>> cir,

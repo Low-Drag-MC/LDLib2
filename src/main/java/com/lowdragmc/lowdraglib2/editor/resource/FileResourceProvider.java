@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -31,8 +31,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public final String resourceSuffix;
     private final Map<File, Long> resourcesLastModified = new LinkedHashMap<>();
 
-    public FileResourceProvider(Resource<T> resource, File resourceLocation, String resourceSuffix) {
-        super(resource);
+    public FileResourceProvider(ResourceInstance<T> resourceInstance, File resourceLocation, String resourceSuffix) {
+        super(resourceInstance);
         this.resourceLocation = resourceLocation;
         this.resourceSuffix = resourceSuffix;
         setName(resourceLocation.getName());
@@ -66,18 +66,18 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     @Nullable
     public CompoundTag serializeNBT(T value, HolderLookup.Provider provider) {
-        var tag = resourceHolder.serializeResource(value, provider);
+        var tag = resourceInstance.resource.serializeResource(value, provider);
         if (tag == null) return null;
         var nbt = new CompoundTag();
         nbt.put("data", tag);
-        nbt.putString("type", resourceHolder.getName());
+        nbt.putString("type", resourceInstance.resource.getName());
         return nbt;
     }
 
     @Nullable
     public T deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
-        if (nbt.getString("type").equals(resourceHolder.getName())) {
-            return resourceHolder.deserializeResource(nbt.get("data"), provider);
+        if (nbt.getString("type").equals(resourceInstance.resource.getName())) {
+            return resourceInstance.resource.deserializeResource(nbt.get("data"), provider);
         }
         return null;
     }
@@ -149,7 +149,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
      * Load and update resource
      * @return true resource changes.
      */
-    public boolean tickResourceProvider() {
+    public boolean checkAndUpdateResourceProvider() {
         if (resourceLocation == null) {
             return false;
         }
@@ -218,13 +218,12 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         var data = new CompoundTag();
         data.putString("name", getName());
         data.putString("location", resourceLocation.getPath());
-        data.putString("suffix", resourceSuffix);
         return data;
     }
 
-    public static <T> FileResourceProvider<T> fromNBT(Resource<T> resourceHolder, @Nonnull CompoundTag nbt) {
+    public static <T> FileResourceProvider<T> fromNBT(ResourceInstance<T> resourceInstance, @Nonnull CompoundTag nbt) {
         var location = new File(nbt.getString("location"));
-        var resourceSuffix = nbt.getString("suffix");
-        return (FileResourceProvider<T>) new FileResourceProvider<T>(resourceHolder, location, resourceSuffix).setName(nbt.getString("name"));
+        return (FileResourceProvider<T>) new FileResourceProvider<>(resourceInstance, location, resourceInstance.resource.getFileExtension())
+                .setName(nbt.getString("name"));
     }
 }

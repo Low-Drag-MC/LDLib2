@@ -113,6 +113,18 @@ public interface UIEvents {
      */
     String CHAR_TYPED = "charTyped";
 
+    ///  Command Events
+    /**
+     * The {@code validateCommand} is sent when determining whether an element in the panel handles the command.
+     * Supported commands can be found in {@link CommandEvents}.
+     * To execute this command, call {@link UIEvent#stopPropagation()}.
+     */
+    String VALIDATE_COMMAND = "validateCommand";
+    /**
+     * The {@code executeCommand} is sent when an element in the panel executes a command.
+     * Supported commands can be found in {@link CommandEvents}
+     */
+    String EXECUTE_COMMAND = "executeCommand";
 
     /// Layout Events
     /**

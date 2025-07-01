@@ -69,14 +69,14 @@ public class ATESRRendererProvider<T extends BlockEntity> implements BlockEntity
 
     public boolean hasRenderer(T blockEntity) {
         IRenderer renderer = getRenderer(blockEntity);
-        return renderer != null && renderer.hasTESR(blockEntity);
+        return renderer != null && renderer.hasBlockEntityRenderer(blockEntity);
     }
 
     @Override
     public boolean shouldRenderOffScreen(@Nonnull T blockEntity) {
         IRenderer renderer = getRenderer(blockEntity);
         if (renderer != null) {
-            return renderer.isGlobalRenderer(blockEntity);
+            return renderer.shouldRenderOffScreen(blockEntity);
         }
         return false;
     }

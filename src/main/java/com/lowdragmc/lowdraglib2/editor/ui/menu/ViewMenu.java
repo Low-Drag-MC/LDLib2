@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui.menu;
 
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import net.minecraft.client.Minecraft;

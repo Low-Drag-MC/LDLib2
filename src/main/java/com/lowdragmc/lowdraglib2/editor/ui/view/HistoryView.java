@@ -4,13 +4,15 @@ import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.configurator.SerializableRecordAction;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import lombok.Getter;
@@ -59,6 +61,27 @@ public class HistoryView extends View {
             layout.setGap(YogaGutter.ALL, 1);
         });
         addChild(scrollerView);
+
+        addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+    }
+
+    protected void onValidateCommand(UIEvent event) {
+        if (CommandEvents.REDO.equals(event.command) && !redoStack.isEmpty()) {
+            event.stopPropagation();
+        }
+        if (CommandEvents.UNDO.equals(event.command) && !undoStack.isEmpty()) {
+            event.stopPropagation();
+        }
+    }
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.REDO.equals(event.command) && !redoStack.isEmpty()) {
+            redo();
+        }
+        if (CommandEvents.UNDO.equals(event.command) && !undoStack.isEmpty()) {
+            undo();
+        }
     }
 
     private void checkStackSize() {
@@ -154,6 +177,23 @@ public class HistoryView extends View {
         checkStackSize();
     }
 
+    public void undo() {
+        if (undoStack.isEmpty()) return;
+        var top = undoStack.pop();
+        if (undoStack.isEmpty()) {
+            undoStack.push(top);
+            return;
+        }
+        var historyItem = undoStack.peek();
+        undoStack.push(top);
+        jumpToHistory(historyItem);
+    }
+
+    public void redo() {
+        if (redoStack.isEmpty()) return;
+        var historyItem = redoStack.peek();
+        jumpToHistory(historyItem);
+    }
 
     public void jumpToHistory(HistoryItem historyItem) {
         if (currentHistory == historyItem) return;

@@ -800,7 +800,6 @@ public class UIElement {
         return addEventListener(eventType, listener, false);
     }
 
-
     /**
      * Block the propagation of the event for the interaction.
      */

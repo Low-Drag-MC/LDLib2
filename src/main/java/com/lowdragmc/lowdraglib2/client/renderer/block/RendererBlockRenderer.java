@@ -72,14 +72,14 @@ class RendererBlockRenderer implements IRenderer {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean hasTESR(BlockEntity blockEntity) {
-        return getMachine(blockEntity).map(machine -> machine.getRenderer().hasTESR(blockEntity)).orElse(false);
+    public boolean hasBlockEntityRenderer(BlockEntity blockEntity) {
+        return getMachine(blockEntity).map(machine -> machine.getRenderer().hasBlockEntityRenderer(blockEntity)).orElse(false);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean isGlobalRenderer(BlockEntity blockEntity) {
-        return getMachine(blockEntity).map(machine -> machine.getRenderer().isGlobalRenderer(blockEntity)).orElse(false);
+    public boolean shouldRenderOffScreen(BlockEntity blockEntity) {
+        return getMachine(blockEntity).map(machine -> machine.getRenderer().shouldRenderOffScreen(blockEntity)).orElse(false);
     }
 
     @Override

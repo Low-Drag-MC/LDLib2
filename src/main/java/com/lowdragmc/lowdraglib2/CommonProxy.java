@@ -65,7 +65,6 @@ public class CommonProxy {
     public static void init() {
         UIFactory.register(BlockEntityUIFactory.INSTANCE);
         UIFactory.register(HeldItemUIFactory.INSTANCE);
-        UIFactory.register(UIEditorFactory.INSTANCE);
         if (LDLib2.isKubejsLoaded()) {
             UIFactory.register(BlockUIJSFactory.INSTANCE);
             UIFactory.register(ItemUIJSFactory.INSTANCE);

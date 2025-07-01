@@ -1,7 +1,6 @@
-package com.lowdragmc.lowdraglib2.editor_outdated;
+package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.texture.*;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
 

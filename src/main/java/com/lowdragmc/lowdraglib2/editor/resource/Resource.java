@@ -6,12 +6,10 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.util.*;
 
 import net.minecraft.network.chat.Component;
 
@@ -20,12 +18,12 @@ public abstract class Resource<T> {
         LIST,
         GRID,
     }
-    @Getter
-    protected final List<ResourceProvider<T>> providers = new ArrayList<>();
     @Getter @Setter
     private DisplayMode defaultDisplayMode = DisplayMode.GRID;
     @Getter @Setter
     private int defaultUIWidth = 30;
+    @Getter(lazy = true)
+    private final ResourceInstance<T> resourceInstance = createResourceInstance();
 
     public Resource() {
     }
@@ -47,42 +45,23 @@ public abstract class Resource<T> {
         return "." + getName() + ".nbt";
     }
 
+    protected ResourceInstance<T> createResourceInstance() {
+        return new ResourceInstance<>(this);
+    }
+
+    /**
+     * Generate builtin resources
+     */
+    public void buildBuiltin(BuiltinResourceProvider<T> provider) {
+    }
+
     /**
      * Generate default resources.
      */
     public void buildDefault(ResourceInstance<T> instance) {
-        instance.addResourceProvider(createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources")).setName("global"));
-    }
-
-    /**
-     * Whether this resource can add a file resource provider. This is used to determine whether the button should be displayed in the UI.
-     */
-    public boolean canAddFileResourceProvider() {
-        return true;
-    }
-
-    /**
-     * Whether this resource can remove a resource provider. This is used to determine whether the remove button should be displayed in the UI.
-     * By default, only FileResourceProvider can be removed.
-     */
-    public boolean canRemoveResourceProvider(ResourceProvider<T> provider) {
-        return provider instanceof FileResourceProvider<T>;
-    }
-
-    /**
-     * Create a new file resource provider for this resource. This is used to create a new resource provider that can read and write resources from files.
-     */
-    public FileResourceProvider<T> createNewFileResourceProvider(File directory) {
-        return new FileResourceProvider<>(this, directory, getFileExtension());
-    }
-
-    /**
-     * Creates a new {@link FileResourceProvider} instance using the data from the given NBT tag.
-     * @param tag The {@link CompoundTag} containing the serialized data for the file resource provider.
-     * @return A {@link FileResourceProvider} created from the data in the given {@link CompoundTag}.
-     */
-    protected FileResourceProvider<T> createFileResourceProviderFromNBT(CompoundTag tag) {
-        return FileResourceProvider.fromNBT(this, tag);
+        var global = instance.createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
+        global.setName("global");
+        instance.addFileResourceProvider(global);
     }
 
     /**

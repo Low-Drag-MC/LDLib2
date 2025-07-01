@@ -6,9 +6,11 @@ import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
@@ -16,6 +18,7 @@ import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -52,24 +55,36 @@ import org.appliedenergistics.yoga.YogaEdge;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRenderer>>, IConfigurable, IPersistedSerializable {
-    IRenderer EMPTY = new IRenderer() {};
+    //region builtin renderer
+    @LDLRegisterClient(name = "empty", registry = "ldlib2:renderer", manual = true)
+    final class EmptyRenderer implements IRenderer {
+        @Override
+        public IRenderer copy() { return EMPTY; }
+    }
+    //endregion
+    EmptyRenderer EMPTY = new EmptyRenderer();
+
     Codec<IRenderer> CODEC = LDLib2Registries.RENDERERS.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
             optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
                     .orElseGet(() -> MapCodec.unit(EMPTY)));
+    Set<IRenderer> EVENT_REGISTERS = ConcurrentHashMap.newKeySet();
 
-    Set<IRenderer> EVENT_REGISTERS = new HashSet<>();
-
-    // should be called after deserialization and only once.
-    default void initRenderer() {
+    @Nullable
+    default CompoundTag serializeWrapper() {
+        return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).result().orElse(null);
     }
 
-    @Override
-    default void afterDeserialize() {
-        initRenderer();
+    static IRenderer deserializeWrapper(Tag tag) {
+        return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(EMPTY);
+    }
+
+    default IRenderer copy() {
+        return deserializeWrapper(serializeWrapper());
     }
 
     /**
@@ -112,7 +127,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
     }
 
     /**
-     * Register additional model here.
+     * Register additional models here.
      */
     @OnlyIn(Dist.CLIENT)
     default void onAdditionalModel(Consumer<ModelResourceLocation> registry) {
@@ -124,24 +139,22 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
      */
     @OnlyIn(Dist.CLIENT)
     default void registerEvent() {
-        synchronized (EVENT_REGISTERS) {
-            EVENT_REGISTERS.add(this);
-        }
+        EVENT_REGISTERS.add(this);
     }
 
     /**
-     * Does the block entity have the TESR {@link net.minecraft.client.renderer.blockentity.BlockEntityRenderer}.
+     * Does the block entity have the {@link net.minecraft.client.renderer.blockentity.BlockEntityRenderer}.
      */
     @OnlyIn(Dist.CLIENT)
-    default boolean hasTESR(BlockEntity blockEntity) {
+    default boolean hasBlockEntityRenderer(BlockEntity blockEntity) {
         return false;
     }
 
     /**
-     * Is the TESR {@link net.minecraft.client.renderer.blockentity.BlockEntityRenderer} global.
+     * Does the block entity render offscreen {@link net.minecraft.client.renderer.blockentity.BlockEntityRenderer#shouldRenderOffScreen(BlockEntity)}.
      */
     @OnlyIn(Dist.CLIENT)
-    default boolean isGlobalRenderer(BlockEntity blockEntity) {
+    default boolean shouldRenderOffScreen(BlockEntity blockEntity) {
         return false;
     }
 
@@ -238,11 +251,8 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
         return new AABB(blockEntity.getBlockPos());
     }
 
-    /**
-     * Preview of the renderer.
-     */
     @OnlyIn(Dist.CLIENT)
-    default void createPreview(ConfiguratorGroup father) {
+    default Scene createPreviewScene() {
         var level = new TrackedDummyWorld();
         level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(RendererBlock.BLOCK));
         Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
@@ -255,6 +265,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
         scene.setRenderFacing(false);
         scene.setRenderSelect(false);
         scene.createScene(level);
+        assert scene.getRenderer() != null;
         scene.getRenderer().setOnLookingAt(null); // better performance
         scene.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
         scene.layout(layout -> {
@@ -264,8 +275,15 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
             layout.setPadding(YogaEdge.ALL, 3);
         });
         scene.style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
+        return scene;
+    }
 
-        father.addConfigurators(new Configurator("ldlib.gui.editor.group.preview").addChild(scene));
+    /**
+     * Preview of the renderer.
+     */
+    @OnlyIn(Dist.CLIENT)
+    default void createPreview(ConfiguratorGroup father) {
+        father.addConfigurators(new Configurator("ldlib.gui.editor.group.preview").addChild(createPreviewScene()));
     }
 
     @Override
@@ -273,14 +291,5 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
     default void buildConfigurator(ConfiguratorGroup father) {
         createPreview(father);
         IConfigurable.super.buildConfigurator(father);
-    }
-
-    @Nullable
-    default CompoundTag serializeWrapper() {
-        return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).result().orElse(null);
-    }
-
-    static IRenderer deserializeWrapper(Tag tag) {
-        return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(EMPTY);
     }
 }

@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -18,15 +18,18 @@ import net.minecraft.network.chat.Component;
 import javax.annotation.Nullable;
 
 public class ColorsResource extends Resource<Integer> {
+    public static final ColorsResource INSTANCE = new ColorsResource();
 
     public ColorsResource() {
-        var builtinResource = new BuiltinResourceProvider<>(this);
-        for (ColorPattern value : ColorPattern.values()) {
-            builtinResource.addResource(value.colorName, value.color);
-        }
-        addResourceProvider(builtinResource);
         setDefaultDisplayMode(DisplayMode.LIST);
         setDefaultUIWidth(15);
+    }
+
+    @Override
+    public void buildBuiltin(BuiltinResourceProvider<Integer> provider) {
+        for (ColorPattern value : ColorPattern.values()) {
+            provider.addResource(value.colorName, value.color);
+        }
     }
 
     @Override

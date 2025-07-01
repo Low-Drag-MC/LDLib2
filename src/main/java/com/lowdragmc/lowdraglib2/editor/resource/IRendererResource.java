@@ -4,9 +4,10 @@ import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
+import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.client.scene.FBOWorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
-import com.lowdragmc.lowdraglib2.editor_outdated.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -22,12 +23,11 @@ import java.util.List;
 import java.util.Optional;
 
 public class IRendererResource extends Resource<IRenderer> {
+    public static final IRendererResource INSTANCE = new IRendererResource();
 
-    public IRendererResource() {
-        var builtinResource = new BuiltinResourceProvider<>(this);
-        builtinResource.addResource("empty", IRenderer.EMPTY);
-        addResourceProvider(builtinResource);
-
+    @Override
+    public void buildBuiltin(BuiltinResourceProvider<IRenderer> provider) {
+        provider.addResource("empty", IRenderer.EMPTY);
     }
 
     @Override
@@ -78,14 +78,15 @@ public class IRendererResource extends Resource<IRenderer> {
             if (renderer == null) return;
             c.getEditor().inspectorView.inspect(renderer, configurator -> c.markResourceDirty(path));
         });
+        container.setOnDragProvider(UIResourceRenderer::new);
 
         if (provider.supportAdd()) {
             container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
                 for (var holder : LDLib2Registries.RENDERERS) {
                     var name = holder.annotation().name();
+                    if (name.equals("empty") || name.equals("ui_resource_renderer")) continue;
                     menu.leaf(name, () -> {
                         var renderer = holder.value().get();
-                        renderer.initRenderer();
                         c.addNewResource(renderer);
                     });
                 }

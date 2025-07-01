@@ -20,8 +20,6 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockModel;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.*;
 import net.minecraft.core.BlockPos;
@@ -51,18 +49,42 @@ public class IModelRenderer implements IRenderer {
     protected ResourceLocation modelLocation;
 
     @OnlyIn(Dist.CLIENT)
-    protected BakedModel itemModel;
+    @Nullable
+    protected volatile BakedModel itemModel;
+    @OnlyIn(Dist.CLIENT)
+    private volatile boolean itemModelInitialized = false;
 
     @OnlyIn(Dist.CLIENT)
     protected Map<ModelState, BakedModel> modelCaches;
 
     protected IModelRenderer() {
-        modelLocation = ResourceLocation.withDefaultNamespace("block/furnace");
+        this(ResourceLocation.withDefaultNamespace("block/furnace"));
     }
 
     public IModelRenderer(ResourceLocation modelLocation) {
         this.modelLocation = modelLocation;
-        initRenderer();
+        if (LDLib2.isClient()) {
+            modelCaches = new ConcurrentHashMap<>();
+            registerEvent();
+        }
+    }
+
+    private synchronized void clearCache() {
+        if (LDLib2.isClient()) {
+            itemModel = null;
+            itemModelInitialized = false;
+            if (modelCaches != null) modelCaches.clear();
+        }
+    }
+
+    @Override
+    public IModelRenderer copy() {
+        return new IModelRenderer(modelLocation);
+    }
+
+    @Override
+    public void afterDeserialize() {
+        clearCache();
     }
 
     @Override
@@ -73,7 +95,7 @@ public class IModelRenderer implements IRenderer {
         if (model == null) {
             return IRenderer.super.getParticleTexture(level, pos, modelData);
         }
-        return model.getParticleIcon();
+        return model.getParticleIcon(modelData);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -117,6 +139,11 @@ public class IModelRenderer implements IRenderer {
     }
 
     @Override
+    public TriState useAO(BlockState state, ModelData modelData, RenderType renderType) {
+        return IRenderer.super.useAO(state, modelData, renderType);
+    }
+
+    @Override
     @OnlyIn(Dist.CLIENT)
     public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
         var ibakedmodel = getBlockBakedModel(level, pos, state);
@@ -135,16 +162,17 @@ public class IModelRenderer implements IRenderer {
     @OnlyIn(Dist.CLIENT)
     @Nullable
     protected BakedModel getItemBakedModel() {
-        if (itemModel == null) {
-            var model = getModel();
-            if (model instanceof BlockModel blockModel && blockModel.getRootModel() == ModelBakery.GENERATION_MARKER) {
-                // fabric doesn't help us to fix vanilla bakery, so we have to do it ourselves
-                model = ModelFactory.ITEM_MODEL_GENERATOR.generateBlockModel(this::materialMapping, blockModel);
+        if (!itemModelInitialized) {
+            synchronized (this) {
+                if (!itemModelInitialized) {
+                    var model = getModel();
+                    itemModel = model.bake(
+                            ModelFactory.getModelBaker(),
+                            this::materialMapping,
+                            BlockModelRotation.X0_Y0);
+                    itemModelInitialized = true;
+                }
             }
-            itemModel = model.bake(
-                    ModelFactory.getModelBaker(),
-                    this::materialMapping,
-                    BlockModelRotation.X0_Y0);
         }
         return itemModel;
     }
@@ -154,7 +182,6 @@ public class IModelRenderer implements IRenderer {
     protected BakedModel getItemBakedModel(ItemStack itemStack) {
         return getItemBakedModel();
     }
-
 
     @OnlyIn(Dist.CLIENT)
     @Nullable
@@ -182,17 +209,9 @@ public class IModelRenderer implements IRenderer {
     
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onPrepareTextureAtlas(ResourceLocation atlasName, Consumer<ResourceLocation> register) {
-        if (atlasName.equals(TextureAtlas.LOCATION_BLOCKS)) {
-            itemModel = null;
-            modelCaches.clear();
-        }
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
     public void onAdditionalModel(Consumer<ModelResourceLocation> registry) {
         registry.accept(ModelResourceLocation.standalone(modelLocation));
+        clearCache();
     }
 
     @Override
@@ -205,24 +224,10 @@ public class IModelRenderer implements IRenderer {
         return model.isGui3d();
     }
 
-    // ISerializableRenderer
-    public void initRenderer() {
-        if (this.modelLocation != null) {
-            if (LDLib2.isClient()) {
-                modelCaches = new ConcurrentHashMap<>();
-                registerEvent();
-            }
-        }
-    }
-
     @ConfigSetter(field = "modelLocation")
-    @SuppressWarnings("unused")
     public void updateModelWithoutReloadingResource(ResourceLocation modelLocation) {
         this.modelLocation = modelLocation;
-        if (LDLib2.isClient()) {
-            itemModel = null;
-            if (modelCaches != null) modelCaches.clear();
-        }
+        clearCache();
     }
 
     @OnlyIn(Dist.CLIENT)

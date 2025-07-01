@@ -3,6 +3,9 @@ package com.lowdragmc.lowdraglib2.gui.ui.event;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import lombok.experimental.UtilityClass;
 
+import javax.annotation.Nullable;
+import java.util.Stack;
+
 @UtilityClass
 public final class UIEventDispatcher {
     public static void dispatchEvent(UIEvent event) {
@@ -65,4 +68,40 @@ public final class UIEventDispatcher {
             }
         }
     }
+
+    public static void dispatchAllChildren(UIEvent event) {
+        event.currentElement = event.target;
+        event.phase = UIEvent.EventPhase.AT_TARGET;
+        drillDown(event);
+    }
+
+    // Avoid using DFS?
+    private static boolean drillDown(UIEvent event) {
+        var currentElement = event.currentElement;
+
+        for (var listener : currentElement.getCaptureListeners(event.type)) {
+            listener.handleEvent(event);
+            if (event.immediatePropagationStopped) break;
+        }
+
+        if (event.propagationStopped) return true;
+
+        for (var child : currentElement.getSortedChildren()) {
+            if (!child.isActive() || !child.isDisplayed()) {
+                continue;
+            }
+            event.currentElement = child;
+            boolean handled = drillDown(event);
+            if (handled) return true;
+        }
+
+        event.currentElement = currentElement;
+        for (var listener : currentElement.getBubbleListeners(event.type)) {
+            listener.handleEvent(event);
+            if (event.immediatePropagationStopped) break;
+        }
+
+        return event.propagationStopped;
+    }
+
 }

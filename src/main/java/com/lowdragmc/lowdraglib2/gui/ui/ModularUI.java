@@ -1,10 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.ui.event.DragHandler;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -382,6 +379,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         lastPressedKeyCode = keyCode;
         lastPressedScanCode = scanCode;
         lastPressedModifiers = modifiers;
+        var command = getCommandType(keyCode);
         if (focusedElement != null) {
             var event = UIEvent.create(UIEvents.KEY_DOWN);
             event.keyCode = keyCode;
@@ -389,9 +387,71 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             event.modifiers = modifiers;
             event.target = focusedElement;
             UIEventDispatcher.dispatchEvent(event);
+            if (command != null) {
+                event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+                event.target = focusedElement;
+                UIEventDispatcher.dispatchEvent(event);
+            }
+            return true;
+        } else if (command != null){
+            // TODO Do we really need to retrieval the entire ui tree here?
+            var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
+            event.target = ui.rootElement;
+            UIEventDispatcher.dispatchAllChildren(event);
+            if (event.currentElement != ui.rootElement && event.currentElement != null) {
+                var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+                executeCommandEvent.target = event.currentElement;
+                UIEventDispatcher.dispatchEvent(executeCommandEvent);
+            }
             return true;
         }
         return false;
+    }
+
+    @Nullable
+    protected String getCommandType(int keyCode) {
+        if (Screen.isCopy(keyCode)) {
+            return CommandEvents.COPY;
+        } else if (Screen.isPaste(keyCode)) {
+            return CommandEvents.PASTE;
+        } else if (Screen.isCut(keyCode)) {
+            return CommandEvents.CUT;
+        } else if (Screen.isSelectAll(keyCode)) {
+            return CommandEvents.SELECT_ALL;
+        } else if (keyCode == GLFW.GLFW_KEY_Z && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            return CommandEvents.UNDO;
+        } else if (keyCode == GLFW.GLFW_KEY_Z && Screen.hasControlDown() && Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            return CommandEvents.REDO;
+        } else if (keyCode == GLFW.GLFW_KEY_Y && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            return CommandEvents.REDO;
+        } else if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            return CommandEvents.FIND;
+        } else if (keyCode == GLFW.GLFW_KEY_S && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            return CommandEvents.SAVE;
+        }
+        return null;
+    }
+    
+    protected UIEvent createValidCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
+        var event = UIEvent.create(UIEvents.VALIDATE_COMMAND);
+        event.hasBubblePhase = false;
+        event.hasCapturePhase = false;
+        event.keyCode = keyCode;
+        event.scanCode = scanCode;
+        event.modifiers = modifiers;
+        event.command = command;
+        return event;
+    }
+
+    protected UIEvent createExecuteCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
+        var event = UIEvent.create(UIEvents.EXECUTE_COMMAND);
+        event.hasBubblePhase = false;
+        event.hasCapturePhase = false;
+        event.keyCode = keyCode;
+        event.scanCode = scanCode;
+        event.modifiers = modifiers;
+        event.command = command;
+        return event;
     }
 
     @Override
