@@ -36,11 +36,13 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
         return this;
     }
 
+    public void updateSnapshot() {
+        snapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
+    }
+
     @Override
     public void execute() {
-        var currentSnapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
         ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
-        snapshot = currentSnapshot;
         if (onExecute != null) {
             onExecute.accept(serializable);
         }
@@ -48,9 +50,7 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
 
     @Override
     public void undo() {
-        var currentSnapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
         ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
-        snapshot = currentSnapshot;
         if (onUndo != null) {
             onUndo.accept(serializable);
         }

@@ -93,8 +93,6 @@ public class InspectorView extends View {
                     listener.accept(configurator);
                 }
                 if (configurable instanceof INBTSerializable<?> serializable) {
-                    var top = editor.historyView.getCurrentHistory();
-                    if (top != null && top.source() == configurator) return;
                     var notifyName = configurator.getNotifyName();
                     var recordHistory = editor.historyView.recordSerializableObject(notifyName.getString().isEmpty() ?
                                     Component.literal(configurable.getConfigurableName()) : notifyName,
@@ -108,7 +106,7 @@ public class InspectorView extends View {
         });
 
         if (configurable instanceof INBTSerializable<?> serializable) {
-            editor.historyView.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable)
+            editor.historyView.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable, configurable)
                     .setOnExecute(value -> {
                         clear();
                         scrollerView.addScrollViewChild(group);

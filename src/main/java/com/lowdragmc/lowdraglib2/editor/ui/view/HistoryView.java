@@ -134,12 +134,18 @@ public class HistoryView extends View {
         if (execute) {
             action.execute();
         }
+        boolean reuse = false;
         if (currentHistory != null) {
             if (!undoStack.isEmpty()) {
                 var popped = undoStack.pop();
                 if (popped.source != null && popped.source.equals(source) && popped.name.equals(name)) {
                     // merge action here
-                    popped = new HistoryItem(name, action.mergeExecuteAfter(popped.action), source);
+                    if (popped.action instanceof SerializableRecordAction<?> serializableRecord) {
+                        serializableRecord.updateSnapshot();
+                    } else {
+                        popped = new HistoryItem(name, action.mergeExecuteAfter(popped.action), source);
+                    }
+                    reuse = true;
                 }
                 undoStack.push(popped);
             }
@@ -152,15 +158,25 @@ public class HistoryView extends View {
             }
             redoStack.clear();
         }
-        if (currentHistory != null) {
-            var ui = historyUIs.get(currentHistory);
+        HistoryItem newHistory;
+        if (reuse) {
+            var ui = historyUIs.remove(currentHistory);
             if (ui != null) {
-                ui.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+                scrollerView.viewContainer.removeChild(ui);
             }
+            newHistory = undoStack.peek();
+            currentHistory = newHistory;
+        } else {
+            if (currentHistory != null) {
+                var ui = historyUIs.get(currentHistory);
+                if (ui != null) {
+                    ui.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+                }
+            }
+            newHistory = new HistoryItem(name, action, source);
+            currentHistory = newHistory;
+            undoStack.push(currentHistory);
         }
-        var newHistory = new HistoryItem(name, action, source);
-        currentHistory = newHistory;
-        undoStack.push(currentHistory);
         // update ui
         var ui = new Label().setText(name).textStyle(style -> {
             style.textAlignVertical(Vertical.CENTER);
@@ -210,6 +226,9 @@ public class HistoryView extends View {
                 redoStack.push(popped);
             }
             currentHistory = undoStack.peek();
+            if (currentHistory.action instanceof SerializableRecordAction<?> serializableRecord) {
+                serializableRecord.execute();
+            }
         } else if (redoStack.contains(historyItem)) {
             while (redoStack.peek() != historyItem) {
                 var popped = redoStack.pop();

@@ -69,9 +69,6 @@ public final class Size {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("width", width)
-                .add("height", height)
-                .toString();
+        return width + "x" + height;
     }
 }

@@ -44,11 +44,30 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
         return (ShaderInstanceAccessor) this;
     }
 
+    public boolean supportConfigurator(Uniform uniform) {
+        return uniform != MODEL_VIEW_MATRIX &&
+                uniform != PROJECTION_MATRIX &&
+                uniform != TEXTURE_MATRIX &&
+                uniform != SCREEN_SIZE &&
+                uniform != COLOR_MODULATOR &&
+                uniform != LIGHT0_DIRECTION &&
+                uniform != LIGHT1_DIRECTION &&
+                uniform != GLINT_ALPHA &&
+                uniform != FOG_START &&
+                uniform != FOG_END &&
+                uniform != FOG_COLOR &&
+                uniform != FOG_SHAPE &&
+                uniform != LINE_WIDTH &&
+                uniform != GAME_TIME &&
+                uniform != CHUNK_OFFSET;
+    }
+
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
         for (var entry : getShaderInstanceAccessor().getUniformMap().entrySet()) {
             var name = entry.getKey();
             var uniform = entry.getValue();
+            if (!supportConfigurator(uniform)) continue;
             if (uniform.getType() <= 3) {
                 var current = readInt(uniform);
                 if (current.length == 1) {

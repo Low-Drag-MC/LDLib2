@@ -121,7 +121,12 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     public void setTransformGizmoTarget(@Nullable Transform transform) {
+        setTransformGizmoTarget(transform, null);
+    }
+
+    public void setTransformGizmoTarget(@Nullable Transform transform, @Nullable Runnable onTransformUpdated) {
         transformGizmo.setTargetTransform(transform);
+        transformGizmo.setOnTransformChanged(onTransformUpdated);
         gizmoBar.setActive(transform != null);
     }
 

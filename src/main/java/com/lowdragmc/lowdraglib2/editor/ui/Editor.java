@@ -13,6 +13,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
@@ -112,11 +115,15 @@ public class Editor extends UIElement {
             layout.setFlex(1);
         }).addChild(rootWindow));
 
-        ///  internal components
+        /// internal components
         initMenus();
         onPrepareInspectorView();
         onPrepareHistoryView();
         onPrepareResourceView();
+
+        /// events
+        addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
     }
 
     protected void _setEditorWindowInternal(@Nullable EditorWindow window) {
@@ -333,6 +340,22 @@ public class Editor extends UIElement {
         inspectorView.clear();
         resourceView.clear();
         historyView.clearHistory();
+    }
+
+    protected void onValidateCommand(UIEvent event) {
+        if (CommandEvents.SAVE.equals(event.command) && getCurrentProject() != null) {
+            event.stopPropagation();
+        }
+    }
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.SAVE.equals(event.command) && getCurrentProject() != null) {
+            if (getCurrentProjectFile() != null) {
+                saveProject(null);
+            } else {
+                saveAsProject(null);
+            }
+        }
     }
 
 }

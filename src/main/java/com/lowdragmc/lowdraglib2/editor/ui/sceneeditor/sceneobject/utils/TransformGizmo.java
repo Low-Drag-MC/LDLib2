@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInterac
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,8 +32,11 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         SCALE
     }
     private static final VoxelShape xAxisCollider = Shapes.box(0, -0.1, -0.1, 1.2, 0.1, 0.1);
+    private static final VoxelShape xPlaneCollider = Shapes.box(0, 0.1, 0.1, 0.01, 0.3, 0.3);
     private static final VoxelShape yAxisCollider = Shapes.box(-0.1, 0, -0.1, 0.1, 1.2, 0.1);
+    private static final VoxelShape yPlaneCollider = Shapes.box(0.1, 0, 0.1, 0.3, 0.01, 0.3);
     private static final VoxelShape zAxisCollider = Shapes.box(-0.1, -0.1, 0, 0.1, 0.1, 1.2);
+    private static final VoxelShape zPlaneCollider = Shapes.box(0.1, 0.1, 0, 0.3, 0.3, 0.01);
     private static final VoxelShape xRingCollider = createRingCollisionBox(
             new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), 1.0, 16, 0.1
     );
@@ -47,16 +51,20 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     @Nullable
     @Getter
     private Transform targetTransform;
+    @Nullable
+    @Setter
+    private Runnable onTransformChanged;
 
     //runtime
     @Getter
     @Setter
     @Nonnull
     private Mode mode = Mode.TRANSLATE;
-    private boolean isMovingX, isMovingY, isMovingZ;
+    private boolean isMovingX, isMovingY, isMovingZ, isMovingXPlane, isMovingYPlane, isMovingZPlane;
     private Vector3f moveDirection;
+    private Vector3f startPosition;
+    private Vector3f diffPosition;
     private Vector2f startMouse;
-    private float lastScale = 1;
 
     public void setTargetTransform(@Nullable Transform targetTransform) {
         if (this.targetTransform == targetTransform) return;
@@ -71,8 +79,26 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         return isMovingX || isMovingY || isMovingZ;
     }
 
+    public boolean isMovingPlane() {
+        return isMovingXPlane || isMovingYPlane || isMovingZPlane;
+    }
+
     public boolean hasTargetTransform() {
         return targetTransform != null;
+    }
+
+    public boolean isHoverPlane(Direction.Axis axis) {
+        var scene = getScene();
+        if (scene instanceof SceneEditor editor && targetTransform != null) {
+            return editor.getMouseRay()
+                    .map(ray -> ray.worldToLocal(transform()).toInfinite())
+                    .map(ray -> switch (axis) {
+                        case X -> ray.clip(xPlaneCollider) != null;
+                        case Y -> ray.clip(yPlaneCollider) != null;
+                        case Z -> ray.clip(zPlaneCollider) != null;
+                    }).orElse(false);
+        }
+        return false;
     }
 
     public boolean isHoverAxis(Direction.Axis axis) {
@@ -116,11 +142,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     }
 
     @Override
-    public void onTransformChanged() {
-        super.onTransformChanged();
-    }
-
-    @Override
     @OnlyIn(Dist.CLIENT)
     public void updateFrame(float partialTicks) {
         super.updateFrame(partialTicks);
@@ -135,6 +156,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 //                lastScale = gizmoScale;
 //            }
             if (targetTransform == null) return;
+            var hasChanged = false;
             if (!transform().position().equals(targetTransform.position())) {
                 transform().position(targetTransform.position());
             }
@@ -182,19 +204,59 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     var position = currentPosition.add(new Vector3f(moveD).mul(scaleDelta));
                     transform().position(position);
                     targetTransform.position(position);
+                    hasChanged = true;
                 } else if (mode == Mode.SCALE) {
                     var localScale = targetTransform.localScale().add(new Vector3f(moveDirection).mul(scaleDelta));
                     targetTransform.localScale(localScale);
+                    hasChanged = true;
                 } else if (mode == Mode.ROTATE) {
                     var localRotation = transform().localRotation();
-                    localRotation.rotateAxis(scaleDelta, moveDirection);
+                    localRotation.rotateAxis(-scaleDelta, moveDirection);
                     transform().localRotation(localRotation);
                     targetTransform.localRotation(localRotation);
+                    hasChanged = true;
                 }
 
                 startMouse.set(lastMouseX, lastMouseY);
+            } else if (isMovingPlane()) {
+                Vector3f planeNormal = moveDirection;
+                Vector3f point = startPosition;
+
+                var ray = editor.getMouseRay().orElse(null);
+                if (ray == null) return;
+                var origin = ray.startPos();
+                var direction = ray.getDirection();
+
+                float denominator = direction.dot(planeNormal);
+                if (Math.abs(denominator) < 1e-6f) {
+                    return;
+                }
+                Vector3f originToPoint = new Vector3f(point).sub(origin);
+                float t = originToPoint.dot(planeNormal) / denominator;
+                Vector3f intersectionPoint = new Vector3f(origin).add(new Vector3f(direction).mul(t)).sub(startPosition);
+                Vector3f newPosition = new Vector3f(startPosition).add(intersectionPoint);
+                if (diffPosition == null) {
+                    diffPosition = new Vector3f(newPosition).sub(transform().position());
+                }
+                newPosition = newPosition.sub(diffPosition);
+                transform().position(newPosition);
+                targetTransform.position(newPosition);
+                hasChanged = true;
+            }
+            if (hasChanged && onTransformChanged != null) {
+                onTransformChanged.run();
             }
         }
+    }
+
+    @Override
+    public void preDraw(float partialTicks) {
+        RenderSystem.disableDepthTest();
+    }
+
+    @Override
+    public void postDraw(float partialTicks) {
+        RenderSystem.enableDepthTest();
     }
 
     @Override
@@ -228,21 +290,21 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     xR, xG, xB, xA, xR, xG, xB, xA);
             if (isMovingX) {
                 RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(-50, 0, 0), new Vector3f(50, 0, 0),
-                        xR, xG, xB, xA, xR, xG, xB, xA);
+                        1, 1, 1, 1, 1, 1, 1, 1);
             }
             // draw y axis
             RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, mode == Mode.TRANSLATE ? 1 : scale.y, 0),
                     yR, yG, yB, yA, yR, yG, yB, yA);
             if (isMovingY) {
                 RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, -50, 0), new Vector3f(0, 50, 0),
-                        yR, yG, yB, yA, yR, yG, yB, yA);
+                        1, 1, 1, 1, 1, 1, 1, 1);
             }
             // draw z axis
             RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, 0, mode == Mode.TRANSLATE ? 1 : scale.z),
                     zR, zG, zB, zA, zR, zG, zB, zA);
             if (isMovingZ) {
                 RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, -50), new Vector3f(0, 0, 50),
-                        zR, zG, zB, zA, zR, zG, zB, zA);
+                        1, 1, 1, 1, 1, 1, 1, 1);
             }
 
             if (mode == Mode.TRANSLATE) {
@@ -263,6 +325,40 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                         zR, zG, zB, zA, Direction.Axis.Z);
                 RenderBufferUtils.shapeCircle(poseStack, buffer, 0, 0, 1, 0.05f, 10,
                         zR, zG, zB, zA, Direction.Axis.Z);
+                xR = 1f;
+                xG = 1f;
+                xB = 1f;
+                xA = 1f;
+                yR = 1f;
+                yG = 1f;
+                yB = 1f;
+                yA = 1f;
+                zR = 1f;
+                zG = 1f;
+                zB = 1f;
+                zA = 1f;
+                if (!isMovingXPlane && !isHoverPlane(Direction.Axis.X) || isMoving() || isHoverX) {
+                    xG = 0;
+                    xB = 0;
+                }
+                if (!isMovingYPlane && !isHoverPlane(Direction.Axis.Y) || isMoving() || isHoverY) {
+                    yR = 0;
+                    yB = 0;
+                }
+                if (!isMovingZPlane && !isHoverPlane(Direction.Axis.Z) || isMoving() || isHoverZ) {
+                    zR = 0;
+                    zG = 0;
+                }
+                RenderSystem.depthMask(true);
+                // draw x surface
+                RenderBufferUtils.drawCubeFace(poseStack, buffer, 0, 0.1f, 0.1f, 0, 0.3f, 0.3f,
+                        xR, xG, xB, xA, false);
+                // draw y surface
+                RenderBufferUtils.drawCubeFace(poseStack, buffer, 0.1f, 0, 0.1f, 0.3f, 0, 0.3f,
+                        yR, yG, yB, yA, false);
+                // draw z surface
+                RenderBufferUtils.drawCubeFace(poseStack, buffer, 0.1f, 0.1f, 0, 0.3f, 0.3f, 0,
+                        zR, zG, zB, zA, false);
             }
 
             if (mode == Mode.SCALE) {
@@ -281,6 +377,24 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         }
 
         if (mode == Mode.ROTATE) {
+            if (isMovingX) {
+                xR = 1;
+                xG = 1;
+                xB = 1;
+                xA = 1;
+            }
+            if (isMovingY) {
+                yR = 1;
+                yG = 1;
+                yB = 1;
+                yA = 1;
+            }
+            if (isMovingZ) {
+                zR = 1;
+                zG = 1;
+                zB = 1;
+                zA = 1;
+            }
             // draw x ring
             RenderBufferUtils.drawCircleLine(poseStack, buffer, new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), 50,
                     1f, xR, xG, xB, xA);
@@ -305,6 +419,10 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             RenderBufferUtils.drawCubeFace(poseStack, buffer, -0.05f, -0.05f, 0.95f, 0.05f, 0.05f, 1.05f,
                     yR, yG, yB, yA, true);
         }
+
+        if (bufferSource instanceof MultiBufferSource.BufferSource source) {
+            source.endLastBatch();
+        }
     }
 
     @Override
@@ -327,6 +445,24 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 moveDirection = new Vector3f(0, 0, 1);
                 startMouse = new Vector2f(lastMouseX, lastMouseY);
                 return true;
+            } else if (mode == Mode.TRANSLATE) {
+                if (isHoverPlane(Direction.Axis.X)) {
+                    isMovingXPlane = true;
+                    startPosition = transform().position();
+                    moveDirection = transform().localToWorldMatrix().transformDirection(new Vector3f(1, 0, 0));
+                } else if (isHoverPlane(Direction.Axis.Y)) {
+                    isMovingYPlane = true;
+                    startPosition = transform().position();
+                    moveDirection = transform().localToWorldMatrix().transformDirection(new Vector3f(0, 1, 0));
+                } else if (isHoverPlane(Direction.Axis.Z)) {
+                    isMovingZPlane = true;
+                    startPosition = transform().position();
+                    moveDirection = transform().localToWorldMatrix().transformDirection(new Vector3f(0, 0, 1));
+                }
+                if (isMovingXPlane || isMovingYPlane || isMovingZPlane) {
+                    startMouse = new Vector2f(lastMouseX, lastMouseY);
+                    return true;
+                }
             }
         }
         return false;
@@ -337,8 +473,13 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         isMovingX = false;
         isMovingY = false;
         isMovingZ = false;
+        isMovingXPlane = false;
+        isMovingYPlane = false;
+        isMovingZPlane = false;
         startMouse = null;
         moveDirection = null;
+        startPosition = null;
+        diffPosition = null;
     }
 
     public static VoxelShape createRingCollisionBox(Vector3f center, Vector3f normal, double radius, int segments, double thickness) {
