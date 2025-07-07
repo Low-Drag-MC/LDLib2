@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
@@ -32,7 +32,7 @@ public class ClientCommands {
         return List.of(
                 createLiteral("ldlib2_client").then(createLiteral("reload_shader")
                         .executes(context -> {
-                            Shaders.reload();
+                            LDLibShaders.reload();
                             ShaderManager.getInstance().reload();
                             return 1;
                         })),

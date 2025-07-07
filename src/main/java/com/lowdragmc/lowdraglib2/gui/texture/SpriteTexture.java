@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -252,10 +252,10 @@ public class SpriteTexture extends TransformTexture {
                     BufferUploader.drawWithShader(bufferData);
                 }
 
-                RenderSystem.setShader(Shaders::getSpriteBlitShader);
+                RenderSystem.setShader(LDLibShaders::getSpriteBlitShader);
                 RenderSystem.setShaderTexture(0, imageLocation);
                 buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);
-                var shader = Shaders.getSpriteBlitShader();
+                var shader = LDLibShaders.getSpriteBlitShader();
                 shader.safeGetUniform("UVBounds").set(uCenterStart, vCenterStart, uCenterEnd, vCenterEnd);
                 shader.safeGetUniform("WrapMode").set(wrapMode.ordinal());
 

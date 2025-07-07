@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.utils;
 
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -32,9 +32,9 @@ public class ShaderUtils {
 
         to.bindWrite(true);
 
-        Shaders.getBlitShader().setSampler("DiffuseSampler", from.getColorTextureId());
+        LDLibShaders.getBlitShader().setSampler("DiffuseSampler", from.getColorTextureId());
 
-        Shaders.getBlitShader().apply();
+        LDLibShaders.getBlitShader().apply();
         GlStateManager._enableBlend();
         RenderSystem.defaultBlendFunc();
 
@@ -45,7 +45,7 @@ public class ShaderUtils {
         bufferbuilder.addVertex(1, -1, 0);
         bufferbuilder.addVertex(1, 1, 0);
         BufferUploader.draw(bufferbuilder.buildOrThrow());
-        Shaders.getBlitShader().clear();
+        LDLibShaders.getBlitShader().clear();
 
         GlStateManager._depthMask(true);
         GlStateManager._colorMask(true, true, true, true);

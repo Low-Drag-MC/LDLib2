@@ -7,13 +7,12 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
-import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceProvider;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
@@ -21,12 +20,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import static com.mojang.blaze3d.vertex.VertexFormatElement.POSITION;
 
 @OnlyIn(Dist.CLIENT)
-public class Shaders {
+public class LDLibShaders {
 	private static final List<Runnable> reloadListeners = new ArrayList<>();
 	public static Shader IMAGE_F;
 	public static Shader IMAGE_V;
@@ -108,25 +106,24 @@ public class Shaders {
 			.add("HSB_ALPHA", HSB_Alpha)
 			.build();
 
-    public static List<Pair<ShaderInstance, Consumer<ShaderInstance>>> registerShaders(ResourceProvider resourceProvider) {
+    public static void registerShaders(RegisterShadersEvent registerShadersEvent) {
+		var resourceProvider = registerShadersEvent.getResourceProvider();
 		try {
-			return List.of(
-					Pair.of(new ShaderInstance(resourceProvider,
-									LDLib2.id("particle"), DefaultVertexFormat.PARTICLE),
-							shaderInstance -> particleShader = shaderInstance),
-					Pair.of(new ShaderInstance(resourceProvider,
-									LDLib2.id("fast_blit"), DefaultVertexFormat.POSITION),
-							shaderInstance -> blitShader = shaderInstance),
-					Pair.of(new ShaderInstance(resourceProvider,
-									LDLib2.id("sprite_blit"), DefaultVertexFormat.POSITION_TEX_COLOR),
-							shaderInstance -> spriteBlitShader = shaderInstance),
-					Pair.of(new ShaderInstance(resourceProvider,
-									LDLib2.id("hsb_block"), HSB_VERTEX_FORMAT),
-							shaderInstance -> hsbShader = shaderInstance),
-					Pair.of(new ShaderInstance(resourceProvider,
-									LDLib2.id("compass_line"), DefaultVertexFormat.POSITION_TEX_COLOR),
-							shaderInstance -> compassLineShader = shaderInstance)
-			);
+			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+							LDLib2.id("particle"), DefaultVertexFormat.PARTICLE),
+					shaderInstance -> particleShader = shaderInstance);
+			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+							LDLib2.id("fast_blit"), DefaultVertexFormat.POSITION),
+					shaderInstance -> blitShader = shaderInstance);
+			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+							LDLib2.id("sprite_blit"), DefaultVertexFormat.POSITION_TEX_COLOR),
+					shaderInstance -> spriteBlitShader = shaderInstance);
+			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+							LDLib2.id("hsb_block"), HSB_VERTEX_FORMAT),
+					shaderInstance -> hsbShader = shaderInstance);
+			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+							LDLib2.id("compass_line"), DefaultVertexFormat.POSITION_TEX_COLOR),
+					shaderInstance -> compassLineShader = shaderInstance);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.BufferBuilderAccessor;
@@ -276,8 +276,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     protected void drawHsbContext(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, Shaders.HSB_VERTEX_FORMAT);
-        RenderSystem.setShader(Shaders::getHsbShader);
+        var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
+        RenderSystem.setShader(LDLibShaders::getHsbShader);
         var pose = graphics.pose().last().pose();
 
         float _h = 0, _s = 0, _b = 0f;
@@ -397,8 +397,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     protected void drawColorSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, Shaders.HSB_VERTEX_FORMAT);
-        RenderSystem.setShader(Shaders::getHsbShader);
+        var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
+        RenderSystem.setShader(LDLibShaders::getHsbShader);
         var pose = graphics.pose().last().pose();
 
         float _h = 0f, _s = 0f, _b = 0f;
@@ -484,7 +484,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
      */
     private BufferBuilder putColor(BufferBuilder builder, float h, float s, float b, float a) {
         if (builder instanceof BufferBuilderAccessor accessor) {
-            var i = accessor.invokeBeginElement(Shaders.HSB_Alpha);
+            var i = accessor.invokeBeginElement(LDLibShaders.HSB_Alpha);
             if (i != -1L) {
                 MemoryUtil.memPutFloat(i, h);
                 MemoryUtil.memPutFloat(i + 4L, s);

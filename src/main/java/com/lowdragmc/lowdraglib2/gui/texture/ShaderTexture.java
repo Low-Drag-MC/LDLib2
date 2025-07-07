@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.Shader;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderProgram;
@@ -66,11 +66,11 @@ public class ShaderTexture extends TransformTexture {
         this(false);
         this.location = LDLib2.id("fbm");
         if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            Shader shader = Shaders.load(Shader.ShaderType.FRAGMENT, location);
+            Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
             if (shader == null) return;
             this.program = new ShaderProgram();
             this.shader = shader;
-            program.attach(Shaders.GUI_IMAGE_V);
+            program.attach(LDLibShaders.GUI_IMAGE_V);
             program.attach(shader);
         }
     }
@@ -84,11 +84,11 @@ public class ShaderTexture extends TransformTexture {
     @Override
     public void afterSerialize() {
         super.afterSerialize();
-        Shader shader = Shaders.load(Shader.ShaderType.FRAGMENT, location);
+        Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
         if (shader == null) return;
         this.program = new ShaderProgram();
         this.shader = shader;
-        program.attach(Shaders.GUI_IMAGE_V);
+        program.attach(LDLibShaders.GUI_IMAGE_V);
         program.attach(shader);
     }
 
@@ -119,11 +119,11 @@ public class ShaderTexture extends TransformTexture {
         if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
             this.location = location;
             dispose();
-            Shader shader = Shaders.load(Shader.ShaderType.FRAGMENT, location);
+            Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
             if (shader == null) return;
             this.program = new ShaderProgram();
             this.shader = shader;
-            program.attach(Shaders.GUI_IMAGE_V);
+            program.attach(LDLibShaders.GUI_IMAGE_V);
             program.attach(shader);
         }
     }
@@ -133,7 +133,7 @@ public class ShaderTexture extends TransformTexture {
             dispose();
             shader = new Shader(Shader.ShaderType.FRAGMENT, rawShader).compileShader();
             program = new ShaderProgram();
-            program.attach(Shaders.GUI_IMAGE_V);
+            program.attach(LDLibShaders.GUI_IMAGE_V);
             program.attach(shader);
         }
     }
@@ -151,7 +151,7 @@ public class ShaderTexture extends TransformTexture {
         if (shader == null) return;
         this.program = new ShaderProgram();
         this.shader = shader;
-        program.attach(Shaders.GUI_IMAGE_V);
+        program.attach(LDLibShaders.GUI_IMAGE_V);
         program.attach(shader);
     }
 
@@ -161,7 +161,7 @@ public class ShaderTexture extends TransformTexture {
         }
         ShaderTexture texture;
         if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            Shader shader = Shaders.load(Shader.ShaderType.FRAGMENT, location);
+            Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
             texture = new ShaderTexture(shader, false);
             CACHE.put(location, texture);
         } else {

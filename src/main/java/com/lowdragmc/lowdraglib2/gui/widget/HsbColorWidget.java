@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.widget;
 
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -141,7 +141,7 @@ public class HsbColorWidget extends Widget implements IConfigurableWidget {
 		int height = getSize().height;
 
 		if (showRGB) {
-			BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, Shaders.HSB_VERTEX_FORMAT);
+			BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
 			drawHsbContext(pose, builder, x, y, width - barWidth - gap, height - barWidth - gap);
 		}
 
@@ -195,7 +195,7 @@ public class HsbColorWidget extends Widget implements IConfigurableWidget {
 	 */
 	@OnlyIn(Dist.CLIENT)
 	private void drawHsbContext(Matrix4f pose, BufferBuilder builder, int x, int y, int width, int height) {
-		RenderSystem.setShader(Shaders::getHsbShader);
+		RenderSystem.setShader(LDLibShaders::getHsbShader);
 
 		renderMain(pose, builder, x, y, width, height);
 		renderColorSlide(pose, builder, x, y, width, height);

@@ -49,7 +49,7 @@ public class Vector4iAccessor extends TypesAccessor<Vector4i> {
                         v -> consumer.accept(new Vector4i(supplier.get().x, supplier.get().y, v.intValue(), supplier.get().w)),
                         defaultValue(field, field.getType()).z, forceUpdate),
                 w = new NumberConfigurator("w", () -> supplier.get().w,
-                        v -> consumer.accept(new Vector4i(supplier.get().x, supplier.get().y, supplier.get().y, v.intValue())),
+                        v -> consumer.accept(new Vector4i(supplier.get().x, supplier.get().y, supplier.get().z, v.intValue())),
                         defaultValue(field, field.getType()).w, forceUpdate)
         ).layout(layout -> {
             layout.setGap(YogaGutter.ALL, 2);

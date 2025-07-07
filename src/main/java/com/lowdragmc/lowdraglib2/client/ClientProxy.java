@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib2.client.model.custommodel.LDLMetadataSection;
 import com.lowdragmc.lowdraglib2.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib2.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib2.core.mixins.ParticleEngineAccessor;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ModelBakeryAccessor;
@@ -64,7 +64,7 @@ public class ClientProxy extends CommonProxy {
     @SubscribeEvent
     public void clientSetup(final FMLClientSetupEvent e) {
         e.enqueueWork(() -> {
-            Shaders.init();
+            LDLibShaders.init();
             DrawerHelper.init();
         });
     }
@@ -146,9 +146,7 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void shaderRegistry(RegisterShadersEvent event) {
-        for (Pair<ShaderInstance, Consumer<ShaderInstance>> pair : Shaders.registerShaders(event.getResourceProvider())) {
-            event.registerShader(pair.getFirst(), pair.getSecond());
-        }
+        LDLibShaders.registerShaders(event);
     }
 
 //    @SubscribeEvent

@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.shader.management;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import net.minecraft.CrashReport;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -24,7 +24,7 @@ public class ShaderSSBO {
 	private static final int BUFFER_TYPE = GL43.GL_SHADER_STORAGE_BUFFER;
 
 	public ShaderSSBO() {
-		if (!Shaders.supportSSBO()) {
+		if (!LDLibShaders.supportSSBO()) {
 			String errorMessage = "need support for GL_ARB_shader_storage_buffer_object";
 			LDLib2.LOGGER.error(errorMessage);
 			Minecraft.getInstance().delayCrash(new CrashReport(errorMessage, new IllegalStateException(errorMessage)));

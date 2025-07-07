@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.accessors.*;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.HDRColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ShaderInstanceAccessor;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
@@ -102,7 +103,8 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
                         return new Vector2f(data[0], data[1]);
                         }, v -> uniform.set(v.x, v.y), true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
                 } else if (current.length == 3) {
-                    if (name.toLowerCase().contains("color")) {
+                    var lowerName = name.toLowerCase();
+                    if (lowerName.contains("color") || lowerName.contains("rgb")) {
                         father.addConfigurator(new ColorConfigurator(name, () -> {
                             var data = readFloat(uniform);
                             return ColorUtils.color(1, data[0], data[1], data[2]);
@@ -115,7 +117,14 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
                             }, v -> uniform.set(v.x, v.y, v.z), true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
                     }
                 } else if (current.length == 4) {
-                    if (name.toLowerCase().contains("color")) {
+                    var lowerName = name.toLowerCase();
+                    if (lowerName.contains("hdr") || lowerName.contains("emission")) {
+                        father.addConfigurator(new HDRColorConfigurator(name, () -> {
+                            var data = readFloat(uniform);
+                            return new Vector4f(data[0], data[1], data[2], data[3]);
+                        }, hdr -> uniform.set(hdr.x, hdr.y, hdr.z, hdr.w),
+                                new Vector4f(current[0], current[1], current[2], current[3]), true));
+                    } else if (lowerName.contains("color") || lowerName.contains("rgba")) {
                         father.addConfigurator(new ColorConfigurator(name, () -> {
                             var data = readFloat(uniform);
                             return ColorUtils.color(data[3], data[0], data[1], data[2]);

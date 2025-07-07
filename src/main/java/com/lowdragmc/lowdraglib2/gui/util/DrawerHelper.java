@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.util;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.client.shader.Shaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderProgram;
 import com.lowdragmc.lowdraglib2.client.shader.uniform.UniformCache;
 import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
@@ -54,17 +54,17 @@ public class DrawerHelper {
 
     public static void init() {
         ROUND = Util.make(new ShaderProgram(), program
-                -> program.attach(Shaders.ROUND_F).attach(Shaders.SCREEN_V));
+                -> program.attach(LDLibShaders.ROUND_F).attach(LDLibShaders.SCREEN_V));
         PANEL_BG = Util.make(new ShaderProgram(), program
-                -> program.attach(Shaders.PANEL_BG_F).attach(Shaders.SCREEN_V));
+                -> program.attach(LDLibShaders.PANEL_BG_F).attach(LDLibShaders.SCREEN_V));
         ROUND_BOX = Util.make(new ShaderProgram(), program
-                -> program.attach(Shaders.ROUND_BOX_F).attach(Shaders.SCREEN_V));
+                -> program.attach(LDLibShaders.ROUND_BOX_F).attach(LDLibShaders.SCREEN_V));
         PROGRESS_ROUND_BOX = Util.make(new ShaderProgram(), program
-                -> program.attach(Shaders.PROGRESS_ROUND_BOX_F).attach(Shaders.SCREEN_V));
+                -> program.attach(LDLibShaders.PROGRESS_ROUND_BOX_F).attach(LDLibShaders.SCREEN_V));
         FRAME_ROUND_BOX = Util.make(new ShaderProgram(), program
-                -> program.attach(Shaders.FRAME_ROUND_BOX_F).attach(Shaders.SCREEN_V));
+                -> program.attach(LDLibShaders.FRAME_ROUND_BOX_F).attach(LDLibShaders.SCREEN_V));
         ROUND_LINE = Util.make(new ShaderProgram(), program
-                -> program.attach(Shaders.ROUND_LINE_F).attach(Shaders.SCREEN_V));
+                -> program.attach(LDLibShaders.ROUND_LINE_F).attach(LDLibShaders.SCREEN_V));
     }
 
     public static void drawFluidTexture(@Nonnull GuiGraphics graphics, float xCoord, float yCoord, TextureAtlasSprite textureSprite, float maskTop, float maskRight, float zLevel, int fluidColor) {

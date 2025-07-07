@@ -1,8 +1,10 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigHDR;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.HDRColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -35,6 +37,9 @@ public class Vector4fAccessor extends TypesAccessor<Vector4f> {
 
     @Override
     public Configurator create(String name, Supplier<Vector4f> supplier, Consumer<Vector4f> consumer, boolean forceUpdate, Field field, Object owner) {
+        if (field.isAnnotationPresent(ConfigHDR.class)) {
+            return new HDRColorConfigurator(name, supplier, consumer, defaultValue(field, field.getType()), forceUpdate);
+        }
         var configurator = new Configurator(name);
         NumberConfigurator x, y, z, w;
 
@@ -49,7 +54,7 @@ public class Vector4fAccessor extends TypesAccessor<Vector4f> {
                         v -> consumer.accept(new Vector4f(supplier.get().x, supplier.get().y, v.floatValue(), supplier.get().w)),
                         defaultValue(field, field.getType()).z, forceUpdate),
                 w = new NumberConfigurator("w", () -> supplier.get().w,
-                        v -> consumer.accept(new Vector4f(supplier.get().x, supplier.get().y, supplier.get().y, v.floatValue())),
+                        v -> consumer.accept(new Vector4f(supplier.get().x, supplier.get().y, supplier.get().z, v.floatValue())),
                         defaultValue(field, field.getType()).w, forceUpdate)
         ).layout(layout -> {
             layout.setGap(YogaGutter.ALL, 2);
