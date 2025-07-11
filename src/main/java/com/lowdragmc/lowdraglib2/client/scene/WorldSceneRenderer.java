@@ -354,7 +354,7 @@ public abstract class WorldSceneRenderer {
         posesStack.popMatrix();
         RenderSystem.applyModelViewMatrix();
 
-        RenderSystem.depthMask(false);
+//        RenderSystem.depthMask(false);
         RenderSystem.disableDepthTest();
         RenderSystem.enableBlend();
         ShaderManager.getInstance().clearViewPort();
@@ -625,7 +625,7 @@ public abstract class WorldSceneRenderer {
                 var modelData = world.getModelData(pos);
                 modelData = model.getModelData(world, pos, state, modelData);
                 randomSource.setSeed(state.getSeed(pos));
-
+                modelData = model.getModelData(world, pos, state, modelData);
                 if (model.getRenderTypes(state, randomSource, modelData).contains(layer)) {
                     poseStack.pushPose();
                     poseStack.translate(pos.getX(), pos.getY(), pos.getZ());

@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import org.appliedenergistics.yoga.*;
 
@@ -75,7 +76,17 @@ public class TestElements implements IUITest {
                                                                 }),
                                                         new Button(), new Button(), new Button(), new Button(), new Button())
                                                 .layout(layout -> layout.setFlexGrow(1)),
-                                        new ProgressBar().label(label -> label.setText("30%")).setProgress(0.3f),
+                                        new ProgressBar().label(label -> label.setText("30%")).setProgress(0.3f).barContainer(barContainer ->
+                                                barContainer.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+                                                    if (barContainer.isMouseOverContent(event.x, event.y)) {
+                                                        var percent = (Mth.clamp(event.x, barContainer.getContentX(),
+                                                                barContainer.getContentX() + barContainer.getContentWidth()) - barContainer.getContentX())
+                                                                / barContainer.getContentWidth();
+                                                        if (barContainer.getParent() instanceof ProgressBar progressBar) {
+                                                            progressBar.setValue(percent);
+                                                        }
+                                                    }
+                                                })),
                                         new TabView().addTab(new Tab().setText("tab1"), new UIElement().addChildren(
                                                 new ColorSelector().layout(layout -> {
                                                     layout.setWidth(60);

@@ -168,10 +168,9 @@ dependencies {
         exclude(group: "dev.architectury")
     }
 
-    //oculus
-    compileOnly("maven.modrinth:embeddium:${embeddium_version}")
-    compileOnly("maven.modrinth:oculus:${oculus_version}")
-
+    // Iris
+    implementation("maven.modrinth:sodium:${sodium_version}")
+    implementation("maven.modrinth:iris:${iris_version}")
 
     // lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'

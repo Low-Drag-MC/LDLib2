@@ -13,6 +13,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -30,6 +32,10 @@ public class ProgressBar extends BindableUIElement<Float> {
     public static class ProgressBarStyle extends Style {
         @Getter @Setter
         private ProgressTexture.FillDirection fillDirection = ProgressTexture.FillDirection.LEFT_TO_RIGHT;
+        @Getter @Setter
+        private boolean interpolate = true;
+        @Getter @Setter
+        private float interpolateStep = 0.1f;
 
         public ProgressBarStyle(UIElement holder) {
             super(holder);
@@ -45,10 +51,11 @@ public class ProgressBar extends BindableUIElement<Float> {
     @Getter
     private float maxValue = 1;
     private float value = 0;
+    // runtime
+    private float lastValue = 0;
 
     public ProgressBar() {
         getLayout().setHeight(14);
-
 
         this.barContainer = new UIElement();
         this.label = new Label();
@@ -76,21 +83,26 @@ public class ProgressBar extends BindableUIElement<Float> {
                         })
                 .addChildren(this.bar, this.label));
         this.addChildren(this.barContainer);
-        updateProgressBarStyle();
+        updateProgressBarStyle(getNormalizedValue());
     }
 
     public ProgressBar progressBarStyle(Consumer<ProgressBarStyle> style) {
         style.accept(this.progressBarStyle);
         onStyleChanged();
-        updateProgressBarStyle();
+        lastValue = value;
+        updateProgressBarStyle(getNormalizedValue());
         return this;
     }
 
     public float getNormalizedValue() {
+        return getNormalizedValue(value);
+    }
+
+    public float getNormalizedValue(float value) {
         return maxValue == minValue ? Float.NaN : (value - minValue) / (maxValue - minValue);
     }
 
-    protected void updateProgressBarStyle() {
+    protected void updateProgressBarStyle(float normalizedValue) {
         switch (progressBarStyle.fillDirection) {
             case LEFT_TO_RIGHT -> {
                 this.barContainer.layout(layout -> {
@@ -99,7 +111,7 @@ public class ProgressBar extends BindableUIElement<Float> {
                 });
                 this.bar.layout(layout -> {
                     layout.setHeightPercent(100);
-                    layout.setWidthPercent(getNormalizedValue() * 100);
+                    layout.setWidthPercent(normalizedValue * 100);
                 });
             }
             case RIGHT_TO_LEFT -> {
@@ -109,7 +121,7 @@ public class ProgressBar extends BindableUIElement<Float> {
                 });
                 this.bar.layout(layout -> {
                     layout.setHeightPercent(100);
-                    layout.setWidthPercent(getNormalizedValue() * 100);
+                    layout.setWidthPercent(normalizedValue * 100);
                 });
             }
             case UP_TO_DOWN -> {
@@ -118,7 +130,7 @@ public class ProgressBar extends BindableUIElement<Float> {
                     layout.setAlignItems(YogaAlign.FLEX_START);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(getNormalizedValue() * 100);
+                    layout.setHeightPercent(normalizedValue * 100);
                     layout.setWidthPercent(100);
                 });
             }
@@ -128,7 +140,7 @@ public class ProgressBar extends BindableUIElement<Float> {
                     layout.setAlignItems(YogaAlign.FLEX_END);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(getNormalizedValue() * 100);
+                    layout.setHeightPercent(normalizedValue * 100);
                     layout.setWidthPercent(100);
                 });
             }
@@ -139,7 +151,8 @@ public class ProgressBar extends BindableUIElement<Float> {
         this.minValue = minValue;
         this.maxValue = maxValue;
         setProgress(this.value);
-        updateProgressBarStyle();
+        lastValue = this.value;
+        updateProgressBarStyle(getNormalizedValue());
         return this;
     }
 
@@ -164,7 +177,10 @@ public class ProgressBar extends BindableUIElement<Float> {
             if (notify) {
                 notifyListeners();
             }
-            updateProgressBarStyle();
+            if (!progressBarStyle.interpolate) {
+                lastValue = this.value;
+            }
+            updateProgressBarStyle(lastValue);
         }
         return this;
     }
@@ -193,5 +209,57 @@ public class ProgressBar extends BindableUIElement<Float> {
     public void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
         progressBarStyle.applyStyles(values);
+    }
+
+    @Override
+    public void screenTick() {
+        super.screenTick();
+        if (lastValue != value) {
+            var stepValue = progressBarStyle.interpolateStep * (maxValue - minValue);
+            if (stepValue < 0) {
+                // invalid step
+                lastValue = value;
+            } else {
+                if (lastValue < value) {
+                    if (lastValue + stepValue < value) {
+                        lastValue += stepValue;
+                    } else {
+                        lastValue = value;
+                    }
+                } else if (lastValue > value) {
+                    if  (lastValue - stepValue > value) {
+                        lastValue -= stepValue;
+                    } else {
+                        lastValue = value;
+                    }
+                }
+            }
+            updateProgressBarStyle(lastValue);
+        }
+    }
+
+    @Override
+    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
+        if (progressBarStyle.interpolate && lastValue != value) {
+            var stepValue = progressBarStyle.interpolateStep * (maxValue - minValue);
+            if (stepValue < 0) {
+                updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, value)));
+            } else {
+                if (lastValue < value) {
+                    if (lastValue + stepValue < value) {
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, lastValue + stepValue)));
+                    } else {
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, value)));
+                    }
+                } else if (lastValue > value) {
+                    if  (lastValue - stepValue > value) {
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, lastValue - stepValue)));
+                    } else {
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, value)));
+                    }
+                }
+            }
+        }
     }
 }

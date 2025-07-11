@@ -376,7 +376,14 @@ public class TextField extends BindableUIElement<String> {
     public TextField setValue(String value, boolean notify) {
         this.rawText = value;
         if (isNumberField() && numberInstance != null) {
-            this.rawText = numberInstance.format(Double.parseDouble(value));
+            switch (mode) {
+                case NUMBER_INT -> this.rawText = numberInstance.format(Integer.parseInt(value));
+                case NUMBER_FLOAT -> this.rawText = numberInstance.format(Float.parseFloat(value));
+                case NUMBER_DOUBLE -> this.rawText = numberInstance.format(Double.parseDouble(value));
+                case NUMBER_BYTE ->  this.rawText = numberInstance.format(Byte.parseByte(value));
+                case NUMBER_SHORT ->  this.rawText = numberInstance.format(Short.parseShort(value));
+                case NUMBER_LONG ->  this.rawText = numberInstance.format(Long.parseLong(value));
+            }
         }
         if (!this.text.equals(value)) {
             this.text = value;
@@ -559,15 +566,13 @@ public class TextField extends BindableUIElement<String> {
     }
 
     public TextField setWheelDur(float wheelDur) {
-        this.wheelDur = wheelDur;
-        this.numberInstance = NumberFormat.getNumberInstance();
-        numberInstance.setMaximumFractionDigits(4);
-        return this;
+        return setWheelDur(4, wheelDur);
     }
 
     public TextField setWheelDur(int digits, float wheelDur) {
         this.wheelDur = wheelDur;
         this.numberInstance = NumberFormat.getNumberInstance();
+        numberInstance.setGroupingUsed(false);
         numberInstance.setMaximumFractionDigits(digits);
         return this;
     }

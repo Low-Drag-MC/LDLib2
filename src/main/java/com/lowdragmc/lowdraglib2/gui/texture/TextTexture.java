@@ -155,8 +155,6 @@ public class TextTexture extends TransformTexture {
         if (backgroundColor != 0) {
             DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, backgroundColor);
         }
-        graphics.pose().pushPose();
-        graphics.pose().translate(0, 0, 400);
         Font fontRenderer = Minecraft.getInstance().font;
         int textH = fontRenderer.lineHeight;
         if (type == TextType.NORMAL) {
@@ -212,7 +210,6 @@ public class TextTexture extends TransformTexture {
                 graphics.drawString(fontRenderer, texts.get(0), (int) x, (int) _y, color, dropShadow);
             }
         }
-        graphics.pose().popPose();
         RenderSystem.setShaderColor(1, 1, 1, 1);
     }
 

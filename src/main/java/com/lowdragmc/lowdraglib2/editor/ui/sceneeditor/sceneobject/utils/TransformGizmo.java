@@ -163,7 +163,31 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             if (!transform().rotation().equals(targetTransform.rotation())) {
                 transform().rotation(targetTransform.rotation());
             }
-            if (isMoving()) {
+            if (isMovingPlane()) {
+                Vector3f planeNormal = moveDirection;
+                Vector3f point = startPosition;
+
+                var ray = editor.getMouseRay().orElse(null);
+                if (ray == null) return;
+                var origin = ray.startPos();
+                var direction = ray.getDirection();
+
+                float denominator = direction.dot(planeNormal);
+                if (Math.abs(denominator) < 1e-6f) {
+                    return;
+                }
+                Vector3f originToPoint = new Vector3f(point).sub(origin);
+                float t = originToPoint.dot(planeNormal) / denominator;
+                Vector3f intersectionPoint = new Vector3f(origin).add(new Vector3f(direction).mul(t)).sub(startPosition);
+                Vector3f newPosition = new Vector3f(startPosition).add(intersectionPoint);
+                if (diffPosition == null) {
+                    diffPosition = new Vector3f(newPosition).sub(transform().position());
+                }
+                newPosition = newPosition.sub(diffPosition);
+                transform().position(newPosition);
+                targetTransform.position(newPosition);
+                hasChanged = true;
+            } else if (isMoving()) {
                 var lastMouseX = editor.getModularUI().getLastMouseX();
                 var lastMouseY = editor.getModularUI().getLastMouseY();
                 var currentPosition = transform().position();
@@ -218,30 +242,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 }
 
                 startMouse.set(lastMouseX, lastMouseY);
-            } else if (isMovingPlane()) {
-                Vector3f planeNormal = moveDirection;
-                Vector3f point = startPosition;
-
-                var ray = editor.getMouseRay().orElse(null);
-                if (ray == null) return;
-                var origin = ray.startPos();
-                var direction = ray.getDirection();
-
-                float denominator = direction.dot(planeNormal);
-                if (Math.abs(denominator) < 1e-6f) {
-                    return;
-                }
-                Vector3f originToPoint = new Vector3f(point).sub(origin);
-                float t = originToPoint.dot(planeNormal) / denominator;
-                Vector3f intersectionPoint = new Vector3f(origin).add(new Vector3f(direction).mul(t)).sub(startPosition);
-                Vector3f newPosition = new Vector3f(startPosition).add(intersectionPoint);
-                if (diffPosition == null) {
-                    diffPosition = new Vector3f(newPosition).sub(transform().position());
-                }
-                newPosition = newPosition.sub(diffPosition);
-                transform().position(newPosition);
-                targetTransform.position(newPosition);
-                hasChanged = true;
             }
             if (hasChanged && onTransformChanged != null) {
                 onTransformChanged.run();
@@ -264,13 +264,19 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
         if (targetTransform == null) return;
         var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
-        var hoverColor = 0xFFFFFFFF;
-        var isHoverX = isHoverAxis(Direction.Axis.X);
-        var isHoverY = !isHoverX && isHoverAxis(Direction.Axis.Y);
-        var isHoverZ = !isHoverX && !isHoverY && isHoverAxis(Direction.Axis.Z);
-        var xColor = !isHoverX ? 0xFFFF0000 : hoverColor;
-        var yColor = !isHoverY ? 0xFF00FF00 : hoverColor;
-        var zColor = !isHoverZ ? 0xFF0000FF : hoverColor;
+
+        var isHoverXPlane = isHoverPlane(Direction.Axis.X);
+        var isHoverYPlane = !isHoverXPlane && isHoverPlane(Direction.Axis.Y);
+        var isHoverZPlane = !isHoverXPlane && !isHoverYPlane && isHoverPlane(Direction.Axis.Z);
+        var isHoverPlane = isHoverXPlane || isHoverYPlane || isHoverZPlane;
+
+        var isHoverX = !isHoverPlane && isHoverAxis(Direction.Axis.X);
+        var isHoverY = !isHoverPlane && !isHoverX && isHoverAxis(Direction.Axis.Y);
+        var isHoverZ = !isHoverPlane && !isHoverX && !isHoverY && isHoverAxis(Direction.Axis.Z);
+
+        var xColor = 0xFFFF0000;
+        var yColor = 0xFF00FF00;
+        var zColor = 0xFF0000FF;
         var xR = ColorUtils.red(xColor);
         var xG = ColorUtils.green(xColor);
         var xB = ColorUtils.blue(xColor);
@@ -285,6 +291,24 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         var zA = ColorUtils.alpha(zColor);
         if (mode == Mode.SCALE || mode == Mode.TRANSLATE) {
             var scale = targetTransform.scale();
+            if (isMovingX || isHoverX) {
+                xR = 1;
+                xG = 1;
+                xB = 1;
+                xA = 1;
+            }
+            if (isMovingY || isHoverY) {
+                yR = 1;
+                yG = 1;
+                yB = 1;
+                yA = 1;
+            }
+            if (isMovingZ || isHoverZ) {
+                zR = 1;
+                zG = 1;
+                zB = 1;
+                zA = 1;
+            }
             // draw x axis
             RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(mode == Mode.TRANSLATE ? 1 : scale.x, 0, 0),
                     xR, xG, xB, xA, xR, xG, xB, xA);
@@ -337,15 +361,15 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 zG = 1f;
                 zB = 1f;
                 zA = 1f;
-                if (!isMovingXPlane && !isHoverPlane(Direction.Axis.X) || isMoving() || isHoverX) {
+                if (!isMovingXPlane && !isHoverXPlane || isMoving() || isHoverX) {
                     xG = 0;
                     xB = 0;
                 }
-                if (!isMovingYPlane && !isHoverPlane(Direction.Axis.Y) || isMoving() || isHoverY) {
+                if (!isMovingYPlane && !isHoverYPlane || isMoving() || isHoverY) {
                     yR = 0;
                     yB = 0;
                 }
-                if (!isMovingZPlane && !isHoverPlane(Direction.Axis.Z) || isMoving() || isHoverZ) {
+                if (!isMovingZPlane && !isHoverZPlane || isMoving() || isHoverZ) {
                     zR = 0;
                     zG = 0;
                 }
@@ -377,19 +401,19 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         }
 
         if (mode == Mode.ROTATE) {
-            if (isMovingX) {
+            if (isMovingX || isHoverX) {
                 xR = 1;
                 xG = 1;
                 xB = 1;
                 xA = 1;
             }
-            if (isMovingY) {
+            if (isMovingY || isHoverY) {
                 yR = 1;
                 yG = 1;
                 yB = 1;
                 yA = 1;
             }
-            if (isMovingZ) {
+            if (isMovingZ || isHoverZ) {
                 zR = 1;
                 zG = 1;
                 zB = 1;
@@ -430,22 +454,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         if (getScene() instanceof SceneEditor editor && editor.getModularUI() != null) {
             var lastMouseX = editor.getModularUI().getLastMouseX();
             var lastMouseY = editor.getModularUI().getLastMouseY();
-            if (isHoverAxis(Direction.Axis.X)) {
-                isMovingX = true;
-                moveDirection = new Vector3f(1, 0, 0);
-                startMouse = new Vector2f(lastMouseX, lastMouseY);
-                return true;
-            } else if (isHoverAxis(Direction.Axis.Y)) {
-                isMovingY = true;
-                moveDirection = new Vector3f(0, 1, 0);
-                startMouse = new Vector2f(lastMouseX, lastMouseY);
-                return true;
-            } else if (isHoverAxis(Direction.Axis.Z)) {
-                isMovingZ = true;
-                moveDirection = new Vector3f(0, 0, 1);
-                startMouse = new Vector2f(lastMouseX, lastMouseY);
-                return true;
-            } else if (mode == Mode.TRANSLATE) {
+            if (mode == Mode.TRANSLATE) {
                 if (isHoverPlane(Direction.Axis.X)) {
                     isMovingXPlane = true;
                     startPosition = transform().position();
@@ -463,6 +472,22 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     startMouse = new Vector2f(lastMouseX, lastMouseY);
                     return true;
                 }
+            }
+            if (isHoverAxis(Direction.Axis.X)) {
+                isMovingX = true;
+                moveDirection = new Vector3f(1, 0, 0);
+                startMouse = new Vector2f(lastMouseX, lastMouseY);
+                return true;
+            } else if (isHoverAxis(Direction.Axis.Y)) {
+                isMovingY = true;
+                moveDirection = new Vector3f(0, 1, 0);
+                startMouse = new Vector2f(lastMouseX, lastMouseY);
+                return true;
+            } else if (isHoverAxis(Direction.Axis.Z)) {
+                isMovingZ = true;
+                moveDirection = new Vector3f(0, 0, 1);
+                startMouse = new Vector2f(lastMouseX, lastMouseY);
+                return true;
             }
         }
         return false;

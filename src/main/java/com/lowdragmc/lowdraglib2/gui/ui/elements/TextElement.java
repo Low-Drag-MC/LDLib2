@@ -111,6 +111,7 @@ public class TextElement extends UIElement {
 
     @HideFromJS
     public TextElement setText(Component text) {
+        if (this.text.equals(text)) return this;
         this.text = text;
         recompute();
         return this;

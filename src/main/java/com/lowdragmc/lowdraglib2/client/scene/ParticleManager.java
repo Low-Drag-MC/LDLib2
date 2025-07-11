@@ -29,9 +29,9 @@ import java.util.function.Predicate;
 @OnlyIn(Dist.CLIENT)
 public class ParticleManager {
     private static final List<ParticleRenderType> RENDER_ORDER = ImmutableList.of(ParticleRenderType.TERRAIN_SHEET, ParticleRenderType.PARTICLE_SHEET_OPAQUE, ParticleRenderType.PARTICLE_SHEET_LIT, ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT, ParticleRenderType.CUSTOM);
-    private final Queue<Particle> waitToAdded = Queues.newArrayDeque();
-    private final Map<ParticleRenderType, Queue<Particle>> particles = Maps.newTreeMap(makeParticleRenderTypeComparator(RENDER_ORDER));
-    private final TextureManager textureManager = Minecraft.getInstance().getTextureManager();
+    protected final Queue<Particle> waitToAdded = Queues.newArrayDeque();
+    protected final Map<ParticleRenderType, Queue<Particle>> particles = Maps.newTreeMap(makeParticleRenderTypeComparator(RENDER_ORDER));
+    protected final TextureManager textureManager = Minecraft.getInstance().getTextureManager();
 
     public Level level;
 
@@ -81,7 +81,6 @@ public class ParticleManager {
                 }
             }
         }
-
     }
 
     public void render(PoseStack pMatrixStack, Camera pActiveRenderInfo, float pPartialTicks, Predicate<ParticleRenderType> renderTypePredicate) {

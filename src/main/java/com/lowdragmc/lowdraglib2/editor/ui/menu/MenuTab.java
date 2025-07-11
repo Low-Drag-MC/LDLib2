@@ -42,7 +42,7 @@ public abstract class MenuTab {
      */
     protected abstract Component getComponent();
 
-    private TreeBuilder.Menu createMenu() {
+    protected TreeBuilder.Menu createMenu() {
         var menu = createDefaultMenu();
         for (var creator : menuCreators) {
             creator.accept(this, menu);

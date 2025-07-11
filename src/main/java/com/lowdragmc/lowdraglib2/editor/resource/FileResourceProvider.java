@@ -37,6 +37,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         this.resourceSuffix = resourceSuffix;
         setName(resourceLocation.getName());
         setIcon(Icons.FILE);
+        checkAndUpdateResourceProvider();
     }
 
     @Override

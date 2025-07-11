@@ -36,7 +36,7 @@ public class TestLDShaderInstance implements IUITest {
 
         var group = new ConfiguratorGroup("root");
         group.setCollapse(false);
-        var shaderInstance= LDShaderInstance.create(LDLib2.id("sprite_blit"), DefaultVertexFormat.POSITION_TEX_COLOR);
+        var shaderInstance= LDShaderInstance.create(LDLib2.id("test_shader"), DefaultVertexFormat.PARTICLE);
         assert shaderInstance != null;
         shaderInstance.buildConfigurator(group);
         var text = new TextElement();

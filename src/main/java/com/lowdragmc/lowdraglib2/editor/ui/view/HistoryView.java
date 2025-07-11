@@ -62,8 +62,9 @@ public class HistoryView extends View {
         });
         addChild(scrollerView);
 
-        addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
-        addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+        // history may be invisible
+        editor.addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        editor.addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
     }
 
     protected void onValidateCommand(UIEvent event) {

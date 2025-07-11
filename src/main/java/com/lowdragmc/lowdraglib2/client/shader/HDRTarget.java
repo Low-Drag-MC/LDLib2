@@ -4,14 +4,17 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
+import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.NeoForgeConfig;
 import org.lwjgl.opengl.GL30;
 
 @OnlyIn(Dist.CLIENT)
 public class HDRTarget extends RenderTarget {
-
+    @Getter
+    private int attachedDepthTexture = -1;
     public HDRTarget(int width, int height) {
         this(width, height, GL30.GL_NEAREST, true);
     }
@@ -56,15 +59,11 @@ public class HDRTarget extends RenderTarget {
             GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, this.frameBufferId);
             GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL30.GL_TEXTURE_2D, this.colorTextureId, 0);
             if (this.useDepth) {
-                if(!isStencilEnabled())
-                    GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_TEXTURE_2D, this.depthBufferId, 0);
-                else if(net.neoforged.neoforge.common.NeoForgeConfig.CLIENT.useCombinedDepthStencilAttachment.get()) {
-                    GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL30.GL_TEXTURE_2D, this.depthBufferId, 0);
-                } else {
-                    GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_TEXTURE_2D, this.depthBufferId, 0);
-                    GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL30.GL_TEXTURE_2D, this.depthBufferId, 0);
-                }
+                attachDepthBufferInternal(this.depthBufferId,
+                        isStencilEnabled(),
+                        NeoForgeConfig.CLIENT.useCombinedDepthStencilAttachment.get());
             }
+            this.attachedDepthTexture = -1;
 
             this.checkStatus();
             this.clear(clearError);
@@ -85,41 +84,81 @@ public class HDRTarget extends RenderTarget {
         }
     }
 
-    public void copyDepthFrom(RenderTarget otherTarget) {
+    public void attachDepthBuffer(int depthTexture) {
+        int previousTextureBinding = GlStateManager._getInteger(GL30.GL_TEXTURE_BINDING_2D);
+        GlStateManager._bindTexture(depthTexture);
+        int parameter = GlStateManager._getTexLevelParameter(3553, 0, GL30.GL_TEXTURE_INTERNAL_FORMAT);
+        GlStateManager._bindTexture(previousTextureBinding);
+        var useStencil = false;
+        var useCombinedDepthStencil = false;
+        switch (parameter) {
+            case 34041, 36013, 35056 -> {
+                useStencil = true;
+                useCombinedDepthStencil = true;
+            }
+        }
+        attachDepthBufferInternal(depthTexture, useStencil, useCombinedDepthStencil);
+    }
+
+    public void attachDepthBuffer(RenderTarget srcTarget) {
+        attachDepthBufferInternal(srcTarget.getDepthTextureId(), srcTarget.isStencilEnabled(), NeoForgeConfig.CLIENT.useCombinedDepthStencilAttachment.get());
+    }
+
+    public void attachDepthBufferInternal(int depthTexture, boolean useStencil, boolean useCombinedDepthStencil) {
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, frameBufferId);
+        if (!useStencil)
+            GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_TEXTURE_2D, depthTexture, 0);
+        else if (useCombinedDepthStencil) {
+            GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL30.GL_TEXTURE_2D, depthTexture, 0);
+        } else {
+            GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_TEXTURE_2D, depthTexture, 0);
+            GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL30.GL_TEXTURE_2D, depthTexture, 0);
+        }
+        attachedDepthTexture = depthTexture;
+    }
+
+    public boolean hasOtherAttachedDepthTexture() {
+        return attachedDepthTexture != -1 && attachedDepthTexture != this.depthBufferId;
+    }
+
+    public void restoreDepthTexture() {
+        if (hasOtherAttachedDepthTexture()) {
+            attachDepthBufferInternal(this.depthBufferId,
+                    isStencilEnabled(),
+                    NeoForgeConfig.CLIENT.useCombinedDepthStencilAttachment.get());
+        }
+    }
+
+    public void copyFromInternal(int id, int srcWidth, int srcHeight, int mask, int filter) {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, otherTarget.frameBufferId);
+        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, id);
         GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, this.frameBufferId);
-        GlStateManager._glBlitFrameBuffer(0, 0, otherTarget.width, otherTarget.height,
-                0, 0, this.width, this.height,
-                GL30.GL_DEPTH_BUFFER_BIT,
-                GL30.GL_NEAREST);
+        GlStateManager._glBlitFrameBuffer(0, 0, srcWidth, srcHeight,
+                0, 0, this.width, this.height, mask, filter);
         GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+    }
+
+    public void copyDepthFrom(RenderTarget otherTarget) {
+        copyDepthFrom(otherTarget.frameBufferId, otherTarget.width, otherTarget.height);
+    }
+
+    public void copyDepthFrom(int id, int srcWidth, int srcHeight) {
+        copyFromInternal(id, srcWidth, srcHeight, GL30.GL_DEPTH_BUFFER_BIT, GL30.GL_NEAREST);
     }
 
     public void copyColorFrom(RenderTarget otherTarget) {
-        RenderSystem.assertOnRenderThreadOrInit();
-        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, otherTarget.frameBufferId);
-        GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, this.frameBufferId);
-        GlStateManager._glBlitFrameBuffer(0, 0, otherTarget.width, otherTarget.height,
-                0, 0, this.width, this.height,
-                GL30.GL_COLOR_BUFFER_BIT,
-                GL30.GL_LINEAR);
-        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+        copyColorFrom(otherTarget.frameBufferId, otherTarget.width, otherTarget.height);
+    }
+
+    public void copyColorFrom(int id, int srcWidth, int srcHeight) {
+        copyFromInternal(id, srcWidth, srcHeight, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST);
     }
 
     public void copyDepthAndColorFrom(RenderTarget otherTarget) {
-        RenderSystem.assertOnRenderThreadOrInit();
+        copyDepthAndColorFrom(otherTarget.frameBufferId, otherTarget.width, otherTarget.height);
+    }
 
-        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, otherTarget.frameBufferId);
-        GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, this.frameBufferId);
-
-        GlStateManager._glBlitFrameBuffer(
-                0, 0, otherTarget.width, otherTarget.height,
-                0, 0, this.width, this.height,
-                GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT,
-                GL30.GL_NEAREST
-        );
-
-        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+    public void copyDepthAndColorFrom(int id, int srcWidth, int srcHeight) {
+        copyFromInternal(id, srcWidth, srcHeight, GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT, GL30.GL_NEAREST);
     }
 }

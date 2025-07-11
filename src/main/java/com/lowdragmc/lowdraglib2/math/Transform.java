@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.math;
 
+import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -344,8 +345,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
 
     public void destroy() {
         if (this.parent != null && this.parent.isValid) {
-            this.parent.children.remove(this);
-            this.parent.sceneObject.onChildChanged();
+            this.parent.removeChildInternal(this);
             this.parent = null;
         }
         isValid = false;
@@ -399,5 +399,28 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
      */
     public void _setInternalParentID(UUID uuid) {
         _parentId = uuid;
+    }
+
+    /**
+     * Get the parent ID
+     */
+    public UUID _getInternalParentID() {
+        return _parentId;
+    }
+
+    /**
+     * Set the children IDs of the transform.
+     * Do not call this method unless you know what you are doing.
+     */
+    public void _setInternalChildID(List<UUID> uuids) {
+        _childrenId.clear();
+        _childrenId.addAll(uuids);
+    }
+
+    /**
+     * Get children IDs
+     */
+    public List<UUID> _getInternalChildID() {
+        return ImmutableList.copyOf(_childrenId);
     }
 }

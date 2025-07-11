@@ -12,7 +12,6 @@ import java.util.Map;
 public interface ShaderInstanceAccessor {
     @Accessor
     List<String> getSamplerNames();
-
     @Accessor
     Map<String, Uniform> getUniformMap();
 }

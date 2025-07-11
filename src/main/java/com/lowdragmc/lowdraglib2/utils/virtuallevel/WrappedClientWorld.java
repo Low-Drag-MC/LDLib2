@@ -42,7 +42,7 @@ public class WrappedClientWorld extends ClientLevel {
 
     @Override
     public boolean hasChunkAt(BlockPos pos) {
-        return world.hasChunkAt(pos);
+        return world.isLoaded(pos);
     }
 
     @Override

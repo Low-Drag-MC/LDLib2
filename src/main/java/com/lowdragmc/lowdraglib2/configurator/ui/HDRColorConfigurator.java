@@ -78,6 +78,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         if (newValue.equals(value)) return;
         super.onValueUpdatePassively(newValue);
         this.colorSelector.setColor(ColorUtils.color(1, newValue.x, newValue.y, newValue.z), false);
+        this.intensityConfigurator.onValueUpdatePassively(newValue.w);
     }
 
     public void show() {
@@ -128,7 +129,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         var textTexture = new TextTexture("HDR: %.1f".formatted(intensityConfigurator.value.floatValue()));
         textTexture.setType(TextTexture.TextType.ROLL);
         textTexture.setWidth((int) width);
-        textTexture.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+        textTexture.draw(graphics, mouseX, mouseY, x, y + 1, width, height, partialTicks);
     }
 
 }
