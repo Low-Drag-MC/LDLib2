@@ -423,4 +423,13 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
     public List<UUID> _getInternalChildID() {
         return ImmutableList.copyOf(_childrenId);
     }
+
+    public void copyTransformFrom(Transform transform, boolean local, boolean copyHierarchy) {
+        this.set(transform, local);
+        if (copyHierarchy) {
+            this.parent(transform.parent());
+            this._setInternalParentID(transform._getInternalParentID());
+            this._setInternalChildID(transform._getInternalChildID());
+        }
+    }
 }

@@ -20,10 +20,12 @@
     "SpriteSourceListMixin",
     "TextureAtlasMixin",
     "WorldRendererMixin",
+    "ObjModelMixin",
     "accessor.AbstractContainerScreenAccessor",
     "accessor.BufferBuilderAccessor",
     "accessor.ModelBakeryAccessor",
     "accessor.MouseHandlerAccessor",
+    "accessor.ObjModelAccessor",
     "accessor.ShaderInstanceAccessor",
     "emi.RecipeScreenMixin",
     "emi.WidgetGroupMixin"

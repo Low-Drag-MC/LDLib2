@@ -62,7 +62,8 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
     }
 
     public boolean supportConfigurator(Uniform uniform) {
-        return uniform != MODEL_VIEW_MATRIX &&
+        return uniform.getName().startsWith("U_") &&
+                uniform != MODEL_VIEW_MATRIX &&
                 uniform != PROJECTION_MATRIX &&
                 uniform != TEXTURE_MATRIX &&
                 uniform != SCREEN_SIZE &&
@@ -95,7 +96,7 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
                 setSampler(name, Minecraft.getInstance().getTextureManager().getTexture(location));
             }
         }
-        isSamplerCacheDirty = true;
+        isSamplerCacheDirty = false;
     }
 
     public int getSamplerID(String name) {
