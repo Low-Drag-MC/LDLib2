@@ -14,4 +14,6 @@ public interface ShaderInstanceAccessor {
     List<String> getSamplerNames();
     @Accessor
     Map<String, Uniform> getUniformMap();
+    @Accessor
+    Map<String, Object> getSamplerMap();
 }

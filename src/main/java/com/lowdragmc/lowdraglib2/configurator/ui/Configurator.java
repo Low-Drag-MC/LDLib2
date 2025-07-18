@@ -98,6 +98,12 @@ public class Configurator extends UIElement {
         return this;
     }
 
+    public Configurator setTips(Component... tips) {
+        this.tip.style(style -> style.appendTooltips(tips));
+        this.tip.setDisplay(tips.length > 0 ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        return this;
+    }
+
     public Configurator addInlineChild(UIElement child) {
         this.inlineContainer.addChild(child);
         return this;

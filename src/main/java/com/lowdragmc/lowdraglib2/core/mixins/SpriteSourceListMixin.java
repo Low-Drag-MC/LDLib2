@@ -24,7 +24,7 @@ import java.util.function.Supplier;
  * @implNote SpriteSourceListMixin
  */
 @Mixin(SpriteSourceList.class)
-public class SpriteSourceListMixin {
+public abstract class SpriteSourceListMixin {
 
     // TODO do we really need CTM here?
     // load ctm textures

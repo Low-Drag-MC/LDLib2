@@ -452,6 +452,7 @@ public class Scene extends UIElement {
             renderer.setCameraOrtho(range * zoom, range * zoom, range * zoom);
             renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         }
+        event.stopPropagation();
     }
 
     @Override

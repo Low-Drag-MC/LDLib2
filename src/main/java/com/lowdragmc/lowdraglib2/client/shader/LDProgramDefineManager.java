@@ -1,0 +1,40 @@
+package com.lowdragmc.lowdraglib2.client.shader;
+
+import lombok.experimental.UtilityClass;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@OnlyIn(Dist.CLIENT)
+@UtilityClass
+public final class LDProgramDefineManager {
+    private static Set<String> PROGRAM_DEFINES = new HashSet<>();
+
+    public static void addProgramDefine(String define) {
+        PROGRAM_DEFINES.add(define);
+    }
+
+    public static void removeProgramDefine(String define) {
+        PROGRAM_DEFINES.remove(define);
+    }
+
+    public static void clearProgramDefines() {
+        PROGRAM_DEFINES.clear();
+    }
+
+    public static boolean hasProgramDefine(String define) {
+        return PROGRAM_DEFINES.contains(define);
+    }
+
+    public static boolean hasProgramDefines() {
+        return !PROGRAM_DEFINES.isEmpty();
+    }
+
+    public static String createProgramDefinesString() {
+        StringBuilder sb = new StringBuilder();
+        PROGRAM_DEFINES.forEach(def -> sb.append("#define ").append(def).append("\n"));
+        return sb.toString();
+    }
+}

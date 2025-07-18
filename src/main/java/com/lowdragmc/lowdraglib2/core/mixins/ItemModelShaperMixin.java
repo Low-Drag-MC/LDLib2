@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 @Mixin(ItemModelShaper.class)
-public class ItemModelShaperMixin {
+public abstract class ItemModelShaperMixin {
     @Unique
     private final static Map<IRenderer, BakedModel> SHAPES_CACHE = new HashMap<>();
 

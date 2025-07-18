@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(SimpleTexture.class)
-public class SimpleTextureMixin implements ITextureSize {
+public abstract class SimpleTextureMixin implements ITextureSize {
     @Unique
     public int ldlib2$imageWidth;
     @Unique
