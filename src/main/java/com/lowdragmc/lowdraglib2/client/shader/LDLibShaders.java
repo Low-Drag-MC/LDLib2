@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.shader.management.Shader;
 import com.lowdragmc.lowdraglib2.gui.texture.ShaderTexture;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
@@ -25,6 +26,8 @@ import static com.mojang.blaze3d.vertex.VertexFormatElement.POSITION;
 
 @OnlyIn(Dist.CLIENT)
 public class LDLibShaders {
+	public static Program.Type GEOMETRY_TYPE;
+
 	private static final List<Runnable> reloadListeners = new ArrayList<>();
 	public static Shader IMAGE_F;
 	public static Shader IMAGE_V;

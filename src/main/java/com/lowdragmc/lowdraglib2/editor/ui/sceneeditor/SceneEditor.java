@@ -66,17 +66,17 @@ public class SceneEditor extends UIElement implements IScene {
             layout.setGap(YogaGutter.ALL, 1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
-        this.scene = new Scene() {
-            @Override
-            protected void renderBeforeBatchEnd(MultiBufferSource bufferSource, float partialTicks) {
-                SceneEditor.this.renderBeforeBatchEnd(bufferSource, partialTicks);
-            }
-        };
+        this.scene = new Scene();
         this.scene.setRenderFacing(false);
         this.scene.setRenderSelect(false);
         this.scene.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
+        });
+        this.scene.setAfterWorldRender(scene -> {
+            var mc = Minecraft.getInstance();
+            var partialTicks = mc.getTimer().getGameTimeDeltaPartialTick(false);
+            SceneEditor.this.renderAfterWorld(mc.renderBuffers().bufferSource(), partialTicks);
         });
 
         this.gizmoBar = new UIElement();
@@ -379,7 +379,7 @@ public class SceneEditor extends UIElement implements IScene {
         }
     }
 
-    protected void renderBeforeBatchEnd(MultiBufferSource bufferSource, float partialTicks) {
+    protected void renderAfterWorld(MultiBufferSource bufferSource, float partialTicks) {
         var poseStack = new PoseStack();
         for (ISceneObject sceneObject : sceneObjects.values()) {
             sceneObject.executeAll(so -> so.updateFrame(partialTicks));

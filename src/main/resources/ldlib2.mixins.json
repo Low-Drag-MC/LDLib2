@@ -18,6 +18,9 @@
     "ObjModelMixin",
     "ParticleEngineAccessor",
     "ParticleEngineMixin",
+    "ProgramManagerMixin",
+    "ProgramTypeMixin",
+    "ShaderInstanceMixin",
     "SimpleTextureMixin",
     "SpriteSourceListMixin",
     "TextureAtlasMixin",
@@ -27,6 +30,7 @@
     "accessor.ModelBakeryAccessor",
     "accessor.MouseHandlerAccessor",
     "accessor.ObjModelAccessor",
+    "accessor.ProgramTypeAccessor",
     "accessor.ShaderInstanceAccessor",
     "emi.RecipeScreenMixin",
     "emi.WidgetGroupMixin"

@@ -223,7 +223,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     }
 
     public static <T> FileResourceProvider<T> fromNBT(ResourceInstance<T> resourceInstance, @Nonnull CompoundTag nbt) {
-        var location = new File(nbt.getString("location"));
+        var location = new File(nbt.getString("location").replace('\\', '/'));
         return (FileResourceProvider<T>) new FileResourceProvider<>(resourceInstance, location, resourceInstance.resource.getFileExtension())
                 .setName(nbt.getString("name"));
     }

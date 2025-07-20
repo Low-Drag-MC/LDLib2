@@ -93,9 +93,11 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
         if (numberType == ConfigNumber.Type.INTEGER || (numberType == ConfigNumber.Type.AUTO && value instanceof Integer)){
             textField.setNumbersOnlyInt(min == null ? Integer.MIN_VALUE : min.intValue(), max == null ? Integer.MAX_VALUE : max.intValue());
             wheelValue = 1;
+            if (wheel != null) wheel = Math.max(wheelValue, wheel.floatValue());
         } else if (numberType == ConfigNumber.Type.LONG || (numberType == ConfigNumber.Type.AUTO && value instanceof Long)){
             textField.setNumbersOnlyLong(min == null ? Long.MIN_VALUE : min.longValue(), max == null ? Long.MAX_VALUE : max.longValue());
             wheelValue = 1;
+            if (wheel != null) wheel = Math.max(wheelValue, wheel.floatValue());
         } else if (numberType == ConfigNumber.Type.FLOAT || (numberType == ConfigNumber.Type.AUTO && value instanceof Float)){
             textField.setNumbersOnlyFloat(min == null ? -Float.MAX_VALUE : min.floatValue(), max == null ? Float.MAX_VALUE : max.floatValue());
             wheelValue = 0.1f;
@@ -105,9 +107,11 @@ public class NumberConfigurator extends ValueConfigurator<Number> {
         } else if (numberType == ConfigNumber.Type.SHORT || (numberType == ConfigNumber.Type.AUTO && value instanceof Short)){
             textField.setNumbersOnlyShort(min == null ? Short.MIN_VALUE : min.shortValue(), max == null ? Short.MAX_VALUE : max.shortValue());
             wheelValue = 1;
+            if (wheel != null) wheel = Math.max(wheelValue, wheel.floatValue());
         } else if (numberType == ConfigNumber.Type.BYTE || (numberType == ConfigNumber.Type.AUTO && value instanceof Byte)){
             textField.setNumbersOnlyByte(min == null ? Byte.MIN_VALUE : min.byteValue(), max == null ? Byte.MAX_VALUE : max.byteValue());
             wheelValue = 1;
+            if (wheel != null) wheel = Math.max(wheelValue, wheel.floatValue());
         }
         if (wheel != null) {
             wheelValue = wheel.floatValue();

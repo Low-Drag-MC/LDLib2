@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
+import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.accessors.*;
@@ -13,9 +14,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
@@ -24,6 +27,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceProvider;
+import net.minecraft.util.GsonHelper;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -35,12 +39,17 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
-public class LDShaderInstance extends ShaderInstance implements IConfigurable, INBTSerializable<CompoundTag> {
+public class LDShaderInstance extends ShaderInstance implements ILDShaderInstance, IConfigurable, INBTSerializable<CompoundTag> {
+    @Getter
+    @Nullable
+    private Program geometry;
     // runtime
     private final Map<String, Object> samplerCache = new HashMap<>();
+    private final Map<String, Supplier<Object>> dynamicSampler = new HashMap<>();
     private boolean isSamplerCacheDirty = true;
 
     @Nullable
@@ -57,8 +66,31 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
         super(resourceProvider, shaderLocation, vertexFormat);
     }
 
-    public ShaderInstanceAccessor getShaderInstanceAccessor() {
-        return (ShaderInstanceAccessor) this;
+    @Override
+    public void onCreateShader(ResourceProvider resourceProvider, ResourceLocation shaderLocation, VertexFormat vertexFormat, JsonObject json) {
+        var geometryShader = GsonHelper.getAsString(json, "geometry", null);
+        if (geometryShader != null) {
+            try {
+                this.geometry = ShaderInstanceAccessor.invokeGetOrCreate(resourceProvider, LDLibShaders.GEOMETRY_TYPE, geometryShader);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void attachToProgram() {
+        super.attachToProgram();
+        if (this.geometry != null) {
+            this.geometry.attachToShader(this);
+        }
+    }
+
+    public void removeDynamicSampler(String name) {
+        dynamicSampler.remove(name);
+    }
+
+    public void addDynamicSampler(String name, Supplier<Object> supplier) {
+        dynamicSampler.put(name, supplier);
     }
 
     @Override
@@ -66,6 +98,8 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
         if (isSamplerCacheDirty) {
             applySamplers();
         }
+        dynamicSampler.forEach((name, supplier) ->
+                getShaderInstanceAccessor().getSamplerMap().put(name, supplier.get()));
         super.apply();
     }
 
@@ -118,6 +152,7 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
         for (var entry : getShaderInstanceAccessor().getUniformMap().entrySet()) {
             var name = entry.getKey();
             var uniform = entry.getValue();
+            if (isBuiltinUniform(uniform)) continue;
             if (uniform.getType() <= 3) {
                 uniforms.put(name, new IntArrayTag(readInt(uniform)));
             } else {
@@ -144,6 +179,7 @@ public class LDShaderInstance extends ShaderInstance implements IConfigurable, I
     @Override
     public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag tag) {
         samplerCache.clear();
+        dynamicSampler.clear();
         isSamplerCacheDirty = true;
         var uniforms = tag.getCompound("uniforms");
         for (var name : uniforms.getAllKeys()) {
