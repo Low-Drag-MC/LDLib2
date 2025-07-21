@@ -9,7 +9,7 @@
     "BlockModelShaperMixin",
     "BlockRenderDispatcherMixin",
     "BlockStateModelLoaderMixin",
-    "GlslPreprocessorMixin",
+    "ProgramMixin",
     "ItemModelShaperMixin",
     "ItemRendererMixin",
     "LanguageMixin",

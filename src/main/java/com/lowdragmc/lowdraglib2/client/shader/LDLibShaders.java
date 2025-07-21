@@ -15,17 +15,22 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import org.lwjgl.opengl.GL;
+import org.spongepowered.asm.mixin.Unique;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static com.mojang.blaze3d.vertex.VertexFormatElement.POSITION;
 
 @OnlyIn(Dist.CLIENT)
 public class LDLibShaders {
+	public static final Pattern REGEX_VERSION = Pattern.compile(
+			"(#(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|\\h)*version(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|\\h)*(\\d+))\\b"
+	);
 	public static Program.Type GEOMETRY_TYPE;
 
 	private static final List<Runnable> reloadListeners = new ArrayList<>();
