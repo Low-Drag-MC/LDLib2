@@ -37,8 +37,8 @@ import org.joml.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
@@ -50,6 +50,7 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
     // runtime
     private final Map<String, Object> samplerCache = new HashMap<>();
     private final Map<String, Supplier<Object>> dynamicSampler = new HashMap<>();
+    private final Map<String, Consumer<Uniform>> dynamicUniform = new HashMap<>();
     private boolean isSamplerCacheDirty = true;
 
     @Nullable
@@ -88,9 +89,16 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
     public void removeDynamicSampler(String name) {
         dynamicSampler.remove(name);
     }
+    public void removeDynamicUniform(String name) {
+        dynamicUniform.remove(name);
+    }
 
     public void addDynamicSampler(String name, Supplier<Object> supplier) {
         dynamicSampler.put(name, supplier);
+    }
+
+    public void addDynamicUniform(String name, Consumer<Uniform> consumer) {
+        dynamicUniform.put(name, consumer);
     }
 
     @Override
@@ -100,6 +108,11 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
         }
         dynamicSampler.forEach((name, supplier) ->
                 getShaderInstanceAccessor().getSamplerMap().put(name, supplier.get()));
+
+        dynamicUniform.forEach((name, consumer) -> {
+            var uniform = getUniform(name);
+            if (uniform != null) consumer.accept(uniform);
+        });
         super.apply();
     }
 
@@ -180,6 +193,7 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
     public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag tag) {
         samplerCache.clear();
         dynamicSampler.clear();
+        dynamicUniform.clear();
         isSamplerCacheDirty = true;
         var uniforms = tag.getCompound("uniforms");
         for (var name : uniforms.getAllKeys()) {
