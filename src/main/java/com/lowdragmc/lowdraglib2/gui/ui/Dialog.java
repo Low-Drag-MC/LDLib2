@@ -119,9 +119,9 @@ public class Dialog extends UIElement {
     public void close(){
         if (this.getParent() != null) {
             this.getParent().removeChild(this);
-        }
-        if (onClose != null) {
-            onClose.run();
+            if (onClose != null) {
+                onClose.run();
+            }
         }
     }
 

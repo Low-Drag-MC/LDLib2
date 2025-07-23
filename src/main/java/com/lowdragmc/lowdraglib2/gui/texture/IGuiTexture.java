@@ -67,9 +67,16 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     EmptyTexture EMPTY = new EmptyTexture();
     MissingTexture MISSING_TEXTURE = new MissingTexture();
 
-    Codec<IGuiTexture> CODEC = LDLib2Registries.GUI_TEXTURES.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
-            optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
-                    .orElseGet(() -> MapCodec.unit(MISSING_TEXTURE)));
+    Codec<IGuiTexture> CODEC = createCodec();
+    static Codec<IGuiTexture> createCodec() {
+        if (LDLib2.isClient()) {
+            return LDLib2Registries.GUI_TEXTURES.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
+                    optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
+                            .orElseGet(() -> MapCodec.unit(MISSING_TEXTURE)));
+        } else {
+            return Codec.unit(MISSING_TEXTURE);
+        }
+    }
 
     default IGuiTexture setColor(int color){
         return this;

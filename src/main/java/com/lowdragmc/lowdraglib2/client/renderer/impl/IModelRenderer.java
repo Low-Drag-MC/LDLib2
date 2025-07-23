@@ -52,7 +52,7 @@ public class IModelRenderer implements IRenderer {
     @Nullable
     protected volatile BakedModel itemModel;
     @OnlyIn(Dist.CLIENT)
-    private volatile boolean itemModelInitialized = false;
+    private volatile boolean itemModelInitialized;
 
     @OnlyIn(Dist.CLIENT)
     protected Map<ModelState, BakedModel> modelCaches;
@@ -268,7 +268,7 @@ public class IModelRenderer implements IRenderer {
     }
 
     @Nullable
-    public ResourceLocation getModelFromFile(File filePath) {
+    public static ResourceLocation getModelFromFile(File filePath) {
         String fullPath = filePath.getPath().replace('\\', '/');
 
         // find the "assets/" directory in the path

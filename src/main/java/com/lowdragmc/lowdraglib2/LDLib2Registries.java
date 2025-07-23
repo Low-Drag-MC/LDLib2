@@ -26,23 +26,28 @@ public class LDLib2Registries {
             .create(LDLib2.id("widget"), IConfigurableWidget.class, AutoRegistry::noArgsCreator);
 
     @OnlyIn(Dist.CLIENT)
-    public final static AutoRegistry.LDLibRegisterClient<IConfiguratorAccessor, IConfiguratorAccessor<?>> CONFIGURATOR_ACCESSORS = AutoRegistry.LDLibRegisterClient
-            .create(LDLib2.id("configurator_accessor"), IConfiguratorAccessor.class, AutoRegistry::noArgsInstance);
+    public static AutoRegistry.LDLibRegisterClient<IConfiguratorAccessor, IConfiguratorAccessor<?>> CONFIGURATOR_ACCESSORS;
 
     @OnlyIn(Dist.CLIENT)
-    public final static AutoRegistry.LDLibRegisterClient<IGuiTexture, Supplier<IGuiTexture>> GUI_TEXTURES = AutoRegistry.LDLibRegisterClient
-            .create(LDLib2.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
+    public static AutoRegistry.LDLibRegisterClient<IGuiTexture, Supplier<IGuiTexture>> GUI_TEXTURES;
 
     @OnlyIn(Dist.CLIENT)
-    public final static AutoRegistry.LDLibRegisterClient<IRenderer, Supplier<IRenderer>> RENDERERS = AutoRegistry.LDLibRegisterClient
-            .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
+    public static AutoRegistry.LDLibRegisterClient<IRenderer, Supplier<IRenderer>> RENDERERS;
 
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IUITest, Supplier<IUITest>> UI_TESTS;
 
     static {
-        if (LDLib2.isClient() && Platform.isDevEnv()) {
-            UI_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_test"), IUITest.class, AutoRegistry::noArgsCreator);
+        if (LDLib2.isClient()) {
+            CONFIGURATOR_ACCESSORS = AutoRegistry.LDLibRegisterClient
+                    .create(LDLib2.id("configurator_accessor"), IConfiguratorAccessor.class, AutoRegistry::noArgsInstance);
+            GUI_TEXTURES = AutoRegistry.LDLibRegisterClient
+                    .create(LDLib2.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
+            RENDERERS = AutoRegistry.LDLibRegisterClient
+                    .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
+            if (Platform.isDevEnv()) {
+                UI_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_test"), IUITest.class, AutoRegistry::noArgsCreator);
+            }
         }
     }
 

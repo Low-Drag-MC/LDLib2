@@ -219,12 +219,13 @@ public class Editor extends UIElement {
             var dialog = Dialog.showCheckBox("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
                 if (doSave) {
                     saveProject(onFinish);
-                }
-                if (onFinish != null) {
-                    onFinish.run();
+                } else {
+                    if (onFinish != null) {
+                        onFinish.run();
+                    }
                 }
             }).show(this);
-            if (dialog.buttonContainer.getChildren().get(0) instanceof Button button) {
+            if (dialog.buttonContainer.getChildren().getFirst() instanceof Button button) {
                 button.setText("ldlib.gui.editor.menu.save");
             }
             return;

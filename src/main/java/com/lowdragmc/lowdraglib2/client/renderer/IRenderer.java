@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.renderer;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
@@ -69,10 +70,18 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
     //endregion
     EmptyRenderer EMPTY = new EmptyRenderer();
 
-    Codec<IRenderer> CODEC = LDLib2Registries.RENDERERS.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
-            optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
-                    .orElseGet(() -> MapCodec.unit(EMPTY)));
+    Codec<IRenderer> CODEC = createCodec();
     Set<IRenderer> EVENT_REGISTERS = ConcurrentHashMap.newKeySet();
+
+    static Codec<IRenderer> createCodec() {
+        if (LDLib2.isClient()) {
+            return LDLib2Registries.RENDERERS.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
+                    optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
+                            .orElseGet(() -> MapCodec.unit(EMPTY)));
+        } else {
+            return Codec.unit(EMPTY);
+        }
+    }
 
     @Nullable
     default CompoundTag serializeWrapper() {
@@ -83,6 +92,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
         return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(EMPTY);
     }
 
+    @OnlyIn(Dist.CLIENT)
     default IRenderer copy() {
         return deserializeWrapper(serializeWrapper());
     }

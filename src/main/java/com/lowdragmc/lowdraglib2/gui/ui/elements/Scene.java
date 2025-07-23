@@ -82,8 +82,7 @@ public class Scene extends UIElement {
 
     @Getter @Setter
     protected BiConsumer<BlockPos, Direction> onSelected;
-    @Getter
-    protected final Set<BlockPos> core = new HashSet<>();
+    private final Set<BlockPos> core = new HashSet<>();
     @Getter
     protected boolean useCache;
     @Getter
@@ -253,6 +252,7 @@ public class Scene extends UIElement {
      */
     public Scene setRenderedCore(Collection<BlockPos> blocks, ISceneBlockRenderHook renderHook, boolean autoCamera) {
         if (renderer == null) return this;
+        renderer.removeRenderedBlocks(core);
         core.clear();
         core.addAll(blocks);
         int minX = Integer.MAX_VALUE;

@@ -55,6 +55,14 @@ public class SceneEditor extends UIElement implements IScene {
     protected Map<UUID, ISceneObject> sceneObjects = new LinkedHashMap<>();
     @Getter
     protected final TransformGizmo transformGizmo;
+    public enum TransformGizmoMode {
+        TRANSLATE,
+        ROTATE,
+        SCALE,
+        NONE
+    }
+    @Getter
+    protected TransformGizmoMode transformGizmoMode = TransformGizmoMode.NONE;
 
     public SceneEditor() {
         this.topBar = new UIElement();
@@ -128,6 +136,21 @@ public class SceneEditor extends UIElement implements IScene {
         transformGizmo.setTargetTransform(transform);
         transformGizmo.setOnTransformChanged(onTransformUpdated);
         gizmoBar.setActive(transform != null);
+        if (transform == null) {
+            setTransformGizmoMode(TransformGizmoMode.NONE);
+        }
+    }
+
+    public void setTransformGizmoMode(TransformGizmoMode mode) {
+        transformGizmoMode = mode;
+        if (mode != TransformGizmoMode.NONE) {
+            switch (mode) {
+                case TRANSLATE -> transformGizmo.setMode(TransformGizmo.Mode.TRANSLATE);
+                case ROTATE -> transformGizmo.setMode(TransformGizmo.Mode.ROTATE);
+                case SCALE -> transformGizmo.setMode(TransformGizmo.Mode.SCALE);
+                default -> throw new IllegalStateException("Unexpected value: " + mode);
+            }
+        }
     }
 
     public void initTopBar() {
@@ -146,70 +169,47 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     public void initGizmos() {
-        // translate
         var toggleGroup = new Toggle.ToggleGroup();
-        gizmoBar.addChild(new Toggle().setToggleGroup(toggleGroup)
-                .setText("")
-                .setOn(transformGizmo.getMode() == TransformGizmo.Mode.TRANSLATE, false)
-                .toggleButton(button -> button.layout(layout -> {
-                    layout.setWidthPercent(100);
-                    layout.setHeightPercent(100);
-                }))
-                .setOnToggleChanged(isOn -> {
-                    transformGizmo.setMode(TransformGizmo.Mode.TRANSLATE);
-                }).toggleStyle(style -> {
-                    style.baseTexture(IGuiTexture.EMPTY);
-                    style.hoverTexture(ColorPattern.T_BLUE.rectTexture());
-                    style.unmarkTexture(Icons.TRANSFORM_TRANSLATE);
-                    style.markTexture(new GuiTextureGroup(ColorPattern.T_BLUE.rectTexture(), Icons.TRANSFORM_TRANSLATE));
-                }).layout(layout -> {
-                    layout.setPadding(YogaEdge.ALL, 0);
-                    layout.setWidthPercent(100);
-                    layout.setAspectRatio(1f);
-                }));
-
+        // translate
+        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.TRANSLATE, Icons.TRANSFORM_TRANSLATE));
         // rotation
-        gizmoBar.addChild(new Toggle().setToggleGroup(toggleGroup)
-                .setText("")
-                .setOn(transformGizmo.getMode() == TransformGizmo.Mode.ROTATE, false)
-                .toggleButton(button -> button.layout(layout -> {
-                    layout.setWidthPercent(100);
-                    layout.setHeightPercent(100);
-                }))
-                .setOnToggleChanged(isOn -> {
-                    transformGizmo.setMode(TransformGizmo.Mode.ROTATE);
-                }).toggleStyle(style -> {
-                    style.baseTexture(IGuiTexture.EMPTY);
-                    style.hoverTexture(ColorPattern.T_BLUE.rectTexture());
-                    style.unmarkTexture(Icons.TRANSFORM_ROTATE);
-                    style.markTexture(new GuiTextureGroup(ColorPattern.T_BLUE.rectTexture(), Icons.TRANSFORM_ROTATE));
-                }).layout(layout -> {
-                    layout.setPadding(YogaEdge.ALL, 0);
-                    layout.setWidthPercent(100);
-                    layout.setAspectRatio(1f);
-                }));
-
+        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.ROTATE, Icons.TRANSFORM_ROTATE));
         // scale
-        gizmoBar.addChild(new Toggle().setToggleGroup(toggleGroup)
+        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.SCALE, Icons.TRANSFORM_SCALE));
+    }
+
+
+    private Toggle createTransformToggle(Toggle.ToggleGroup toggleGroup, TransformGizmoMode mode, IGuiTexture icon) {
+        return (Toggle) new Toggle()
+                .setToggleGroup(toggleGroup)
                 .setText("")
-                .setOn(transformGizmo.getMode() == TransformGizmo.Mode.SCALE, false)
+                .setOn(transformGizmoMode == mode, false)
                 .toggleButton(button -> button.layout(layout -> {
                     layout.setWidthPercent(100);
                     layout.setHeightPercent(100);
                 }))
                 .setOnToggleChanged(isOn -> {
-                    transformGizmo.setMode(TransformGizmo.Mode.SCALE);
-                }).toggleStyle(style -> {
+                    setTransformGizmoMode(isOn ? mode : TransformGizmoMode.NONE);
+                })
+                .toggleStyle(style -> {
                     style.baseTexture(IGuiTexture.EMPTY);
                     style.hoverTexture(ColorPattern.T_BLUE.rectTexture());
-                    style.unmarkTexture(Icons.TRANSFORM_SCALE);
-                    style.markTexture(new GuiTextureGroup(ColorPattern.T_BLUE.rectTexture(), Icons.TRANSFORM_SCALE));
-                }).layout(layout -> {
+                    style.unmarkTexture(icon);
+                    style.markTexture(new GuiTextureGroup(ColorPattern.T_BLUE.rectTexture(), icon));
+                })
+                .layout(layout -> {
                     layout.setPadding(YogaEdge.ALL, 0);
                     layout.setWidthPercent(100);
                     layout.setAspectRatio(1f);
-                }));
+                }).addEventListener(UIEvents.TICK, event -> {
+                    if (event.currentElement instanceof Toggle toggle) {
+                        if (toggle.getValue() != (transformGizmoMode == mode)) {
+                            toggle.setValue(transformGizmoMode == mode, false);
+                        }
+                    }
+                });
     }
+
 
     public Optional<Ray> getMouseRay() {
         var renderer = scene.getRenderer();
@@ -400,7 +400,7 @@ public class SceneEditor extends UIElement implements IScene {
         if (bufferSource instanceof MultiBufferSource.BufferSource buffer) {
             buffer.endBatch();
         }
-        if (transformGizmo.hasTargetTransform()) {
+        if (transformGizmo.hasTargetTransform() && transformGizmoMode != TransformGizmoMode.NONE) {
             transformGizmo.updateFrame(partialTicks);
             transformGizmo.preDraw(partialTicks);
             transformGizmo.draw(poseStack, bufferSource, partialTicks);

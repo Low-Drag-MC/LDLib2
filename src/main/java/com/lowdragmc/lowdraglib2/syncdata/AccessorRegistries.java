@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -324,15 +325,17 @@ public class AccessorRegistries {
                 .streamCodec(ItemStack.STREAM_CODEC)
                 .copyMark(ItemStack::copy)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(IGuiTexture.class)
-                .codec(IGuiTexture.CODEC)
-                .streamCodec(ByteBufCodecs.fromCodec(IGuiTexture.CODEC))
-                .copyMark(IGuiTexture::copy)
-                .build());
-        registerAccessor(CustomDirectAccessor.builder(IRenderer.class)
-                .codec(IRenderer.CODEC)
-                .streamCodec(ByteBufCodecs.fromCodec(IRenderer.CODEC))
-                .build());
+        if (LDLib2.isClient()) {
+            registerAccessor(CustomDirectAccessor.builder(IGuiTexture.class)
+                    .codec(IGuiTexture.CODEC)
+                    .streamCodec(ByteBufCodecs.fromCodec(IGuiTexture.CODEC))
+                    .copyMark(IGuiTexture::copy)
+                    .build());
+            registerAccessor(CustomDirectAccessor.builder(IRenderer.class)
+                    .codec(IRenderer.CODEC)
+                    .streamCodec(ByteBufCodecs.fromCodec(IRenderer.CODEC))
+                    .build());
+        }
         registerAccessor(CustomDirectAccessor.builder(RecipeHolder.class)
                 .codec(RecordCodecBuilder.create(instance -> instance.group(
                         ResourceLocation.CODEC.fieldOf("id").forGetter(RecipeHolder::id),

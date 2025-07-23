@@ -76,6 +76,8 @@ public abstract class WorldSceneRenderer {
     public final Map<Collection<BlockPos>, ISceneBlockRenderHook> renderedBlocksMap;
     @Nullable
     protected VertexBuffer[] vertexBuffers;
+    @Nullable
+    protected boolean[] vertexBuffersUsingMark;
     protected Set<BlockPos> tileEntities;
     @Getter
     protected boolean useCache;
@@ -165,6 +167,7 @@ public abstract class WorldSceneRenderer {
                 thread = null;
             }
             this.vertexBuffers = null;
+            this.vertexBuffersUsingMark = null;
         }
         this.tileEntities = null;
         cacheState.set(CacheState.UNCREATED);
@@ -175,6 +178,7 @@ public abstract class WorldSceneRenderer {
         if (vertexBuffers == null) {
             List<RenderType> layers = RenderType.chunkBufferLayers();
             this.vertexBuffers = new VertexBuffer[layers.size()];
+            this.vertexBuffersUsingMark = new boolean[layers.size()];
             for (int j = 0; j < layers.size(); ++j) {
                 this.vertexBuffers[j] = new VertexBuffer(VertexBuffer.Usage.STATIC);
             }
@@ -199,6 +203,18 @@ public abstract class WorldSceneRenderer {
         if (blocks != null) {
             this.renderedBlocksMap.put(blocks, renderHook);
         }
+        return this;
+    }
+
+    public WorldSceneRenderer removeRenderedBlocks(Collection<BlockPos> blocks) {
+        if (blocks != null) {
+            this.renderedBlocksMap.remove(blocks);
+        }
+        return this;
+    }
+
+    public WorldSceneRenderer removeAllRenderedBlocks() {
+        this.renderedBlocksMap.clear();
         return this;
     }
 
@@ -472,9 +488,11 @@ public abstract class WorldSceneRenderer {
                         });
                         MeshData data = buffer.build();
                         if (data == null) {
+                            vertexBuffersUsingMark[i] = false;
                             continue;
                         }
 
+                        vertexBuffersUsingMark[i] = true;
                         var vertexBuffer = vertexBuffers[i];
                         Runnable toUpload = () -> {
                             if (!vertexBuffer.isInvalid()) {
@@ -537,7 +555,7 @@ public abstract class WorldSceneRenderer {
                 }
 
                 var vertexbuffer = vertexBuffers[i];
-                if (vertexbuffer == null || vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
+                if (vertexbuffer == null || !vertexBuffersUsingMark[i] || vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
 
                 layer.setupRenderState();
 
