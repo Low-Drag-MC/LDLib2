@@ -66,7 +66,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION=$(./gradlew -q printVersion)
+          VERSION=$(grep -E "^mod_version\s*=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Project version: $VERSION"
 
@@ -222,8 +222,9 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
           files: |
+            build/libs/*-@(all).jar
             build/libs/!(*-@(all|dev|sources|javadoc|dev-shadow)).jar
-            build/libs/*-@(all|dev|sources|javadoc|dev-shadow).jar
+            build/libs/*-@(sources).jar
 
           name: LDLib2 ${{ needs.validate.outputs.version }}-neoforge
           version: mc${{ needs.validate.outputs.version }}-neoforge
