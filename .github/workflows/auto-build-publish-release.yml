@@ -106,7 +106,6 @@ jobs:
         uses: gradle/gradle-build-action@v3
         with:
           cache-read-only: false
-          gradle-home-cache-cleanup: true
 
       - name: Grant execute permission
         run: chmod +x gradlew
