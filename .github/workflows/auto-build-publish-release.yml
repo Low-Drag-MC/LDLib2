@@ -53,22 +53,33 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
 
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v3
+        uses: gradle/actions/wrapper-validation@v4
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
 
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      - name: Get version
+      - name: Get version from gradle.properties
         id: version
         run: |
-          VERSION=$(grep -E "^mod_version\s*=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Project version: $VERSION"
+          if [ -f "gradle.properties" ]; then
+            VERSION=$(grep -E "^mod_version\s*=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
+            if [ -z "$VERSION" ]; then
+              echo "❌ Could not find mod_version in gradle.properties"
+              exit 1
+            fi
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Project version: $VERSION"
+          else
+            echo "❌ gradle.properties not found, falling back to Gradle command"
+            VERSION=$(./gradlew -q printVersion)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Project version: $VERSION"
+          fi
 
       - name: Check publish conditions
         id: check
@@ -103,7 +114,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
 
@@ -152,7 +163,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: true
 
@@ -184,29 +195,18 @@ jobs:
           fetch-depth: 1000
           fetch-tags: true
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          cache-read-only: true
-
-      - name: Grant execute permission
-        run: chmod +x gradlew
-
-      - name: Build for publishing
-        run: ./gradlew build --stacktrace
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.daemon=true"
+          name: build-artifacts-Main Build
+          path: build/
 
       - name: Verify build artifacts
         run: |
           if [ ! -d "build/libs" ] || [ -z "$(ls -A build/libs)" ]; then
             echo "❌ Build artifacts not found!"
+            echo "Available files in build/:"
+            find build/ -type f -name "*.jar" || echo "No JAR files found"
             exit 1
           fi
           echo "✅ Build artifacts verified:"
@@ -226,8 +226,8 @@ jobs:
             build/libs/!(*-@(all|dev|sources|javadoc|dev-shadow)).jar
             build/libs/*-@(sources).jar
 
-          name: LDLib2 ${{ needs.validate.outputs.version }}-neoforge
-          version: mc${{ needs.validate.outputs.version }}-neoforge
+          name: LDLib2-${{ needs.validate.outputs.version }}-neoforge
+          version: mc1.21.1-${{ needs.validate.outputs.version }}-neoforge
           version-type: ${{ inputs.versionType }}
           changelog-file: CHANGELOG.*
 
@@ -251,7 +251,6 @@ jobs:
           echo "- Platforms: CurseForge & Modrinth" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ✅ Published successfully" >> $GITHUB_STEP_SUMMARY
 
-  # 最终汇总 job
   summary:
     name: Build & Publish Summary
     runs-on: ubuntu-latest
@@ -271,7 +270,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📊 Job Results" >> $GITHUB_STEP_SUMMARY
           
-          # 检查各个 job 的状态
           VALIDATE_STATUS="${{ needs.validate.result }}"
           BUILD_STATUS="${{ needs.build.result }}"
           MAVEN_STATUS="${{ needs.publish-maven.result }}"
@@ -288,7 +286,6 @@ jobs:
             echo "- **Platform Publish**: $([ "$PLATFORM_STATUS" == "success" ] && echo "✅ Success" || echo "❌ $PLATFORM_STATUS")" >> $GITHUB_STEP_SUMMARY
           fi
           
-          # 总体状态
           if [[ "$BUILD_STATUS" == "success" ]]; then
             if [[ "${{ inputs.dryRun }}" == "true" ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
