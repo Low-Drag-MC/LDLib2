@@ -205,7 +205,10 @@ tasks.withType(ProcessResources).configureEach {
 // 'all' is the default classifier
 tasks.named('jarJar') {
     // ...
+}
 
+tasks.register("printVersion") {
+    println(mod_version)
 }
 
 // Example configuration to allow publishing using the maven-publish plugin
