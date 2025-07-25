@@ -55,7 +55,9 @@ public class CommonProxy {
                 if (clazz.getConstructor().newInstance() instanceof ILDLibPlugin plugin) {
                     plugin.onLoad();
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable throwable) {
+                LDLib2.LOGGER.error("Failed to load plugin {}", clazz.getName(), throwable);
+            }
         }, () -> {});
         BLOCKS.register(eventBus);
         ITEMS.register(eventBus);

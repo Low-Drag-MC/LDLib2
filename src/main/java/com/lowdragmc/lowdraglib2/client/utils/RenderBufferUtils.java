@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.utils;
 
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -13,6 +11,7 @@ import org.joml.Vector3f;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.world.phys.Vec2;
+import oshi.util.tuples.Pair;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -280,6 +279,26 @@ public class RenderBufferUtils {
         buffer.addVertex(mat, maxX, minY, maxZ).setColor(color).setUv(uMax, vMax).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(normal, 0, 0, 1);
         buffer.addVertex(mat, maxX, maxY, maxZ).setColor(color).setUv(uMax, vMin).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(normal, 0, 0, 1);
         buffer.addVertex(mat, minX, maxY, maxZ).setColor(color).setUv(uMin, vMin).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(normal, 0, 0, 1);
+    }
+
+    public static void drawEdges(@Nonnull PoseStack poseStack, VertexConsumer buffer, List<Pair<Vector3f, Vector3f>> lines, int color) {
+        var pose = poseStack.last();
+        var mat = pose.pose();
+
+        for (var line : lines) {
+            var a = line.getA();
+            var b = line.getB();
+            float f = b.x - a.x;
+            float f1 = b.y - a.y;
+            float f2 = b.z - a.z;
+            float f3 = Mth.sqrt(f * f + f1 * f1 + f2 * f2);
+            f /= f3;
+            f1 /= f3;
+            f2 /= f3;
+
+            buffer.addVertex(mat, a.x, a.y, a.z).setColor(color).setNormal(poseStack.last(), f, f1, f2);
+            buffer.addVertex(mat, b.x, b.y, b.z ).setColor(color).setNormal(poseStack.last(), f, f1, f2);
+        }
     }
 
     public static void drawColorLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vec2> points, int colorStart, int colorEnd, float width) {
