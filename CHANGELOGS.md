@@ -1,3 +1,6 @@
 # ChangeLogs
 
-## v2.0.0
+## v2.0.1
+Added DrawEdges method
+Updated Mesh texture
+Capture plugin crash
