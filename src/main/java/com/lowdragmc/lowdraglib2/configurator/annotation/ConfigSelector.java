@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.configurator.annotation;
 
+import java.lang.String;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,5 +26,14 @@ public @interface ConfigSelector {
      */
     int max() default 5;
 
-    String subConfiguratorBuilder() default "";
+    /**
+     * Specifies the name of the builder method responsible for creating
+     * or managing sub-configurations related to the annotated field.
+     * This method is expected to define or initialize sub-configurations
+     * as required by the application logic.
+     *
+     * @return the name of the sub-configurator builder method as a String;
+     * returns an empty string if no builder method is specified
+     */
+    String subConfiguratorBuilder() default;
 }

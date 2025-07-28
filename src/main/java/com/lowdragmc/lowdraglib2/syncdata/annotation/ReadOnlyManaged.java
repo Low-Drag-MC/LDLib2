@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.syncdata.annotation;
 
 import com.lowdragmc.lowdraglib2.syncdata.ref.ReadOnlyRef;
 
+import java.lang.String;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

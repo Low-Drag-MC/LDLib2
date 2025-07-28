@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.configurator.annotation;
 
+import java.lang.String;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -15,9 +16,9 @@ public @interface ConfigList {
      * <br> e.g. {@code Configurator methodName(Supplier<T> getter, Consumer<T> setter)}
      *
      * @return the name of the configurator method as a String; returns an empty string
-     *         if no method is specified by default
+     * if no method is specified by default
      */
-    String configuratorMethod() default "";
+    String configuratorMethod() default;
 
     /**
      * Specifies the name of a method used to add default configurations for the
