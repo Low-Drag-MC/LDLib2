@@ -5,4 +5,9 @@ public interface IBindable<T> extends IObservable<T>, IDataSourceProvider<T> {
         bindObserver(binding);
         bindDataSource(binding);
     }
+
+    default void unbind(IBinding<T> binding) {
+        unbindObserver(binding);
+        unbindDataSource(binding);
+    }
 }

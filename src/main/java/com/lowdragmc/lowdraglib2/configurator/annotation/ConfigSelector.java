@@ -35,5 +35,5 @@ public @interface ConfigSelector {
      * @return the name of the sub-configurator builder method as a String;
      * returns an empty string if no builder method is specified
      */
-    String subConfiguratorBuilder() default;
+    String subConfiguratorBuilder() default "";
 }

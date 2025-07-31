@@ -8,4 +8,12 @@ public interface IObservable<T> {
      * @param observer the observer to bind
      */
     void bindObserver(IObserver<T> observer);
+
+    /**
+     * Unbinds an observer from this observable. Once unbound, the observer will no longer
+     * receive notifications about changes to the value.
+     *
+     * @param observer the observer to unbind
+     */
+    void unbindObserver(IObserver<T> observer);
 }

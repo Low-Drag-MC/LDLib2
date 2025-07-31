@@ -18,7 +18,7 @@ public @interface ConfigList {
      * @return the name of the configurator method as a String; returns an empty string
      * if no method is specified by default
      */
-    String configuratorMethod() default;
+    String configuratorMethod() default "";
 
     /**
      * Specifies the name of a method used to add default configurations for the

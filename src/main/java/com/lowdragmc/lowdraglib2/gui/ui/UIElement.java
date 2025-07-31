@@ -390,6 +390,11 @@ public class UIElement {
     }
     
     /// Structure
+    public UIElement selfCall(Consumer<UIElement> consumer) {
+        consumer.accept(this);
+        return this;
+    }
+
     @Nullable
     public UIElement getParent() {
         return parent;

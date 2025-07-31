@@ -13,8 +13,14 @@ public interface IDataSource<T> {
      * Set the value of the data source.
      * @param value the new value to set
      */
-    default void setValue(T value) {
+    default void setValue(T value, boolean notify) {
         setValueWithoutNotify(value);
-        notifyChange();
+        if (notify) {
+            notifyChange();
+        }
+    }
+
+    default void setValue(T value) {
+        setValue(value, true);
     }
 }

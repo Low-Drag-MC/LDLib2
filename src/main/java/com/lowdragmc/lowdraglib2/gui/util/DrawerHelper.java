@@ -173,6 +173,7 @@ public class DrawerHelper {
     }
 
     public static void drawItemStack(@Nonnull GuiGraphics graphics, ItemStack itemStack, int x, int y, int color, @Nullable String altTxt) {
+        if (itemStack.isEmpty()) return;
         var a = ColorUtils.alpha(color);
         var r = ColorUtils.red(color);
         var g = ColorUtils.green(color);
