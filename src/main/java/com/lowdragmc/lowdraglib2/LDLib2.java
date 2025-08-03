@@ -49,9 +49,12 @@ public class LDLib2 {
 
     public static File getAssetsDir() {
         if (assetsLocation == null) {
-            assetsLocation = new File(Platform.getGamePath().toFile(), "assets");
-            if (assetsLocation.mkdir()) {
-                LOGGER.info("Created ldlib2 config folder");
+            assetsLocation = new File(Platform.getGamePath().toFile(), "ldlib2/assets");
+            if (assetsLocation.mkdirs()) {
+                LOGGER.info("Created assets folder {}", assetsLocation.getPath());
+            }
+            if (new File(assetsLocation, "ldlib2").mkdirs()) {
+                LOGGER.info("Created ldlib2 assets folder {}", assetsLocation.getPath());
             }
         }
         return assetsLocation;
