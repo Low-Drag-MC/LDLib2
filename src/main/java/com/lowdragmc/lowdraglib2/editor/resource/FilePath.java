@@ -11,7 +11,7 @@ public record FilePath(File file) implements IResourcePath {
 
     @Override
     public String getPath() {
-        return file.getPath();
+        return file.getPath().replace(File.separatorChar, '/');
     }
 
     @Override

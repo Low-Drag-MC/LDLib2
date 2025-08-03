@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public abstract class ReloadableResourceManagerMixin {
         }
         
         var mutableList = new ArrayList<>(resourcePacks);
-        mutableList.add(new CustomResourcePack(Platform.getGamePath().toFile(), LDLib2.MOD_ID, PackType.CLIENT_RESOURCES));
+        mutableList.add(new CustomResourcePack(new File(Platform.getGamePath().toFile(), LDLib2.MOD_ID), LDLib2.MOD_ID, PackType.CLIENT_RESOURCES));
 
         return mutableList;
     }

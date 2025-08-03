@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +25,7 @@ public abstract class PackConfigMixin {
     ))
     private List<PackResources> injectCreateReload(List<PackResources> resourcePacks) {
         var mutableList = new ArrayList<>(resourcePacks);
-        mutableList.add(new CustomResourcePack(Platform.getGamePath().toFile(), LDLib2.MOD_ID, PackType.SERVER_DATA));
+        mutableList.add(new CustomResourcePack(new File(Platform.getGamePath().toFile(), LDLib2.MOD_ID), LDLib2.MOD_ID, PackType.SERVER_DATA));
         return mutableList;
     }
 

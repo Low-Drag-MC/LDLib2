@@ -29,7 +29,6 @@ public class CustomResourcePack extends PathPackResources {
 
     public CustomResourcePack(File location, String namespace, PackType type) {
         super(new PackLocationInfo(namespace, Component.literal(namespace), PackSource.DEFAULT, Optional.empty()), location.toPath());
-        new File(location, "assets/" + namespace).mkdirs();
         this.namespace = namespace;
         this.type = type;
     }
