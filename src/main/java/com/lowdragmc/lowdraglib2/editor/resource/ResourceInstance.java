@@ -21,6 +21,7 @@ import java.util.Map;
 public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     public final Resource<T> resource;
     private final BuiltinResourceProvider<T> builtinProvider = new BuiltinResourceProvider<>(this);
+    private final PackResourceProvider<T> packProvider = new PackResourceProvider<>(this);
     private final Map<File, FileResourceProvider<T>> fileResourceProviders = new LinkedHashMap<>();
     @Getter
     private Resource.DisplayMode displayMode;
@@ -81,11 +82,14 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     public T getResource(IResourcePath path) {
         if (path instanceof BuiltinPath builtinPath) {
             return builtinProvider.getResource(builtinPath);
-        } else if (path instanceof FilePath(File file)) {
-            var key = file.getParentFile();
+        } else if (path instanceof FilePath filePath) {
+            var key = filePath.file.getParentFile();
             var provider = fileResourceProviders.get(key);
             if (provider != null && provider.supportResourcePath(path)) {
                 return provider.getResource(path);
+            }
+            if (packProvider.supportResourcePath(path)) {
+                packProvider.getResource(path);
             }
         }
         return null;
@@ -140,7 +144,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
      * Create a new file resource provider for this resource. This is used to create a new resource provider that can read and write resources from files.
      */
     public FileResourceProvider<T> createNewFileResourceProvider(File directory) {
-        return new FileResourceProvider<>(this, directory, resource.getFileExtension());
+        return new FileResourceProvider<>(this, directory);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 import javax.annotation.Nonnull;
 import java.net.URL;
@@ -22,11 +23,7 @@ public final class ResourceHelper {
     }
 
     public static boolean isResourceExist(ResourceLocation rs) {
-        if (LDLib2.isClient()) {
-            return Minecraft.getInstance().getResourceManager().getResource(rs).isPresent();
-        } else {
-            return Platform.getMinecraftServer().getResourceManager().getResource(rs).isPresent();
-        }
+        return getResourceManager().getResource(rs).isPresent();
     }
 
     public static boolean isTextureExist(@Nonnull ResourceLocation location) {
@@ -39,4 +36,11 @@ public final class ResourceHelper {
         return isResourceExist(modelLocation) || isResourceExistRaw(modelLocation);
     }
 
+    public static ResourceManager getResourceManager() {
+        if (LDLib2.isClient()) {
+            return Minecraft.getInstance().getResourceManager();
+        } else {
+            return Platform.getMinecraftServer().getResourceManager();
+        }
+    }
 }

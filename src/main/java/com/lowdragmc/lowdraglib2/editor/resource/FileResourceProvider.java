@@ -31,10 +31,10 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public final String resourceSuffix;
     private final Map<File, Long> resourcesLastModified = new LinkedHashMap<>();
 
-    public FileResourceProvider(ResourceInstance<T> resourceInstance, File resourceLocation, String resourceSuffix) {
+    public FileResourceProvider(ResourceInstance<T> resourceInstance, File resourceLocation) {
         super(resourceInstance);
         this.resourceLocation = resourceLocation;
-        this.resourceSuffix = resourceSuffix;
+        this.resourceSuffix = resourceInstance.resource.getFileExtension();
         setName(resourceLocation.getName());
         setIcon(Icons.FILE);
         checkAndUpdateResourceProvider();
@@ -42,9 +42,9 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     @Override
     public boolean supportResourcePath(IResourcePath path) {
-        if (path instanceof FilePath(File file)) {
-            if (file.getName().endsWith(resourceSuffix)) {
-                return file.getParentFile().equals(resourceLocation);
+        if (path instanceof FilePath filePath) {
+            if (filePath.file.getName().endsWith(resourceSuffix)) {
+                return filePath.file.getParentFile().equals(resourceLocation);
             }
         }
         return false;
@@ -57,9 +57,9 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     @Override
     public String getResourceName(IResourcePath path) {
-        if (path instanceof FilePath(File file)) {
-            if (file.getName().endsWith(resourceSuffix)) {
-                return file.getName().substring(0, file.getName().length() - resourceSuffix.length());
+        if (path instanceof FilePath filePath) {
+            if (filePath.file.getName().endsWith(resourceSuffix)) {
+                return filePath.file.getName().substring(0, filePath.file.getName().length() - resourceSuffix.length());
             }
         }
         return super.getResourceName(path);
@@ -85,7 +85,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     @Override
     public boolean addResource(IResourcePath path, T content) {
-        if (supportResourcePath(path) && path instanceof FilePath(File file)) {
+        if (supportResourcePath(path) && path instanceof FilePath filePath) {
+            var file = filePath.file;
             try {
                 var nbt = this.serializeNBT(content, Platform.getFrozenRegistry());
                 if (nbt != null) {
@@ -107,8 +108,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     @Override
     public T removeResource(IResourcePath path) {
-        if (supportResourcePath(path) && path instanceof FilePath filePath && filePath.file().isFile()) {
-            if (filePath.file().delete()) {
+        if (supportResourcePath(path) && path instanceof FilePath filePath && filePath.file.isFile()) {
+            if (filePath.file.delete()) {
                 return super.removeResource(path);
             }
         }
@@ -224,7 +225,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     public static <T> FileResourceProvider<T> fromNBT(ResourceInstance<T> resourceInstance, @Nonnull CompoundTag nbt) {
         var location = new File(nbt.getString("location").replace('\\', '/'));
-        return (FileResourceProvider<T>) new FileResourceProvider<>(resourceInstance, location, resourceInstance.resource.getFileExtension())
+        return (FileResourceProvider<T>) new FileResourceProvider<>(resourceInstance, location)
                 .setName(nbt.getString("name"));
     }
 }

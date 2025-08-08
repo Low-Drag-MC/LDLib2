@@ -1,17 +1,44 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import net.minecraft.resources.ResourceLocation;
+
+import javax.annotation.Nullable;
 import java.io.File;
 
-public record FilePath(File file) implements IResourcePath {
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public final class FilePath implements IResourcePath {
+    @Getter
+    @EqualsAndHashCode.Include
+    public final String path;
+    @Getter
+    public final File file;
+    @Nullable
+    @Getter
+    public final ResourceLocation location;
+
+    public FilePath(String path) {
+        this.path = path.replace(File.separatorChar, '/');
+        this.file = new File(this.path);
+        this.location = toResourceLocation();
+    }
+
+    public FilePath(File file) {
+        this.path = file.getPath().replace(File.separatorChar, '/');
+        this.file = file;
+        this.location = toResourceLocation();
+    }
+
+    public FilePath(ResourceLocation location) {
+        this.path = "assets/" + location.getNamespace() + "/" + location.getPath();
+        this.file = new File(this.path);
+        this.location = location;
+    }
 
     @Override
     public boolean isBuiltin() {
         return false;
-    }
-
-    @Override
-    public String getPath() {
-        return file.getPath().replace(File.separatorChar, '/');
     }
 
     @Override
@@ -21,4 +48,31 @@ public record FilePath(File file) implements IResourcePath {
         return (dotIndex == -1) ? name : name.substring(0, dotIndex);
     }
 
+    @Nullable
+    private ResourceLocation toResourceLocation() {
+        var assetsIndex = path.indexOf("assets");
+        if (assetsIndex == -1) return null;
+        
+        if (assetsIndex + 7 >= path.length() || path.charAt(assetsIndex + 7) != '/') {
+            return null;
+        }
+        
+        var remainPath = path.substring(assetsIndex + 7);
+        var firstSlash = remainPath.indexOf('/');
+        if (firstSlash == -1) {
+            return null;
+        }
+        var namespace = remainPath.substring(0, firstSlash);
+        var resourcePath = remainPath.substring(firstSlash + 1);
+        
+        if (namespace.isEmpty() || resourcePath.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            return ResourceLocation.fromNamespaceAndPath(namespace, resourcePath);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

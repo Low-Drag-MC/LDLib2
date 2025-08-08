@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib2.core.mixins.ParticleEngineAccessor;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ModelBakeryAccessor;
+import com.lowdragmc.lowdraglib2.editor.resource.PackResourceProvider;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.WidgetTooltipComponent;
 import com.mojang.datafixers.util.Pair;
@@ -31,10 +32,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
+import net.neoforged.neoforge.client.event.*;
 import org.jetbrains.annotations.ApiStatus;
 
 import java.util.*;
@@ -155,6 +153,11 @@ public class ClientProxy extends CommonProxy {
 //            renderer.onPrepareTextureAtlas(event.getAtlas().location(), location -> event.getAtlas().);
 //        }
 //    }
+
+    @SubscribeEvent
+    public void onRegisterClientReloadListenersEvent(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener(PackResourceProvider.Manager.INSTANCE);
+    }
 
     @SubscribeEvent
     public void registerModels(ModelEvent.RegisterAdditional event) {

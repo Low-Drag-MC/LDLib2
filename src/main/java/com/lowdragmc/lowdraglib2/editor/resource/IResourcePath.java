@@ -13,7 +13,7 @@ public sealed interface IResourcePath permits BuiltinPath, FilePath {
         if (builtin) {
             return new BuiltinPath(path);
         } else {
-            return new FilePath(new File(path.replace('\\', '/')));
+            return new FilePath(path.replace(File.separatorChar, '/'));
         }
     }) );
 
