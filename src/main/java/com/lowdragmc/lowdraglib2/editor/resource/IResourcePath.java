@@ -3,8 +3,6 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
-import java.io.File;
-
 public sealed interface IResourcePath permits BuiltinPath, FilePath {
     Codec<IResourcePath> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.BOOL.fieldOf("built-in").forGetter(IResourcePath::isBuiltin),
@@ -13,7 +11,7 @@ public sealed interface IResourcePath permits BuiltinPath, FilePath {
         if (builtin) {
             return new BuiltinPath(path);
         } else {
-            return new FilePath(path.replace(File.separatorChar, '/'));
+            return new FilePath(path);
         }
     }) );
 

@@ -18,14 +18,21 @@ public final class FilePath implements IResourcePath {
     @Getter
     public final ResourceLocation location;
 
+    public static String normalizePath(String path) {
+        if (path == null) return null;
+        return path.replace('\\', '/')
+                .replaceAll("/+", "/")
+                .replaceAll("/$", "");
+    }
+
     public FilePath(String path) {
-        this.path = path.replace(File.separatorChar, '/');
+        this.path = normalizePath(path);
         this.file = new File(this.path);
         this.location = toResourceLocation();
     }
 
     public FilePath(File file) {
-        this.path = file.getPath().replace(File.separatorChar, '/');
+        this.path = normalizePath(file.getPath());
         this.file = file;
         this.location = toResourceLocation();
     }
