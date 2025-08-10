@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.client.scene;
 
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.client.utils.glu.Project;
+import com.lowdragmc.lowdraglib2.configurator.ConfiguratorParser;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.PositionedRect;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -267,7 +268,7 @@ public abstract class WorldSceneRenderer {
             angleYaw = -angleYaw;
         }
         double anglePitch = Math.toDegrees(new Vector3f(lookAt).sub(new Vector3f(eyePos)).angle(new Vector3f(0, 1, 0))) - 90;
-        cameraEntity.setPos(eyePos.x(), eyePos.y() - cameraEntity.getEyeHeight(), eyePos.z());
+        cameraEntity.setPos(eyePos.x(), eyePos.y(), eyePos.z());
         cameraEntity.xo = cameraEntity.getX();
         cameraEntity.yo = cameraEntity.getY();
         cameraEntity.zo = cameraEntity.getZ();
