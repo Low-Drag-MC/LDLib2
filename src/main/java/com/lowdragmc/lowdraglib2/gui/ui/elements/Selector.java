@@ -119,7 +119,20 @@ public class Selector<T> extends BindableUIElement<T> {
                     }
                     hide();
                 })
-                .addEventListener(UIEvents.LAYOUT_CHANGED, e -> e.currentElement.adaptPositionToScreen())
+                .addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
+                    var mui = getModularUI();
+                    if (mui != null) {
+                        var root = mui.ui.rootElement;
+                        e.currentElement.layout(layout -> {
+                            var x = this.getPositionX();
+                            var y = this.getPositionY();
+                            layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
+                            layout.setPosition(YogaEdge.TOP, y - root.getLayoutY() + this.getSizeHeight());
+                            layout.setWidth(this.getSizeWidth());
+                        });
+                    }
+                    e.currentElement.adaptPositionToScreen();
+                })
                 .stopInteractionEventsPropagation();
 
         scrollerView.verticalScroller.headButton.setDisplay(YogaDisplay.NONE);

@@ -343,6 +343,116 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
         onTransformChanged();
     }
 
+    // Add these methods after the existing methods, before the destroy() method
+
+    /**
+     * The right direction vector of the transform in world space.
+     * In a standard coordinate system, this represents the positive X axis.
+     */
+    public Vector3f right() {
+        return rotation().transform(new Vector3f(1, 0, 0));
+    }
+
+    /**
+     * The left direction vector of the transform in world space.
+     * This is the opposite of right().
+     */
+    public Vector3f left() {
+        return rotation().transform(new Vector3f(-1, 0, 0));
+    }
+
+    /**
+     * The up direction vector of the transform in world space.
+     * In a standard coordinate system, this represents the positive Y axis.
+     */
+    public Vector3f up() {
+        return rotation().transform(new Vector3f(0, 1, 0));
+    }
+
+    /**
+     * The down direction vector of the transform in world space.
+     * This is the opposite of up().
+     */
+    public Vector3f down() {
+        return rotation().transform(new Vector3f(0, -1, 0));
+    }
+
+    /**
+     * The forward direction vector of the transform in world space.
+     * In a standard coordinate system, this represents the negative Z axis.
+     */
+    public Vector3f forward() {
+        return rotation().transform(new Vector3f(0, 0, -1));
+    }
+
+    /**
+     * The back direction vector of the transform in world space.
+     * This is the opposite of forward().
+     */
+    public Vector3f back() {
+        return rotation().transform(new Vector3f(0, 0, 1));
+    }
+
+    /**
+     * Rotate the transform to look at a target position.
+     * @param target The world position to look at
+     */
+    public void lookAt(Vector3f target) {
+        lookAt(target, new Vector3f(0, 1, 0));
+    }
+
+    /**
+     * Rotate the transform to look at a target position with a specific up direction.
+     * @param target The world position to look at
+     * @param up The up direction vector
+     */
+    public void lookAt(Vector3f target, Vector3f up) {
+        Vector3f direction = new Vector3f(target).sub(position()).normalize();
+        if (direction.lengthSquared() > 0) {
+            Quaternionf lookRotation = new Quaternionf().lookAlong(direction, up);
+            rotation(lookRotation);
+        }
+    }
+
+    /**
+     * Translate the transform in the specified direction.
+     * @param direction The direction vector in world space
+     * @param distance The distance to translate
+     */
+    public void translate(Vector3f direction, float distance) {
+        Vector3f translation = new Vector3f(direction).normalize().mul(distance);
+        position(new Vector3f(position()).add(translation));
+    }
+
+    /**
+     * Translate the transform relative to its local coordinate system.
+     * @param localDirection The direction vector in local space
+     * @param distance The distance to translate
+     */
+    public void translateLocal(Vector3f localDirection, float distance) {
+        Vector3f worldDirection = rotation().transform(new Vector3f(localDirection).normalize());
+        translate(worldDirection, distance);
+    }
+
+    /**
+     * Rotate the transform around a specific axis by the given angle.
+     * @param axis The rotation axis in world space
+     * @param angle The rotation angle in radians
+     */
+    public void rotate(Vector3f axis, float angle) {
+        Quaternionf deltaRotation = new Quaternionf().rotateAxis(angle, axis);
+        rotation(new Quaternionf(rotation()).mul(deltaRotation));
+    }
+
+    /**
+     * Rotate the transform around its local axes.
+     * @param eulerAngles The rotation angles in radians (x, y, z)
+     */
+    public void rotateLocal(Vector3f eulerAngles) {
+        Quaternionf deltaRotation = new Quaternionf().rotateXYZ(eulerAngles.x, eulerAngles.y, eulerAngles.z);
+        rotation(new Quaternionf(rotation()).mul(deltaRotation));
+    }
+
     public void destroy() {
         if (this.parent != null && this.parent.isValid) {
             this.parent.removeChildInternal(this);

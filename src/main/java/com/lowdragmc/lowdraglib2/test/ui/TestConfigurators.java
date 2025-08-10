@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.*;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.TransformRef;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
@@ -41,6 +42,7 @@ public class TestConfigurators implements IUITest, IConfigurable, IPersistedSeri
     private int numberColor = -1;
     @Configurable
     private boolean booleanValue = false;
+    @ConfigHeader("Header")
     @Configurable(tips = "Test tip 0")
     private String stringValue = "default";
     @Configurable
@@ -60,6 +62,9 @@ public class TestConfigurators implements IUITest, IConfigurable, IPersistedSeri
     @Configurable
     @ConfigNumber(range = {0, 1}, type = ConfigNumber.Type.FLOAT)
     private Range rangeValue = Range.of(0, 1);
+    @Configurable
+    private TransformRef transformRef = new TransformRef();
+    @ConfigHeader("Array Like")
     @Configurable
     private int[] intArray = new int[]{1, 2, 3};
     @Configurable

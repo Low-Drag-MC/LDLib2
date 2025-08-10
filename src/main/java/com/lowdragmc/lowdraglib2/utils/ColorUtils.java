@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.utils;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Mth;
+import org.joml.Vector4f;
 
 /**
  * @author KilaBash
@@ -197,6 +198,32 @@ public final class ColorUtils {
                 Mth.lerp(lerp, red(color0), red(color1)),
                 Mth.lerp(lerp, green(color0), green(color1)),
                 Mth.lerp(lerp, blue(color0), blue(color1))
+        );
+    }
+
+    public static int fromVector4f(Vector4f color) {
+        return ColorUtils.color(color.w, color.x, color.y, color.z);
+    }
+
+    public static Vector4f toVector4f(int color) {
+        return new Vector4f(red(color), green(color), blue(color), alpha(color));
+    }
+
+    public static int addColor(int color0, int color1) {
+        return ColorUtils.color(
+                alpha(color0) + alpha(color1),
+                red(color0) + red(color1),
+                green(color0) + green(color1),
+                blue(color0) + blue(color1)
+        );
+    }
+
+    public static int subtractColor(int color0, int color1) {
+        return ColorUtils.color(
+                alpha(color0) - alpha(color1),
+                red(color0) - red(color1),
+                green(color0) - green(color1),
+                blue(color0) - blue(color1)
         );
     }
 }

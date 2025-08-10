@@ -1,11 +1,16 @@
 package com.lowdragmc.lowdraglib2.configurator;
 
 import com.lowdragmc.lowdraglib2.configurator.accessors.IConfiguratorAccessor;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigHeader;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import lombok.experimental.UtilityClass;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import org.appliedenergistics.yoga.YogaEdge;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -63,6 +68,13 @@ public final class ConfiguratorParser {
     public static void createFieldConfigurator(Field field, ConfiguratorGroup father, Class<?> clazz, Map<String, Method> setters, Object object) {
         if (Modifier.isStatic(field.getModifiers())) {
             return;
+        }
+        if (field.isAnnotationPresent(ConfigHeader.class)) {
+            ConfigHeader configHeader = field.getAnnotation(ConfigHeader.class);
+            var header = new Configurator();
+            header.layout(layout -> layout.setMargin(YogaEdge.TOP, configHeader.topMargin()));
+            header.setLabel(Component.translatable(configHeader.value()).withStyle(Style.EMPTY.withBold(true)));
+            father.addConfigurator(header);
         }
         if (field.isAnnotationPresent(Configurable.class)) {
             Configurable configurable = field.getAnnotation(Configurable.class);

@@ -1,12 +1,15 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigHDR;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.HDRColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -39,6 +42,11 @@ public class Vector4fAccessor extends TypesAccessor<Vector4f> {
     public Configurator create(String name, Supplier<Vector4f> supplier, Consumer<Vector4f> consumer, boolean forceUpdate, Field field, Object owner) {
         if (field.isAnnotationPresent(ConfigHDR.class)) {
             return new HDRColorConfigurator(name, supplier, consumer, defaultValue(field, field.getType()), forceUpdate);
+        }
+        if (field.isAnnotationPresent(ConfigColor.class)) {
+            return new ColorConfigurator(name,
+                    () -> ColorUtils.fromVector4f(supplier.get()), ColorUtils::toVector4f,
+                    ColorUtils.fromVector4f(defaultValue(field, field.getType())), forceUpdate);
         }
         var configurator = new Configurator(name);
         NumberConfigurator x, y, z, w;

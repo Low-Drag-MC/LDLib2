@@ -84,6 +84,12 @@ public class Configurator extends UIElement {
         return this;
     }
 
+    public Configurator setLabel(Component name) {
+        this.label.setText(name);
+        this.label.setDisplay(name.getString().isEmpty() ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        return this;
+    }
+
     public Component getLabel() {
         return this.label.getText();
     }
