@@ -133,7 +133,7 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
     public void draw(T recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         var wrapper = getModularWrapper(recipe);
 
-        wrapper.draw(guiGraphics, (int) mouseX, (int) mouseY, Minecraft.getInstance().getTimer().getGameTimeDeltaTicks());
+        wrapper.draw(guiGraphics, (int) mouseX, (int) mouseY, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false));
     }
 
     @Override

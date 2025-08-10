@@ -69,7 +69,6 @@ public class WidgetTexture extends TransformTexture{
             float scaleH = height * 1f / widget.getSize().height;
             scale = Math.min(scaleW, scaleH);
         }
-        float particleTick = Minecraft.getInstance().getTimer().getGameTimeDeltaTicks();
         graphics.pose().pushPose();
 
         graphics.pose().translate(x + width / 2f, y + height / 2f, 0);
@@ -77,8 +76,8 @@ public class WidgetTexture extends TransformTexture{
         graphics.pose().translate(-x + -width / 2f, -y + -height / 2f, 0);
 
         graphics.pose().translate(xOffset, yOffset, 0 );
-        widget.drawInBackground(graphics, this.mouseX, this.mouseY, particleTick);
-        widget.drawInForeground(graphics, this.mouseX, this.mouseY, particleTick);
+        widget.drawInBackground(graphics, this.mouseX, this.mouseY, partialTicks);
+        widget.drawInForeground(graphics, this.mouseX, this.mouseY, partialTicks);
         graphics.pose().popPose();
 
     }

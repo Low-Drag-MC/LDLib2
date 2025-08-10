@@ -35,6 +35,6 @@ public record WidgetClientTooltipComponent(WidgetTooltipComponent tooltipCompone
     public void renderImage(Font textRenderer, int x, int y, GuiGraphics graphics) {
         var modularWrapper = new ModularWrapper<>(tooltipComponent.widget());
         modularWrapper.setRecipeWidget(x, y);
-        modularWrapper.draw(graphics, 0, 0, Minecraft.getInstance().getTimer().getGameTimeDeltaTicks());
+        modularWrapper.draw(graphics, 0, 0, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false));
     }
 }

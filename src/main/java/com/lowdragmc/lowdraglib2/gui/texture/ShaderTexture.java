@@ -219,7 +219,7 @@ public class ShaderTexture extends TransformTexture {
                     Minecraft mc = Minecraft.getInstance();
                     float time;
                     if (mc.player != null) {
-                        time = (mc.player.tickCount + mc.getTimer().getGameTimeDeltaTicks()) / 20;
+                        time = (mc.player.tickCount + partialTicks) / 20;
                     } else {
                         time = System.currentTimeMillis() / 1000f;
                     }

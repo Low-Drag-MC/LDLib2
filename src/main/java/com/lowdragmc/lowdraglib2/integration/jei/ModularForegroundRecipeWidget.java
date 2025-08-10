@@ -22,7 +22,7 @@ public class ModularForegroundRecipeWidget implements IRecipeWidget {
 
     @Override
     public void draw(GuiGraphics graphics, double mouseX, double mouseY) {
-        float partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaTicks();
+        float partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
 
         graphics.pose().pushPose();
         graphics.pose().translate(-modular.getLeft(), -modular.getTop(), 0);
