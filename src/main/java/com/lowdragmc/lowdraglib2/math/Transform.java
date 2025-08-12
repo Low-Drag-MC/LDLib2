@@ -409,7 +409,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
     public void lookAt(Vector3f target, Vector3f up) {
         Vector3f direction = new Vector3f(target).sub(position()).normalize();
         if (direction.lengthSquared() > 0) {
-            Quaternionf lookRotation = new Quaternionf().lookAlong(direction, up);
+            Quaternionf lookRotation = new Quaternionf().lookAlong(direction, up).conjugate();
             rotation(lookRotation);
         }
     }
