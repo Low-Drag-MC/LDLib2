@@ -2,10 +2,10 @@ package com.lowdragmc.lowdraglib2.math;
 
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneObject;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
@@ -44,7 +44,7 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
      * Rotation of the transform relative to the parent transform.
      */
     @Getter
-    @Configurable(name = "transform.rotation", tips = "transform.rotation.tips", forceUpdate = false)
+    @Configurable(name = "transform.rotation", tips = "transform.rotation.tips")
     @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
     private Quaternionf localRotation = new Quaternionf();
 
@@ -205,6 +205,18 @@ public final class Transform implements IPersistedSerializable, IConfigurable {
         parent._childrenId.add(clampedIndex, this.id());
 
         parent.sceneObject.onChildChanged();
+    }
+
+    public void identity() {
+        position(new Vector3f());
+        rotation(new Quaternionf());
+        scale(new Vector3f(1, 1, 1));
+    }
+
+    public void identityLocal() {
+        localPosition(new Vector3f());
+        localRotation(new Quaternionf());
+        localScale(new Vector3f(1, 1, 1));
     }
 
     /**

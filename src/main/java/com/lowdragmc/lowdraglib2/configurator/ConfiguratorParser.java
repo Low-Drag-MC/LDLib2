@@ -27,13 +27,21 @@ import java.util.Map;
 public final class ConfiguratorParser {
 
     public static void createConfigurators(ConfiguratorGroup father, Object object) {
-        createConfigurators(father, new HashMap<>(), object.getClass(), object);
+        createConfigurators(father, object, true);
+    }
+
+    public static void createConfigurators(ConfiguratorGroup father, Object object, boolean recursive) {
+        createConfigurators(father, new HashMap<>(), object.getClass(), object, recursive);
+    }
+
+    public static void createConfigurators(ConfiguratorGroup father, Map<String, Method> setters, Class<?> clazz, Object object) {
+        createConfigurators(father, setters, clazz, object, true);
     }
 
     /**
      * This method is used to create configurators for the given object fields with  {@link Configurable} annotation under the given father group.
      */
-    public static void createConfigurators(ConfiguratorGroup father, Map<String, Method> setters, Class<?> clazz, Object object) {
+    public static void createConfigurators(ConfiguratorGroup father, Map<String, Method> setters, Class<?> clazz, Object object, boolean recursive) {
         if (clazz == Object.class || clazz == null) return;
 
         for (Method method : clazz.getMethods()) {
@@ -46,7 +54,9 @@ public final class ConfiguratorParser {
             }
         }
 
-        createConfigurators(father, setters, clazz.getSuperclass(), object);
+        if (recursive) {
+            createConfigurators(father, setters, clazz.getSuperclass(), object);
+        }
         if (clazz.isAnnotationPresent(Configurable.class)) {
             Configurable configurable = clazz.getAnnotation(Configurable.class);
             String name = configurable.showName() ? (configurable.name().isEmpty() ? clazz.getSimpleName() : configurable.name()) : "";

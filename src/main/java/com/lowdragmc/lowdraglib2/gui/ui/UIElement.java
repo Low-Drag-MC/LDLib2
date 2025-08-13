@@ -1,14 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.google.common.collect.ImmutableList;
-import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
-import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.Setter;
@@ -88,10 +86,6 @@ public class UIElement {
     private ImmutableList<UIElement> structurePathCache = null;
     private FloatOptional positionXCache = FloatOptional.of();
     private FloatOptional positionYCache = FloatOptional.of();
-
-    @Getter
-    @Configurable(name = "ldlib.gui.editor.name.hover_tips", tips = "ldlib.gui.editor.tips.hover_tips")
-    protected final List<Component> tooltipTexts = new ArrayList<>();
 
     public UIElement() {
         layoutNode = new YogaNode(DEFAULT_YOGA_CONFIG);
@@ -589,50 +583,6 @@ public class UIElement {
      */
     public boolean isFocused() {
         return getModularUI() != null && getModularUI().getFocusedElement() == this;
-    }
-
-    /// Tooltip
-    @HideFromJS
-    public UIElement setHoverTooltips(String... tooltipText) {
-        tooltipTexts.clear();
-        appendHoverTooltips(tooltipText);
-        return this;
-    }
-
-    @HideFromJS
-    public UIElement setHoverTooltips(Component... tooltipText) {
-        tooltipTexts.clear();
-        appendHoverTooltips(tooltipText);
-        return this;
-    }
-
-    @HideFromJS
-    public UIElement setHoverTooltips(List<Component> tooltipText) {
-        tooltipTexts.clear();
-        appendHoverTooltips(tooltipText);
-        return this;
-    }
-
-    public UIElement appendHoverTooltips(String... tooltipText) {
-        Arrays.stream(tooltipText).filter(Objects::nonNull).filter(s->!s.isEmpty()).map(
-                Component::translatable).forEach(tooltipTexts::add);
-        return this;
-    }
-
-    public UIElement appendHoverTooltips(Component... tooltipText) {
-        Arrays.stream(tooltipText).filter(Objects::nonNull).forEach(tooltipTexts::add);
-        return this;
-    }
-
-    public UIElement appendHoverTooltips(List<Component> tooltipText) {
-        tooltipTexts.addAll(tooltipText);
-        return this;
-    }
-
-    public UIElement kjs$setHoverTooltips(Component... tooltipText) {
-        tooltipTexts.clear();
-        Arrays.stream(tooltipText).filter(Objects::nonNull).forEach(tooltipTexts::add);
-        return this;
     }
 
     /// Interaction
