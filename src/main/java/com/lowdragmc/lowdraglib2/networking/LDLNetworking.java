@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.networking;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.networking.both.PacketModularUISync;
 import com.lowdragmc.lowdraglib2.networking.both.PacketRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.networking.c2s.CPacketUIClientAction;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
@@ -26,6 +27,7 @@ public class LDLNetworking {
         registrar.playToServer(CPacketUIClientAction.TYPE, CPacketUIClientAction.CODEC, CPacketUIClientAction::execute);
 
         registrar.playBidirectional(PacketRPCBlockEntity.TYPE, PacketRPCBlockEntity.CODEC, PacketRPCBlockEntity::execute);
+        registrar.playBidirectional(PacketModularUISync.TYPE, PacketModularUISync.CODEC, PacketModularUISync::execute);
     }
 
 }

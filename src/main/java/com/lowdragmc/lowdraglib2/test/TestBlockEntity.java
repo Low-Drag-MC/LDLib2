@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.test;
 
 import com.lowdragmc.lowdraglib2.CommonProxy;
-import com.lowdragmc.lowdraglib2.gui.factory.BlockEntityUIFactory;
+import com.lowdragmc.lowdraglib2.gui.factory_outdated.BlockEntityUIFactory;
 import com.lowdragmc.lowdraglib2.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib2.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib2.syncdata.IBlockEntityManaged;

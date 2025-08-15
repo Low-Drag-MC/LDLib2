@@ -1,0 +1,46 @@
+package com.lowdragmc.lowdraglib2.gui.factory;
+
+
+import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.world.entity.player.Player;
+
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
+
+import javax.annotation.ParametersAreNonnullByDefault;
+
+/**
+ * It is used to create ui with {@link  ModularUIContainerMenu} and {@link  ModularUIContainerScreen}.
+ * Which means UI used for remote and server.
+ */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public interface IContainerUIHolder {
+    /**
+     * Creates a {@link ModularUI} instance tied to the specified {@link Player}
+     * and managed through a {@link UISyncManager}.
+     * This method is typically used to create a user interface for remote
+     *
+     * @param player the {@link Player} for whom the UI is being created; represents
+     *               the user interacting with the interface.
+     * @param syncManager an instance of {@link UISyncManager} responsible for
+     *                    managing synchronization between the client and server for the UI.
+     * @return the created {@link ModularUI} instance that handles the interface logic.
+     */
+    ModularUI createUI(Player player, UISyncManager syncManager);
+
+    /**
+     * Creates a {@link UISyncManager} instance for the specified {@link Player}.
+     * The {@link UISyncManager} is responsible for managing synchronization
+     * between the client and server in the UI context.
+     *
+     * @param player the {@link Player} for whom the {@link UISyncManager} is being created;
+     *               represents the user interacting with the interface.
+     * @return a {@link UISyncManager} instance configured for the provided player.
+     */
+    UISyncManager createUISyncManager(Player player);
+
+    boolean isStillValid(Player player);
+}

@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.ui.bindings;
+package com.lowdragmc.lowdraglib2.gui.bindings;
 
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 

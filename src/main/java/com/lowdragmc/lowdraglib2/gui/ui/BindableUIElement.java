@@ -1,14 +1,19 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.ui.bindings.IBindable;
-import com.lowdragmc.lowdraglib2.gui.ui.bindings.IDataSource;
-import com.lowdragmc.lowdraglib2.gui.ui.bindings.IObserver;
+import com.lowdragmc.lowdraglib2.gui.bindings.IBindable;
+import com.lowdragmc.lowdraglib2.gui.bindings.IDataSource;
+import com.lowdragmc.lowdraglib2.gui.bindings.IObserver;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
+import net.minecraft.MethodsReturnNonnullByDefault;
 
+import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public abstract class BindableUIElement<T> extends UIElement implements IBindable<T> {
     protected final List<Consumer<T>> listeners = new ArrayList<>();
     protected final Map<IDataSource<T>, ISubscription> dataSources = new LinkedHashMap<>();

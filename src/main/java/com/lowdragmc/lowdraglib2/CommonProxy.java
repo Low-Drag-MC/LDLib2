@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2;
 
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
-import com.lowdragmc.lowdraglib2.gui.factory.*;
+import com.lowdragmc.lowdraglib2.gui.factory_outdated.*;
 import com.lowdragmc.lowdraglib2.integration.kjs.ui.BlockUIJSFactory;
 import com.lowdragmc.lowdraglib2.integration.kjs.ui.ItemUIJSFactory;
 import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.test.TestBlockEntity;
 import com.lowdragmc.lowdraglib2.test.TestItem;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -27,6 +28,7 @@ public class CommonProxy {
     private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(BuiltInRegistries.BLOCK, LDLib2.MOD_ID);
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(BuiltInRegistries.ITEM, LDLib2.MOD_ID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.BLOCK_ENTITY_TYPE, LDLib2.MOD_ID);
+    public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(BuiltInRegistries.MENU, LDLib2.MOD_ID);
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TestBlockEntity>> TEST_BE_TYPE;
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<RendererBlockEntity>> RENDERER_BE_TYPE;

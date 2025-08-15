@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.networking.s2c;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.factory.UIFactory;
+import com.lowdragmc.lowdraglib2.gui.factory_outdated.UIFactory;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import lombok.NoArgsConstructor;
 import net.minecraft.network.RegistryFriendlyByteBuf;

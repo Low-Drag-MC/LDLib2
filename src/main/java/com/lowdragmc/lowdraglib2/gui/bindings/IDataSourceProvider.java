@@ -1,5 +1,8 @@
-package com.lowdragmc.lowdraglib2.gui.ui.bindings;
+package com.lowdragmc.lowdraglib2.gui.bindings;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@ParametersAreNonnullByDefault
 public interface IDataSourceProvider<T> {
     /**
      * bind a data source to this provider.

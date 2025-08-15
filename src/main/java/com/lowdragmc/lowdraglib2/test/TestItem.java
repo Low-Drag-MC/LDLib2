@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.test;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IItemRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib2.gui.factory.HeldItemUIFactory;
+import com.lowdragmc.lowdraglib2.gui.factory_outdated.HeldItemUIFactory;
 import com.lowdragmc.lowdraglib2.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib2.gui.modular.ModularUI;
 import net.minecraft.server.level.ServerPlayer;

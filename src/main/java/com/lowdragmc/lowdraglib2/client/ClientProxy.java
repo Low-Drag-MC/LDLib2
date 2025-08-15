@@ -15,14 +15,15 @@ import com.lowdragmc.lowdraglib2.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib2.core.mixins.ParticleEngineAccessor;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ModelBakeryAccessor;
 import com.lowdragmc.lowdraglib2.editor.resource.PackResourceProvider;
+import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.WidgetTooltipComponent;
-import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.objects.Object2BooleanLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.resources.model.*;
@@ -36,7 +37,6 @@ import net.neoforged.neoforge.client.event.*;
 import org.jetbrains.annotations.ApiStatus;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 @OnlyIn(Dist.CLIENT)
 public class ClientProxy extends CommonProxy {
@@ -44,6 +44,11 @@ public class ClientProxy extends CommonProxy {
     public ClientProxy(IEventBus eventBus) {
         super(eventBus);
         eventBus.register(this);
+    }
+
+    @SubscribeEvent
+    public void onRegisterMenuScreensEvent(final RegisterMenuScreensEvent event) {
+        event.register(LDMenuTypes.PLAYER_UI.get(), ModularUIContainerScreen::new);
     }
 
     @SubscribeEvent

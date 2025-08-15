@@ -1,5 +1,8 @@
-package com.lowdragmc.lowdraglib2.gui.ui.bindings;
+package com.lowdragmc.lowdraglib2.gui.bindings;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@ParametersAreNonnullByDefault
 public interface IObservable<T> {
     /**
      * Bind an observer to this observable.

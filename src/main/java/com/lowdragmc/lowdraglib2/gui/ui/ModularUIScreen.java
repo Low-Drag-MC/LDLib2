@@ -2,38 +2,51 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.blaze3d.platform.InputConstants;
+import lombok.Getter;
+import lombok.Setter;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 @OnlyIn(Dist.CLIENT)
-public class ModularUIContainerScreen<T extends ModularUIContainerMenu> extends AbstractContainerScreen<T> {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class ModularUIScreen extends Screen {
     public final ModularUI modularUI;
+    /**
+     * Starting X position for the Gui. Inconsistent use for Gui backgrounds.
+     */
+    @Getter
+    protected int leftPos, imageWidthz;
+    /**
+     * Starting Y position for the Gui. Inconsistent use for Gui backgrounds.
+     */
+    @Getter
+    protected int topPos;
 
-    public ModularUIContainerScreen(T container, Inventory inventory, Component title) {
-        super(container, inventory, title);
-        this.modularUI = container.uiHolder.createUI(container.inventory.player, container.syncManager);
+    public ModularUIScreen(ModularUI modularUI, Component title) {
+        super(title);
+        this.modularUI = modularUI;
         modularUI.setScreen(this);
     }
 
     @Override
-    protected void containerTick() {
-        super.containerTick();
-        menu.syncManager.tick();
+    public void tick() {
         modularUI.tick();
     }
 
     @Override
     public void init() {
         this.modularUI.init(width, height);
-        this.imageWidth = (int) modularUI.getWidth();
-        this.imageHeight = (int) modularUI.getHeight();
         this.addRenderableWidget(modularUI);
+        this.leftPos = (int) ((this.width - modularUI.getWidth()) / 2);
+        this.topPos = (int) ((this.height - modularUI.getHeight()) / 2);
         super.init();
     }
 
@@ -41,16 +54,6 @@ public class ModularUIContainerScreen<T extends ModularUIContainerMenu> extends 
     public void removed() {
         super.removed();
         modularUI.onRemoved();
-    }
-
-    @Override
-    protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
-
-    }
-
-    @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-
     }
 
     public boolean shouldCloseOnEsc() {
@@ -71,11 +74,6 @@ public class ModularUIContainerScreen<T extends ModularUIContainerMenu> extends 
     }
 
     @Override
-    protected boolean hasClickedOutside(double mouseX, double mouseY, int guiLeft, int guiTop, int mouseButton) {
-        return false;
-    }
-
-    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!modularUI.shouldCloseOnKeyInventory()) {
             InputConstants.Key mouseKey = InputConstants.getKey(keyCode, scanCode);
@@ -84,6 +82,10 @@ public class ModularUIContainerScreen<T extends ModularUIContainerMenu> extends 
             }
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.factory;
+package com.lowdragmc.lowdraglib2.gui.factory_outdated;
 
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ServerPlayerAccessor;
 import com.lowdragmc.lowdraglib2.gui.modular.ModularUI;

@@ -69,6 +69,14 @@ public final class UIEventDispatcher {
         }
     }
 
+    public static void dispatchDirectEvent(UIEvent event) {
+        if (event.target.getCaptureListeners(event.type).isEmpty() && event.target.getBubbleListeners(event.type).isEmpty()) {
+            return;
+        }
+        UIEventDispatcher.dispatchEvent(event);
+    }
+
+
     public static void dispatchAllChildren(UIEvent event) {
         event.currentElement = event.target;
         event.phase = UIEvent.EventPhase.AT_TARGET;

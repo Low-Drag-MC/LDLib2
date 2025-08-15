@@ -40,6 +40,10 @@ public class UIEvent {
      */
     public int keyCode, scanCode, modifiers;
     /**
+     * Hover Tooltips
+     */
+    public HoverTooltips hoverTooltips;
+    /**
      * Command name
      */
     public String command;

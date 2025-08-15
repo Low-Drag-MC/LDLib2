@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.factory;
+package com.lowdragmc.lowdraglib2.gui.factory_outdated;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.modular.IUIHolder;

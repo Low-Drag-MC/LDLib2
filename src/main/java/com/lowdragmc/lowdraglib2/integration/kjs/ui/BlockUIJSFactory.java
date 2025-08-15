@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.factory.UIFactory;
+import com.lowdragmc.lowdraglib2.gui.factory_outdated.UIFactory;
 import com.lowdragmc.lowdraglib2.gui.modular.IUIHolder;
 import com.lowdragmc.lowdraglib2.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.widget.WidgetGroup;

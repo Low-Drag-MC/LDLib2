@@ -113,6 +113,9 @@ public interface UIEvents {
      */
     String CHAR_TYPED = "charTyped";
 
+    /// Hover Tooltips Events
+    String HOVER_TOOLTIPS = "hoverTooltips";
+
     ///  Command Events
     /**
      * The {@code validateCommand} is sent when determining whether an element in the panel handles the command.

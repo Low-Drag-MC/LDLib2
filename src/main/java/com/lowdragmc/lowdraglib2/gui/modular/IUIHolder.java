@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.modular;
 
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.factory.HeldItemUIFactory;
+import com.lowdragmc.lowdraglib2.gui.factory_outdated.HeldItemUIFactory;
 import net.minecraft.world.entity.player.Player;
 
 public interface IUIHolder {

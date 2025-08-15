@@ -28,6 +28,7 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
+import java.util.Optional;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -88,7 +89,7 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         this.ui = ui;
     }
 
-    public void setScreen(@Nullable ModularUIContainerScreen<?> screen) {
+    public void setScreen(@Nullable Screen screen) {
         this.screen = screen;
     }
 
@@ -547,6 +548,18 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
         if (lastHoveredElement != null && tooltipTexts == null) {
             var element = lastHoveredElement;
             while (element != null) {
+                var event = UIEvent.create(UIEvents.HOVER_TOOLTIPS);
+                event.hasBubblePhase = false;
+                event.hasCapturePhase = false;
+                event.target = element;
+                UIEventDispatcher.dispatchDirectEvent(event);
+                if (event.hoverTooltips != null) {
+                    setHoverTooltip(event.hoverTooltips.tooltipTexts(),
+                            Optional.ofNullable(event.hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY),
+                            event.hoverTooltips.tooltipFont(),
+                            event.hoverTooltips.tooltipComponent());
+                    break;
+                }
                 if (!element.getStyle().tooltips().isEmpty()) {
                     setHoverTooltip(element.getStyle().tooltips(), ItemStack.EMPTY, null, null);
                     break;
