@@ -82,7 +82,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
 
     @Override
     public IVar<TYPE> createDirectVar(ManagedKey managedKey, @NotNull Object holder) {
-        return FieldVar.of(managedKey.getRawField(), holder);
+        return FieldVar.of(managedKey, holder);
     }
 
     @Override
@@ -134,7 +134,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          * @param managedMarkFunction the function to get the mark from the value.
          */
         public Builder<TYPE> copyMark(Function<TYPE, TYPE> managedMarkFunction) {
-            this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, Objects::equals);
+            this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, (a, b) -> !Objects.equals(a, b));
             return this;
         }
 
@@ -144,8 +144,8 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          * @param areDifferentFunction the function to compare the mark with the value.
          * @param <MARK> the type of the mark.
          */
-        public <MARK> Builder<TYPE> customMark(Function<TYPE, MARK> managedMarkFunction, BiPredicate<MARK, TYPE> areDifferentFunction) {
-            this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, areDifferentFunction);
+        public <MARK> Builder<TYPE> customMark(Function<TYPE, MARK> managedMarkFunction, BiPredicate<MARK, TYPE> areEqualFunction) {
+            this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, (a, b) -> !areEqualFunction.test(a, b));
             return this;
         }
 

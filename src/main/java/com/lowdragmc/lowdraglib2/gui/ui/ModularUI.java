@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
@@ -19,16 +20,19 @@ import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -50,6 +54,9 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
     private final DragHandler dragHandler = new DragHandler();
     @Getter
     private long tickCounter = 0;
+    // Element registry for fast retrieval
+    private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
+    private final Map<Class<?>, List<UIElement>> elementsByType = new ConcurrentHashMap<>();
 
     // UI state
     @Getter @Setter
@@ -133,6 +140,270 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
      */
     public void onRemoved() {
         ui.rootElement.onRemoved();
+    }
+
+    /**
+     * Add an element to the registry for fast retrieval.
+     * This method is automatically called when elements are added to the UI tree.
+     * @param element the element to add to the registry
+     */
+    public void registerElement(@Nullable UIElement element) {
+        if (element == null) return;
+
+        // Register by ID if present and not empty
+        String id = element.getId();
+        if (!id.isEmpty()) {
+            elementsById.computeIfAbsent(id, k -> new ArrayList<>()).add(element);
+            if (id.startsWith("@") && element instanceof IBindable<?> bindable) {
+                attachAutoBindings(id, bindable);
+            }
+        }
+
+        // Register by type
+        Class<?> elementType = element.getClass();
+        elementsByType.computeIfAbsent(elementType, k -> new ArrayList<>()).add(element);
+    }
+
+    /**
+     * Updates the automatic bindings for UI elements contained in the current screen.
+     */
+    protected void attachAutoBindings(String id, IBindable bindable) {
+        if (screen instanceof ModularUIContainerScreen containerScreen) {
+            for (var entry : containerScreen.getMenu().syncManager.getAutoBindings().entrySet()) {
+                var name = entry.getKey();
+                if (!name.equals(id)) continue;
+                var binding = entry.getValue();
+                try {
+                    bindable.bind(binding);
+                } catch (Exception e) {
+                    LDLib2.LOGGER.error("Failed to bind element {} with a binding {}", id, binding);
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove an element from the registry.
+     * This method is automatically called when elements are removed from the UI tree.
+     * @param element the element to remove from the registry
+     */
+    public void unregisterElement(@Nullable UIElement element) {
+        // Remove by ID if present and not empty
+        String id = element.getId();
+        if (!id.isEmpty()) {
+            List<UIElement> idList = elementsById.get(id);
+            if (idList != null) {
+                idList.remove(element);
+                // Clean up empty lists to avoid memory leaks
+                if (idList.isEmpty()) {
+                    elementsById.remove(id);
+                }
+            }
+
+            if (id.startsWith("@") && element instanceof IBindable<?> bindable) {
+                detachAutoBindings(id, bindable);
+            }
+        }
+
+        // Remove by type
+        Class<?> elementType = element.getClass();
+        List<UIElement> typeList = elementsByType.get(elementType);
+        if (typeList != null) {
+            typeList.remove(element);
+            // Clean up empty lists to avoid memory leaks
+            if (typeList.isEmpty()) {
+                elementsByType.remove(elementType);
+            }
+        }
+    }
+
+    /**
+     * Removes the automatic bindings for UI elements contained in the current screen.
+     */
+    protected void detachAutoBindings(String id, IBindable bindable) {
+        if (screen instanceof ModularUIContainerScreen containerScreen) {
+            for (var entry : containerScreen.getMenu().syncManager.getAutoBindings().entrySet()) {
+                var name = entry.getKey();
+                if (!name.equals(id)) continue;
+                var binding = entry.getValue();
+                try {
+                    bindable.unbind(binding);
+                } catch (Exception e) {
+                    LDLib2.LOGGER.error("Failed to bind element {} with a binding {}", id, binding);
+                }
+            }
+        }
+    }
+
+    /**
+     * Find the first element by its ID.
+     * @param id the ID of the element to find
+     * @return the first element with the given ID, or null if not found
+     */
+    @Nullable
+    public UIElement getElementById(@Nullable String id) {
+        if (id == null || id.isEmpty()) return null;
+        List<UIElement> elements = elementsById.get(id);
+        return elements != null && !elements.isEmpty() ? elements.getFirst() : null;
+    }
+
+    /**
+     * Find all elements by their ID.
+     * @param id the ID of the elements to find
+     * @return a list of all elements with the given ID (never null, but may be empty)
+     */
+    public List<UIElement> getElementsById(@Nullable String id) {
+        if (id == null || id.isEmpty()) return new ArrayList<>();
+        List<UIElement> elements = elementsById.get(id);
+        return elements != null ? new ArrayList<>(elements) : new ArrayList<>();
+    }
+
+    /**
+     * Find the first element by its ID using regex pattern.
+     * @param pattern the regex pattern to match element IDs
+     * @return the first element with an ID matching the pattern, or null if not found
+     */
+    @Nullable
+    public UIElement getElementByIdRegex(@Nullable String pattern) {
+        return getElementByIdPattern(pattern != null ? Pattern.compile(pattern) : null);
+    }
+
+    /**
+     * Find all elements by their ID using regex pattern.
+     * @param pattern the regex pattern to match element IDs
+     * @return a list of all elements with IDs matching the pattern (never null, but may be empty)
+     */
+    public List<UIElement> getElementsByIdRegex(@Nullable String pattern) {
+        return getElementsByIdPattern(pattern != null ? Pattern.compile(pattern) : null);
+    }
+
+    /**
+     * Find the first element by its ID using regex pattern with compiled Pattern.
+     * This is more efficient when using the same pattern multiple times.
+     * @param pattern the compiled regex pattern to match element IDs
+     * @return the first element with an ID matching the pattern, or null if not found
+     */
+    @Nullable
+    public UIElement getElementByIdPattern(@Nullable Pattern pattern) {
+        if (pattern == null) return null;
+        return elementsById.entrySet().stream()
+                .filter(entry -> pattern.matcher(entry.getKey()).matches())
+                .flatMap(entry -> entry.getValue().stream())
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Find all elements by their ID using regex pattern with compiled Pattern.
+     * This is more efficient when using the same pattern multiple times.
+     * @param pattern the compiled regex pattern to match element IDs
+     * @return a list of all elements with IDs matching the pattern (never null, but may be empty)
+     */
+    public List<UIElement> getElementsByIdPattern(@Nullable Pattern pattern) {
+        if (pattern == null) return new ArrayList<>();
+        return elementsById.entrySet().stream()
+                .filter(entry -> pattern.matcher(entry.getKey()).matches())
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Find elements by ID using partial matching (contains).
+     * @param substring the substring to search for in element IDs
+     * @return a list of all elements with IDs containing the substring (never null, but may be empty)
+     */
+    public List<UIElement> getElementsByIdContains(@Nullable String substring) {
+        if (substring == null || substring.isEmpty()) return new ArrayList<>();
+        return elementsById.entrySet().stream()
+                .filter(entry -> entry.getKey().contains(substring))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Find elements by ID using prefix matching (starts with).
+     * @param prefix the prefix to search for in element IDs
+     * @return a list of all elements with IDs starting with the prefix (never null, but may be empty)
+     */
+    public List<UIElement> getElementsByIdStartsWith(@Nullable String prefix) {
+        if (prefix == null || prefix.isEmpty()) return new ArrayList<>();
+        return elementsById.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith(prefix))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Find elements by ID using suffix matching (ends with).
+     * @param suffix the suffix to search for in element IDs
+     * @return a list of all elements with IDs ending with the suffix (never null, but may be empty)
+     */
+    public List<UIElement> getElementsByIdEndsWith(@Nullable String suffix) {
+        if (suffix == null || suffix.isEmpty()) return new ArrayList<>();
+        return elementsById.entrySet().stream()
+                .filter(entry -> entry.getKey().endsWith(suffix))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Find all elements of a specific type.
+     * @param type the type of elements to find
+     * @return a list of all elements of the given type (never null, but may be empty)
+     */
+    public <T extends UIElement> List<T> getElementsByType(Class<T> type) {
+        List<UIElement> elements = elementsByType.get(type);
+        if (elements == null) {
+            return new ArrayList<>();
+        }
+        // Safe cast since we store elements by their actual type
+        @SuppressWarnings("unchecked")
+        List<T> result = new ArrayList<>((List<T>) elements);
+        return result;
+    }
+
+    /**
+     * Get all registered elements by ID.
+     * @return a copy of the ID-to-elements mapping
+     */
+    public Map<String, List<UIElement>> getAllElementsById() {
+        Map<String, List<UIElement>> result = new HashMap<>();
+        elementsById.forEach((id, elements) ->
+                result.put(id, new ArrayList<>(elements)));
+        return result;
+    }
+
+    /**
+     * Get all registered elements by type.
+     * @return a copy of the type-to-elements mapping
+     */
+    public Map<Class<?>, List<UIElement>> getAllElementsByType() {
+        Map<Class<?>, List<UIElement>> result = new HashMap<>();
+        elementsByType.forEach((type, elements) ->
+                result.put(type, new ArrayList<>(elements)));
+        return result;
+    }
+
+    /**
+     * Check if an element with the given ID exists.
+     * @param id the ID to check
+     * @return true if at least one element with the given ID exists
+     */
+    public boolean hasElementWithId(@Nullable String id) {
+        if (id == null || id.isEmpty()) return false;
+        List<UIElement> elements = elementsById.get(id);
+        return elements != null && !elements.isEmpty();
+    }
+
+    /**
+     * Get the count of elements with the given ID.
+     * @param id the ID to count
+     * @return the number of elements with the given ID
+     */
+    public int getElementCountById(@Nullable String id) {
+        if (id == null || id.isEmpty()) return 0;
+        List<UIElement> elements = elementsById.get(id);
+        return elements != null ? elements.size() : 0;
     }
 
     @Override
@@ -568,6 +839,15 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             }
         }
 
+        if (screen instanceof AbstractContainerScreen<?> containerScreen && !containerScreen.getMenu().getCarried().isEmpty()) {
+            // TODO dragging
+            var itemstack = containerScreen.getMenu().getCarried();
+            if (!itemstack.isEmpty()) {
+                this.renderFloatingItem(guiGraphics, itemstack, mouseX - 8, mouseY - 8, null);
+            }
+            return;
+        }
+        // Do not render tooltips if carried item is existing
         if (dragHandler.isDragging() && dragHandler.dragTexture != null) {
             dragHandler.dragTexture.draw(guiGraphics, mouseX, mouseY, mouseX + dragHandler.offsetX, mouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
         }
@@ -578,6 +858,17 @@ public class ModularUI implements GuiEventListener, NarratableEntry, Renderable 
             DrawerHelper.drawTooltip(guiGraphics, mouseX, mouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
             guiGraphics.pose().popPose();
         }
+    }
+
+    protected void renderFloatingItem(GuiGraphics guiGraphics, ItemStack stack, int x, int y, @Nullable String text) {
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 232.0F);
+        guiGraphics.renderItem(stack, x, y);
+        var font = IClientItemExtensions.of(stack).getFont(stack, IClientItemExtensions.FontContext.ITEM_COUNT);
+        guiGraphics.renderItemDecorations(font == null ? Minecraft.getInstance().font : font, stack, x, y
+//                - (this.draggingItem.isEmpty() ? 0 : 8) // TODO dragging offset
+                , text);
+        guiGraphics.pose().popPose();
     }
 
     public void renderDebugInfo(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {

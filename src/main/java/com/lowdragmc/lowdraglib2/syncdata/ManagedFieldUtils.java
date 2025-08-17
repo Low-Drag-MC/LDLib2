@@ -54,7 +54,7 @@ public class ManagedFieldUtils {
         boolean isDrop = field.isAnnotationPresent(DropSaved.class);
         boolean isReadOnlyManaged = field.isAnnotationPresent(ReadOnlyManaged.class);
         String name = field.getName();
-        Type type = field.getGenericType();
+        var type = field.getGenericType();
         var managedKey = new ManagedKey(name, isDestSync, isPersist, isDrop, isLazy, type, field);
 
         if (isPersist) {
@@ -64,13 +64,13 @@ public class ManagedFieldUtils {
 
         if (isReadOnlyManaged) {
             var readOnlyManaged = field.getAnnotation(ReadOnlyManaged.class);
-            var clazz = field.getDeclaringClass();
+            var declaringClass = field.getDeclaringClass();
             var rawType = field.getType();
             try {
-                Method onDirtyMethod = readOnlyManaged.onDirtyMethod().isEmpty() ? null : clazz.getDeclaredMethod(readOnlyManaged.onDirtyMethod(), rawType);
-                Method serializeMethod = clazz.getDeclaredMethod(readOnlyManaged.serializeMethod(), rawType);
+                Method onDirtyMethod = readOnlyManaged.onDirtyMethod().isEmpty() ? null : declaringClass.getDeclaredMethod(readOnlyManaged.onDirtyMethod(), rawType);
+                Method serializeMethod = declaringClass.getDeclaredMethod(readOnlyManaged.serializeMethod(), rawType);
                 Method deserializeMethod = null;
-                for (Method m : clazz.getDeclaredMethods()) {
+                for (Method m : declaringClass.getDeclaredMethods()) {
                     if (!m.getName().equals(readOnlyManaged.deserializeMethod())) continue;
                     if (m.getParameterCount() != 1) continue;
                     if (Tag.class.isAssignableFrom(m.getParameterTypes()[0])) {

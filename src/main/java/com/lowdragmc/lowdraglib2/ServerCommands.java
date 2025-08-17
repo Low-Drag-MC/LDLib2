@@ -29,8 +29,9 @@ import net.minecraft.world.level.block.Blocks;
  */
 public class ServerCommands {
 	public static List<LiteralArgumentBuilder<CommandSourceStack>> createServerCommands() {
-		return List.of(
-				Commands.literal("ldlib2")
+        var commands = new ArrayList<LiteralArgumentBuilder<CommandSourceStack>>();
+        commands.addAll(List.of(
+                Commands.literal("ldlib2")
 						.then(Commands.literal("copy_block_tag")
 								.then(Commands.argument("pos", BlockPosArgument.blockPos())
 										.executes(context -> {
@@ -79,8 +80,32 @@ public class ServerCommands {
 												.then(Commands.argument("offset", BlockPosArgument.blockPos())
 														.executes(context -> runBuildScene(context,
 																BoolArgumentType.getBool(context, "saveNbt"),
-																BlockPosArgument.getBlockPos(context, "offset")))))))));
+																BlockPosArgument.getBlockPos(context, "offset"))))))))
+        ));
+        if (Platform.isDevEnv()) {
+            commands.add(createMenuTestCommands());
+        }
+        return commands;
 	}
+
+    private static LiteralArgumentBuilder<CommandSourceStack> createMenuTestCommands() {
+        var builder = Commands.literal("ldlib_menu_test");
+        if (LDLib2Registries.MENU_TESTS == null) {
+            return builder;
+        }
+        for (var uiTest : LDLib2Registries.MENU_TESTS) {
+            builder = builder.then(Commands.literal(uiTest.annotation().name())
+                    .executes(context -> {
+                        var test = uiTest.value();
+                        var player = context.getSource().getPlayer();
+                        if (player != null) {
+                            player.openMenu(test);
+                        }
+                        return 1;
+                    }));
+        }
+        return builder;
+    }
 
 	public static int runBuildScene(CommandContext<CommandSourceStack> context, boolean saveNbt, BlockPos offset) {
 

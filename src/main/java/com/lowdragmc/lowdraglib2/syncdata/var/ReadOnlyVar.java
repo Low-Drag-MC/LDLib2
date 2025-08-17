@@ -42,7 +42,7 @@ public final class ReadOnlyVar<T> implements IVar<T> {
     }
 
     public static <T> ReadOnlyVar<T> of(ManagedKey key, Object instance) {
-        return new ReadOnlyVar<>(FieldVar.of(key.getRawField(), instance),
+        return new ReadOnlyVar<>(FieldVar.of(key, instance),
                 key.isReadOnlyManaged() ? IReadOnlyManagedVar.fromManagedKey(key, instance) : null);
     }
 

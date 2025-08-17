@@ -82,7 +82,7 @@ public class EnumAccessor implements IDirectAccessor<Enum<?>> {
 
     @Override
     public IVar<Enum<?>> createDirectVar(ManagedKey managedKey, @NotNull Object holder) {
-        return FieldVar.of(managedKey.getRawField(), holder);
+        return FieldVar.of(managedKey, holder);
     }
 
 }

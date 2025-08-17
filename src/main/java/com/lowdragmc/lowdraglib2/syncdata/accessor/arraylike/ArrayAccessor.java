@@ -39,7 +39,7 @@ public class ArrayAccessor<TYPE, TYPE_ARRAY> implements IArrayLikeAccessor<TYPE,
         if (isReadOnly()) {
             return (IArrayRef<TYPE, TYPE_ARRAY>) ReadOnlyArrayRef.of(ReadOnlyVar.of(managedKey, holder), managedKey,this);
         } else {
-            return DirectArrayRef.of(FieldVar.of(managedKey.getRawField(), holder), managedKey, this);
+            return DirectArrayRef.of(FieldVar.of(managedKey, holder), managedKey, this);
         }
     }
 

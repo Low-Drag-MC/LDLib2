@@ -32,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec2;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
@@ -188,7 +189,8 @@ public class DrawerHelper {
         graphics.pose().pushPose();
         graphics.pose().translate(0, 0, 232);
         graphics.renderItem(itemStack, x, y);
-        graphics.renderItemDecorations(mc.font, itemStack, x, y, altTxt);
+        var font = IClientItemExtensions.of(itemStack).getFont(itemStack, IClientItemExtensions.FontContext.ITEM_COUNT);
+        graphics.renderItemDecorations(font == null ? mc.font : font, itemStack, x, y, altTxt);
         graphics.pose().popPose();
 
         // clear depth buffer,it may cause some rendering issues?

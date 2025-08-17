@@ -12,10 +12,10 @@ import net.neoforged.api.distmarker.OnlyIn;
 import javax.annotation.Nonnull;
 
 @OnlyIn(Dist.CLIENT)
-public class ModularUIContainerScreen<T extends ModularUIContainerMenu> extends AbstractContainerScreen<T> {
+public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIContainerMenu> {
     public final ModularUI modularUI;
 
-    public ModularUIContainerScreen(T container, Inventory inventory, Component title) {
+    public ModularUIContainerScreen(ModularUIContainerMenu container, Inventory inventory, Component title) {
         super(container, inventory, title);
         this.modularUI = container.uiHolder.createUI(container.inventory.player, container.syncManager);
         modularUI.setScreen(this);

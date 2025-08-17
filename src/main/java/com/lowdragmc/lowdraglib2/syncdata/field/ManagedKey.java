@@ -8,9 +8,7 @@ import lombok.ToString;
 
 import javax.annotation.Nullable;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 
 @ToString
 public final class ManagedKey {
@@ -49,7 +47,13 @@ public final class ManagedKey {
         this.deserializeMethod = deserializeMethod;
     }
 
-    public ManagedKey(String name, boolean isDestSync, boolean isPersist, boolean isDrop, boolean isLazy, Type contentType, Field rawField) {
+    public ManagedKey(String name,
+                      boolean isDestSync,
+                      boolean isPersist,
+                      boolean isDrop,
+                      boolean isLazy,
+                      Type contentType,
+                      Field rawField) {
         this.name = name;
         this.isDestSync = isDestSync;
         this.isPersist = isPersist;
@@ -58,6 +62,43 @@ public final class ManagedKey {
         this.contentType = contentType;
         this.rawField = rawField;
     }
+
+    public Class<?> getClazzType() {
+        return getClazzType(contentType);
+    }
+
+    public static Class<?> getClazzType(Type type) {
+        if (type instanceof Class<?>) {
+            return (Class<?>) type;
+        } else if (type instanceof ParameterizedType) {
+            // e.g., List<String>
+            ParameterizedType paramType = (ParameterizedType) type;
+            return (Class<?>) paramType.getRawType();
+
+        } else if (type instanceof GenericArrayType) {
+            // e.g., T[]
+            GenericArrayType arrayType = (GenericArrayType) type;
+            Type componentType = arrayType.getGenericComponentType();
+            Class<?> componentClass = getClazzType(componentType);
+            // array
+            return Array.newInstance(componentClass, 0).getClass();
+
+        } else if (type instanceof TypeVariable<?>) {
+            // e.g., T
+            TypeVariable<?> typeVar = (TypeVariable<?>) type;
+            Type[] bounds = typeVar.getBounds();
+            // else Object.class
+            return bounds.length > 0 ? getClazzType(bounds[0]) : Object.class;
+
+        } else if (type instanceof WildcardType) {
+            // e.g., ? extends Number
+            var wildcardType = (WildcardType) type;
+            Type[] upperBounds = wildcardType.getUpperBounds();
+            return upperBounds.length > 0 ? getClazzType(upperBounds[0]) : Object.class;
+        }
+        return Object.class;
+    }
+
 
     private IAccessor<?> fieldAccessor;
 

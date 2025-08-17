@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.var;
 
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import lombok.Getter;
 
 import java.lang.reflect.Field;
@@ -11,8 +12,11 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
     protected final Class<TYPE> type;
     protected final Object instance;
 
-    public static <T> IVar<T> of(Field field, Object instance) {
-        var type = field.getType();
+    public static <T> IVar<T> of(ManagedKey managedKey, Object instance) {
+        return of(managedKey.getClazzType(), managedKey.getRawField(), instance);
+    }
+
+    public static <T> IVar<T> of(Class<?> type, Field field, Object instance) {
         if (type.isPrimitive()) {
             if (type == int.class) {
                 return (IVar<T>) new IntFieldVar(field, instance);
@@ -32,12 +36,12 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
                 return (IVar<T>) new CharFieldVar(field, instance);
             }
         }
-        return new FieldVar<>(field, instance);
+        return new FieldVar<>(type, field, instance);
     }
 
-    protected FieldVar(Field field, Object instance) {
+    protected FieldVar(Class<?> type, Field field, Object instance) {
         field.setAccessible(true);
-        this.type = (Class<TYPE>) field.getType();
+        this.type = (Class<TYPE>) type;
         this.field = field;
         this.instance = instance;
     }
@@ -62,7 +66,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class IntFieldVar extends FieldVar<Integer> {
         private IntFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(int.class, field, instance);
         }
 
         @Override
@@ -86,7 +90,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class LongFieldVar extends FieldVar<Long> {
         private LongFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(long.class, field, instance);
         }
 
         @Override
@@ -110,7 +114,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class FloatFieldVar extends FieldVar<Float> {
         private FloatFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(float.class, field, instance);
         }
 
         @Override
@@ -134,7 +138,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class DoubleFieldVar extends FieldVar<Double> {
         private DoubleFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(double.class, field, instance);
         }
 
         @Override
@@ -158,7 +162,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class BooleanFieldVar extends FieldVar<Boolean> {
         private BooleanFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(boolean.class, field, instance);
         }
 
         @Override
@@ -182,7 +186,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class ByteFieldVar extends FieldVar<Byte> {
         private ByteFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(byte.class, field, instance);
         }
 
         @Override
@@ -206,7 +210,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class ShortFieldVar extends FieldVar<Short> {
         private ShortFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(short.class, field, instance);
         }
 
         @Override
@@ -230,7 +234,7 @@ public sealed class FieldVar<TYPE> implements IVar<TYPE> {
 
     private static final class CharFieldVar extends FieldVar<Character> {
         private CharFieldVar(Field field, Object instance) {
-            super(field, instance);
+            super(char.class, field, instance);
         }
 
         @Override

@@ -317,13 +317,13 @@ public class AccessorRegistries {
                 .build());
         registerAccessor(CustomDirectAccessor.builder(FluidStack.class)
                 .codec(FluidStack.CODEC)
-                .streamCodec(FluidStack.STREAM_CODEC)
-                .copyMark(FluidStack::copy)
+                .streamCodec(FluidStack.OPTIONAL_STREAM_CODEC)
+                .customMark(FluidStack::copy, FluidStack::matches)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ItemStack.class)
                 .codec(ItemStack.CODEC)
-                .streamCodec(ItemStack.STREAM_CODEC)
-                .copyMark(ItemStack::copy)
+                .streamCodec(ItemStack.OPTIONAL_STREAM_CODEC)
+                .customMark(ItemStack::copy, ItemStack::matches)
                 .build());
         if (LDLib2.isClient()) {
             registerAccessor(CustomDirectAccessor.builder(IGuiTexture.class)

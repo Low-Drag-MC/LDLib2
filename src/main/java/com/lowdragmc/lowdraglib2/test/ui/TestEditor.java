@@ -7,9 +7,9 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 
-@LDLRegisterClient(name="editor", registry = "ui_test")
+@LDLRegisterClient(name="editor", registry = "screen_test")
 @NoArgsConstructor
-public class TestEditor implements IUITest {
+public class TestEditor implements IScreenTest {
     @Override
     public ModularUI createUI(Player entityPlayer) {
         var root = new EditorWindow(com.lowdragmc.lowdraglib2.test.TestEditor::new);

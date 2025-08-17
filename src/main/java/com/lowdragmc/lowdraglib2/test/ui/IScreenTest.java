@@ -6,7 +6,7 @@ import net.minecraft.world.entity.player.Player;
 
 import java.util.function.Supplier;
 
-public interface IUITest extends ILDLRegisterClient<IUITest, Supplier<IUITest>> {
+public interface IScreenTest extends ILDLRegisterClient<IScreenTest, Supplier<IScreenTest>> {
 
     ModularUI createUI(Player entityPlayer);
 

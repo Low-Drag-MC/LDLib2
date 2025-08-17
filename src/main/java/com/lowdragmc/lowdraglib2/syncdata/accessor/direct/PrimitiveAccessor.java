@@ -72,7 +72,7 @@ public final class PrimitiveAccessor<TYPE> implements IDirectAccessor<TYPE> {
 
     @Override
     public IVar<TYPE> createDirectVar(ManagedKey managedKey, @NotNull Object holder) {
-        return FieldVar.of(managedKey.getRawField(), holder);
+        return FieldVar.of(managedKey, holder);
     }
 
 }

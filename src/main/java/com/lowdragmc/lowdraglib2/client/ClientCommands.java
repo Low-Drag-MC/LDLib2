@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIScreen;
@@ -12,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,23 +29,25 @@ public class ClientCommands {
     }
 
     public static List<LiteralArgumentBuilder<CommandSourceStack>> createClientCommands() {
-        return List.of(
-                createLiteral("ldlib2_client").then(createLiteral("reload_shader")
-                        .executes(context -> {
-                            LDLibShaders.reload();
-                            ShaderManager.getInstance().reload();
-                            return 1;
-                        })),
-                createTestCommands()
-        );
+        var commands = new ArrayList<LiteralArgumentBuilder<CommandSourceStack>>();
+        commands.add(createLiteral("ldlib2_client").then(createLiteral("reload_shader")
+                .executes(context -> {
+                    LDLibShaders.reload();
+                    ShaderManager.getInstance().reload();
+                    return 1;
+                })));
+        if (Platform.isDevEnv()) {
+            commands.add(createScreenTestCommands());
+        }
+        return commands;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> createTestCommands() {
-        var builder = Commands.literal("ldlib_test");
-        if (LDLib2Registries.UI_TESTS == null) {
+    private static LiteralArgumentBuilder<CommandSourceStack> createScreenTestCommands() {
+        var builder = Commands.literal("ldlib_screen_test");
+        if (LDLib2Registries.SCREEN_TESTS == null) {
             return builder;
         }
-        for (var uiTest : LDLib2Registries.UI_TESTS) {
+        for (var uiTest : LDLib2Registries.SCREEN_TESTS) {
             builder = builder.then(createLiteral(uiTest.annotation().name())
                     .executes(context -> {
                         var test = uiTest.value().get();

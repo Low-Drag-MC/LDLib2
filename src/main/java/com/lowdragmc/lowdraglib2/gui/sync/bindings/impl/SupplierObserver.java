@@ -1,6 +1,6 @@
-package com.lowdragmc.lowdraglib2.gui.bindings.impl;
+package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 
-import com.lowdragmc.lowdraglib2.gui.bindings.IObserver;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IObserver;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Data;
 import lombok.Getter;

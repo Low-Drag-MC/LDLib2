@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.bindings;
+package com.lowdragmc.lowdraglib2.gui.sync.bindings;
 
 public enum SyncStrategy {
     /**
@@ -16,7 +16,7 @@ public enum SyncStrategy {
      */
     ALWAYS;
 
-    public boolean isPeriodicBased() {
+    public boolean doSync() {
         return this != NONE;
     }
 }

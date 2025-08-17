@@ -4,10 +4,13 @@ import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.configurator.accessors.IConfiguratorAccessor;
 import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib2.graphprocessor.data.BaseNode;
+import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib2.test.ui.IUITest;
+import com.lowdragmc.lowdraglib2.test.ui.IMenuTest;
+import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
 import com.lowdragmc.lowdraglib2.utils.TypeAdapter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -25,6 +28,8 @@ public class LDLib2Registries {
     public final static AutoRegistry.LDLibRegister<IConfigurableWidget, Supplier<IConfigurableWidget>> WIDGETS = AutoRegistry.LDLibRegister
             .create(LDLib2.id("widget"), IConfigurableWidget.class, AutoRegistry::noArgsCreator);
 
+    public static AutoRegistry.LDLibRegister<IMenuTest, IMenuTest> MENU_TESTS;
+
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IConfiguratorAccessor, IConfiguratorAccessor<?>> CONFIGURATOR_ACCESSORS;
 
@@ -35,7 +40,7 @@ public class LDLib2Registries {
     public static AutoRegistry.LDLibRegisterClient<IRenderer, Supplier<IRenderer>> RENDERERS;
 
     @OnlyIn(Dist.CLIENT)
-    public static AutoRegistry.LDLibRegisterClient<IUITest, Supplier<IUITest>> UI_TESTS;
+    public static AutoRegistry.LDLibRegisterClient<IScreenTest, Supplier<IScreenTest>> SCREEN_TESTS;
 
     static {
         if (LDLib2.isClient()) {
@@ -46,7 +51,13 @@ public class LDLib2Registries {
             RENDERERS = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
             if (Platform.isDevEnv()) {
-                UI_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_test"), IUITest.class, AutoRegistry::noArgsCreator);
+                SCREEN_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("screen_test"), IScreenTest.class, AutoRegistry::noArgsCreator);
+            }
+        }
+        if (Platform.isDevEnv()) {
+            MENU_TESTS = AutoRegistry.LDLibRegister.create(LDLib2.id("menu_test"), IMenuTest.class, AutoRegistry::noArgsInstance);
+            for (var menuTest : MENU_TESTS) {
+                PlayerUIMenuType.register(LDLib2.id(menuTest.annotation().name()), menuTest.value());
             }
         }
     }

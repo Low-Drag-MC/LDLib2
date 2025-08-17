@@ -13,9 +13,9 @@ import org.appliedenergistics.yoga.YogaEdge;
 
 import java.util.List;
 
-@LDLRegisterClient(name="scene_editor", registry = "ui_test")
+@LDLRegisterClient(name="scene_editor", registry = "screen_test")
 @NoArgsConstructor
-public class TestSceneEditor implements IUITest {
+public class TestSceneEditor implements IScreenTest {
     @Override
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();

@@ -98,7 +98,13 @@ public class UIElement {
      */
     protected void _setModularUIInternal(@Nullable ModularUI gui) {
         if (this.modularUI == gui) return;
+        if (this.modularUI != null) {
+            this.modularUI.unregisterElement(this);
+        }
         this.modularUI = gui;
+        if (gui != null) {
+            gui.registerElement(this);
+        }
         for (var child : children) {
             child._setModularUIInternal(gui);
         }

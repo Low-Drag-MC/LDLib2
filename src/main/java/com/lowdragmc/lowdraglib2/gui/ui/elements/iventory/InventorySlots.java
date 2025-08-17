@@ -18,6 +18,17 @@ public class InventorySlots extends UIElement {
         }
         hotbar.getLayout().setMargin(YogaEdge.TOP, 5);
         addChild(hotbar);
+
+        for (int i = 0; i < hotbar.slots.length; i++) {
+            hotbar.slots[i].setId("@inventory_%d".formatted(i));
+        }
+        for (var r = 0; r < rows.length; r++) {
+            var row = rows[r];
+            for (int c = 0; c < row.slots.length; c++) {
+                int slotIndex = r * 9 + c + 9;
+                row.slots[c].setId("@inventory_%d".formatted(slotIndex));
+            }
+        }
     }
 
     public static class Row extends UIElement {

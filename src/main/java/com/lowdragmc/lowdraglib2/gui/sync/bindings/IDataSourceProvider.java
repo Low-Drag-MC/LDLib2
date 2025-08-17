@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.bindings;
+package com.lowdragmc.lowdraglib2.gui.sync.bindings;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 

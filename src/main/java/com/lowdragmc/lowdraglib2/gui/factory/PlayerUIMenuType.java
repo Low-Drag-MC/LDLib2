@@ -60,6 +60,7 @@ public class PlayerUIMenuType {
 
         @Override
         default void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
+            buffer.writeResourceLocation(getUIId());
             if (menu instanceof ModularUIContainerMenu modularUIContainerMenu) {
                 modularUIContainerMenu.syncManager.writeInitialData(buffer);
             }

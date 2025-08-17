@@ -18,9 +18,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import org.appliedenergistics.yoga.YogaEdge;
 
-@LDLRegisterClient(name="scene", registry = "ui_test")
+@LDLRegisterClient(name="scene", registry = "screen_test")
 @NoArgsConstructor
-public class TestScene implements IUITest {
+public class TestScene implements IScreenTest {
     @Override
     public ModularUI createUI(Player entityPlayer) {
         var dummyWorld = new TrackedDummyWorld();

@@ -1,13 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.bindings.IBindable;
-import com.lowdragmc.lowdraglib2.gui.bindings.IDataSource;
-import com.lowdragmc.lowdraglib2.gui.bindings.IObserver;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataSource;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IObserver;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.MethodsReturnNonnullByDefault;
 
-import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;

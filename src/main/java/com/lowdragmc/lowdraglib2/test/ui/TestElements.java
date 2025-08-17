@@ -19,9 +19,9 @@ import org.appliedenergistics.yoga.*;
 
 import java.util.Arrays;
 
-@LDLRegisterClient(name="ui_elements", registry = "ui_test")
+@LDLRegisterClient(name="ui_elements", registry = "screen_test")
 @NoArgsConstructor
-public class TestElements implements IUITest {
+public class TestElements implements IScreenTest {
 
     @Override
     public ModularUI createUI(Player entityPlayer) {

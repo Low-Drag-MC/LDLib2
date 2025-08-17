@@ -20,9 +20,9 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.entity.player.Player;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
-@LDLRegisterClient(name="ld_shader_instance", registry = "ui_test")
+@LDLRegisterClient(name="ld_shader_instance", registry = "screen_test")
 @NoArgsConstructor
-public class TestLDShaderInstance implements IUITest {
+public class TestLDShaderInstance implements IScreenTest {
     CompoundTag serialized = new CompoundTag();
 
     @Override

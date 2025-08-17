@@ -31,9 +31,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegisterClient(name="configurators", registry = "ui_test")
+@LDLRegisterClient(name="configurators", registry = "screen_test")
 @NoArgsConstructor
-public class TestConfigurators implements IUITest, IConfigurable, IPersistedSerializable {
+public class TestConfigurators implements IScreenTest, IConfigurable, IPersistedSerializable {
     @Configurable
     @ConfigNumber(range = {-5, 5})
     private float numberFloat = 0.0f;
