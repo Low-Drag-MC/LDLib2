@@ -1,5 +1,9 @@
 # ChangeLogs
 
+## v2.0.4
+* UI Sync Framework
+* Fixed fallback pack resource loading
+
 ## v2.0.2
 * Move file assets from the `assets` to the `ldlib2` folder
 * Fixed cross-OS platform file separator char
