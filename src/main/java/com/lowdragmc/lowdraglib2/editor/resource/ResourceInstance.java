@@ -86,10 +86,11 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
             var key = filePath.file.getParentFile();
             var provider = fileResourceProviders.get(key);
             if (provider != null && provider.supportResourcePath(path)) {
-                return provider.getResource(path);
+                var resource = provider.getResource(path);
+                if (resource != null) return resource;
             }
             if (packProvider.supportResourcePath(path)) {
-                packProvider.getResource(path);
+                return packProvider.getResource(path);
             }
         }
         return null;
