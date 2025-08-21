@@ -30,7 +30,6 @@ import javax.annotation.Nullable;
  * It uses FBO and is more universality and efficient(X).
  * FBO can be rendered anywhere more flexibly, not just in the GUI.
  * If you have scene rendering needs, you will love this FBO renderer.
- * TODO OP_LIST might be used in the future to further improve performance.
  */
 @OnlyIn(Dist.CLIENT)
 public class FBOWorldSceneRenderer extends WorldSceneRenderer {

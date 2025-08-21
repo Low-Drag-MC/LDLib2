@@ -14,7 +14,7 @@ public class ProgramManagerMixin {
             value = "INVOKE",
             target = "Lcom/mojang/blaze3d/systems/RenderSystem;assertOnRenderThread()V",
             remap = false)})
-    private static void iris$releaseGeometry(Shader shader, CallbackInfo ci) {
+    private static void ldlib$releaseGeometry(Shader shader, CallbackInfo ci) {
         if (shader instanceof LDShaderInstance ldShaderInstance && ldShaderInstance.getGeometry() != null) {
             ldShaderInstance.getGeometry().close();
         }

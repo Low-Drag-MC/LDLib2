@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
-import com.lowdragmc.lowdraglib2.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -18,6 +17,7 @@ import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -133,7 +133,8 @@ public abstract class Scroller extends BindableUIElement<Float> {
     /**
      * Set the value of the scroller.
      */
-    public Scroller setValue(Float value, boolean notifyChange) {
+    public Scroller setValue(@Nullable Float value, boolean notifyChange) {
+        if (value == null) value = 0f;
         var newValue = Math.max(minValue, Math.min(maxValue, value));
         if (newValue != this.value) {
             this.value = newValue;

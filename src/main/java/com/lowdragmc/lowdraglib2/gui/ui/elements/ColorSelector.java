@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.BufferBuilderAccessor;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
-import com.lowdragmc.lowdraglib2.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -14,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -21,8 +21,12 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.lwjgl.system.MemoryUtil;
 
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.IntConsumer;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class ColorSelector extends BindableUIElement<Integer> {
     public final UIElement pickerContainer;
     public final UIElement colorPreview;
@@ -242,7 +246,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     @Override
-    public ColorSelector setValue(Integer value, boolean notify) {
+    public ColorSelector setValue(@Nullable Integer value, boolean notify) {
+        if (value == null) value = -1;
         if (this.argb == value) return this;
         this.alpha = ColorUtils.alpha(value);
         var hsb = ColorUtils.RGBtoHSB(value);

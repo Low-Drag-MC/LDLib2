@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.InspectorView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.Dialog;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;

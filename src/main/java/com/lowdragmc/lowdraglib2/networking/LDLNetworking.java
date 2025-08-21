@@ -4,8 +4,10 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.networking.both.PacketModularUISync;
 import com.lowdragmc.lowdraglib2.networking.both.PacketRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.networking.c2s.CPacketUIClientAction;
+import com.lowdragmc.lowdraglib2.networking.c2s.CPacketUIRPCEvent;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketUIOpen;
+import com.lowdragmc.lowdraglib2.networking.s2c.SPacketUIRPCEventReturn;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketUIWidgetUpdate;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -23,8 +25,10 @@ public class LDLNetworking {
         registrar.playToClient(SPacketUIOpen.TYPE, SPacketUIOpen.CODEC, SPacketUIOpen::execute);
         registrar.playToClient(SPacketUIWidgetUpdate.TYPE, SPacketUIWidgetUpdate.CODEC, SPacketUIWidgetUpdate::execute);
         registrar.playToClient(SPacketAutoSyncBlockEntity.TYPE, SPacketAutoSyncBlockEntity.CODEC, SPacketAutoSyncBlockEntity::execute);
+        registrar.playToClient(SPacketUIRPCEventReturn.TYPE, SPacketUIRPCEventReturn.CODEC, SPacketUIRPCEventReturn::execute);
 
         registrar.playToServer(CPacketUIClientAction.TYPE, CPacketUIClientAction.CODEC, CPacketUIClientAction::execute);
+        registrar.playToServer(CPacketUIRPCEvent.TYPE, CPacketUIRPCEvent.CODEC, CPacketUIRPCEvent::execute);
 
         registrar.playBidirectional(PacketRPCBlockEntity.TYPE, PacketRPCBlockEntity.CODEC, PacketRPCBlockEntity::execute);
         registrar.playBidirectional(PacketModularUISync.TYPE, PacketModularUISync.CODEC, PacketModularUISync::execute);

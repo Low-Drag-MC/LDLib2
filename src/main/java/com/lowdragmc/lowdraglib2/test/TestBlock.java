@@ -50,12 +50,7 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
         return new TestBlockEntity(pPos, pState);
     }
 
-    IRenderer renderer = new IModelRenderer(LDLib2.id("block/cube")) {
-        @Override
-        public boolean reBakeCustomQuads() {
-            return true;
-        }
-    };
+    IRenderer renderer = new IModelRenderer(LDLib2.id("block/cube"));
 
     @Override
     public InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, BlockHitResult pHit) {

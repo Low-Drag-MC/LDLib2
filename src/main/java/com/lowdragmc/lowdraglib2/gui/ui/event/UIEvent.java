@@ -76,6 +76,12 @@ public class UIEvent {
      * Whether the immediate propagation is canceled.
      */
     public boolean immediatePropagationStopped = false;
+    /**
+     * Indicates whether there is a handler associated with the event.
+     * This variable helps determine if the event has at least one listener
+     * registered that should process it.
+     */
+    public boolean hasHandler = false;
 
     private UIEvent(String type) {
         this.type = type;

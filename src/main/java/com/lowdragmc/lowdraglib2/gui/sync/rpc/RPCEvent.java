@@ -1,11 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.sync.rpc;
 
-import com.lowdragmc.lowdraglib2.gui.sync.SyncValueHolder;
+import com.lowdragmc.lowdraglib2.syncdata.SyncValueHolder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
-public record RPCEvent(SyncValueHolder[] argHolders, @Nullable SyncValueHolder returnHolder) {
+public record RPCEvent(SyncValueHolder[] argHolders, @Nullable SyncValueHolder returnHolder, Function<Object[], Object> executor) {
 
     private void checkArgs(Object[] args) {
         if (args.length != argHolders.length) {
@@ -45,5 +46,9 @@ public record RPCEvent(SyncValueHolder[] argHolders, @Nullable SyncValueHolder r
             return returnHolder.getValue();
         }
         return null;
+    }
+
+    public boolean hasReturn() {
+        return returnHolder != null;
     }
 }

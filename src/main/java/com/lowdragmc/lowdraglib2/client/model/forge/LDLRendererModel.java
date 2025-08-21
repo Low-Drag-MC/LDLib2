@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.client.model.forge;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.lowdragmc.lowdraglib2.client.model.custommodel.CustomBakedModel;
 import com.lowdragmc.lowdraglib2.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -108,9 +107,10 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
             var modelData = data.get(MODEL_DATA);
             if (renderer != null) {
                 var quads = renderer.renderModel(world, pos, state, side, rand, modelData, renderType);
-                if (renderer.reBakeCustomQuads() && state != null && world != null && pos != null) {
-                    return CustomBakedModel.reBakeCustomQuads(quads, world, pos, state, side, renderer.reBakeCustomQuadsOffset());
-                }
+                // TODO does it necessary?
+//                if (renderer.reBakeCustomQuads() && state != null && world != null && pos != null) {
+//                    return CustomBakedModel.reBakeCustomQuads(quads, world, pos, state, side, renderer.reBakeCustomQuadsOffset());
+//                }
                 return quads;
             }
             return Collections.emptyList();

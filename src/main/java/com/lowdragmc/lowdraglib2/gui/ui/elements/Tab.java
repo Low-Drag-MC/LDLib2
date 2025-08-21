@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -14,7 +15,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -122,7 +122,7 @@ public class Tab extends UIElement {
 
     /// rendering
     @Override
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundAdditional(GUIContext guiContext) {
         // draw button texture
         var texture = tabStyle.baseTexture;
         if (isSelected) {
@@ -130,8 +130,8 @@ public class Tab extends UIElement {
         } else if (isHovered) {
             texture = tabStyle.hoverTexture;
         }
-        texture.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
-        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
+        guiContext.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+        super.drawBackgroundAdditional(guiContext);
     }
 
 }

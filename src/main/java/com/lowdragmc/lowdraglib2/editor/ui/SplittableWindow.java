@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
-import com.lowdragmc.lowdraglib2.gui.ui.SplitView;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;

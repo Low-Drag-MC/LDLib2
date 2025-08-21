@@ -1,26 +1,53 @@
 package com.lowdragmc.lowdraglib2.gui.sync.bindings;
 
+import javax.annotation.Nullable;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 public interface IDataSource<T> {
+    IDataSource<?> EMPTY = new IDataSource<Object>() {
+        @Override
+        public Object getValue() {
+            return null;
+        }
 
-    void setValueWithoutNotify(T value);
+        @Override
+        public IDataSource<Object> setValue(@Nullable Object value) {
+            return this;
+        }
+    };
 
-    /**
-     * Notify changes actively.
-     */
-    void notifyChange();
+    @SuppressWarnings("unchecked")
+    static <T> IDataSource<T> empty() {
+        return (IDataSource<T>) EMPTY;
+    }
 
-    /**
-     * Set the value of the data source.
-     * @param value the new value to set
-     */
-    default void setValue(T value, boolean notify) {
-        setValueWithoutNotify(value);
-        if (notify) {
-            notifyChange();
+    record Simple<T>(Consumer<T> setter, Supplier<T> getter) implements IDataSource<T> {
+        @Override
+        public T getValue() {
+            return getter.get();
+        }
+
+        @Override
+        public IDataSource<T> setValue(@Nullable T value) {
+            setter.accept(value);
+            return this;
         }
     }
 
-    default void setValue(T value) {
-        setValue(value, true);
+    static <T> IDataSource<T> of(Consumer<T> setter, Supplier<T> getter) {
+        return new Simple<>(setter, getter);
     }
+
+    /**
+     * Gets the current value.
+     */
+    T getValue();
+
+    /**
+     * Sets the value.
+     *
+     * @param value The new value to set.
+     */
+    IDataSource<T> setValue(@Nullable T value);
 }

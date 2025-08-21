@@ -7,23 +7,23 @@ public interface IDataBindingHolder<T> {
             return binding;
         }
         @Override
-        public IData<T> getData() {
+        public IDataSource<T> getData() {
             throw new UnsupportedOperationException();
         }
     }
 
-    record Data<T> (IData<T> data) implements IDataBindingHolder<T> {
+    record Data<T> (IDataSource<T> data) implements IDataBindingHolder<T> {
         @Override
         public IBinding<T> getBinding() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public IData<T> getData() {
+        public IDataSource<T> getData() {
             return data;
         }
     }
 
     IBinding<T> getBinding();
-    IData<T> getData();
+    IDataSource<T> getData();
 }

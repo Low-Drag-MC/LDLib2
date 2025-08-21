@@ -1,27 +1,19 @@
 package com.lowdragmc.lowdraglib2.client;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.lowdragmc.lowdraglib2.CommonProxy;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.client.model.custommodel.CustomBakedModel;
-import com.lowdragmc.lowdraglib2.client.model.custommodel.LDLMetadataSection;
 import com.lowdragmc.lowdraglib2.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib2.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib2.core.mixins.ParticleEngineAccessor;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.ModelBakeryAccessor;
 import com.lowdragmc.lowdraglib2.editor.resource.PackResourceProvider;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.WidgetTooltipComponent;
-import it.unimi.dsi.fastutil.objects.Object2BooleanLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.core.particles.ParticleType;
@@ -34,9 +26,6 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.*;
-import org.jetbrains.annotations.ApiStatus;
-
-import java.util.*;
 
 @OnlyIn(Dist.CLIENT)
 public class ClientProxy extends CommonProxy {
@@ -72,15 +61,6 @@ public class ClientProxy extends CommonProxy {
         });
     }
 
-    @ApiStatus.Internal
-    public static final Multimap<ResourceLocation, Material> SCRAPED_TEXTURES = HashMultimap.create();
-    @ApiStatus.Internal
-    public static final Object2BooleanMap<ModelResourceLocation> WRAPPED_MODELS = new Object2BooleanLinkedOpenHashMap<>();
-
-    @ApiStatus.Internal
-    public static void textureScraped(ResourceLocation modelLocation, Material material) {
-        SCRAPED_TEXTURES.put(modelLocation, material);
-    }
 
     @SubscribeEvent
     public void modelRegistry(final ModelEvent.RegisterGeometryLoaders e) {
@@ -88,76 +68,9 @@ public class ClientProxy extends CommonProxy {
     }
 
     @SubscribeEvent
-    public void modelBake(final ModelEvent.ModifyBakingResult event) {
-        ModelBakery modelBakery = event.getModelBakery();
-        for (Map.Entry<ModelResourceLocation, BakedModel> entry : event.getModels().entrySet()) {
-            ModelResourceLocation mrl = entry.getKey();
-            UnbakedModel rootModel = ((ModelBakeryAccessor)modelBakery).getTopLevelModels().get(mrl);
-            if (rootModel != null) {
-                BakedModel baked = entry.getValue();
-                if (baked instanceof LDLRendererModel) {
-                    continue;
-                }
-                if (baked.isCustomRenderer()) { // Nothing we can add to builtin models
-                    continue;
-                }
-                Deque<ResourceLocation> dependencies = new ArrayDeque<>();
-                Set<ResourceLocation> seenModels = new HashSet<>();
-                ResourceLocation rl = mrl.id();
-                dependencies.push(rl);
-                seenModels.add(rl);
-                boolean shouldWrap = ClientProxy.WRAPPED_MODELS.getOrDefault(mrl, false);
-                // Breadth-first loop through dependencies, exiting as soon as a CTM texture is found, and skipping duplicates/cycles
-                while (!shouldWrap && !dependencies.isEmpty()) {
-                    ResourceLocation dep = dependencies.pop();
-                    UnbakedModel model;
-                    try {
-                        model = dep == rl ? rootModel : ((ModelBakeryAccessor) modelBakery).invokeGetModel(dep);
-                    } catch (Exception e) {
-                        continue;
-                    }
-
-                    try {
-                        Set<Material> textures = new HashSet<>(ClientProxy.SCRAPED_TEXTURES.get(dep));
-                        for (Material tex : textures) {
-                            // Cache all dependent texture metadata
-                            // At least one texture has CTM metadata, so we should wrap this model
-                            if (!LDLMetadataSection.getMetadata(LDLMetadataSection.spriteToAbsolute(tex.texture())).isMissing()) { // TODO lazy
-                                shouldWrap = true;
-                                break;
-                            }
-                        }
-                        if (!shouldWrap) {
-                            for (ResourceLocation newDep : model.getDependencies()) {
-                                if (seenModels.add(newDep)) {
-                                    dependencies.push(newDep);
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        LDLib2.LOGGER.error("Error loading model dependency {} for model {}. Skipping...", dep, mrl, e);
-                    }
-                }
-                ClientProxy.WRAPPED_MODELS.put(mrl, shouldWrap);
-                if (shouldWrap) {
-                    entry.setValue(new CustomBakedModel<>(baked));
-                }
-            }
-        }
-
-    }
-
-    @SubscribeEvent
     public void shaderRegistry(RegisterShadersEvent event) {
         LDLibShaders.registerShaders(event);
     }
-
-//    @SubscribeEvent
-//    public void registerTextures(RegisterTextureAtlasSpriteLoadersEvent event) {
-//        for (IRenderer renderer : IRenderer.EVENT_REGISTERS) {
-//            renderer.onPrepareTextureAtlas(event.getAtlas().location(), location -> event.getAtlas().);
-//        }
-//    }
 
     @SubscribeEvent
     public void onRegisterClientReloadListenersEvent(RegisterClientReloadListenersEvent event) {

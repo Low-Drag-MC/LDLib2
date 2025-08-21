@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.IObserver;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Data;
 import lombok.Getter;
@@ -12,13 +12,13 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @Data(staticConstructor = "of")
-public final class SupplierObserver<T> implements IObserver<T> {
+public final class SupplierDataSource<T> implements IDataProvider<T> {
     @Getter
     private final Supplier<T> supplier;
     private final List<Consumer<T>> listeners = new ArrayList<>();
     private volatile T lastValue;
 
-    private SupplierObserver(Supplier<T> supplier) {
+    private SupplierDataSource(Supplier<T> supplier) {
         this.supplier = supplier;
         this.lastValue = supplier.get();
     }

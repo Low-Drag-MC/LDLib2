@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
@@ -15,10 +16,11 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collections;
@@ -130,14 +132,15 @@ public class TextElement extends UIElement {
         return setText(text);
     }
 
+    @OnlyIn(Dist.CLIENT)
     public Font getFont() {
         return Minecraft.getInstance().font;
     }
 
     @Override
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundAdditional(GUIContext guiContext) {
         if (formattedLines.isEmpty()) return;
-        graphics.drawManaged(() -> {
+        guiContext.graphics.drawManaged(() -> {
             var font = getFont();
             var defaultLineHeight = font.lineHeight;
             var x = getContentX();
@@ -198,11 +201,11 @@ public class TextElement extends UIElement {
                 var lineY = startY + i * (lineHeight + lineSpacing);
 
                 // draw the text line
-                graphics.pose().pushPose();
-                graphics.pose().translate(lineX, lineY, 0);
-                graphics.pose().scale(scale, scale, 1);
-                graphics.drawString(font, line, 0, 0, color, dropShadow);
-                graphics.pose().popPose();
+                guiContext.pose.pushPose();
+                guiContext.pose.translate(lineX, lineY, 0);
+                guiContext.pose.scale(scale, scale, 1);
+                guiContext.graphics.drawString(font, line, 0, 0, color, dropShadow);
+                guiContext.pose.popPose();
             }
         });
     }

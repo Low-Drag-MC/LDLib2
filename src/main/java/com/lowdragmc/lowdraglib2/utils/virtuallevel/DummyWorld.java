@@ -455,7 +455,7 @@ public class DummyWorld extends Level {
     @Nullable
     @OnlyIn(Dist.CLIENT)
     public Particle createParticle(ParticleOptions particleData, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed) {
-        ParticleProvider particleProvider = ClientProxy.getProvider(particleData.getType());
+        var particleProvider = ClientProxy.getProvider(particleData.getType());
         if (particleProvider == null) {
             return null;
         }

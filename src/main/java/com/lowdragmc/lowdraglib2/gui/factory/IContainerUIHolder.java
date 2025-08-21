@@ -29,18 +29,7 @@ public interface IContainerUIHolder {
      *                    managing synchronization between the client and server for the UI.
      * @return the created {@link ModularUI} instance that handles the interface logic.
      */
-    ModularUI createUI(Player player, UISyncManager syncManager);
-
-    /**
-     * Creates a {@link UISyncManager} instance for the specified {@link Player}.
-     * The {@link UISyncManager} is responsible for managing synchronization
-     * between the client and server in the UI context.
-     *
-     * @param player the {@link Player} for whom the {@link UISyncManager} is being created;
-     *               represents the user interacting with the interface.
-     * @return a {@link UISyncManager} instance configured for the provided player.
-     */
-    UISyncManager createUISyncManager(Player player);
+    ModularUI createUI(Player player);
 
     boolean isStillValid(Player player);
 }

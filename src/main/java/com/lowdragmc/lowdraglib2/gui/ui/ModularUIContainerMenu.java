@@ -3,40 +3,47 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import lombok.Getter;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class ModularUIContainerMenu extends AbstractContainerMenu implements IUISyncManagerHolder {
     public final Inventory inventory;
     public final IContainerUIHolder uiHolder;
     @Getter
-    public final UISyncManager syncManager;
+    public final ModularUI modularUI;
 
     public ModularUIContainerMenu(MenuType<ModularUIContainerMenu> menuType,
                                   int windowID,
                                   Inventory inventory,
-                                  IContainerUIHolder uiHolder,
-                                  UISyncManager syncManager) {
+                                  IContainerUIHolder uiHolder) {
         super(menuType, windowID);
         this.inventory = inventory;
-        this.syncManager = syncManager;
         this.uiHolder = uiHolder;
+        DataBindingBuilder.isRemote(inventory.player.level().isClientSide);
+        this.modularUI = uiHolder.createUI(inventory.player);
+        this.modularUI.setMenu(this);
     }
 
     @Override
     public void broadcastChanges() {
         super.broadcastChanges();
-        syncManager.tick();
+        modularUI.syncManager.tick();
     }
 
     @Nonnull
     @Override
     public ItemStack quickMoveStack(@Nonnull Player player, int quickMovedSlotIndex) {
+        // TODO Quick Move
         // The quick moved slot stack
         ItemStack quickMovedStack = ItemStack.EMPTY;
         // The quick moved slot
@@ -120,4 +127,8 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IUI
         return uiHolder.isStillValid(playerIn);
     }
 
+    @Override
+    public UISyncManager getSyncManager() {
+        return modularUI.syncManager;
+    }
 }

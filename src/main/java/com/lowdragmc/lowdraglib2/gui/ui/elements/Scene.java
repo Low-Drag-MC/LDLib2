@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
@@ -17,8 +18,8 @@ import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
@@ -32,12 +33,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.appliedenergistics.yoga.YogaOverflow;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,6 +46,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class Scene extends UIElement {
     private static Object DRAGGING = new Object();
     @Nullable
@@ -456,30 +459,24 @@ public class Scene extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundAdditional(GUIContext guiContext) {
         var x = getContentX();
         var y = getContentY();
         var width = getContentWidth();
         var height = getPaddingHeight();
         if (interpolator != null && getModularUI() != null) {
-            interpolator.update(getModularUI().getTickCounter() + partialTicks);
+            interpolator.update(getModularUI().getTickCounter() + guiContext.partialTick);
         }
         if (renderer != null) {
-            renderer.render(graphics.pose(), x, y, width, height, mouseX, mouseY);
+            renderer.render(guiContext.pose, x, y, width, height, guiContext.mouseX, guiContext.mouseY);
             if (renderer.isCompiling()) {
                 double progress = renderer.getCompileProgress();
                 if (progress > 0) {
-                    new TextTexture("Renderer is compiling! " + String.format("%.1f", progress * 100) + "%%")
-                            .setWidth((int) width)
-                            .draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+                    guiContext.drawTexture(new TextTexture("Renderer is compiling! " + String.format("%.1f", progress * 100) + "%%")
+                            .setWidth((int) width), x, y, width, height);
                 }
             }
         }
-    }
-
-    @Override
-    public void drawInForeground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawInForeground(graphics, mouseX, mouseY, partialTicks);
         if (isHover() && showHoverBlockTips && lastHoverItem != null && getModularUI() != null) {
             getModularUI().setHoverTooltip(DrawerHelper.getItemToolTip(lastHoverItem), lastHoverItem, null, lastHoverItem.getTooltipImage().orElse(null));
         }

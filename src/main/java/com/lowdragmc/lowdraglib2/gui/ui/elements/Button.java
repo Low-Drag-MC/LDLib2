@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -123,15 +124,15 @@ public class Button extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundAdditional(GUIContext guiContext) {
         // draw button texture
         var texture = isActive() ? switch (state) {
             case DEFAULT -> getButtonStyle().defaultTexture();
             case HOVERED -> getButtonStyle().hoverTexture();
             case PRESSED -> getButtonStyle().pressedTexture();
         } : getButtonStyle().defaultTexture();
-        texture.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
-        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
+        guiContext.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+        super.drawBackgroundAdditional(guiContext);
     }
 
     protected void setButtonState(State state) {

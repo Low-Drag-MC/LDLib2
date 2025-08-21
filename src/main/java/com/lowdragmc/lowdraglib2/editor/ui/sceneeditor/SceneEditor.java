@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.math.Ray;
 import com.lowdragmc.lowdraglib2.math.Transform;
@@ -20,6 +21,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRenderi
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -33,6 +35,7 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,6 +43,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * A scene which provides editable features as a unity scene.
  */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class SceneEditor extends UIElement implements IScene {
     public static final Object SCENE_OBJECT_DRAGGING = new Object();
     public static final Object CAMERA_MOVING = new Object();
@@ -409,8 +414,8 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     @Override
-    public void drawBackgroundAdditional(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
+    public void drawBackgroundAdditional(GUIContext guiContext) {
+        super.drawBackgroundAdditional(guiContext);
         var renderer = scene.getRenderer();
         if (isCameraMoving && renderer != null) {
             var _forward = isKeyDown(GLFW.GLFW_KEY_W);
@@ -424,7 +429,7 @@ public class SceneEditor extends UIElement implements IScene {
                 var lookAt = renderer.getLookAt();
                 var worldUp = renderer.getWorldUp();
                 var lookDir = new Vector3f(lookAt).sub(eyePos);
-                var realMoveSpeed = moveSpeed * partialTicks * (isShiftDown() ? 5 : 1);
+                var realMoveSpeed = moveSpeed * guiContext.partialTick * (isShiftDown() ? 5 : 1);
                 var forward = new Vector3f(lookDir).normalize().mul(realMoveSpeed);
                 var right = new Vector3f(lookDir).cross(worldUp).normalize().mul(realMoveSpeed);
                 var up = new Vector3f(worldUp).normalize().mul(realMoveSpeed);

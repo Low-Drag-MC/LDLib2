@@ -1,192 +1,196 @@
 package com.lowdragmc.lowdraglib2.gui.sync;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBinding;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.IData;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataBindingHolder;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.networking.both.PacketModularUISync;
+import com.lowdragmc.lowdraglib2.networking.c2s.CPacketUIRPCEvent;
+import com.lowdragmc.lowdraglib2.networking.s2c.SPacketUIRPCEventReturn;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
+import com.lowdragmc.lowdraglib2.utils.IdentityMap;
 import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.apache.commons.lang3.function.Consumers;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 public class UISyncManager {
-    public final Player player;
+    public final ModularUI modularUI;
     // runtime
+    private final IdentityMap<SyncValue<?>> syncValues = new IdentityMap<>();
+    private final IdentityMap<RPCEvent> rpcEvents = new IdentityMap<>();
+
+    private final AtomicInteger eventID = new AtomicInteger(0);
     @Getter
-    private final Map<String, IBinding<?>> bindings = new HashMap<>();
-    @Getter
-    private final Map<String, IData<?>> datas = new HashMap<>();
-    @Getter
-    private final Map<String, IBinding<?>> autoBindings = new HashMap<>();
-    @Getter
-    private final Map<String, RPCEvent> rpcEvents = new HashMap<>();
-    private final Map<String, Function<Object[], Object>> rpcClientExecutor = new HashMap<>();
-    private final Map<String, Function<Object[], Object>> rpcServerExecutor = new HashMap<>();
+    private final Map<Integer, Consumer<?>> returnCallbacks = new HashMap<>();
 
-    public UISyncManager(Player player) {
-        this.player = player;
+    public UISyncManager(ModularUI modularUI) {
+        this.modularUI = modularUI;
     }
 
-    public final boolean isRemote() {
-        return player.level().isClientSide;
-    }
-
-    public UISyncManager addDataBindings(DataBindingBuilder<?>... dataBinding) {
-        for (int i = 0; i < dataBinding.length; i++) {
-            addDataBinding(dataBinding[i]);
-        }
+    public UISyncManager registerSyncValue(SyncValue<?> syncValue) {
+        syncValues.add(syncValue);
         return this;
     }
 
-    public UISyncManager addDataBinding(DataBindingBuilder<?> dataBinding) {
-        addDataBinding(dataBinding.build(isRemote()));
+    public UISyncManager unregisterSyncValue(SyncValue<?> syncValue) {
+        syncValues.remove(syncValue);
         return this;
     }
 
-    public UISyncManager addDataBindings(IDataBindingHolder<?>... dataBindings) {
-        for (var dataBinding : dataBindings) {
-            addDataBinding(dataBinding);
-        }
-
-        return this;
-    }
-    public UISyncManager addDataBinding(IDataBindingHolder<?> dataBinding) {
-        if (isRemote()) {
-            var binding = dataBinding.getBinding();
-            bindings.put(binding.name(), binding);
-            if (binding.name().startsWith("@")) {
-                autoBindings.put(binding.name(), binding);
-            }
-        } else {
-            var data = dataBinding.getData();
-            datas.put(data.name(), data);
-        }
+    public UISyncManager registerRPCEvent(RPCEvent rpcEvent) {
+        rpcEvents.add(rpcEvent);
         return this;
     }
 
-    public UISyncManager removeDataBinding(String uid) {
-        this.bindings.remove(uid);
-        this.autoBindings.remove(uid);
-        this.datas.remove(uid);
+    public UISyncManager unregisterRPCEvent(RPCEvent rpcEvent) {
+        rpcEvents.remove(rpcEvent);
         return this;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> IBinding<T> getBinding(String name) {
-        return (IBinding<T>) bindings.get(name);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> IData<T> getData(String name) {
-        return (IData<T>) datas.get(name);
-    }
 
     /// Sync Data Logic
     public final void tick() {
-        if (isRemote()) {
-            tickClient();
-        } else {
-            tickServer();
-        }
-    }
-
-    private void tickClient() {
-        var toSync = new ArrayList<String>();
-        bindings.forEach((uid, binding) -> {
-            binding.tickClient();
-            if (binding.needC2SSync()) {
-                toSync.add(uid);
+        if (modularUI.player == null) return;
+        var toSync = new ArrayList<SyncValue<?>>();
+        for (var value : syncValues.values()) {
+            value.update();
+            if (value.hasChanged()) {
+                toSync.add(value);
             }
-        });
+        }
         if (toSync.isEmpty()) return;
         var data = ByteBufUtil.writeCustomData(buf -> {
-            buf.writeVarInt(toSync.size());
-            for (var uid : toSync) {
-                buf.writeUtf(uid);
-                var binding = bindings.get(uid);
-                binding.writeC2SSyncData(buf);
-                binding.clearChanged();
-            }
-        }, player.level().registryAccess());
-        PacketDistributor.sendToServer(new PacketModularUISync(data));
-    }
-
-    private void tickServer() {
-        if (player instanceof ServerPlayer serverPlayer) {
-            var toSync = new ArrayList<String>();
-            datas.forEach((uid, data) -> {
-                data.tickServer();
-                if (data.needS2CSync()) {
-                    toSync.add(uid);
-                }
-            });
-            if (toSync.isEmpty()) return;
-            var data = ByteBufUtil.writeCustomData(buf -> {
-                buf.writeVarInt(toSync.size());
-                for (var uid : toSync) {
-                    buf.writeUtf(uid);
-                    var d = datas.get(uid);
-                    d.writeS2CSyncData(buf);
-                    d.clearChanged();
-                }
-            }, player.level().registryAccess());
+            writePack(buf, toSync);
+        }, modularUI.player.level().registryAccess());
+        if (modularUI.player.level().isClientSide) {
+            PacketDistributor.sendToServer(new PacketModularUISync(data));
+        } else if (modularUI.player instanceof ServerPlayer serverPlayer) {
             PacketDistributor.sendToPlayer(serverPlayer, new PacketModularUISync(data));
         }
     }
 
-    public void readInitialData(RegistryFriendlyByteBuf data) {
-        if (!isRemote()) return;
-        handleS2CPacket(data);
-    }
-
     public void writeInitialData(RegistryFriendlyByteBuf buffer) {
-        if (isRemote()) return;
-        buffer.writeVarInt(datas.size());
-        datas.forEach((uid, data) -> {
-            buffer.writeUtf(uid);
-            data.writeS2CSyncData(buffer);
-        });
+        for (SyncValue<?> value : syncValues.values()) {
+            value.update();
+        }
+        writePack(buffer, syncValues.values());
     }
 
-    public void handleS2CPacket(RegistryFriendlyByteBuf data) {
-        var size = data.readVarInt();
-        for (int i = 0; i < size; i++) {
-            var uid = data.readUtf();
-            var dataBinding = bindings.get(uid);
-            if (dataBinding != null) {
-                if (!dataBinding.acceptS2C()) {
-                    LDLib2.LOGGER.warn("Received S2C sync data for {} but it is not registered for C2S sync. Be aware of that it maybe an error or attack!!", dataBinding);
-                }
-                dataBinding.readS2CSyncData(data);
-            }
+    public void readInitialData(RegistryFriendlyByteBuf data) {
+        handlePack(data);
+    }
+
+    public void handleSyncPacket(RegistryFriendlyByteBuf data) {
+        handlePack(data);
+    }
+
+    private void writePack(RegistryFriendlyByteBuf buf, Collection<SyncValue<?>> syncValues) {
+        buf.writeVarInt(syncValues.size());
+        for (var syncValue : syncValues) {
+            buf.writeVarInt(this.syncValues.getID(syncValue));
+            syncValue.writeSyncData(buf);
+            syncValue.clearChanged();
         }
     }
 
-    public void handleC2SPacket(RegistryFriendlyByteBuf buf) {
+    private void handlePack(RegistryFriendlyByteBuf buf) {
         var size = buf.readVarInt();
         for (int i = 0; i < size; i++) {
-            var uid = buf.readUtf();
-            var dataBinding = datas.get(uid);
-            if (dataBinding != null) {
-                if (!dataBinding.acceptC2S()) {
-                    LDLib2.LOGGER.warn("Received C2S sync data for {} but it is not registered for S2C sync. Be aware of that it maybe an error or attack!!", dataBinding);
+            var id = buf.readVarInt();
+            var syncValue = syncValues.getValue(id);
+            if (syncValue != null) {
+                try {
+                    syncValue.readSyncData(buf);
+                } catch (Exception e) {
+                    LDLib2.LOGGER.warn("Note: This is an unexpected behavior, may be attacks by {}", modularUI.player, e);
                 }
-                dataBinding.readC2SSyncData(buf);
+            } else {
+                LDLib2.LOGGER.warn("Received sync data for unknown sync value with id {}", id);
             }
         }
     }
 
     /// Sync Event Logic
-    public void sendEvent(String name, Object... args) {
+    private int nextEventID() {
+        return eventID.getAndIncrement();
+    }
 
+    public void sendEvent(RPCEvent event, Object... args) {
+        sendEvent(event, Consumers.nop(), args);
+    }
+
+    public <T> void sendEvent(RPCEvent event, Consumer<T> responseCallback, Object... args) {
+        var player = modularUI.player;
+        if (player == null) throw new IllegalStateException("Cannot send event to null player");
+        if (!rpcEvents.contains(event)) {
+            LDLib2.LOGGER.warn("No UI RPC event registered for name {}", event);
+            return;
+        }
+
+        var response = event.hasReturn() && responseCallback != null;
+        int requestID;
+        if (response) {
+            requestID = nextEventID();
+            returnCallbacks.put(requestID, responseCallback);
+        } else {
+            requestID = 0;
+        }
+        var data = ByteBufUtil.writeCustomData(buf -> {
+            buf.writeVarInt(rpcEvents.getID(event));
+            buf.writeBoolean(response);
+            buf.writeVarInt(requestID);
+            event.writeParametersToBuffer(buf, args);
+        }, player.level().registryAccess());
+        PacketDistributor.sendToServer(new CPacketUIRPCEvent(data));
+    }
+
+    public void handEvent(RegistryFriendlyByteBuf buf) {
+        var player = modularUI.player;
+        if (player == null) throw new IllegalStateException("Cannot send event to null player");
+
+        var eventID = buf.readVarInt();
+        var response = buf.readBoolean();
+        var requestID = buf.readVarInt();
+        var rpcEvent = rpcEvents.getValue(eventID);
+        if (rpcEvent == null) {
+            LDLib2.LOGGER.warn("No UI RPC event registered for event {}, maybe attack?", eventID);
+            return;
+        }
+        Object[] args;
+        try {
+            args = rpcEvent.readParametersFromBuffer(buf);
+        } catch (Exception e) {
+            LDLib2.LOGGER.warn("Could not handle ui rpc event {}. it may be attacks.", rpcEvent, e);
+            return;
+        }
+        var returnValue = rpcEvent.executor().apply(args);
+        if (response && rpcEvent.hasReturn()) {
+            var data = ByteBufUtil.writeCustomData(returnBuf -> {
+                returnBuf.writeVarInt(eventID);
+                returnBuf.writeVarInt(requestID);
+                rpcEvent.writeReturnValueToBuffer(returnBuf, returnValue);
+            }, player.level().registryAccess());
+            PacketDistributor.sendToServer(new SPacketUIRPCEventReturn(data));
+        }
+    }
+
+    public void handEventReturn(RegistryFriendlyByteBuf buf) {
+        var eventID = buf.readVarInt();
+        var responseID = buf.readVarInt();
+        var rpcEvent = rpcEvents.getValue(eventID);
+        if (rpcEvent == null) {
+            LDLib2.LOGGER.warn("No UI RPC event registered for event {}, maybe attack?", eventID);
+            return;
+        }
+        if (rpcEvent.hasReturn() && returnCallbacks.containsKey(responseID)) {
+            Consumer callback = returnCallbacks.remove(responseID);
+            callback.accept(rpcEvent.readReturnValueFromBuffer(buf));
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.factory;
 
+import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -9,7 +10,6 @@ import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.MenuType;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -31,9 +31,9 @@ public class PlayerUIMenuType {
         var id = data.readResourceLocation();
         var holder = UI_HOLDERS.get(id);
         if (holder == null) throw new IllegalArgumentException("No player ui holder found for id " + id);
-        var syncManager = holder.createUISyncManager(inv.player);
-        syncManager.readInitialData(data);
-        return new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), windowId, inv, holder, syncManager);
+        var menu = new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), windowId, inv, holder);
+        menu.readInitialData(data);
+        return menu;
     }
 
     @ParametersAreNonnullByDefault
@@ -55,14 +55,14 @@ public class PlayerUIMenuType {
         @Override
         @Nullable
         default AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-            return new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), containerId, playerInventory, this, createUISyncManager(player));
+            return new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), containerId, playerInventory, this);
         }
 
         @Override
         default void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
             buffer.writeResourceLocation(getUIId());
-            if (menu instanceof ModularUIContainerMenu modularUIContainerMenu) {
-                modularUIContainerMenu.syncManager.writeInitialData(buffer);
+            if (menu instanceof IUISyncManagerHolder syncManagerHolder) {
+                syncManagerHolder.writeInitialData(buffer);
             }
         }
     }

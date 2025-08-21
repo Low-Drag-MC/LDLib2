@@ -1,14 +1,15 @@
-package com.lowdragmc.lowdraglib2.gui.ui;
+package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
@@ -17,7 +18,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public abstract class SplitView extends UIElement{
+public abstract class SplitView extends UIElement {
     private static final Object DRAGGING = new Object();
     public final UIElement first = new UIElement();
     public final UIElement second = new UIElement();
@@ -69,20 +70,20 @@ public abstract class SplitView extends UIElement{
     }
 
     @Override
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
-        if (isHoverDragging(mouseX, mouseY)) {
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 200);
+    public void drawBackgroundAdditional(GUIContext guiContext) {
+        super.drawBackgroundAdditional(guiContext);
+        if (isHoverDragging(guiContext.mouseX, guiContext.mouseY)) {
+            guiContext.pose.pushPose();
+            guiContext.pose.translate(0, 0, 200);
             var icon = getDraggingIcon();
             var width = icon.spriteSize.width;
             var height = icon.spriteSize.height;
-            icon.draw(graphics, mouseX, mouseY,
-                    mouseX - width / 2f,
-                    mouseY - height / 2f,
+            guiContext.drawTexture(icon,
+                    guiContext.mouseX - width / 2f,
+                    guiContext.mouseY - height / 2f,
                     width,
-                    height, partialTicks);
-            graphics.pose().popPose();
+                    height);
+            guiContext.pose.popPose();
         }
     }
 

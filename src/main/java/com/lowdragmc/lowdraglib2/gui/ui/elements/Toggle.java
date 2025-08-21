@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -233,7 +232,8 @@ public class Toggle extends BindableUIElement<Boolean> {
     }
 
     @Override
-    public Toggle setValue(Boolean value, boolean notify) {
+    public Toggle setValue(@Nullable Boolean value, boolean notify) {
+        if (value == null) value = false;
         if (value == isOn) return this;
         isOn = value;
         if (toggleGroup != null) {

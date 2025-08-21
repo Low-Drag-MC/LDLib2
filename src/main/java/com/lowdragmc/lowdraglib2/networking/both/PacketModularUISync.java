@@ -49,7 +49,7 @@ public class PacketModularUISync implements CustomPacketPayload {
         var player = context.player();
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
             ByteBufUtil.readCustomData(packet.data,
-                    buf -> syncManagerHolder.getSyncManager().handleS2CPacket(buf),
+                    buf -> syncManagerHolder.getSyncManager().handleSyncPacket(buf),
                     context.player().registryAccess());
         }
     }
@@ -58,7 +58,7 @@ public class PacketModularUISync implements CustomPacketPayload {
         var player = context.player();
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
             ByteBufUtil.readCustomData(packet.data,
-                    buf -> syncManagerHolder.getSyncManager().handleC2SPacket(buf),
+                    buf -> syncManagerHolder.getSyncManager().handleSyncPacket(buf),
                     context.player().registryAccess());
         }
     }

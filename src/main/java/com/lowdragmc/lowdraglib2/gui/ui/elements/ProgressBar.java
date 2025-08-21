@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.gui.texture.ProgressTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -13,13 +13,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaPositionType;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -31,7 +31,7 @@ public class ProgressBar extends BindableUIElement<Float> {
     @Accessors(chain = true, fluent = true)
     public static class ProgressBarStyle extends Style {
         @Getter @Setter
-        private ProgressTexture.FillDirection fillDirection = ProgressTexture.FillDirection.LEFT_TO_RIGHT;
+        private FillDirection fillDirection = FillDirection.LEFT_TO_RIGHT;
         @Getter @Setter
         private boolean interpolate = true;
         @Getter @Setter
@@ -170,7 +170,8 @@ public class ProgressBar extends BindableUIElement<Float> {
     }
 
     @Override
-    public ProgressBar setValue(Float value, boolean notify) {
+    public ProgressBar setValue(@Nullable Float value, boolean notify) {
+        if (value == null) value = 0f;
         var newValue = Math.max(minValue, Math.min(maxValue, value));
         if (newValue != this.value) {
             this.value = newValue;
@@ -239,24 +240,24 @@ public class ProgressBar extends BindableUIElement<Float> {
     }
 
     @Override
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
+    public void drawBackgroundAdditional(GUIContext guiContext) {
+        super.drawBackgroundAdditional(guiContext);
         if (progressBarStyle.interpolate && lastValue != value) {
             var stepValue = progressBarStyle.interpolateStep * (maxValue - minValue);
             if (stepValue < 0) {
-                updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, value)));
+                updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, value)));
             } else {
                 if (lastValue < value) {
                     if (lastValue + stepValue < value) {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, lastValue + stepValue)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, lastValue + stepValue)));
                     } else {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, value)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, value)));
                     }
                 } else if (lastValue > value) {
                     if  (lastValue - stepValue > value) {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, lastValue - stepValue)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, lastValue - stepValue)));
                     } else {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(partialTicks, lastValue, value)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, value)));
                     }
                 }
             }

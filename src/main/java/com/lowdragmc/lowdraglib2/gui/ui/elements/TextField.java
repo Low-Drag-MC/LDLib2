@@ -5,10 +5,10 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.BindableUIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -21,7 +21,6 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.nbt.TagParser;
@@ -373,7 +372,8 @@ public class TextField extends BindableUIElement<String> {
     }
 
     @Override
-    public TextField setValue(String value, boolean notify) {
+    public TextField setValue(@Nullable String value, boolean notify) {
+        if (value == null) value = "";
         this.rawText = value;
         if (isNumberField() && numberInstance != null) {
             switch (mode) {
@@ -795,15 +795,15 @@ public class TextField extends BindableUIElement<String> {
     }
 
     @Override
-    public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundOverlay(GUIContext guiContext) {
         if (isChildHover() || isFocused()) {
-            getTextFieldStyle().focusOverlay().draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+            guiContext.drawTexture(getTextFieldStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
-        super.drawBackgroundOverlay(graphics, mouseX, mouseY, partialTicks);
+        super.drawBackgroundOverlay(guiContext);
     }
 
     @Override
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundAdditional(GUIContext guiContext) {
         var x = getContentX();
         var y = getContentY();
         var width = getContentWidth();
@@ -817,19 +817,19 @@ public class TextField extends BindableUIElement<String> {
         var lineX = x - displayOffset;
 
         // draw the text line
-        graphics.pose().pushPose();
-        graphics.pose().translate(lineX, lineY, 0);
-        graphics.pose().scale(scale, scale, 1);
-        graphics.drawString(font, line, 0, 0, rawText.isEmpty() ?
+        guiContext.pose.pushPose();
+        guiContext.pose.translate(lineX, lineY, 0);
+        guiContext.pose.scale(scale, scale, 1);
+        guiContext.graphics.drawString(font, line, 0, 0, rawText.isEmpty() ?
                 ColorPattern.LIGHT_GRAY.color : (isError ? textFieldStyle.errorColor : textFieldStyle.textColor),
                 !rawText.isEmpty() && textFieldStyle.textShadow);
-        graphics.pose().popPose();
+        guiContext.pose.popPose();
 
         // draw highlight
         if (isFocused() && selectionStart != selectionEnd) {
             var minX = font.width(rawText.substring(0, selectionStart)) * scale - displayOffset;
             var maxX = font.width(rawText.substring(0, selectionEnd)) * scale - displayOffset;
-            DrawerHelper.drawSolidRect(graphics,
+            DrawerHelper.drawSolidRect(guiContext.graphics,
                     RenderType.guiTextHighlight(),
                     x + minX,
                     lineY,
@@ -839,7 +839,7 @@ public class TextField extends BindableUIElement<String> {
         // draw cursor
         var cursorPosX = font.width(rawText.substring(0, cursorPos)) * scale;
         if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
-            DrawerHelper.drawSolidRect(graphics,
+            DrawerHelper.drawSolidRect(guiContext.graphics,
                     x + cursorPosX - displayOffset,
                     lineY,
                     1,

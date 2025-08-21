@@ -13,20 +13,23 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class VirtualChunk extends LevelChunk {
-	final DummyWorld dummyWorld;
 
 	public VirtualChunk(DummyWorld level, int x, int z) {
 		super(level, new ChunkPos(x, z));
-		this.dummyWorld = level;
+	}
+
+	public DummyWorld getDummyWorld() {
+		return (DummyWorld) this.getLevel();
 	}
 
 	public @Nullable BlockState setBlockState(BlockPos pos, BlockState state, boolean isMoving) {
-		this.dummyWorld.prepareLighting(pos);
+		var dummyWorld = this.getDummyWorld();
+		dummyWorld.prepareLighting(pos);
 		BlockState result = super.setBlockState(pos, state, isMoving);
 		if (state.isAir()) {
-			this.dummyWorld.removeFilledBlock(pos);
+			dummyWorld.removeFilledBlock(pos);
 		} else {
-			this.dummyWorld.addFilledBlock(pos);
+			dummyWorld.addFilledBlock(pos);
 		}
 
 		return result;

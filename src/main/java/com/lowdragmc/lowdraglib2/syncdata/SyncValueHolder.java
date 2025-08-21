@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.sync;
+package com.lowdragmc.lowdraglib2.syncdata;
 
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
@@ -11,7 +11,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 
 @ToString
-public class SyncValueHolder {
+public class SyncValueHolder<T> {
     @Getter(lazy = true)
     private final static Field valueField = createCacheValueField();
 
@@ -22,9 +22,9 @@ public class SyncValueHolder {
     @Nullable
     @Setter
     @ToString.Exclude
-    private Object value;
+    private T value;
 
-    public SyncValueHolder(String name, Type type, @Nullable Object value) {
+    public SyncValueHolder(String name, Type type, @Nullable T value) {
         this.type = type;
         this.value = value;
         this.managedKey = new ManagedKey(name, true, false, false, false, type, getValueField());
@@ -41,7 +41,7 @@ public class SyncValueHolder {
         }
     }
 
-    public <T> T getValue() {
-        return (T) value;
+    public T getValue() {
+        return value;
     }
 }

@@ -1,8 +1,11 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.google.common.collect.ImmutableList;
+import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
@@ -12,7 +15,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.config.MutableYogaConfig;
@@ -22,11 +24,11 @@ import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.joml.Vector4f;
 import oshi.util.tuples.Pair;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * The base class for all UI elements.
@@ -56,10 +58,6 @@ public class UIElement {
     private UIElement parent;
     @Getter
     private final List<UIElement> children = new ArrayList<>();
-    @Getter
-    private final List<UIElement> waitToRemoved = new ArrayList<>();
-    @Getter
-    private final List<UIElement> waitToAdded = new ArrayList<>();
     // style
     @Getter @Setter
     @Accessors(chain = true)
@@ -80,6 +78,9 @@ public class UIElement {
     // event
     private final Map<String, List<UIEventListener>> captureListeners = new HashMap<>();
     private final Map<String, List<UIEventListener>> bubbleListeners = new HashMap<>();
+    // sync
+    private final List<SyncValue<?>> syncValues = new ArrayList<>();
+    private final List<RPCEvent> rpcEvents = new ArrayList<>();
     // runtime
     @Nullable
     private List<UIElement> sortedChildrenCache = null;
@@ -96,17 +97,25 @@ public class UIElement {
      * Set the Modular UI for this element. In general, this method should only be called automatically.
      * You should not call this method manually.
      */
-    protected void _setModularUIInternal(@Nullable ModularUI gui) {
-        if (this.modularUI == gui) return;
+    protected void _setModularUIInternal(@Nullable ModularUI mui) {
+        if (this.modularUI == mui) return;
         if (this.modularUI != null) {
             this.modularUI.unregisterElement(this);
+            if (this.modularUI.syncManager != null) {
+                syncValues.forEach(this.modularUI.syncManager::unregisterSyncValue);
+                rpcEvents.forEach(this.modularUI.syncManager::unregisterRPCEvent);
+            }
         }
-        this.modularUI = gui;
-        if (gui != null) {
-            gui.registerElement(this);
+        this.modularUI = mui;
+        if (mui != null) {
+            mui.registerElement(this);
+            if (mui.syncManager != null) {
+                syncValues.forEach(mui.syncManager::registerSyncValue);
+                rpcEvents.forEach(mui.syncManager::registerRPCEvent);
+            }
         }
         for (var child : children) {
-            child._setModularUIInternal(gui);
+            child._setModularUIInternal(mui);
         }
     }
 
@@ -388,7 +397,66 @@ public class UIElement {
             layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + (elementX + elementWidth - (x + getSizeWidth()))));
         }
     }
-    
+
+    /// Sync
+    public UIElement addSyncValue(SyncValue<?> syncValue) {
+        this.syncValues.add(syncValue);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.registerSyncValue(syncValue);
+        }
+        return this;
+    }
+
+    public UIElement addSyncValue(Function<UIElement, SyncValue<?>> creator) {
+        return addSyncValue(creator.apply(this));
+    }
+
+    public UIElement removeSyncValue(SyncValue<?> syncValue) {
+        this.syncValues.remove(syncValue);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.unregisterSyncValue(syncValue);
+        }
+        return this;
+    }
+
+    public UIElement addRPCEvent(RPCEvent event) {
+        this.rpcEvents.add(event);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.registerRPCEvent(event);
+        }
+        return this;
+    }
+
+    public UIElement addRPCEvent(Function<UIElement, RPCEvent> creator) {
+        return addRPCEvent(creator.apply(this));
+    }
+
+    public UIElement removeRPCEvent(RPCEvent event) {
+        this.rpcEvents.remove(event);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.unregisterRPCEvent(event);
+        }
+        return this;
+    }
+
+    public void sendEvent(RPCEvent event, Object... args) {
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.sendEvent(event, args);
+        }
+    }
+
+    public <T> void sendEvent(RPCEvent event, Consumer<T> callback, Object... args) {
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.sendEvent(event, callback, args);
+        }
+    }
+
     /// Structure
     public UIElement selfCall(Consumer<UIElement> consumer) {
         consumer.accept(this);
@@ -476,16 +544,6 @@ public class UIElement {
     public void clearAllChildren() {
         for (var element : new ArrayList<>(this.children)) {
             removeChild(element);
-        }
-        synchronized (waitToRemoved) {
-            if (!waitToRemoved.isEmpty()) {
-                waitToRemoved.clear();
-            }
-        }
-        synchronized (waitToAdded) {
-            if (!waitToAdded.isEmpty()) {
-                waitToAdded.clear();
-            }
         }
     }
 
@@ -650,6 +708,11 @@ public class UIElement {
         sortedChildrenCache = null;
     }
 
+    public int getSiblingIndex() {
+        if (parent == null) return -1;
+        return parent.children.indexOf(this);
+    }
+
     /**
      * Get the path to the target element. The path is a list of elements from the root to the target element.
      */
@@ -718,18 +781,6 @@ public class UIElement {
         for (var child : safeChildren) {
             if (child.isActive() && child.isDisplayed()) {
                 child.screenTick();
-            }
-        }
-        synchronized (waitToRemoved) {
-            if (!waitToRemoved.isEmpty()) {
-                waitToRemoved.forEach(this::removeChild);
-                waitToRemoved.clear();
-            }
-        }
-        synchronized (waitToAdded) {
-            if (!waitToAdded.isEmpty()) {
-                waitToAdded.forEach(this::addChild);
-                waitToAdded.clear();
             }
         }
         if (bubbleListeners.containsKey(UIEvents.TICK) || captureListeners.containsKey(UIEvents.TICK)) {
@@ -847,90 +898,83 @@ public class UIElement {
      * <li> 3. Overlay
      * <li> 4. Children
      */
-    public final void drawInBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public final void drawInBackground(GUIContext guiContext) {
         var display = layoutNode.getDisplay();
         if (display == YogaDisplay.NONE || !isVisible()) {
             return;
         }
         var zIndex = style.zIndex();
         if (zIndex != 0) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0, 0, zIndex);
+            guiContext.pose.pushPose();
+            guiContext.pose.translate(0, 0, zIndex);
         }
-        drawInBackgroundInternal(guiGraphics, mouseX, mouseY, partialTick);
+        drawInBackgroundInternal(guiContext);
         if (zIndex != 0) {
-            guiGraphics.pose().popPose();
+            guiContext.pose.popPose();
         }
     }
 
-    public final void drawInBackgroundInternal(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public final void drawInBackgroundInternal(GUIContext guiContext) {
         if (layoutNode.getDisplay() == YogaDisplay.FLEX) {
-            drawBackgroundTexture(guiGraphics, mouseX, mouseY, partialTick);
-            drawContents(guiGraphics, mouseX, mouseY, partialTick);
-            drawBackgroundOverlay(guiGraphics, mouseX, mouseY, partialTick);
+            drawBackgroundTexture(guiContext);
+            drawContents(guiContext);
+            drawBackgroundOverlay(guiContext);
         } else { // draw contents only
-            drawContents(guiGraphics, mouseX, mouseY, partialTick);
+            drawContents(guiContext);
         }
     }
 
     /**
      * Renders the background texture of the GUI element.
      */
-    public void drawBackgroundTexture(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundTexture(GUIContext guiContext) {
         var background = style.backgroundTexture();
         if (background != null && background != IGuiTexture.EMPTY) {
-            background.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+            guiContext.drawTexture(background, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         var border = style.borderTexture();
         if (border != null && border != IGuiTexture.EMPTY) {
-            border.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+            guiContext.drawTexture(border, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
     }
 
     /**
      * Renders the contents of the GUI element. includes additional background and children
      */
-    public void drawContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawContents(GUIContext guiContext) {
         var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
         if (hidden) {
-            var trans = graphics.pose().last().pose();
+            var trans = guiContext.graphics.pose().last().pose();
             var x = getContentX();
             var y = getContentY();
             var width = getContentWidth();
             var height = getContentHeight();
             var realPos = trans.transform(new Vector4f(x, y, 0, 1));
             var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
-            graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+            guiContext.graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
         }
-        drawBackgroundAdditional(graphics, mouseX, mouseY, partialTicks);
-        children.forEach(child -> child.drawInBackground(graphics, mouseX, mouseY, partialTicks));
+        drawBackgroundAdditional(guiContext);
+        children.forEach(child -> child.drawInBackground(guiContext));
         if (hidden) {
-            graphics.disableScissor();
+            guiContext.graphics.disableScissor();
         }
     }
 
     /**
      * Renders the additional background of the GUI element.
      */
-    public void drawBackgroundAdditional(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundAdditional(GUIContext guiContext) {
 
     }
 
     /**
      * Renders the overlay texture of the GUI element.
      */
-    public void drawBackgroundOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    public void drawBackgroundOverlay(GUIContext guiContext) {
         var overlay = style.overlayTexture();
         if (overlay != null && overlay != IGuiTexture.EMPTY) {
-            overlay.draw(graphics, mouseX, mouseY, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), partialTicks);
+            guiContext.drawTexture(overlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
-    }
-
-    /**
-     * Renders the graphical user interface (GUI) element in Foreground. In general, this method is used to render the element in the foreground.
-     * You can do tooltips here.
-     */
-    public void drawInForeground(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
     }
 
     @Override

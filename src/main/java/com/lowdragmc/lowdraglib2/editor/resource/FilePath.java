@@ -60,7 +60,7 @@ public final class FilePath implements IResourcePath {
         var assetsIndex = path.indexOf("assets");
         if (assetsIndex == -1) return null;
         
-        if (assetsIndex + 7 >= path.length() || path.charAt(assetsIndex + 7) != '/') {
+        if (assetsIndex + 7 >= path.length() || path.charAt(assetsIndex + 6) != '/') {
             return null;
         }
         

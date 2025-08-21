@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.core.mixins;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.client.model.custommodel.LDLMetadataSection;
 import com.lowdragmc.lowdraglib2.gui.texture.ShaderTexture;
 import com.lowdragmc.lowdraglib2.utils.CustomResourcePack;
 import net.neoforged.api.distmarker.Dist;
@@ -37,7 +36,6 @@ public abstract class ReloadableResourceManagerMixin {
     @Unique
     @OnlyIn(Dist.CLIENT)
     private static void lowDragLib$injectClientResourcePack() {
-        LDLMetadataSection.clearCache();
         if (LDLib2.isRemote()) {
             ShaderTexture.clearCache();
         }
