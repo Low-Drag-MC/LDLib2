@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -81,6 +82,8 @@ public class UIElement {
     // sync
     private final List<SyncValue<?>> syncValues = new ArrayList<>();
     private final List<RPCEvent> rpcEvents = new ArrayList<>();
+    private final Map<String, Pair<RPCEvent, List<UIEventListener>>> serverCaptureEventListeners = new HashMap<>();
+    private final Map<String, Pair<RPCEvent, List<UIEventListener>>> serverBaubleEventListeners = new HashMap<>();
     // runtime
     @Nullable
     private List<UIElement> sortedChildrenCache = null;
@@ -139,7 +142,7 @@ public class UIElement {
             event.target = this;
             event.hasBubblePhase = false;
             event.hasCapturePhase = false;
-            UIEventDispatcher.dispatchEvent(event);
+            UIEventDispatcher.dispatchEvent(event, false, false, false);
         }
     }
 
@@ -156,7 +159,7 @@ public class UIElement {
             event.target = this;
             event.hasBubblePhase = false;
             event.hasCapturePhase = false;
-            UIEventDispatcher.dispatchEvent(event);
+            UIEventDispatcher.dispatchEvent(event, false, false, false);
         }
     }
 
@@ -219,7 +222,7 @@ public class UIElement {
             event.target = this;
             event.hasBubblePhase = false;
             event.hasCapturePhase = false;
-            UIEventDispatcher.dispatchEvent(event);
+            UIEventDispatcher.dispatchEvent(event, false, false, false);
         }
     }
 
@@ -395,65 +398,6 @@ public class UIElement {
             layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - (x - elementX)));
         } else if (x + getSizeWidth() > elementX + elementWidth) {
             layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + (elementX + elementWidth - (x + getSizeWidth()))));
-        }
-    }
-
-    /// Sync
-    public UIElement addSyncValue(SyncValue<?> syncValue) {
-        this.syncValues.add(syncValue);
-        var mui = getModularUI();
-        if (mui != null && mui.syncManager != null) {
-            mui.syncManager.registerSyncValue(syncValue);
-        }
-        return this;
-    }
-
-    public UIElement addSyncValue(Function<UIElement, SyncValue<?>> creator) {
-        return addSyncValue(creator.apply(this));
-    }
-
-    public UIElement removeSyncValue(SyncValue<?> syncValue) {
-        this.syncValues.remove(syncValue);
-        var mui = getModularUI();
-        if (mui != null && mui.syncManager != null) {
-            mui.syncManager.unregisterSyncValue(syncValue);
-        }
-        return this;
-    }
-
-    public UIElement addRPCEvent(RPCEvent event) {
-        this.rpcEvents.add(event);
-        var mui = getModularUI();
-        if (mui != null && mui.syncManager != null) {
-            mui.syncManager.registerRPCEvent(event);
-        }
-        return this;
-    }
-
-    public UIElement addRPCEvent(Function<UIElement, RPCEvent> creator) {
-        return addRPCEvent(creator.apply(this));
-    }
-
-    public UIElement removeRPCEvent(RPCEvent event) {
-        this.rpcEvents.remove(event);
-        var mui = getModularUI();
-        if (mui != null && mui.syncManager != null) {
-            mui.syncManager.unregisterRPCEvent(event);
-        }
-        return this;
-    }
-
-    public void sendEvent(RPCEvent event, Object... args) {
-        var mui = getModularUI();
-        if (mui != null && mui.syncManager != null) {
-            mui.syncManager.sendEvent(event, args);
-        }
-    }
-
-    public <T> void sendEvent(RPCEvent event, Consumer<T> callback, Object... args) {
-        var mui = getModularUI();
-        if (mui != null && mui.syncManager != null) {
-            mui.syncManager.sendEvent(event, callback, args);
         }
     }
 
@@ -788,7 +732,27 @@ public class UIElement {
             event.target = this;
             event.hasBubblePhase = false;
             event.hasCapturePhase = false;
-            UIEventDispatcher.dispatchEvent(event);
+            UIEventDispatcher.dispatchEvent(event, false, false, false);
+        }
+    }
+
+    public void serverTick() {
+        var safeChildren = new ArrayList<>(children);
+        for (var child : safeChildren) {
+            if (child.isActive() && child.isDisplayed()) {
+                child.serverTick();
+            }
+        }
+        if (serverCaptureEventListeners.containsKey(UIEvents.TICK) || serverBaubleEventListeners.containsKey(UIEvents.TICK)) {
+            var tickEvent = UIEvent.create(UIEvents.TICK);
+            for (var uiEventListener : serverCaptureEventListeners.get(UIEvents.TICK).getB()) {
+                uiEventListener.handleEvent(tickEvent);
+                if (tickEvent.immediatePropagationStopped) break;
+            }
+            for (var uiEventListener : serverBaubleEventListeners.get(UIEvents.TICK).getB()) {
+                uiEventListener.handleEvent(tickEvent);
+                if (tickEvent.immediatePropagationStopped) break;
+            }
         }
     }
 
@@ -863,6 +827,115 @@ public class UIElement {
             return Collections.emptyList();
         }
         return listeners;
+    }
+
+    /// Sync
+    public UIElement addSyncValue(SyncValue<?> syncValue) {
+        this.syncValues.add(syncValue);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.registerSyncValue(syncValue);
+        }
+        return this;
+    }
+
+    public UIElement addSyncValue(Function<UIElement, SyncValue<?>> creator) {
+        return addSyncValue(creator.apply(this));
+    }
+
+    public UIElement removeSyncValue(SyncValue<?> syncValue) {
+        this.syncValues.remove(syncValue);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.unregisterSyncValue(syncValue);
+        }
+        return this;
+    }
+
+    public UIElement addRPCEvent(RPCEvent event) {
+        this.rpcEvents.add(event);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.registerRPCEvent(event);
+        }
+        return this;
+    }
+
+    public UIElement addRPCEvent(Function<UIElement, RPCEvent> creator) {
+        return addRPCEvent(creator.apply(this));
+    }
+
+    public UIElement removeRPCEvent(RPCEvent event) {
+        this.rpcEvents.remove(event);
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.unregisterRPCEvent(event);
+        }
+        return this;
+    }
+
+    public UIElement addServerEventListener(String eventType, UIEventListener listener) {
+        return addEventListener(eventType, listener, false);
+    }
+
+    public UIElement addServerEventListener(String eventType, UIEventListener listener, boolean useCapture) {
+        var eventListeners = useCapture ? serverCaptureEventListeners : serverBaubleEventListeners;
+        eventListeners.computeIfAbsent(eventType, type -> {
+            var listeners = new ArrayList<UIEventListener>();
+            var rpcEvent = RPCEventBuilder.simple(UIEvent.class, event -> listeners.forEach(e -> e.handleEvent(event)));
+            addRPCEvent(rpcEvent);
+            return new Pair<>(rpcEvent, listeners);
+        }).getB().add(listener);
+        return this;
+    }
+
+    public UIElement removeServerEventListener(String eventType, UIEventListener listener) {
+        return removeServerEventListener(eventType, listener, false);
+    }
+
+    public UIElement removeServerEventListener(String eventType, UIEventListener listener, boolean useCapture) {
+        var eventListeners = useCapture ? serverCaptureEventListeners : serverBaubleEventListeners;
+        var pair = eventListeners.get(eventType);
+        if (pair != null) {
+            pair.getB().remove(listener);
+            if (pair.getB().isEmpty()) {
+                eventListeners.remove(eventType);
+                removeRPCEvent(pair.getA());
+            }
+        }
+        return this;
+    }
+
+    @Nullable
+    public RPCEvent getCaptureServerEvent(String eventType) {
+        var pair = serverCaptureEventListeners.get(eventType);
+        if (pair != null) {
+            return pair.getA();
+        }
+        return null;
+    }
+
+    @Nullable
+    public RPCEvent getBaubleServerEvent(String eventType) {
+        var pair = serverBaubleEventListeners.get(eventType);
+        if (pair != null) {
+            return pair.getA();
+        }
+        return null;
+    }
+
+    public void sendEvent(RPCEvent event, Object... args) {
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.sendEvent(event, args);
+        }
+    }
+
+    public <T> void sendEvent(RPCEvent event, Consumer<T> callback, Object... args) {
+        var mui = getModularUI();
+        if (mui != null && mui.syncManager != null) {
+            mui.syncManager.sendEvent(event, callback, args);
+        }
     }
 
     public static boolean isShiftDown() {

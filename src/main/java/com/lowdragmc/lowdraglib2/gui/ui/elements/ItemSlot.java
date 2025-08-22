@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
@@ -95,6 +94,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         if (mui != null) {
             var menu = mui.getMenu();
             if (menu != null) {
+                // TODO shall we do this
                 if (mui.player != null && mui.player.level().isClientSide) {
                     slot = new Slot(new SimpleContainer(1), 0, 0,0);
                 }

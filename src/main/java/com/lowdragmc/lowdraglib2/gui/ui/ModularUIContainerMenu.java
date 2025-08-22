@@ -37,7 +37,7 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IUI
     @Override
     public void broadcastChanges() {
         super.broadcastChanges();
-        modularUI.syncManager.tick();
+        modularUI.tickServer();
     }
 
     @Nonnull

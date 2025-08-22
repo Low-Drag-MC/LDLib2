@@ -1,14 +1,18 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
+import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.iventory.InventorySlots;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -34,6 +38,7 @@ public class TestSlots implements IMenuTest {
     public TestSlots() {
         fluidTank.setFluid(new FluidStack(Fluids.WATER, 1400));
         itemHandler.setStackInSlot(0, Items.STONE.getDefaultInstance().copyWithCount(10));
+        itemHandler.setStackInSlot(1, Items.BAMBOO.getDefaultInstance().copyWithCount(32));
     }
 
     @Override
@@ -59,7 +64,16 @@ public class TestSlots implements IMenuTest {
                 ),
                 new InventorySlots(),
                 new ItemSlot().bind(itemHandler, 0),
-                new FluidSlot().bind(fluidTank, 0)
+                new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
+                new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 2).setCanPlace(itemStack -> itemStack.is(Items.STONE))),
+                new FluidSlot().bind(fluidTank, 0),
+                new Button().addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
+                    if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
+                        fluidTank.setFluid(new FluidStack(Fluids.LAVA, fluidTank.getFluid().getAmount()));
+                    } else {
+                        fluidTank.setFluid(new FluidStack(Fluids.WATER, fluidTank.getFluid().getAmount()));
+                    }
+                })
         );
         return new ModularUI(UI.of(root), player);
     }

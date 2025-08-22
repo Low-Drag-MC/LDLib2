@@ -395,6 +395,12 @@ public class ModularUI {
         tickCounter++;
     }
 
+    public void tickServer() {
+        ui.rootElement.serverTick();
+        syncManager.tick();
+        tickCounter++;
+    }
+
     /**
      * Called when the UI is removed.
      * This method can be overridden to perform cleanup tasks.
@@ -416,14 +422,14 @@ public class ModularUI {
             var focusOut = UIEvent.create(UIEvents.FOCUS_OUT);
             focusOut.target = focusedElement;
             focusOut.relatedTarget = element;
-            UIEventDispatcher.dispatchEvent(focusOut);
+            UIEventDispatcher.dispatchEvent(focusOut, true, true, false);
         }
 
         if (element != null) {
             var focusIn = UIEvent.create(UIEvents.FOCUS_IN);
             focusIn.target = element;
             focusIn.relatedTarget = focusedElement;
-            UIEventDispatcher.dispatchEvent(focusIn);
+            UIEventDispatcher.dispatchEvent(focusIn, true, true, false);
         }
 
         var lastFocusedElement = focusedElement;
@@ -688,7 +694,7 @@ public class ModularUI {
             event.dragStartY = lastMouseDownY;
             event.dragHandler = dragHandler;
             event.target = current;
-            UIEventDispatcher.dispatchEvent(event);
+            UIEventDispatcher.dispatchEvent(event, true, true, false);
         }
 
         @Override
@@ -860,7 +866,7 @@ public class ModularUI {
                     event.hasBubblePhase = false;
                     event.hasCapturePhase = false;
                     event.target = element;
-                    UIEventDispatcher.dispatchDirectEvent(event);
+                    UIEventDispatcher.dispatchDirectEvent(event, false);
                     if (event.hoverTooltips != null) {
                         setHoverTooltip(event.hoverTooltips.tooltipTexts(),
                                 Optional.ofNullable(event.hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY),

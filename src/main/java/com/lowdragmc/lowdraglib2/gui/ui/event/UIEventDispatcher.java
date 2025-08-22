@@ -9,12 +9,16 @@ import java.util.Stack;
 @UtilityClass
 public final class UIEventDispatcher {
     public static void dispatchEvent(UIEvent event) {
+        dispatchEvent(event, true, true, true);
+    }
+
+    public static void dispatchEvent(UIEvent event, boolean capturePhase, boolean bubblePhase, boolean sendServer) {
         // 1. build path from root to target
         var target = event.target;
         var path = target.getStructurePath();
 
         // 2. capture phase: root -> target.parent
-        if (event.hasCapturePhase) {
+        if (capturePhase && event.hasCapturePhase) {
             event.phase = UIEvent.EventPhase.CAPTURE;
             for (int i = 0; i < path.size() - 1; i++) {
                 UIElement elem = path.get(i);
@@ -26,6 +30,12 @@ public final class UIEventDispatcher {
                     listener.handleEvent(event);
                     if (event.immediatePropagationStopped) {
                         break;  // skip to leftover bubble phase
+                    }
+                }
+                if (sendServer) {
+                    var serverEvent = elem.getCaptureServerEvent(event.type);
+                    if (serverEvent != null) {
+                        elem.sendEvent(serverEvent, event);
                     }
                 }
                 if (event.propagationStopped) {
@@ -50,12 +60,22 @@ public final class UIEventDispatcher {
             listener.handleEvent(event);
             if (event.immediatePropagationStopped) break;
         }
+        if (sendServer) {
+            var serverEvent = target.getCaptureServerEvent(event.type);
+            if (serverEvent != null) {
+                target.sendEvent(serverEvent, event);
+            }
+            serverEvent = target.getBaubleServerEvent(event.type);
+            if (serverEvent != null) {
+                target.sendEvent(serverEvent, event);
+            }
+        }
         if (event.propagationStopped) {
             return;  // stop propagation, exit loop
         }
 
         // 4. Bubbling phase: from target's parent back to root
-        if (event.hasBubblePhase) {
+        if (bubblePhase && event.hasBubblePhase) {
             event.phase = UIEvent.EventPhase.BUBBLE;
             for (int j = path.size() - 2; j >= 0; j--) {
                 UIElement elem = path.get(j);
@@ -66,18 +86,28 @@ public final class UIEventDispatcher {
                     listener.handleEvent(event);
                     if (event.immediatePropagationStopped) break;
                 }
+                if (sendServer) {
+                    var serverEvent = elem.getBaubleServerEvent(event.type);
+                    if (serverEvent != null) {
+                        elem.sendEvent(serverEvent, event);
+                    }
+                }
                 if (event.propagationStopped) {
-                    break;  // 停止传播，退出循环
+                    break;  // stop propagation, exit loop
                 }
             }
         }
     }
 
     public static void dispatchDirectEvent(UIEvent event) {
+        dispatchDirectEvent(event, true);
+    }
+
+    public static void dispatchDirectEvent(UIEvent event, boolean sendServer) {
         if (event.target.getCaptureListeners(event.type).isEmpty() && event.target.getBubbleListeners(event.type).isEmpty()) {
             return;
         }
-        UIEventDispatcher.dispatchEvent(event);
+        UIEventDispatcher.dispatchEvent(event, false, false, sendServer);
     }
 
 
