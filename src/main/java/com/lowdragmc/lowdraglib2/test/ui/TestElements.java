@@ -126,7 +126,8 @@ public class TestElements implements IScreenTest {
                                 }).setCandidateUIProvider(UIElementProvider.iconText(
                                         block -> new ItemStackTexture(block.asItem()),
                                         block -> Component.translatable(block.getDescriptionId())
-                                ))
+                                )),
+                                new TextArea().textAreaStyle(textAreaStyle -> textAreaStyle.fontSize(13))
                         )
                 )
         );

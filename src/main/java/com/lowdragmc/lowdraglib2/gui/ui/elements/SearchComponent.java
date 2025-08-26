@@ -1,19 +1,15 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
@@ -23,12 +19,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Array;
@@ -39,7 +34,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -401,22 +395,20 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             return EMPTY;
         }
 
-        String resultDisplay(T value);
+        /**
+         * Displays the result representation of a given value of type {@code T}.
+         * This method is used to convert an object into its string representation
+         * for display purposes in the UI.
+         *
+         * @param value the object of type {@code T} whose result representation is to be displayed.
+         * @return a {@code String} representation of the given object.
+         */
+        String resultDisplay(@Nonnull T value);
 
+        /**
+         * Invoked when a result is selected from the search or selection process.
+         *
+         * @param value the selected result of type {@code T}, or {@code null} if no result is selected*/
         void onResultSelected(@Nullable T value);
-
-        /**
-         * just used for server side
-         */
-        default void serialize(T value, RegistryFriendlyByteBuf buf) {
-            buf.writeUtf(resultDisplay(value));
-        }
-
-        /**
-         * just used for server side
-         */
-        default T deserialize(RegistryFriendlyByteBuf buf) {
-            return (T) buf.readUtf();
-        }
     }
 }

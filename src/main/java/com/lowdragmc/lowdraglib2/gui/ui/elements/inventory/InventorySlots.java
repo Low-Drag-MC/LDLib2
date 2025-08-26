@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.ui.elements.iventory;
+package com.lowdragmc.lowdraglib2.gui.ui.elements.inventory;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;

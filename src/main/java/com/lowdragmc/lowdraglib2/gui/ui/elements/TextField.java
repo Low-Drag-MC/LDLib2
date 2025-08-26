@@ -691,16 +691,18 @@ public class TextField extends BindableUIElement<String> {
     }
 
     private void updateDisplayOffset() {
-        // make sure the cursor is in the display area
+        // Keep cursor inside viewport; prefer placing cursor at the right edge when scrolling
         var scale = textFieldStyle.fontSize / getFont().lineHeight;
         var cursorPosX = getFont().width(rawText.substring(0, cursorPos)) * scale;
         var width = getContentWidth();
-        if (width -1 > cursorPosX) {
-            displayOffset = 0;
-        } else if ((cursorPosX - displayOffset) > width - 1) {
-            displayOffset = Math.max(cursorPosX - width + 1, 0);
-        } else if ((cursorPosX - displayOffset) < 0) {
-            displayOffset = Math.max(cursorPosX, 0);
+        float rightPad = 1f;
+
+        // Cursor position relative to current viewport
+        var rel = cursorPosX - displayOffset;
+
+        if (rel > width - rightPad || rel < 0) {
+            // Cursor is out of view: scroll so it sticks to the right edge (or clamp to 0 if not enough content)
+            displayOffset = Math.max(cursorPosX - width + rightPad, 0);
         }
     }
 
@@ -834,7 +836,7 @@ public class TextField extends BindableUIElement<String> {
                     x + minX,
                     lineY,
                     maxX - minX,
-                    textFieldStyle.fontSize * scale, -16776961);
+                    textFieldStyle.fontSize, -16776961);
         }
         // draw cursor
         var cursorPosX = font.width(rawText.substring(0, cursorPos)) * scale;
@@ -843,7 +845,7 @@ public class TextField extends BindableUIElement<String> {
                     x + cursorPosX - displayOffset,
                     lineY,
                     1,
-                    textFieldStyle.fontSize * scale,
+                    textFieldStyle.fontSize,
                     textFieldStyle.cursorColor);
         }
     }
