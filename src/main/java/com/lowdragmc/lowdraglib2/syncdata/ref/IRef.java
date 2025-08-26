@@ -37,6 +37,11 @@ public interface IRef<TYPE> {
     TYPE readRaw();
 
     /**
+     * Write the real value.
+     */
+    void writeRaw(TYPE value);
+
+    /**
      * whether the ref is dirty and need to be synced.
      */
     boolean isSyncDirty();

@@ -7,17 +7,17 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.*;
 
@@ -51,7 +51,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     @Getter
     private final TreeListStyle treeListStyle = new TreeListStyle(this);
-    protected Function<NODE, UIElement> nodeUISupplier = iconTextTemplate(node -> IGuiTexture.EMPTY, Object::toString);
+    protected UIElementProvider<NODE> nodeUISupplier = iconTextTemplate(node -> IGuiTexture.EMPTY, value -> Component.translatable(value.toString()));
     protected BiConsumer<NODE, UIElement> onNodeUICreated = (node, ui) -> {};
     @Setter
     protected Consumer<Set<NODE>> onSelectedChanged = Consumers.nop();
@@ -87,7 +87,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         return this;
     }
 
-    public TreeList<NODE> setNodeUISupplier(Function<NODE, UIElement> nodeUISupplier) {
+    public TreeList<NODE> setNodeUISupplier(UIElementProvider<NODE> nodeUISupplier) {
         this.nodeUISupplier = nodeUISupplier;
         reloadList();
         return this;
@@ -323,27 +323,10 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     }
 
     /// Template
-    public static <NODE extends ITreeNode<?, ?>> Function<NODE, UIElement> iconTextTemplate(
+    public static <NODE extends ITreeNode<?, ?>> UIElementProvider<NODE> iconTextTemplate(
             Function<NODE, IGuiTexture> iconMapper,
-            Function<NODE, String> textMapper) {
-        return node -> {
-            var container = new UIElement().layout(layout -> {
-                layout.setFlexDirection(YogaFlexDirection.ROW);
-                layout.setGap(YogaGutter.ALL, 2);
-                layout.setHeight(10);
-                layout.setFlex(1);
-            }).addChildren();
-            var icon = new UIElement().layout(layout -> {
-                layout.setAspectRatio(1);
-                layout.setHeightPercent(100);
-            }).style(style -> style.backgroundTexture(iconMapper.apply(node)));
-            var label = new TextElement()
-                    .textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER))
-                    .setText(textMapper.apply(node)).layout(layout -> {
-                        layout.setHeightPercent(100);
-                        layout.setFlex(1);
-                    }).setOverflow(YogaOverflow.HIDDEN);
-            return container.addChildren(icon, label);
-        };
+            Function<NODE, Component> textMapper) {
+        var provider = UIElementProvider.iconText(iconMapper, textMapper);
+        return node -> provider.apply(node).layout(layout -> layout.setFlex(1));
     }
 }

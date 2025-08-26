@@ -1,41 +1,51 @@
 package com.lowdragmc.lowdraglib2.utils.search;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
+
 import javax.annotation.Nonnull;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 
-public  class SearchEngine<T> {
+public class SearchEngine<T> {
     private final ISearch<T> search;
-    private final Consumer<T> result;
-    private Thread thread;
+    private final IResultHandler<T> result;
+    private final AtomicReference<Thread> currentThread = new AtomicReference<>();
 
-
-    public SearchEngine(@Nonnull ISearch<T> search, @Nonnull Consumer<T> result){
+    public SearchEngine(@Nonnull ISearch<T> search, @Nonnull IResultHandler<T> result){
         this.search = search;
         this.result = result;
     }
 
     public void searchWord(String word) {
-        dispose();
-        thread = new Thread(()-> search.search(word, value -> {
-            var currentThread = Thread.currentThread();
-            if (!currentThread.isInterrupted() && thread == currentThread) {
-                result.accept(value);
-            } else {
-                throw new RuntimeException("searching thread has been disposed");
-            }
-        }));
-        thread.start();
+        Thread virtualThread = Thread.ofVirtual()
+                .name("search-" + word.hashCode())
+                .start(() -> {
+                    try {
+                        search.search(word, value -> {
+                            Thread current = Thread.currentThread();
+                            if (current == currentThread.get() && !current.isInterrupted()) {
+                                result.accept(value);
+                            }
+                        });
+                    } catch (Exception e) {
+                        if (!Thread.currentThread().isInterrupted()) {
+                            LDLib2.LOGGER.error("Search failed for word '{}'", word, e);
+                        }
+                    } finally {
+                        currentThread.compareAndSet(Thread.currentThread(), null);
+                    }
+                });
+        currentThread.set(virtualThread);
     }
 
     public boolean isSearching() {
+        Thread thread = currentThread.get();
         return thread != null && thread.isAlive();
     }
 
     public void dispose() {
-        if (isSearching()) {
+        Thread thread = currentThread.getAndSet(null);
+        if (thread != null && thread.isAlive()) {
             thread.interrupt();
         }
-        thread = null;
     }
-
 }

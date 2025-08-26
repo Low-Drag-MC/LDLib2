@@ -19,6 +19,7 @@ public record RPCEvent(SyncValueHolder[] argHolders, @Nullable SyncValueHolder r
         for (int i = 0; i < args.length; i++) {
             var argHolder = argHolders[i];
             argHolder.setValue(args[i]);
+            argHolder.ref.update();
             argHolder.ref.readSyncToStream(buffer);
         }
     }
@@ -36,6 +37,7 @@ public record RPCEvent(SyncValueHolder[] argHolders, @Nullable SyncValueHolder r
     public void writeReturnValueToBuffer(RegistryFriendlyByteBuf buffer, Object returnValue) {
         if (returnHolder != null) {
             returnHolder.setValue(returnValue);
+            returnHolder.ref.update();
             returnHolder.ref.readSyncToStream(buffer);
         }
     }

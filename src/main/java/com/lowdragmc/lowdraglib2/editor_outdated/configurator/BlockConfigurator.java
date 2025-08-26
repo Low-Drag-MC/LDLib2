@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib2.gui.widget.SearchComponentWidget;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -73,7 +74,7 @@ public class BlockConfigurator extends ValueConfigurator<Block> implements Searc
     }
 
     @Override
-    public void search(String word, Consumer<Block> find) {
+    public void search(String word, IResultHandler<Block> find) {
         var wordLower = word.toLowerCase();
         for (var blockEntry : BuiltInRegistries.BLOCK.entrySet()) {
             if (Thread.currentThread().isInterrupted()) return;

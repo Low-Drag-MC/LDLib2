@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -14,29 +16,37 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import com.lowdragmc.lowdraglib2.utils.search.ISearch;
+import com.lowdragmc.lowdraglib2.utils.search.SearchEngine;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class Selector<T> extends BindableUIElement<T> {
+public class SearchComponent<T> extends BindableUIElement<T> {
     @Accessors(chain = true, fluent = true)
-    public static class SelectorStyle extends Style {
+    public static class SearchStyle extends Style {
         @Getter @Setter
         private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
         @Getter @Setter
@@ -48,57 +58,70 @@ public class Selector<T> extends BindableUIElement<T> {
         @Getter @Setter
         private boolean closeAfterSelect = true;
 
-        public SelectorStyle(UIElement holder) {
+        public SearchStyle(UIElement holder) {
             super(holder);
         }
     }
-    public final UIElement display;
+    public final TextField textField;
     public final UIElement preview;
-    public final UIElement buttonIcon;
     public final UIElement dialog;
     public final UIElement listView;
     public final ScrollerView scrollerView;
     @Getter
-    private final SelectorStyle selectorStyle = new SelectorStyle(this);
+    private final SearchStyle searchStyle = new SearchStyle(this);
+    private UIElementProvider<T> candidateUIProvider = UIElementProvider.text(value -> value == null ?
+            Component.translatable("text_field.empty").withColor(ColorPattern.LIGHT_GRAY.color) :
+            Component.translatable(value.toString()));
     @Getter
-    private List<T> candidates = List.of();
-    private UIElementProvider<T> candidateUIProvider = UIElementProvider.text(value -> Component.translatable(value == null ? "---" : value.toString()));
+    private ISearchUI<T> searchUI = ISearchUI.empty();
     @Getter
     @Nullable
     private T value = null;
+    @Getter
+    private boolean searchOnServer;
 
     // runtime
+    private SearchEngine<T> searchEngine;
+    private final ConcurrentLinkedQueue<T> candidates = new ConcurrentLinkedQueue<>();
+    private final AtomicBoolean isCandidatesDirty = new AtomicBoolean(false);
     protected final Map<T, Button> candidateButtons = new HashMap<>();
+    @Nullable
+    protected RPCEvent searchEvent;
 
-    public Selector() {
+    public SearchComponent(ISearchUI<T> searchUI) {
+        this();
+        setSearchUI(searchUI);
+    }
+
+    public SearchComponent() {
         getLayout().setHeight(14);
-        getStyle().backgroundTexture(Sprites.RECT_RD_LIGHT);
+        getStyle().backgroundTexture(Sprites.RECT_RD_SOLID);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+
+        this.textField = new TextField();
+        this.dialog = new UIElement();
         this.preview = new UIElement().layout(layout -> {
+            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.setHeightPercent(100);
+            layout.setFlex(1);
+            layout.setPadding(YogaEdge.ALL, 2);
+        });
+
+        textField.layout(layout -> {
             layout.setHeightPercent(100);
             layout.setFlex(1);
         });
+        textField.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
+        textField.textFieldStyle(textFieldStyle -> textFieldStyle.focusOverlay(IGuiTexture.EMPTY));
+        textField.setDisplay(YogaDisplay.NONE);
+        textField.addEventListener(UIEvents.FOCUS, event -> show());
+        textField.addEventListener(UIEvents.BLUR, event -> {
+            var mui = getModularUI();
+            if (mui != null && dialog.isAncestorOf(mui.getLastHoveredElement())) return;
+            hide();
+        });
+        textField.setTextResponder(this::onSearchWordChanged);
 
-        this.buttonIcon = new UIElement();
-        this.buttonIcon
-                .layout(layout -> {
-                    layout.setWidth(14);
-                    layout.setHeight(14);
-                    layout.setMargin(YogaEdge.LEFT, 2);
-                })
-                .style(style -> style.backgroundTexture(Icons.DOWN_ARROW_NO_BAR));
-        this.display = new UIElement()
-                .layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.CENTER);
-                    layout.setPadding(YogaEdge.ALL, 2);
-                    layout.setPadding(YogaEdge.LEFT, 4);
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(100);
-                })
-                .addChildren(preview, buttonIcon);
-
-        this.dialog = new UIElement();
         this.dialog
                 .setId("selector#dialog")
                 .layout(layout -> {
@@ -107,13 +130,6 @@ public class Selector<T> extends BindableUIElement<T> {
                 })
                 .addChildren(listView = new UIElement().layout(layout -> layout.setPadding(YogaEdge.ALL, 2)), scrollerView = new ScrollerView())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
-                .setEnforceFocus(e -> {
-                    if (e.target == this.dialog && this.isChildHover()) {
-                        this.dialog.focus();
-                        return;
-                    }
-                    hide();
-                })
                 .addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
                     var mui = getModularUI();
                     if (mui != null) {
@@ -139,26 +155,80 @@ public class Selector<T> extends BindableUIElement<T> {
         scrollerView.layout(layout -> layout.setFlexGrow(1));
         scrollerView.setDisplay(YogaDisplay.NONE);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
-        addChildren(display);
+        addChildren(preview, textField);
+
+        searchEngine = new SearchEngine<>(searchUI, this::onResultFound);
     }
 
-    public Selector<T> setCandidates(List<T> candidates) {
-        this.candidates = candidates;
-        setupDialog();
-        return this;
+    protected void onMouseDown(UIEvent event) {
+        if (event.button == 0) {
+            textField.focus();
+        }
     }
 
-    public Selector<T> setCandidateUIProvider(UIElementProvider<T> candidateUIProvider) {
+    public SearchComponent<T> setCandidateUIProvider(UIElementProvider<T> candidateUIProvider) {
         this.candidateUIProvider = candidateUIProvider;
-        setupDialog();
+        refreshDialog();
+        setSelected(this.value, false, true);
         return this;
     }
 
-    private void setupDialog() {
+    public SearchComponent<T> setSearchUI(ISearchUI<T> searchUI) {
+        this.searchUI = searchUI;
+        this.searchEngine.dispose();
+        this.searchEngine = new SearchEngine<>(searchUI, this::onResultFound);
+        return this;
+    }
+
+    private void onResultFound(T t) {
+        candidates.add(t);
+        isCandidatesDirty.set(true);
+    }
+
+    public SearchComponent<T> setSearchOnServer(Class<T[]> clazz) {
+        this.searchOnServer = true;
+        this.searchEvent = RPCEventBuilder.simple(String.class, clazz, word -> {
+            var result = new ArrayList<T>();
+            searchUI.search(word, result::add);
+            return result.toArray((T[]) Array.newInstance(clazz.getComponentType(), result.size()));
+        });
+        addRPCEvent(searchEvent);
+        return this;
+    }
+
+    @Override
+    public void screenTick() {
+        super.screenTick();
+        updateCandidatesUI();
+    }
+
+    protected void onSearchWordChanged(String word) {
+        candidates.clear();
+        isCandidatesDirty.set(true);
+        if (searchOnServer) {
+            if (searchEvent != null) {
+                this.<T[]>sendEvent(searchEvent, values -> {
+                    candidates.addAll(Arrays.asList(values));
+                    isCandidatesDirty.set(true);
+                }, word);
+            }
+        } else {
+            searchEngine.searchWord(word);
+        }
+    }
+
+    protected void updateCandidatesUI() {
+        if (isCandidatesDirty.compareAndSet(true, false)) {
+            refreshDialog();
+        }
+    }
+
+    protected void refreshDialog() {
+        var candidates = new ArrayList<>(this.candidates);
         candidateButtons.clear();
         listView.clearAllChildren();
         scrollerView.clearAllScrollViewChildren();
-        if (candidates.size() <= selectorStyle.maxItemCount()) {
+        if (candidates.size() <= searchStyle.maxItemCount()) {
             // list view
             scrollerView.setDisplay(YogaDisplay.NONE);
             listView.setDisplay(YogaDisplay.FLEX);
@@ -169,23 +239,22 @@ public class Selector<T> extends BindableUIElement<T> {
             // scroller view
             listView.setDisplay(YogaDisplay.NONE);
             scrollerView.setDisplay(YogaDisplay.FLEX);
-            scrollerView.layout(layout -> layout.setHeight(selectorStyle.scrollerViewHeight()));
+            scrollerView.layout(layout -> layout.setHeight(searchStyle.scrollerViewHeight()));
             for (T candidate : candidates) {
                 scrollerView.addScrollViewChild(createItemUI(candidate));
             }
         }
-        setSelected(this.value, false, true);
     }
 
     private UIElement createItemUI(T candidate) {
         var candidateUI = new UIElement().layout(layout -> layout.setWidthPercent(100));
         var overlayButton = new Button();
         overlayButton.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY)
-                        .hoverTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
-                        .pressedTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
+                        .hoverTexture(searchStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
+                        .pressedTexture(searchStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
                 .setOnClick(e -> {
                     setSelected(candidate);
-                    if (selectorStyle.closeAfterSelect) {
+                    if (searchStyle.closeAfterSelect) {
                         hide();
                     }
                 })
@@ -201,21 +270,21 @@ public class Selector<T> extends BindableUIElement<T> {
         return candidateUI;
     }
 
-    public Selector<T> setSelected(T value) {
+    public SearchComponent<T> setSelected(T value) {
         return setSelected(value, true);
     }
 
-    public Selector<T> setSelected(T value, boolean notify) {
+    public SearchComponent<T> setSelected(T value, boolean notify) {
         return setSelected(value, notify, false);
     }
 
-    private Selector<T> setSelected(@Nullable T value, boolean notify, boolean force) {
+    private SearchComponent<T> setSelected(@Nullable T value, boolean notify, boolean force) {
         if (!force && this.value == value) return this;
         return setValue(value, notify);
     }
 
     @Override
-    public Selector<T> setValue(@Nullable T value, boolean notify) {
+    public SearchComponent<T> setValue(@Nullable T value, boolean notify) {
         // update overlay button style
         var currentValue = candidateButtons.get(this.value);
         if (currentValue != null) {
@@ -224,52 +293,48 @@ public class Selector<T> extends BindableUIElement<T> {
         this.value = value;
         var button = candidateButtons.get(value);
         if (button != null) {
-            button.buttonStyle(style -> style.defaultTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
+            button.buttonStyle(style -> style.defaultTexture(searchStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
         }
+
         // update preview
+        // TODO Custom Candidate UI
         this.preview.clearAllChildren();
-        var candidateUI = candidateUIProvider.apply(value);
-        this.preview.addChild(candidateUI);
+        if (value != null) {
+            var candidateUI = candidateUIProvider.apply(value);
+            this.preview.addChild(candidateUI);
+        }
+        textField.setText(value == null ? "" : searchUI.resultDisplay(value));
 
         // notify
         if (notify) {
             notifyListeners();
+            searchUI.onResultSelected(value);
         }
         return this;
     }
 
-    public Selector<T> setOnValueChanged(Consumer<T> onValueChanged) {
+    public SearchComponent<T> setOnValueChanged(Consumer<T> onValueChanged) {
         registerValueListener(onValueChanged);
         return this;
     }
 
-    ///  events
-    protected void onMouseDown(UIEvent event) {
-        if (event.button == 0) {
-            if (isOpen()) {
-                hide();
-            } else {
-                show();
-            }
-            Widget.playButtonClickSound();
-        }
-    }
 
     protected void onScrollViewLayoutChanged(UIEvent event) {
 
     }
 
-    public Selector<T> selectorStyle(Consumer<SelectorStyle> style) {
-        style.accept(getSelectorStyle());
+    public SearchComponent<T> searchStyle(Consumer<SearchStyle> style) {
+        style.accept(searchStyle);
         onStyleChanged();
-        setupDialog();
+        refreshDialog();
+        setSelected(this.value, false, true);
         return this;
     }
 
     @Override
     public void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
-        selectorStyle.applyStyles(values);
+        searchStyle.applyStyles(values);
     }
 
     /// Logic
@@ -291,8 +356,9 @@ public class Selector<T> extends BindableUIElement<T> {
                 layout.setPosition(YogaEdge.TOP, y - root.getLayoutY() + this.getSizeHeight());
                 layout.setWidth(this.getSizeWidth());
             }));
-            this.dialog.focus();
         }
+        preview.setDisplay(YogaDisplay.NONE);
+        textField.setDisplay(YogaDisplay.FLEX);
     }
 
     public void hide() {
@@ -301,14 +367,56 @@ public class Selector<T> extends BindableUIElement<T> {
             this.dialog.blur();
             parent.removeChild(this.dialog);
         }
+        textField.setText(value == null ? "" : searchUI.resultDisplay(value));
+        preview.setDisplay(YogaDisplay.FLEX);
+        textField.setDisplay(YogaDisplay.NONE);
     }
 
     /// rendering
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
-        if (isChildHover() || isFocused()) {
-            guiContext.drawTexture(getSelectorStyle().focusOverlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+        if (isChildHover() || textField.isFocused()) {
+            guiContext.drawTexture(getSearchStyle().focusOverlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);
+    }
+
+    public interface ISearchUI<T> extends ISearch<T> {
+        class Empty<T> implements ISearchUI<T> {
+            @Override
+            public String resultDisplay(T value) {
+                return value.toString();
+            }
+
+            @Override
+            public void onResultSelected(@Nullable T value) {}
+
+            @Override
+            public void search(String word, IResultHandler<T> find) {}
+        }
+
+        Empty EMPTY = new Empty<>();
+
+        static <T> ISearchUI<T> empty() {
+            return EMPTY;
+        }
+
+        String resultDisplay(T value);
+
+        void onResultSelected(@Nullable T value);
+
+        /**
+         * just used for server side
+         */
+        default void serialize(T value, RegistryFriendlyByteBuf buf) {
+            buf.writeUtf(resultDisplay(value));
+        }
+
+        /**
+         * just used for server side
+         */
+        default T deserialize(RegistryFriendlyByteBuf buf) {
+            return (T) buf.readUtf();
+        }
     }
 }

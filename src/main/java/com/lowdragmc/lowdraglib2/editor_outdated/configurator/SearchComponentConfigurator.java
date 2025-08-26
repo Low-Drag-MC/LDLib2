@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.editor_outdated.configurator;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib2.gui.widget.SearchComponentWidget;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Setter;
 
 import javax.annotation.Nonnull;
@@ -62,7 +63,7 @@ public class SearchComponentConfigurator<T> extends ValueConfigurator<T> impleme
     }
 
     @Override
-    public void search(String word, Consumer<T> find) {
+    public void search(String word, IResultHandler<T> find) {
         searchAction.accept(word, find);
     }
 }

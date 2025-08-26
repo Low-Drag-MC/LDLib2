@@ -151,7 +151,7 @@ public class UISyncManager {
 
     public void handEvent(RegistryFriendlyByteBuf buf) {
         var player = modularUI.player;
-        if (player == null) throw new IllegalStateException("Cannot send event to null player");
+        if (!(player instanceof ServerPlayer serverPlayer)) throw new IllegalStateException("Cannot send event to non server player");
 
         var eventID = buf.readVarInt();
         var response = buf.readBoolean();
@@ -175,7 +175,7 @@ public class UISyncManager {
                 returnBuf.writeVarInt(requestID);
                 rpcEvent.writeReturnValueToBuffer(returnBuf, returnValue);
             }, player.level().registryAccess());
-            PacketDistributor.sendToServer(new SPacketUIRPCEventReturn(data));
+            PacketDistributor.sendToPlayer(serverPlayer, new SPacketUIRPCEventReturn(data));
         }
     }
 

@@ -20,6 +20,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,7 +41,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public final IResourceProvider<T> resourceProvider;
     private final Map<IResourcePath, UIElement> resourceUIs = new HashMap<>();
     @Setter
-    protected Function<IResourcePath, UIElement> uiSupplier = path -> new UIElement().layout(layout -> {
+    protected UIElementProvider<IResourcePath> uiSupplier = path -> new UIElement().layout(layout -> {
         layout.setWidthPercent(100);
         layout.setHeightPercent(100);
     }).style(style -> style.backgroundTexture(Icons.FILE));

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib2.gui.widget.SearchComponentWidget;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -74,7 +75,7 @@ public class ItemConfigurator extends ValueConfigurator<Item> implements SearchC
     }
 
     @Override
-    public void search(String word, Consumer<Item> find) {
+    public void search(String word, IResultHandler<Item> find) {
         var wordLower = word.toLowerCase();
         for (var itemEntry : BuiltInRegistries.ITEM.entrySet()) {
             if (Thread.currentThread().isInterrupted()) return;

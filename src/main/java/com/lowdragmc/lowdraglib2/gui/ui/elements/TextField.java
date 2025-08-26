@@ -62,6 +62,8 @@ public class TextField extends BindableUIElement<String> {
         private int cursorColor = 0xffeeeeee;
         @Getter @Setter
         private boolean textShadow = true;
+        @Getter @Setter
+        private Component placeholder = Component.translatable("text_field.empty");
 
         public TextFieldStyle(UIElement holder) {
             super(holder);
@@ -84,8 +86,6 @@ public class TextField extends BindableUIElement<String> {
     private Predicate<Character> charValidator = Predicates.alwaysTrue();
     @Getter
     private String text = "";
-    @Getter @Setter
-    private String placeholder = "empty";
     @Getter
     private final TextFieldStyle textFieldStyle = new TextFieldStyle(this);
     @Getter
@@ -781,7 +781,7 @@ public class TextField extends BindableUIElement<String> {
         if (formattedLineCache == null) {
             var lines = TextUtilities.computeFormattedLines(
                     getFont(),
-                    Component.literal(rawText.isEmpty() ? placeholder : rawText),
+                    rawText.isEmpty() ? textFieldStyle.placeholder() : Component.literal(rawText),
                     getTextFieldStyle().fontSize(),
                     Float.MAX_VALUE
             );

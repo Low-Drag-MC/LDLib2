@@ -21,6 +21,7 @@
   "ldlib.gui.text_field.number.wheel": "§ascroll wheel adjusts number§r (%s)",
   "ldlib.gui.text_field.resourcelocation": "allow [0-9][a-z][_-./]",
   "ldlib.gui.text_field.compound_tag": "compound(nbt) tag",
+  "text_field.empty": "empty",
 
   "ldlib.gui.editor.configurator": "Configurator",
   "ldlib.gui.editor.toggle_configurable.tooltip": "Enable / Disable",

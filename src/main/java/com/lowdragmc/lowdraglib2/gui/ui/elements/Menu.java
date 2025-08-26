@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import lombok.Getter;
 import lombok.Setter;
@@ -59,7 +60,7 @@ public class Menu<K, T> extends UIElement {
     @Getter
     private final MenuStyle menuStyle = new MenuStyle(this);
     @Nonnull
-    protected Function<K, UIElement> uiProvider;
+    protected UIElementProvider<K> uiProvider;
     @Setter @Nullable
     protected Consumer<ITreeNode<K, T>> onNodeClicked;
     @Setter
@@ -84,7 +85,7 @@ public class Menu<K, T> extends UIElement {
         this(root, (key) -> new TextElement().setText(key.toString()));
     }
 
-    public Menu(ITreeNode<K, T> root, Function<K, UIElement> uiProvider) {
+    public Menu(ITreeNode<K, T> root, UIElementProvider<K> uiProvider) {
         this.root = root;
         this.uiProvider = uiProvider;
 
@@ -165,7 +166,7 @@ public class Menu<K, T> extends UIElement {
         }
     }
 
-    public Menu<K, T> setUiProvider(Function<K, UIElement> uiProvider) {
+    public Menu<K, T> setUiProvider(UIElementProvider<K> uiProvider) {
         this.uiProvider = uiProvider;
         clearAllChildren();
         initMenu();
