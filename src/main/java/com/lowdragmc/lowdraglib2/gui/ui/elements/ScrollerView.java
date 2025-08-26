@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
@@ -22,22 +24,12 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 public class ScrollerView extends UIElement {
-    public enum Mode {
-        HORIZONTAL,
-        VERTICAL,
-        BOTH
-    }
-    public enum ScrollDisplay {
-        AUTO,
-        ALWAYS,
-        NEVER
-    }
     @Accessors(chain = true, fluent = true)
     public static class ScrollerViewStyle extends Style {
         @Getter @Setter
         private float horizontalScrollerMargin = 5;
         @Getter @Setter
-        private Mode mode = Mode.BOTH;
+        private ScrollerMode mode = ScrollerMode.BOTH;
         @Getter @Setter
         private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
         @Getter @Setter
@@ -111,12 +103,12 @@ public class ScrollerView extends UIElement {
     }
 
     protected void onScrollWheel(UIEvent event) {
-        if (event.deltaY != 0 && (scrollerViewStyle.mode == Mode.VERTICAL || scrollerViewStyle.mode == Mode.BOTH)) {
+        if (event.deltaY != 0 && (scrollerViewStyle.mode == ScrollerMode.VERTICAL || scrollerViewStyle.mode == ScrollerMode.BOTH)) {
             verticalScroller.onScrollWheel(event);
         }
-        if (event.deltaX != 0 && (scrollerViewStyle.mode == Mode.HORIZONTAL || scrollerViewStyle.mode == Mode.BOTH)) {
+        if (event.deltaX != 0 && (scrollerViewStyle.mode == ScrollerMode.HORIZONTAL || scrollerViewStyle.mode == ScrollerMode.BOTH)) {
             horizontalScroller.onScrollWheel(event);
-        } else if (event.deltaY != 0 && scrollerViewStyle.mode == Mode.HORIZONTAL) {
+        } else if (event.deltaY != 0 && scrollerViewStyle.mode == ScrollerMode.HORIZONTAL) {
             horizontalScroller.onScrollWheel(event);
         }
     }
@@ -166,7 +158,7 @@ public class ScrollerView extends UIElement {
     private void updateScrollers() {
         var lastContainerWidth = getContainerWidth();
         var lastContainerHeight = getContainerHeight();
-        if (scrollerViewStyle.mode == Mode.HORIZONTAL || scrollerViewStyle.mode == Mode.BOTH) {
+        if (scrollerViewStyle.mode == ScrollerMode.HORIZONTAL || scrollerViewStyle.mode == ScrollerMode.BOTH) {
             // cause we are using a flexbox, the width of the view container is not the same as the width of the view port
             // so we need to calculate the width ourselves
             var vp = Math.min(1, viewPort.getContentWidth() / lastContainerWidth);
@@ -181,7 +173,7 @@ public class ScrollerView extends UIElement {
             horizontalScroller.setDisplay(YogaDisplay.NONE);
         }
 
-        if (scrollerViewStyle.mode == Mode.VERTICAL || scrollerViewStyle.mode == Mode.BOTH) {
+        if (scrollerViewStyle.mode == ScrollerMode.VERTICAL || scrollerViewStyle.mode == ScrollerMode.BOTH) {
             var hp = Math.min(1, viewPort.getContentHeight() / lastContainerHeight);
             verticalScroller.setScrollBarSize(hp * 100);
             if ((scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.ALWAYS) {

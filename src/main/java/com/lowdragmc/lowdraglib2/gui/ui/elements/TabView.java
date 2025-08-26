@@ -4,6 +4,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
@@ -52,7 +54,7 @@ public class TabView extends UIElement {
 
         this.tabScroller.viewPort(viewPort -> viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).layout(layout -> layout.setPadding(YogaEdge.ALL, 0)))
                 .viewContainer(viewContainer -> viewContainer.layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)))
-                .scrollerStyle(style -> style.mode(ScrollerView.Mode.HORIZONTAL).horizontalScrollDisplay(ScrollerView.ScrollDisplay.NEVER).adaptiveHeight(true))
+                .scrollerStyle(style -> style.mode(ScrollerMode.HORIZONTAL).horizontalScrollDisplay(ScrollDisplay.NEVER).adaptiveHeight(true))
                 .layout(layout -> {
                     layout.setWidthPercent(100);
                     layout.setMargin(YogaEdge.BOTTOM, -2);

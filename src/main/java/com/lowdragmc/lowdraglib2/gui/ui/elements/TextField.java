@@ -126,10 +126,10 @@ public class TextField extends BindableUIElement<String> {
         addEventListener(UIEvents.BLUR, this::onBlur);
     }
 
-
     public TextField textFieldStyle(Consumer<TextFieldStyle> style) {
         style.accept(textFieldStyle);
         onStyleChanged();
+        updateDisplayOffset();
         return this;
     }
 
@@ -137,6 +137,7 @@ public class TextField extends BindableUIElement<String> {
     public void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
         textFieldStyle.applyStyles(values);
+        updateDisplayOffset();
     }
 
     @Override
@@ -691,6 +692,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     private void updateDisplayOffset() {
+        if (!LDLib2.isClient()) return;
         // Keep cursor inside viewport; prefer placing cursor at the right edge when scrolling
         var scale = textFieldStyle.fontSize / getFont().lineHeight;
         var cursorPosX = getFont().width(rawText.substring(0, cursorPos)) * scale;
