@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -71,6 +72,7 @@ public class TextElement extends UIElement {
     private List<Tuple<FormattedCharSequence, Float>> formattedLines = Collections.emptyList();
 
     public void recompute() {
+        if (!LDLib2.isClient()) return;
         var maxWidth = 0f;
         var wrap = getTextStyle().textWrap();
         if (getTextStyle().adaptiveWidth() || wrap == TextWrap.NONE || wrap == TextWrap.ROLL || wrap == TextWrap.HOVER_ROLL) {
@@ -103,6 +105,7 @@ public class TextElement extends UIElement {
     public void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
         textStyle.applyStyles(values);
+        recompute();
     }
 
     @Override

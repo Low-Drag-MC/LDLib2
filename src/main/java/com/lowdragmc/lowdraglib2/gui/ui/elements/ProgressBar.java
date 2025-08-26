@@ -1,5 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -8,7 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import it.unimi.dsi.fastutil.floats.FloatConsumer;
+import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -21,13 +24,14 @@ import org.appliedenergistics.yoga.YogaPositionType;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-public class ProgressBar extends BindableUIElement<Float> {
+public class ProgressBar extends UIElement implements IBindable<Float>, IDataConsumer<Float> {
     @Accessors(chain = true, fluent = true)
     public static class ProgressBarStyle extends Style {
         @Getter @Setter
@@ -52,6 +56,7 @@ public class ProgressBar extends BindableUIElement<Float> {
     private float maxValue = 1;
     private float value = 0;
     // runtime
+    protected final Map<IDataProvider<Float>, ISubscription> dataSources = new LinkedHashMap<>();
     private float lastValue = 0;
 
     public ProgressBar() {
@@ -156,28 +161,31 @@ public class ProgressBar extends BindableUIElement<Float> {
         return this;
     }
 
-    public ProgressBar setProgress(float value, boolean notify) {
-        return setValue(value, notify);
-    }
-
     public ProgressBar setProgress(float value) {
-        return setProgress(value, true);
+        return setValue(value);
     }
 
-    public ProgressBar setOnProgressChange(FloatConsumer onProgressChange) {
-        registerValueListener(v -> onProgressChange.accept(v.floatValue()));
+    @Override
+    public ProgressBar bindDataSource(IDataProvider<Float> dataSource) {
+        this.dataSources.put(dataSource, dataSource.registerListener(this::setProgress, true));
         return this;
     }
 
     @Override
-    public ProgressBar setValue(@Nullable Float value, boolean notify) {
+    public ProgressBar unbindDataSource(IDataProvider<Float> dataSource) {
+        var removed = this.dataSources.remove(dataSource);
+        if (removed != null) {
+            removed.unsubscribe();
+        }
+        return this;
+    }
+
+    @Override
+    public ProgressBar setValue(@Nullable Float value) {
         if (value == null) value = 0f;
         var newValue = Math.max(minValue, Math.min(maxValue, value));
         if (newValue != this.value) {
             this.value = newValue;
-            if (notify) {
-                notifyListeners();
-            }
             if (!progressBarStyle.interpolate) {
                 lastValue = this.value;
             }

@@ -38,7 +38,7 @@ public interface UIEvents {
     String MOUSE_WHEEL = "mouseWheel";
 
 
-    /// Drag and Drop Events
+    /// Drag and Drop Events, Drag events won't be sent to the server
     /**
      * The {@code dragEnter} is sent when the pointer enters an element during a drag operation.
      * When a drop area element receives a {@code dragEnter}, it needs to provide feedback that lets the user know that it, or one of its children, is a target for a potential drop operation.
@@ -84,13 +84,13 @@ public interface UIEvents {
      */
     String BLUR = "blur";
     /**
-     * The {@code focusIn} is sent when an element is about to gain focus.
+     * The {@code focusIn} is sent when an element is about to gain focus. won't be sent to the server
      * <li> target: The element that is about to gain focus.
      * <li> relatedTarget: The element that is about to lose focus.
      */
     String FOCUS_IN = "focusIn";
     /**
-     * The {@code focusOut} is sent when an element is about to lose focus.
+     * The {@code focusOut} is sent when an element is about to lose focus. won't be sent to the server
      * <li> target: The element that is about to lose focus.
      * <li> relatedTarget: The element that is about to gain focus.
      */
@@ -113,12 +113,12 @@ public interface UIEvents {
      */
     String CHAR_TYPED = "charTyped";
 
-    /// Hover Tooltips Events
+    /// Hover Tooltips Events, which won't be sent to the server
     String HOVER_TOOLTIPS = "hoverTooltips";
 
     ///  Command Events
     /**
-     * The {@code validateCommand} is sent when determining whether an element in the panel handles the command.
+     * The {@code validateCommand} is sent when determining whether an element in the panel handles the command. It won't be sent to the server.
      * Supported commands can be found in {@link CommandEvents}.
      * To execute this command, call {@link UIEvent#stopPropagation()}.
      */
@@ -129,7 +129,7 @@ public interface UIEvents {
      */
     String EXECUTE_COMMAND = "executeCommand";
 
-    /// Layout Events
+    /// Layout Events, which won't be sent to the server.
     /**
      * The {@code layoutChanged} is sent when the layout of an element changes.
      */
@@ -147,6 +147,7 @@ public interface UIEvents {
     /// Lifecycle Events
     /**
      * The {@code tick} is sent per tick when the element is {@link UIElement#isActive()} and {@link UIElement#isDisplayed()}.
+     * It won't be sent to the server. But you can still listen it on the server side.
      */
     String TICK = "tick";
 }

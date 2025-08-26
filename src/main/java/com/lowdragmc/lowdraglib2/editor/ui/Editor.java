@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import lombok.Getter;
@@ -161,7 +162,7 @@ public class Editor extends UIElement {
         }
     }
 
-    public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, Function<T, UIElement> uiProvider) {
+    public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
         menu.layout(layout -> {
             layout.setPosition(YogaEdge.LEFT, posX - getContentX());

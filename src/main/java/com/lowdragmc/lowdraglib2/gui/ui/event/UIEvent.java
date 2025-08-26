@@ -2,12 +2,73 @@ package com.lowdragmc.lowdraglib2.gui.ui.event;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import lombok.ToString;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 
 import javax.annotation.Nullable;
 
 @ToString
 public class UIEvent {
+    // region CODEC
+    public final static Codec<UIEvent> CODEC = Codec.STRING
+            .comapFlatMap(type -> DataResult.success(UIEvent.create(type)), event -> event.type)
+            .stable();
+
+    public final static StreamCodec<FriendlyByteBuf, UIEvent> STREAM_CODEC = StreamCodec.of(
+            (byteBuf, event) -> {
+                byteBuf.writeUtf(event.type);
+                byteBuf.writeVarInt(event.button);
+                if (event.x != 0 || event.y != 0 || event.deltaX != 0 || event.deltaY != 0) {
+                    byteBuf.writeBoolean(true);
+                    byteBuf.writeFloat(event.x);
+                    byteBuf.writeFloat(event.y);
+                    byteBuf.writeFloat(event.deltaX);
+                    byteBuf.writeFloat(event.deltaY);
+                } else {
+                    byteBuf.writeBoolean(false);
+                }
+                if (event.keyCode != 0 || event.scanCode != 0 || event.modifiers != 0 || event.codePoint != 0 ) {
+                    byteBuf.writeBoolean(true);
+                    byteBuf.writeVarInt(event.keyCode);
+                    byteBuf.writeVarInt(event.scanCode);
+                    byteBuf.writeVarInt(event.modifiers);
+                    byteBuf.writeVarInt(event.codePoint);
+                } else {
+                    byteBuf.writeBoolean(false);
+                }
+                if (event.command != null) {
+                    byteBuf.writeBoolean(true);
+                    byteBuf.writeUtf(event.command);
+                } else {
+                    byteBuf.writeBoolean(false);
+                }
+            },
+            byteBuf -> {
+                var event = UIEvent.create(byteBuf.readUtf());
+                event.button = byteBuf.readVarInt();
+                if (byteBuf.readBoolean()) {
+                    event.x = byteBuf.readFloat();
+                    event.y = byteBuf.readFloat();
+                    event.deltaX = byteBuf.readFloat();
+                    event.deltaY = byteBuf.readFloat();
+                }
+                if (byteBuf.readBoolean()) {
+                    event.keyCode = byteBuf.readVarInt();
+                    event.scanCode = byteBuf.readVarInt();
+                    event.modifiers = byteBuf.readVarInt();
+                    event.codePoint = (char) byteBuf.readVarInt();
+                }
+                if (byteBuf.readBoolean()) {
+                    event.command = byteBuf.readUtf();
+                }
+                return event;
+            }
+    );
+    // endregion
+
     /**
      * EventPhase represents the phase of the event in the event flow.
      */

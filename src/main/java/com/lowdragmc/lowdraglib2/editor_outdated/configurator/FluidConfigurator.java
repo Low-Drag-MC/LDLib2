@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib2.gui.widget.SearchComponentWidget;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -72,7 +73,7 @@ public class FluidConfigurator extends ValueConfigurator<Fluid> implements Searc
     }
 
     @Override
-    public void search(String word, Consumer<Fluid> find) {
+    public void search(String word, IResultHandler<Fluid> find) {
         var wordLower = word.toLowerCase();
         for (var entry : BuiltInRegistries.FLUID.entrySet()) {
             if (Thread.currentThread().isInterrupted()) return;

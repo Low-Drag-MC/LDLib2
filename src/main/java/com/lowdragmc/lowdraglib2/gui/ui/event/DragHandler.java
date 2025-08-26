@@ -88,7 +88,7 @@ public class DragHandler {
             var event = UIEvent.create(UIEvents.DRAG_END);
             event.target = dragSource;
             event.relatedTarget = dropElement;
-            UIEventDispatcher.dispatchEvent(event);
+            UIEventDispatcher.dispatchEvent(event, true, true, false);
         }
         draggingObject = null;
         dragTexture = null;

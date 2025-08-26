@@ -2,9 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.IObserver;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;

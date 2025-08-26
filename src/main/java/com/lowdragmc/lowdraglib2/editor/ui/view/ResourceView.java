@@ -10,7 +10,8 @@ import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -58,7 +59,7 @@ public class ResourceView extends View {
                 .viewContainer(viewContainer -> viewContainer.layout(layout -> {
                     layout.setFlexDirection(YogaFlexDirection.COLUMN);
                 }))
-                .scrollerStyle(style -> style.mode(ScrollerView.Mode.VERTICAL).verticalScrollDisplay(ScrollerView.ScrollDisplay.NEVER))
+                .scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.NEVER))
                 .layout(layout -> {
                     layout.setWidth(16);
                     layout.setFlex(1);

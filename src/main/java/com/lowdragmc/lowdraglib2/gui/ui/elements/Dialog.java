@@ -9,11 +9,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.Util;
+import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.lwjgl.glfw.GLFW;
@@ -334,7 +336,7 @@ public class Dialog extends UIElement {
                                 Icons.FOLDER :
                                 Icons.getIcon(node.getKey().getName()
                                         .substring(node.getKey().getName().lastIndexOf('.') + 1)),
-                        node -> node.getKey().getName()))
+                        node -> Component.translatable(node.getKey().getName())))
                         .setRoot(new FileNode(dir).setValid(valid))
                 ).layout(layout -> {
                             layout.setWidthPercent(100);

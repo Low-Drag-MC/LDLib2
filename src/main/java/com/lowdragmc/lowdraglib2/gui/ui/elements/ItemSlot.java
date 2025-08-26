@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
+import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
@@ -20,6 +20,7 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -75,7 +76,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     public ItemSlot bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
-        bind(DataBindingBuilder.itemStackS2C(() -> itemHandlerModifiable.getStackInSlot(index)).build());
+        bind(new ItemHandlerSlot(itemHandlerModifiable, index));
         return this;
     }
 
@@ -84,7 +85,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         this.slot = slot;
         addSlotToTheMenu();
         return this;
-
     }
 
     private void addSlotToTheMenu() {
@@ -94,7 +94,13 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         if (mui != null) {
             var menu = mui.getMenu();
             if (menu != null) {
-                menu.addSlot(slot);
+                // TODO shall we do this
+                if (mui.player != null && mui.player.level().isClientSide) {
+                    slot = new Slot(new SimpleContainer(1), 0, 0,0);
+                }
+                if (!menu.slots.contains(slot)) {
+                    menu.addSlot(slot);
+                }
             }
         }
     }

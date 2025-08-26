@@ -22,4 +22,9 @@ public abstract class DirectRef<TYPE> extends Ref<TYPE> {
     public TYPE readRaw() {
         return field.value();
     }
+
+    @Override
+    public void writeRaw(TYPE value) {
+        field.set(value);
+    }
 }

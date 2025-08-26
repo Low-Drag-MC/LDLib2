@@ -139,6 +139,9 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 }).setOnClick(e -> {
                     // avoid bauble event propagation
                     e.stopPropagation();
+                    if (!resourceLocation.exists()) {
+                        resourceLocation.mkdirs();
+                    }
                     Util.getPlatform().openFile(resourceLocation);
                 }).noText().layout(layout -> {
                     layout.setWidth(7);

@@ -60,8 +60,10 @@ public interface IArrayRef<TYPE, TYPE_ARRAY> extends IRef<TYPE_ARRAY> {
         var refs = getRefs();
         var length = buffer.readVarInt();
         if (refs == null || length != refs.length) {
-            updateRefs((TYPE_ARRAY) Array.newInstance(getAccessor().getChildType(), length));
+            var newArray = (TYPE_ARRAY) Array.newInstance(getAccessor().getChildType(), length);
+            updateRefs(newArray);
             refs = getRefs();
+            writeRaw(newArray);
         }
         for (IRef<TYPE> typeiRef : refs) {
             typeiRef.writeSyncFromStream(buffer);

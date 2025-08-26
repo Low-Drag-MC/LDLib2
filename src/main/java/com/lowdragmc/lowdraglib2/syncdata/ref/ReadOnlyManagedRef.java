@@ -36,6 +36,11 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
     }
 
     @Override
+    public void writeRaw(TYPE value) {
+        getReadOnlyVar().set(value);
+    }
+
+    @Override
     public final void update() {
         if (isReadOnlyManaged()) {
             readOnlyManagedUpdate();

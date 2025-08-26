@@ -110,13 +110,12 @@ public class DataBindingBuilder<T> {
         return create(getter, setter).syncType(ItemStack.class);
     }
 
-    /**
-     * Creates a data binding holder for {@link ItemStack} that supports synchronization from
-     * server to client (S2C). This binding is configured with a {@code SyncStrategy.NONE},
-     * meaning no synchronization will occur for the client to server (C2S) to avoid attacks.
-     */
     public static DataBindingBuilder<ItemStack> itemStackS2C(Supplier<ItemStack> getter) {
         return itemStack(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<ItemStack> itemStackC2S(Consumer<ItemStack> setter) {
+        return itemStack(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static DataBindingBuilder<FluidStack> fluidStack(Supplier<FluidStack> getter, Consumer<FluidStack> setter) {
@@ -127,6 +126,10 @@ public class DataBindingBuilder<T> {
         return fluidStack(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
     }
 
+    public static DataBindingBuilder<FluidStack> fluidStackC2S(Consumer<FluidStack> setter) {
+        return fluidStack(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
     public static DataBindingBuilder<Integer> intVal(Supplier<Integer> getter, Consumer<Integer> setter) {
         return create(getter, setter).syncType(Integer.class);
     }
@@ -135,40 +138,116 @@ public class DataBindingBuilder<T> {
         return intVal(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
     }
 
+    public static DataBindingBuilder<Integer> intValC2S(Consumer<Integer> setter) {
+        return intVal(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
     public static DataBindingBuilder<Boolean> bool(Supplier<Boolean> getter, Consumer<Boolean> setter) {
         return create(getter, setter).syncType(Boolean.class);
+    }
+
+    public static DataBindingBuilder<Boolean> boolS2C(Supplier<Boolean> getter) {
+        return bool(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Boolean> boolC2S(Consumer<Boolean> setter) {
+        return bool(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static DataBindingBuilder<Float> floatVal(Supplier<Float> getter, Consumer<Float> setter) {
         return create(getter, setter).syncType(Float.class);
     }
 
+    public static DataBindingBuilder<Float> floatValS2C(Supplier<Float> getter) {
+        return floatVal(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Float> floatValC2S(Consumer<Float> setter) {
+        return floatVal(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
     public static DataBindingBuilder<Double> doubleVal(Supplier<Double> getter, Consumer<Double> setter) {
         return create(getter, setter).syncType(Double.class);
+    }
+
+    public static DataBindingBuilder<Double> doubleValS2C(Supplier<Double> getter) {
+        return doubleVal(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Double> doubleValC2S(Consumer<Double> setter) {
+        return doubleVal(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static DataBindingBuilder<Long> longVal(Supplier<Long> getter, Consumer<Long> setter) {
         return create(getter, setter).syncType(Long.class);
     }
 
+    public static DataBindingBuilder<Long> longValS2C(Supplier<Long> getter) {
+        return longVal(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Long> longValC2S(Consumer<Long> setter) {
+        return longVal(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
     public static DataBindingBuilder<Byte> byteVal(Supplier<Byte> getter, Consumer<Byte> setter) {
         return create(getter, setter).syncType(Byte.class);
+    }
+
+    public static DataBindingBuilder<Byte> byteValS2C(Supplier<Byte> getter) {
+        return byteVal(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Byte> byteValC2S(Consumer<Byte> setter) {
+        return byteVal(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static DataBindingBuilder<Short> shortVal(Supplier<Short> getter, Consumer<Short> setter) {
         return create(getter, setter).syncType(Short.class);
     }
 
+    public static DataBindingBuilder<Short> shortValS2C(Supplier<Short> getter) {
+        return shortVal(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Short> shortValC2S(Consumer<Short> setter) {
+        return shortVal(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
     public static DataBindingBuilder<Character> charVal(Supplier<Character> getter, Consumer<Character> setter) {
         return create(getter, setter).syncType(Character.class);
+    }
+
+    public static DataBindingBuilder<Character> charValS2C(Supplier<Character> getter) {
+        return charVal(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Character> charValC2S(Consumer<Character> setter) {
+        return charVal(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static <T extends Enum<?>> DataBindingBuilder<T> enumVal(Class<T> clazz, Supplier<T> getter, Consumer<T> setter) {
         return create(getter, setter).syncType(clazz);
     }
 
+    public static <T extends Enum<?>> DataBindingBuilder<T> enumValS2C(Class<T> clazz, Supplier<T> getter) {
+        return enumVal(clazz, getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static <T extends Enum<?>> DataBindingBuilder<T> enumValC2S(Class<T> clazz, Consumer<T> setter) {
+        return enumVal(clazz, Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
     public static DataBindingBuilder<String> string(Supplier<String> getter, Consumer<String> setter) {
         return create(getter, setter).syncType(String.class);
+    }
+
+    public static DataBindingBuilder<String> stringS2C(Supplier<String> getter) {
+        return string(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<String> stringC2S(Consumer<String> setter) {
+        return string(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
 }
