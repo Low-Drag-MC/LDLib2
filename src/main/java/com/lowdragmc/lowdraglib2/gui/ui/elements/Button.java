@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -17,7 +18,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 
@@ -35,12 +35,15 @@ public class Button extends UIElement {
     public static class ButtonStyle extends Style {
         @Getter
         @Setter
+        @Configurable(name = "defaultTexture")
         private IGuiTexture defaultTexture = Sprites.RECT_RD;
         @Getter
         @Setter
+        @Configurable(name = "hoverTexture")
         private IGuiTexture hoverTexture = Sprites.RECT_RD_LIGHT;
         @Getter
         @Setter
+        @Configurable(name = "pressedTexture")
         private IGuiTexture pressedTexture = Sprites.RECT_RD_DARK;
 
         public ButtonStyle(UIElement holder) {
@@ -52,12 +55,16 @@ public class Button extends UIElement {
         HOVERED,
         PRESSED
     }
+
     public final TextElement text = new TextElement();
     @Getter
+    @Configurable(name = "buttonStyle", subConfigurable = true)
     private final ButtonStyle buttonStyle = new ButtonStyle(this);
     @Nullable
     @Setter
     private Consumer<UIEvent> onClick = null;
+
+    // runtime
     @Getter
     private State state = State.DEFAULT;
 
@@ -82,6 +89,7 @@ public class Button extends UIElement {
         setText("Button");
 
         addChild(text);
+        markAllChildrenAsInternal();
     }
 
     public Button textStyle(Consumer<TextElement.TextStyle> style) {

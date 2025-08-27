@@ -35,6 +35,7 @@ public abstract class SplitView extends UIElement {
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
 
         addChildren(first, second);
+        markAllChildrenAsInternal();
     }
 
     protected abstract boolean isHoverDragging(float mouseX, float mouseY);

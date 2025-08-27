@@ -87,6 +87,7 @@ public class ScrollerView extends UIElement {
         verticalScroller.setOnValueChanged(this::onVerticalScroll);
         horizontalScroller.setOnValueChanged(this::onHorizontalScroll);
         addChildren(verticalContainer, horizontalScroller);
+        markAllChildrenAsInternal();
     }
 
     /// events

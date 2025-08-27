@@ -65,6 +65,7 @@ public class TabView extends UIElement {
         }).style(style -> style.backgroundTexture(Sprites.BORDER_THICK_RT1));
 
         addChildren(tabContentContainer, tabHeaderContainer);
+        markAllChildrenAsInternal();
     }
 
     public TabView addTab(Tab tab, UIElement content) {

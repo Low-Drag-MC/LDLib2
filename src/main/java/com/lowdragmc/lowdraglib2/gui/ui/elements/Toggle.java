@@ -20,6 +20,7 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaAlign;
+import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
@@ -141,6 +142,7 @@ public class Toggle extends BindableUIElement<Boolean> {
                 });
         this.toggleLabel.setText("Toggle");
         addChildren(toggleButton, toggleLabel);
+        markAllChildrenAsInternal();
     }
 
     public Toggle toggleStyle(Consumer<ToggleStyle> style) {
@@ -158,14 +160,6 @@ public class Toggle extends BindableUIElement<Boolean> {
     public void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
         toggleStyle.applyStyles(values);
-    }
-
-    @Override
-    public boolean isInternalElement(UIElement child) {
-        if (child == toggleButton || child == toggleLabel) {
-            return true;
-        }
-        return super.isInternalElement(child);
     }
 
     protected void onToggleClick(UIEvent event) {
@@ -204,6 +198,11 @@ public class Toggle extends BindableUIElement<Boolean> {
     @Override
     protected void onRemoved() {
         super.onRemoved();
+    }
+
+    public Toggle noText() {
+        toggleLabel.setDisplay(YogaDisplay.NONE);
+        return this;
     }
 
     @HideFromJS

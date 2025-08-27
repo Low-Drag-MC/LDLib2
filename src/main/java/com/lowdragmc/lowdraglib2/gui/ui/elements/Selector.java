@@ -75,6 +75,7 @@ public class Selector<T> extends BindableUIElement<T> {
         getStyle().backgroundTexture(Sprites.RECT_RD_LIGHT);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         this.preview = new UIElement().layout(layout -> {
+            layout.setJustifyContent(YogaJustify.CENTER);
             layout.setHeightPercent(100);
             layout.setFlex(1);
         });
@@ -140,6 +141,7 @@ public class Selector<T> extends BindableUIElement<T> {
         scrollerView.setDisplay(YogaDisplay.NONE);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
         addChildren(display);
+        markAllChildrenAsInternal();
     }
 
     public Selector<T> setCandidates(List<T> candidates) {

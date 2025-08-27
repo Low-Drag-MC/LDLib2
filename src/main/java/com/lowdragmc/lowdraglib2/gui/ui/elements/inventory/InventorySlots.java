@@ -34,6 +34,7 @@ public class InventorySlots extends UIElement {
                 row.slots[c].setId("inventory_%d".formatted(slotIndex));
             }
         }
+        markAllChildrenAsInternal();
     }
 
     @Override

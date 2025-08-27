@@ -160,6 +160,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
 
         addChildren(pickerContainer, textContainer);
         refreshRGB();
+        markAllChildrenAsInternal();
     }
 
     protected void onCopy(UIEvent event) {

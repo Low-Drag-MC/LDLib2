@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
-import net.minecraft.nbt.Tag;
 import net.minecraft.util.StringRepresentable;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -107,5 +106,12 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
         } else {
             return enumValue.name();
         }
+    }
+
+    public static <T extends Enum<T>> Configurator create(String name, Class<T> clazz, Supplier<T> supplier, Consumer<T> consumer, T defaultValue, boolean forceUpdate) {
+        var selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate,
+                Arrays.stream(clazz.getEnumConstants()).toList(), EnumAccessor::getEnumName);
+        selector.setCopiable(value -> value);
+        return selector;
     }
 }

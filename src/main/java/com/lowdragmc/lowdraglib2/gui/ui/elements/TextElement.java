@@ -1,6 +1,10 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -36,35 +40,52 @@ public class TextElement extends UIElement {
     @Accessors(chain = true, fluent = true)
     public static class TextStyle extends Style {
         @Getter @Setter
+        @Configurable(name = "adaptiveWidth", tips = "adaptiveWidth.tips")
         private boolean adaptiveWidth = false;
         @Getter @Setter
+        @Configurable(name = "adaptiveHeight", tips = "adaptiveHeight.tips")
         private boolean adaptiveHeight = false;
         @Getter @Setter
+        @Configurable(name = "textAlignHorizontal")
         private Horizontal textAlignHorizontal = Horizontal.LEFT;
         @Getter @Setter
+        @Configurable(name = "textAlignVertical")
         private Vertical textAlignVertical = Vertical.TOP;
         @Getter @Setter
+        @Configurable(name = "textWrap", tips = {"textWrap.tips.NONE", "textWrap.tips.WRAP", "textWrap.tips.HOVER_ROLL", "textWrap.tips.HIDE"})
         private TextWrap textWrap = TextWrap.NONE;
         @Getter @Setter
+        @Configurable(name = "rollSpeed")
+        @ConfigNumber(range = {0f, Float.MAX_VALUE})
         private float rollSpeed = 1;
         @Getter @Setter
+        @Configurable(name = "fontSize")
+        @ConfigNumber(range = {0f, Float.MAX_VALUE})
         private float fontSize = 9;
         @Getter @Setter
+        @Configurable(name = "lineSpacing")
+        @ConfigNumber(range = {0f, Float.MAX_VALUE})
         private float lineSpacing = 1;
         @Getter @Setter
+        @Configurable(name = "textColor")
+        @ConfigColor
         private int textColor = -1;
         @Getter @Setter
+        @Configurable(name = "textShadow")
         private boolean textShadow = true;
 
         public TextStyle(UIElement holder) {
             super(holder);
         }
     }
-    @Getter
-    private Component text = Component.empty();
 
     @Getter
+    @Configurable(name = "textStyle", subConfigurable = true)
     private final TextStyle textStyle = new TextStyle(this);
+
+    @Getter
+    @Configurable(name = "text")
+    private Component text = Component.empty();
 
     /**
      * The formatted text to be displayed in each line and its width.
@@ -115,6 +136,7 @@ public class TextElement extends UIElement {
     }
 
     @HideFromJS
+    @ConfigSetter(field = "text")
     public TextElement setText(Component text) {
         if (this.text.equals(text)) return this;
         this.text = text;

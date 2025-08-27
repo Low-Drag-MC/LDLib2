@@ -89,6 +89,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 .addChildren(this.bar, this.label));
         this.addChildren(this.barContainer);
         updateProgressBarStyle(getNormalizedValue());
+        markAllChildrenAsInternal();
     }
 
     public ProgressBar progressBarStyle(Consumer<ProgressBarStyle> style) {

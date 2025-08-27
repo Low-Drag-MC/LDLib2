@@ -73,9 +73,9 @@ public class Editor extends UIElement {
         this.top = new UIElement();
         this.icon = new UIElement();
         this.menuContainer = new UIElement();
+        this.historyView = new HistoryView(this);
         this.inspectorView = new InspectorView(this);
         this.resourceView = new ResourceView(this);
-        this.historyView = new HistoryView(this);
 
         this.mainView = new UIElement();
         this.fileMenu = new FileMenu(this);

@@ -157,6 +157,7 @@ public class TextArea extends BindableUIElement<String[]> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         }).addChildren(contentView, verticalScroller), horizontalScroller);
+        markAllChildrenAsInternal();
     }
 
     public TextArea textAreaStyle(Consumer<TextAreaStyle> style) {

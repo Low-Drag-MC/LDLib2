@@ -12,11 +12,12 @@ import org.appliedenergistics.yoga.YogaEdge;
 public class TestEditor extends Editor {
 
     public TestEditor() {
-        centerWindow.getLeftTop().addView(new UIEditorView(UI.of(new UIElement().layout(layout -> {
-            layout.setWidth(250);
-            layout.setHeight(250);
-            layout.setPadding(YogaEdge.ALL, 10);
-        }).addChildren(new Button(), new Button(), new Label()).style(style -> style.backgroundTexture(Sprites.BORDER)))));
+        centerWindow.getLeftTop().addView(new UIEditorView()
+                .loadUI(UI.of(new UIElement().layout(layout -> {
+                    layout.setWidth(250);
+                    layout.setHeight(250);
+                    layout.setPadding(YogaEdge.ALL, 10);
+                }).addChildren(new Button(), new Button(), new Label()).style(style -> style.backgroundTexture(Sprites.BORDER)))));
     }
 
     @Override

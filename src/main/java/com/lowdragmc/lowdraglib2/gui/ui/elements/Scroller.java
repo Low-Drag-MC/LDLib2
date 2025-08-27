@@ -103,6 +103,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         scrollContainer.addEventListener(UIEvents.MOUSE_DOWN, this::clickScrollContainer);
         addChildren(headButton, scrollContainer, tailButton);
         scrollContainer.addEventListener(UIEvents.MOUSE_WHEEL, this::onScrollWheel);
+        markAllChildrenAsInternal();
     }
 
     public Scroller scrollerStyle(Consumer<ScrollerStyle> style) {

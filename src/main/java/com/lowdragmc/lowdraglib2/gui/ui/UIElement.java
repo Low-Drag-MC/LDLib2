@@ -1,11 +1,17 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.google.common.collect.ImmutableList;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaStyleConfigParser;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleContext;
@@ -17,12 +23,13 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.config.MutableYogaConfig;
 import org.appliedenergistics.yoga.config.YogaConfig;
 import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
-import org.joml.Vector4f;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
@@ -40,7 +47,7 @@ import java.util.function.Function;
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class UIElement {
+public class UIElement implements IConfigurable {
     public static final YogaConfig DEFAULT_YOGA_CONFIG;
     static {
         MutableYogaConfig config = YogaConfig.create(YogaLogger.getDefaultLogger());
@@ -62,19 +69,24 @@ public class UIElement {
     // style
     @Getter @Setter
     @Accessors(chain = true)
+    @Configurable
     private String id = "";
     @Getter
     private final List<String> classes = new ArrayList<>();
     @Getter
     private final StyleContext styleContext = createStyleContext();
     @Getter
+    @Configurable(name = "UIElement.basicStyle", subConfigurable = true)
     private final BasicStyle style = new BasicStyle(this);
     // internal properties
     @Getter @Setter
+    @Configurable(name = "UIElement.isVisible", tips = "UIElement.isVisible.tips")
     private boolean isVisible = true;
     @Getter @Setter
+    @Configurable(name = "UIElement.isActive", tips = "UIElement.isActive.tips")
     private boolean isActive = true;
     @Getter @Setter
+    @Configurable(name = "UIElement.focusable", tips = {"UIElement.focusable.tips.0", "UIElement.focusable.tips.1"})
     private boolean focusable = false;
     // event
     private final Map<String, List<UIEventListener>> captureListeners = new HashMap<>();
@@ -90,6 +102,8 @@ public class UIElement {
     private ImmutableList<UIElement> structurePathCache = null;
     private FloatOptional positionXCache = FloatOptional.of();
     private FloatOptional positionYCache = FloatOptional.of();
+    @Getter
+    private boolean isInternalUI = false;
 
     public UIElement() {
         layoutNode = new YogaNode(DEFAULT_YOGA_CONFIG);
@@ -453,14 +467,6 @@ public class UIElement {
         return this;
     }
 
-    /**
-     * Internal elements are elements that can not be removed.
-     */
-    public boolean isInternalElement(UIElement child) {
-        // TODO
-        return false;
-    }
-
     public boolean removeSelf() {
         if (getParent() != null) {
             return getParent().removeChild(this);
@@ -560,6 +566,12 @@ public class UIElement {
 
     public UIElement style(Consumer<BasicStyle> style) {
         style.accept(this.style);
+        onStyleChanged();
+        return this;
+    }
+
+    public UIElement transform(Consumer<Transform2D> transform) {
+        transform.accept(getStyle().transform2D());
         onStyleChanged();
         return this;
     }
@@ -681,26 +693,34 @@ public class UIElement {
     }
 
     /**
-     * Get the element that is hovered by the mouse.
+     * Do hit-testing here. Get the element which is hovered by the mouse.
      * @return the element that is hovered and its z-index, or null if no element is hovered
      */
     @Nullable
     public Pair<UIElement, Integer> getHoverElement(double mouseX, double mouseY) {
         if (!isDisplayed() || !isVisible()) return null;
 
+        var transform2D = style.transform2D();
+        double[] pt = new double[]{mouseX, mouseY};
+        if (!transform2D.isIdentity()) {
+            transform2D.inversePoint(this, pt);
+        }
+        double localMouseX = pt[0];
+        double localMouseY = pt[1];
+
         Pair<UIElement, Integer> hover = null;
         var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
 
-        if (!hidden || isMouseOverContent(mouseX, mouseY)) {
+        if (!hidden || isMouseOverContent(localMouseX, localMouseY)) {
             for (var child : getSortedChildren()) {
-                var result = child.getHoverElement(mouseX, mouseY);
+                var result = child.getHoverElement(localMouseX, localMouseY);
                 if (result != null && (hover == null || hover.getB() < result.getB())) {
                     hover = result;
                 }
             }
         }
 
-        if (isMouseOver(mouseX, mouseY) && hover == null) {
+        if (isMouseOver(localMouseX, localMouseY) && hover == null) {
             return new Pair<>(this, style.zIndex());
         }
         if (hover == null) return null;
@@ -981,7 +1001,19 @@ public class UIElement {
             guiContext.pose.pushPose();
             guiContext.pose.translate(0, 0, zIndex);
         }
+
+        var transform2D = style.transform2D();
+        var pushedTransform = !transform2D.isIdentity();
+        if (pushedTransform) {
+            transform2D.pushToPose(guiContext, this);
+        }
+
         drawInBackgroundInternal(guiContext);
+
+        if (pushedTransform) {
+            transform2D.popPose(guiContext);
+        }
+
         if (zIndex != 0) {
             guiContext.pose.popPose();
         }
@@ -1017,19 +1049,12 @@ public class UIElement {
     public void drawContents(GUIContext guiContext) {
         var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
         if (hidden) {
-            var trans = guiContext.graphics.pose().last().pose();
-            var x = getContentX();
-            var y = getContentY();
-            var width = getContentWidth();
-            var height = getContentHeight();
-            var realPos = trans.transform(new Vector4f(x, y, 0, 1));
-            var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
-            guiContext.graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+            guiContext.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
         }
         drawBackgroundAdditional(guiContext);
         children.forEach(child -> child.drawInBackground(guiContext));
         if (hidden) {
-            guiContext.graphics.disableScissor();
+            guiContext.disableScissor();
         }
     }
 
@@ -1071,5 +1096,47 @@ public class UIElement {
             info.add(data.withColor(0xFF00FF00));
         }
         return info;
+    }
+
+
+    /// Editor
+    public UIElement markAsInternal() {
+        setInternalUI(true);
+        return this;
+    }
+
+    public void markAllChildrenAsInternal() {
+        for (var child : children) {
+            child.markAsInternal();
+        }
+    }
+
+    protected void setInternalUI(boolean isInternal) {
+        if (isInternalUI == isInternal) return;
+        isInternalUI = isInternal;
+        children.forEach(uiElement -> uiElement.setInternalUI(isInternal));
+    }
+
+    public Component getEditorName() {
+        var name = Component.literal(getElementName());
+        if (!id.isEmpty()) {
+            name = name.append(Component.literal("#").append(Component.literal(id).withColor(0xFF00FFFF)));
+        }
+        return name;
+    }
+
+    public IGuiTexture getEditorIcon() {
+        return Icons.WIDGET_CUSTOM;
+    }
+
+    public List<UIElement> getEditorVisibleChildren() {
+        return new ArrayList<>(children);
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void buildConfigurator(ConfiguratorGroup father) {
+        IConfigurable.super.buildConfigurator(father);
+        YogaStyleConfigParser.buildConfigurator(layoutNode, father);
     }
 }

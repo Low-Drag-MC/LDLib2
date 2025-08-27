@@ -66,6 +66,7 @@ public class Tab extends UIElement {
         addEventListener(UIEvents.MOUSE_ENTER, this::onMouseEnter, true);
         addEventListener(UIEvents.MOUSE_LEAVE, this::onMouseLeave, true);
         addChild(text);
+        markAllChildrenAsInternal();
     }
 
     public Tab tabStyle(Consumer<TabStyle> tabStyle) {

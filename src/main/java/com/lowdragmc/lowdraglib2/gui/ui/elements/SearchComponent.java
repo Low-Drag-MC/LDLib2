@@ -152,6 +152,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         addChildren(preview, textField);
 
         searchEngine = new SearchEngine<>(searchUI, this::onResultFound);
+        markAllChildrenAsInternal();
     }
 
     protected void onMouseDown(UIEvent event) {

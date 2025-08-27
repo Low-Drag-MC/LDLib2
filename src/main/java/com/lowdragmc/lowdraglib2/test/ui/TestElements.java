@@ -18,10 +18,8 @@ import lombok.NoArgsConstructor;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +44,7 @@ public class TestElements implements IScreenTest {
             layout.setPadding(YogaEdge.ALL, 10);
         }).setId("root");
         root.getStyle().backgroundTexture(Sprites.BORDER);
-        root.addChildren(new TabView().addTab(new Tab().setText("tab1"), new UIElement().layout(layout -> {
+        root.addChildren(new TabView().addTab(new Tab().setText("element1"), new UIElement().layout(layout -> {
                             layout.setWidthPercent(100);
                         }).addChildren(
                                 new Label()
@@ -96,7 +94,7 @@ public class TestElements implements IScreenTest {
                                                                 }
                                                             }
                                                         }))))
-                ).addTab(new Tab().setText("second tab"), new UIElement().layout(layout -> {
+                ).addTab(new Tab().setText("element2"), new UIElement().layout(layout -> {
                             layout.setGap(YogaGutter.ROW, 2);
                         }).addChildren(
                                 new ColorSelector().layout(layout -> {
@@ -135,6 +133,22 @@ public class TestElements implements IScreenTest {
                                                 "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. ",
                                                 "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
                                         ))
+                        )
+                ).addTab(new Tab().setText("transform"), new UIElement().layout(layout -> {
+                            layout.setGap(YogaGutter.ROW, 2);
+                        }).addChildren(
+                                new Button().transform(transform -> transform.translate(10, 0)),
+                                new Button().transform(transform -> transform.translate(0, -5)),
+                                new Button().transform(transform -> transform.scale(1.5f, 1)),
+                                new Button().transform(transform -> transform.rotation(30)),
+                                new Button().transform(transform -> transform.privot(0, 0).rotation(30)),
+                                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
+                                        .addChildren(
+                                                new Button(),
+                                                new Button().transform(transform -> transform.translate(0, -5)),
+                                                new Button().transform(transform -> transform.scale(1.5f, 1)),
+                                                new Button().transform(transform -> transform.rotation(30))
+                                        ).transform(transform -> transform.translate(0, 10).rotation(15))
                         )
                 )
         );

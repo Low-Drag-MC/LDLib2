@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.HeaderConfigurator;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import lombok.experimental.UtilityClass;
 import net.minecraft.network.chat.Component;
@@ -81,10 +82,7 @@ public final class ConfiguratorParser {
         }
         if (field.isAnnotationPresent(ConfigHeader.class)) {
             ConfigHeader configHeader = field.getAnnotation(ConfigHeader.class);
-            var header = new Configurator();
-            header.layout(layout -> layout.setMargin(YogaEdge.TOP, configHeader.topMargin()));
-            header.setLabel(Component.translatable(configHeader.value()).withStyle(Style.EMPTY.withBold(true)));
-            father.addConfigurator(header);
+            father.addConfigurator(new HeaderConfigurator(configHeader.value(), configHeader.topMargin()));
         }
         if (field.isAnnotationPresent(Configurable.class)) {
             Configurable configurable = field.getAnnotation(Configurable.class);

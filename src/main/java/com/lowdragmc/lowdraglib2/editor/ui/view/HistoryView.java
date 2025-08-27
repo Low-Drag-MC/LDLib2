@@ -15,10 +15,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 
@@ -27,9 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-public class HistoryView extends View {
+public class HistoryView extends View implements IHistoryStack {
     public static final int MAX_HISTORY_COUNT = 20;
-    public record HistoryItem(Component name, EditAction action, @Nullable Object source) { }
 
     public final ScrollerView scrollerView = new ScrollerView();
     public final Editor editor;
@@ -113,16 +112,6 @@ public class HistoryView extends View {
         historyUIs.clear();
     }
 
-    public <T extends INBTSerializable<?>> SerializableRecordAction<T> recordSerializableObject(Component name, T object) {
-        return recordSerializableObject(name, object, null);
-    }
-
-    public <T extends INBTSerializable<?>> SerializableRecordAction<T> recordSerializableObject(Component name, T object, @Nullable  Object source) {
-        var recordAction = SerializableRecordAction.of(object);
-        pushHistory(name, recordAction, source, false);
-        return recordAction;
-    }
-
     public void pushHistory(Component name, EditAction action) {
         pushHistory(name, action, null, true);
     }
@@ -139,12 +128,12 @@ public class HistoryView extends View {
         if (currentHistory != null) {
             if (!undoStack.isEmpty()) {
                 var popped = undoStack.pop();
-                if (popped.source != null && popped.source.equals(source) && popped.name.equals(name)) {
+                if (popped.source() != null && popped.source().equals(source) && popped.name().equals(name)) {
                     // merge action here
-                    if (popped.action instanceof SerializableRecordAction<?> serializableRecord) {
+                    if (popped.action() instanceof SerializableRecordAction<?> serializableRecord) {
                         serializableRecord.updateSnapshot();
                     } else {
-                        popped = new HistoryItem(name, action.mergeExecuteAfter(popped.action), source);
+                        popped = new HistoryItem(name, action.mergeExecuteAfter(popped.action()), source);
                     }
                     reuse = true;
                 }
@@ -223,21 +212,21 @@ public class HistoryView extends View {
         if (undoStack.contains(historyItem)) {
             while(undoStack.peek() != historyItem) {
                 var popped = undoStack.pop();
-                popped.action.undo();
+                popped.action().undo();
                 redoStack.push(popped);
             }
             currentHistory = undoStack.peek();
-            if (currentHistory.action instanceof SerializableRecordAction<?> serializableRecord) {
+            if (currentHistory.action() instanceof SerializableRecordAction<?> serializableRecord) {
                 serializableRecord.execute();
             }
         } else if (redoStack.contains(historyItem)) {
             while (redoStack.peek() != historyItem) {
                 var popped = redoStack.pop();
-                popped.action.execute();
+                popped.action().execute();
                 undoStack.push(popped);
             }
             currentHistory = redoStack.pop();
-            currentHistory.action.execute();
+            currentHistory.action().execute();
             undoStack.push(currentHistory);
         }
         if (currentHistory != null) {
