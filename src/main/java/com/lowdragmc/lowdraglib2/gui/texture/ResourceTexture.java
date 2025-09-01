@@ -19,7 +19,6 @@ import java.util.function.IntSupplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
-@Deprecated
 @NoArgsConstructor
 public class ResourceTexture extends TransformTexture {
 

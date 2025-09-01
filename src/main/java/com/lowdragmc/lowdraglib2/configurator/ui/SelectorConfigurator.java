@@ -13,11 +13,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/**
- * @author KilaBash
- * @date 2022/12/3
- * @implNote BooleanConfigurator
- */
 public class SelectorConfigurator<T> extends ValueConfigurator<T> {
     public final Selector<T> selector;
     public final List<T> candidates;

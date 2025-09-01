@@ -1,9 +1,8 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorSelectorConfigurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.SelectorConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.*;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
@@ -14,7 +13,9 @@ import org.apache.commons.lang3.ArrayUtils;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -108,9 +109,15 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
         }
     }
 
-    public static <T extends Enum<T>> Configurator create(String name, Class<T> clazz, Supplier<T> supplier, Consumer<T> consumer, T defaultValue, boolean forceUpdate) {
-        var selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate,
-                Arrays.stream(clazz.getEnumConstants()).toList(), EnumAccessor::getEnumName);
+    public static <T extends Enum<T>> SelectorConfigurator<T> create(String name, List<T> candidates, Supplier<T> supplier, Consumer<T> consumer, T defaultValue, boolean forceUpdate) {
+        var selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate, candidates, EnumAccessor::getEnumName);
+        selector.setCopiable(value -> value);
+        return selector;
+    }
+
+    public static <T extends Enum<T>> ToggleSelectorConfigurator<T> create(String name, List<T> candidates, Supplier<T> supplier, Consumer<T> consumer, T defaultValue, boolean forceUpdate, Function<T, IGuiTexture> iconProvider) {
+        var selector = new ToggleSelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate,
+                candidates, EnumAccessor::getEnumName, iconProvider);
         selector.setCopiable(value -> value);
         return selector;
     }

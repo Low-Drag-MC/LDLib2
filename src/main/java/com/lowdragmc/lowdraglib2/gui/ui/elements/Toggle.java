@@ -121,8 +121,8 @@ public class Toggle extends BindableUIElement<Boolean> {
                 .noText()
                 .layout(layout -> {
                     layout.setPadding(YogaEdge.ALL, 0);
-                    layout.setWidth(12);
-                    layout.setHeight(12);
+                    layout.setHeightPercent(100);
+                    layout.setAspectRatio(1);
                 })
                 .addChild(this.markIcon = new UIElement()
                         .layout(layout -> {
@@ -163,6 +163,9 @@ public class Toggle extends BindableUIElement<Boolean> {
     }
 
     protected void onToggleClick(UIEvent event) {
+        if (toggleGroup != null) {
+            if (isOn && !toggleGroup.allowEmpty) return;
+        }
         setOn(!isOn, true);
     }
 

@@ -1,19 +1,23 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import lombok.Getter;
+import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 
 import javax.annotation.Nonnull;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> {
-    public final Toggle toggle;
     public final TextField textField;
+    public final Selector<Boolean> definedSelector;
     @Getter
     protected Float min, max, wheel;
 
@@ -27,15 +31,28 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
         inlineContainer.layout(layout -> {
             layout.setFlexDirection(YogaFlexDirection.ROW);
         });
-        inlineContainer.addChildren(toggle = new Toggle(), textField = new TextField());
+        inlineContainer.addChildren(textField = new TextField(), definedSelector = new Selector<>());
 
-        toggle.noText().setOn(value.isDefined(), false).setOnToggleChanged(isOn -> {
-            updateValueActively(isOn ? FloatOptional.of(min == null ? 0 : min) : FloatOptional.of());
+        definedSelector.buttonIcon.setDisplay(YogaDisplay.NONE);
+        definedSelector.layout(layout -> {
+            layout.setFlex(1);
+        });
+        definedSelector.setCandidates(List.of(false, true));
+        updateSelector();
+
+        definedSelector.setOnValueChanged(defined -> {
+            if (defined) {
+                updateValueActively(FloatOptional.of(min == null ? 0 : min));
+            } else {
+                updateValueActively(FloatOptional.of());
+            }
             updateTextFieldValue();
         });
+        definedSelector.setCandidateUIProvider(UIElementProvider.text(defined -> defined ?
+                Component.literal("-") : Component.translatable("initial")));
 
         textField.layout(layout -> {
-            layout.setFlex(1);
+            layout.setFlex(2);
         }).setDisplay(value.isDefined() ? YogaDisplay.FLEX : YogaDisplay.NONE);
         textField.setTextResponder(this::onNumberUpdate);
         updateTextField();
@@ -84,17 +101,22 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
         textField.setText(String.valueOf(value.getValue()), false);
     }
 
+    protected void updateSelector() {
+        assert value != null;
+        definedSelector.setValue(value.isDefined());
+    }
+
     @Override
     protected void onValueUpdatePassively(FloatOptional newValue) {
         if (newValue == null) newValue = defaultValue;
         if (newValue.equals(value)) return;
         super.onValueUpdatePassively(newValue);
         updateTextFieldValue();
-        toggle.setOn(newValue.isDefined(), false);
+        updateSelector();
     }
 
     private void onNumberUpdate(String s) {
         var number = Float.parseFloat(s);
-        updateValueActively(toggle.isOn() ? FloatOptional.of(number) : FloatOptional.of());
+        updateValueActively(Optional.ofNullable(definedSelector.getValue()).orElse(false) ? FloatOptional.of(number) : FloatOptional.of());
     }
 }

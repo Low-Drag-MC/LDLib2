@@ -174,7 +174,7 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     public void initGizmos() {
-        var toggleGroup = new Toggle.ToggleGroup();
+        var toggleGroup = new Toggle.ToggleGroup().setAllowEmpty(true);
         // translate
         gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.TRANSLATE, Icons.TRANSFORM_TRANSLATE));
         // rotation

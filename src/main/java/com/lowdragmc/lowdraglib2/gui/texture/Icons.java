@@ -116,6 +116,38 @@ public class Icons {
     public static SpriteTexture ARROW_LEFT_RIGHT = SpriteTexture.of(GDP_ICONS).setSprite(214, 191, 13, 7);
     public static SpriteTexture ARROW_UP_DOWN = SpriteTexture.of(GDP_ICONS).setSprite(219, 233, 7, 11);
 
+    public static ResourceTexture COLUMN = icon("column");
+    public static ResourceTexture COLUMN_REVERSE = icon("column_reverse");
+    public static ResourceTexture ROW = icon("row");
+    public static ResourceTexture ROW_REVERSE = icon("row_reverse");
+
+    public static ResourceTexture NOWRAP = icon("nowrap");
+    public static ResourceTexture WRAP = icon("wrap");
+    public static ResourceTexture WRAP_REVERSE = icon("wrap_reverse");
+
+    public static ResourceTexture AUTO = icon("auto");
+    public static ResourceTexture ALIGN_ITEMS_CENTER = icon("align_items_center");
+    public static ResourceTexture ALIGN_ITEMS_FLEX_START = icon("align_items_flex_start");
+    public static ResourceTexture ALIGN_ITEMS_FLEX_END = icon("align_items_flex_end");
+    public static ResourceTexture ALIGN_ITEMS_STRETCH = icon("align_items_stretch");
+
+    public static ResourceTexture ALIGN_SELF_FLEX_START = icon("align_self_flex_start");
+    public static ResourceTexture ALIGN_SELF_CENTER = icon("align_self_center");
+    public static ResourceTexture ALIGN_SELF_FLEX_END = icon("align_self_flex_end");
+    public static ResourceTexture ALIGN_SELF_STRETCH = icon("align_self_stretch");
+
+    public static ResourceTexture ALIGN_CONTENT_FLEX_START = icon("align_content_flex_start");
+    public static ResourceTexture ALIGN_CONTENT_CENTER = icon("align_content_center");
+    public static ResourceTexture ALIGN_CONTENT_FLEX_END = icon("align_content_flex_end");
+    public static ResourceTexture ALIGN_CONTENT_STRETCH = icon("align_content_stretch");
+
+    public static ResourceTexture JUSTIFY_CONTENT_FLEX_START = icon("justify_content_flex_start");
+    public static ResourceTexture JUSTIFY_CONTENT_CENTER = icon("justify_content_center");
+    public static ResourceTexture JUSTIFY_CONTENT_FLEX_END = icon("justify_content_flex_end");
+    public static ResourceTexture JUSTIFY_CONTENT_SPACE_BETWEEN = icon("justify_content_space_between");
+    public static ResourceTexture JUSTIFY_CONTENT_SPACE_AROUND = icon("justify_content_space_around");
+    public static ResourceTexture JUSTIFY_CONTENT_SPACE_EVENLY = icon("justify_content_space_evenly");
+
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");
         registerFileIcon(JSON, "json", "nbt");
