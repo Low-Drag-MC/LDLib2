@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegisterClient(name="configurators", registry = "screen_test")
+@LDLRegisterClient(name="configurators", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestConfigurators implements IScreenTest, IConfigurable, IPersistedSerializable {
     @Configurable

@@ -2,7 +2,15 @@ package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import net.minecraft.client.gui.GuiGraphics;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.appliedenergistics.yoga.style.StyleLength;
@@ -16,37 +24,38 @@ import java.util.function.Function;
 
 public class YogaStyleConfigParser {
 
-    public static void buildConfigurator(YogaNode yogaNode, ConfiguratorGroup father) {
-        var style = yogaNode.getStyle();
+    public static void buildConfigurator(UIElement uiElement, ConfiguratorGroup father) {
+        var yogaNode = uiElement.getLayoutNode();
+        var yogaStyle = yogaNode.getStyle();
         father.addConfigurator(EnumAccessor.create("LayoutDirection",
-                Arrays.stream(YogaDirection.values()).toList(), style::getDirection, yogaNode::setDirection,
+                Arrays.stream(YogaDirection.values()).toList(), yogaStyle::getDirection, yogaNode::setDirection,
                 YogaDirection.INHERIT, true).setTips("LayoutDirection.tips"));
 
         // flex
         var flexGroup = new ConfiguratorGroup("Flex.name");
 
-        flexGroup.addConfigurator(new StyleSizeLengthConfigurator("FlexBasis", style::getFlexBasis, value -> {
-            style.setFlexBasis(value);
+        flexGroup.addConfigurator(new StyleSizeLengthConfigurator("FlexBasis", yogaStyle::getFlexBasis, value -> {
+            yogaStyle.setFlexBasis(value);
             yogaNode.markDirtyAndPropagate();
         }, StyleSizeLength.AUTO, true).setTips("FlexBasis.tips"));
 
-        flexGroup.addConfigurator(new FloatOptionalConfigurator("Flex", style::getFlex, value -> {
-            style.setFlex(value);
+        flexGroup.addConfigurator(new FloatOptionalConfigurator("Flex", yogaStyle::getFlex, value -> {
+            yogaStyle.setFlex(value);
             yogaNode.markDirtyAndPropagate();
         }, FloatOptional.of(), true).setTips("Flex.tips"));
 
-        flexGroup.addConfigurator(new FloatOptionalConfigurator("FlexGrow", style::getFlexGrow, value -> {
-            style.setFlexGrow(value);
+        flexGroup.addConfigurator(new FloatOptionalConfigurator("FlexGrow", yogaStyle::getFlexGrow, value -> {
+            yogaStyle.setFlexGrow(value);
             yogaNode.markDirtyAndPropagate();
         }, FloatOptional.of(), true).setTips("FlexGrow.tips"));
 
-        flexGroup.addConfigurator(new FloatOptionalConfigurator("FlexShrink", style::getFlexShrink, value -> {
-            style.setFlexShrink(value);
+        flexGroup.addConfigurator(new FloatOptionalConfigurator("FlexShrink", yogaStyle::getFlexShrink, value -> {
+            yogaStyle.setFlexShrink(value);
             yogaNode.markDirtyAndPropagate();
         }, FloatOptional.of(), true).setTips("FlexShrink.tips"));
 
         flexGroup.addConfigurator(EnumAccessor.create("FlexDirection",
-                Arrays.stream(YogaFlexDirection.values()).toList(), style::getFlexDirection, yogaNode::setFlexDirection,
+                Arrays.stream(YogaFlexDirection.values()).toList(), yogaStyle::getFlexDirection, yogaNode::setFlexDirection,
                 YogaFlexDirection.COLUMN, true,
                 v -> switch (v) {
                     case YogaFlexDirection.COLUMN -> Icons.COLUMN;
@@ -74,7 +83,7 @@ public class YogaStyleConfigParser {
                 YogaPositionType.RELATIVE, true).setTips("PositionMode.tips"));
 
         var group = createEdgeConfigurator("",
-                style::getPosition, yogaNode::setPosition,
+                yogaStyle::getPosition, yogaNode::setPosition,
                 edge -> StyleLength.undefined(), true);
         var configurators = new ArrayList<>(group.getConfigurators());
         group.removeAllConfigurators();
@@ -86,10 +95,13 @@ public class YogaStyleConfigParser {
         var spacingGroup = new ConfiguratorGroup("Spacing.name");
 
         spacingGroup.addConfigurator(createEdgeConfigurator("Margin",
-                style::getMargin, yogaNode::setMargin,
+                yogaStyle::getMargin, yogaNode::setMargin,
                 edge -> StyleLength.undefined(), true));
         spacingGroup.addConfigurator(createEdgeConfigurator("Padding",
-                style::getPadding, yogaNode::setPadding,
+                yogaStyle::getPadding, yogaNode::setPadding,
+                edge -> StyleLength.undefined(), true));
+        spacingGroup.addConfigurator(createGutterConfigurator("Gap",
+                yogaStyle::getGap, yogaNode::setGap,
                 edge -> StyleLength.undefined(), true));
 
         father.addConfigurator(spacingGroup);
@@ -98,8 +110,8 @@ public class YogaStyleConfigParser {
         var sizeGroup = new ConfiguratorGroup("Size.name");
 
         group = createDimensionConfigurator("",
-                style::getDimension, (dim, value) -> {
-            style.setDimension(dim, value);
+                yogaStyle::getDimension, (dim, value) -> {
+            yogaStyle.setDimension(dim, value);
             yogaNode.markDirtyAndPropagate();
                 },
                 dim -> StyleSizeLength.undefined(), true);
@@ -108,17 +120,22 @@ public class YogaStyleConfigParser {
         sizeGroup.addConfigurators(configurators.toArray(new Configurator[0]));
 
         sizeGroup.addConfigurator(createDimensionConfigurator("Min",
-                style::getMinDimension, (dim, value) -> {
-                    style.setMinDimension(dim, value);
+                yogaStyle::getMinDimension, (dim, value) -> {
+                    yogaStyle.setMinDimension(dim, value);
                     yogaNode.markDirtyAndPropagate();
                 },
                 dim -> StyleSizeLength.undefined(), true));
         sizeGroup.addConfigurator(createDimensionConfigurator("Max",
-                style::getMaxDimension, (dim, value) -> {
-                    style.setMaxDimension(dim, value);
+                yogaStyle::getMaxDimension, (dim, value) -> {
+                    yogaStyle.setMaxDimension(dim, value);
                     yogaNode.markDirtyAndPropagate();
                 },
                 dim -> StyleSizeLength.undefined(), true));
+
+        sizeGroup.addConfigurator(new FloatOptionalConfigurator("AspectRate", yogaStyle::getAspectRatio, value -> {
+            yogaStyle.setAspectRatio(value);
+            yogaNode.markDirtyAndPropagate();
+        }, FloatOptional.of(), true).setTips("AspectRate.tips"));
 
         father.addConfigurator(sizeGroup);
 
@@ -213,6 +230,23 @@ public class YogaStyleConfigParser {
                     () -> getter.apply(dimension),
                     value -> setter.accept(dimension, value),
                     defaultValue.apply(dimension),
+                    forceUpdate);
+            group.addConfigurator(configurator);
+        }
+        return group;
+    }
+
+    private static ConfiguratorGroup createGutterConfigurator(String name,
+                                                                 Function<YogaGutter, StyleLength> getter,
+                                                                 BiConsumer<YogaGutter, StyleLength> setter,
+                                                                 Function<YogaGutter, StyleLength> defaultValue,
+                                                                 boolean forceUpdate) {
+        var group = new ConfiguratorGroup(name);
+        for (YogaGutter gutter : YogaGutter.values()) {
+            var configurator = new StyleLengthConfigurator(gutter.name(),
+                    () -> getter.apply(gutter),
+                    value -> setter.accept(gutter, value),
+                    defaultValue.apply(gutter),
                     forceUpdate);
             group.addConfigurator(configurator);
         }

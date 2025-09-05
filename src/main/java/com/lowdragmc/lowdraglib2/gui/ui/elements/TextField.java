@@ -2,6 +2,11 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigFont;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -13,6 +18,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,6 +36,8 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.minecraft.util.Tuple;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
@@ -44,6 +52,7 @@ import java.util.function.Predicate;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@LDLRegister(name = "text_field", registry = "ldlib2:ui_element")
 public class TextField extends BindableUIElement<String> {
     private record NumberStart(double value){}
     private record CursorStart(int value){}
@@ -51,22 +60,45 @@ public class TextField extends BindableUIElement<String> {
     public static class TextFieldStyle extends Style {
         @Getter
         @Setter
+        @Configurable(name = "focusOverlay")
         private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
         @Getter @Setter
+        @Configurable(name = "fontSize")
         private float fontSize = 9;
         @Getter @Setter
+        @Configurable(name = "font")
+        @ConfigFont
+        private ResourceLocation font = net.minecraft.network.chat.Style.DEFAULT_FONT;
+        @Getter @Setter
+        @Configurable(name = "textColor")
+        @ConfigColor
         private int textColor = -1;
         @Getter @Setter
+        @Configurable(name = "errorColor")
+        @ConfigColor
         private int errorColor = 0xffff0000;
         @Getter @Setter
+        @Configurable(name = "cursorColor")
+        @ConfigColor
         private int cursorColor = 0xffeeeeee;
         @Getter @Setter
+        @Configurable(name = "textShadow")
         private boolean textShadow = true;
         @Getter @Setter
+        @Configurable(name = "placeholder")
         private Component placeholder = Component.translatable("text_field.empty");
 
         public TextFieldStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        @OnlyIn(Dist.CLIENT)
+        public void buildConfigurator(ConfiguratorGroup father) {
+            super.buildConfigurator(father);
+            if (holder instanceof TextField textField) {
+                father.addEventListener(Configurator.CHANGE_EVENT, event -> textField.updateDisplayOffset());
+            }
         }
     }
     public enum Mode {
@@ -87,6 +119,7 @@ public class TextField extends BindableUIElement<String> {
     @Getter
     private String text = "";
     @Getter
+    @Configurable(name = "textFieldStyle", subConfigurable = true)
     private final TextFieldStyle textFieldStyle = new TextFieldStyle(this);
     @Getter
     private float wheelDur;
@@ -695,7 +728,7 @@ public class TextField extends BindableUIElement<String> {
         if (!LDLib2.isClient()) return;
         // Keep cursor inside viewport; prefer placing cursor at the right edge when scrolling
         var scale = textFieldStyle.fontSize / getFont().lineHeight;
-        var cursorPosX = getFont().width(rawText.substring(0, cursorPos)) * scale;
+        var cursorPosX = getFont().width(TextUtilities.withFont(rawText.substring(0, cursorPos), getTextFieldStyle().font())) * scale;
         var width = getContentWidth();
         float rightPad = 1f;
 
@@ -767,11 +800,11 @@ public class TextField extends BindableUIElement<String> {
         var scale = textFieldStyle.fontSize / getFont().lineHeight;
         var availableWidth = ((mouseX - x + displayOffset) * scale);
         var subText = getFont().plainSubstrByWidth(rawText, (int) availableWidth);
-        var length = getFont().width(subText) * scale;
+        var length = getFont().width(TextUtilities.withFont(subText, getTextFieldStyle().font())) * scale;
         if (subText.length() >= rawText.length()) {
             return rawText.length();
         }
-        var nextCharWidth = getFont().width(rawText.substring(subText.length(), subText.length() + 1)) * scale;
+        var nextCharWidth = getFont().width(TextUtilities.withFont(rawText.substring(subText.length(), subText.length() + 1), getTextFieldStyle().font())) * scale;
         return (availableWidth - length) - nextCharWidth / 2f > 0 ? (subText.length() + 1) : subText.length();
     }
 
@@ -783,9 +816,12 @@ public class TextField extends BindableUIElement<String> {
 
     public Tuple<FormattedCharSequence, Float> getFormattedLine() {
         if (formattedLineCache == null) {
+            var font = getTextFieldStyle().font();
+            var text = rawText.isEmpty() ? textFieldStyle.placeholder() : Component.literal(rawText);
+            var textWithFont = font.equals(net.minecraft.network.chat.Style.DEFAULT_FONT) ? text : text.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(font));
             var lines = TextUtilities.computeFormattedLines(
                     getFont(),
-                    rawText.isEmpty() ? textFieldStyle.placeholder() : Component.literal(rawText),
+                    textWithFont,
                     getTextFieldStyle().fontSize(),
                     Float.MAX_VALUE
             );
@@ -831,8 +867,8 @@ public class TextField extends BindableUIElement<String> {
 
         // draw highlight
         if (isFocused() && selectionStart != selectionEnd) {
-            var minX = font.width(rawText.substring(0, selectionStart)) * scale - displayOffset;
-            var maxX = font.width(rawText.substring(0, selectionEnd)) * scale - displayOffset;
+            var minX = font.width(TextUtilities.withFont(rawText.substring(0, selectionStart), getTextFieldStyle().font())) * scale - displayOffset;
+            var maxX = font.width(TextUtilities.withFont(rawText.substring(0, selectionEnd), getTextFieldStyle().font())) * scale - displayOffset;
             DrawerHelper.drawSolidRect(guiContext.graphics,
                     RenderType.guiTextHighlight(),
                     x + minX,
@@ -841,7 +877,7 @@ public class TextField extends BindableUIElement<String> {
                     textFieldStyle.fontSize, -16776961);
         }
         // draw cursor
-        var cursorPosX = font.width(rawText.substring(0, cursorPos)) * scale;
+        var cursorPosX = font.width(TextUtilities.withFont(rawText.substring(0, cursorPos), getTextFieldStyle().font())) * scale;
         if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
             DrawerHelper.drawSolidRect(guiContext.graphics,
                     x + cursorPosX - displayOffset,

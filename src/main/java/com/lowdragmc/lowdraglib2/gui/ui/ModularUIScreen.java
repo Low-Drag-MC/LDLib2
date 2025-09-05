@@ -92,13 +92,4 @@ public class ModularUIScreen extends Screen {
 
     }
 
-    @Override
-    public void render(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.render(graphics, mouseX, mouseY, partialTicks);
-
-        if (Platform.isDevEnv()) {
-            modularUI.getWidget().renderDebugInfo(graphics, mouseX, mouseY, partialTicks);
-        }
-    }
-
 }

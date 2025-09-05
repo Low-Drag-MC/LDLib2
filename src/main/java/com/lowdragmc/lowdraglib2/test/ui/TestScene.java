@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import org.appliedenergistics.yoga.YogaEdge;
 
-@LDLRegisterClient(name="scene", registry = "screen_test")
+@LDLRegisterClient(name="scene", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestScene implements IScreenTest {
     @Override

@@ -2,13 +2,18 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -27,17 +32,62 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class FileResourceProvider<T> extends ResourceProvider<T>  {
+    public static final ResourceProviderType TYPE = new ResourceProviderType() {
+        @Override
+        public String getTypeName() {
+            return "file";
+        }
+
+        @Override
+        public IGuiTexture getIcon() {
+            return Icons.FILE;
+        }
+
+        @Override
+        public IResourcePath createFullPath(String path) {
+            return new FilePath(path);
+        }
+
+        @Override
+        public <K> ResourceProvider<K> fromNbt(ResourceInstance<K> resourceHolder, CompoundTag tag) {
+            return FileResourceProvider.fromNBT(resourceHolder, tag);
+        }
+
+        @Override
+        public boolean supportCustom() {
+            return true;
+        }
+
+        @Override
+        public <K> void onCreateCustom(ResourceContainer<K> container) {
+            Dialog.showFileDialog("ldlib.gui.resource.add_provider", LDLib2.getAssetsDir(), true, file -> true, result -> {
+                if (result.isFile()) {
+                    result = result.getParentFile();
+                }
+                if (result.isDirectory()) {
+                    container.resourceInstance.addCustomProvider(new FileResourceProvider<>(container.resourceInstance, result));
+                }
+            }).show(container.editor);
+        }
+    };
+
     public final File resourceLocation;
     public final String resourceSuffix;
     private final Map<File, Long> resourcesLastModified = new LinkedHashMap<>();
+    @Getter @Setter
+    private String name;
 
     public FileResourceProvider(ResourceInstance<T> resourceInstance, File resourceLocation) {
         super(resourceInstance);
         this.resourceLocation = resourceLocation;
         this.resourceSuffix = resourceInstance.resource.getFileExtension();
         setName(resourceLocation.getName());
-        setIcon(Icons.FILE);
         checkAndUpdateResourceProvider();
+    }
+
+    @Override
+    public ResourceProviderType getType() {
+        return TYPE;
     }
 
     @Override
@@ -51,7 +101,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     }
 
     @Override
-    public IResourcePath createPath(String name) {
+    public IResourcePath createSubPath(String name) {
         return new FilePath(new File(resourceLocation, name + resourceSuffix));
     }
 
@@ -127,7 +177,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 new UIElement().layout(layout -> {
                     layout.setWidth(9);
                     layout.setHeight(9);
-                }).style(style -> style.backgroundTexture(getIcon())),
+                }).style(style -> style.backgroundTexture(getType().getIcon())),
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())
                         .layout(layout -> layout.setFlex(1))
@@ -197,6 +247,9 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 });
                 changed = true;
             }
+            if (changed) {
+                resourceInstance.clearCache();
+            }
             return changed;
         } catch (Exception e) {
             LDLib2.LOGGER.error("Failed to tick file resources provider from {}: ", resourceLocation, e);
@@ -228,7 +281,9 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     public static <T> FileResourceProvider<T> fromNBT(ResourceInstance<T> resourceInstance, @Nonnull CompoundTag nbt) {
         var location = new File(nbt.getString("location").replace('\\', '/'));
-        return (FileResourceProvider<T>) new FileResourceProvider<>(resourceInstance, location)
-                .setName(nbt.getString("name"));
+        var name = nbt.getString("name");
+        var fileProvider = new FileResourceProvider<>(resourceInstance, location);
+        fileProvider.setName(name);
+        return fileProvider;
     }
 }

@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
 import lombok.Setter;
@@ -223,6 +224,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         return this;
     }
 
+    @LDLRegister(name = "scroller_vertical", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
             getLayout().setFlexDirection(YogaFlexDirection.COLUMN);
@@ -285,6 +287,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         }
     }
 
+    @LDLRegister(name = "scroller_horizontal", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {
             getLayout().setFlexDirection(YogaFlexDirection.ROW);

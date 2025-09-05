@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
+@LDLRegister(name = "inspector", registry = "ldlib2:ui_element")
 public class Inspector extends UIElement {
     public final ScrollerView scrollerView;
     @Nullable @Setter @Getter

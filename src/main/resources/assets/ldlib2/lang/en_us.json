@@ -370,6 +370,7 @@
   "stretch": "stretch",
   "Spacing.name": "Spacing",
   "Margin": "margin",
+  "Gap": "gap",
   "Padding": "padding",
   "Size.name": "Size",
   "Min": "Min",
@@ -382,5 +383,17 @@
   "AlignSelf": "align-self",
   "AlignSelf.tips": "Similar to align-items, but only for this specific element.",
   "AlignContent": "align-content",
-  "AlignContent.tips": "Alignment of the whole area of children on the cross axis if they span over multiple lines in this container."
+  "AlignContent.tips": "Alignment of the whole area of children on the cross axis if they span over multiple lines in this container.",
+  "focusOverlay": "Focus Overlay",
+  "errorColor": "Error Color",
+  "cursorColor": "Cursor Color",
+  "placeholder": "Placeholder",
+  "font": "Font",
+  "mode": "Mode",
+  "horizontalScrollDisplay": "Horizontal Scroll Display",
+  "verticalScrollDisplay": "Vertical Scroll Display",
+  "textAreaStyle": "Text Area Style",
+  "textFieldStyle": "Text Field Style",
+  "AspectRate": "aspect-ratio",
+  "AspectRate.tips": "Defined as the ratio between the width and the height of a node e.g. if a node has an aspect ratio of 2 then its width is twice the size of its height."
 }

@@ -109,13 +109,4 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
         super.renderSlot(guiGraphics, slot);
     }
 
-    @Override
-    public void render(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.render(graphics, mouseX, mouseY, partialTicks);
-
-        if (Platform.isDevEnv()) {
-            menu.modularUI.getWidget().renderDebugInfo(graphics, mouseX, mouseY, partialTicks);
-        }
-    }
-
 }

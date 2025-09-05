@@ -2,21 +2,27 @@ package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class UIEditorView extends View {
     public final UIHierarchy hierarchy;
     public final GraphView graphView = new GraphView();
     public final Inspector inspector = new Inspector();
+    public final ModularUIPreview modularUIPreview;
+    public final HistoryStack historyStack = new HistoryStack();
 
     public UIEditorView() {
         super("editor.view.ui_editor");
@@ -32,7 +38,12 @@ public class UIEditorView extends View {
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
         });
+        graphView.addContentChild(modularUIPreview = new ModularUIPreview(this));
+        graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
+            modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
+        });
 
+        inspector.setHistoryStack(historyStack);
         inspector.layout(layout -> {
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
@@ -46,12 +57,64 @@ public class UIEditorView extends View {
                 .right(new SplitView.Horizontal().setPercentage(64)
                         .left(graphView)
                         .right(inspector)));
+
+        setFocusable(true);
+        addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+        addEventListener(UIEvents.BLUR, this::onBlur, true);
+        addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown, true);
     }
 
-    public UIEditorView loadUI(UI ui) {
-        this.graphView.clearAllContentChildren();
+    protected void onMouseDown(UIEvent event) {
+        if (event.target.isFocusable()) return;
+        focus();
+    }
+
+    protected void onBlur(UIEvent event) {
+        if (event.relatedTarget != null && this.isAncestorOf(event.relatedTarget)) { // focus on children
+            return;
+        }
+
+        if (event.target == this) { // lose focus
+            if (isChildHover() && event.relatedTarget == null) {
+                focus();
+            }
+        } else { // child lose focus
+            if (event.relatedTarget == null && isChildHover()) {
+                focus();
+            }
+        }
+    }
+
+    protected void onValidateCommand(UIEvent event) {
+        if (CommandEvents.REDO.equals(event.command) && !historyStack.getRedoStack().isEmpty()) {
+            event.stopPropagation();
+        }
+        if (CommandEvents.UNDO.equals(event.command) && !historyStack.getUndoStack().isEmpty()) {
+            event.stopPropagation();
+        }
+    }
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.REDO.equals(event.command) && !historyStack.getRedoStack().isEmpty()) {
+            historyStack.redo();
+        }
+        if (CommandEvents.UNDO.equals(event.command) && !historyStack.getUndoStack().isEmpty()) {
+            historyStack.undo();
+        }
+    }
+
+    public UIEditorView clearUI() {
+        this.modularUIPreview.clear();
+        this.hierarchy.clearUI();
+        this.historyStack.clearHistory();
+        return this;
+    }
+
+    public UIEditorView loadUI(@Nonnull UI ui) {
+        this.modularUIPreview.setModularUI(ui);
         this.hierarchy.loadUI(ui);
-        this.graphView.addContentChild(ui.getRootElement());
+        this.modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
         return this;
     }
 

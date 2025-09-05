@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
 import lombok.Getter;
@@ -40,6 +41,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 @Accessors(chain = true)
+@LDLRegister(name = "fluid_slot", registry = "ldlib2:ui_element")
 public class FluidSlot extends BindableUIElement<FluidStack> {
     public final static SpriteTexture FLUID_SLOT_TEXTURE =SpriteTexture.of("ldlib2:textures/gui/fluid_slot.png")
             .setSprite(0, 0, 18, 18).setBorder(1, 1, 1, 1);
@@ -53,7 +55,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         private FillDirection fillDirection = FillDirection.DOWN_TO_UP;
 
         @Getter @Setter
-        private List<Component> tooltips = List.of();
+        private boolean showFluidTooltips = true;
 
         public SlotStyle(FluidSlot holder) {
             super(holder);
@@ -201,16 +203,18 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public List<Component> getFullTooltipTexts() {
         var tooltips = new ArrayList<Component>();
-        var fluidStack = getFluid();
-        capacity = Math.max(capacity, fluidStack.getAmount());
-        if (!fluidStack.isEmpty()) {
-            tooltips.add(FluidHelper.getDisplayName(fluidStack));
-            tooltips.add(Component.translatable("ldlib.fluid.amount", fluidStack.getAmount(), capacity).append(" " + FluidHelper.getUnit()));
-            tooltips.add(Component.translatable("ldlib.fluid.temperature", FluidHelper.getTemperature(fluidStack)));
-            tooltips.add(Component.translatable(FluidHelper.isLighterThanAir(fluidStack) ? "ldlib.fluid.state_gas" : "ldlib.fluid.state_liquid"));
-        } else {
-            tooltips.add(Component.translatable("ldlib.fluid.empty"));
-            tooltips.add(Component.translatable("ldlib.fluid.amount", 0, capacity).append(" " + FluidHelper.getUnit()));
+        if (slotStyle.showFluidTooltips) {
+            var fluidStack = getFluid();
+            capacity = Math.max(capacity, fluidStack.getAmount());
+            if (!fluidStack.isEmpty()) {
+                tooltips.add(FluidHelper.getDisplayName(fluidStack));
+                tooltips.add(Component.translatable("ldlib.fluid.amount", fluidStack.getAmount(), capacity).append(" " + FluidHelper.getUnit()));
+                tooltips.add(Component.translatable("ldlib.fluid.temperature", FluidHelper.getTemperature(fluidStack)));
+                tooltips.add(Component.translatable(FluidHelper.isLighterThanAir(fluidStack) ? "ldlib.fluid.state_gas" : "ldlib.fluid.state_liquid"));
+            } else {
+                tooltips.add(Component.translatable("ldlib.fluid.empty"));
+                tooltips.add(Component.translatable("ldlib.fluid.amount", 0, capacity).append(" " + FluidHelper.getUnit()));
+            }
         }
         tooltips.addAll(getStyle().tooltips());
         return tooltips;

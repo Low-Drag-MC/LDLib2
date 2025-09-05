@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -25,6 +26,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 
@@ -131,6 +133,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setJustifyContent(YogaJustify.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
+            style.font(LDLibFonts.JETBRAINS_MONO_BOLD);
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 style.textAlignHorizontal(Horizontal.LEFT).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
                 style.fontSize(9);
@@ -308,10 +311,10 @@ public class ResourceProviderContainer<T> extends UIElement {
 
     public void addNewResource(T value) {
         if (value == null) return;
-        var key = resourceProvider.createPath("new resource");
+        var key = resourceProvider.createSubPath("new_res");
         var count = 1;
         while (resourceProvider.hasResource(key)) {
-            key = resourceProvider.createPath("new resource (" + count + ")");
+            key = resourceProvider.createSubPath("new_res_" + count);
             count++;
         }
         IResourcePath finalKey = key;
@@ -328,9 +331,9 @@ public class ResourceProviderContainer<T> extends UIElement {
                     var copied = resourceProvider.getResourceInstance().resource.deserializeResource(tag, Platform.getFrozenRegistry());
                     if (copied != null) {
                         var count = 1;
-                        var newKey = resourceProvider.createPath(resourceProvider.getResourceName(key) + " copy");
+                        var newKey = resourceProvider.createSubPath(resourceProvider.getResourceName(key) + "_copy");
                         while(resourceProvider.hasResource(newKey)) {
-                            newKey = resourceProvider.createPath(resourceProvider.getResourceName(key) + " copy (" + count + ")");
+                            newKey = resourceProvider.createSubPath(resourceProvider.getResourceName(key) + "_copy_" + count);
                             count++;
                         }
                         IResourcePath finalNewKey = newKey;
@@ -392,10 +395,10 @@ public class ResourceProviderContainer<T> extends UIElement {
             var ui = resourceUIs.get(key);
             if (ui != null && ui.getChildren().getLast() instanceof Label label) {
                 // remove current label and add a TextField for renaming
-                var textField = new TextField().setText(nameSupplier.apply(key));
+                var textField = new TextField().setText(nameSupplier.apply(key)).setCharValidator(ResourceLocation::isAllowedInResourceLocation);
                 textField.addEventListener(UIEvents.BLUR, e -> {
                     var newName = textField.getText().trim();
-                    var newPath = resourceProvider.createPath(newName);
+                    var newPath = resourceProvider.createSubPath(newName);
                     if (newPath.equals(key)) {
                         // if the name is the same, just update the label
                         label.setText(nameSupplier.apply(key));
@@ -406,7 +409,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                     var count = 0;
                     while (resourceProvider.hasResource(newPath)) {
                         count++;
-                        newPath = resourceProvider.createPath(newName + " (" + count + ")");
+                        newPath = resourceProvider.createSubPath(newName + " (" + count + ")");
                     }
                     IResourcePath finalNewPath = newPath;
                     editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(() -> {

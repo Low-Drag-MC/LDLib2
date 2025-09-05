@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegisterClient(name="serialization", registry = "screen_test")
+@LDLRegisterClient(name="serialization", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestSerialization implements IScreenTest {
     public class TestData implements IConfigurable, IPersistedSerializable {

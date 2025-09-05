@@ -40,7 +40,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
     }
 
     @Override
-    public ResourceProviderContainer<IGuiTexture> createResourceProviderContainer(ResourceProvider<IGuiTexture> provider) {
+    public ResourceProviderContainer<IGuiTexture> createResourceProviderContainer(IResourceProvider<IGuiTexture> provider) {
         var container = super.createResourceProviderContainer(provider)
                 .setUiSupplier(path -> new UIElement().layout(layout -> {
                     layout.setWidthPercent(100);

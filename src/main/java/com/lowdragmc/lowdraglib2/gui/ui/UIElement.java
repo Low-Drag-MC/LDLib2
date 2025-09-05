@@ -17,6 +17,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,6 +39,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The base class for all UI elements.
@@ -47,7 +50,8 @@ import java.util.function.Function;
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class UIElement implements IConfigurable {
+@LDLRegister(name = "element", registry = "ldlib2:ui_element")
+public class UIElement implements IConfigurable, ILDLRegister<UIElement, Supplier<UIElement>> {
     public static final YogaConfig DEFAULT_YOGA_CONFIG;
     static {
         MutableYogaConfig config = YogaConfig.create(YogaLogger.getDefaultLogger());
@@ -165,7 +169,7 @@ public class UIElement implements IConfigurable {
      * You can override this method to do something when the element is removed. e.g. clean up resources, stop animations, etc.
      */
     protected void onRemoved() {
-        for (var child : children) {
+        for (var child : new ArrayList<>(children)) {
             child.onRemoved();
         }
         if (bubbleListeners.containsKey(UIEvents.REMOVED) || captureListeners.containsKey(UIEvents.REMOVED)) {
@@ -838,7 +842,7 @@ public class UIElement implements IConfigurable {
         if (listeners == null) {
             return Collections.emptyList();
         }
-        return listeners;
+        return new ArrayList<>(listeners);
     }
 
     public List<UIEventListener> getBubbleListeners(String eventType) {
@@ -846,7 +850,7 @@ public class UIElement implements IConfigurable {
         if (listeners == null) {
             return Collections.emptyList();
         }
-        return listeners;
+        return new ArrayList<>(listeners);
     }
 
     /// Sync
@@ -1133,10 +1137,19 @@ public class UIElement implements IConfigurable {
         return new ArrayList<>(children);
     }
 
+    public void addEditorChild(UIElement child, int index) {
+        if (isInternalUI()) return;
+        if (index == -1) {
+            addChild(child);
+        } else {
+            addChildAt(child, index);
+        }
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
-        YogaStyleConfigParser.buildConfigurator(layoutNode, father);
+        YogaStyleConfigParser.buildConfigurator(this, father);
     }
 }

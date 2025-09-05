@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
+import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -62,7 +64,12 @@ public class Configurator extends UIElement {
             layout.setFlexDirection(YogaFlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(
-                this.label.textStyle(textStyle -> textStyle.adaptiveWidth(true).textAlignVertical(Vertical.CENTER)).setText(name).layout(layout -> {
+                this.label.textStyle(textStyle -> {
+                    textStyle.adaptiveWidth(true);
+//                    textStyle.fontSize(7);
+//                    textStyle.font(LDLibFonts.JETBRAINS_MONO_BOLD);
+                    textStyle.textAlignVertical(Vertical.CENTER);
+                }).setText(name).layout(layout -> {
                     layout.setHeight(14);
                 }),
                 this.inlineContainer.layout(layout -> layout.setFlex(1)),
@@ -187,7 +194,6 @@ public class Configurator extends UIElement {
         }
     }
 
-    @Nullable
     protected TreeBuilder.Menu createMenu() {
         var menu = TreeBuilder.Menu.start();
         if (copyFunction != null) {

@@ -1,12 +1,37 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import lombok.Getter;
 
-public class BuiltinResourceProvider<T> extends ResourceProvider<T>{
-    public BuiltinResourceProvider(ResourceInstance<T> resourceInstance) {
+
+public class BuiltinResourceProvider<T> extends ResourceProvider<T> {
+    public static final ResourceProviderType TYPE = new ResourceProviderType() {
+        @Override
+        public String getTypeName() {
+            return "built-in";
+        }
+
+        @Override
+        public IGuiTexture getIcon() {
+            return Icons.RESOURCE;
+        }
+
+        @Override
+        public IResourcePath createFullPath(String path) {
+            if (!path.contains(":")) {
+                path = "built-in:" + path;
+            }
+            return new BuiltinPath(path);
+        }
+    };
+
+    @Getter
+    public final String name;
+
+    public BuiltinResourceProvider(String name, ResourceInstance<T> resourceInstance) {
         super(resourceInstance);
-        setName("editor.builtin");
-        setIcon(Icons.RESOURCE);
+        this.name = name;
     }
 
     @Override
@@ -15,8 +40,23 @@ public class BuiltinResourceProvider<T> extends ResourceProvider<T>{
     }
 
     @Override
-    public IResourcePath createPath(String name) {
-        return new BuiltinPath(name);
+    public ResourceProviderType getType() {
+        return TYPE;
+    }
+
+    @Override
+    public IResourcePath createSubPath(String name) {
+        return new BuiltinPath("%s:%s".formatted(this.name, name));
+    }
+
+    @Override
+    public String getResourceName(IResourcePath path) {
+        if (path instanceof BuiltinPath builtinPath) {
+            if (builtinPath.getPath().startsWith(name + ":")) {
+                return builtinPath.getPath().substring(name.length() + 1);
+            }
+        }
+        return super.getResourceName(path);
     }
 
     @Override

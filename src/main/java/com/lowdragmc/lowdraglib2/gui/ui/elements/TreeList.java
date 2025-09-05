@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -35,6 +36,7 @@ import java.util.function.Function;
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@LDLRegister(name = "tree_list", registry = "ldlib2:ui_element")
 public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @Accessors(chain = true, fluent = true)
     @Getter @Setter

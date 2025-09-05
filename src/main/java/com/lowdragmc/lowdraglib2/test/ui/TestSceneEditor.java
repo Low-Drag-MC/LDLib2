@@ -13,7 +13,7 @@ import org.appliedenergistics.yoga.YogaEdge;
 
 import java.util.List;
 
-@LDLRegisterClient(name="scene_editor", registry = "screen_test")
+@LDLRegisterClient(name="scene_editor", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestSceneEditor implements IScreenTest {
     @Override

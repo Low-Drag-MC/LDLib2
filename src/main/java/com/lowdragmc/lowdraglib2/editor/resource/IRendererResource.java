@@ -52,7 +52,7 @@ public class IRendererResource extends Resource<IRenderer> {
     }
 
     @Override
-    public ResourceProviderContainer<IRenderer> createResourceProviderContainer(ResourceProvider<IRenderer> provider) {
+    public ResourceProviderContainer<IRenderer> createResourceProviderContainer(IResourceProvider<IRenderer> provider) {
         var container = super.createResourceProviderContainer(provider);
         container.setUiSupplier(path -> {
             var level = new TrackedDummyWorld();

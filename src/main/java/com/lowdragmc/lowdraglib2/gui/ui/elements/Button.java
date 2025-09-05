@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
@@ -30,6 +31,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
+@LDLRegister(name = "button", registry = "ldlib2:ui_element")
 public class Button extends UIElement {
     @Accessors(chain = true, fluent = true)
     public static class ButtonStyle extends Style {

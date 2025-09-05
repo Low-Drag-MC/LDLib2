@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,11 +14,7 @@ public abstract class ResourceProvider<T> implements IResourceProvider<T> {
     public final ResourceInstance<T> resourceInstance;
     @Getter
     protected final Map<IResourcePath, T> contents = new LinkedHashMap<>();
-    @Getter @Setter
-    private String name;
-    @Getter @Setter
-    private IGuiTexture icon;
-    
+
     protected ResourceProvider(ResourceInstance<T> resourceHolder) {
         this.resourceInstance = resourceHolder;
     }
@@ -38,27 +32,33 @@ public abstract class ResourceProvider<T> implements IResourceProvider<T> {
             return contents.get(path);
         }
         return null;
-    }
+    } 
 
     public boolean addResource(IResourcePath path, T resource) {
         if (!supportResourcePath(path)) return false;
-        contents.put(path, resource);
+        if (contents.put(path, resource) != null) {
+            resourceInstance.clearCache();
+        }
         return true;
     }
 
     public boolean addResource(String name, T resource) {
-        return addResource(createPath(name), resource);
+        return addResource(createSubPath(name), resource);
     }
 
     public T removeResource(IResourcePath path) {
         if (supportResourcePath(path) && contents.containsKey(path)) {
-            return contents.remove(path);
+            var removed = contents.remove(path);
+            if (removed != null) {
+                resourceInstance.clearCache();
+            }
+            return removed;
         }
         return null;
     }
 
     public T removeResource(String name) {
-        return removeResource(createPath(name));
+        return removeResource(createSubPath(name));
     }
 
     @Override

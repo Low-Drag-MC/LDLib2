@@ -21,6 +21,7 @@ import java.util.Optional;
 @MethodsReturnNonnullByDefault
 public final class UIResourceTexture implements IGuiTexture {
     @Persisted
+    @Getter
     private IResourcePath resourcePath = new BuiltinPath("");
     @Getter(lazy = true)
     private final IGuiTexture internalTexture = getTextureFromResource();

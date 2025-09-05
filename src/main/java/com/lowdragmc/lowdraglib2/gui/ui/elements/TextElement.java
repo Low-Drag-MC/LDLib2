@@ -1,10 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.*;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -12,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -22,6 +22,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 import net.neoforged.api.distmarker.Dist;
@@ -36,6 +37,7 @@ import java.util.function.Consumer;
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@LDLRegister(name = "text_element", registry = "ldlib2:ui_element")
 public class TextElement extends UIElement {
     @Accessors(chain = true, fluent = true)
     public static class TextStyle extends Style {
@@ -63,6 +65,10 @@ public class TextElement extends UIElement {
         @ConfigNumber(range = {0f, Float.MAX_VALUE})
         private float fontSize = 9;
         @Getter @Setter
+        @Configurable(name = "font")
+        @ConfigFont
+        private ResourceLocation font = net.minecraft.network.chat.Style.DEFAULT_FONT;
+        @Getter @Setter
         @Configurable(name = "lineSpacing")
         @ConfigNumber(range = {0f, Float.MAX_VALUE})
         private float lineSpacing = 1;
@@ -76,6 +82,15 @@ public class TextElement extends UIElement {
 
         public TextStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        @OnlyIn(Dist.CLIENT)
+        public void buildConfigurator(ConfiguratorGroup father) {
+            super.buildConfigurator(father);
+            if (holder instanceof TextElement textElement) {
+                father.addEventListener(Configurator.CHANGE_EVENT, event -> textElement.recompute());
+            }
         }
     }
 
@@ -96,6 +111,7 @@ public class TextElement extends UIElement {
         if (!LDLib2.isClient()) return;
         var maxWidth = 0f;
         var wrap = getTextStyle().textWrap();
+        var font = getTextStyle().font();
         if (getTextStyle().adaptiveWidth() || wrap == TextWrap.NONE || wrap == TextWrap.ROLL || wrap == TextWrap.HOVER_ROLL) {
             maxWidth = Float.MAX_VALUE;
         } else {
@@ -103,7 +119,7 @@ public class TextElement extends UIElement {
         }
         formattedLines = TextUtilities.computeFormattedLines(
                 getFont(),
-                text,
+                TextUtilities.withFont(text, font),
                 getTextStyle().fontSize(),
                 maxWidth
         );

@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.math.interpolate.Interpolator;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -48,6 +49,7 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@LDLRegister(name = "scene", registry = "ldlib2:ui_element")
 public class Scene extends UIElement {
     private static Object DRAGGING = new Object();
     @Nullable
@@ -468,7 +470,7 @@ public class Scene extends UIElement {
             interpolator.update(getModularUI().getTickCounter() + guiContext.partialTick);
         }
         if (renderer != null) {
-            renderer.render(guiContext.pose, x, y, width, height, guiContext.mouseX, guiContext.mouseY);
+            renderer.render(guiContext.pose.pose, x, y, width, height, (int) guiContext.localMouseX, (int) guiContext.localMouseY);
             if (renderer.isCompiling()) {
                 double progress = renderer.getCompileProgress();
                 if (progress > 0) {

@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
 
-@LDLRegisterClient(name = "ui_elements", registry = "screen_test")
+@LDLRegisterClient(name = "ui_elements", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestElements implements IScreenTest {
     @Nullable
@@ -114,7 +114,7 @@ public class TestElements implements IScreenTest {
 
                                     @Override
                                     @Nonnull
-                                    public String resultDisplay(@NotNull Block value) {
+                                    public String resultText(@NotNull Block value) {
                                         return BuiltInRegistries.BLOCK.getKey(value).toString();
                                     }
 

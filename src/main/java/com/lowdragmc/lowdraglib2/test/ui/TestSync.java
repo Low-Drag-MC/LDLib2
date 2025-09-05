@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-@LDLRegister(name="ui_sync", registry = "menu_test")
+@LDLRegister(name="ui_sync", registry = "ldlib2:menu_test")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class TestSync implements IMenuTest {
@@ -97,7 +97,7 @@ public class TestSync implements IMenuTest {
 
                     @Override
                     @Nonnull
-                    public String resultDisplay(@NotNull Block value) {
+                    public String resultText(@NotNull Block value) {
                         return BuiltInRegistries.BLOCK.getKey(value).toString();
                     }
 

@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
+import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -40,10 +42,12 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         this.colorSelector.setEnforceFocus(e -> hide());
         this.colorSelector.addEventListener(UIEvents.LAYOUT_CHANGED, e -> colorSelector.adaptPositionToScreen());
 
-        inlineContainer.addChildren(colorPreview = new UIElement().layout(layout -> {
+        colorPreview = new UIElement();
+        inlineContainer.addChildren(colorPreview.layout(layout -> {
             layout.setHeight(14);
             layout.setPadding(YogaEdge.ALL, 3);
-        }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
+        }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID).overlayTexture(DynamicTexture.of(() ->
+                        colorPreview.isChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY)))
                 .addChildren(new UIElement()
                         .layout(layout -> layout.setHeightPercent(100))
                         .style(style -> style.backgroundTexture(this::drawColorPreview))

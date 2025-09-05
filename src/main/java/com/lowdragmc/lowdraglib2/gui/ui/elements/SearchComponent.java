@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.lowdraglib2.utils.search.ISearch;
 import com.lowdragmc.lowdraglib2.utils.search.SearchEngine;
@@ -38,6 +39,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@LDLRegister(name = "search_component", registry = "ldlib2:ui_element")
 public class SearchComponent<T> extends BindableUIElement<T> {
     @Accessors(chain = true, fluent = true)
     public static class SearchStyle extends Style {
@@ -298,7 +300,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             var candidateUI = candidateUIProvider.apply(value);
             this.preview.addChild(candidateUI);
         }
-        textField.setText(value == null ? "" : searchUI.resultDisplay(value));
+        textField.setText(value == null ? "" : searchUI.resultText(value));
 
         // notify
         if (notify) {
@@ -362,7 +364,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             this.dialog.blur();
             parent.removeChild(this.dialog);
         }
-        textField.setText(value == null ? "" : searchUI.resultDisplay(value));
+        textField.setText(value == null ? "" : searchUI.resultText(value));
         preview.setDisplay(YogaDisplay.FLEX);
         textField.setDisplay(YogaDisplay.NONE);
     }
@@ -379,7 +381,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     public interface ISearchUI<T> extends ISearch<T> {
         class Empty<T> implements ISearchUI<T> {
             @Override
-            public String resultDisplay(T value) {
+            public String resultText(T value) {
                 return value.toString();
             }
 
@@ -404,7 +406,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
          * @param value the object of type {@code T} whose result representation is to be displayed.
          * @return a {@code String} representation of the given object.
          */
-        String resultDisplay(@Nonnull T value);
+        String resultText(@Nonnull T value);
 
         /**
          * Invoked when a result is selected from the search or selection process.

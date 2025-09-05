@@ -3,8 +3,11 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.renderer.texture.Tickable;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -25,16 +28,27 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
 
     @Override
     public BindableUIElement<T> bindObserver(IObserver<T> observer) {
-        bindDataSource(observer, true);
+        bindObserver(observer, true);
         return this;
     }
 
-    public void bindDataSource(IObserver<T> dataSource, boolean notify) {
-        if (observers.containsKey(dataSource)) {
-            LDLib2.LOGGER.warn("Trying to bind a data source to a bindable UI element that already has a binding to it.");
+    public void bindObserver(IObserver<T> observer, boolean notify) {
+        if (observers.containsKey(observer)) {
+            LDLib2.LOGGER.warn("Trying to bind an observer to a bindable UI element that already has a binding to it.");
             return;
         }
-        observers.put(dataSource, registerValueListener(v -> dataSource.setValue(v, notify)));
+        UIEventListener tickableListener;
+        if (observer instanceof Tickable tickable) {
+            tickableListener = e -> tickable.tick();
+            addEventListener(UIEvents.TICK, tickableListener);
+        } else {
+            tickableListener = null;
+        }
+        var subscription = registerValueListener(v -> observer.setValue(v, notify));
+        if (tickableListener != null) {
+            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+        }
+        observers.put(observer, subscription);
     }
 
     @Override
@@ -47,22 +61,33 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
     }
 
     @Override
-    public BindableUIElement<T> bindDataSource(IDataProvider<T> dataSource) {
-        bindObserver(dataSource, true);
+    public BindableUIElement<T> bindDataSource(IDataProvider<T> dataProvider) {
+        bindObserver(dataProvider, true);
         return this;
     }
 
-    public void bindObserver(IDataProvider<T> observer, boolean notify) {
-        if (dataSources.containsKey(observer)) {
-            LDLib2.LOGGER.warn("Trying to bind an observer to a bindable UI element that already has a binding to it.");
+    public void bindObserver(IDataProvider<T> dataProvider, boolean notify) {
+        if (dataSources.containsKey(dataProvider)) {
+            LDLib2.LOGGER.warn("Trying to bind an dataProvider to a bindable UI element that already has a binding to it.");
             return;
         }
-        dataSources.put(observer, observer.registerListener(v -> setValue(v, notify), true));
+        UIEventListener tickableListener;
+        if (dataProvider instanceof Tickable tickable) {
+            tickableListener = e -> tickable.tick();
+            addEventListener(UIEvents.TICK, tickableListener);
+        } else {
+            tickableListener = null;
+        }
+        var subscription = dataProvider.registerListener(v -> setValue(v, notify), true);
+        if (tickableListener != null) {
+            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+        }
+        dataSources.put(dataProvider, subscription);
     }
 
     @Override
-    public BindableUIElement<T> unbindDataSource(IDataProvider<T> dataSource) {
-        var removed = dataSources.remove(dataSource);
+    public BindableUIElement<T> unbindDataSource(IDataProvider<T> dataProvider) {
+        var removed = dataSources.remove(dataProvider);
         if (removed != null) {
             removed.unsubscribe();
         }

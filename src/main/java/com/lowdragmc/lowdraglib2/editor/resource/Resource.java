@@ -56,19 +56,10 @@ public abstract class Resource<T> {
     }
 
     /**
-     * Generate default resources.
-     */
-    public void buildDefault(ResourceInstance<T> instance) {
-        var global = instance.createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
-        global.setName("global");
-        instance.addFileResourceProvider(global);
-    }
-
-    /**
      * Create a resource provider container for the given provider. You should override it to attach additional UI elements or behaviors.
      * e.g. how to add a new resource, how to display the resource in the UI, etc.
      */
-    public ResourceProviderContainer<T> createResourceProviderContainer(ResourceProvider<T> provider) {
+    public ResourceProviderContainer<T> createResourceProviderContainer(IResourceProvider<T> provider) {
         return provider.createContainer();
     }
 

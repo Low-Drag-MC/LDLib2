@@ -7,13 +7,13 @@ import com.lowdragmc.lowdraglib2.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib2.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
-import com.lowdragmc.lowdraglib2.client.utils.WidgetClientTooltipComponent;
 import com.lowdragmc.lowdraglib2.core.mixins.ParticleEngineAccessor;
-import com.lowdragmc.lowdraglib2.editor.resource.PackResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUIClientElementComponent;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.gui.util.WidgetTooltipComponent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.core.particles.ParticleType;
@@ -42,7 +42,7 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void onRegisterClientTooltipComponentFactoriesEvent(final RegisterClientTooltipComponentFactoriesEvent event) {
-        event.register(WidgetTooltipComponent.class, WidgetClientTooltipComponent::new);
+        event.register(ModularUITooltipComponent.class, ModularUIClientElementComponent::new);
     }
 
     @SubscribeEvent
@@ -74,7 +74,7 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void onRegisterClientReloadListenersEvent(RegisterClientReloadListenersEvent event) {
-        event.registerReloadListener(PackResourceProvider.Manager.INSTANCE);
+        event.registerReloadListener(PackResourceManager.INSTANCE);
     }
 
     @SubscribeEvent

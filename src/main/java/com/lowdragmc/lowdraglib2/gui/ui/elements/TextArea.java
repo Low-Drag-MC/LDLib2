@@ -2,6 +2,9 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigFont;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -15,6 +18,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -24,6 +29,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import org.appliedenergistics.yoga.YogaDisplay;
@@ -43,6 +49,7 @@ import java.util.function.Predicate;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@LDLRegister(name = "text_area", registry = "ldlib2:ui_element")
 public class TextArea extends BindableUIElement<String[]> {
     // Internal helpers
     public record Cursor(int line, int col) {}
@@ -51,22 +58,36 @@ public class TextArea extends BindableUIElement<String[]> {
     @Accessors(chain = true, fluent = true)
     public static class TextAreaStyle extends Style {
         @Getter @Setter
+        @Configurable(name = "fontSize")
         private float fontSize = 9f;
         @Getter @Setter
+        @Configurable(name = "font")
+        @ConfigFont
+        private ResourceLocation font = net.minecraft.network.chat.Style.DEFAULT_FONT;
+        @Getter @Setter
+        @Configurable(name = "textColor")
+        @ConfigColor
         private int textColor = -1;
         @Getter @Setter
+        @Configurable(name = "errorColor")
         private int errorColor = 0xffff0000;
         @Getter @Setter
+        @Configurable(name = "cursorColor")
         private int cursorColor = 0xffeeeeee;
         @Getter @Setter
+        @Configurable(name = "textShadow")
         private boolean textShadow = true;
         @Getter @Setter
+        @Configurable(name = "placeholder")
         private Component placeholder = Component.translatable("text_field.empty");
         @Getter @Setter
+        @Configurable(name = "verticalScrollDisplay")
         private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
         @Getter @Setter
+        @Configurable(name = "horizontalScrollDisplay")
         private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
         @Getter @Setter
+        @Configurable(name = "mode")
         private ScrollerMode mode = ScrollerMode.BOTH;
 
         @Getter @Setter
@@ -90,6 +111,7 @@ public class TextArea extends BindableUIElement<String[]> {
     @Setter private Predicate<Character> charValidator = Predicates.alwaysTrue();
 
     // Style
+    @Configurable(name = "textAreaStyle", subConfigurable = true)
     @Getter private final TextAreaStyle textAreaStyle = new TextAreaStyle(this);
 
     // Raw edit buffer (what user is editing right now)
@@ -332,7 +354,7 @@ public class TextArea extends BindableUIElement<String[]> {
         var s = scale();
         var max = 0f;
         for (String line : lines) {
-            max = Math.max(font.width(line) * s, max);
+            max = Math.max(font.width(TextUtilities.withFont(line, getTextAreaStyle().font())) * s, max);
         }
         return max;
     }
@@ -371,7 +393,7 @@ public class TextArea extends BindableUIElement<String[]> {
         var currentLine = lines.get(cursorLine);
 
         // Compute cursor pixel positions
-        float cursorX = font.width(currentLine.substring(0, cursorCol)) * s;
+        float cursorX = font.width(TextUtilities.withFont(currentLine.substring(0, cursorCol), getTextAreaStyle().font())) * s;
         float lineTop = cursorLine * lineHeight();
         float lineBottom = lineTop + textAreaStyle.fontSize();
 
@@ -460,12 +482,12 @@ public class TextArea extends BindableUIElement<String[]> {
 
         // Estimate column using font width and substring fitting
         var sub = font.plainSubstrByWidth(lineText, (int) (relX / s));
-        float length = font.width(sub) * s;
+        float length = font.width(TextUtilities.withFont(sub, getTextAreaStyle().font())) * s;
         int col;
         if (sub.length() >= lineText.length()) {
             col = lineText.length();
         } else {
-            float nextCharWidth = font.width(lineText.substring(sub.length(), sub.length() + 1)) * s;
+            float nextCharWidth = font.width(TextUtilities.withFont(lineText.substring(sub.length(), sub.length() + 1), getTextAreaStyle().font())) * s;
             col = (relX - length) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
         }
         col = Mth.clamp(col, 0, lineText.length());
@@ -902,11 +924,11 @@ public class TextArea extends BindableUIElement<String[]> {
                     int from = (line == start.line) ? start.col : 0;
                     int to = (line == end.line) ? end.col : text.length();
 
-                    float minX = font.width(text.substring(0, from)) * s - scrollX;
+                    float minX = font.width(TextUtilities.withFont(text.substring(0, from), getTextAreaStyle().font())) * s - scrollX;
                     float maxX;
                     if (line == end.line) {
                         if (from == to) continue;
-                        maxX = font.width(text.substring(0, to)) * s - scrollX;
+                        maxX = font.width(TextUtilities.withFont(text.substring(0, to), getTextAreaStyle().font())) * s - scrollX;
                     } else {
                         maxX = maxWidth * s - scrollX;
                     }
@@ -928,7 +950,7 @@ public class TextArea extends BindableUIElement<String[]> {
         // Cursor
         if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
             var current = lines.get(cursorLine);
-            float cursorPosX = font.width(current.substring(0, cursorCol)) * s;
+            float cursorPosX = font.width(TextUtilities.withFont(current.substring(0, cursorCol), getTextAreaStyle().font())) * s;
             float cursorY = y + cursorLine * lineHeight() - scrollY;
             DrawerHelper.drawSolidRect(
                     guiContext.graphics,

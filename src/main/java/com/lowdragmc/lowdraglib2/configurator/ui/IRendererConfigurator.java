@@ -4,11 +4,10 @@ import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
-import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import lombok.Getter;
@@ -78,6 +77,16 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
         });
         setCopiable(IRenderer::copy);
         setCanDropPredicate(obj -> obj instanceof IRenderer && filter.test((IRenderer) obj));
+    }
+
+    @Override
+    protected TreeBuilder.Menu createMenu() {
+        var menu = super.createMenu();
+        var value = getValue();
+        if (value != null && value != IRenderer.EMPTY) {
+            menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> updateValueActively(IRenderer.EMPTY));
+        }
+        return menu;
     }
 
     @Override

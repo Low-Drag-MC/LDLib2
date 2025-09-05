@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -22,6 +23,7 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@LDLRegister(name = "graph_view", registry = "ldlib2:ui_element")
 public class GraphView extends UIElement {
     private record DragOffset(float startOffsetX, float startOffsetY) {}
 
@@ -72,6 +74,7 @@ public class GraphView extends UIElement {
 
         addChild(contentRoot);
         refreshContentTransform();
+        markAllChildrenAsInternal();
     }
 
     public GraphView graphViewStyle(Consumer<GraphViewStyle> style) {
@@ -159,7 +162,7 @@ public class GraphView extends UIElement {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (graphViewStyle.allowPan && !event.hasHandler && event.button == 0 && isChildHover() && isMouseOverContent(event.x, event.y)) {
+        if (graphViewStyle.allowPan && event.target == this && event.button == 0 && isChildHover() && isMouseOverContent(event.x, event.y)) {
             startDrag(new DragOffset(offsetX, offsetY), null);
         }
     }
@@ -174,7 +177,7 @@ public class GraphView extends UIElement {
     }
 
     protected void onMouseWheel(UIEvent event) {
-        if (graphViewStyle.allowZoom && !event.hasHandler && isChildHover() && isMouseOverContent(event.x, event.y)) {
+        if (graphViewStyle.allowZoom && event.target == this && isChildHover() && isMouseOverContent(event.x, event.y)) {
             var newScale = Mth.clamp(scale + event.deltaY * 0.1f, graphViewStyle.minScale, graphViewStyle.maxScale);
             if (newScale != scale) {
                 var rx = event.x - this.getPositionX();

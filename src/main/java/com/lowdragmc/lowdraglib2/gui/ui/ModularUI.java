@@ -1,13 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
@@ -112,6 +111,10 @@ public class ModularUI {
     @OnlyIn(Dist.CLIENT)
     private Font tooltipFont;
     private ItemStack tooltipStack = ItemStack.EMPTY;
+    @Getter @Setter
+    private boolean allowDebugMode = true;
+    @Getter @Setter
+    private boolean debugMode = false;
 
     public ModularUI(UI ui) {
         this(ui, null);
@@ -699,6 +702,9 @@ public class ModularUI {
 
         @Override
         public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            if (allowDebugMode && keyCode == GLFW.GLFW_KEY_F3) {
+                debugMode = !debugMode;
+            }
             lastPressedKeyCode = keyCode;
             lastPressedScanCode = scanCode;
             lastPressedModifiers = modifiers;
@@ -843,19 +849,14 @@ public class ModularUI {
 
             cleanTooltip();
 
-            var hoverElement = ui.rootElement.getHoverElement(mouseX, mouseY);
-            lastHoveredElement = hoverElement == null ? null : hoverElement.getA();
-            lastMouseX = mouseX;
-            lastMouseY = mouseY;
-
             // rendering
-            var guiContext = new GUIContext();
-            guiContext.modularUI = ModularUI.this;
-            guiContext.graphics = guiGraphics;
-            guiContext.mouseX = mouseX;
-            guiContext.mouseY = mouseY;
-            guiContext.partialTick = partialTick;
-            guiContext.pose = guiGraphics.pose();
+            var guiContext = GUIContext.of(ModularUI.this, guiGraphics, mouseX, mouseY, partialTick);
+
+            lastMouseX = guiContext.localMouseX;
+            lastMouseY = guiContext.localMouseY;
+
+            var hoverElement = ui.rootElement.getHoverElement(lastMouseX, lastMouseY);
+            lastHoveredElement = hoverElement == null ? null : hoverElement.getA();
 
             ui.rootElement.drawInBackground(guiContext);
 
@@ -895,14 +896,18 @@ public class ModularUI {
 
             // Do not render tooltips if carried item is existing
             if (dragHandler.isDragging() && dragHandler.dragTexture != null) {
-                dragHandler.dragTexture.draw(guiGraphics, mouseX, mouseY, mouseX + dragHandler.offsetX, mouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
+                dragHandler.dragTexture.draw(guiGraphics, (int) lastMouseX, (int) lastMouseY, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
             }
 
             if (!dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
                 guiGraphics.pose().pushPose();
                 guiGraphics.pose().translate(0, 0, 200);
-                DrawerHelper.drawTooltip(guiGraphics, mouseX, mouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
+                DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
                 guiGraphics.pose().popPose();
+            }
+
+            if (debugMode) {
+                renderDebugInfo(guiGraphics, mouseX, mouseY, partialTick);
             }
         }
 
@@ -917,13 +922,50 @@ public class ModularUI {
             guiGraphics.pose().popPose();
         }
 
+        public void renderUISpacing(UIElement element, GuiGraphics graphics) {
+            graphics.drawManaged(() -> {
+                var posX = element.getPositionX();
+                var posY = element.getPositionY();
+                var sizeX = element.getSizeWidth();
+                var sizeY = element.getSizeHeight();
+                var marginTop = element.layoutNode.getLayoutMargin(YogaEdge.TOP);
+                var marginBottom = element.layoutNode.getLayoutMargin(YogaEdge.BOTTOM);
+                var marginLeft = element.layoutNode.getLayoutMargin(YogaEdge.LEFT);
+                var marginRight = element.layoutNode.getLayoutMargin(YogaEdge.RIGHT);
+                DrawerHelper.drawSolidRect(graphics, posX - marginLeft, posY - marginTop,
+                        sizeX + marginLeft + marginRight, sizeY + marginTop + marginBottom, ColorPattern.T_ORANGE.color);
+                DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000, false);
+                var paddingX = element.getPaddingX();
+                var paddingY = element.getPaddingY();
+                var paddingWidth = element.getPaddingWidth();
+                var paddingHeight = element.getPaddingHeight();
+                DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00, false);
+                var contentX = element.getContentX();
+                var contentY = element.getContentY();
+                var contentWidth = element.getContentWidth();
+                var contentHeight = element.getContentHeight();
+                DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff, false);
+            });
+        }
+
         public void renderDebugInfo(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 200);
+
             var x = 2;
             var y = 2;
             var font = Minecraft.getInstance().font;
+            // focus element
+            if (focusedElement != null) {
+                var posX = focusedElement.getPositionX();
+                var posY = focusedElement.getPositionY();
+                var sizeX = focusedElement.getSizeWidth();
+                var sizeY = focusedElement.getSizeHeight();
+                DrawerHelper.drawBorder(graphics, posX, posY, sizeX, sizeY, ColorPattern.PURPLE.color, -1);
+            }
             // hover element
             var hovered = getLastHoveredElement();
-            if (hovered != null && Widget.isShiftDown()) {
+            if (hovered != null) {
 
                 graphics.drawString(font, "hovered element:", x, y, 0xffff0000, true);
                 x += 10;
@@ -934,35 +976,15 @@ public class ModularUI {
                 }
                 x -= 10;
 
-                // draw overlay
-                graphics.pose().pushPose();
-                graphics.pose().translate(0, 0, 200);
-
-                graphics.drawManaged(() -> {
-                    var posX = hovered.getPositionX();
-                    var posY = hovered.getPositionY();
-                    var sizeX = hovered.getSizeWidth();
-                    var sizeY = hovered.getSizeHeight();
-                    DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000, false);
-                    var paddingX = hovered.getPaddingX();
-                    var paddingY = hovered.getPaddingY();
-                    var paddingWidth = hovered.getPaddingWidth();
-                    var paddingHeight = hovered.getPaddingHeight();
-                    DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00, false);
-                    var contentX = hovered.getContentX();
-                    var contentY = hovered.getContentY();
-                    var contentWidth = hovered.getContentWidth();
-                    var contentHeight = hovered.getContentHeight();
-                    DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff, false);
-                });
+                renderUISpacing(hovered, graphics);
 
                 ///  draw layout box
                 // draw layout on the right
-                var sw = 200;
-                var sh = 200;
+                var sw = 300;
+                var sh = 300;
                 var sx = screenWidth - sw - 2;
                 var sy = 12;
-                var dist = 25;
+                var dist = 30;
 
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "margin", 0x80646669, new String[]{
                         String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.TOP)),
@@ -1000,8 +1022,8 @@ public class ModularUI {
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "content", 0x800000ff, new String[]{
                         hovered.getContentWidth() + " x " + hovered.getContentHeight()
                 });
-                graphics.pose().popPose();
             }
+            graphics.pose().popPose();
         }
 
         private void drawLayoutBox(GuiGraphics graphics, Font font, int x, int y, int width, int height, String labels, int color, String[] value) {

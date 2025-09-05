@@ -7,15 +7,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.renderer.texture.Tickable;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -31,6 +35,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@LDLRegister(name = "progress_bar", registry = "ldlib2:ui_element")
 public class ProgressBar extends UIElement implements IBindable<Float>, IDataConsumer<Float> {
     @Accessors(chain = true, fluent = true)
     public static class ProgressBarStyle extends Style {
@@ -167,14 +172,25 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     }
 
     @Override
-    public ProgressBar bindDataSource(IDataProvider<Float> dataSource) {
-        this.dataSources.put(dataSource, dataSource.registerListener(this::setProgress, true));
+    public ProgressBar bindDataSource(IDataProvider<Float> dataProvider) {
+        UIEventListener tickableListener;
+        if (dataProvider instanceof Tickable tickable) {
+            tickableListener = e -> tickable.tick();
+            addEventListener(UIEvents.TICK, tickableListener);
+        } else {
+            tickableListener = null;
+        }
+        var subscription = dataProvider.registerListener(this::setProgress, true);
+        if (tickableListener != null) {
+            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+        }
+        this.dataSources.put(dataProvider, subscription);
         return this;
     }
 
     @Override
-    public ProgressBar unbindDataSource(IDataProvider<Float> dataSource) {
-        var removed = this.dataSources.remove(dataSource);
+    public ProgressBar unbindDataSource(IDataProvider<Float> dataProvider) {
+        var removed = this.dataSources.remove(dataProvider);
         if (removed != null) {
             removed.unsubscribe();
         }

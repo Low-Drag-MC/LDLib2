@@ -7,18 +7,18 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 public interface IDataConsumer<T> {
     /**
-     * Bind a dataSource to this observable.
-     * The dataSource will be notified of changes to the value.
+     * Bind a dataProvider to this observable.
+     * The dataProvider will be notified of changes to the value.
      *
-     * @param dataSource the dataSource to bind
+     * @param dataProvider the dataProvider to bind
      */
-    UIElement bindDataSource(IDataProvider<T> dataSource);
+    UIElement bindDataSource(IDataProvider<T> dataProvider);
 
     /**
-     * Unbinds a dataSource from this observable. Once unbound, the dataSource will no longer
+     * Unbinds a dataProvider from this observable. Once unbound, the dataProvider will no longer
      * receive notifications about changes to the value.
      *
-     * @param dataSource the dataSource to unbind
+     * @param dataProvider the dataProvider to unbind
      */
-    UIElement unbindDataSource(IDataProvider<T> dataSource);
+    UIElement unbindDataSource(IDataProvider<T> dataProvider);
 }

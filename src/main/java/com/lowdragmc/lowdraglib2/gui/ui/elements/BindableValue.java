@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 
@@ -9,6 +10,7 @@ import java.util.Objects;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
+@LDLRegister(name = "bindable_value", registry = "ldlib2:ui_element")
 public class BindableValue<T> extends BindableUIElement<T> {
     @Getter
     private T value;

@@ -1,25 +1,27 @@
 package com.lowdragmc.lowdraglib2.editor.ui.resource;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
+import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
-import com.lowdragmc.lowdraglib2.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.*;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @ParametersAreNonnullByDefault
@@ -29,13 +31,12 @@ public class ResourceContainer<T> extends UIElement {
     public final UIElement providerContainer = new UIElement();
     public final ResourceInstance<T> resourceInstance;
     public final Editor editor;
-    public final Button addButton, removeButton;
 
     // runtime
-    private final Map<ResourceProvider<T>, UIElement> providerToggles = new java.util.HashMap<>();
+    private final Map<IResourceProvider<T>, UIElement> providerToggles = new java.util.HashMap<>();
     @Getter
     @Nullable
-    private ResourceProvider<T> selectedProvider = null;
+    private IResourceProvider<T> selectedProvider = null;
 
     public ResourceContainer(ResourceInstance<T> resourceInstance, Editor editor) {
         getLayout().setFlex(1);
@@ -47,20 +48,7 @@ public class ResourceContainer<T> extends UIElement {
         addChildren(new SplitView.Horizontal().left(new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
-        }).addChildren(new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-        }).addChildren(
-                addButton = (Button) new Button().setOnClick(this::onAddFileResourceProvider).setText("+")
-                        .textStyle(textStyle -> textStyle.textColor(ColorPattern.GRAY.color).textShadow(false))
-                        .layout(layout -> {
-                            layout.setFlex(1);
-                            layout.setHeight(12);}),
-                removeButton = (Button) new Button().setOnClick(this::onRemoveFileResourceProvider).setText("-")
-                        .textStyle(textStyle -> textStyle.textColor(ColorPattern.GRAY.color).textShadow(false))
-                        .layout(layout -> {
-                            layout.setFlex(1);
-                            layout.setHeight(12);})
-        ), providerList.layout(layout -> {
+        }).addChildren(providerList.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         }))).right(providerContainer.layout(layout -> {
@@ -68,44 +56,72 @@ public class ResourceContainer<T> extends UIElement {
             layout.setWidthPercent(100);
         })).setPercentage(13));
 
-        if (resourceInstance.canAddFileResourceProvider()) {
-            addButton.setActive(resourceInstance.canAddFileResourceProvider());
-            addButton.textStyle(textStyle -> textStyle.textColor(ColorPattern.WHITE.color));
-        }
-        removeButton.setActive(false);
+        this.providerList.addEventListener(UIEvents.MOUSE_DOWN, this::onProviderListMouseDown);
 
         loadResource();
     }
 
-    private void onRemoveFileResourceProvider(UIEvent event) {
-        if (selectedProvider instanceof FileResourceProvider<T> resourceProvider) {
-            Dialog.showCheckBox("ldlib.gui.resource.remove_provider", "editor.remove.confirm", result -> {
-                if (result) {
-                    resourceInstance.removeResourceProvider(resourceProvider);
-                    selectProvider(null);
-                }
-            }).show(editor);
+    protected void onProviderListMouseDown(UIEvent event) {
+        if (event.button == 1) {
+            editor.openMenu(event.x, event.y, createMenu());
         }
     }
 
-    private void onAddFileResourceProvider(UIEvent event) {
-        Dialog.showFileDialog("ldlib.gui.resource.add_provider", LDLib2.getAssetsDir(), true, file -> true, result -> {
-            if (result.isFile()) {
-                result = result.getParentFile();
+    protected TreeBuilder.Menu createMenu() {
+        var menu = TreeBuilder.Menu.start();
+        menu.branch("ldlib.gui.editor.menu.new", m -> {
+            for (var type : LDLib2Registries.RESOURCE_PROVIDER_TYPES) {
+                if (type.supportCustom()) {
+                    m.leaf(type.getIcon(), type.getTypeName(), () -> type.onCreateCustom(this));
+                }
             }
-            if (result.isDirectory()) {
-                resourceInstance.addFileResourceProvider(resourceInstance.createNewFileResourceProvider(result));
-            }
-        }).show(editor);
+        });
+        if (selectedProvider != null && selectedProvider.getType().supportCustom() &&
+                resourceInstance.getCustomProviders().getOrDefault(selectedProvider.getType(), Collections.emptyList()).contains(selectedProvider)) {
+            menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> {
+                Dialog.showCheckBox("ldlib.gui.resource.remove_provider", "editor.remove.confirm", result -> {
+                    if (result) {
+                        resourceInstance.removeCustomProvider(selectedProvider);
+                        selectProvider(null);
+                    }
+                }).show(editor);
+            });
+        }
+        return menu;
     }
 
     public void loadResource() {
         var lastSelectedProvider = selectedProvider;
+        selectedProvider = null;
         providerToggles.clear();
         providerList.clearAllScrollViewChildren();
         providerContainer.clearAllChildren();
 
-        for (var provider : resourceInstance.getFileResourceProviders()) {
+        // builtin
+        resourceInstance.getBuiltinProviders().forEach((name, providers) -> addProviderToggles(providers));
+
+        // split
+        providerList.addScrollViewChild(new UIElement().layout(layout -> {
+            layout.setAlignSelf(YogaAlign.CENTER);
+            layout.setWidthPercent(95);
+            layout.setHeight(1);
+            layout.setMargin(YogaEdge.VERTICAL, 1);
+        }).style(style -> style.backgroundTexture(ColorPattern.T_WHITE.rectTexture())));
+
+        // custom
+        resourceInstance.getCustomProviders().forEach((name, providers) -> addProviderToggles(providers));
+
+        if (providerToggles.containsKey(lastSelectedProvider)) {
+            selectProvider(lastSelectedProvider);
+        } else if (!providerToggles.isEmpty()) {
+            selectProvider(providerToggles.keySet().iterator().next());
+        } else {
+            selectProvider(null);
+        }
+    }
+
+    private void addProviderToggles(List<IResourceProvider<T>> providers) {
+        for (var provider : providers) {
             var toggle = new UIElement().layout(layout -> {
                 layout.setHeight(12);
                 layout.setWidthPercent(100);
@@ -120,19 +136,9 @@ public class ResourceContainer<T> extends UIElement {
             providerList.addScrollViewChild(toggle);
             providerToggles.put(provider, toggle);
         }
-
-        if (!resourceInstance.getFileResourceProviders().isEmpty()) {
-            if (lastSelectedProvider != null && resourceInstance.getFileResourceProviders().contains(lastSelectedProvider)) {
-                selectProvider(lastSelectedProvider);
-            } else {
-                selectProvider(resourceInstance.getFileResourceProviders().getFirst());
-            }
-        } else {
-            selectProvider(null);
-        }
     }
 
-    public void selectProvider(@Nullable ResourceProvider<T> provider) {
+    public void selectProvider(@Nullable IResourceProvider<T> provider) {
         if (selectedProvider == provider) return;
         if (selectedProvider != null) {
             var oldToggle = providerToggles.get(selectedProvider);
@@ -145,25 +151,30 @@ public class ResourceContainer<T> extends UIElement {
         if (selectedProvider != null) {
             var toggle = providerToggles.get(selectedProvider);
             if (toggle != null) {
-                toggle.style(style -> style.overlayTexture(ColorPattern.T_DARK_GRAY.rectTexture()));
+                toggle.style(style -> style.overlayTexture(ColorPattern.T_LIGHT_GRAY.rectTexture()));
             }
             var providerView = resourceInstance.resource.createResourceProviderContainer(selectedProvider);
             providerView.setEditor(editor);
             providerView.reloadResourceContainer();
             providerContainer.addChild(providerView);
         }
-        var canRemove = selectedProvider != null && resourceInstance.canRemoveResourceProvider(selectedProvider);
-        removeButton.setActive(canRemove);
-        removeButton.textStyle(textStyle -> textStyle.textColor(canRemove ? ColorPattern.WHITE.color : ColorPattern.GRAY.color));
     }
 
     @Override
     public void screenTick() {
         super.screenTick();
         // check if the providers have changed
-        boolean changed = resourceInstance.getFileResourceProviders().size() != providerToggles.size();
+        boolean changed = (resourceInstance.getBuiltinProviders().values().stream().mapToInt(List::size).sum() +
+                        resourceInstance.getCustomProviders().values().stream().mapToInt(List::size).sum()
+                ) != providerToggles.size();
         if (!changed) {
-            for (var provider : resourceInstance.getFileResourceProviders()) {
+            for (var provider : resourceInstance.getBuiltinProviders().values().stream().flatMap(List::stream).toList()) {
+                if (!providerToggles.containsKey(provider)) {
+                    changed = true;
+                    break;
+                }
+            }
+            for (var provider : resourceInstance.getCustomProviders().values().stream().flatMap(List::stream).toList()) {
                 if (!providerToggles.containsKey(provider)) {
                     changed = true;
                     break;

@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -14,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -37,6 +39,7 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@LDLRegister(name = "item_slot", registry = "ldlib2:ui_element")
 public class ItemSlot extends BindableUIElement<ItemStack> {
     public final static SpriteTexture ITEM_SLOT_TEXTURE = SpriteTexture.of("ldlib2:textures/gui/slot.png")
             .setSprite(0, 0, 18, 18).setBorder(1, 1, 1, 1);
@@ -46,9 +49,14 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         @Getter
         @Setter
         private IGuiTexture hoverOverlay = new ColorRectTexture(0x80FFFFFF);
-
         @Getter @Setter
-        private List<Component> tooltips = List.of();
+        private boolean showItemTooltips = true;
+        @Getter @Setter
+        private boolean isPlayerSlot = false;
+        @Getter @Setter
+        private boolean acceptQuickMove = true;
+        @Getter @Setter
+        private int quickMovePriority = 0;
 
         public SlotStyle(ItemSlot holder) {
             super(holder);
@@ -72,7 +80,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         getStyle().backgroundTexture(ITEM_SLOT_TEXTURE);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
-        this.slot = slot;
+        bind(slot);
     }
 
     public ItemSlot bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
@@ -99,7 +107,11 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                     slot = new Slot(new SimpleContainer(1), 0, 0,0);
                 }
                 if (!menu.slots.contains(slot)) {
-                    menu.addSlot(slot);
+                    if (menu instanceof IItemSlotHolderMenu itemSlotHolderMenu) {
+                        itemSlotHolderMenu.addSlot(this);
+                    } else {
+                        menu.addSlot(slot);
+                    }
                 }
             }
         }
@@ -146,7 +158,10 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     public List<Component> getFullTooltipTexts() {
-        var tips = new ArrayList<>(DrawerHelper.getItemToolTip(getValue()));
+        var tips = new ArrayList<Component>();
+        if (slotStyle.showItemTooltips) {
+            tips.addAll(DrawerHelper.getItemToolTip(getValue()));
+        }
         tips.addAll(getStyle().tooltips());
         return tips;
     }

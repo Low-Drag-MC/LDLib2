@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Inventory;
@@ -12,15 +13,19 @@ import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.*;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ModularUIContainerMenu extends AbstractContainerMenu implements IUISyncManagerHolder {
+public class ModularUIContainerMenu extends AbstractContainerMenu implements IUISyncManagerHolder, IItemSlotHolderMenu {
     public final Inventory inventory;
     public final IContainerUIHolder uiHolder;
     @Getter
     public final ModularUI modularUI;
+    // runtime
+    public final Map<Slot, ItemSlot> slotMap = new HashMap<>();
 
     public ModularUIContainerMenu(MenuType<ModularUIContainerMenu> menuType,
                                   int windowID,
@@ -35,92 +40,145 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IUI
     }
 
     @Override
+    public void addSlot(ItemSlot itemSlot) {
+        IItemSlotHolderMenu.super.addSlot(itemSlot);
+        slotMap.put(itemSlot.getSlot(), itemSlot);
+    }
+
+    @Override
+    public @Nullable ItemSlot getItemSlot(Slot slot) {
+        return slotMap.get(slot);
+    }
+
+    @Override
     public void broadcastChanges() {
         super.broadcastChanges();
         modularUI.tickServer();
     }
 
-    @Nonnull
     @Override
-    public ItemStack quickMoveStack(@Nonnull Player player, int quickMovedSlotIndex) {
-        // TODO Quick Move
-        // The quick moved slot stack
-        ItemStack quickMovedStack = ItemStack.EMPTY;
-        // The quick moved slot
-        Slot quickMovedSlot = this.slots.get(quickMovedSlotIndex);
-
-        // If the slot is in the valid range and the slot is not empty
-        if (quickMovedSlot != null && quickMovedSlot.hasItem()) {
-            // Get the raw stack to move
-            ItemStack rawStack = quickMovedSlot.getItem();
-            // Set the slot stack to a copy of the raw stack
-            quickMovedStack = rawStack.copy();
-
-        /*
-        The following quick move logic can be simplified to if in data inventory,
-        try to move to player inventory/hotbar and vice versa for containers
-        that cannot transform data (e.g. chests).
-        */
-
-            // If the quick move was performed on the data inventory result slot
-            if (quickMovedSlotIndex == 0) {
-                // Try to move the result slot into the player inventory/hotbar
-                if (!this.moveItemStackTo(rawStack, 5, 41, true)) {
-                    // If cannot move, no longer quick move
-                    return ItemStack.EMPTY;
-                }
-
-                // Perform logic on result slot quick move
-                quickMovedSlot.onQuickCraft(rawStack, quickMovedStack);
-            }
-            // Else if the quick move was performed on the player inventory or hotbar slot
-            else if (quickMovedSlotIndex >= 5 && quickMovedSlotIndex < 41) {
-                // Try to move the inventory/hotbar slot into the data inventory input slots
-                if (!this.moveItemStackTo(rawStack, 1, 5, false)) {
-                    // If cannot move and in player inventory slot, try to move to hotbar
-                    if (quickMovedSlotIndex < 32) {
-                        if (!this.moveItemStackTo(rawStack, 32, 41, false)) {
-                            // If cannot move, no longer quick move
-                            return ItemStack.EMPTY;
-                        }
-                    }
-                    // Else try to move hotbar into player inventory slot
-                    else if (!this.moveItemStackTo(rawStack, 5, 32, false)) {
-                        // If cannot move, no longer quick move
-                        return ItemStack.EMPTY;
-                    }
-                }
-            }
-            // Else if the quick move was performed on the data inventory input slots, try to move to player inventory/hotbar
-            else if (!this.moveItemStackTo(rawStack, 5, 41, false)) {
-                // If cannot move, no longer quick move
-                return ItemStack.EMPTY;
-            }
-
-            if (rawStack.isEmpty()) {
-                // If the raw stack has completely moved out of the slot, set the slot to the empty stack
-                quickMovedSlot.setByPlayer(ItemStack.EMPTY);
-            } else {
-                // Otherwise, notify the slot that that the stack count has changed
-                quickMovedSlot.setChanged();
-            }
-
-            /*
-            The following if statement and Slot#onTake call can be removed if the
-            menu does not represent a container that can transform stacks (e.g.
-            chests).
-            */
-            if (rawStack.getCount() == quickMovedStack.getCount()) {
-                // If the raw stack was not able to be moved to another slot, no longer quick move
-                return ItemStack.EMPTY;
-            }
-            // Execute logic on what to do post move with the remaining stack
-            quickMovedSlot.onTake(player, rawStack);
+    public ItemStack quickMoveStack(Player player, int idx) {
+        if (player.level().isClientSide) {
+            return ItemStack.EMPTY;
         }
 
-        return quickMovedStack; // Return the slot stack
+        var clickSlot = this.slots.get(idx);
+
+        // Vanilla will check this before calling this method, but we do use it in other contexts as well (move region)
+        if (!clickSlot.mayPickup(player)) {
+            return ItemStack.EMPTY;
+        }
+
+        var stackToMove = clickSlot.getItem();
+        if (stackToMove.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+
+        var originalStackToMove = stackToMove.copy();
+
+        stackToMove = performQuickMoveStack(stackToMove, isPlayerSideSlot(clickSlot));
+
+        // While we did modify stackToMove in-place, this causes the container to be notified of the change
+        if (!ItemStack.matches(originalStackToMove, stackToMove)) {
+            clickSlot.setByPlayer(stackToMove.isEmpty() ? ItemStack.EMPTY : stackToMove);
+        }
+
+        return ItemStack.EMPTY;
     }
 
+    protected ItemStack performQuickMoveStack(ItemStack stackToMove, boolean fromPlayerSide) {
+        // Allow moving items from player-side slots into some "remote" inventory that is not slot-based
+        // This is used to move items into the network inventory
+        if (fromPlayerSide) {
+//            stackToMove = this.transferStackToMenu(stackToMove);
+            if (stackToMove.isEmpty()) {
+                return stackToMove;
+            }
+        }
+
+        var destinationSlots = getQuickMoveDestinationSlots(stackToMove, fromPlayerSide);
+
+        // If no actual targets were available, allow moving into filter slots too
+        if (destinationSlots.isEmpty() && fromPlayerSide) {
+            // TODO FakeSlot
+//            for (Slot cs : this.slots) {
+//                if (cs instanceof FakeSlot && !isPlayerSideSlot(cs)) {
+//                    var destination = cs.getItem();
+//                    if (ItemStack.isSameItemSameComponents(destination, stackToMove)) {
+//                        break; // Item is already in the filter
+//                    } else if (destination.isEmpty()) {
+//                        cs.set(stackToMove.copy());
+//                        // ???
+//                        this.broadcastChanges();
+//                        break;
+//                    }
+//                }
+//            }
+            return stackToMove; // Since destinationSlots was empty, nothing else to do
+        }
+
+        // Try stacking the item into filled slots first
+        for (var dest : destinationSlots) {
+            if (dest.hasItem() && (stackToMove = dest.safeInsert(stackToMove)).isEmpty()) {
+                return stackToMove;
+            }
+        }
+
+        // Now try placing it in empty slots, if it's not already fully consumed
+        for (var dest : destinationSlots) {
+            if (!dest.hasItem() && (stackToMove = dest.safeInsert(stackToMove)).isEmpty()) {
+                return stackToMove;
+            }
+        }
+
+        return stackToMove;
+    }
+
+    protected List<Slot> getQuickMoveDestinationSlots(ItemStack stackToMove, boolean fromPlayerSide) {
+        // Find potential destination slots
+        var destinationSlots = new ArrayList<Slot>();
+        for (var candidateSlot : this.slots) {
+            if (isValidQuickMoveDestination(candidateSlot, stackToMove, fromPlayerSide)) {
+                destinationSlots.add(candidateSlot);
+            }
+        }
+
+        // Order slots by the priority of their semantic
+        destinationSlots.sort(Comparator.comparingInt(this::getQuickMovePriority).reversed());
+        return destinationSlots;
+    }
+
+    protected int getQuickMovePriority(Slot slot) {
+        var itemSlot = getItemSlot(slot);
+        if (itemSlot == null) {
+            return 0;
+        }
+        return itemSlot.getSlotStyle().quickMovePriority();
+    }
+
+    /**
+     * Check if a given candidate slot is a valid destination for {@link #quickMoveStack}.
+     */
+    protected boolean isValidQuickMoveDestination(Slot candidateSlot, ItemStack stackToMove,
+                                                  boolean fromPlayerSide) {
+        var itemSlot = getItemSlot(candidateSlot);
+        return isPlayerSideSlot(candidateSlot) != fromPlayerSide
+                && (itemSlot == null || itemSlot.getSlotStyle().acceptQuickMove())
+                && candidateSlot.mayPlace(stackToMove);
+    }
+
+    /**
+     * Check if a given slot is considered to be "on the player side" for the purposes of shift-clicking items back and
+     * forth between the opened menu and the player's inventory.
+     */
+    protected boolean isPlayerSideSlot(Slot slot) {
+        if (slot.container == inventory) {
+            return true;
+        }
+
+        var itemSlot = getItemSlot(slot);
+        return itemSlot != null && itemSlot.getSlotStyle().isPlayerSlot();
+    }
 
     @Override
     public boolean stillValid(@Nonnull Player playerIn) {

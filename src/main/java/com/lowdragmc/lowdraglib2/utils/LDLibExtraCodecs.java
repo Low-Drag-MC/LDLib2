@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.utils;
 
-import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.PrimitiveCodec;
 import lombok.experimental.UtilityClass;

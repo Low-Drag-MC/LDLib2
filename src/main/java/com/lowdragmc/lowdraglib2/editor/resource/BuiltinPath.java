@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 
 public record BuiltinPath(String name) implements IResourcePath {
     @Override
-    public boolean isBuiltin() {
-        return true;
+    public ResourceProviderType getType() {
+        return BuiltinResourceProvider.TYPE;
     }
 
     @Override

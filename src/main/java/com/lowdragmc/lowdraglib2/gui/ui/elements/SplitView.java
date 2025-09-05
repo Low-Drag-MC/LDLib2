@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -73,21 +74,22 @@ public abstract class SplitView extends UIElement {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        if (isHoverDragging(guiContext.mouseX, guiContext.mouseY)) {
+        if (isHoverDragging(guiContext.localMouseX, guiContext.localMouseY)) {
             guiContext.pose.pushPose();
             guiContext.pose.translate(0, 0, 200);
             var icon = getDraggingIcon();
             var width = icon.spriteSize.width;
             var height = icon.spriteSize.height;
             guiContext.drawTexture(icon,
-                    guiContext.mouseX - width / 2f,
-                    guiContext.mouseY - height / 2f,
+                    guiContext.localMouseX - width / 2f,
+                    guiContext.localMouseY - height / 2f,
                     width,
                     height);
             guiContext.pose.popPose();
         }
     }
 
+    @LDLRegister(name = "split_view_horizontal", registry = "ldlib2:ui_element")
     public static class Horizontal extends SplitView {
         public Horizontal() {
             getLayout().setFlexDirection(YogaFlexDirection.ROW);
@@ -142,6 +144,7 @@ public abstract class SplitView extends UIElement {
         }
     }
 
+    @LDLRegister(name = "split_view_vertical", registry = "ldlib2:ui_element")
     public static class Vertical extends SplitView {
         public Vertical() {
             first.getLayout().setWidthPercent(100);

@@ -4,8 +4,8 @@
             "type": "ttf",
             "file": "ldlib2:jetbrains_mono_bold.ttf",
 			"shift": [0, 0],
-			"size": 11.0,
-			"oversample": 4.0,
+			"size": 9.0,
+			"oversample": 16,
 			"skip": ""
         }
 	]

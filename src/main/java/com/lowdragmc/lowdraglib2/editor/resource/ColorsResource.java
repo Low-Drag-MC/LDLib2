@@ -54,7 +54,7 @@ public class ColorsResource extends Resource<Integer> {
     }
 
     @Override
-    public ResourceProviderContainer<Integer> createResourceProviderContainer(ResourceProvider<Integer> provider) {
+    public ResourceProviderContainer<Integer> createResourceProviderContainer(IResourceProvider<Integer> provider) {
         return super.createResourceProviderContainer(provider)
                 .setAddDefault(() -> -1)
                 .setUiSupplier(path -> new UIElement().layout(layout -> {

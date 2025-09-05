@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
+import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -21,9 +23,10 @@ import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Set;
 
 public class UIHierarchy extends UIElement {
-    public record DraggingNode(UITreeNode draggedNode) {}
+    public record DraggingUINode(UITreeNode draggedNode) {}
 
     public final UIEditorView editorView;
     public final ScrollerView scrollerView = new ScrollerView();
@@ -72,13 +75,6 @@ public class UIHierarchy extends UIElement {
                     });
                     return container.addChildren(icon, label);
                 })
-                .setOnSelectedChanged(selected -> {
-                    if (selected.size() == 1) {
-                        editorView.inspector.inspect(selected.stream().findFirst().get().getKey());
-                    } else {
-                        editorView.inspector.clear();
-                    }
-                })
                 .setOnNodeUICreated((node, nodeUI) -> {
                     nodeUI.addEventListener(UIEvents.MOUSE_DOWN, e -> {
                         if (e.button == 0) {
@@ -86,24 +82,27 @@ public class UIHierarchy extends UIElement {
                         }
                     });
                     nodeUI.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
-                        if (lastClickTime != 0 && isMouseDown(0) && treeList.getSelected().size() == 1) {
-                            nodeUI.startDrag(new DraggingNode(node), new TextTexture(node.getKey().getEditorName().getString()));
+                        if (lastClickTime != 0 && isMouseDown(0) && treeList.getSelected().size() == 1 && node != rootNode && !node.getKey().isInternalUI()) {
+                            nodeUI.startDrag(new DraggingUINode(node), new TextTexture(node.getKey().getEditorName().getString()));
                         }
                         lastClickTime = 0;
                     }, true);
                     nodeUI.addEventListener(UIEvents.MOUSE_UP, e -> {
                         var element = node.getKey();
-                        if (treeList.getSelected().size() == 1) {
-                            if (editorView.inspector.getInspectedConfigurable() != element) {
-                                editorView.inspector.inspect(element);
+                        var mui = getModularUI();
+                        if (mui != null && nodeUI.isAncestorOf(mui.getLastMouseDownElement())) {
+                            if (treeList.getSelected().size() == 1) {
+                                if (editorView.inspector.getInspectedConfigurable() != element) {
+                                    editorView.inspector.inspect(element);
+                                }
+                            } else {
+                                editorView.inspector.clear();
                             }
-                        } else {
-                            editorView.inspector.clear();
                         }
                         lastClickTime = 0;
                     });
                     nodeUI.addEventListener(UIEvents.DRAG_ENTER, e -> {
-                        if (e.dragHandler.getDraggingObject() instanceof DraggingNode(var dragged) && dragged != node) {
+                        if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
                             var mode = isMouseOverNodeAbove(e) ? 0 : isMouseOverNodeCenter(e) ? 1 : isMouseOverNodeBelow(e) ? 2 : -1;
                             e.currentElement.style(style -> style.overlayTexture(createDraggingOverlay(mode)));
                         }
@@ -112,15 +111,52 @@ public class UIHierarchy extends UIElement {
                         e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
                     });
                     nodeUI.addEventListener(UIEvents.DRAG_UPDATE, e -> {
-                        if (e.dragHandler.getDraggingObject() instanceof DraggingNode(var dragged) && dragged != node) {
+                        if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
                             var mode = isMouseOverNodeAbove(e) ? 0 : isMouseOverNodeCenter(e) ? 1 : isMouseOverNodeBelow(e) ? 2 : -1;
                             e.currentElement.style(style -> style.overlayTexture(createDraggingOverlay(mode)));
                         }
                     });
                     nodeUI.addEventListener(UIEvents.DRAG_PERFORM, e -> {
                         e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
-                        if (e.dragHandler.getDraggingObject() instanceof DraggingNode(var dragged) && dragged != node) {
-
+                        if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
+                            var target = node.getKey();
+                            var toMoved = dragged.getKey();
+                            if (toMoved.isAncestorOf(target)) return;
+                            if (isMouseOverNodeAbove(e)) {
+                                // sibling
+                                var originalParent = toMoved.getParent();
+                                var originalSiblingIndex = toMoved.getSiblingIndex();
+                                var newParent = target.getParent();
+                                var newSiblingIndex = target.getSiblingIndex();
+                                if (newParent == null) return;
+                                if (originalParent == newParent) {
+                                    if (originalSiblingIndex < newSiblingIndex) {
+                                        newSiblingIndex--;
+                                    }
+                                    toMoved.removeSelf();
+                                }
+                                newParent.addEditorChild(toMoved, newSiblingIndex);
+                            } else if (isMouseOverNodeCenter(e)) {
+                                // children
+                                var originalParent = toMoved.getParent();
+                                if (originalParent != target) {
+                                    target.addEditorChild(toMoved, -1);
+                                }
+                            } else if (isMouseOverNodeBelow(e)) {
+                                // sibling
+                                var originalParent = toMoved.getParent();
+                                var originalSiblingIndex = toMoved.getSiblingIndex();
+                                var newParent = target.getParent();
+                                var newSiblingIndex = target.getSiblingIndex() + 1;
+                                if (newParent == null) return;
+                                if (originalParent == newParent) {
+                                    if (originalSiblingIndex < newSiblingIndex) {
+                                        newSiblingIndex--;
+                                    }
+                                    toMoved.removeSelf();
+                                }
+                                newParent.addEditorChild(toMoved, newSiblingIndex);
+                            }
                         }
                     });
                 }));
@@ -136,6 +172,10 @@ public class UIHierarchy extends UIElement {
         this.rootNode = new UITreeNode(ui.rootElement);
         this.treeList.setRoot(rootNode);
         this.ui = ui;
+    }
+
+    public UIElement[] getSelectedNodes() {
+        return treeList.getSelected().stream().map(UITreeNode::getKey).toArray(UIElement[]::new);
     }
 
     private boolean isMouseOverNodeAbove(UIEvent event) {
@@ -189,10 +229,60 @@ public class UIHierarchy extends UIElement {
         }
     }
 
+    private boolean isSelectedNodeValid(Set<UITreeNode> selected) {
+        return (!selected.isEmpty() && selected.stream().findAny().get() != rootNode) && selected.stream()
+                .map(UITreeNode::getKey)
+                .map(UIElement::getParent).distinct().count() <= 1;
+    }
+
     @Nullable
     protected TreeBuilder.Menu createMenu() {
         if (ui == null) return null;
         var menu = TreeBuilder.Menu.start();
+        if (treeList.getSelected().size() <= 1) {
+            // add elements
+            menu.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.new", m -> {
+                for (var holder : LDLib2Registries.UI_ELEMENTS) {
+                    m.leaf(holder.annotation().name(), () -> {
+                        var father = treeList.getSelected().stream().findFirst()
+                                .map(UITreeNode::getKey).orElse(ui.rootElement);
+                        var uiElement = holder.value().get();
+                        father.addEditorChild(uiElement, -1);
+                    });
+                }
+            });
+        }
+        var selected = treeList.getSelected();
+        if (isSelectedNodeValid(selected)) {
+            menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", () -> {
+                var nodes = treeList.getSelected();
+                if (!isSelectedNodeValid(nodes)) return;
+                for (UITreeNode node : nodes) {
+                    var element = node.getKey();
+                    if (element.isInternalUI()) continue;
+                    element.removeSelf();
+                }
+            });
+//            menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> {
+//                var nodes = treeList.getSelected();
+//                if (!isSelectedNodeValid(nodes)) return;
+//                var copied = nodes.stream().map(FXObjectTreeNode::getKey).map(this::copySceneObject).flatMap(Collection::stream).toList();
+//                fxEditor.historyView.pushHistory(Component.translatable("photon.copy_fx_object"), EditAction.of(
+//                        () -> {
+//                            for (var copiedFXObject : copied) {
+//                                addSceneObject(copiedFXObject);
+//                            }
+//                            fxEditor.reloadEffect();
+//                        },
+//                        () -> {
+//                            for (var copiedFXObject : copied) {
+//                                removeSceneObject(copiedFXObject);
+//                            }
+//                            fxEditor.reloadEffect();
+//                        }
+//                ));
+//            });
+        }
         return menu;
     }
 

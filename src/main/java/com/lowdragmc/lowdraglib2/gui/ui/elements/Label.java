@@ -3,8 +3,12 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.renderer.texture.Tickable;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,6 +18,7 @@ import java.util.Map;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@LDLRegister(name = "label", registry = "ldlib2:ui_element")
 public class Label extends TextElement implements IBindable<Component>, IDataConsumer<Component> {
     protected final Map<IDataProvider<Component>, ISubscription> dataSources = new LinkedHashMap<>();
 
@@ -23,14 +28,25 @@ public class Label extends TextElement implements IBindable<Component>, IDataCon
     }
 
     @Override
-    public Label bindDataSource(IDataProvider<Component> dataSource) {
-        this.dataSources.put(dataSource, dataSource.registerListener(this::setText, true));
+    public Label bindDataSource(IDataProvider<Component> dataProvider) {
+        UIEventListener tickableListener;
+        if (dataProvider instanceof Tickable tickable) {
+            tickableListener = e -> tickable.tick();
+            addEventListener(UIEvents.TICK, tickableListener);
+        } else {
+            tickableListener = null;
+        }
+        var subscription = dataProvider.registerListener(this::setText, true);
+        if (tickableListener != null) {
+            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+        }
+        this.dataSources.put(dataProvider, subscription);
         return this;
     }
 
     @Override
-    public Label unbindDataSource(IDataProvider<Component> dataSource) {
-        var removed = this.dataSources.remove(dataSource);
+    public Label unbindDataSource(IDataProvider<Component> dataProvider) {
+        var removed = this.dataSources.remove(dataProvider);
         if (removed != null) {
             removed.unsubscribe();
         }

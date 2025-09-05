@@ -6,9 +6,12 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -20,11 +23,13 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@LDLRegister(name = "tab_view", registry = "ldlib2:ui_element")
 public class TabView extends UIElement {
     public final UIElement tabHeaderContainer;
     public final ScrollerView tabScroller;
@@ -83,6 +88,16 @@ public class TabView extends UIElement {
             }
         });
         content.setDisplay(YogaDisplay.NONE);
+//        UIEventListener removeListener = new UIEventListener() {
+//            @Override
+//            public void handleEvent(UIEvent event) {
+//                tab.removeEventListener(UIEvents.REMOVED, this);
+//                content.removeEventListener(UIEvents.REMOVED, this);
+////                removeTab(tab);
+//            }
+//        };
+//        tab.addEventListener(UIEvents.REMOVED, removeListener);
+//        content.addEventListener(UIEvents.REMOVED, removeListener);
         tabScroller.addScrollViewChildAt(tab, index);
         tabContentContainer.addChildAt(content, index);
         tabContents.put(tab, content);
@@ -93,6 +108,7 @@ public class TabView extends UIElement {
     }
 
     public TabView removeTab(Tab tab) {
+        if (!tabContents.containsKey(tab)) return this;
         var content = tabContents.remove(tab);
         if (content != null) {
             tabScroller.removeScrollViewChild(tab);

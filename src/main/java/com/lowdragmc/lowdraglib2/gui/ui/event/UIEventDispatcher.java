@@ -26,8 +26,8 @@ public final class UIEventDispatcher {
                 // call capture listeners
                 var captures = elem.getCaptureListeners(event.type);
                 for (UIEventListener listener : captures) {
-                    listener.handleEvent(event);
                     event.hasHandler = true;
+                    listener.handleEvent(event);
                     if (event.immediatePropagationStopped) {
                         break;  // skip to leftover bubble phase
                     }
@@ -50,14 +50,14 @@ public final class UIEventDispatcher {
         // For target element, execute both capture and bubble listeners
         var targetCaptures = target.getCaptureListeners(event.type);
         for (UIEventListener listener : targetCaptures) {
-            listener.handleEvent(event);
             event.hasHandler = true;
+            listener.handleEvent(event);
             if (event.immediatePropagationStopped) break;
         }
         var targetBubbles = target.getBubbleListeners(event.type);
         for (UIEventListener listener : targetBubbles) {
-            listener.handleEvent(event);
             event.hasHandler = true;
+            listener.handleEvent(event);
             if (event.immediatePropagationStopped) break;
         }
         if (sendServer) {
@@ -82,8 +82,8 @@ public final class UIEventDispatcher {
                 event.currentElement = elem;
                 var bubbles = elem.getBubbleListeners(event.type);
                 for (UIEventListener listener : bubbles) {
-                    listener.handleEvent(event);
                     event.hasHandler = true;
+                    listener.handleEvent(event);
                     if (event.immediatePropagationStopped) break;
                 }
                 if (sendServer) {
@@ -122,8 +122,8 @@ public final class UIEventDispatcher {
         var currentElement = event.currentElement;
 
         for (var listener : currentElement.getCaptureListeners(event.type)) {
-            listener.handleEvent(event);
             event.hasHandler = true;
+            listener.handleEvent(event);
             if (event.immediatePropagationStopped) break;
         }
 
@@ -140,8 +140,8 @@ public final class UIEventDispatcher {
 
         event.currentElement = currentElement;
         for (var listener : currentElement.getBubbleListeners(event.type)) {
-            listener.handleEvent(event);
             event.hasHandler = true;
+            listener.handleEvent(event);
             if (event.immediatePropagationStopped) break;
         }
 

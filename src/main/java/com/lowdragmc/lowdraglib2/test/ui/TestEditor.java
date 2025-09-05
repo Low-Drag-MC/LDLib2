@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 
-@LDLRegisterClient(name="editor", registry = "screen_test")
+@LDLRegisterClient(name="editor", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestEditor implements IScreenTest {
     @Override

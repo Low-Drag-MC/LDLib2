@@ -1,12 +1,11 @@
 package com.lowdragmc.lowdraglib2;
 
 import com.lowdragmc.lowdraglib2.async.AsyncThreadData;
-import com.lowdragmc.lowdraglib2.editor.resource.PackResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
@@ -58,6 +57,6 @@ public class CommonListeners {
 
     @SubscribeEvent
     public static void onAddReloadListenerEvent(AddReloadListenerEvent event) {
-        event.addListener(PackResourceProvider.Manager.INSTANCE);
+        event.addListener(PackResourceManager.INSTANCE);
     }
 }
