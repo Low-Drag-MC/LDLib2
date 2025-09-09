@@ -4,6 +4,7 @@ import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigFont;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -20,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -130,6 +132,7 @@ public class TextField extends BindableUIElement<String> {
     @Getter
     private boolean isError = false;
     @Getter
+    @Configurable(name = "value")
     private String rawText = "";
     @Getter
     private int cursorPos;
@@ -396,6 +399,7 @@ public class TextField extends BindableUIElement<String> {
         return setValue(text, notify);
     }
 
+    @ConfigSetter(field = "rawText")
     public TextField setText(String text) {
         return setText(text, true);
     }
@@ -448,7 +452,16 @@ public class TextField extends BindableUIElement<String> {
         return this;
     }
 
+    public TextField setAnyString() {
+        mode = Mode.STRING;
+        setCharValidator(Predicates.alwaysTrue());
+        setTextValidator(Predicates.alwaysTrue());
+        style(style -> style.setTooltips(new String[0]));
+        return this;
+    }
+
     public TextField setCompoundTagOnly() {
+        mode = Mode.COMPOUND_TAG;
         setTextValidator(s -> {
             try {
                 TagParser.parseTag(s);
@@ -461,6 +474,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     public TextField setResourceLocationOnly() {
+        mode = Mode.RESOURCE_LOCATION;
         setCharValidator(chr -> chr == ':' || ResourceLocation.isValidNamespace(Character.toString(chr)) || ResourceLocation.isAllowedInResourceLocation(chr));
         setTextValidator(LDLib2::isValidResourceLocation);
         style(style -> style.setTooltips(Component.translatable("ldlib.gui.text_field.resourcelocation")));
@@ -857,6 +871,7 @@ public class TextField extends BindableUIElement<String> {
         var lineX = x - displayOffset;
 
         // draw the text line
+        RenderSystem.depthMask(false);
         guiContext.pose.pushPose();
         guiContext.pose.translate(lineX, lineY, 0);
         guiContext.pose.scale(scale, scale, 1);
@@ -864,6 +879,7 @@ public class TextField extends BindableUIElement<String> {
                 ColorPattern.LIGHT_GRAY.color : (isError ? textFieldStyle.errorColor : textFieldStyle.textColor),
                 !rawText.isEmpty() && textFieldStyle.textShadow);
         guiContext.pose.popPose();
+        RenderSystem.depthMask(true);
 
         // draw highlight
         if (isFocused() && selectionStart != selectionEnd) {

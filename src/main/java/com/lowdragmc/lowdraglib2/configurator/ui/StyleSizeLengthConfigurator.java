@@ -36,8 +36,8 @@ public class StyleSizeLengthConfigurator extends ValueConfigurator<StyleSizeLeng
         unitSelector.layout(layout -> {
             layout.setFlex(1);
         });
-        unitSelector.setCandidates(List.of(YogaUnit.UNDEFINED, YogaUnit.AUTO, YogaUnit.POINT, YogaUnit.PERCENT,
-                YogaUnit.MAX_CONTENT, YogaUnit.FIT_CONTENT, YogaUnit.STRETCH));
+        unitSelector.setCandidates(List.of(YogaUnit.POINT, YogaUnit.PERCENT, YogaUnit.AUTO,
+                YogaUnit.MAX_CONTENT, YogaUnit.FIT_CONTENT, YogaUnit.STRETCH, YogaUnit.UNDEFINED));
         updateSelector();
 
         unitSelector.setOnValueChanged(unit -> {

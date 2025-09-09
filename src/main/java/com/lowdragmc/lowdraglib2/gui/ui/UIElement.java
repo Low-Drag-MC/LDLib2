@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.google.common.collect.ImmutableList;
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -19,11 +21,20 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.utils.PersistedParser;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -32,6 +43,7 @@ import org.appliedenergistics.yoga.config.MutableYogaConfig;
 import org.appliedenergistics.yoga.config.YogaConfig;
 import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
+import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
@@ -51,7 +63,11 @@ import java.util.function.Supplier;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @LDLRegister(name = "element", registry = "ldlib2:ui_element")
-public class UIElement implements IConfigurable, ILDLRegister<UIElement, Supplier<UIElement>> {
+public class UIElement implements IConfigurable, IPersistedSerializable, ILDLRegister<UIElement, Supplier<UIElement>> {
+    public static Codec<UIElement> CODEC = LDLib2Registries.UI_ELEMENTS.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
+            optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
+                    .orElseGet(() -> MapCodec.unit(UIElement::new)));
+
     public static final YogaConfig DEFAULT_YOGA_CONFIG;
     static {
         MutableYogaConfig config = YogaConfig.create(YogaLogger.getDefaultLogger());
@@ -298,6 +314,22 @@ public class UIElement implements IConfigurable, ILDLRegister<UIElement, Supplie
         return layoutNode.getLayoutHeight();
     }
 
+    public final float getMarginTop() {
+        return layoutNode.getLayoutMargin(YogaEdge.TOP);
+    }
+
+    public final float getMarginBottom() {
+        return layoutNode.getLayoutMargin(YogaEdge.BOTTOM);
+    }
+
+    public final float getMarginLeft() {
+        return layoutNode.getLayoutMargin(YogaEdge.LEFT);
+    }
+
+    public final float getMarginRight() {
+        return layoutNode.getLayoutMargin(YogaEdge.RIGHT);
+    }
+
     /**
      * Get the x position of the element excluding the border.
      */
@@ -498,6 +530,16 @@ public class UIElement implements IConfigurable, ILDLRegister<UIElement, Supplie
     public void clearAllChildren() {
         for (var element : new ArrayList<>(this.children)) {
             removeChild(element);
+        }
+    }
+
+    public void clearAllExternalChildren() {
+        for (var child : new ArrayList<>(this.children)) {
+            if (child.isInternalUI) {
+                child.clearAllExternalChildren();
+            } else {
+                removeChild(child);
+            }
         }
     }
 
@@ -1138,7 +1180,6 @@ public class UIElement implements IConfigurable, ILDLRegister<UIElement, Supplie
     }
 
     public void addEditorChild(UIElement child, int index) {
-        if (isInternalUI()) return;
         if (index == -1) {
             addChild(child);
         } else {
@@ -1151,5 +1192,66 @@ public class UIElement implements IConfigurable, ILDLRegister<UIElement, Supplie
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
         YogaStyleConfigParser.buildConfigurator(this, father);
+    }
+
+    @Override
+    public void beforeSerialize() {
+        IPersistedSerializable.super.beforeSerialize();
+        clearAllExternalChildren();
+    }
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
+        var tag = new CompoundTag();
+        var childrenTag = new ListTag();
+        for (var child : children) {
+            var childTag = new CompoundTag();
+            var isInternal = child.isInternalUI();
+            childTag.putBoolean("internal", isInternal);
+            if (isInternal) {
+                childTag.put("data", child.serializeNBT(provider));
+                childrenTag.add(childTag);
+            } else {
+                var result = CODEC.encode(child, NbtOps.INSTANCE, childTag);
+                if (result.isError()) {
+                    LDLib2.LOGGER.error("Failed to serialize UI Element {}: {}", child, result.error());
+                    continue;
+                }
+                childrenTag.add(result.getOrThrow());
+            }
+        }
+        if (!childrenTag.isEmpty()) {
+            tag.put("children", childrenTag);
+        }
+        return tag;
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.@NotNull Provider provider) {
+        if (tag instanceof CompoundTag compoundTag) {
+            var childrenTag = compoundTag.getList("children", Tag.TAG_COMPOUND);
+            for (int i = 0; i < childrenTag.size(); i++) {
+                var childTag = childrenTag.getCompound(i);
+                var isInternal = childTag.getBoolean("internal");
+                if (isInternal) {
+                    if (children.size() <= i) {
+                        LDLib2.LOGGER.error("Failed to deserialize UI Element {} for {}: too few children", this, childTag);
+                        continue;
+                    }
+                    var child = children.get(i);
+                    if (!child.isInternalUI()) {
+                        LDLib2.LOGGER.error("Failed to deserialize UI Element {} for {}: child is not internal", this, childTag);
+                        continue;
+                    }
+                    child.deserializeNBT(provider, childTag.getCompound("data"));
+                } else {
+                    var result = CODEC.parse(NbtOps.INSTANCE, childTag).result();
+                    if (result.isEmpty()) {
+                        LDLib2.LOGGER.error("Failed to deserialize UI Element {}: {}", this, tag);
+                    }
+                    addChildAt(result.orElseGet(UIElement::new), i);
+                }
+            }
+        }
     }
 }

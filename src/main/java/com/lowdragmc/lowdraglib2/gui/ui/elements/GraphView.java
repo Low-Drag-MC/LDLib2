@@ -38,10 +38,10 @@ public class GraphView extends UIElement {
         @Getter @Setter
         private float maxScale = 10f;
         @Getter @Setter @Nullable
-        private SpriteTexture gridTexture = SpriteTexture.of("ldlib2:textures/gui/icon/grid_bg.png")
+        private SpriteTexture gridTexture = SpriteTexture.of("ldlib2:textures/gui/grid_bg.png")
                 .setWrapMode(SpriteTexture.WrapMode.REPEAT);
         @Getter @Setter
-        private float gridSize = 16;
+        private float gridSize = 64;
 
         public GraphViewStyle(UIElement holder) {
             super(holder);
@@ -162,7 +162,9 @@ public class GraphView extends UIElement {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (graphViewStyle.allowPan && event.target == this && event.button == 0 && isChildHover() && isMouseOverContent(event.x, event.y)) {
+        if (graphViewStyle.allowPan &&
+                (event.target == this && event.button == 0 || event.button == 2) &&
+                isChildHover() && isMouseOverContent(event.x, event.y)) {
             startDrag(new DragOffset(offsetX, offsetY), null);
         }
     }

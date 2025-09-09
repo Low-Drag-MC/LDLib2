@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
@@ -99,7 +100,7 @@ public class TextElement extends UIElement {
     private final TextStyle textStyle = new TextStyle(this);
 
     @Getter
-    @Configurable(name = "text")
+    @Configurable(name = "value")
     private Component text = Component.empty();
 
     /**
@@ -181,6 +182,7 @@ public class TextElement extends UIElement {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         if (formattedLines.isEmpty()) return;
+        RenderSystem.depthMask(false);
         guiContext.graphics.drawManaged(() -> {
             var font = getFont();
             var defaultLineHeight = font.lineHeight;
@@ -249,6 +251,7 @@ public class TextElement extends UIElement {
                 guiContext.pose.popPose();
             }
         });
+        RenderSystem.depthMask(true);
     }
 
 }

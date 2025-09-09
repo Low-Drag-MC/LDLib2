@@ -4,6 +4,7 @@ import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigFont;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -20,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -41,6 +43,7 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -70,9 +73,11 @@ public class TextArea extends BindableUIElement<String[]> {
         private int textColor = -1;
         @Getter @Setter
         @Configurable(name = "errorColor")
+        @ConfigColor
         private int errorColor = 0xffff0000;
         @Getter @Setter
         @Configurable(name = "cursorColor")
+        @ConfigColor
         private int cursorColor = 0xffeeeeee;
         @Getter @Setter
         @Configurable(name = "textShadow")
@@ -116,8 +121,8 @@ public class TextArea extends BindableUIElement<String[]> {
 
     // Raw edit buffer (what user is editing right now)
     private final List<String> lines = new ArrayList<>();
-    // Last accepted valid value (used for getValue/notify)
-    private final List<String> valueLines = new ArrayList<>();
+    @Configurable(name = "value")
+    private String[] value = new String[0];
 
     // runtime
     @Getter private boolean isError = false;
@@ -268,7 +273,12 @@ public class TextArea extends BindableUIElement<String[]> {
     // Bindable value
     @Override
     public String[] getValue() {
-        return valueLines.toArray(String[]::new);
+        return Arrays.copyOf(value, value.length);
+    }
+
+    public TextArea setLinesResponder(Consumer<String[]> textResponder) {
+        registerValueListener(textResponder);
+        return this;
     }
 
     public TextArea setLines(List<String> lines) {
@@ -279,6 +289,7 @@ public class TextArea extends BindableUIElement<String[]> {
         return setValue(lines, notify);
     }
 
+    @ConfigSetter(field = "value")
     public TextArea setValue(@Nullable String[] value) {
         return setValue(value, true);
     }
@@ -286,16 +297,17 @@ public class TextArea extends BindableUIElement<String[]> {
     @Override
     public TextArea setValue(@Nullable String[] value, boolean notify) {
         lines.clear();
-        valueLines.clear();
+        var valueBuilder = new ArrayList<String>();
         if (value != null && value.length > 0) {
             for (String s : value) {
                 lines.add(s == null ? "" : s);
-                valueLines.add(s == null ? "" : s);
+                valueBuilder.add(s == null ? "" : s);
             }
         } else {
             lines.add("");
-            valueLines.add("");
+            valueBuilder.add("");
         }
+        this.value = valueBuilder.toArray(new String[0]);
         // Reset cursor and selection at end
         cursorLine = Math.max(0, lines.size() - 1);
         cursorCol = lines.get(cursorLine).length();
@@ -806,8 +818,8 @@ public class TextArea extends BindableUIElement<String[]> {
         if (textValidator.test(candidate)) {
             isError = false;
             if (!equalsValue(candidate)) {
-                valueLines.clear();
-                for (String s : candidate) valueLines.add(s);
+                value = new String[candidate.length];
+                System.arraycopy(candidate, 0, value, 0, candidate.length);
                 notifyListeners();
             }
         } else {
@@ -817,9 +829,9 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     private boolean equalsValue(String[] candidate) {
-        if (candidate.length != valueLines.size()) return false;
+        if (candidate.length != value.length) return false;
         for (int i = 0; i < candidate.length; i++) {
-            if (!candidate[i].equals(valueLines.get(i))) return false;
+            if (!candidate[i].equals(value[i])) return false;
         }
         return true;
     }
@@ -874,40 +886,45 @@ public class TextArea extends BindableUIElement<String[]> {
         int lastVisibleLine = Mth.clamp(firstVisibleLine + maxVisibleLines, 0, Math.max(lines.size() - 1, 0));
 
         // Text
-        for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.size(); i++) {
-            float lineY = y + i * lineHeight() - scrollY;
-            var text = lines.get(i);
-            var drawX = x - scrollX;
+        RenderSystem.depthMask(false);
+        guiContext.graphics.drawManaged(() -> {
+            for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.size(); i++) {
+                float lineY = y + i * lineHeight() - scrollY;
+                var text = lines.get(i);
+                var drawX = x - scrollX;
+                var textWithFont = Component.literal(text).withStyle(style -> style.withFont(getTextAreaStyle().font()));
 
-            guiContext.pose.pushPose();
-            guiContext.pose.translate(drawX, lineY, 0);
-            guiContext.pose.scale(s, s, 1);
-            guiContext.graphics.drawString(
-                    font,
-                    text,
-                    0,
-                    0,
-                    isError ? textAreaStyle.errorColor() : textAreaStyle.textColor(),
-                    textAreaStyle.textShadow()
-            );
-            guiContext.pose.popPose();
-        }
+                guiContext.pose.pushPose();
+                guiContext.pose.translate(drawX, lineY, 0);
+                guiContext.pose.scale(s, s, 1);
+                guiContext.graphics.drawString(
+                        font,
+                        textWithFont,
+                        0,
+                        0,
+                        isError ? textAreaStyle.errorColor() : textAreaStyle.textColor(),
+                        textAreaStyle.textShadow()
+                );
+                guiContext.pose.popPose();
+            }
 
-        // Placeholder
-        if (lines.size() == 1 && lines.getFirst().isEmpty()) {
-            guiContext.pose.pushPose();
-            guiContext.pose.translate(x, y, 0);
-            guiContext.pose.scale(s, s, 1);
-            guiContext.graphics.drawString(
-                    font,
-                    textAreaStyle.placeholder(),
-                    0,
-                    0,
-                    ColorPattern.LIGHT_GRAY.color,
-                    false
-            );
-            guiContext.pose.popPose();
-        }
+            // Placeholder
+            if (lines.size() == 1 && lines.getFirst().isEmpty()) {
+                guiContext.pose.pushPose();
+                guiContext.pose.translate(x, y, 0);
+                guiContext.pose.scale(s, s, 1);
+                guiContext.graphics.drawString(
+                        font,
+                        textAreaStyle.placeholder(),
+                        0,
+                        0,
+                        ColorPattern.LIGHT_GRAY.color,
+                        false
+                );
+                guiContext.pose.popPose();
+            }
+        });
+        RenderSystem.depthMask(true);
 
         // Selection highlight
         if (isFocused() && hasSelection()) {

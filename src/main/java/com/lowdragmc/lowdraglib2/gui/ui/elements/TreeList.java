@@ -214,7 +214,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     }
 
     protected void checkNodeChildrenValid(NODE node) {
-        if (isNodeExpanded(node)) {
+        if (isNodeExpanded(node) && nodeUIs.containsKey(node)) {
             var currentChildren = (List<NODE>) node.getChildren();
             var displayedChildren = this.displayedChildren.getOrDefault(node, Collections.emptyList());
             if (currentChildren.equals(displayedChildren)) return;

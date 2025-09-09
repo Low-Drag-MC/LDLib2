@@ -2,10 +2,12 @@ package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
+import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import net.minecraft.client.gui.GuiGraphics;
@@ -57,12 +59,7 @@ public class YogaStyleConfigParser {
         flexGroup.addConfigurator(EnumAccessor.create("FlexDirection",
                 Arrays.stream(YogaFlexDirection.values()).toList(), yogaStyle::getFlexDirection, yogaNode::setFlexDirection,
                 YogaFlexDirection.COLUMN, true,
-                v -> switch (v) {
-                    case YogaFlexDirection.COLUMN -> Icons.COLUMN;
-                    case YogaFlexDirection.COLUMN_REVERSE -> Icons.COLUMN_REVERSE;
-                    case YogaFlexDirection.ROW -> Icons.ROW;
-                    case YogaFlexDirection.ROW_REVERSE -> Icons.ROW_REVERSE;
-                }).setTips("FlexDirection.tips"));
+                FlexIcons::getFlexDirectionIcon).setTips("FlexDirection.tips"));
 
         flexGroup.addConfigurator(EnumAccessor.create("FlexWrap",
                 Arrays.stream(YogaWrap.values()).toList(), yogaNode::getWrap, yogaNode::setWrap,
@@ -149,25 +146,12 @@ public class YogaStyleConfigParser {
                         YogaAlign.CENTER,
                         YogaAlign.STRETCH), yogaNode::getAlignItems, yogaNode::setAlignItems,
                 YogaAlign.STRETCH, true,
-                v -> switch (v) {
-                    case YogaAlign.FLEX_START -> Icons.ALIGN_ITEMS_FLEX_START;
-                    case YogaAlign.FLEX_END -> Icons.ALIGN_ITEMS_FLEX_END;
-                    case YogaAlign.CENTER -> Icons.ALIGN_ITEMS_CENTER;
-                    case YogaAlign.STRETCH -> Icons.ALIGN_ITEMS_STRETCH;
-                    default -> Icons.AUTO;
-                }).setTips("AlignItems.tips"));
+                v -> DynamicTexture.of(() -> FlexIcons.getAlignItemIcon(yogaNode.getFlexDirection(), v))).setTips("AlignItems.tips"));
 
         alignGroup.addConfigurator(EnumAccessor.create("JustifyContent",
                 Arrays.stream(YogaJustify.values()).toList(), yogaNode::getJustifyContent, yogaNode::setJustifyContent,
                 YogaJustify.FLEX_START, true,
-                v -> switch (v) {
-                    case YogaJustify.FLEX_START -> Icons.JUSTIFY_CONTENT_FLEX_START;
-                    case YogaJustify.CENTER -> Icons.JUSTIFY_CONTENT_CENTER;
-                    case YogaJustify.FLEX_END -> Icons.JUSTIFY_CONTENT_FLEX_END;
-                    case YogaJustify.SPACE_BETWEEN -> Icons.JUSTIFY_CONTENT_SPACE_BETWEEN;
-                    case YogaJustify.SPACE_AROUND -> Icons.JUSTIFY_CONTENT_SPACE_AROUND;
-                    case YogaJustify.SPACE_EVENLY -> Icons.JUSTIFY_CONTENT_SPACE_EVENLY;
-                }).setTips("JustifyContent.tips"));
+                v -> DynamicTexture.of(() -> FlexIcons.getJustifyContentIcon(yogaNode.getFlexDirection(), v))).setTips("JustifyContent.tips"));
 
         alignGroup.addConfigurator(EnumAccessor.create("AlignSelf",
                 List.of(YogaAlign.AUTO,
@@ -176,13 +160,7 @@ public class YogaStyleConfigParser {
                         YogaAlign.CENTER,
                         YogaAlign.STRETCH), yogaNode::getAlignSelf, yogaNode::setAlignSelf,
                 YogaAlign.STRETCH, true,
-                v -> switch (v) {
-                    case YogaAlign.FLEX_START -> Icons.ALIGN_SELF_FLEX_START;
-                    case YogaAlign.FLEX_END -> Icons.ALIGN_SELF_FLEX_END;
-                    case YogaAlign.CENTER -> Icons.ALIGN_SELF_CENTER;
-                    case YogaAlign.STRETCH -> Icons.ALIGN_SELF_STRETCH;
-                    default -> Icons.AUTO;
-                }).setTips("AlignSelf.tips"));
+                v -> DynamicTexture.of(() -> FlexIcons.getAlignSelfIcon(yogaNode.getFlexDirection(), v))).setTips("AlignSelf.tips"));
 
         alignGroup.addConfigurator(EnumAccessor.create("AlignContent",
                 List.of(YogaAlign.AUTO,
@@ -191,13 +169,7 @@ public class YogaStyleConfigParser {
                         YogaAlign.CENTER,
                         YogaAlign.STRETCH), yogaNode::getAlignContent, yogaNode::setAlignContent,
                 YogaAlign.STRETCH, true,
-                v -> switch (v) {
-                    case YogaAlign.FLEX_START -> Icons.ALIGN_CONTENT_FLEX_START;
-                    case YogaAlign.FLEX_END -> Icons.ALIGN_CONTENT_FLEX_END;
-                    case YogaAlign.CENTER -> Icons.ALIGN_CONTENT_CENTER;
-                    case YogaAlign.STRETCH -> Icons.ALIGN_CONTENT_STRETCH;
-                    default -> Icons.AUTO;
-                }).setTips("AlignContent.tips"));
+                v -> DynamicTexture.of(() -> FlexIcons.getAlignContentIcon(yogaNode.getFlexDirection(), v))).setTips("AlignContent.tips"));
 
         father.addConfigurator(alignGroup);
     }

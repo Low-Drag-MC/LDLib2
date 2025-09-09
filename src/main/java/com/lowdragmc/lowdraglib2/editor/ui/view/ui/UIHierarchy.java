@@ -23,6 +23,7 @@ import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Optional;
 import java.util.Set;
 
 public class UIHierarchy extends UIElement {
@@ -178,6 +179,11 @@ public class UIHierarchy extends UIElement {
         return treeList.getSelected().stream().map(UITreeNode::getKey).toArray(UIElement[]::new);
     }
 
+    public Optional<UIElement> getSelectedOne() {
+        var elements = getSelectedNodes();
+        return elements.length == 1 ? Optional.of(elements[0]) : Optional.empty();
+    }
+
     private boolean isMouseOverNodeAbove(UIEvent event) {
         var ui = event.currentElement;
         var x = ui.getPositionX();
@@ -232,7 +238,8 @@ public class UIHierarchy extends UIElement {
     private boolean isSelectedNodeValid(Set<UITreeNode> selected) {
         return (!selected.isEmpty() && selected.stream().findAny().get() != rootNode) && selected.stream()
                 .map(UITreeNode::getKey)
-                .map(UIElement::getParent).distinct().count() <= 1;
+                .filter(element -> !element.isInternalUI())
+                .map(UIElement::getParent).distinct().count() == 1;
     }
 
     @Nullable

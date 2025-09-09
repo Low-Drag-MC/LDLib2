@@ -344,7 +344,6 @@
   "textShadow": "Text Shadow",
   "buttonStyle": "Button Style",
   "textStyle": "Text Style",
-  "text": "Text",
   "LayoutDirection": "direction",
   "LayoutDirection.tips": "Layout direction specifies the direction in which children in a hierarchy should be laid out.",
   "FlexDirection": "flex-direction",
@@ -395,5 +394,6 @@
   "textAreaStyle": "Text Area Style",
   "textFieldStyle": "Text Field Style",
   "AspectRate": "aspect-ratio",
-  "AspectRate.tips": "Defined as the ratio between the width and the height of a node e.g. if a node has an aspect ratio of 2 then its width is twice the size of its height."
+  "AspectRate.tips": "Defined as the ratio between the width and the height of a node e.g. if a node has an aspect ratio of 2 then its width is twice the size of its height.",
+  "value": "Value"
 }

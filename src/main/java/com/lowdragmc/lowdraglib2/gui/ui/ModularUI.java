@@ -928,10 +928,10 @@ public class ModularUI {
                 var posY = element.getPositionY();
                 var sizeX = element.getSizeWidth();
                 var sizeY = element.getSizeHeight();
-                var marginTop = element.layoutNode.getLayoutMargin(YogaEdge.TOP);
-                var marginBottom = element.layoutNode.getLayoutMargin(YogaEdge.BOTTOM);
-                var marginLeft = element.layoutNode.getLayoutMargin(YogaEdge.LEFT);
-                var marginRight = element.layoutNode.getLayoutMargin(YogaEdge.RIGHT);
+                var marginTop = element.getMarginTop();
+                var marginBottom = element.getMarginBottom();
+                var marginLeft = element.getMarginLeft();
+                var marginRight = element.getMarginRight();
                 DrawerHelper.drawSolidRect(graphics, posX - marginLeft, posY - marginTop,
                         sizeX + marginLeft + marginRight, sizeY + marginTop + marginBottom, ColorPattern.T_ORANGE.color);
                 DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000, false);

@@ -20,7 +20,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
@@ -219,10 +218,7 @@ public class Scene extends UIElement {
         level = world;
         dummyWorld = world instanceof TrackedDummyWorld trackedLevel ? trackedLevel : new TrackedDummyWorld(world);
         //compute window size from scaled width & height
-        final WorldSceneRenderer renderer = useFBOSceneRenderer ?
-                new FBOWorldSceneRenderer(dummyWorld, fboSize == null ? 1080 : fboSize.width, fboSize == null ? 1080 : fboSize.height) :
-                new ImmediateWorldSceneRenderer(dummyWorld);
-        this.renderer = renderer;
+        this.renderer = ClientWrapper.createWorldSceneRenderer(dummyWorld, useFBOSceneRenderer, fboSize);
         dummyWorld.setBlockFilter(core::contains);
         center = new Vector3f(0, 0, 0);
         renderer.useOrtho(useOrtho);
@@ -243,6 +239,15 @@ public class Scene extends UIElement {
         lastSelectedPosFace = null;
         return this;
     }
+
+    private static class ClientWrapper {
+        private static WorldSceneRenderer createWorldSceneRenderer(Level world, boolean useFBOSceneRenderer, @Nullable Size fboSize) {
+            return useFBOSceneRenderer ?
+                    new FBOWorldSceneRenderer(world, fboSize == null ? 1080 : fboSize.width, fboSize == null ? 1080 : fboSize.height) :
+                    new ImmediateWorldSceneRenderer(world);
+        }
+    }
+
 
     public final Scene createScene(Level world) {
         return createScene(world, false, null);
@@ -331,10 +336,10 @@ public class Scene extends UIElement {
                     }
                 }
             }
-            if (lastHoverPosFace != null && hit != null) {
+            var mui = getModularUI();
+            if (lastHoverPosFace != null && hit != null && mui != null && mui.player != null) {
                 var state = dummyWorld.getBlockState(lastHoverPosFace.pos());
-                lastHoverItem = state.getBlock().getCloneItemStack(state, hit, dummyWorld, lastHoverPosFace.pos(),
-                        Minecraft.getInstance().player);
+                lastHoverItem = state.getBlock().getCloneItemStack(state, hit, dummyWorld, lastHoverPosFace.pos(), mui.player);
             }
         }
 
