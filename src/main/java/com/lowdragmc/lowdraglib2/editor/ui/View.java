@@ -3,8 +3,11 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import lombok.Getter;
@@ -20,7 +23,13 @@ public class View extends UIElement {
     private String name = "view";
     @Getter @Setter
     private IGuiTexture icon = IGuiTexture.EMPTY;
+    @Getter @Setter
+    private boolean canRemove = false;
     private long lastClickTime = 0;
+
+    @Nullable
+    @Setter
+    private Runnable onRemove;
     // runtime
     @Getter
     @Nullable
@@ -77,6 +86,26 @@ public class View extends UIElement {
                 layout.setHeightPercent(100);
                 layout.setAspectRatio(1f);
             }).style(style -> style.backgroundTexture(icon)), 0);
+        }
+        if (canRemove) {
+            tab.addChild(new Button().setOnClick(e -> {
+                if (e.button == 0) {
+                    Dialog.showCheckBox("", "view.close.info", close -> {
+                        if (canRemove && close) {
+                            if (onRemove != null) {
+                                onRemove.run();
+                            }
+                            removeSelf();
+                        }
+                    }).show(getModularUI().ui.rootElement);
+                    e.stopPropagation();
+                }
+            }).noText().buttonStyle(buttonStyle -> buttonStyle.defaultTexture(Icons.REMOVE)
+                    .hoverTexture(Icons.REMOVE.copy().setColor(ColorPattern.LIGHT_GRAY.color))
+                    .pressedTexture(Icons.REMOVE.copy().setColor(ColorPattern.GRAY.color))).layout(layout -> {
+                layout.setHeightPercent(100);
+                layout.setAspectRatio(1f);
+            }));
         }
         tab.addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (e.button == 0) {

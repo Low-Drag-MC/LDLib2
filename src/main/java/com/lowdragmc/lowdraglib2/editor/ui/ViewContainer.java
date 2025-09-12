@@ -13,6 +13,9 @@ import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -21,6 +24,7 @@ public class ViewContainer extends UIElement {
     public final TabView tabView;
 
     // runtime
+    private final List<View> views = new ArrayList<>();
     @Nullable
     private UIElement tabPlaceHolder;
     @Nullable @Getter
@@ -139,6 +143,7 @@ public class ViewContainer extends UIElement {
         view.removeSelf();
         var tab = view.craeteTab();
         tabView.addTab(tab, view);
+        views.add(view);
         view._setWindowInternal(this);
         return this;
     }
@@ -156,6 +161,7 @@ public class ViewContainer extends UIElement {
         view.removeSelf();
         var tab = view.craeteTab();
         tabView.addTab(tab, view, index);
+        views.add(index, view);
         view._setWindowInternal(this);
         return this;
     }
@@ -165,6 +171,10 @@ public class ViewContainer extends UIElement {
             addView(view);
         }
         return this;
+    }
+
+    public List<View> getAllViews() {
+        return views;
     }
 
     public boolean hasView(View view) {
@@ -186,6 +196,7 @@ public class ViewContainer extends UIElement {
      *             becomes empty, window-specific cleanup actions may be executed.
      */
     public void removeView(View view) {
+        views.remove(view);
         var tab = tabView.getTabContents().inverse().get(view);
         if (tab != null) {
             tabView.removeTab(tab);

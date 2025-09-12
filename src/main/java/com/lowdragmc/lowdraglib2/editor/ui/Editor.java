@@ -31,6 +31,8 @@ import org.appliedenergistics.yoga.YogaGutter;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 @Getter
@@ -162,6 +164,10 @@ public class Editor extends UIElement {
         }
     }
 
+    public List<View> getAllViews() {
+        return rootWindow.getAllViews();
+    }
+
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
         menu.layout(layout -> {
@@ -287,7 +293,7 @@ public class Editor extends UIElement {
     public final void loadProject(IProject project, @Nullable File projectFile) {
         if (currentProject != null) {
             if (window != null) {
-                Dialog.showCheckBox("","Do you want to open the project in a new window?", result -> {
+                Dialog.showCheckBox("","editor.loadProject.info", result -> {
                    if (result) {
                        window.createNewEditor().loadNewProject(project, projectFile);
                    } else {

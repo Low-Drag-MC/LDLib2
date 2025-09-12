@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
+import lombok.Getter;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
@@ -23,6 +24,9 @@ public class UIEditorView extends View {
     public final Inspector inspector = new Inspector();
     public final ModularUIPreview modularUIPreview;
     public final HistoryStack historyStack = new HistoryStack();
+    // runtime
+    @Nullable @Getter
+    private UI currentUI;
 
     public UIEditorView() {
         super("editor.view.ui_editor");
@@ -108,10 +112,12 @@ public class UIEditorView extends View {
         this.modularUIPreview.clear();
         this.hierarchy.clearUI();
         this.historyStack.clearHistory();
+        this.currentUI = null;
         return this;
     }
 
     public UIEditorView loadUI(@Nonnull UI ui) {
+        this.currentUI = ui;
         this.modularUIPreview.setModularUI(ui);
         this.hierarchy.loadUI(ui);
         this.modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());

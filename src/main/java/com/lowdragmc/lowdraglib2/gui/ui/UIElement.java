@@ -1195,8 +1195,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     @Override
-    public void beforeSerialize() {
-        IPersistedSerializable.super.beforeSerialize();
+    public void beforeDeserialize() {
+        IPersistedSerializable.super.beforeDeserialize();
         clearAllExternalChildren();
     }
 

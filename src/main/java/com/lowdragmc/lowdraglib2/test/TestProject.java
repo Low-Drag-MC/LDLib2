@@ -1,10 +1,7 @@
 package com.lowdragmc.lowdraglib2.test;
 
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
-import com.lowdragmc.lowdraglib2.editor.resource.ColorsResource;
-import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource;
-import com.lowdragmc.lowdraglib2.editor.resource.Resources;
-import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
+import com.lowdragmc.lowdraglib2.editor.resource.*;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
@@ -22,7 +19,8 @@ public class TestProject implements IProject {
         this.resources = Resources.of(
                 ColorsResource.INSTANCE,
                 TexturesResource.INSTANCE,
-                IRendererResource.INSTANCE
+                IRendererResource.INSTANCE,
+                UIResource.INSTANCE
         );
     }
 

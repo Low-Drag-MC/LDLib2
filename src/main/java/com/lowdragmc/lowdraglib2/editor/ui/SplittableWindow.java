@@ -21,8 +21,7 @@ import org.appliedenergistics.yoga.YogaEdge;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
@@ -108,6 +107,18 @@ public class SplittableWindow extends UIElement {
             }
         }
         return this;
+    }
+
+    public List<View> getAllViews() {
+        var views = new ArrayList<View>();
+        if (viewContainer != null) {
+            views.addAll(viewContainer.getAllViews());
+        }
+        if (splitView != null) {
+            if (first != null) views.addAll(first.getAllViews());
+            if (second != null) views.addAll(second.getAllViews());
+        }
+        return views;
     }
 
     @Override
@@ -196,7 +207,7 @@ public class SplittableWindow extends UIElement {
      * @return a pair of SplittableWindows: the split window on the specified edge and the remaining portion
      *         of the original window
      */
-    public Pair<SplittableWindow, SplittableWindow> splitWidth(YogaEdge edge, SplittableWindow newWindow) {
+    public Pair<SplittableWindow, SplittableWindow> splitWith(YogaEdge edge, SplittableWindow newWindow) {
         if (this.splitView != null) throw new IllegalStateException("Cannot split a split window");
         if (this.viewContainer == null) throw new IllegalStateException("Cannot split a window that is empty");
         if (edge == YogaEdge.TOP) {
@@ -236,7 +247,7 @@ public class SplittableWindow extends UIElement {
      */
     public Pair<SplittableWindow, SplittableWindow> splitNew(YogaEdge edge) {
         SplittableWindow newWindow = new SplittableWindow(this);
-        return splitWidth(edge, newWindow);
+        return splitWith(edge, newWindow);
     }
 
     protected ViewContainer getEmptyOrSplitContainer(YogaEdge edge) {

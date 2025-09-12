@@ -395,5 +395,7 @@
   "textFieldStyle": "Text Field Style",
   "AspectRate": "aspect-ratio",
   "AspectRate.tips": "Defined as the ratio between the width and the height of a node e.g. if a node has an aspect ratio of 2 then its width is twice the size of its height.",
-  "value": "Value"
+  "value": "Value",
+  "editor.loadProject.info": "Do you want to open the project in a new window?",
+  "view.close.info": "Are you sure to close the view"
 }
