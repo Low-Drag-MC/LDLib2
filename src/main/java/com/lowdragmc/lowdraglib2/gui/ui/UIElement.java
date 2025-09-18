@@ -13,16 +13,19 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaStyleConfigParser;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaNodeConfigParser;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaNodeSerializer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
+import com.lowdragmc.lowdraglib2.utils.TagUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -550,14 +553,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if (element == this) {
             return true;
         }
-        var parent = element.getParent();
-        while (parent != null) {
-            if (parent == this) {
-                return true;
-            }
-            parent = parent.getParent();
-        }
-        return false;
+        return element.getStructurePath().contains(this);
     }
 
     /// Style
@@ -649,6 +645,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     public boolean isFocused() {
         return getModularUI() != null && getModularUI().getFocusedElement() == this;
+    }
+
+    public boolean isChildFocused() {
+        var mui = getModularUI();
+        return mui != null && mui.getFocusedElement() != null && this.isAncestorOf(mui.getFocusedElement());
     }
 
     /// Interaction
@@ -1191,7 +1192,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @OnlyIn(Dist.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
-        YogaStyleConfigParser.buildConfigurator(this, father);
+        YogaNodeConfigParser.buildConfigurator(this, father);
+    }
+
+    public UIElement copy() {
+        return CODEC.encodeStart(NbtOps.INSTANCE, this).result().map(tag -> CODEC.parse(NbtOps.INSTANCE, tag).result()
+                        .orElseGet(UIElement::new))
+                .orElseGet(UIElement::new);
     }
 
     @Override
@@ -1203,6 +1210,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Override
     public Tag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
         var tag = new CompoundTag();
+        tag.put("layout", YogaNodeSerializer.serialize(layoutNode));
         var childrenTag = new ListTag();
         for (var child : children) {
             var childTag = new CompoundTag();
@@ -1210,15 +1218,15 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             childTag.putBoolean("internal", isInternal);
             if (isInternal) {
                 childTag.put("data", child.serializeNBT(provider));
-                childrenTag.add(childTag);
             } else {
-                var result = CODEC.encode(child, NbtOps.INSTANCE, childTag);
-                if (result.isError()) {
-                    LDLib2.LOGGER.error("Failed to serialize UI Element {}: {}", child, result.error());
-                    continue;
+                // use short tag
+                var data = child.serializeShortNBT(provider);
+                if (data != null) {
+                    childTag.put("data", data);
                 }
-                childrenTag.add(result.getOrThrow());
+                childTag.putString("type", child.name());
             }
+            childrenTag.add(childTag);
         }
         if (!childrenTag.isEmpty()) {
             tag.put("children", childrenTag);
@@ -1229,6 +1237,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Override
     public void deserializeAdditionalNBT(Tag tag, HolderLookup.@NotNull Provider provider) {
         if (tag instanceof CompoundTag compoundTag) {
+            if (compoundTag.contains("layout")) {
+                YogaNodeSerializer.deserialize(compoundTag.getCompound("layout"), layoutNode);
+            }
             var childrenTag = compoundTag.getList("children", Tag.TAG_COMPOUND);
             for (int i = 0; i < childrenTag.size(); i++) {
                 var childTag = childrenTag.getCompound(i);
@@ -1253,5 +1264,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 }
             }
         }
+    }
+
+    @Nullable
+    public CompoundTag serializeShortNBT(HolderLookup.@NotNull Provider provider) {
+        var fullTag = serializeNBT(provider);
+        var raw = Optional.ofNullable(getRegistry().get(name())).map(AutoRegistry.Holder::value).map(Supplier::get).orElseGet(UIElement::new);
+        var rawTag = raw.serializeNBT(provider);
+        return TagUtils.removeDuplicates(fullTag, rawTag);
     }
 }

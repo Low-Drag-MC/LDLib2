@@ -14,7 +14,6 @@ import org.appliedenergistics.yoga.YogaEdge;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 @ParametersAreNonnullByDefault
@@ -141,7 +140,7 @@ public class ViewContainer extends UIElement {
      */
     public ViewContainer addView(View view) {
         view.removeSelf();
-        var tab = view.craeteTab();
+        var tab = view.createTab();
         tabView.addTab(tab, view);
         views.add(view);
         view._setWindowInternal(this);
@@ -159,7 +158,7 @@ public class ViewContainer extends UIElement {
      */
     public ViewContainer addViewAt(View view, int index) {
         view.removeSelf();
-        var tab = view.craeteTab();
+        var tab = view.createTab();
         tabView.addTab(tab, view, index);
         views.add(index, view);
         view._setWindowInternal(this);

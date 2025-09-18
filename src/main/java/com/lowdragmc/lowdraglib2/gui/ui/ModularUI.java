@@ -99,7 +99,7 @@ public class ModularUI {
     private long lastMouseClickTime;
     @Getter
     private float lastMouseX, lastMouseY, lastMouseDownX, lastMouseDownY;
-    @Getter
+    @Getter @Nullable
     private UIElement focusedElement = null;
 
     // hover tips

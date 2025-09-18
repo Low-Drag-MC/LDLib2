@@ -28,17 +28,7 @@ public final class UI {
         return of(new UIElement());
     }
 
-    public CompoundTag serialize(HolderLookup.Provider provider) {
-        var tag = new CompoundTag();
-        var rootTag = rootElement.serializeNBT(provider);
-        tag.put("root", rootTag);
-        return tag;
+    public UITemplate toTemplate() {
+        return UITemplate.of(rootElement);
     }
-
-    public static UI fromNbt(HolderLookup.Provider provider, CompoundTag tag) {
-       var root = new UIElement();
-       root.deserializeNBT(provider, tag.getCompound("root"));
-       return UI.of(root);
-    }
-
 }

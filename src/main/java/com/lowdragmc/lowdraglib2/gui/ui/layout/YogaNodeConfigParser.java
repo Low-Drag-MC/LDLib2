@@ -3,16 +3,10 @@ package com.lowdragmc.lowdraglib2.gui.ui.layout;
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import net.minecraft.client.gui.GuiGraphics;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import lombok.experimental.UtilityClass;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.appliedenergistics.yoga.style.StyleLength;
@@ -24,11 +18,16 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class YogaStyleConfigParser {
+@UtilityClass
+public final class YogaNodeConfigParser {
 
     public static void buildConfigurator(UIElement uiElement, ConfiguratorGroup father) {
         var yogaNode = uiElement.getLayoutNode();
         var yogaStyle = yogaNode.getStyle();
+
+        father.addConfigurator(EnumAccessor.create("Display",
+                Arrays.stream(YogaDisplay.values()).toList(), yogaNode::getDisplay, yogaNode::setDisplay,
+                YogaDisplay.FLEX, true).setTips("Display.tips"));
         father.addConfigurator(EnumAccessor.create("LayoutDirection",
                 Arrays.stream(YogaDirection.values()).toList(), yogaStyle::getDirection, yogaNode::setDirection,
                 YogaDirection.INHERIT, true).setTips("LayoutDirection.tips"));
@@ -133,6 +132,10 @@ public class YogaStyleConfigParser {
             yogaStyle.setAspectRatio(value);
             yogaNode.markDirtyAndPropagate();
         }, FloatOptional.of(), true).setTips("AspectRate.tips"));
+
+        sizeGroup.addConfigurator(EnumAccessor.create("Overflow",
+                List.of(YogaOverflow.VISIBLE, YogaOverflow.HIDDEN), yogaNode::getOverflow, yogaNode::setOverflow,
+                YogaOverflow.VISIBLE, true).setTips("Overflow.tips"));
 
         father.addConfigurator(sizeGroup);
 

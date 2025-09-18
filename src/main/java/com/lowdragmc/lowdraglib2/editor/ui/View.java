@@ -78,7 +78,7 @@ public class View extends UIElement {
     /**
      * Create a tab for this view which will be displayed in the window's tab view.
      */
-    public Tab craeteTab() {
+    public Tab createTab() {
         var tab = new Tab().setText(getViewName());
         if (icon != IGuiTexture.EMPTY && icon != null) {
             tab.getLayout().setGap(YogaGutter.ALL, 2);

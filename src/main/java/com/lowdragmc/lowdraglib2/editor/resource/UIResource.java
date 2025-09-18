@@ -4,24 +4,19 @@ import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.editor.ui.view.ui.UIEditorView;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
 import javax.annotation.Nullable;
 
-public class UIResource extends Resource<UI> {
+public class UIResource extends Resource<UITemplate> {
     public static final UIResource INSTANCE = new UIResource();
 
     public UIResource() {
-    }
-
-    @Override
-    public void buildBuiltin(BuiltinResourceProvider<UI> provider) {
-
     }
 
     @Override
@@ -36,19 +31,19 @@ public class UIResource extends Resource<UI> {
 
     @Nullable
     @Override
-    public Tag serializeResource(UI value, HolderLookup.Provider provider) {
-        return value.serialize(provider);
+    public Tag serializeResource(UITemplate value, HolderLookup.Provider provider) {
+        return UITemplate.CODEC.encodeStart(NbtOps.INSTANCE, value).result().orElse(null);
     }
 
     @Override
-    public UI deserializeResource(Tag nbt, HolderLookup.Provider provider) {
-        return UI.fromNbt(provider, nbt instanceof CompoundTag tag ? tag : new CompoundTag());
+    public UITemplate deserializeResource(Tag nbt, HolderLookup.Provider provider) {
+        return UITemplate.CODEC.parse(NbtOps.INSTANCE, nbt).result().orElse(UITemplate.MISSING);
     }
 
     @Override
-    public ResourceProviderContainer<UI> createResourceProviderContainer(IResourceProvider<UI> provider) {
+    public ResourceProviderContainer<UITemplate> createResourceProviderContainer(IResourceProvider<UITemplate> provider) {
         return super.createResourceProviderContainer(provider)
-                .setAddDefault(() -> UI.of(new UIElement().layout(layout -> {
+                .setAddDefault(() -> UITemplate.of(new UIElement().layout(layout -> {
                     layout.setWidth(150);
                     layout.setHeight(150);
                 }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID))))
@@ -57,14 +52,14 @@ public class UIResource extends Resource<UI> {
                     layout.setHeightPercent(100);
                 }).style(style -> style.backgroundTexture(Icons.WIDGET_BASIC)))
                 .setOnEdit((container, path) -> {
-                    var ui = provider.getResource(path);
-                    if (ui == null) return;
+                    var template = provider.getResource(path);
+                    if (template == null) return;
                     var editor = container.getEditor();
                     for (var view : editor.getAllViews()) {
                         // if it has already opened
-                        if (view instanceof UIEditorView uiEditorView && uiEditorView.getCurrentUI() == ui) return;
+                        if (view instanceof UIEditorView uiEditorView && uiEditorView.getTemplate() == template) return;
                     }
-                    var newView = new UIEditorView().loadUI(ui);
+                    var newView = new UIEditorView().loadTemplate(template, () -> container.markResourceDirty(path));
                     newView.setCanRemove(true);
                     newView.setIcon(Icons.WIDGET_BASIC);
                     newView.setName(path.getResourceName());

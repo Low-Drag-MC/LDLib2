@@ -27,8 +27,8 @@ public final class TagUtils {
      * check {@link TagUtils#setTagExtended(CompoundTag, String, Tag)}
      */
     public static Tag getTagExtended(CompoundTag compoundTag, String key, boolean create) {
-        if(compoundTag == null) {
-            if(create) {
+        if (compoundTag == null) {
+            if (create) {
                 throw new NullPointerException("CompoundTag is null");
             }
             return null;
@@ -36,10 +36,10 @@ public final class TagUtils {
         String[] keys = key.split("\\.");
         CompoundTag current = compoundTag;
         for (int i = 0; i < keys.length - 1; i++) {
-            if(create) {
+            if (create) {
                 current = getOrCreateTag(current, keys[i]);
             } else {
-                if(!current.contains(keys[i])) {
+                if (!current.contains(keys[i])) {
                     return null;
                 }
                 current = current.getCompound(keys[i]);
@@ -50,7 +50,7 @@ public final class TagUtils {
 
     public static <T extends Tag> T getTagExtended(CompoundTag compoundTag, String key, T defaultValue) {
         var tag = getTagExtended(compoundTag, key, false);
-        if(tag == null) {
+        if (tag == null) {
             return defaultValue;
         }
         return (T) tag;
@@ -84,28 +84,31 @@ public final class TagUtils {
 
     /**
      * remove duplicates tags.
-     * @param tag to clean up
-     * @param demo reference tag
-     * @return cleaned result, if null - tag is completely same as demo.
+     *
+     * @param target    to clean up
+     * @param reference reference target
+     * @return cleaned result, if null - target is completely same as reference.
      */
     @Nullable
-    public static <T extends Tag> T removeDuplicates(T tag, T demo) {
-        if (tag.equals(demo)) return null;
-        if (tag instanceof CompoundTag compoundTag1 && demo instanceof CompoundTag compoundTag2) {
-            for (var key : compoundTag2.getAllKeys()) {
-                if (key.startsWith("_")) continue;
-                var tag2 = compoundTag2.get(key);
-                var tag1 = compoundTag1.get(key);
+    public static <T extends Tag> T removeDuplicates(T target, T reference) {
+        if (target.equals(reference)) return null;
+        if (target instanceof CompoundTag targetTag && reference instanceof CompoundTag refTag) {
+            for (var key : refTag.getAllKeys()) {
+                var tag2 = refTag.get(key);
+                var tag1 = targetTag.get(key);
                 if (tag1 != null && tag2 != null) {
                     var cleanTag = removeDuplicates(tag1, tag2);
                     if (cleanTag != null) {
-                        compoundTag1.put(key, cleanTag);
+                        targetTag.put(key, cleanTag);
                     } else {
-                        compoundTag1.remove(key);
+                        targetTag.remove(key);
                     }
                 }
             }
+            if (targetTag.isEmpty()) {
+                return null;
+            }
         }
-        return tag;
+        return target;
     }
 }

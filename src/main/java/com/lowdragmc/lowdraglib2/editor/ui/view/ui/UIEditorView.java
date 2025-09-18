@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
 import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
@@ -24,9 +25,14 @@ public class UIEditorView extends View {
     public final Inspector inspector = new Inspector();
     public final ModularUIPreview modularUIPreview;
     public final HistoryStack historyStack = new HistoryStack();
+
     // runtime
     @Nullable @Getter
+    private UITemplate template;
+    @Nullable @Getter
     private UI currentUI;
+    @Nullable @Getter
+    private Runnable onTemplateDirty;
 
     public UIEditorView() {
         super("editor.view.ui_editor");
@@ -108,19 +114,29 @@ public class UIEditorView extends View {
         }
     }
 
-    public UIEditorView clearUI() {
+    public UIEditorView clear() {
         this.modularUIPreview.clear();
         this.hierarchy.clearUI();
         this.historyStack.clearHistory();
+        this.template = null;
         this.currentUI = null;
+        this.onTemplateDirty = null;
         return this;
     }
 
     public UIEditorView loadUI(@Nonnull UI ui) {
+        clear();
         this.currentUI = ui;
         this.modularUIPreview.setModularUI(ui);
         this.hierarchy.loadUI(ui);
         this.modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
+        return this;
+    }
+
+    public UIEditorView loadTemplate(@Nonnull UITemplate template, Runnable onTemplateDirty) {
+        loadUI(template.createUI());
+        this.template = template;
+        this.onTemplateDirty = onTemplateDirty;
         return this;
     }
 
@@ -139,5 +155,31 @@ public class UIEditorView extends View {
         openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider)
                 .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
                 .setOnNodeClicked(TreeBuilder.Menu::handle);
+    }
+
+    public void checkTemplateDirtyAndSave() {
+        if (template != null && currentUI != null) {
+            var newTemplate = currentUI.toTemplate();
+            if (newTemplate.getData().equals(template.getData())) return;
+            template.setData(newTemplate.getData());
+            if (onTemplateDirty != null) {
+                onTemplateDirty.run();
+            }
+        }
+    }
+
+    @Override
+    public void screenTick() {
+        super.screenTick();
+        var mui = getModularUI();
+        if (mui != null && (mui.getTickCounter() & 20) ==0 && (isFocused() || isChildFocused())) {
+            checkTemplateDirtyAndSave();
+        }
+    }
+
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        checkTemplateDirtyAndSave();
     }
 }

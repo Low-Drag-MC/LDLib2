@@ -397,5 +397,9 @@
   "AspectRate.tips": "Defined as the ratio between the width and the height of a node e.g. if a node has an aspect ratio of 2 then its width is twice the size of its height.",
   "value": "Value",
   "editor.loadProject.info": "Do you want to open the project in a new window?",
-  "view.close.info": "Are you sure to close the view"
+  "view.close.info": "Are you sure to close the view",
+  "Overflow": "Overflow",
+  "Overflow.tips": "How a container behaves if its content overflows its own box.",
+  "Display": "Display",
+  "Display.tips": "Defines how an element is displayed in the layout."
 }

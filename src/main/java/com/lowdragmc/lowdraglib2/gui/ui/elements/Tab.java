@@ -42,7 +42,7 @@ public class Tab extends UIElement {
             super(holder);
         }
     }
-    public final TextElement text = new TextElement();
+    public final Label text = new Label();
     @Getter
     private final TabStyle tabStyle = new TabStyle(this);
     @Setter
@@ -58,6 +58,7 @@ public class Tab extends UIElement {
         getLayout().setPadding(YogaEdge.ALL, 3);
         getLayout().setFlexDirection(YogaFlexDirection.ROW);
 
+        text.setText(Component.empty());
         text.layout(layout -> layout.setHeightPercent(100));
         text.textStyle(textStyle -> {
             textStyle.textAlignHorizontal(Horizontal.CENTER);

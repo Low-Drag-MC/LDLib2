@@ -270,25 +270,17 @@ public class UIHierarchy extends UIElement {
                     element.removeSelf();
                 }
             });
-//            menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> {
-//                var nodes = treeList.getSelected();
-//                if (!isSelectedNodeValid(nodes)) return;
-//                var copied = nodes.stream().map(FXObjectTreeNode::getKey).map(this::copySceneObject).flatMap(Collection::stream).toList();
-//                fxEditor.historyView.pushHistory(Component.translatable("photon.copy_fx_object"), EditAction.of(
-//                        () -> {
-//                            for (var copiedFXObject : copied) {
-//                                addSceneObject(copiedFXObject);
-//                            }
-//                            fxEditor.reloadEffect();
-//                        },
-//                        () -> {
-//                            for (var copiedFXObject : copied) {
-//                                removeSceneObject(copiedFXObject);
-//                            }
-//                            fxEditor.reloadEffect();
-//                        }
-//                ));
-//            });
+            menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> {
+                var nodes = treeList.getSelected();
+                if (!isSelectedNodeValid(nodes)) return;
+                for (var node : nodes) {
+                    var uiElement = node.getKey();
+                    var parent = uiElement.getParent();
+                    if (parent == null) continue;
+                    var copy = uiElement.copy();
+                    parent.addEditorChild(copy, -1);
+                }
+            });
         }
         return menu;
     }
