@@ -52,14 +52,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     }
 
     protected void buildBuiltin() {
-        var builtinProvider = new BuiltinResourceProvider<>("built-in", this);
-        this.resource.buildBuiltin(builtinProvider);
-
-        var global = new FileResourceProvider<>(this, new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
-        global.setName("global");
-
-        addBuiltinProvider(builtinProvider);
-        addBuiltinProvider(global);
+        this.resource.buildBuiltin(this);
     }
 
     protected void saveResource() {

@@ -52,6 +52,19 @@ public abstract class Resource<T> {
     /**
      * Generate builtin resources
      */
+    public void buildBuiltin(ResourceInstance<T> resourceInstance) {
+        var builtinProvider = new BuiltinResourceProvider<>("built-in", resourceInstance);
+        buildBuiltin(builtinProvider);
+        resourceInstance.addBuiltinProvider(builtinProvider);
+
+        var global = new FileResourceProvider<>(resourceInstance, new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
+        global.setName("global");
+        resourceInstance.addBuiltinProvider(global);
+    }
+
+    /**
+     * Generate builtin resources
+     */
     public void buildBuiltin(BuiltinResourceProvider<T> provider) {
     }
 

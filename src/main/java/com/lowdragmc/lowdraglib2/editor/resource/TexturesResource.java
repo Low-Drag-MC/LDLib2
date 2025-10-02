@@ -6,12 +6,19 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
 public class TexturesResource extends Resource<IGuiTexture> {
     public static final TexturesResource INSTANCE = new TexturesResource();
+
+    @Override
+    public void buildBuiltin(ResourceInstance<IGuiTexture> resourceInstance) {
+        super.buildBuiltin(resourceInstance);
+        resourceInstance.addBuiltinProvider(Sprites.getProvider(resourceInstance));
+    }
 
     @Override
     public void buildBuiltin(BuiltinResourceProvider<IGuiTexture> provider) {

@@ -16,7 +16,7 @@ public class UITemplate {
             .textStyle(textStyle -> textStyle.textColor(ColorPattern.RED.color)));
 
     public static final Codec<UITemplate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            CompoundTag.CODEC.fieldOf("a").forGetter(range -> range.data)
+            CompoundTag.CODEC.fieldOf("template").forGetter(range -> range.data)
     ).apply(instance, UITemplate::of));
 
     @Setter

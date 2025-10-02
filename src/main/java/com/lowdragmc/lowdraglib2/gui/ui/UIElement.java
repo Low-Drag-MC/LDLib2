@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -33,6 +34,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -68,8 +70,16 @@ import java.util.function.Supplier;
 @LDLRegister(name = "element", registry = "ldlib2:ui_element")
 public class UIElement implements IConfigurable, IPersistedSerializable, ILDLRegister<UIElement, Supplier<UIElement>> {
     public static Codec<UIElement> CODEC = LDLib2Registries.UI_ELEMENTS.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
-            optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
+            optional -> optional.map(holder ->
+                            PersistedParser.createCodec(holder.value()).optionalFieldOf("data").xmap(
+                                    opt -> opt.orElseGet(holder.value()),
+                                    Optional::ofNullable
+                            ))
                     .orElseGet(() -> MapCodec.unit(UIElement::new)));
+    public static Function<String, CompoundTag> RAW_TAG_CACHE = Util.memoize(name -> {
+        var raw = Optional.ofNullable(LDLib2Registries.UI_ELEMENTS.get(name)).map(AutoRegistry.Holder::value).map(Supplier::get).orElseGet(UIElement::new);
+        return raw.serializeNBT(Platform.getFrozenRegistry());
+    });
 
     public static final YogaConfig DEFAULT_YOGA_CONFIG;
     static {
@@ -582,8 +592,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public String getElementName() {
-        // TODO use LDLRegister instead
-        return getClass().getSimpleName();
+        return name();
     }
 
     protected StyleContext createStyleContext() {
@@ -1212,12 +1221,25 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var tag = new CompoundTag();
         tag.put("layout", YogaNodeSerializer.serialize(layoutNode));
         var childrenTag = new ListTag();
+        var internalIndex = 0;
+        var raw = Optional.ofNullable(getRegistry().get(name())).map(AutoRegistry.Holder::value).map(Supplier::get).orElseGet(UIElement::new);
+        var internalChildren = raw.getChildren().stream().filter(UIElement::isInternalUI).toList();
         for (var child : children) {
             var childTag = new CompoundTag();
             var isInternal = child.isInternalUI();
             childTag.putBoolean("internal", isInternal);
             if (isInternal) {
-                childTag.put("data", child.serializeNBT(provider));
+                if (internalChildren.size() > internalIndex) {
+                    var fullChildTag = child.serializeNBT(provider);
+                    var rawChildTag = internalChildren.get(internalIndex).serializeNBT(provider);
+                    var data = TagUtils.removeDuplicates(fullChildTag, rawChildTag);
+                    if (data != null) {
+                        childTag.put("data", data);
+                    }
+                    internalIndex++;
+                } else {
+                    childTag.put("data", child.serializeNBT(provider));
+                }
             } else {
                 // use short tag
                 var data = child.serializeShortNBT(provider);
@@ -1269,8 +1291,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Nullable
     public CompoundTag serializeShortNBT(HolderLookup.@NotNull Provider provider) {
         var fullTag = serializeNBT(provider);
-        var raw = Optional.ofNullable(getRegistry().get(name())).map(AutoRegistry.Holder::value).map(Supplier::get).orElseGet(UIElement::new);
-        var rawTag = raw.serializeNBT(provider);
+        var rawTag = RAW_TAG_CACHE.apply(name());
         return TagUtils.removeDuplicates(fullTag, rawTag);
     }
 }

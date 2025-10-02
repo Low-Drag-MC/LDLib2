@@ -1,9 +1,17 @@
 package com.lowdragmc.lowdraglib2.gui.ui.styletemplate;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import lombok.experimental.UtilityClass;
 import net.minecraft.resources.ResourceLocation;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+
+@UtilityClass
 public class Sprites {
     public static ResourceLocation GDP = LDLib2.id("textures/gui/gdp_styles.png");
 
@@ -115,4 +123,18 @@ public class Sprites {
     public static SpriteTexture TAB_DARK = SpriteTexture.of(GDP).setSprite(242, 71, 13, 13).setBorder(3, 3, 3, 3);
     public static SpriteTexture TAB_WHITE = SpriteTexture.of(GDP).setSprite(242, 113, 13, 13).setBorder(3, 3, 3, 3);
 
+
+    public static BuiltinResourceProvider<IGuiTexture> getProvider(ResourceInstance<IGuiTexture> instance) {
+        var provider = new BuiltinResourceProvider<>("UI Sprite", instance);
+        for (var field : Sprites.class.getDeclaredFields()) {
+            if (IGuiTexture.class.isAssignableFrom(field.getType()) 
+                && Modifier.isStatic(field.getModifiers()) ) {
+                try {
+                    var texture = (IGuiTexture) field.get(null);
+                    provider.addResource(field.getName(), texture);
+                } catch (Exception ignored) {}
+            }
+        }
+        return provider;
+    }
 }
