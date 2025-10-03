@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -52,6 +53,8 @@ public class Tab extends UIElement {
     // runtime
     private boolean isSelected = false;
     private boolean isHovered = false;
+    @Nullable
+    private TabView tabView;
 
     public Tab() {
         getLayout().setHeight(16);
@@ -82,6 +85,36 @@ public class Tab extends UIElement {
     public void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
         tabStyle.applyStyles(values);
+    }
+
+    protected void setTabView(@Nullable TabView tabView) {
+        this.tabView = tabView;
+    }
+
+    @Nullable
+    public TabView getTabView() {
+        if (tabView != null) {
+            if (tabView.getTabContents().containsKey(this)) {
+                return tabView;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public UIElement getContent() {
+        if (tabView == null) return null;
+        return tabView.getTabContents().get(this);
+    }
+
+    @Override
+    public boolean removeSelf() {
+        if (getTabView() != null) {
+            getTabView().removeTab(this);
+            return true;
+        } else {
+            return super.removeSelf();
+        }
     }
 
     public Tab setText(String text, boolean translate) {

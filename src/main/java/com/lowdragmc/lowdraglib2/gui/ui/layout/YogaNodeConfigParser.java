@@ -131,7 +131,7 @@ public final class YogaNodeConfigParser {
         sizeGroup.addConfigurator(new FloatOptionalConfigurator("AspectRate", yogaStyle::getAspectRatio, value -> {
             yogaStyle.setAspectRatio(value);
             yogaNode.markDirtyAndPropagate();
-        }, FloatOptional.of(), true).setTips("AspectRate.tips"));
+        }, FloatOptional.of(), true).setRange(0.0001f, Float.MAX_VALUE).setTips("AspectRate.tips"));
 
         sizeGroup.addConfigurator(EnumAccessor.create("Overflow",
                 List.of(YogaOverflow.VISIBLE, YogaOverflow.HIDDEN), yogaNode::getOverflow, yogaNode::setOverflow,

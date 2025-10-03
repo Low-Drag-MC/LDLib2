@@ -516,6 +516,16 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
+    /**
+     * Attempts to remove this object from its parent's list of children.
+     * The removal is performed by calling the {@code removeChild} method on the parent.
+     * If the object has no parent, no action is taken.
+     * <br>
+     * It will be triggered while it was removed from {@link com.lowdragmc.lowdraglib2.editor.ui.view.ui.UIHierarchy} as well.
+     *
+     * @return {@code true} if the object was successfully removed from its parent;
+     *         {@code false} if the object has no parent or the removal failed.
+     */
     public boolean removeSelf() {
         if (getParent() != null) {
             return getParent().removeChild(this);
@@ -592,7 +602,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public String getElementName() {
-        return name();
+        return isLDLRegister() ? name() : getClass().getSimpleName();
     }
 
     protected StyleContext createStyleContext() {
