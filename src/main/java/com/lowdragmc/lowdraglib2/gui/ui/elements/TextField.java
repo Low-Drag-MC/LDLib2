@@ -15,7 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -170,9 +170,8 @@ public class TextField extends BindableUIElement<String> {
     }
 
     @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
+    protected void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
-        textFieldStyle.applyStyles(values);
         updateDisplayOffset();
     }
 

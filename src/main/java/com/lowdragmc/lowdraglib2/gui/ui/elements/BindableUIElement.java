@@ -28,14 +28,13 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
 
     @Override
     public BindableUIElement<T> bindObserver(IObserver<T> observer) {
-        bindObserver(observer, true);
-        return this;
+        return bindObserver(observer, true);
     }
 
-    public void bindObserver(IObserver<T> observer, boolean notify) {
+    public BindableUIElement<T> bindObserver(IObserver<T> observer, boolean notify) {
         if (observers.containsKey(observer)) {
             LDLib2.LOGGER.warn("Trying to bind an observer to a bindable UI element that already has a binding to it.");
-            return;
+            return this;
         }
         UIEventListener tickableListener;
         if (observer instanceof Tickable tickable) {
@@ -49,6 +48,7 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
             subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
         }
         observers.put(observer, subscription);
+        return this;
     }
 
     @Override
@@ -62,14 +62,13 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
 
     @Override
     public BindableUIElement<T> bindDataSource(IDataProvider<T> dataProvider) {
-        bindObserver(dataProvider, true);
-        return this;
+        return bindDataSource(dataProvider, true);
     }
 
-    public void bindObserver(IDataProvider<T> dataProvider, boolean notify) {
+    public BindableUIElement<T> bindDataSource(IDataProvider<T> dataProvider, boolean notify) {
         if (dataSources.containsKey(dataProvider)) {
             LDLib2.LOGGER.warn("Trying to bind an dataProvider to a bindable UI element that already has a binding to it.");
-            return;
+            return this;
         }
         UIEventListener tickableListener;
         if (dataProvider instanceof Tickable tickable) {
@@ -83,6 +82,7 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
             subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
         }
         dataSources.put(dataProvider, subscription);
+        return this;
     }
 
     @Override

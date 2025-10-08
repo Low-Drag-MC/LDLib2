@@ -37,7 +37,7 @@ public class LDLib2Registries {
 
     public final static LDLRegistry.String<ResourceProviderType> RESOURCE_PROVIDER_TYPES = new LDLRegistry.String<>(LDLib2.id("resource_provider_types"));
 
-    public static AutoRegistry.LDLibRegister<IMenuTest, IMenuTest> MENU_TESTS;
+    public static AutoRegistry.LDLibRegister<IMenuTest, Supplier<IMenuTest>> MENU_TESTS;
 
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IConfiguratorAccessor, IConfiguratorAccessor<?>> CONFIGURATOR_ACCESSORS;
@@ -57,6 +57,7 @@ public class LDLib2Registries {
                     .create(LDLib2.id("configurator_accessor"), IConfiguratorAccessor.class, AutoRegistry::noArgsInstance);
             GUI_TEXTURES = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
+            GUI_TEXTURES.setMissingKey("missing");
             RENDERERS = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
             if (Platform.isDevEnv()) {
@@ -64,9 +65,13 @@ public class LDLib2Registries {
             }
         }
         if (Platform.isDevEnv()) {
-            MENU_TESTS = AutoRegistry.LDLibRegister.create(LDLib2.id("menu_test"), IMenuTest.class, AutoRegistry::noArgsInstance);
+            MENU_TESTS = AutoRegistry.LDLibRegister.create(LDLib2.id("menu_test"), IMenuTest.class, AutoRegistry::noArgsCreator);
             for (var menuTest : MENU_TESTS) {
-                PlayerUIMenuType.register(LDLib2.id(menuTest.annotation().name()), menuTest.value());
+                PlayerUIMenuType.register(LDLib2.id(menuTest.annotation().name()), player -> {
+                    var test = menuTest.value().get();
+                    test.init(player);
+                    return test;
+                });
             }
         }
     }

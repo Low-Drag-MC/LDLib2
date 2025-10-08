@@ -42,6 +42,7 @@ public class Icons {
     public static ResourceTexture COPY = icon("copy");
     public static ResourceTexture PASTE = icon("paste");
     public static ResourceTexture CUT = icon("cut");
+    public static ResourceTexture CLOSE = icon("close");
     public static ResourceTexture REMOVE = icon("remove");
     public static ResourceTexture DELETE = icon("delete");
     public static ResourceTexture EXPORT = icon("export");
@@ -92,6 +93,7 @@ public class Icons {
     public static ResourceTexture RIGHT_CLICK = icon("right_click");
     public static ResourceTexture SCREEN = icon("screen");
     public static ResourceTexture CAMERA = icon("camera");
+    public static ResourceTexture PAGE_FIT = icon("page_fit");
 
 
     public static SpriteTexture CHECK_SPRITE = SpriteTexture.of(GDP_ICONS).setSprite(72, 0, 12, 12);

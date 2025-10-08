@@ -15,11 +15,12 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class PlayerUIMenuType {
-    private final static Map<ResourceLocation, PlayerUIHolder> UI_HOLDERS = new ConcurrentHashMap<>();
+    private final static Map<ResourceLocation, Function<Player, PlayerUIHolder>> UI_HOLDERS = new ConcurrentHashMap<>();
 
-    public static void register(ResourceLocation id, PlayerUIHolder holder) {
+    public static void register(ResourceLocation id, Function<Player, PlayerUIHolder> holder) {
         UI_HOLDERS.put(id, holder);
     }
 
@@ -27,9 +28,27 @@ public class PlayerUIMenuType {
         UI_HOLDERS.remove(id);
     }
 
+    /**
+     * Opens a UI for the specified player if the given identifier is registered.
+     * This method checks if a corresponding UI holder exists for the provided id,
+     * creates the holder instance using the associated provider, and opens the menu for the player.
+     *
+     * @param player the {@link Player} for whom the UI should be opened
+     * @param id the {@link ResourceLocation} identifier of the UI to be opened
+     * @return {@code true} if the UI was successfully opened, {@code false} if the id is not registered
+     *         or the holder instance could not be created
+     */
+    public static boolean openUI(Player player, ResourceLocation id) {
+        if (!UI_HOLDERS.containsKey(id)) return false;
+        var holder = UI_HOLDERS.get(id).apply(player);
+        if (holder == null) return false;
+        player.openMenu(holder);
+        return true;
+    }
+
     public static ModularUIContainerMenu create(int windowId, Inventory inv, RegistryFriendlyByteBuf data) {
         var id = data.readResourceLocation();
-        var holder = UI_HOLDERS.get(id);
+        var holder = UI_HOLDERS.get(id).apply(inv.player);
         if (holder == null) throw new IllegalArgumentException("No player ui holder found for id " + id);
         var menu = new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), windowId, inv, holder);
         menu.readInitialData(data);
@@ -54,7 +73,7 @@ public class PlayerUIMenuType {
 
         @Override
         @Nullable
-        default AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
+        default ModularUIContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
             return new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), containerId, playerInventory, this);
         }
 

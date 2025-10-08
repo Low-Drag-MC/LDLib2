@@ -2,6 +2,8 @@ package com.lowdragmc.lowdraglib2.utils;
 
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.*;
+
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
@@ -42,23 +44,27 @@ public final class TabBuilder {
         }
 
         // Generic: any Tag
-        public Compound add(String key, Tag value) {
+        public Compound add(String key, @Nullable Tag value) {
+            if (value == null) return this;
             this.tag.put(key, value);
             return this;
         }
 
         // Common specific overloads (call generic internally)
-        public Compound add(String key, CompoundTag value) {
+        public Compound add(String key, @Nullable CompoundTag value) {
+            if (value == null) return this;
             this.tag.put(key, value);
             return this;
         }
 
-        public Compound add(String key, ListTag value) {
+        public Compound add(String key, @Nullable ListTag value) {
+            if (value == null) return this;
             this.tag.put(key, value);
             return this;
         }
 
-        public Compound add(String key, String value) {
+        public Compound add(String key, @Nullable String value) {
+            if (value == null) return this;
             this.tag.putString(key, value);
             return this;
         }
@@ -113,7 +119,8 @@ public final class TabBuilder {
             return this;
         }
 
-        public Compound add(String key, UUID uuid) {
+        public Compound add(String key, @Nullable UUID uuid) {
+            if (uuid == null) return this;
             this.tag.putUUID(key, uuid);
             return this;
         }

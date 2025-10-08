@@ -31,4 +31,8 @@ public interface IItemSlotHolderMenu {
      * @return the {@link ItemSlot} associated with the given {@link Slot}, or {@code null} if no association exists
      */
     @Nullable ItemSlot getItemSlot(Slot slot);
+
+    default boolean isItemSlot(Slot slot) {
+        return getItemSlot(slot) != null;
+    }
 }

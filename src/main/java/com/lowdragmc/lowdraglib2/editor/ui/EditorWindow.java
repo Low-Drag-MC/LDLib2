@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import lombok.Getter;
 import org.appliedenergistics.yoga.*;
 

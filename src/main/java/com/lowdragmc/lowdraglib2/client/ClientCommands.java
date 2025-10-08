@@ -4,7 +4,11 @@ import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
+import com.lowdragmc.lowdraglib2.editor.ui.EditorWindow;
+import com.lowdragmc.lowdraglib2.editor.ui.UIEditor;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIScreen;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
@@ -36,6 +40,13 @@ public class ClientCommands {
                     ShaderManager.getInstance().reload();
                     return 1;
                 })));
+        commands.add(createLiteral("ldlib2_ui_editor").executes(context -> {
+            var modularUI = new ModularUI(UI.of(new EditorWindow(UIEditor::new), size -> size))
+                    .shouldCloseOnEsc(false)
+                    .shouldCloseOnKeyInventory(false);
+            Minecraft.getInstance().pushGuiLayer(new ModularUIScreen(modularUI, Component.empty()));
+            return 1;
+        }));
         if (Platform.isDevEnv()) {
             commands.add(createScreenTestCommands());
         }

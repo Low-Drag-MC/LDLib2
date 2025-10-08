@@ -1,11 +1,18 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.BoolValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.EnumValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.FloatValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -29,24 +36,53 @@ public class ScrollerView extends UIElement {
     @Accessors(chain = true, fluent = true)
     public static class ScrollerViewStyle extends Style {
         @Getter @Setter
+        @Configurable(name = "ScrollerView.margin")
+        @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
         private float horizontalScrollerMargin = 5;
         @Getter @Setter
+        @Configurable(name = "ScrollerView.mode")
         private ScrollerMode mode = ScrollerMode.BOTH;
         @Getter @Setter
+        @Configurable(name = "ScrollerView.verticalScrollDisplay")
         private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
         @Getter @Setter
+        @Configurable(name = "ScrollerView.horizontalScrollDisplay")
         private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
         @Getter @Setter
-        private boolean adaptiveWidth = false; // enable it to make the scroller width adaptive to the view container
+        @Configurable(name = "ScrollerView.adaptiveWidth", tips = "ScrollerView.adaptiveWidth.tips")
+        private boolean adaptiveWidth = false;
         @Getter @Setter
-        private boolean adaptiveHeight = false; // enable it to make the scroller height adaptive to the view container
+        @Configurable(name = "ScrollerView.adaptiveHeight", tips = "ScrollerView.adaptiveHeight.tips")
+        private boolean adaptiveHeight = false;
         @Getter @Setter
+        @Configurable(name = "ScrollerView.minScrollPixel")
+        @ConfigNumber(range = {0, Float.MAX_VALUE})
         private float minScrollPixel = 5;
         @Getter @Setter
+        @Configurable(name = "ScrollerView.maxScrollPixel")
+        @ConfigNumber(range = {0, Float.MAX_VALUE})
         private float maxScrollPixel = 7;
 
         public ScrollerViewStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+
+            UIStyleRegistries.SCROLLER_VIEW_MARGIN.parse(values).ifPresent(this::horizontalScrollerMargin);
+            UIStyleRegistries.SCROLLER_VIEW_MODE.parse(values).ifPresent(this::mode);
+            UIStyleRegistries.VERTICAL_DISPLAY.parse(values).ifPresent(this::verticalScrollDisplay);
+            UIStyleRegistries.HORIZONTAL_DISPLAY.parse(values).ifPresent(this::horizontalScrollDisplay);
+            UIStyleRegistries.ADAPTIVE_WIDTH.parse(values).ifPresent(this::adaptiveWidth);
+            UIStyleRegistries.ADAPTIVE_HEIGHT.parse(values).ifPresent(this::adaptiveHeight);
+            UIStyleRegistries.MIN_SCROLL_PIXEL.parse(values).ifPresent(this::minScrollPixel);
+            UIStyleRegistries.MAX_SCROLL_PIXEL.parse(values).ifPresent(this::maxScrollPixel);
+
+            if (holder instanceof ScrollerView scrollerView) {
+                scrollerView.updateScrollers();
+            }
         }
     }
     public final UIElement verticalContainer;
@@ -56,6 +92,7 @@ public class ScrollerView extends UIElement {
     public final Scroller verticalScroller;
 
     @Getter
+    @Configurable(name = "scrollerViewStyle", subConfigurable = true)
     private final ScrollerViewStyle scrollerViewStyle = new ScrollerViewStyle(this);
     // runtime
     private float lastPortWidth = 0, lastContainerWidth = 0;
@@ -280,9 +317,4 @@ public class ScrollerView extends UIElement {
         viewContainer.clearAllChildren();
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        scrollerViewStyle.applyStyles(values);
-    }
 }

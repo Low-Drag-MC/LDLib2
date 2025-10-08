@@ -8,7 +8,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
@@ -50,6 +51,14 @@ public class Button extends UIElement {
 
         public ButtonStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+            UIStyleRegistries.DEFAULT_BACKGROUND.parse(values).ifPresent(this::defaultTexture);
+            UIStyleRegistries.HOVER_BACKGROUND.parse(values).ifPresent(this::hoverTexture);
+            UIStyleRegistries.PRESSED_BACKGROUND.parse(values).ifPresent(this::pressedTexture);
         }
     }
     public enum State {
@@ -125,12 +134,6 @@ public class Button extends UIElement {
         style.accept(buttonStyle);
         onStyleChanged();
         return this;
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        buttonStyle.applyStyles(values);
     }
 
     @Override

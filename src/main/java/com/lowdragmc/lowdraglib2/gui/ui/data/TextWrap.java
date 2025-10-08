@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.ui.style.value;
+package com.lowdragmc.lowdraglib2.gui.ui.data;
 
 /**
  * Enum representing the text wrapping style.

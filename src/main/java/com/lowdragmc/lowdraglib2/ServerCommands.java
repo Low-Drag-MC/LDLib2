@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -96,11 +97,8 @@ public class ServerCommands {
         for (var uiTest : LDLib2Registries.MENU_TESTS) {
             builder = builder.then(Commands.literal(uiTest.annotation().name())
                     .executes(context -> {
-                        var test = uiTest.value();
                         var player = context.getSource().getPlayer();
-                        if (player != null) {
-                            player.openMenu(test);
-                        }
+                        PlayerUIMenuType.openUI(player, LDLib2.id(uiTest.annotation().name()));
                         return 1;
                     }));
         }

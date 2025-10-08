@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.editor.ui.view.ui.UIEditorView;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -12,6 +13,7 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
 import javax.annotation.Nullable;
+import java.io.File;
 
 public class UIResource extends Resource<UITemplate> {
     public static final UIResource INSTANCE = new UIResource();
@@ -27,6 +29,13 @@ public class UIResource extends Resource<UITemplate> {
     @Override
     public String getName() {
         return "ui";
+    }
+
+    @Override
+    public void buildBuiltin(ResourceInstance<UITemplate> resourceInstance) {
+        var global = new FileResourceProvider<>(resourceInstance, new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
+        global.setName("global");
+        resourceInstance.addBuiltinProvider(global);
     }
 
     @Nullable
@@ -59,7 +68,14 @@ public class UIResource extends Resource<UITemplate> {
                         // if it has already opened
                         if (view instanceof UIEditorView uiEditorView && uiEditorView.getTemplate() == template) return;
                     }
-                    var newView = new UIEditorView().loadTemplate(template, () -> container.markResourceDirty(path));
+                    // TODO make it saved manually + check if resource is still valid
+                    var newView = new UIEditorView().loadTemplate(template, () -> {
+                        var resource = provider.getResource(path);
+                        if (resource != null) {
+                            provider.addResource(path, resource);
+                            container.reloadSpecificResource(path);
+                        }
+                    });
                     newView.setCanRemove(true);
                     newView.setIcon(Icons.WIDGET_BASIC);
                     newView.setName(path.getResourceName());

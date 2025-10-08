@@ -8,9 +8,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -140,9 +140,8 @@ public class TextElement extends UIElement {
     }
 
     @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
+    protected void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
-        textStyle.applyStyles(values);
         recompute();
     }
 

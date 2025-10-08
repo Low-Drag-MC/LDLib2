@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.Util;

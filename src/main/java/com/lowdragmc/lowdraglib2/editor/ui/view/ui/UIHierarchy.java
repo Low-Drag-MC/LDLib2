@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
@@ -249,13 +249,16 @@ public class UIHierarchy extends UIElement {
         if (treeList.getSelected().size() <= 1) {
             // add elements
             menu.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.new", m -> {
+                var father = treeList.getSelected().stream().findFirst()
+                        .map(UITreeNode::getKey).orElse(ui.rootElement);
                 for (var holder : LDLib2Registries.UI_ELEMENTS) {
-                    m.leaf(holder.annotation().name(), () -> {
-                        var father = treeList.getSelected().stream().findFirst()
-                                .map(UITreeNode::getKey).orElse(ui.rootElement);
-                        var uiElement = holder.value().get();
-                        father.addEditorChild(uiElement, -1);
-                    });
+                    if (father.canAddEditorChild(holder)) {
+                        m.leaf(holder.annotation().name(), () -> {
+                            var uiElement = holder.value().get();
+                            uiElement.initEditorTemplate();
+                            father.addEditorChild(uiElement, -1);
+                        });
+                    }
                 }
             });
         }

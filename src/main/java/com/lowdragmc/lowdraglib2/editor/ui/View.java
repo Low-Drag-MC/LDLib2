@@ -100,9 +100,9 @@ public class View extends UIElement {
                     }).show(getModularUI().ui.rootElement);
                     e.stopPropagation();
                 }
-            }).noText().buttonStyle(buttonStyle -> buttonStyle.defaultTexture(Icons.REMOVE)
-                    .hoverTexture(Icons.REMOVE.copy().setColor(ColorPattern.LIGHT_GRAY.color))
-                    .pressedTexture(Icons.REMOVE.copy().setColor(ColorPattern.GRAY.color))).layout(layout -> {
+            }).noText().buttonStyle(buttonStyle -> buttonStyle.defaultTexture(Icons.CLOSE)
+                    .hoverTexture(Icons.CLOSE.copy().setColor(ColorPattern.LIGHT_GRAY.color))
+                    .pressedTexture(Icons.CLOSE.copy().setColor(ColorPattern.GRAY.color))).layout(layout -> {
                 layout.setHeightPercent(100);
                 layout.setAspectRatio(1f);
             }));

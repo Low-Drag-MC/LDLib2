@@ -34,6 +34,7 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IUI
         super(menuType, windowID);
         this.inventory = inventory;
         this.uiHolder = uiHolder;
+        // TODO DataBindingBuilder init
         DataBindingBuilder.isRemote(inventory.player.level().isClientSide);
         this.modularUI = uiHolder.createUI(inventory.player);
         this.modularUI.setMenu(this);

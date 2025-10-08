@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -81,14 +81,13 @@ public class Tab extends UIElement {
         return this;
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        tabStyle.applyStyles(values);
-    }
-
     protected void setTabView(@Nullable TabView tabView) {
         this.tabView = tabView;
+    }
+
+    @Override
+    public void initEditorTemplate() {
+        setText("Tab");
     }
 
     @Nullable

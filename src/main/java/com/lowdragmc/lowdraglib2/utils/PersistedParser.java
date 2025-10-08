@@ -41,7 +41,17 @@ public final class PersistedParser {
             @Override
             public <T1> DataResult<Pair<T, T1>> decode(DynamicOps<T1> ops, T1 input) {
                 T instance = creator.get();
-                deserialize(ops, input, instance, Platform.getFrozenRegistry());
+                if (instance instanceof IPersistedSerializable persistedSerializable) {
+                    CompoundTag tag;
+                    if (input instanceof CompoundTag compoundTag) {
+                        tag = compoundTag;
+                    } else {
+                        tag = (CompoundTag) ops.convertMap(NbtOps.INSTANCE, input);
+                    }
+                    persistedSerializable.deserializeNBT(Platform.getFrozenRegistry(), tag);
+                } else {
+                    deserialize(ops, input, instance, Platform.getFrozenRegistry());
+                }
                 return DataResult.success(Pair.of(instance, ops.empty()));
             }
 

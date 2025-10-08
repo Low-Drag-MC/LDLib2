@@ -29,9 +29,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaWrap;
-import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -49,6 +47,9 @@ public class TestSync implements IMenuTest {
         itemHandler.setStackInSlot(0, Items.STONE.getDefaultInstance().copyWithCount(10));
         itemHandler.setStackInSlot(1, Items.BAMBOO.getDefaultInstance().copyWithCount(32));
     }
+
+    @Override
+    public void init(Player player) {}
 
     @Override
     public ModularUI createUI(Player player) {
@@ -96,8 +97,7 @@ public class TestSync implements IMenuTest {
                     }
 
                     @Override
-                    @Nonnull
-                    public String resultText(@NotNull Block value) {
+                    public String resultText(Block value) {
                         return BuiltInRegistries.BLOCK.getKey(value).toString();
                     }
 

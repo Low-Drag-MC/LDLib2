@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaDisplay;
@@ -24,6 +25,8 @@ import java.util.OptionalInt;
 public class ModularUIPreview extends UIElement {
     public final UIEditorView editorView;
     public final SelectionBox selectionBox = new SelectionBox();
+    @Getter @Setter
+    private boolean showSelectionBox = true;
 
     // runtime;
     private OptionalInt previewWidth = OptionalInt.empty();
@@ -38,6 +41,8 @@ public class ModularUIPreview extends UIElement {
 
     public void setModularUI(UI ui) {
         this.modularUI = new ModularUI(ui);
+        this.modularUI.setDrawTooltips(false);
+        this.modularUI.setDrawDrag(false);
         this.modularUI.setAllowDebugMode(false);
         if (previewWidth.isPresent() && previewHeight.isPresent()) {
             this.modularUI.init(previewWidth.getAsInt(), previewHeight.getAsInt());
@@ -90,7 +95,7 @@ public class ModularUIPreview extends UIElement {
 
     private void updateSelectionBox() {
         var selectedOne = editorView.hierarchy.getSelectedOne();
-        if (selectedOne.isPresent()) {
+        if (showSelectionBox && selectedOne.isPresent()) {
             var selected = selectedOne.get();
             selectionBox.setDisplay(YogaDisplay.FLEX);
             var posX = selected.getPositionX();

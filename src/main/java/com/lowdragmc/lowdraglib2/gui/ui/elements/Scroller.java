@@ -1,10 +1,15 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.FloatValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -31,10 +36,18 @@ public abstract class Scroller extends BindableUIElement<Float> {
     public static class ScrollerStyle extends Style {
         @Getter
         @Setter
+        @Configurable(name = "Scroller.scrollDelta")
+        @ConfigNumber(range = {0, 1})
         private float scrollDelta = 0.1f;
 
         public ScrollerStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+            UIStyleRegistries.SCROLL_DELTA.parse(values).ifPresent(this::scrollDelta);
         }
     }
     public final Button headButton;
@@ -42,6 +55,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
     public final UIElement scrollContainer;
     public final Button scrollBar;
     @Getter
+    @Configurable(name = "scrollerStyle", subConfigurable = true)
     private final ScrollerStyle scrollerStyle = new ScrollerStyle(this);
     @Getter
     protected float minValue = 0;
@@ -111,12 +125,6 @@ public abstract class Scroller extends BindableUIElement<Float> {
         style.accept(scrollerStyle);
         onStyleChanged();
         return this;
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        scrollerStyle.applyStyles(values);
     }
 
     public void scrollValue(float normalizedValue) {

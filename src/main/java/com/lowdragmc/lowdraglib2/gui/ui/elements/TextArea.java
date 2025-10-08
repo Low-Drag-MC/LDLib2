@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigFont;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -15,7 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -105,6 +107,14 @@ public class TextArea extends BindableUIElement<String[]> {
         public TextAreaStyle(UIElement holder) {
             super(holder);
         }
+
+        @Override
+        public void buildConfigurator(ConfiguratorGroup father) {
+            super.buildConfigurator(father);
+            if (holder instanceof TextArea textArea) {
+                father.addEventListener(Configurator.CHANGE_EVENT, event -> textArea.ensureCursorVisible());
+            }
+        }
     }
 
     public final Scroller horizontalScroller;
@@ -152,8 +162,9 @@ public class TextArea extends BindableUIElement<String[]> {
                 drawContentView(guiContext);
             }
         };
+        this.contentView.setId("content_view");
         this.contentView.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 2);
+            layout.setPadding(YogaEdge.ALL, 3);
             layout.setFlex(1);
             layout.setHeightPercent(100);
         });
@@ -195,15 +206,15 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
+    protected void applyStyle(Map<String, StyleValue<?>> values) {
         super.applyStyle(values);
-        textAreaStyle.applyStyles(values);
         ensureCursorVisible();
     }
 
     @Override
     protected void onLayoutChanged() {
         super.onLayoutChanged();
+        ensureCursorVisible();
     }
 
     protected void onHorizontalScroll(float value) {
@@ -235,9 +246,11 @@ public class TextArea extends BindableUIElement<String[]> {
     private void updateScrollers() {
         var maxWidth = getMaxWidth();
         var maxHeight = getMaxHeight();
-        var hP = scrollX / (maxWidth - contentView.getContentWidth());
+        var leftWidth = maxWidth - contentView.getContentWidth();
+        var leftHeight = maxHeight - contentView.getContentHeight();
+        var hP = leftWidth == 0 ? 0 : scrollX / leftWidth;
         hP = Mth.clamp(hP, 0, 1);
-        var wP = scrollY / (maxHeight - contentView.getContentHeight());
+        var wP = leftHeight == 0 ? 0 : scrollY / leftHeight;
         wP = Mth.clamp(wP, 0, 1);
         horizontalScroller.setValue(hP);
         verticalScroller.setValue(wP);

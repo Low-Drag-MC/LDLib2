@@ -125,7 +125,7 @@ public class Sprites {
 
 
     public static BuiltinResourceProvider<IGuiTexture> getProvider(ResourceInstance<IGuiTexture> instance) {
-        var provider = new BuiltinResourceProvider<>("UI Sprite", instance);
+        var provider = new BuiltinResourceProvider<>("ui-gdp", instance);
         for (var field : Sprites.class.getDeclaredFields()) {
             if (IGuiTexture.class.isAssignableFrom(field.getType()) 
                 && Modifier.isStatic(field.getModifiers()) ) {

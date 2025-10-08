@@ -1,6 +1,12 @@
 package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
 import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -13,17 +19,20 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import lombok.Getter;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class UIEditorView extends View {
-    public final UIHierarchy hierarchy;
+    public final UIElement header = new UIElement();
+    public final UIElement canvas = new UIElement();
+    public final UIElement editor = new UIElement();
+    public final UIHierarchy hierarchy = new UIHierarchy(this);
     public final GraphView graphView = new GraphView();
     public final Inspector inspector = new Inspector();
-    public final ModularUIPreview modularUIPreview;
+    public final ModularUIPreview modularUIPreview = new ModularUIPreview(this);
     public final HistoryStack historyStack = new HistoryStack();
 
     // runtime
@@ -36,8 +45,103 @@ public class UIEditorView extends View {
 
     public UIEditorView() {
         super("editor.view.ui_editor");
-        this.hierarchy = new UIHierarchy(this);
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
+        // header initial
+        header.layout(layout -> {
+            layout.setWidthPercent(100);
+            layout.setHeight(16);
+            layout.setPadding(YogaEdge.ALL, 1);
+            layout.setFlexDirection(YogaFlexDirection.ROW);
+        });
+        header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
+        header.addChildren(
+                // left
+                new UIElement().layout(layout -> {
+                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.setHeightPercent(100);
+                    layout.setFlex(1);
+                }),
+                // center
+                new UIElement().layout(layout -> layout.setHeightPercent(100))
+                        .addChildren(new Toggle().noText()
+                                .setOnToggleChanged(isOn -> {
+                                    if (isOn) {
+                                        startSimulation();
+                                    } else {
+                                        stopSimulation();
+                                    }
+                                })
+                                .toggleStyle(style -> style.baseTexture(IGuiTexture.EMPTY)
+                                        .unmarkTexture(Icons.PLAY_PAUSE)
+                                        .markTexture(Icons.PLAY_PAUSE.copy().setColor(ColorPattern.GREEN.color)))
+                                .bindDataSource(SupplierDataSource.of(this::isSimulationRunning), false)
+                                .style(style -> style.setTooltips("UIEditor.simulation"))),
+                // right
+                new UIElement().layout(layout -> {
+                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.setJustifyContent(YogaJustify.FLEX_END);
+                    layout.setHeightPercent(100);
+                    layout.setFlex(1);
+                }).addChildren(
+                        // page fit button
+                        new Button().noText().setOnClick(event -> {
+                            if (currentUI != null && modularUIPreview.getModularUI() != null) {
+                                var modularUI = modularUIPreview.getModularUI();
+                                var padding = 5;
+                                var x = modularUIPreview.getPositionX() - graphView.getContentX() + modularUI.getLeftPos();
+                                var y = modularUIPreview.getPositionY() - graphView.getContentY() + modularUI.getTopPos();
+                                var width = modularUI.ui.rootElement.getSizeWidth();
+                                var height = modularUI.ui.rootElement.getSizeHeight();
+                                graphView.fit(x - padding, y - padding,
+                                        x + width + 2 * padding, y + height + 2 * padding,
+                                        0.1f);
+                            }
+                        }).layout(layout -> {
+                            layout.setWidth(14);
+                        }).style(style -> style.setTooltips("GraphView.fit")).addChild(
+                                new UIElement().layout(layout -> {
+                                    layout.setHeight(10);
+                                    layout.setWidth(10);
+                                }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
+                        // selection box toggle
+                        new Toggle()
+                                .setText("")
+                                .setOn(modularUIPreview.isShowSelectionBox(), false)
+                                .toggleButton(button -> button.layout(layout -> {
+                                    layout.setWidthPercent(100);
+                                    layout.setHeightPercent(100);
+                                }))
+                                .setOnToggleChanged(modularUIPreview::setShowSelectionBox)
+                                .toggleStyle(style -> {
+                                    style.baseTexture(Sprites.BORDER1_RT1_DARK);
+                                    style.hoverTexture(Sprites.BORDER1_RT1);
+                                    style.unmarkTexture(Icons.INFORMATION.copy().scale(0.6f));
+                                    style.markTexture(Icons.INFORMATION.copy().setColor(ColorPattern.GRAY.color).scale(0.6f));
+                                })
+                                .bindDataSource(SupplierDataSource.of(modularUIPreview::isShowSelectionBox))
+                                .layout(layout -> {
+                                    layout.setPadding(YogaEdge.ALL, 0);
+                                    layout.setHeightPercent(100);
+                                    layout.setAspectRatio(1f);
+                                })
+                                .style(style -> style.setTooltips("UIEditor.selection_box"))
+                )
+        );
+
+        // canvas initial
+        canvas.layout(layout -> {
+            layout.setWidthPercent(100);
+            layout.setFlex(1);
+            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.setAlignItems(YogaAlign.CENTER);
+        });
+        canvas.setDisplay(YogaDisplay.NONE);
+
+        // editor initial
+        editor.layout(layout -> {
+            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.setWidthPercent(100);
+            layout.setFlex(1);
+        });
 
         hierarchy.layout(layout -> {
             layout.setHeightPercent(100);
@@ -48,7 +152,7 @@ public class UIEditorView extends View {
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
         });
-        graphView.addContentChild(modularUIPreview = new ModularUIPreview(this));
+        graphView.addContentChild(modularUIPreview);
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
             modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
         });
@@ -62,7 +166,7 @@ public class UIEditorView extends View {
             layout.setPadding(YogaEdge.ALL, 5);
         }).style(style -> style.backgroundTexture(Sprites.BORDER));
 
-        addChildren(new SplitView.Horizontal().setPercentage(20)
+        editor.addChildren(new SplitView.Horizontal().setPercentage(20)
                 .left(hierarchy)
                 .right(new SplitView.Horizontal().setPercentage(64)
                         .left(graphView)
@@ -73,6 +177,8 @@ public class UIEditorView extends View {
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
         addEventListener(UIEvents.BLUR, this::onBlur, true);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown, true);
+
+        addChildren(header, canvas, editor);
     }
 
     protected void onMouseDown(UIEvent event) {
@@ -115,6 +221,7 @@ public class UIEditorView extends View {
     }
 
     public UIEditorView clear() {
+        this.stopSimulation();
         this.modularUIPreview.clear();
         this.hierarchy.clearUI();
         this.historyStack.clearHistory();
@@ -138,6 +245,27 @@ public class UIEditorView extends View {
         this.template = template;
         this.onTemplateDirty = onTemplateDirty;
         return this;
+    }
+
+    public boolean isSimulationRunning() {
+        return canvas.isDisplayed();
+    }
+
+    public void startSimulation() {
+        if (currentUI == null) return;
+        checkTemplateDirtyAndSave();
+        var ui = Objects.requireNonNullElseGet(template, () -> currentUI.toTemplate()).createUI();
+        canvas.addChildren(ui.rootElement);
+
+        canvas.setDisplay(YogaDisplay.FLEX);
+        editor.setDisplay(YogaDisplay.NONE);
+    }
+
+    public void stopSimulation() {
+        canvas.clearAllChildren();
+
+        canvas.setDisplay(YogaDisplay.NONE);
+        editor.setDisplay(YogaDisplay.FLEX);
     }
 
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
@@ -172,7 +300,7 @@ public class UIEditorView extends View {
     public void screenTick() {
         super.screenTick();
         var mui = getModularUI();
-        if (mui != null && (mui.getTickCounter() & 20) ==0 && (isFocused() || isChildFocused())) {
+        if (mui != null && !isSimulationRunning() && (mui.getTickCounter() & 20) ==0 && (isFocused() || isChildFocused())) {
             checkTemplateDirtyAndSave();
         }
     }

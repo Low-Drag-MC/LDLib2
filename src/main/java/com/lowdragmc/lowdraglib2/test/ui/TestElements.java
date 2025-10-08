@@ -141,7 +141,7 @@ public class TestElements implements IScreenTest {
                                 new Button().transform(transform -> transform.translate(0, -5)),
                                 new Button().transform(transform -> transform.scale(1.5f, 1)),
                                 new Button().transform(transform -> transform.rotation(30)),
-                                new Button().transform(transform -> transform.privot(0, 0).rotation(30)),
+                                new Button().transform(transform -> transform.pivot(0, 0).rotation(30)),
                                 new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
                                         .addChildren(
                                                 new Button(),

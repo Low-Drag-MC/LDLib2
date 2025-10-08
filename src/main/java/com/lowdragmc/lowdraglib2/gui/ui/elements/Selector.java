@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -7,8 +9,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.*;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
@@ -36,18 +39,40 @@ public class Selector<T> extends BindableUIElement<T> {
     @Accessors(chain = true, fluent = true)
     public static class SelectorStyle extends Style {
         @Getter @Setter
+        @Configurable(name = "focusOverlay")
         private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
         @Getter @Setter
+        @Configurable(name = "maxItemCount")
+        @ConfigNumber(range = {1, Integer.MAX_VALUE})
         private int maxItemCount = 5; // if more than this, use scroller view.
         @Getter @Setter
-        private int scrollerViewHeight = 50;
+        @Configurable(name = "scrollerViewHeight", tips = "scrollerViewHeight.tips")
+        @ConfigNumber(range = {0, Float.MAX_VALUE})
+        private float scrollerViewHeight = 50;
         @Getter @Setter
+        @Configurable(name = "showOverlay")
         private boolean showOverlay = true;
         @Getter @Setter
+        @Configurable(name = "closeAfterSelect")
         private boolean closeAfterSelect = true;
 
         public SelectorStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+
+            UIStyleRegistries.FOCUS_OVERLAY.parse(values).ifPresent(this::focusOverlay);
+            UIStyleRegistries.MAX_ITEM.parse(values).ifPresent(this::maxItemCount);
+            UIStyleRegistries.VIEW_HEIGHT.parse(values).ifPresent(this::scrollerViewHeight);
+            UIStyleRegistries.SHOW_OVERLAY.parse(values).ifPresent(this::showOverlay);
+            UIStyleRegistries.CLOSE_AFTER_SELECT.parse(values).ifPresent(this::closeAfterSelect);
+
+            if (holder instanceof Selector<?> selector) {
+                selector.onSelectorStyleChanged();
+            }
         }
     }
     public final UIElement display;
@@ -57,6 +82,7 @@ public class Selector<T> extends BindableUIElement<T> {
     public final UIElement listView;
     public final ScrollerView scrollerView;
     @Getter
+    @Configurable(name = "selectorStyle", subConfigurable = true)
     private final SelectorStyle selectorStyle = new SelectorStyle(this);
     @Getter
     private List<T> candidates = List.of();
@@ -262,14 +288,11 @@ public class Selector<T> extends BindableUIElement<T> {
     public Selector<T> selectorStyle(Consumer<SelectorStyle> style) {
         style.accept(getSelectorStyle());
         onStyleChanged();
-        setupDialog();
         return this;
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        selectorStyle.applyStyles(values);
+    protected void onSelectorStyleChanged() {
+        setupDialog();
     }
 
     /// Logic

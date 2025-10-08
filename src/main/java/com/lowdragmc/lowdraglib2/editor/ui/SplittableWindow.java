@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.mojang.datafixers.util.Pair;
@@ -83,9 +83,9 @@ public class SplittableWindow extends UIElement {
         styleConsumer.accept(splitStyle);
         onStyleChanged();
         if (splitView != null) {
-            this.splitView.setPercentage(splitStyle.percentage)
-                    .setMinPercentage(splitStyle.minPercentage)
-                    .setMaxPercentage(splitStyle.maxPercentage);
+            this.splitView.setMinPercentage(splitStyle.minPercentage)
+                    .setMaxPercentage(splitStyle.maxPercentage)
+                    .setPercentage(splitStyle.percentage);
         }
         return this;
     }
@@ -119,12 +119,6 @@ public class SplittableWindow extends UIElement {
             if (second != null) views.addAll(second.getAllViews());
         }
         return views;
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        splitStyle.applyStyles(values);
     }
 
     public SplittableWindow setViewContainer(@Nonnull ViewContainer viewContainer) {

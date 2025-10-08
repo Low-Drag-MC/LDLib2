@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
@@ -11,7 +12,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -50,19 +52,32 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public static class SlotStyle extends Style {
         @Getter
         @Setter
+        @Configurable(name = "hoverOverlay")
         private IGuiTexture hoverOverlay = new ColorRectTexture(0x80FFFFFF);
         @Getter @Setter
+        @Configurable(name = "fillDirection")
         private FillDirection fillDirection = FillDirection.DOWN_TO_UP;
 
         @Getter @Setter
+        @Configurable(name = "showFluidTooltips")
         private boolean showFluidTooltips = true;
 
         public SlotStyle(FluidSlot holder) {
             super(holder);
         }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+
+            UIStyleRegistries.HOVER_OVERLAY.parse(values).ifPresent(this::hoverOverlay);
+            UIStyleRegistries.FILL_DIRECTION.parse(values).ifPresent(this::fillDirection);
+            UIStyleRegistries.SHOW_FLUID_TOOLTIPS.parse(values).ifPresent(this::showFluidTooltips);
+        }
     }
 
     @Getter
+    @Configurable(name = "slotStyle", subConfigurable = true)
     private final SlotStyle slotStyle = new SlotStyle(this);
     @Getter @Setter
     private boolean allowClickFilled = true;
@@ -185,12 +200,6 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     protected void onMouseDown(UIEvent event) {
         sendEvent(clickEvent, event.isShiftDown());
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        slotStyle.applyStyles(values);
     }
 
     public FluidSlot setFluid(FluidStack fluid) {

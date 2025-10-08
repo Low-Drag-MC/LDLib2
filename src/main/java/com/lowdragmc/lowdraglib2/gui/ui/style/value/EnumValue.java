@@ -1,18 +1,27 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style.value;
 
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleContext;
+import java.util.function.Function;
 
-public class EnumValue<T extends Enum> extends StyleValue<T> {
-    private final Class<Enum> type;
+public class EnumValue<T extends Enum<T>> extends StyleValue<T> {
+    private final Class<T> clazz;
 
-    public EnumValue(Class<Enum> type) {
-        super(null, false);
-        this.type = type;
+    public EnumValue(Class<T> clazz, String rawValue) {
+        super(rawValue);
+        this.clazz = clazz;
+    }
+
+    public static <T extends Enum<T>> Function<String, StyleValue<T>> of(Class<T> clazz) {
+        return raw -> new EnumValue<>(clazz, raw);
     }
 
     @Override
-    protected T doCompute(StyleContext context) {
-
+    protected T doCompute(String rawValue) {
+        var constants = clazz.getEnumConstants();
+        for (var constant : constants) {
+            if (constant.name().equalsIgnoreCase(rawValue)) {
+                return constant;
+            }
+        }
         return null;
     }
 }

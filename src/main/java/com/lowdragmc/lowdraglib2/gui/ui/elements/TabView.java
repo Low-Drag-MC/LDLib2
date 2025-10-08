@@ -3,15 +3,15 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.SelectorConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TabBuilder;
 import lombok.Getter;
@@ -30,9 +30,9 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -167,37 +167,42 @@ public class TabView extends UIElement {
     }
 
     @Override
+    public boolean canAddEditorChild(AutoRegistry.Holder<LDLRegister, UIElement, Supplier<UIElement>> holder) {
+        return Tab.class.isAssignableFrom(holder.clazz());
+    }
+
+    @Override
     public void addEditorChild(UIElement child, int index) {
         if (child instanceof Tab tab) {
-            addTab(tab, new UIElement(), index);
+            var tabContent = new UIElement();
+            tabContent.setId("tab_content");
+            addTab(tab, tabContent, index);
         }
     }
 
     @Override
-    public Tag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
-        var tag = (CompoundTag) super.serializeAdditionalNBT(provider);
-        var tabList = new ListTag();
-        for (var entry : tabContents.entrySet()) {
-            var tab = entry.getKey();
-            var content = entry.getValue();
-            // check tab valid
-            if (!tabScroller.hasScrollViewChild(tab)) {
-                continue;
+    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
+        var tagBuilder = TabBuilder.compound(super.serializeNBT(provider));
+        tagBuilder.addList("tabs", listBuilder -> {
+            for (var entry : tabContents.entrySet()) {
+                var tab = entry.getKey();
+                var content = entry.getValue();
+                // check tab valid
+                if (tab == null || !tabScroller.hasScrollViewChild(tab)) {
+                    continue;
+                }
+                if (content == null || !tabContentContainer.hasChild(content)) {
+                    continue;
+                }
+                // if valid, store their index for rebuild
+                listBuilder.addCompound(compound -> compound
+                        .add("tab", tab.getSiblingIndex())
+                        .add("content", content.getSiblingIndex())
+                );
             }
-            if (!tabContentContainer.hasChild(content)) {
-                continue;
-            }
-            // if valid, store their index for rebuild
-            tabList.add(TabBuilder.compound()
-                    .add("tab", tab.getSiblingIndex())
-                    .add("content", content.getSiblingIndex())
-                    .build());
-
-        }
-        var selectedIndex = (selectedTab == null) ? -1 : selectedTab.getSiblingIndex();
-        tag.put("tabs", tabList);
-        tag.putInt("selected", selectedIndex);
-        return tag;
+        });
+        tagBuilder.add("selected", (selectedTab == null) ? -1 : selectedTab.getSiblingIndex());
+        return tagBuilder.build();
     }
 
     @Override
@@ -207,31 +212,29 @@ public class TabView extends UIElement {
     }
 
     @Override
-    public void deserializeAdditionalNBT(Tag tag, HolderLookup.@NotNull Provider provider) {
-        super.deserializeAdditionalNBT(tag, provider);
-        if (tag instanceof CompoundTag compoundTag) {
-            var tabs = compoundTag.getList("tabs", Tag.TAG_COMPOUND);
-            var selectedIndex = compoundTag.getInt("selected");
-            for (var i = 0; i < tabs.size(); i++) {
-                var tabCompound = tabs.getCompound(i);
-                var tabIndex = tabCompound.getInt("tab");
-                var contentIndex = tabCompound.getInt("content");
-                if (tabIndex < tabScroller.viewContainer.getChildren().size()) {
-                    var tab = tabScroller.viewContainer.getChildren().get(tabIndex);
-                    if (tab instanceof Tab tabElement) {
-                        if (contentIndex < tabContentContainer.getChildren().size()) {
-                            var content = tabContentContainer.getChildren().get(contentIndex);
-                            tabContents.put(tabElement, content);
-                            tabElement.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-                                if (event.button == 0) {
-                                    Widget.playButtonClickSound();
-                                    selectTab(tabElement);
-                                }
-                            });
-                            content.setDisplay(YogaDisplay.NONE);
-                            if (selectedIndex == i) {
+    public void deserializeNBT(HolderLookup.@NotNull Provider provider, CompoundTag tag) {
+        super.deserializeNBT(provider, tag);
+        var tabs = tag.getList("tabs", Tag.TAG_COMPOUND);
+        var selectedIndex = tag.getInt("selected");
+        for (var i = 0; i < tabs.size(); i++) {
+            var tabCompound = tabs.getCompound(i);
+            var tabIndex = tabCompound.getInt("tab");
+            var contentIndex = tabCompound.getInt("content");
+            if (tabIndex < tabScroller.viewContainer.getChildren().size()) {
+                var tab = tabScroller.viewContainer.getChildren().get(tabIndex);
+                if (tab instanceof Tab tabElement) {
+                    if (contentIndex < tabContentContainer.getChildren().size()) {
+                        var content = tabContentContainer.getChildren().get(contentIndex);
+                        tabContents.put(tabElement, content);
+                        tabElement.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+                            if (event.button == 0) {
+                                Widget.playButtonClickSound();
                                 selectTab(tabElement);
                             }
+                        });
+                        content.setDisplay(YogaDisplay.NONE);
+                        if (selectedIndex == i) {
+                            selectTab(tabElement);
                         }
                     }
                 }
@@ -242,5 +245,34 @@ public class TabView extends UIElement {
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
         super.buildConfigurator(father);
+        var selectedSelector = new SelectorConfigurator<>(
+                "TabView.selected",
+                () -> selectedTab == null ? -1 : selectedTab.getSiblingIndex(),
+                index -> {
+                    if (index == -1) {
+                        index = tabContents.keySet().stream().filter(Objects::nonNull)
+                                .map(UIElement::getSiblingIndex)
+                                .mapToInt(Integer::intValue)
+                                .min().orElse(-1);
+                    }
+                    if (index < 0) return;
+                    var finalIndex = index;
+                    tabContents.keySet().stream().filter(Objects::nonNull)
+                            .filter(tab -> tab.getSiblingIndex() == finalIndex)
+                            .findFirst().ifPresent(this::selectTab);
+                }, -1, true,
+                tabContents.keySet().stream().filter(Objects::nonNull)
+                        .map(UIElement::getSiblingIndex)
+                        .sorted(Integer::compareTo).toList(),
+                index -> index < 0 ? "auto" : Integer.toString(index));
+        selectedSelector.addEventListener(UIEvents.TICK, event -> {
+           var tabs = tabContents.keySet().stream().filter(Objects::nonNull)
+                   .map(UIElement::getSiblingIndex)
+                   .sorted(Integer::compareTo).toList();
+           if (!tabs.equals(selectedSelector.selector.getCandidates())) {
+               selectedSelector.selector.setCandidates(tabs);
+           }
+        });
+        father.addConfigurator(selectedSelector);
     }
 }

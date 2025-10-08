@@ -31,7 +31,6 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.lwjgl.glfw.GLFW;
 
@@ -80,6 +79,10 @@ public class ModularUI {
     // UI state
     @Getter @Setter
     private boolean focused;
+    @Getter @Setter
+    private boolean drawTooltips = true;
+    @Getter @Setter
+    private boolean drawDrag = true;
     @Nullable
     @Getter
     private UIElement lastHoveredElement;
@@ -886,20 +889,15 @@ public class ModularUI {
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(true);
             if (screen instanceof AbstractContainerScreen<?> containerScreen && !containerScreen.getMenu().getCarried().isEmpty()) {
-                // TODO dragging
-//            var itemstack = containerScreen.getMenu().getCarried();
-//            if (!itemstack.isEmpty()) {
-//                this.renderFloatingItem(guiGraphics, itemstack, mouseX - 8, mouseY - 8, null);
-//            }
                 return;
             }
 
             // Do not render tooltips if carried item is existing
-            if (dragHandler.isDragging() && dragHandler.dragTexture != null) {
+            if (drawDrag && dragHandler.isDragging() && dragHandler.dragTexture != null) {
                 dragHandler.dragTexture.draw(guiGraphics, (int) lastMouseX, (int) lastMouseY, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
             }
 
-            if (!dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
+            if (drawTooltips && !dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
                 guiGraphics.pose().pushPose();
                 guiGraphics.pose().translate(0, 0, 200);
                 DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
@@ -909,17 +907,6 @@ public class ModularUI {
             if (debugMode) {
                 renderDebugInfo(guiGraphics, mouseX, mouseY, partialTick);
             }
-        }
-
-        protected void renderFloatingItem(GuiGraphics guiGraphics, ItemStack stack, int x, int y, @Nullable String text) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0.0F, 0.0F, 232.0F);
-            guiGraphics.renderItem(stack, x, y);
-            var font = IClientItemExtensions.of(stack).getFont(stack, IClientItemExtensions.FontContext.ITEM_COUNT);
-            guiGraphics.renderItemDecorations(font == null ? Minecraft.getInstance().font : font, stack, x, y
-//                - (this.draggingItem.isEmpty() ? 0 : 8) // TODO dragging offset
-                    , text);
-            guiGraphics.pose().popPose();
         }
 
         public void renderUISpacing(UIElement element, GuiGraphics graphics) {

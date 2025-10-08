@@ -3,8 +3,10 @@ package com.lowdragmc.lowdraglib2.gui.ui.style;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -13,6 +15,7 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Accessors(chain = true, fluent = true)
 public class BasicStyle extends Style {
@@ -81,5 +84,17 @@ public class BasicStyle extends Style {
         this.tooltips = new ArrayList<>(other.tooltips);
         this.zIndex = other.zIndex;
         return this;
+    }
+
+    @Override
+    public void applyStyles(Map<String, StyleValue<?>> values) {
+        super.applyStyles(values);
+        UIStyleRegistries.DRAW_BACKGROUND_WHEN_HOVER.parse(values).ifPresent(this::drawBackgroundWhenHover);
+        UIStyleRegistries.BACKGROUND.parse(values).ifPresent(this::backgroundTexture);
+        UIStyleRegistries.BORDER.parse(values).ifPresent(this::borderTexture);
+        UIStyleRegistries.OVERLAY.parse(values).ifPresent(this::overlayTexture);
+        UIStyleRegistries.TOOLTIPS.parse(values).ifPresent(this::tooltips);
+        UIStyleRegistries.Z_INDEX.parse(values).ifPresent(this::zIndex);
+        UIStyleRegistries.TRANSFORM_2D.parse(values).ifPresent(this.transform2D::copyFrom);
     }
 }

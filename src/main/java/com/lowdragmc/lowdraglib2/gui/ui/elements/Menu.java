@@ -7,8 +7,11 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextureValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
@@ -54,6 +57,21 @@ public class Menu<K, T> extends UIElement {
             this.leafHoverTexture = other.leafHoverTexture;
             this.arrowIcon = other.arrowIcon;
             return this;
+        }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+
+            UIStyleRegistries.NODE.parse(values).ifPresent(this::nodeTexture);
+            UIStyleRegistries.LEAF.parse(values).ifPresent(this::leafTexture);
+            UIStyleRegistries.NODE_HOVER.parse(values).ifPresent(this::nodeHoverTexture);
+            UIStyleRegistries.LEAF_HOVER.parse(values).ifPresent(this::leafHoverTexture);
+            UIStyleRegistries.ARROW.parse(values).ifPresent(this::arrowIcon);
+
+            if (holder instanceof Menu menu) {
+                menu.onMenuStyleChanged();
+            }
         }
     }
     public final ITreeNode<K, T> root;
@@ -176,16 +194,14 @@ public class Menu<K, T> extends UIElement {
     public Menu<K, T> menuStyle(Consumer<MenuStyle> menuStyle) {
         menuStyle.accept(this.menuStyle);
         onStyleChanged();
-        nodeUIs.forEach((node, element) -> {
-            element.style(style -> style.backgroundTexture(textureProvider.apply(node)));
-        });
+        onMenuStyleChanged();
         return this;
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        menuStyle.applyStyles(values);
+    protected void onMenuStyleChanged() {
+        nodeUIs.forEach((node, element) -> {
+            element.style(style -> style.backgroundTexture(textureProvider.apply(node)));
+        });
     }
 
     public void close(){

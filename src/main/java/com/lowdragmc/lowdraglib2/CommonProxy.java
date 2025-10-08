@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.factory_outdated.*;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
 import com.lowdragmc.lowdraglib2.integration.kjs.ui.BlockUIJSFactory;
 import com.lowdragmc.lowdraglib2.integration.kjs.ui.ItemUIJSFactory;
 import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
@@ -16,7 +17,6 @@ import com.lowdragmc.lowdraglib2.test.TestBlockEntity;
 import com.lowdragmc.lowdraglib2.test.TestItem;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -76,6 +76,7 @@ public class CommonProxy {
         }
         LDLib2Registries.init();
         AccessorRegistries.init();
+        UIStyleRegistries.init();
     }
 
 }

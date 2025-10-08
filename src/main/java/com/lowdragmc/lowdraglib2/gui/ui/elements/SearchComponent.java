@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
@@ -8,8 +10,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.*;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -24,7 +28,6 @@ import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Array;
@@ -44,18 +47,40 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     @Accessors(chain = true, fluent = true)
     public static class SearchStyle extends Style {
         @Getter @Setter
+        @Configurable(name = "focusOverlay")
         private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
         @Getter @Setter
+        @Configurable(name = "maxItemCount")
+        @ConfigNumber(range = {1, Integer.MAX_VALUE})
         private int maxItemCount = 5; // if more than this, use scroller view.
         @Getter @Setter
-        private int scrollerViewHeight = 50;
+        @Configurable(name = "scrollerViewHeight", tips = "scrollerViewHeight.tips")
+        @ConfigNumber(range = {0, Float.MAX_VALUE})
+        private float scrollerViewHeight = 50;
         @Getter @Setter
+        @Configurable(name = "showOverlay")
         private boolean showOverlay = true;
         @Getter @Setter
+        @Configurable(name = "closeAfterSelect")
         private boolean closeAfterSelect = true;
 
         public SearchStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+
+            UIStyleRegistries.FOCUS_OVERLAY.parse(values).ifPresent(this::focusOverlay);
+            UIStyleRegistries.MAX_ITEM.parse(values).ifPresent(this::maxItemCount);
+            UIStyleRegistries.VIEW_HEIGHT.parse(values).ifPresent(this::scrollerViewHeight);
+            UIStyleRegistries.SHOW_OVERLAY.parse(values).ifPresent(this::showOverlay);
+            UIStyleRegistries.CLOSE_AFTER_SELECT.parse(values).ifPresent(this::closeAfterSelect);
+
+            if (holder instanceof SearchComponent<?> searchComponent) {
+                searchComponent.onSearchStyleChanged();
+            }
         }
     }
     public final TextField textField;
@@ -64,6 +89,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     public final UIElement listView;
     public final ScrollerView scrollerView;
     @Getter
+    @Configurable(name = "searchStyle", subConfigurable = true)
     private final SearchStyle searchStyle = new SearchStyle(this);
     private UIElementProvider<T> candidateUIProvider = UIElementProvider.text(value -> value == null ?
             Component.translatable("text_field.empty").withColor(ColorPattern.LIGHT_GRAY.color) :
@@ -323,15 +349,13 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     public SearchComponent<T> searchStyle(Consumer<SearchStyle> style) {
         style.accept(searchStyle);
         onStyleChanged();
-        refreshDialog();
-        setSelected(this.value, false, true);
+        onSearchStyleChanged();
         return this;
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        searchStyle.applyStyles(values);
+    protected void onSearchStyleChanged() {
+        refreshDialog();
+        setSelected(this.value, false, true);
     }
 
     /// Logic
@@ -406,7 +430,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
          * @param value the object of type {@code T} whose result representation is to be displayed.
          * @return a {@code String} representation of the given object.
          */
-        String resultText(@Nonnull T value);
+        String resultText(T value);
 
         /**
          * Invoked when a result is selected from the search or selection process.

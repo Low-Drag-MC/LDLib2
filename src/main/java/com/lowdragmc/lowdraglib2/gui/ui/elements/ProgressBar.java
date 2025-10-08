@@ -1,5 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
@@ -10,8 +14,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
+import com.lowdragmc.lowdraglib2.gui.ui.style.value.*;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
@@ -39,21 +44,48 @@ import java.util.function.Consumer;
 public class ProgressBar extends UIElement implements IBindable<Float>, IDataConsumer<Float> {
     @Accessors(chain = true, fluent = true)
     public static class ProgressBarStyle extends Style {
+
         @Getter @Setter
+        @Configurable(name = "fillDirection")
         private FillDirection fillDirection = FillDirection.LEFT_TO_RIGHT;
         @Getter @Setter
+        @Configurable(name = "interpolate", tips="interpolate.tips")
         private boolean interpolate = true;
         @Getter @Setter
+        @Configurable(name = "interpolateStep")
+        @ConfigNumber(range = {0f, 1})
         private float interpolateStep = 0.1f;
 
         public ProgressBarStyle(UIElement holder) {
             super(holder);
+        }
+
+        @Override
+        public void buildConfigurator(ConfiguratorGroup father) {
+            super.buildConfigurator(father);
+            if (holder instanceof ProgressBar progressBar) {
+                father.addEventListener(Configurator.CHANGE_EVENT, event -> progressBar.onProgressStyleChanged());
+            }
+        }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+
+            UIStyleRegistries.FILL_DIRECTION.parse(values).ifPresent(this::fillDirection);
+            UIStyleRegistries.INTERPOLATE.parse(values).ifPresent(this::interpolate);
+            UIStyleRegistries.INTERPOLATE_STEP.parse(values).ifPresent(this::interpolateStep);
+
+            if (holder instanceof ProgressBar progressBar) {
+                progressBar.onProgressStyleChanged();
+            }
         }
     }
     public final UIElement barContainer;
     public final Label label;
     public final UIElement bar;
     @Getter
+    @Configurable(name = "progressBarStyle", subConfigurable = true)
     private final ProgressBarStyle progressBarStyle = new ProgressBarStyle(this);
     @Getter
     private float minValue = 0;
@@ -100,9 +132,13 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     public ProgressBar progressBarStyle(Consumer<ProgressBarStyle> style) {
         style.accept(this.progressBarStyle);
         onStyleChanged();
+        onProgressStyleChanged();
+        return this;
+    }
+
+    protected void onProgressStyleChanged() {
         lastValue = value;
         updateProgressBarStyle(getNormalizedValue());
-        return this;
     }
 
     public float getNormalizedValue() {
@@ -229,12 +265,6 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     public ProgressBar bar(Consumer<UIElement> bar) {
         bar.accept(this.bar);
         return this;
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        progressBarStyle.applyStyles(values);
     }
 
     @Override

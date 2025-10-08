@@ -95,7 +95,7 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
 
     @Override
     protected void renderSlotHighlight(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, float partialTick) {
-        if (menu.modularUI.isHoverSlot(slot)) {
+        if (menu.isItemSlot(slot)) {
             return;
         }
         super.renderSlotHighlight(guiGraphics, slot, mouseX, mouseY, partialTick);
@@ -103,7 +103,7 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
 
     @Override
     protected void renderSlot(GuiGraphics guiGraphics, Slot slot) {
-        if (menu.modularUI.isHoverSlot(slot)) {
+        if (menu.isItemSlot(slot)) {
             return;
         }
         super.renderSlot(guiGraphics, slot);

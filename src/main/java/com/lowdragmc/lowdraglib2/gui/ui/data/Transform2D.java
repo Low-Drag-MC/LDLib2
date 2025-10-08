@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 
@@ -78,7 +79,7 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         return scale(s, s);
     }
 
-    public Transform2D privot(float oxRatio, float oyRatio) {
+    public Transform2D pivot(float oxRatio, float oyRatio) {
         this.pivot = Pivot.of(oxRatio, oyRatio);
         return this;
     }
@@ -149,5 +150,13 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         // Translate back from pivot
         p[0] += px;
         p[1] += py;
+    }
+
+    public void copyFrom(@NotNull Transform2D transform2D) {
+        this.translate = new Vector2f(transform2D.translate);
+        this.scale = new Vector2f(transform2D.scale);
+        this.rotation = transform2D.rotation;
+        this.pivot = transform2D.pivot;
+        this.rotationRad = transform2D.rotationRad;
     }
 }

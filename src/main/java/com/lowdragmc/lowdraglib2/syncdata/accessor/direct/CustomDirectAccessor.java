@@ -54,7 +54,11 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
 
     @Override
     public <T> T readDirectVar(DynamicOps<T> op, IVar<TYPE> var) {
-        return codec.encodeStart(op, var.value()).getOrThrow();
+        try {
+            return codec.encodeStart(op, var.value()).getOrThrow();
+        } catch (Exception e) {
+            return codec.encodeStart(op, var.value()).getOrThrow();
+        }
     }
 
     @Override
@@ -141,7 +145,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
         /**
          * Custom mark function. This will use the given function to get and compare marks.
          * @param managedMarkFunction the function to get the mark from the value.
-         * @param areDifferentFunction the function to compare the mark with the value.
+         * @param areEqualFunction the function to compare the mark with the value.
          * @param <MARK> the type of the mark.
          */
         public <MARK> Builder<TYPE> customMark(Function<TYPE, MARK> managedMarkFunction, BiPredicate<MARK, TYPE> areEqualFunction) {

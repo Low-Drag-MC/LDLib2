@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
@@ -12,7 +14,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
 import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -22,7 +25,6 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -48,21 +50,40 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public static class SlotStyle extends Style {
         @Getter
         @Setter
+        @Configurable(name = "hoverOverlay")
         private IGuiTexture hoverOverlay = new ColorRectTexture(0x80FFFFFF);
         @Getter @Setter
+        @Configurable(name = "showItemTooltips")
         private boolean showItemTooltips = true;
         @Getter @Setter
+        @Configurable(name = "isPlayerSlot")
         private boolean isPlayerSlot = false;
         @Getter @Setter
+        @Configurable(name = "acceptQuickMove")
         private boolean acceptQuickMove = true;
         @Getter @Setter
+        @Configurable(name = "quickMovePriority")
+        @ConfigNumber(range = {Integer.MIN_VALUE, Integer.MAX_VALUE})
         private int quickMovePriority = 0;
 
         public SlotStyle(ItemSlot holder) {
             super(holder);
         }
+
+        @Override
+        public void applyStyles(Map<String, StyleValue<?>> values) {
+            super.applyStyles(values);
+
+            UIStyleRegistries.HOVER_OVERLAY.parse(values).ifPresent(this::hoverOverlay);
+            UIStyleRegistries.SHOW_ITEM_TOOLTIPS.parse(values).ifPresent(this::showItemTooltips);
+            UIStyleRegistries.PLAYER_SLOT.parse(values).ifPresent(this::isPlayerSlot);
+            UIStyleRegistries.ACCEPT_QUICK_MOVE.parse(values).ifPresent(this::acceptQuickMove);
+            UIStyleRegistries.QUICK_MOVE_PRIORITY.parse(values).ifPresent(this::quickMovePriority);
+        }
     }
+
     @Getter
+    @Configurable(name = "slotStyle", subConfigurable = true)
     private final SlotStyle slotStyle = new SlotStyle(this);
 
     // runtime
@@ -102,10 +123,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         if (mui != null) {
             var menu = mui.getMenu();
             if (menu != null) {
-                // TODO shall we do this
-                if (mui.player != null && mui.player.level().isClientSide) {
-                    slot = new Slot(new SimpleContainer(1), 0, 0,0);
-                }
                 if (!menu.slots.contains(slot)) {
                     if (menu instanceof IItemSlotHolderMenu itemSlotHolderMenu) {
                         itemSlotHolderMenu.addSlot(this);
@@ -121,12 +138,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         style.accept(slotStyle);
         onStyleChanged();
         return this;
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        slotStyle.applyStyles(values);
     }
 
     public void updateSlotPosition() {
