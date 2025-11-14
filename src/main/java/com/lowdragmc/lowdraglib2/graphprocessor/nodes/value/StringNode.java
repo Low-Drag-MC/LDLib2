@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib2.graphprocessor.annotation.InputPort;
 import com.lowdragmc.lowdraglib2.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib2.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib2.graphprocessor.nodes.utils.PrintNode;
-import com.lowdragmc.lowdraglib2.gui.widget.codeeditor.CodeEditorWidget;
+//import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditorWidget;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 
@@ -46,9 +46,9 @@ public class StringNode extends BaseNode {
                 if (!port.getEdges().isEmpty()) return;
             }
         }
-        var codeEditor = new CodeEditorWidget(0, 0, getMinWidth(), 100);
-        codeEditor.setLines(List.of(internalValue == null ? "" : internalValue));
-        codeEditor.setOnTextChanged(lines -> internalValue = String.join("\n", lines));
-        father.addConfigurators(new WrapperConfigurator(codeEditor));
+//        var codeEditor = new CodeEditorWidget(0, 0, getMinWidth(), 100);
+//        codeEditor.setLines(List.of(internalValue == null ? "" : internalValue));
+//        codeEditor.setOnTextChanged(lines -> internalValue = String.join("\n", lines));
+//        father.addConfigurators(new WrapperConfigurator(codeEditor));
     }
 }

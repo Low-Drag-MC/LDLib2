@@ -35,6 +35,7 @@ public class Inspector extends UIElement {
 
     public Inspector() {
         this.scrollerView = new ScrollerView();
+        this.scrollerView.setId("_inspector_scroller-view_");
         scrollerView.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
@@ -46,7 +47,7 @@ public class Inspector extends UIElement {
             layout.setGap(YogaGutter.ALL, 1);
         });
         addChild(scrollerView);
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     public void clear() {

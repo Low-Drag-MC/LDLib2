@@ -11,18 +11,28 @@ import java.util.regex.Pattern;
  * - "div span" - Descendant selector: all span descendants of div
  * - "div > span" - Child selector: direct span children of div
  */
-public record HierarchicalStyleMatcher(List<SelectorGroup> selectorGroups) {
+public class HierarchicalStyleMatcher {
+
+    private final List<SelectorGroup> selectorGroups;
+
+    // runtime
+    private int specificity = -1;
+
+    public HierarchicalStyleMatcher(List<SelectorGroup> selectorGroups) {
+        this.selectorGroups = selectorGroups;
+    }
+
 
     // Match selectors and combinators: element, class, ID, or >
     private static final Pattern SELECTOR_PATTERN = Pattern.compile(
-            "([a-zA-Z0-9_-]+|[#.][a-zA-Z0-9_-]+)|(>)|(\\s+)"
+            "((?:[a-zA-Z0-9_-]+|[#.][a-zA-Z0-9_-]+)(?::[a-zA-Z0-9_-]+)?)|(>)|(\\s+)"
     );
 
     /**
      * Parse selector string
      * For example: ".class1 > div.class2 span#id"
      */
-    public static HierarchicalStyleMatcher parse(String selectorString) {
+    public static HierarchicalStyleMatcher parse(String selectorString) throws IllegalArgumentException {
         if (selectorString == null || selectorString.trim().isEmpty()) {
             throw new IllegalArgumentException("Selector cannot be null or empty");
         }
@@ -48,18 +58,23 @@ public record HierarchicalStyleMatcher(List<SelectorGroup> selectorGroups) {
 
             // check child or descendant combinator
             if (g2 != null || g3 != null) {
-                if (expectingSelector) {
-                    // check valid
-                    throw new IllegalArgumentException("Invalid selector near: " + matcher.group());
-                }
-                // 把“当前组”按“nextIsChild(与上一组的关系)”落盘
                 // make current group follow `nextIsChild`
                 if (!currentSelectors.isEmpty()) {
                     groups.add(new SelectorGroup(StyleMatcher.create(currentSelectors), nextIsChild));
                     currentSelectors.clear();
                 }
+
+                if (g3 != null) {
+                    continue;
+                }
+
+                if (expectingSelector) {
+                    // check valid
+                    throw new IllegalArgumentException("Invalid selector near: " + matcher.group());
+                }
+
                 // setup next group
-                nextIsChild = (g2 != null); // '>' -> child；空格 -> descendant(false)
+                nextIsChild = true; // '>' -> child；空格 -> descendant(false)
                 expectingSelector = true;   // 组合符后面必须跟选择器
             }
         }
@@ -122,9 +137,9 @@ public record HierarchicalStyleMatcher(List<SelectorGroup> selectorGroups) {
      * calculates the specificity of the selector
      */
     public int getSpecificity() {
-        return selectorGroups.stream()
+        return specificity == -1 ? (specificity = selectorGroups.stream()
                 .mapToInt(group -> group.styleMatcher.weight())
-                .sum();
+                .sum()) : specificity;
     }
 
     @Override

@@ -132,6 +132,14 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         IConfigurable.super.buildConfigurator(father);
     }
 
+    static DynamicTexture dynamic(Supplier<IGuiTexture> textureSupplier) {
+        return DynamicTexture.of(textureSupplier);
+    }
+
+    static GuiTextureGroup group(IGuiTexture... textures) {
+        return GuiTextureGroup.of(textures);
+    }
+
     @Nullable
     static ResourceLocation getTextureFromFile(File filePath) {
         String fullPath = filePath.getPath().replace('\\', '/');

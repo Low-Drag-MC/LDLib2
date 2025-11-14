@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 
-@LDLRegister(name = "inventory_slots", registry = "ldlib2:ui_element")
+@LDLRegister(name = "inventory-slots", group = "inventory", registry = "ldlib2:ui_element")
 public class InventorySlots extends UIElement {
     public final Row[] rows = new Row[3];
     public final Row hotbar = new Row();
@@ -25,6 +25,7 @@ public class InventorySlots extends UIElement {
         }
         hotbar.getLayout().setMargin(YogaEdge.TOP, 5);
         addChild(hotbar);
+        hotbar.addClass("__inventory_hotbar__");
 
         for (int i = 0; i < hotbar.slots.length; i++) {
             hotbar.slots[i].setId("inventory_%d".formatted(i));
@@ -36,7 +37,7 @@ public class InventorySlots extends UIElement {
                 row.slots[c].setId("inventory_%d".formatted(slotIndex));
             }
         }
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     @Override
@@ -75,6 +76,7 @@ public class InventorySlots extends UIElement {
 
         public Row() {
             getLayout().setFlexDirection(YogaFlexDirection.ROW);
+            addClass("__inventory_row__");
 
             for (int i = 0; i < slots.length; i++) {
                 slots[i] = new ItemSlot().slotStyle(slotStyle -> slotStyle.isPlayerSlot(true));

@@ -18,6 +18,7 @@ import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -76,6 +77,11 @@ public class TestSerialization implements IScreenTest {
                 return group;
             }
             return new Configurator();
+        }
+
+        @SkipPersistedValue(field = "vector3fValue")
+        public boolean skipTest(Vector3f value) {
+            return value.x == 0f && value.y == 0f && value.z == 0f;
         }
 
         public TestGroup addDefaultTestGroup() {

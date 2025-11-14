@@ -1,34 +1,20 @@
 package com.lowdragmc.lowdraglib2.editor.ui.menu;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.editor.project.IProject;
+import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
-import lombok.Data;
-import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 public class FileMenu extends MenuTab {
-    @Data(staticConstructor = "of")
-    public static class ProjectProvider {
-        public final IGuiTexture icon;
-        public final String name;
-        public final String suffix;
-        public final Supplier<IProject> projectCreator;
-    }
-
-    private final List<ProjectProvider> projectProviders = new ArrayList<>();
+    private final List<ProjectType> projectTypes = new ArrayList<>();
     private final List<BiConsumer<MenuTab, TreeBuilder.Menu>> newMenuCreators = new ArrayList<>();
 
     public FileMenu(Editor editor) {
@@ -39,10 +25,10 @@ public class FileMenu extends MenuTab {
     protected TreeBuilder.Menu createDefaultMenu() {
         var menu = TreeBuilder.Menu.start();
         menu.branch("ldlib.gui.editor.menu.new", newMenu -> {
-            for (var provider : projectProviders) {
-                newMenu.leaf(provider.icon, provider.name, () -> {
+            for (var type : projectTypes) {
+                newMenu.leaf(type.icon, type.name, () -> {
                     // open a new project
-                    var newProject = provider.projectCreator.get();
+                    var newProject = type.projectCreator.get();
                     newProject.initNewProject();
                     editor.loadProject(newProject, null);
                 });
@@ -76,11 +62,11 @@ public class FileMenu extends MenuTab {
     }
 
     /**
-     * Add a project provider to the file menu. It will be displayed in the {@code new} branch
-     * @param projectProvider the project provider to add
+     * Add a project type to the file menu. It will be displayed in the {@code new} branch
+     * @param projectType the project type to add
      */
-    public void addProjectProvider(ProjectProvider projectProvider) {
-        this.projectProviders.add(projectProvider);
+    public void addProjectProvider(ProjectType projectType) {
+        this.projectTypes.add(projectType);
     }
 
     /**
@@ -92,19 +78,17 @@ public class FileMenu extends MenuTab {
     }
 
     protected void onOpenProject() {
-        var suffixes = projectProviders.stream().map(ProjectProvider::getSuffix).toArray(String[]::new);
+        var suffixes = projectTypes.stream().map(ProjectType::getSuffix).toArray(String[]::new);
         Dialog.showFileDialog("ldlib.gui.editor.tips.load_project", LDLib2.getAssetsDir(), true,
                 Dialog.suffixFilter(suffixes), r -> {
                     if (r != null && r.isFile()) {
                         var fileName = r.getName();
-                        projectProviders.stream()
-                                .filter(provider -> fileName.endsWith(provider.getSuffix()))
+                        projectTypes.stream()
+                                .filter(type -> fileName.endsWith(type.getSuffix()))
                                 .findFirst()
-                                .ifPresent(provider -> {
+                                .ifPresent(type -> {
                                     try {
-                                        var data = NbtIo.read(r.toPath());
-                                        var project = provider.getProjectCreator().get();
-                                        project.deserializeNBT(Platform.getFrozenRegistry(), Objects.requireNonNull(data));
+                                        var project = type.loadProjectFromFile(r);
                                         editor.loadProject(project, r);
                                     } catch (Exception e) {
                                         Dialog.showNotification("editor.error", "editor.loading_failed", null).show(editor);

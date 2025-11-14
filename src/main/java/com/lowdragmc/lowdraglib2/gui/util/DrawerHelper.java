@@ -144,7 +144,7 @@ public class DrawerHelper {
     public static void drawStringSized(@Nonnull GuiGraphics graphics, String text, float x, float y, int color, boolean dropShadow, float scale, boolean center) {
         graphics.pose().pushPose();
         Font fontRenderer = Minecraft.getInstance().font;
-        double scaledTextWidth = center ? fontRenderer.width(text) * scale : 0.0;
+        double scaledTextWidth = center ? fontRenderer.getSplitter().stringWidth(text) * scale : 0.0;
         graphics.pose().translate(x - scaledTextWidth / 2.0, y, 0.0f);
         graphics.pose().scale(scale, scale, scale);
         graphics.drawString(fontRenderer, text, 0, 0, color, dropShadow);
@@ -153,7 +153,7 @@ public class DrawerHelper {
 
     public static void drawStringFixedCorner(@Nonnull GuiGraphics graphics, String text, float x, float y, int color, boolean dropShadow, float scale) {
         Font fontRenderer = Minecraft.getInstance().font;
-        float scaledWidth = fontRenderer.width(text) * scale;
+        float scaledWidth = fontRenderer.getSplitter().stringWidth(text) * scale;
         float scaledHeight = fontRenderer.lineHeight * scale;
         drawStringSized(graphics, text, x - scaledWidth, y - scaledHeight, color, dropShadow, scale, false);
     }

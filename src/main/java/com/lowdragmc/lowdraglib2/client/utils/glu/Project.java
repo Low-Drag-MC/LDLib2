@@ -103,7 +103,7 @@ public class Project extends Util {
 
 		for (i = 0; i < 4; i++) {
 			/*
-			 * * Look for largest element in column
+			 * * Look for largest element in col
 			 */
 			swap = i;
 			for (j = i + 1; j < 4; j++) {

@@ -1,32 +1,31 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
-import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-@Getter
 public class StyleRule {
-    private final List<HierarchicalStyleMatcher> matchers = new ArrayList<>();
-    private final Map<String, StyleValue<?>> properties = new ConcurrentHashMap<>();
+    private final static AtomicInteger SOURCE_ID_COUNTER = new AtomicInteger(0);
+    public final HierarchicalStyleMatcher matcher;
+    public final Map<Property<?>, StyleValue<?>> properties;
+    public final int sourceOrder;
 
-    public void addMatcher(HierarchicalStyleMatcher matcher) {
-        matchers.add(matcher);
+    public StyleRule(HierarchicalStyleMatcher matcher, Map<Property<?>, StyleValue<?>> properties) {
+        this.sourceOrder = SOURCE_ID_COUNTER.getAndIncrement();
+        this.matcher = matcher;
+        this.properties = properties;
     }
 
-    public void addProperty(String name, StyleValue<?> value) {
-        properties.put(name, value);
-    }
-
-    public StyleValue<?> getProperty(String name) {
-        return properties.get(name);
+    public StyleValue<?> getProperty(Property<?> property) {
+        return properties.get(property);
     }
 
     public boolean matches(UIElement element) {
-        return matchers.stream().anyMatch(m -> m.matches(element));
+        return matcher.matches(element);
+    }
+
+    public int getSpecificity() {
+        return matcher.getSpecificity();
     }
 }

@@ -1,17 +1,22 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
@@ -29,7 +34,6 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -38,9 +42,10 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 @LDLRegister(name = "toggle", registry = "ldlib2:ui_element")
 public class Toggle extends BindableUIElement<Boolean> {
-    public static class ToggleGroup {
+    public static class ToggleGroup implements IPersistedSerializable, IConfigurable {
         @Setter
         @Accessors(chain = true)
+        @Configurable(name = "allowEmpty")
         private boolean allowEmpty = false;
         @Getter
         private List<Toggle> toggles = new ArrayList<>();
@@ -77,31 +82,76 @@ public class Toggle extends BindableUIElement<Boolean> {
             currentToggle = toggle;
         }
     }
-    @Accessors(chain = true, fluent = true)
-    public static class ToggleStyle extends Style {
-        @Getter
-        @Setter
-        private IGuiTexture baseTexture = Sprites.RECT_DARK;
-        @Getter
-        @Setter
-        private IGuiTexture hoverTexture = new GuiTextureGroup(Sprites.RECT_DARK, ColorPattern.WHITE.borderTexture(-1));
-        @Getter
-        @Setter
-        private IGuiTexture unmarkTexture = IGuiTexture.EMPTY;
-        @Getter
-        @Setter
-        private IGuiTexture markTexture = Icons.CHECK_SPRITE;
+    @Configurable(name = "ToggleStyle")
+    public class ToggleStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.UNMARK_BACKGROUND,
+                PropertyRegistry.MARK_BACKGROUND,
+        };
 
-        public ToggleStyle(UIElement holder) {
-            super(holder);
+        public ToggleStyle() {
+            super(Toggle.this);
+            Toggle.this.toggleButton.getButtonStyle().setDefault(PropertyRegistry.BASE_BACKGROUND, Sprites.RECT_DARK);
+            Toggle.this.toggleButton.getButtonStyle().setDefault(PropertyRegistry.HOVER_BACKGROUND, new GuiTextureGroup(Sprites.RECT_DARK, ColorPattern.WHITE.borderTexture(-1)));
+            Toggle.this.toggleButton.getButtonStyle().setDefault(PropertyRegistry.PRESSED_BACKGROUND, Sprites.RECT_DARK);
+            setDefault(PropertyRegistry.MARK_BACKGROUND, Icons.CHECK_SPRITE);
+        }
+
+        public static void init() {
+            PropertyRegistry.UNMARK_BACKGROUND.addListener(ToggleStyle::onPropertyChanged);
+            PropertyRegistry.MARK_BACKGROUND.addListener(ToggleStyle::onPropertyChanged);
+        }
+
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof Toggle toggle) {
+                Style.importantPipeline(toggle.markIcon.getStyle(), style ->
+                        style.backgroundTexture(toggle.isOn ? toggle.toggleStyle.markTexture() : toggle.toggleStyle.unmarkTexture())
+                );
+            }
+        }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public ToggleStyle baseTexture(IGuiTexture texture) {
+            Toggle.this.toggleButton.getButtonStyle().baseTexture(texture);
+            Toggle.this.toggleButton.getButtonStyle().pressedTexture(texture);
+            return this;
+        }
+
+        public ToggleStyle hoverTexture(IGuiTexture texture) {
+            Toggle.this.toggleButton.getButtonStyle().hoverTexture(texture);
+            return this;
+        }
+
+        public IGuiTexture unmarkTexture() {
+            return getValueSave(PropertyRegistry.UNMARK_BACKGROUND);
+        }
+
+        public ToggleStyle unmarkTexture(IGuiTexture texture) {
+            set(PropertyRegistry.UNMARK_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture markTexture() {
+            return getValueSave(PropertyRegistry.MARK_BACKGROUND);
+        }
+
+        public ToggleStyle markTexture(IGuiTexture texture) {
+            set(PropertyRegistry.MARK_BACKGROUND, texture);
+            return this;
         }
     }
-    public final Button toggleButton;
+
+    public final Button toggleButton = new Button();
     public final UIElement markIcon;
     public final Label toggleLabel;
     @Getter
-    private final ToggleStyle toggleStyle = new ToggleStyle(this);
+    private final ToggleStyle toggleStyle = new ToggleStyle();
     @Getter
+    @Configurable(name = "isOn")
     private boolean isOn = false;
     @Getter
     @Nullable
@@ -113,30 +163,28 @@ public class Toggle extends BindableUIElement<Boolean> {
         getLayout().setPadding(YogaEdge.ALL, 1);
         getLayout().setHeight(14);
 
-        this.toggleButton = new Button();
         this.toggleButton
                 .setOnClick(this::onToggleClick)
-                .buttonStyle(style -> style
-                        .defaultTexture(toggleStyle.baseTexture())
-                        .hoverTexture(toggleStyle.hoverTexture())
-                        .pressedTexture(toggleStyle.hoverTexture()))
                 .noText()
                 .layout(layout -> {
                     layout.setPadding(YogaEdge.ALL, 0);
                     layout.setHeightPercent(100);
                     layout.setAspectRatio(1);
                 })
+                .addClass("__toggle_button__")
                 .addChild(this.markIcon = new UIElement()
                         .layout(layout -> {
                             layout.setWidthPercent(100);
                             layout.setHeightPercent(100);
                         })
-                        .style(style -> style.backgroundTexture(toggleStyle.unmarkTexture())));
+                        .style(style -> Style.importantPipeline(style, s -> s.backgroundTexture(toggleStyle.unmarkTexture())))
+                        .addClass("__toggle_mark-icon__"));
         this.toggleLabel = new Label();
         this.toggleLabel
                 .textStyle(style -> style
                         .textAlignHorizontal(Horizontal.LEFT)
                         .textAlignVertical(Vertical.CENTER))
+                .addClass("__toggle_label__")
                 .layout(layout -> {
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
@@ -144,17 +192,11 @@ public class Toggle extends BindableUIElement<Boolean> {
                 });
         this.toggleLabel.setText("Toggle");
         addChildren(toggleButton, toggleLabel);
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     public Toggle toggleStyle(Consumer<ToggleStyle> style) {
         style.accept(toggleStyle);
-        onStyleChanged();
-        this.markIcon.getStyle().backgroundTexture(isOn ? toggleStyle.markTexture() : toggleStyle.unmarkTexture());
-        this.toggleButton.buttonStyle(buttonStyle -> buttonStyle
-                .defaultTexture(toggleStyle.baseTexture())
-                .hoverTexture(toggleStyle.hoverTexture())
-                .pressedTexture(toggleStyle.hoverTexture()));
         return this;
     }
 
@@ -165,6 +207,7 @@ public class Toggle extends BindableUIElement<Boolean> {
         setOn(!isOn, true);
     }
 
+    @ConfigSetter(field = "isOn")
     public Toggle setOn(boolean on) {
         return setOn(on, true);
     }
@@ -234,6 +277,9 @@ public class Toggle extends BindableUIElement<Boolean> {
         if (value == null) value = false;
         if (value == isOn) return this;
         isOn = value;
+        Style.importantPipeline(this.markIcon.getStyle(), style ->
+            style.backgroundTexture(isOn ? toggleStyle.markTexture() : toggleStyle.unmarkTexture())
+        );
         if (toggleGroup != null) {
             if (value) {
                 toggleGroup.setCurrentToggle(this);
@@ -243,7 +289,6 @@ public class Toggle extends BindableUIElement<Boolean> {
                 }
             }
         }
-        markIcon.getStyle().backgroundTexture(isOn ? toggleStyle.markTexture() : toggleStyle.unmarkTexture());
         if (notify) {
             notifyListeners();
         }

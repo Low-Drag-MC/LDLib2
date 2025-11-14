@@ -2,14 +2,14 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.*;
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
@@ -17,8 +17,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -28,76 +26,162 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "text_element", registry = "ldlib2:ui_element")
+@LDLRegister(name = "text", registry = "ldlib2:ui_element")
 public class TextElement extends UIElement {
-    @Accessors(chain = true, fluent = true)
-    public static class TextStyle extends Style {
-        @Getter @Setter
-        @Configurable(name = "adaptiveWidth", tips = "adaptiveWidth.tips")
-        private boolean adaptiveWidth = false;
-        @Getter @Setter
-        @Configurable(name = "adaptiveHeight", tips = "adaptiveHeight.tips")
-        private boolean adaptiveHeight = false;
-        @Getter @Setter
-        @Configurable(name = "textAlignHorizontal")
-        private Horizontal textAlignHorizontal = Horizontal.LEFT;
-        @Getter @Setter
-        @Configurable(name = "textAlignVertical")
-        private Vertical textAlignVertical = Vertical.TOP;
-        @Getter @Setter
-        @Configurable(name = "textWrap", tips = {"textWrap.tips.NONE", "textWrap.tips.WRAP", "textWrap.tips.HOVER_ROLL", "textWrap.tips.HIDE"})
-        private TextWrap textWrap = TextWrap.NONE;
-        @Getter @Setter
-        @Configurable(name = "rollSpeed")
-        @ConfigNumber(range = {0f, Float.MAX_VALUE})
-        private float rollSpeed = 1;
-        @Getter @Setter
-        @Configurable(name = "fontSize")
-        @ConfigNumber(range = {0f, Float.MAX_VALUE})
-        private float fontSize = 9;
-        @Getter @Setter
-        @Configurable(name = "font")
-        @ConfigFont
-        private ResourceLocation font = net.minecraft.network.chat.Style.DEFAULT_FONT;
-        @Getter @Setter
-        @Configurable(name = "lineSpacing")
-        @ConfigNumber(range = {0f, Float.MAX_VALUE})
-        private float lineSpacing = 1;
-        @Getter @Setter
-        @Configurable(name = "textColor")
-        @ConfigColor
-        private int textColor = -1;
-        @Getter @Setter
-        @Configurable(name = "textShadow")
-        private boolean textShadow = true;
+    @Configurable(name = "TextStyle")
+    public class TextStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.ADAPTIVE_HEIGHT,
+                PropertyRegistry.ADAPTIVE_WIDTH,
+                PropertyRegistry.VERTICAL_ALIGN,
+                PropertyRegistry.HORIZONTAL_ALIGN,
+                PropertyRegistry.TEXT_WRAP,
+                PropertyRegistry.ROLL_SPEED,
+                PropertyRegistry.FONT,
+                PropertyRegistry.FONT_SIZE,
+                PropertyRegistry.TEXT_COLOR,
+                PropertyRegistry.TEXT_SHADOW,
+                PropertyRegistry.LINE_SPACING,
+        };
 
-        public TextStyle(UIElement holder) {
-            super(holder);
+        public TextStyle() {
+            super(TextElement.this);
+        }
+
+        public static void init() {
+            PropertyRegistry.ADAPTIVE_WIDTH.addListener(TextStyle::onPropertyChanged);
+            PropertyRegistry.ADAPTIVE_HEIGHT.addListener(TextStyle::onPropertyChanged);
+            PropertyRegistry.TEXT_WRAP.addListener(TextStyle::onPropertyChanged);
+            PropertyRegistry.FONT_SIZE.addListener(TextStyle::onPropertyChanged);
+            PropertyRegistry.FONT.addListener(TextStyle::onPropertyChanged);
+            PropertyRegistry.LINE_SPACING.addListener(TextStyle::onPropertyChanged);
+        }
+
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof TextElement textElement) {
+                textElement.onTextStyleChanged();
+            }
         }
 
         @Override
-        @OnlyIn(Dist.CLIENT)
-        public void buildConfigurator(ConfiguratorGroup father) {
-            super.buildConfigurator(father);
-            if (holder instanceof TextElement textElement) {
-                father.addEventListener(Configurator.CHANGE_EVENT, event -> textElement.recompute());
-            }
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
         }
+
+        public boolean adaptiveHeight() {
+            return getValueSave(PropertyRegistry.ADAPTIVE_HEIGHT);
+        }
+
+        public TextStyle adaptiveHeight(boolean adaptiveHeight) {
+            set(PropertyRegistry.ADAPTIVE_HEIGHT, adaptiveHeight);
+            return this;
+        }
+
+        public boolean adaptiveWidth() {
+            return getValueSave(PropertyRegistry.ADAPTIVE_WIDTH);
+        }
+
+        public TextStyle adaptiveWidth(boolean adaptiveWidth) {
+            set(PropertyRegistry.ADAPTIVE_WIDTH, adaptiveWidth);
+            return this;
+        }
+
+        public TextWrap textWrap() {
+            return getValueSave(PropertyRegistry.TEXT_WRAP);
+        }
+
+        public TextStyle textWrap(TextWrap textWrap) {
+            set(PropertyRegistry.TEXT_WRAP, textWrap);
+            return this;
+        }
+
+        public float rollSpeed() {
+            return getValueSave(PropertyRegistry.ROLL_SPEED);
+        }
+
+        public TextStyle rollSpeed(float rollSpeed) {
+            set(PropertyRegistry.ROLL_SPEED, rollSpeed);
+            return this;
+        }
+
+        public float lineSpacing() {
+            return getValueSave(PropertyRegistry.LINE_SPACING);
+        }
+
+        public TextStyle lineSpacing(float lineSpacing) {
+            set(PropertyRegistry.LINE_SPACING, lineSpacing);
+            return this;
+        }
+
+        public int textColor() {
+            return getValueSave(PropertyRegistry.TEXT_COLOR);
+        }
+
+        public TextStyle textColor(int textColor) {
+            set(PropertyRegistry.TEXT_COLOR, textColor);
+            return this;
+        }
+
+        public boolean textShadow() {
+            return getValueSave(PropertyRegistry.TEXT_SHADOW);
+        }
+
+        public TextStyle textShadow(boolean textShadow) {
+            set(PropertyRegistry.TEXT_SHADOW, textShadow);
+            return this;
+        }
+
+        public ResourceLocation font() {
+            return getValueSave(PropertyRegistry.FONT);
+        }
+
+        public TextStyle font(ResourceLocation font) {
+            set(PropertyRegistry.FONT, font);
+            return this;
+        }
+
+        public float fontSize() {
+            return getValueSave(PropertyRegistry.FONT_SIZE);
+        }
+
+        public TextStyle fontSize(float fontSize) {
+            set(PropertyRegistry.FONT_SIZE, fontSize);
+            return this;
+        }
+
+        public Horizontal textAlignHorizontal() {
+            return getValueSave(PropertyRegistry.HORIZONTAL_ALIGN);
+        }
+
+        public TextStyle textAlignHorizontal(Horizontal textAlignHorizontal) {
+            set(PropertyRegistry.HORIZONTAL_ALIGN, textAlignHorizontal);
+            return this;
+        }
+
+        public Vertical textAlignVertical() {
+            return getValueSave(PropertyRegistry.VERTICAL_ALIGN);
+        }
+
+        public TextStyle textAlignVertical(Vertical textAlignVertical) {
+            set(PropertyRegistry.VERTICAL_ALIGN, textAlignVertical);
+            return this;
+        }
+
     }
 
     @Getter
-    @Configurable(name = "textStyle", subConfigurable = true)
-    private final TextStyle textStyle = new TextStyle(this);
+    private final TextStyle textStyle = new TextStyle();
 
     @Getter
     @Configurable(name = "value")
@@ -125,23 +209,19 @@ public class TextElement extends UIElement {
                 maxWidth
         );
         if (getTextStyle().adaptiveWidth()) {
-            layout(layout -> layout.setWidth(formattedLines.stream().findFirst().map(Tuple::getB).orElse(0f) + getSizeWidth() - getContentWidth()));
+            Style.importantPipeline(getLayout(), layout -> layout.setWidth(formattedLines.stream().findFirst().map(Tuple::getB).orElse(0f) + getSizeWidth() - getContentWidth()));
         }
         if (getTextStyle().adaptiveHeight()) {
-            layout(layout -> layout.setHeight(formattedLines.size() * (getTextStyle().fontSize() + getTextStyle().lineSpacing()) - getTextStyle().lineSpacing() + getSizeHeight() - getContentHeight()));
+            Style.importantPipeline(getLayout(), layout -> layout.setHeight(formattedLines.size() * (getTextStyle().fontSize() + getTextStyle().lineSpacing()) - getTextStyle().lineSpacing() + getSizeHeight() - getContentHeight()));
         }
     }
 
     public TextElement textStyle(Consumer<TextStyle> style) {
         style.accept(textStyle);
-        onStyleChanged();
-        recompute();
         return this;
     }
 
-    @Override
-    protected void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
+    protected void onTextStyleChanged() {
         recompute();
     }
 

@@ -24,9 +24,9 @@ public class RenderUtils {
      * that you don't need to draw mask to build a rect mask easily.
      * @param mask draw mask
      * @param renderInMask rendering in the mask
-     * @param shouldRenderMask should mask be rendered too
+     * @param renderMaskVisible should mask be rendered too
      */
-    public static void useStencil(Runnable mask, Runnable renderInMask, boolean shouldRenderMask) {
+    public static void useStencil(Runnable mask, Runnable renderInMask, boolean renderMaskVisible) {
         GL11.glStencilMask(0xFF);
         GL11.glClearStencil(0);
         GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
@@ -35,14 +35,14 @@ public class RenderUtils {
         GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
         GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
 
-        if (!shouldRenderMask) {
+        if (!renderMaskVisible) {
             GL11.glColorMask(false, false, false, false);
             GL11.glDepthMask(false);
         }
 
         mask.run();
 
-        if (!shouldRenderMask) {
+        if (!renderMaskVisible) {
             GL11.glColorMask(true, true, true, true);
             GL11.glDepthMask(true);
         }

@@ -9,8 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Optional;
@@ -19,7 +17,7 @@ import java.util.Optional;
 @NoArgsConstructor
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class UIResourceTexture implements IGuiTexture {
+public final class UIResourceTexture extends TransformTexture {
     @Persisted
     @Getter
     private IResourcePath resourcePath = new BuiltinPath("");
@@ -36,8 +34,7 @@ public final class UIResourceTexture implements IGuiTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         getInternalTexture().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
     }
 

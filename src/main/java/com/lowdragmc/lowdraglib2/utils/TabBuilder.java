@@ -43,6 +43,11 @@ public final class TabBuilder {
             return new Compound(initial);
         }
 
+        public Compound remove(String key) {
+            this.tag.remove(key);
+            return this;
+        }
+
         // Generic: any Tag
         public Compound add(String key, @Nullable Tag value) {
             if (value == null) return this;

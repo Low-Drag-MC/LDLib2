@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
@@ -15,13 +14,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -36,55 +33,84 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "item_slot", registry = "ldlib2:ui_element")
+@LDLRegister(name = "item-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class ItemSlot extends BindableUIElement<ItemStack> {
     public final static SpriteTexture ITEM_SLOT_TEXTURE = SpriteTexture.of("ldlib2:textures/gui/slot.png")
             .setSprite(0, 0, 18, 18).setBorder(1, 1, 1, 1);
 
-    @Accessors(chain = true, fluent = true)
-    public static class SlotStyle extends Style {
-        @Getter
-        @Setter
-        @Configurable(name = "hoverOverlay")
-        private IGuiTexture hoverOverlay = new ColorRectTexture(0x80FFFFFF);
-        @Getter @Setter
-        @Configurable(name = "showItemTooltips")
-        private boolean showItemTooltips = true;
-        @Getter @Setter
-        @Configurable(name = "isPlayerSlot")
-        private boolean isPlayerSlot = false;
-        @Getter @Setter
-        @Configurable(name = "acceptQuickMove")
-        private boolean acceptQuickMove = true;
-        @Getter @Setter
-        @Configurable(name = "quickMovePriority")
-        @ConfigNumber(range = {Integer.MIN_VALUE, Integer.MAX_VALUE})
-        private int quickMovePriority = 0;
+    @Configurable(name = "SlotStyle")
+    public class SlotStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.HOVER_OVERLAY,
+                PropertyRegistry.SHOW_ITEM_TOOLTIPS,
+                PropertyRegistry.IS_PLAYER_SLOT,
+                PropertyRegistry.ACCEPT_QUICK_MOVE,
+                PropertyRegistry.QUICK_MOVE_PRIORITY,
+        };
 
-        public SlotStyle(ItemSlot holder) {
-            super(holder);
+        public SlotStyle() {
+            super(ItemSlot.this);
+            setDefault(PropertyRegistry.HOVER_OVERLAY, new ColorRectTexture(0x80FFFFFF));
         }
 
         @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
-
-            UIStyleRegistries.HOVER_OVERLAY.parse(values).ifPresent(this::hoverOverlay);
-            UIStyleRegistries.SHOW_ITEM_TOOLTIPS.parse(values).ifPresent(this::showItemTooltips);
-            UIStyleRegistries.PLAYER_SLOT.parse(values).ifPresent(this::isPlayerSlot);
-            UIStyleRegistries.ACCEPT_QUICK_MOVE.parse(values).ifPresent(this::acceptQuickMove);
-            UIStyleRegistries.QUICK_MOVE_PRIORITY.parse(values).ifPresent(this::quickMovePriority);
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
         }
+
+        public IGuiTexture hoverOverlay() {
+            return getValueSave(PropertyRegistry.HOVER_OVERLAY);
+        }
+
+        public SlotStyle hoverOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.HOVER_OVERLAY, texture);
+            return this;
+        }
+
+        public boolean showItemTooltips() {
+            return getValueSave(PropertyRegistry.SHOW_ITEM_TOOLTIPS);
+        }
+
+        public SlotStyle showItemTooltips(boolean show) {
+            set(PropertyRegistry.SHOW_ITEM_TOOLTIPS, show);
+            return this;
+        }
+
+        public boolean isPlayerSlot() {
+            return getValueSave(PropertyRegistry.IS_PLAYER_SLOT);
+        }
+
+        public SlotStyle isPlayerSlot(boolean playerSlot) {
+            set(PropertyRegistry.IS_PLAYER_SLOT, playerSlot);
+            return this;
+        }
+
+        public int quickMovePriority() {
+            return getValueSave(PropertyRegistry.QUICK_MOVE_PRIORITY);
+        }
+
+        public SlotStyle quickMovePriority(int priority) {
+            set(PropertyRegistry.QUICK_MOVE_PRIORITY, priority);
+            return this;
+        }
+
+        public boolean acceptQuickMove() {
+            return getValueSave(PropertyRegistry.ACCEPT_QUICK_MOVE);
+        }
+
+        public SlotStyle acceptQuickMove(boolean accept) {
+            set(PropertyRegistry.ACCEPT_QUICK_MOVE, accept);
+            return this;
+        }
+
     }
 
     @Getter
-    @Configurable(name = "slotStyle", subConfigurable = true)
-    private final SlotStyle slotStyle = new SlotStyle(this);
+    private final SlotStyle slotStyle = new SlotStyle();
 
     // runtime
     @Getter
@@ -102,6 +128,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         bind(slot);
+        internalSetup();
     }
 
     public ItemSlot bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
@@ -136,7 +163,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot slotStyle(Consumer<SlotStyle> style) {
         style.accept(slotStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -170,10 +196,10 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public List<Component> getFullTooltipTexts() {
         var tips = new ArrayList<Component>();
-        if (slotStyle.showItemTooltips) {
+        if (slotStyle.showItemTooltips()) {
             tips.addAll(DrawerHelper.getItemToolTip(getValue()));
         }
-        tips.addAll(getStyle().tooltips());
+        tips.addAll(getStyle().tooltips().asList());
         return tips;
     }
 
@@ -245,7 +271,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             DrawerHelper.drawItemStack(guiContext.graphics, value, 0, 0, -1, null);
         }
         if (hovered) {
-            guiContext.drawTexture(slotStyle.hoverOverlay, 0, 0, 16, 16);
+            guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
         }
         guiContext.pose.popPose();
     }

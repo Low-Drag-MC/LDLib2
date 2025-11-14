@@ -10,6 +10,6 @@ public class TestEditor extends Editor {
     @Override
     protected void initMenus() {
         super.initMenus();
-        fileMenu.addProjectProvider(TestProject.PROVIDER);
+        fileMenu.addProjectProvider(TestProject.TYPE);
     }
 }

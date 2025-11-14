@@ -1,12 +1,15 @@
 package com.lowdragmc.lowdraglib2.gui.ui.styletemplate;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import lombok.experimental.UtilityClass;
 import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaJustify;
+import org.appliedenergistics.yoga.YogaWrap;
 
 @UtilityClass
 public final class FlexIcons {
@@ -92,6 +95,13 @@ public final class FlexIcons {
     public static SpriteTexture ALIGN_SELF_FLEX_END_COLUMN = create(2, 8);
     public static SpriteTexture ALIGN_SELF_STRETCH_COLUMN = create(3, 8);
 
+    public static IGuiTexture getFlexWrapIcon(YogaWrap wrap) {
+        return switch (wrap) {
+            case YogaWrap.NO_WRAP -> Icons.NOWRAP;
+            case YogaWrap.WRAP -> Icons.WRAP;
+            case YogaWrap.WRAP_REVERSE -> Icons.WRAP_REVERSE;
+        };
+    }
 
     public static SpriteTexture getFlexDirectionIcon(YogaFlexDirection flexDirection) {
         return switch (flexDirection) {

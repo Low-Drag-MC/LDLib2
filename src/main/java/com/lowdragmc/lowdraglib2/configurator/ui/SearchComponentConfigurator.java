@@ -5,8 +5,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import com.lowdragmc.lowdraglib2.utils.search.ISearch;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,22 +26,23 @@ public class SearchComponentConfigurator<T> extends ValueConfigurator<T> impleme
     public final BiConsumer<String, Consumer<T>> searchAction;
     public final Function<T, String> searchResultText;
 
+    public SearchComponentConfigurator(String name, Supplier<T> supplier, Consumer<T> onUpdate, ISearchConfigurator<T> searchConfigurator, boolean forceUpdate) {
+        this(name, supplier, onUpdate, searchConfigurator.defaultValue(), forceUpdate,
+                (w, u) -> searchConfigurator.search(w, u::accept),
+                searchConfigurator::resultText,
+                searchConfigurator.candidateUIProvider());
+    }
+
     public SearchComponentConfigurator(String name, Supplier<T> supplier, Consumer<T> onUpdate, @Nonnull T defaultValue, boolean forceUpdate,
                                        BiConsumer<String, Consumer<T>> searchAction,
                                        Function<T, String> searchResultText,
-                                       Function<T, String> mapping) {
+                                       UIElementProvider<T> candidateProvider) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
         this.searchAction = searchAction;
         this.searchResultText = searchResultText;
         if (value == null) value = defaultValue;
         inlineContainer.addChild(searchComponent = new SearchComponent<>(this));
-        searchComponent.setCandidateUIProvider(candidate -> new Label()
-                .textStyle(style -> style
-                        .textWrap(TextWrap.HOVER_ROLL)
-                        .textAlignHorizontal(Horizontal.LEFT)
-                        .textAlignVertical(Vertical.CENTER))
-                .setText(candidate == null ? "---" : mapping.apply(candidate))
-                .setOverflow(YogaOverflow.HIDDEN));
+        searchComponent.setCandidateUIProvider(candidateProvider);
         searchComponent.setSelected(value, false);
         searchComponent.setOnValueChanged(this::updateValueActively);
     }
@@ -62,5 +66,43 @@ public class SearchComponentConfigurator<T> extends ValueConfigurator<T> impleme
     @Override
     public void search(String word, IResultHandler<T> searchHandler) {
         searchAction.accept(word, searchHandler);
+    }
+
+    public interface ISearchConfigurator<T> extends ISearch<T> {
+        /**
+         * Returns the default value for the generic type {@code T}.
+         *
+         * @return the default value of type {@code T}
+         */
+        T defaultValue();
+
+        /**
+         * Generates a string representation of the specified value.
+         *
+         * @param value the non-null value of type {@code T} to be converted into a string representation
+         * @return the string representation of the specified value
+         */
+        String resultText(@NotNull T value);
+
+        /**
+         * Generates a specific string mapping for the provided non-null value of type {@code T}.
+         *
+         * @param value the non-null value of type {@code T} to be mapped to a string
+         * @return a string representation resulting from the mapping of the provided value
+         */
+        default Component mapping(@NotNull T value) {
+            return Component.translatable(value.toString());
+        }
+
+        @Nullable
+        default UIElementProvider<T> candidateUIProvider() {
+            return candidate -> new Label()
+                    .textStyle(style -> style
+                            .textWrap(TextWrap.HOVER_ROLL)
+                            .textAlignHorizontal(Horizontal.LEFT)
+                            .textAlignVertical(Vertical.CENTER))
+                    .setText(candidate == null ? Component.literal("---") : mapping(candidate))
+                    .setOverflow(YogaOverflow.HIDDEN);
+        }
     }
 }

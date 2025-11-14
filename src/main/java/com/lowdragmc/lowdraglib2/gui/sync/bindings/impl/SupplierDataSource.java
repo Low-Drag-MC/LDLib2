@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import net.minecraft.client.renderer.texture.Tickable;
 
 import java.util.ArrayList;
@@ -18,6 +20,10 @@ public final class SupplierDataSource<T> implements IDataProvider<T>, Tickable {
     private final Supplier<T> supplier;
     private final List<Consumer<T>> listeners = new ArrayList<>();
     private volatile T lastValue;
+    @Setter @Getter @Accessors(chain = true, fluent = true)
+    private int frequency = 1;
+    // runtime
+    private int counter = 0;
 
     private SupplierDataSource(Supplier<T> supplier) {
         this.supplier = supplier;
@@ -45,6 +51,9 @@ public final class SupplierDataSource<T> implements IDataProvider<T>, Tickable {
 
     @Override
     public void tick() {
+        if (frequency > 1) {
+            if (++counter % frequency != 0) return;
+        }
         checkUpdate();
     }
 }

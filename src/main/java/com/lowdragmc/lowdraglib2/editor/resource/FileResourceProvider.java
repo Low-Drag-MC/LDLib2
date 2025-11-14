@@ -183,7 +183,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                         .layout(layout -> layout.setFlex(1))
                         .setOverflow(YogaOverflow.HIDDEN),
                 new Button().buttonStyle(style -> {
-                    style.defaultTexture(Icons.FOLDER);
+                    style.baseTexture(Icons.FOLDER);
                     style.hoverTexture(Icons.FOLDER.copy().setColor(ColorPattern.SLATE_PLUM.color));
                     style.pressedTexture(Icons.FOLDER);
                 }).setOnClick(e -> {
@@ -196,7 +196,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 }).noText().layout(layout -> {
                     layout.setWidth(7);
                     layout.setHeight(7);
-                }).style(style -> style.setTooltips("ldlib.gui.tips.open_folder"))
+                }).style(style -> style.tooltips("ldlib.gui.tips.open_folder"))
         );
     }
 

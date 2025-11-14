@@ -113,9 +113,6 @@ public class TreeBuilder<K, V> {
             var child = stack.peek().getOrCreateChild(key);
             stack.push(child);
             menuConsumer.accept(this);
-            if (child.getChildren() != null && !child.getChildren().isEmpty() && child.getChildren().getLast().getKey() == CROSS_LINE) {
-                child.removeChild(child.getChildren().getLast());
-            }
             endBranch();
             return this;
         }
@@ -132,9 +129,6 @@ public class TreeBuilder<K, V> {
                         stack.push(child);
                         menuConsumer.accept(this);
                         child.getChildren();
-                        if (!child.getChildren().isEmpty() && child.getChildren().getLast().getKey() == CROSS_LINE) {
-                            child.removeChild(child.getChildren().getLast());
-                        }
                         endBranch();
                         return this;
                     }
@@ -144,6 +138,10 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu endBranch() {
+            var peek = stack.peek();
+            if (!peek.getChildren().isEmpty() && peek.getChildren().getLast().getKey() == CROSS_LINE) {
+                peek.removeChild(peek.getChildren().getLast());
+            }
             super.endBranch();
             return this;
         }

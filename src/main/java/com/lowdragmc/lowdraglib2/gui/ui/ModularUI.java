@@ -5,7 +5,9 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -32,6 +34,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
@@ -62,6 +65,8 @@ public class ModularUI {
     @OnlyIn(Dist.CLIENT)
     private Screen screen;
     @Getter
+    private final StyleEngine styleEngine = new StyleEngine(this);
+    @Getter
     @Nullable
     private AbstractContainerMenu menu;
     @Getter
@@ -73,6 +78,7 @@ public class ModularUI {
     @Getter
     private long tickCounter = 0;
     // Element registry for fast retrieval
+    private final List<UIElement> elements = new ArrayList<>();
     private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
     private final Map<Class<?>, List<UIElement>> elementsByType = new ConcurrentHashMap<>();
 
@@ -127,6 +133,8 @@ public class ModularUI {
         this.ui = ui;
         this.player = player;
         this.syncManager = new UISyncManager(this);
+        this.styleEngine.addStylesheets(this.ui.getStylesheets());
+        this.ui.rootElement.addClass("__root__");
     }
 
     public void setMenu(@Nullable AbstractContainerMenu menu) {
@@ -145,6 +153,7 @@ public class ModularUI {
      */
     public void registerElement(@Nullable UIElement element) {
         if (element == null) return;
+        elements.add(element);
 
         // Register by ID if present and not empty
         String id = element.getId();
@@ -155,6 +164,9 @@ public class ModularUI {
         // Register by type
         Class<?> elementType = element.getClass();
         elementsByType.computeIfAbsent(elementType, k -> new ArrayList<>()).add(element);
+
+        // Enqueue StyleEngine
+        styleEngine.onElementRegister(element);
     }
 
 
@@ -164,6 +176,11 @@ public class ModularUI {
      * @param element the element to remove from the registry
      */
     public void unregisterElement(@Nullable UIElement element) {
+        if (element == null) return;
+
+        // Remove StyleEngine
+        styleEngine.onElementUnregister(element);
+
         // Remove by ID if present and not empty
         String id = element.getId();
         if (!id.isEmpty()) {
@@ -187,8 +204,13 @@ public class ModularUI {
                 elementsByType.remove(elementType);
             }
         }
+
+        elements.remove(element);
     }
 
+    public List<UIElement> getAllElements() {
+        return Collections.unmodifiableList(elements);
+    }
 
     /**
      * Find the first element by its ID.
@@ -377,8 +399,12 @@ public class ModularUI {
                 layout.setHeight(size.getHeight());
             });
         }
-        var width = ui.rootElement.getLayout().getWidth();
-        var height = ui.rootElement.getLayout().getHeight();
+        var width = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.WIDTH))
+                .orElseGet(StyleSizeLength::ofAuto)
+                .asYogaValue();
+        var height = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.HEIGHT))
+                .orElseGet(StyleSizeLength::ofAuto)
+                .asYogaValue();
         this.width = switch (width.unit) {
             case PERCENT -> width.value * screenWidth * 0.01f;
             case POINT -> width.value;
@@ -442,6 +468,7 @@ public class ModularUI {
         focusedElement = element;
 
         if (lastFocusedElement != null) {
+            lastFocusedElement.removeClass("__focused__");
             var blur = UIEvent.create(UIEvents.BLUR);
             blur.target = lastFocusedElement;
             blur.relatedTarget = focusedElement;
@@ -450,6 +477,7 @@ public class ModularUI {
         }
 
         if (focusedElement != null) {
+            focusedElement.addClass("__focused__");
             var focus = UIEvent.create(UIEvents.FOCUS);
             focus.target = focusedElement;
             focus.relatedTarget = lastFocusedElement;
@@ -839,14 +867,21 @@ public class ModularUI {
         /// rendering
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-            if (ui.rootElement.getLayoutNode().isDirty()) {
-                int dirtyCount = 0;
-                while (ui.rootElement.getLayoutNode().isDirty() && dirtyCount < 10) {
-                    dirtyCount++;
-                    ui.rootElement.calculateLayout();
+            int dirtyCount = 0;
+            while (styleEngine.requireCalculate() || ui.rootElement.getLayoutNode().isDirty()) {
+                dirtyCount++;
+
+                // calculate style
+                while (styleEngine.requireCalculate()) {
+                    styleEngine.calculateStyle();
                 }
+
+                // calculate layout
+                ui.rootElement.calculateLayout();
+
                 if (dirtyCount >= 10) {
-                    LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your layout code.");
+                    LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
+                    break;
                 }
             }
 
@@ -879,7 +914,7 @@ public class ModularUI {
                         break;
                     }
                     if (!element.getStyle().tooltips().isEmpty()) {
-                        setHoverTooltip(element.getStyle().tooltips(), ItemStack.EMPTY, null, null);
+                        setHoverTooltip(element.getStyle().tooltips().asList(), ItemStack.EMPTY, null, null);
                         break;
                     }
                     element = element.getParent();

@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.util.concurrent.Runnables;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -9,7 +11,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
@@ -22,30 +25,64 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 @LDLRegister(name = "tab", registry = "ldlib2:ui_element")
 public class Tab extends UIElement {
-    @Accessors(chain = true, fluent = true)
-    public static class TabStyle extends Style {
-        @Getter @Setter
-        private IGuiTexture baseTexture = Sprites.TAB_DARK;
-        @Getter @Setter
-        private IGuiTexture hoverTexture = Sprites.TAB_WHITE;
-        @Getter @Setter
-        private IGuiTexture selectedTexture = Sprites.TAB;
+    @Configurable(name = "TabStyle")
+    public class TabStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.BASE_BACKGROUND,
+                PropertyRegistry.HOVER_BACKGROUND,
+                PropertyRegistry.PRESSED_BACKGROUND,
+        };
+        public TabStyle() {
+            super(Tab.this);
+            setDefault(PropertyRegistry.BASE_BACKGROUND, Sprites.TAB_DARK);
+            setDefault(PropertyRegistry.HOVER_BACKGROUND, Sprites.TAB_WHITE);
+            setDefault(PropertyRegistry.PRESSED_BACKGROUND, Sprites.TAB);
+        }
 
-        public TabStyle(UIElement holder) {
-            super(holder);
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public IGuiTexture baseTexture() {
+            return getValueSave(PropertyRegistry.BASE_BACKGROUND);
+        }
+
+        public TabStyle baseTexture(IGuiTexture texture) {
+            set(PropertyRegistry.BASE_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture hoverTexture() {
+            return getValueSave(PropertyRegistry.HOVER_BACKGROUND);
+        }
+
+        public TabStyle hoverTexture(IGuiTexture texture) {
+            set(PropertyRegistry.HOVER_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture selectedTexture() {
+            return getValueSave(PropertyRegistry.PRESSED_BACKGROUND);
+        }
+
+        public TabStyle selectedTexture(IGuiTexture texture) {
+            set(PropertyRegistry.PRESSED_BACKGROUND, texture);
+            return this;
         }
     }
+
     public final Label text = new Label();
     @Getter
-    private final TabStyle tabStyle = new TabStyle(this);
+    private final TabStyle tabStyle = new TabStyle();
     @Setter
     private Runnable onTabSelected = Runnables.doNothing();
     @Setter
@@ -72,12 +109,14 @@ public class Tab extends UIElement {
         addEventListener(UIEvents.MOUSE_ENTER, this::onMouseEnter, true);
         addEventListener(UIEvents.MOUSE_LEAVE, this::onMouseLeave, true);
         addChild(text);
-        markAllChildrenAsInternal();
+
+        this.text.addClass("__tab_text__");
+
+        internalSetup();
     }
 
     public Tab tabStyle(Consumer<TabStyle> tabStyle) {
         tabStyle.accept(this.tabStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -130,6 +169,11 @@ public class Tab extends UIElement {
         return this;
     }
 
+    public Tab setDynamicText(Supplier<Component> text) {
+        this.text.bindDataSource(SupplierDataSource.of(text));
+        return this;
+    }
+
     public Tab textStyle(Consumer<TextElement.TextStyle> style) {
         text.textStyle(style);
         return this;
@@ -141,8 +185,10 @@ public class Tab extends UIElement {
         }
         this.isSelected = selected;
         if (selected) {
+            addClass("__tab_selected__");
             onTabSelected.run();
         } else {
+            removeClass("_tab_selected_");
             onTabUnselected.run();
         }
     }
@@ -160,11 +206,11 @@ public class Tab extends UIElement {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         // draw button texture
-        var texture = tabStyle.baseTexture;
+        var texture = tabStyle.baseTexture();
         if (isSelected) {
-            texture = tabStyle.selectedTexture;
+            texture = tabStyle.selectedTexture();
         } else if (isHovered) {
-            texture = tabStyle.hoverTexture;
+            texture = tabStyle.hoverTexture();
         }
         guiContext.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         super.drawBackgroundAdditional(guiContext);

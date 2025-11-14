@@ -6,8 +6,10 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.lang.reflect.Field;
@@ -46,7 +48,8 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
                                 handler.accept(fontName);
                             }
                         }
-                    }, ResourceLocation::toString, ResourceLocation::toString
+                    }, ResourceLocation::toString, UIElementProvider.text(font -> font == null ?
+                    Component.literal("---") : Component.literal(font.toString()))
             );
         }
         var configurator = new StringConfigurator(name,

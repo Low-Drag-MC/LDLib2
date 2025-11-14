@@ -3,10 +3,13 @@ package com.lowdragmc.lowdraglib2.gui.ui.utils;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Optional;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -19,8 +22,12 @@ public class ModularUITooltipComponent implements TooltipComponent {
 
     public ModularUITooltipComponent(UIElement element) {
         this(new ModularUI(UI.of(element)));
-        var width = element.getLayout().getWidth().value;
-        var height = element.getLayout().getHeight().value;
+        var width = Optional.ofNullable(element.getStyleBag().computeCandidate(YogaProperties.WIDTH))
+                .orElseGet(StyleSizeLength::ofAuto)
+                .asYogaValue().value;
+        var height = Optional.ofNullable(element.getStyleBag().computeCandidate(YogaProperties.HEIGHT))
+                .orElseGet(StyleSizeLength::ofAuto)
+                .asYogaValue().value;
         this.modularUI.init((int) width, (int) height);
     }
 

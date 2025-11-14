@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
+import com.lowdragmc.lowdraglib2.editor.project.CSSProject;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
 import org.appliedenergistics.yoga.YogaDisplay;
 
@@ -7,7 +8,12 @@ public class UIEditor extends Editor {
 
     public UIEditor() {
         this.leftWindow.setDisplay(YogaDisplay.NONE);
-        this.leftWindow.getParentWindow().splitStyle(style -> style.percentage(0).minPercentage(0f).maxPercentage(0));
+        this.leftWindow.getParentWindow().removeSplitWindow(this.leftWindow);
+        initResources();
+    }
+
+    private void initResources() {
+        this.resourceView.clear();
         this.resourceView.loadResources(Resources.of(
                 UIResource.INSTANCE,
                 ColorsResource.INSTANCE,
@@ -15,4 +21,15 @@ public class UIEditor extends Editor {
         ));
     }
 
+    @Override
+    protected void initMenus() {
+        super.initMenus();
+        fileMenu.addProjectProvider(CSSProject.TYPE);
+    }
+
+    @Override
+    protected void closeCurrentProject() {
+        super.closeCurrentProject();
+        initResources();
+    }
 }

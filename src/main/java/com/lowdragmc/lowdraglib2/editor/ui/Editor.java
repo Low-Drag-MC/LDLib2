@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.ViewMenu;
@@ -22,7 +21,6 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -31,9 +29,7 @@ import org.appliedenergistics.yoga.YogaGutter;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 @Getter
 @ParametersAreNonnullByDefault
@@ -85,15 +81,15 @@ public class Editor extends UIElement {
 
         rootWindow = new SplittableWindow().setImmortal(true);
         var split1 = rootWindow
-                .splitStyle(style -> style.percentage(80).minPercentage(1).maxPercentage(99))
+                .splitStyle(style -> style.percentage(80).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.LEFT);
         rightWindow = split1.getSecond().setImmortal(true);
         var split2 = split1.getFirst()
-                .splitStyle(style -> style.percentage(75).minPercentage(1).maxPercentage(99))
+                .splitStyle(style -> style.percentage(75).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.TOP);
         bottomWindow = split2.getSecond().setImmortal(true);
         var split3 = split2.getFirst()
-                .splitStyle(style -> style.percentage(28).minPercentage(1).maxPercentage(99))
+                .splitStyle(style -> style.percentage(28).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.LEFT);
         centerWindow = split3.getSecond().setImmortal(true);
         leftWindow = split3.getFirst().setImmortal(true);
@@ -208,10 +204,8 @@ public class Editor extends UIElement {
         if (currentProjectFile == null) {
             return true; // Project is dirty if it has not been saved yet
         }
-        var data = currentProject.serializeNBT(Platform.getFrozenRegistry());
         try {
-            var fileData = NbtIo.read(currentProjectFile.toPath());
-            return !data.equals(fileData);
+            return currentProject.getProjectType().isProjectDirty(currentProject, currentProjectFile);
         } catch (Exception e) {
             return true;
         }
@@ -252,8 +246,7 @@ public class Editor extends UIElement {
                 saveAsProject(onFinish);
             } else {
                 try {
-                    var fileData = currentProject.serializeNBT(Platform.getFrozenRegistry());
-                    NbtIo.write(fileData, currentProjectFile.toPath());
+                    currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
                 } catch (Exception ignored) {}
                 Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
                         .show(this);
@@ -275,8 +268,7 @@ public class Editor extends UIElement {
                                 file = new File(file.getParentFile(), file.getName() + suffix);
                             }
                             try {
-                                var fileData = currentProject.serializeNBT(Platform.getFrozenRegistry());
-                                NbtIo.write(fileData, file.toPath());
+                                currentProject.getProjectType().saveProjectToFile(currentProject, file);
                                 currentProjectFile = file;
                             } catch (Exception ignored) {}
                         }

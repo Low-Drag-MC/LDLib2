@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
@@ -277,6 +278,11 @@ public class ResourceProviderContainer<T> extends UIElement {
             m.leaf(uiWidth == 100 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.extra_large", () -> setUiWidth(100));
         });
         menu.crossLine();
+        if (selected != null) {
+            menu.leaf("ldlib.gui.editor.menu.copy_path", () ->
+                    ClipboardManager.INSTANCE.copyDirect(selected.getPathWithType())
+            );
+        }
         if (selected != null && canEdit.test(selected) && onEdit != null) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> editResource(selected));
         }

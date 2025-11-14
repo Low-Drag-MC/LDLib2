@@ -77,6 +77,9 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
 
     @Nullable
     public T getResource(IResourcePath path) {
+        if (path == null) {
+            return null;
+        }
         if (!cache.containsKey(path)) {
             var type = path.getType();
             var result = builtinProviders.getOrDefault(type, Collections.emptyList()).stream()
@@ -93,7 +96,9 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                 cache.put(path, result.get());
                 return result.get();
             }
-            cache.put(path, packFileProvider.getResource(path));
+            var resource = packFileProvider.getResource(path);
+            if (resource == null) return null;
+            cache.put(path, resource);
         }
         return cache.get(path);
     }

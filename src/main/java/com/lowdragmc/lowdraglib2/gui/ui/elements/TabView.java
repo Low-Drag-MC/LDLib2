@@ -20,7 +20,6 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.YogaDisplay;
@@ -37,7 +36,7 @@ import java.util.function.Supplier;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "tab_view", registry = "ldlib2:ui_element")
+@LDLRegister(name = "tab-view", group = "container", registry = "ldlib2:ui_element")
 public class TabView extends UIElement {
     public final UIElement tabHeaderContainer;
     public final ScrollerView tabScroller;
@@ -55,9 +54,11 @@ public class TabView extends UIElement {
         getLayout().setFlexDirection(YogaFlexDirection.COLUMN_REVERSE);
 
         this.tabHeaderContainer = new UIElement().setId("tab_header");
+        this.tabHeaderContainer.addClass("__tab-view_tab_header_container__");
         this.tabScroller = new ScrollerView();
-        this.tabScroller.setId("tab_scroller");
-        this.tabContentContainer = new UIElement().setId("tab_container");
+        this.tabScroller.addClass("__tab-view_tab_scroller__");
+        this.tabContentContainer = new UIElement();
+        this.tabContentContainer.addClass("__tab-view_tab_content_container__");
 
         this.tabHeaderContainer.layout(layout -> {
             layout.setFlexDirection(YogaFlexDirection.ROW);
@@ -78,7 +79,7 @@ public class TabView extends UIElement {
         }).style(style -> style.backgroundTexture(Sprites.BORDER_THICK_RT1));
 
         addChildren(tabContentContainer, tabHeaderContainer);
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     public TabView addTab(Tab tab, UIElement content) {
@@ -140,13 +141,19 @@ public class TabView extends UIElement {
         }
         if (selectedTab != null) {
             selectedTab.setSelected(false);
-            if (tabContents.containsKey(selectedTab)) {
-                tabContents.get(selectedTab).setDisplay(YogaDisplay.NONE);
+            var content = tabContents.get(selectedTab);
+            if (content != null) {
+                content.setDisplay(YogaDisplay.NONE);
+                content.removeClass("_tab_content_selected_");
             }
         }
         selectedTab = tab;
         selectedTab.setSelected(true);
-        tabContents.get(selectedTab).setDisplay(YogaDisplay.FLEX);
+        var content = tabContents.get(selectedTab);
+        if (content != null) {
+            content.setDisplay(YogaDisplay.FLEX);
+            content.addClass("__tab_content_selected__");
+        }
         onTabSelected.accept(selectedTab);
         return this;
     }
@@ -174,9 +181,7 @@ public class TabView extends UIElement {
     @Override
     public void addEditorChild(UIElement child, int index) {
         if (child instanceof Tab tab) {
-            var tabContent = new UIElement();
-            tabContent.setId("tab_content");
-            addTab(tab, tabContent, index);
+            addTab(tab, new UIElement(), index);
         }
     }
 

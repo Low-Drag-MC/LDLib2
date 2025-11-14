@@ -18,6 +18,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**

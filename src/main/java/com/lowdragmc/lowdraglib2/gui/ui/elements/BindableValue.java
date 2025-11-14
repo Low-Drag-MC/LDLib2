@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-@LDLRegister(name = "bindable_value", registry = "ldlib2:ui_element")
+@LDLRegister(name = "bindable-value", registry = "ldlib2:ui_element")
 public class BindableValue<T> extends BindableUIElement<T> {
     @Getter
     private T value;

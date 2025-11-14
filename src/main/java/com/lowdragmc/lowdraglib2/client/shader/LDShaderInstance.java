@@ -321,8 +321,6 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
                     }).style(style -> style.backgroundTexture(createSamplerPreview(samplerName)))),
                     // button to select image
                     new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
-                        var mui = e.currentElement.getModularUI();
-                        if (mui == null) return;
                         Dialog.showFileDialog("ldlib.gui.editor.tips.select_image", LDLib2.getAssetsDir(), true, Dialog.suffixFilter(".png"), r -> {
                             if (r != null && r.isFile()) {
                                 var location = IGuiTexture.getTextureFromFile(r);
@@ -331,7 +329,7 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
                                 samplerCache.put(samplerName, location);
                                 samplerConfigurator.notifyChanges();
                             }
-                        }).show(mui.ui.rootElement);
+                        }).show(e.currentElement.getModularUI());
                     }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
             );
             father.addConfigurator(samplerConfigurator);

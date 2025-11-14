@@ -13,8 +13,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
@@ -37,48 +37,64 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "fluid_slot", registry = "ldlib2:ui_element")
+@LDLRegister(name = "fluid-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class FluidSlot extends BindableUIElement<FluidStack> {
     public final static SpriteTexture FLUID_SLOT_TEXTURE =SpriteTexture.of("ldlib2:textures/gui/fluid_slot.png")
             .setSprite(0, 0, 18, 18).setBorder(1, 1, 1, 1);
 
-    @Accessors(chain = true, fluent = true)
-    public static class SlotStyle extends Style {
-        @Getter
-        @Setter
-        @Configurable(name = "hoverOverlay")
-        private IGuiTexture hoverOverlay = new ColorRectTexture(0x80FFFFFF);
-        @Getter @Setter
-        @Configurable(name = "fillDirection")
-        private FillDirection fillDirection = FillDirection.DOWN_TO_UP;
-
-        @Getter @Setter
-        @Configurable(name = "showFluidTooltips")
-        private boolean showFluidTooltips = true;
-
-        public SlotStyle(FluidSlot holder) {
-            super(holder);
+    @Configurable(name = "SlotStyle")
+    public class SlotStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.HOVER_OVERLAY,
+                PropertyRegistry.FILL_DIRECTION,
+                PropertyRegistry.SHOW_FLUID_TOOLTIPS,
+        };
+        public SlotStyle() {
+            super(FluidSlot.this);
+            setDefault(PropertyRegistry.HOVER_OVERLAY, new ColorRectTexture(0x80FFFFFF));
+            setDefault(PropertyRegistry.FILL_DIRECTION, FillDirection.DOWN_TO_UP);
         }
 
         @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
 
-            UIStyleRegistries.HOVER_OVERLAY.parse(values).ifPresent(this::hoverOverlay);
-            UIStyleRegistries.FILL_DIRECTION.parse(values).ifPresent(this::fillDirection);
-            UIStyleRegistries.SHOW_FLUID_TOOLTIPS.parse(values).ifPresent(this::showFluidTooltips);
+        public IGuiTexture hoverOverlay() {
+            return getValueSave(PropertyRegistry.HOVER_OVERLAY);
+        }
+
+        public SlotStyle hoverOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.HOVER_OVERLAY, texture);
+            return this;
+        }
+
+        public FillDirection fillDirection() {
+            return getValueSave(PropertyRegistry.FILL_DIRECTION);
+        }
+
+        public SlotStyle fillDirection(FillDirection fillDirection) {
+            set(PropertyRegistry.FILL_DIRECTION, fillDirection);
+            return this;
+        }
+
+        public boolean showFluidTooltips() {
+            return getValueSave(PropertyRegistry.SHOW_FLUID_TOOLTIPS);
+        }
+
+        public SlotStyle showFluidTooltips(boolean showFluidTooltips) {
+            set(PropertyRegistry.SHOW_FLUID_TOOLTIPS, showFluidTooltips);
+            return this;
         }
     }
 
     @Getter
-    @Configurable(name = "slotStyle", subConfigurable = true)
-    private final SlotStyle slotStyle = new SlotStyle(this);
+    private final SlotStyle slotStyle = new SlotStyle();
     @Getter @Setter
     private boolean allowClickFilled = true;
     @Getter @Setter
@@ -106,11 +122,11 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         clickEvent = RPCEventBuilder.simple(Boolean.class, this::tryClickContainer);
         addRPCEvent(clickEvent);
+        internalSetup();
     }
 
     public FluidSlot slotStyle(Consumer<SlotStyle> style) {
         style.accept(slotStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -212,7 +228,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public List<Component> getFullTooltipTexts() {
         var tooltips = new ArrayList<Component>();
-        if (slotStyle.showFluidTooltips) {
+        if (slotStyle.showFluidTooltips()) {
             var fluidStack = getFluid();
             capacity = Math.max(capacity, fluidStack.getAmount());
             if (!fluidStack.isEmpty()) {
@@ -225,7 +241,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
                 tooltips.add(Component.translatable("ldlib.fluid.amount", 0, capacity).append(" " + FluidHelper.getUnit()));
             }
         }
-        tooltips.addAll(getStyle().tooltips());
+        tooltips.addAll(getStyle().tooltips().asList());
         return tooltips;
     }
 
@@ -260,7 +276,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         var contentHeight = getContentHeight();
 
         if (!renderedFluid.isEmpty()) {
-            var fillDirection = slotStyle.fillDirection;
+            var fillDirection = slotStyle.fillDirection();
             double progress = renderedFluid.getAmount() * 1.0 / Math.max(Math.max(renderedFluid.getAmount(), capacity), 1);
             float drawnU = (float) fillDirection.getDrawnU(progress);
             float drawnV = (float) fillDirection.getDrawnV(progress);
@@ -274,7 +290,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
 
         if (hovered) {
-            guiContext.drawTexture(slotStyle.hoverOverlay, contentX, contentY, contentWidth, contentHeight);
+            guiContext.drawTexture(slotStyle.hoverOverlay(), contentX, contentY, contentWidth, contentHeight);
         }
     }
 }

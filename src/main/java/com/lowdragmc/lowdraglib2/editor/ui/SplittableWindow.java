@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -7,7 +8,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
@@ -28,21 +30,64 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class SplittableWindow extends UIElement {
-    @Accessors(chain = true, fluent = true)
-    public static class SplitStyle extends Style {
-        @Getter @Setter
-        private float percentage = 50;
-        @Getter @Setter
-        private float minPercentage = 5;
-        @Getter @Setter
-        private float maxPercentage = 95;
+    @Configurable(name = "SplitStyle")
+    public class SplitStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.PERCENTAGE,
+                PropertyRegistry.MIN_PERCENTAGE,
+                PropertyRegistry.MAX_PERCENTAGE,
+        };
 
-        public SplitStyle(UIElement holder) {
-            super(holder);
+        public SplitStyle() {
+            super(SplittableWindow.this);
+        }
+
+        public static void init() {
+            PropertyRegistry.PERCENTAGE.addListener(SplitStyle::onPropertyChanged);
+            PropertyRegistry.MIN_PERCENTAGE.addListener(SplitStyle::onPropertyChanged);
+            PropertyRegistry.MAX_PERCENTAGE.addListener(SplitStyle::onPropertyChanged);
+        }
+
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @org.jetbrains.annotations.Nullable T oldValue, @org.jetbrains.annotations.Nullable T newValue) {
+            if (element instanceof SplittableWindow splittableWindow) {
+                splittableWindow.onSplitStyleChanged();
+            }
+        }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public float percentage() {
+            return getValueSave(PropertyRegistry.PERCENTAGE);
+        }
+
+        public SplitStyle percentage(float percentage) {
+            set(PropertyRegistry.PERCENTAGE, percentage);
+            return this;
+        }
+
+        public float minPercentage() {
+            return getValueSave(PropertyRegistry.MIN_PERCENTAGE);
+        }
+
+        public SplitStyle minPercentage(float minPercentage) {
+            set(PropertyRegistry.MIN_PERCENTAGE, minPercentage);
+            return this;
+        }
+
+        public float maxPercentage() {
+            return getValueSave(PropertyRegistry.MAX_PERCENTAGE);
+        }
+
+        public SplitStyle maxPercentage(float maxPercentage) {
+            set(PropertyRegistry.MAX_PERCENTAGE, maxPercentage);
+            return this;
         }
     }
     @Getter
-    private final SplitStyle splitStyle = new SplitStyle(this);
+    private final SplitStyle splitStyle = new SplitStyle();
     @Nullable
     @Getter @Setter
     protected SplittableWindow parentWindow;
@@ -81,17 +126,19 @@ public class SplittableWindow extends UIElement {
 
     public SplittableWindow splitStyle(Consumer<SplitStyle> styleConsumer) {
         styleConsumer.accept(splitStyle);
-        onStyleChanged();
-        if (splitView != null) {
-            this.splitView.setMinPercentage(splitStyle.minPercentage)
-                    .setMaxPercentage(splitStyle.maxPercentage)
-                    .setPercentage(splitStyle.percentage);
-        }
         return this;
     }
 
+    protected void onSplitStyleChanged() {
+        if (splitView != null) {
+            this.splitView.setMinPercentage(splitStyle.minPercentage())
+                    .setMaxPercentage(splitStyle.maxPercentage())
+                    .setPercentage(splitStyle.percentage());
+        }
+    }
+
     public LayoutConfig getLayoutConfig() {
-        return new LayoutConfig(splitStyle.percentage,
+        return new LayoutConfig(splitStyle.percentage(),
                 first != null ? first.getLayoutConfig() : null,
                 second != null ? second.getLayoutConfig() : null);
     }
@@ -224,9 +271,9 @@ public class SplittableWindow extends UIElement {
             throw new IllegalArgumentException("Invalid edge: " + edge);
         }
         this.viewContainer = null;
-        this.splitView.setPercentage(splitStyle.percentage);
-        this.splitView.setMinPercentage(splitStyle.minPercentage);
-        this.splitView.setMaxPercentage(splitStyle.maxPercentage);
+        this.splitView.setPercentage(splitStyle.percentage());
+        this.splitView.setMinPercentage(splitStyle.minPercentage());
+        this.splitView.setMaxPercentage(splitStyle.maxPercentage());
         addChild(splitView);
         return Pair.of(first, second);
     }

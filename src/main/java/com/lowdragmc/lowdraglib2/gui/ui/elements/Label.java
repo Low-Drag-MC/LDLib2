@@ -25,6 +25,7 @@ public class Label extends TextElement implements IBindable<Component>, IDataCon
     public Label() {
         getLayout().setHeight(9);
         this.setText("Label");
+        internalSetup();
     }
 
     @Override

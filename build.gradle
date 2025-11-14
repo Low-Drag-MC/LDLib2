@@ -179,6 +179,15 @@ dependencies {
     // Yoga
     libraries("org.appliedenergistics.yoga:yoga:${yoga_version}")
     jarJar(group: 'org.appliedenergistics.yoga', name: 'yoga', version: "[${yoga_version},)")
+
+    // JUnit 5
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
+
+    // mock
+    testImplementation 'org.mockito:mockito-core:5.5.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
 }
 
 tasks.withType(ProcessResources).configureEach {
@@ -198,6 +207,15 @@ tasks.withType(ProcessResources).configureEach {
 
     filesMatching(['META-INF/neoforge.mods.toml']) {
         expand replaceProperties + [project: project]
+    }
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
     }
 }
 

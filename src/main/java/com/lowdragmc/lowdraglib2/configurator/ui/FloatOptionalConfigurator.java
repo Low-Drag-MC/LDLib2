@@ -103,7 +103,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
 
     protected void updateSelector() {
         assert value != null;
-        definedSelector.setValue(value.isDefined());
+        definedSelector.setValue(value.isDefined(), false);
     }
 
     @Override

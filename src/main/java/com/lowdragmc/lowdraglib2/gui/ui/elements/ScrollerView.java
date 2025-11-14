@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -8,16 +7,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.BoolValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.EnumValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.FloatValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
@@ -25,66 +19,123 @@ import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "scroller_view", registry = "ldlib2:ui_element")
+@LDLRegister(name = "scroller-view", group = "container", registry = "ldlib2:ui_element")
 public class ScrollerView extends UIElement {
-    @Accessors(chain = true, fluent = true)
-    public static class ScrollerViewStyle extends Style {
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.margin")
-        @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
-        private float horizontalScrollerMargin = 5;
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.mode")
-        private ScrollerMode mode = ScrollerMode.BOTH;
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.verticalScrollDisplay")
-        private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.horizontalScrollDisplay")
-        private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.adaptiveWidth", tips = "ScrollerView.adaptiveWidth.tips")
-        private boolean adaptiveWidth = false;
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.adaptiveHeight", tips = "ScrollerView.adaptiveHeight.tips")
-        private boolean adaptiveHeight = false;
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.minScrollPixel")
-        @ConfigNumber(range = {0, Float.MAX_VALUE})
-        private float minScrollPixel = 5;
-        @Getter @Setter
-        @Configurable(name = "ScrollerView.maxScrollPixel")
-        @ConfigNumber(range = {0, Float.MAX_VALUE})
-        private float maxScrollPixel = 7;
+    @Configurable(name = "ScrollerViewStyle")
+    public class ScrollerViewStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.SCROLLER_VIEW_MARGIN,
+                PropertyRegistry.SCROLLER_VIEW_MODE,
+                PropertyRegistry.SCROLLER_VERTICAL_DISPLAY,
+                PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY,
+                PropertyRegistry.ADAPTIVE_WIDTH,
+                PropertyRegistry.ADAPTIVE_HEIGHT,
+                PropertyRegistry.MIN_SCROLL_PIXEL,
+                PropertyRegistry.MAX_SCROLL_PIXEL,
+        };
 
-        public ScrollerViewStyle(UIElement holder) {
-            super(holder);
+        public ScrollerViewStyle() {
+            super(ScrollerView.this);
         }
 
-        @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
+        public static void init() {
+            PropertyRegistry.SCROLLER_VIEW_MARGIN.addListener(ScrollerViewStyle::onPropertyChanged);
+            PropertyRegistry.SCROLLER_VIEW_MODE.addListener(ScrollerViewStyle::onPropertyChanged);
+            PropertyRegistry.SCROLLER_VERTICAL_DISPLAY.addListener(ScrollerViewStyle::onPropertyChanged);
+            PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY.addListener(ScrollerViewStyle::onPropertyChanged);
+            PropertyRegistry.ADAPTIVE_WIDTH.addListener(ScrollerViewStyle::onPropertyChanged);
+            PropertyRegistry.ADAPTIVE_HEIGHT.addListener(ScrollerViewStyle::onPropertyChanged);
+        }
 
-            UIStyleRegistries.SCROLLER_VIEW_MARGIN.parse(values).ifPresent(this::horizontalScrollerMargin);
-            UIStyleRegistries.SCROLLER_VIEW_MODE.parse(values).ifPresent(this::mode);
-            UIStyleRegistries.VERTICAL_DISPLAY.parse(values).ifPresent(this::verticalScrollDisplay);
-            UIStyleRegistries.HORIZONTAL_DISPLAY.parse(values).ifPresent(this::horizontalScrollDisplay);
-            UIStyleRegistries.ADAPTIVE_WIDTH.parse(values).ifPresent(this::adaptiveWidth);
-            UIStyleRegistries.ADAPTIVE_HEIGHT.parse(values).ifPresent(this::adaptiveHeight);
-            UIStyleRegistries.MIN_SCROLL_PIXEL.parse(values).ifPresent(this::minScrollPixel);
-            UIStyleRegistries.MAX_SCROLL_PIXEL.parse(values).ifPresent(this::maxScrollPixel);
-
-            if (holder instanceof ScrollerView scrollerView) {
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof ScrollerView scrollerView) {
                 scrollerView.updateScrollers();
             }
         }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public float scrollerViewMargin() {
+            return getValueSave(PropertyRegistry.SCROLLER_VIEW_MARGIN);
+        }
+
+        public ScrollerViewStyle scrollerViewStyle(float scrollerViewMargin) {
+            set(PropertyRegistry.SCROLLER_VIEW_MARGIN, scrollerViewMargin);
+            return this;
+        }
+
+        public ScrollerMode mode() {
+            return getValueSave(PropertyRegistry.SCROLLER_VIEW_MODE);
+        }
+
+        public ScrollerViewStyle mode(ScrollerMode mode) {
+            set(PropertyRegistry.SCROLLER_VIEW_MODE, mode);
+            return this;
+        }
+
+        public ScrollDisplay verticalScrollDisplay() {
+            return getValueSave(PropertyRegistry.SCROLLER_VERTICAL_DISPLAY);
+        }
+
+        public ScrollerViewStyle verticalScrollDisplay(ScrollDisplay display) {
+            set(PropertyRegistry.SCROLLER_VERTICAL_DISPLAY, display);
+            return this;
+        }
+
+        public ScrollDisplay horizontalScrollDisplay() {
+            return getValueSave(PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY);
+        }
+
+        public ScrollerViewStyle horizontalScrollDisplay(ScrollDisplay display) {
+            set(PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY, display);
+            return this;
+        }
+
+        public boolean adaptiveWidth() {
+            return getValueSave(PropertyRegistry.ADAPTIVE_WIDTH);
+        }
+
+        public ScrollerViewStyle adaptiveWidth(boolean adaptiveWidth) {
+            set(PropertyRegistry.ADAPTIVE_WIDTH, adaptiveWidth);
+            return this;
+        }
+
+        public boolean adaptiveHeight() {
+            return getValueSave(PropertyRegistry.ADAPTIVE_HEIGHT);
+        }
+
+        public ScrollerViewStyle adaptiveHeight(boolean adaptiveHeight) {
+            set(PropertyRegistry.ADAPTIVE_HEIGHT, adaptiveHeight);
+            return this;
+        }
+
+        public float minScrollPixel() {
+            return getValueSave(PropertyRegistry.MIN_SCROLL_PIXEL);
+        }
+
+        public ScrollerViewStyle minScrollPixel(float minScrollPixel) {
+            set(PropertyRegistry.MIN_SCROLL_PIXEL, minScrollPixel);
+            return this;
+        }
+
+        public float maxScrollPixel() {
+            return getValueSave(PropertyRegistry.MAX_SCROLL_PIXEL);
+        }
+
+        public ScrollerViewStyle maxScrollPixel(float maxScrollPixel) {
+            set(PropertyRegistry.MAX_SCROLL_PIXEL, maxScrollPixel);
+            return this;
+        }
     }
+
     public final UIElement verticalContainer;
     public final UIElement viewPort;
     public final UIElement viewContainer;
@@ -92,18 +143,19 @@ public class ScrollerView extends UIElement {
     public final Scroller verticalScroller;
 
     @Getter
-    @Configurable(name = "scrollerViewStyle", subConfigurable = true)
-    private final ScrollerViewStyle scrollerViewStyle = new ScrollerViewStyle(this);
+    private final ScrollerViewStyle scrollerViewStyle = new ScrollerViewStyle();
     // runtime
     private float lastPortWidth = 0, lastContainerWidth = 0;
     private float lastPortHeight = 0, lastContainerHeight = 0;
 
     public ScrollerView() {
-        this.verticalContainer = new UIElement();
-        this.viewPort = new UIElement().setId("viewPort");
-        this.viewContainer = new UIElement().setId("viewContainer");
+        this.verticalContainer = new UIElement().addClass("__scroller_view_vertical-container__");
+        this.viewPort = new UIElement().addClass("__scroller_view_view-port__");
+        this.viewContainer = new UIElement().addClass("__scroller_view_view-container__");
         this.horizontalScroller = new Scroller.Horizontal().setRange(0, 1f).setClampNormalizedValue(this::horizontalClamp);
         this.verticalScroller = new Scroller.Vertical().setRange(0, 1f).setClampNormalizedValue(this::verticalClamp);
+        this.horizontalScroller.addClass("__scroller_view_horizontal-scroller__");
+        this.verticalScroller.addClass("__scroller_view_vertical-scroller__");
         this.addEventListener(UIEvents.MOUSE_WHEEL, UIEvent::stopPropagation);
 
         verticalContainer.layout(layout -> {
@@ -126,7 +178,7 @@ public class ScrollerView extends UIElement {
         verticalScroller.setOnValueChanged(this::onVerticalScroll);
         horizontalScroller.setOnValueChanged(this::onHorizontalScroll);
         addChildren(verticalContainer, horizontalScroller);
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     /// events
@@ -143,12 +195,13 @@ public class ScrollerView extends UIElement {
     }
 
     protected void onScrollWheel(UIEvent event) {
-        if (event.deltaY != 0 && (scrollerViewStyle.mode == ScrollerMode.VERTICAL || scrollerViewStyle.mode == ScrollerMode.BOTH)) {
+        var mode = scrollerViewStyle.mode();
+        if (event.deltaY != 0 && (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH)) {
             verticalScroller.onScrollWheel(event);
         }
-        if (event.deltaX != 0 && (scrollerViewStyle.mode == ScrollerMode.HORIZONTAL || scrollerViewStyle.mode == ScrollerMode.BOTH)) {
+        if (event.deltaX != 0 && (mode == ScrollerMode.HORIZONTAL || mode == ScrollerMode.BOTH)) {
             horizontalScroller.onScrollWheel(event);
-        } else if (event.deltaY != 0 && scrollerViewStyle.mode == ScrollerMode.HORIZONTAL) {
+        } else if (event.deltaY != 0 && mode == ScrollerMode.HORIZONTAL) {
             horizontalScroller.onScrollWheel(event);
         }
     }
@@ -156,16 +209,16 @@ public class ScrollerView extends UIElement {
     protected float horizontalClamp(float normalizedValue) {
         var containerWidth = getContainerWidth() - viewPort.getContentWidth();
         return Mth.clamp(Mth.abs(normalizedValue),
-                scrollerViewStyle.minScrollPixel / containerWidth,
-                scrollerViewStyle.maxScrollPixel / containerWidth)
+                scrollerViewStyle.minScrollPixel() / containerWidth,
+                scrollerViewStyle.maxScrollPixel() / containerWidth)
                 * (normalizedValue > 0 ? 1 : -1);
     }
 
     protected float verticalClamp(float normalizedValue) {
         var containerHeight = getContainerHeight() - viewPort.getContentHeight();
         return Mth.clamp(Mth.abs(normalizedValue),
-                scrollerViewStyle.minScrollPixel / containerHeight,
-                scrollerViewStyle.maxScrollPixel / containerHeight)
+                scrollerViewStyle.minScrollPixel() / containerHeight,
+                scrollerViewStyle.maxScrollPixel() / containerHeight)
                 * (normalizedValue > 0 ? 1 : -1);
     }
 
@@ -198,12 +251,13 @@ public class ScrollerView extends UIElement {
     private void updateScrollers() {
         var lastContainerWidth = getContainerWidth();
         var lastContainerHeight = getContainerHeight();
-        if (scrollerViewStyle.mode == ScrollerMode.HORIZONTAL || scrollerViewStyle.mode == ScrollerMode.BOTH) {
+        var mode = scrollerViewStyle.mode();
+        if (mode == ScrollerMode.HORIZONTAL || mode == ScrollerMode.BOTH) {
             // cause we are using a flexbox, the width of the view container is not the same as the width of the view port
             // so we need to calculate the width ourselves
             var vp = Math.min(1, viewPort.getContentWidth() / lastContainerWidth);
             horizontalScroller.setScrollBarSize(vp * 100);
-            if ((scrollerViewStyle.horizontalScrollDisplay == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay == ScrollDisplay.ALWAYS) {
+            if ((scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS) {
                 horizontalScroller.setDisplay(YogaDisplay.FLEX);
 
             } else {
@@ -213,10 +267,10 @@ public class ScrollerView extends UIElement {
             horizontalScroller.setDisplay(YogaDisplay.NONE);
         }
 
-        if (scrollerViewStyle.mode == ScrollerMode.VERTICAL || scrollerViewStyle.mode == ScrollerMode.BOTH) {
+        if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
             var hp = Math.min(1, viewPort.getContentHeight() / lastContainerHeight);
             verticalScroller.setScrollBarSize(hp * 100);
-            if ((scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay == ScrollDisplay.ALWAYS) {
+            if ((scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS) {
                 verticalScroller.setDisplay(YogaDisplay.FLEX);
             } else {
                 verticalScroller.setDisplay(YogaDisplay.NONE);
@@ -227,7 +281,7 @@ public class ScrollerView extends UIElement {
 
         if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
             horizontalScroller.layout(layout -> {
-                layout.setMargin(YogaEdge.RIGHT, verticalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX ? scrollerViewStyle.horizontalScrollerMargin : 0);
+                layout.setMargin(YogaEdge.RIGHT, verticalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX ? scrollerViewStyle.scrollerViewMargin() : 0);
             });
         }
 
@@ -243,11 +297,11 @@ public class ScrollerView extends UIElement {
             this.lastContainerWidth = lastContainerWidth;
             this.lastContainerHeight = lastContainerHeight;
             reloadValue = true;
-            if (scrollerViewStyle.adaptiveWidth) {
-                getLayout().setWidth(lastContainerWidth + getSizeWidth() - viewPort.getContentWidth());
+            if (scrollerViewStyle.adaptiveWidth()) {
+                Style.importantPipeline(getLayout(), layout -> layout.setWidth(lastContainerWidth + getSizeWidth() - viewPort.getContentWidth()));
             }
-            if (scrollerViewStyle.adaptiveHeight) {
-                getLayout().setHeight(lastContainerHeight + getSizeHeight() - viewPort.getContentHeight());
+            if (scrollerViewStyle.adaptiveHeight()) {
+                Style.importantPipeline(getLayout(), layout -> layout.setHeight(lastContainerHeight + getSizeHeight() - viewPort.getContentHeight()));
             }
         }
         if (reloadValue) {
@@ -259,8 +313,6 @@ public class ScrollerView extends UIElement {
     /// data
     public ScrollerView scrollerStyle(Consumer<ScrollerViewStyle> style) {
         style.accept(scrollerViewStyle);
-        onStyleChanged();
-        updateScrollers();
         return this;
     }
 
@@ -317,4 +369,8 @@ public class ScrollerView extends UIElement {
         viewContainer.clearAllChildren();
     }
 
+    @Override
+    public void addEditorChild(UIElement child, int index) {
+        addScrollViewChildAt(child, index);
+    }
 }

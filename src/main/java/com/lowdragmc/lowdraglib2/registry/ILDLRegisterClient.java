@@ -24,14 +24,14 @@ public interface ILDLRegisterClient<T extends ILDLRegisterClient<T, V>, V> {
         if (isLDLRegister()) {
             return getRegisterUIClient().name();
         }
-        throw new RuntimeException("not registered %s".formatted(getClass()));
+        return "unknown";
     }
 
     default String group() {
         if (isLDLRegister()) {
             return getRegisterUIClient().group();
         }
-        throw new RuntimeException("not registered ui %s".formatted(getClass()));
+        return "unknown";
     }
 
     default ResourceLocation registryName() {

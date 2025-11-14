@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.test;
 
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
-import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
+import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
@@ -10,7 +10,7 @@ import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 
 public class TestProject implements IProject {
-    public static final FileMenu.ProjectProvider PROVIDER = FileMenu.ProjectProvider.of(IGuiTexture.EMPTY, "project.test", ".test.nbt", TestProject::new);
+    public static final ProjectType TYPE = ProjectType.of(IGuiTexture.EMPTY, "project.test", ".test.nbt", TestProject::new);
 
     @Getter
     private final Resources resources;
@@ -25,13 +25,8 @@ public class TestProject implements IProject {
     }
 
     @Override
-    public String getSuffix() {
-        return PROVIDER.getSuffix();
-    }
-
-    @Override
-    public String getName() {
-        return PROVIDER.getName();
+    public ProjectType getProjectType() {
+        return TYPE;
     }
 
     @Override

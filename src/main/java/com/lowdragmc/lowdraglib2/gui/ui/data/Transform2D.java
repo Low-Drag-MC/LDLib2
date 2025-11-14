@@ -7,6 +7,11 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
+import com.lowdragmc.lowdraglib2.utils.PersistedParser;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.serialization.Codec;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -20,7 +25,10 @@ import org.joml.Vector2f;
  * Does not affect Yoga layout; only rendering and hit-testing.
  */
 @Accessors(chain = true, fluent = true)
+@EqualsAndHashCode
 public final class Transform2D implements IConfigurable, IPersistedSerializable {
+    public final static Codec<Transform2D> CODEC = PersistedParser.createCodec(Transform2D::new);
+
     @Getter
     @Configurable(name = "Transform2D.translate")
     private Vector2f translate = new Vector2f();
@@ -29,7 +37,7 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     private Vector2f scale = new Vector2f(1f);
     @Getter
     @Configurable(name = "Transform2D.rotation")
-    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
+    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1f)
     private float rotation = 0f;   // Z-axis degree
 
     /**
@@ -41,13 +49,26 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     private Pivot pivot = Pivot.CENTER;
 
     // runtime
+    @EqualsAndHashCode.Exclude
     private float rotationRad;
 
+    public static Transform2D identity() {
+        return new Transform2D();
+    }
 
     public boolean isIdentity() {
         return translate.x == 0f && translate.y == 0f
                 && rotationRad == 0f
                 && scale.x == 1f && scale.y == 1f;
+    }
+
+    public Transform2D setIdentity() {
+        translate.set(0f, 0f);
+        scale.set(1f, 1f);
+        rotationRad = 0f;
+        rotation = 0f;
+        pivot = Pivot.CENTER;
+        return this;
     }
 
     public Transform2D translate(float x, float y) {
@@ -84,8 +105,61 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         return this;
     }
 
+    @Override
+    public void beforeDeserialize() {
+        setIdentity();
+    }
+
+    @SkipPersistedValue(field = "translate")
+    private boolean skipTranslatePersisted(Vector2f translate) {
+        return translate.x == 0f && translate.y == 0f;
+    }
+
+    @SkipPersistedValue(field = "rotation")
+    private boolean skipRotationPersisted(float rotation) {
+        return rotation == 0f;
+    }
+
+    @SkipPersistedValue(field = "scale")
+    private boolean skipScalePersisted(Vector2f scale) {
+        return scale.x == 1f && scale.y == 1f;
+    }
+
+    @SkipPersistedValue(field = "pivot")
+    private boolean skipPivotPersisted(Pivot pivot) {
+        return pivot.equals(Pivot.CENTER);
+    }
+
+    public void pushPose(PoseStack poseStack, float x, float y, float width, float height) {
+        if (isIdentity()) return;
+        poseStack.pushPose();
+        poseStack.translate(translate.x, translate.y, 0);
+
+        var xPivot = pivot.x * width;
+        var yPivot = pivot.y * height;
+        var translationX = x + xPivot;
+        var translationY = y + yPivot;
+
+        if (rotationRad != 0f || scale.x != 1f || scale.y != 1f) {
+            poseStack.translate(translationX, translationY, 0);
+            if (rotationRad != 0f) {
+                poseStack.mulPose(new Quaternionf().rotateLocalZ(rotationRad));
+            }
+            if (scale.x != 1f || scale.y != 1f) {
+                poseStack.scale(scale.x, scale.y, 1);
+            }
+            poseStack.translate(-translationX, -translationY, 0);
+        }
+    }
+
+    public void popPose(PoseStack poseStack) {
+        if (!isIdentity()) {
+            poseStack.popPose();
+        }
+    }
+
     // Apply to pose for rendering: T -> pivot -> R -> S -> -pivot
-    public void pushToPose(GUIContext ctx, UIElement e) {
+    public void pushPose(GUIContext ctx, UIElement e) {
         if (isIdentity()) return;
         float px = e.getPositionX() + e.getSizeWidth() * pivot.x;
         float py = e.getPositionY() + e.getSizeHeight() * pivot.y;
@@ -150,6 +224,12 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         // Translate back from pivot
         p[0] += px;
         p[1] += py;
+    }
+
+    public Transform2D copy() {
+        var copied = new Transform2D();
+        copied.copyFrom(this);
+        return copied;
     }
 
     public void copyFrom(@NotNull Transform2D transform2D) {

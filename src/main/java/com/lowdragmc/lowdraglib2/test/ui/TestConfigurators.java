@@ -6,22 +6,31 @@ import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.*;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.TransformRef;
+import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -82,6 +91,9 @@ public class TestConfigurators implements IScreenTest, IConfigurable, IPersisted
     @Configurable
     @ConfigSelector(candidate = {"north", "west", "east"} , subConfiguratorBuilder = "subConfiguratorBuilder")
     private Direction subConfiguratorSelector = Direction.NORTH;
+    @Configurable
+    @ConfigSearch(searchConfiguratorMethod = "createBlockSearchConfigurator")
+    private Block block = Blocks.STONE;
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
@@ -118,6 +130,39 @@ public class TestConfigurators implements IScreenTest, IConfigurable, IPersisted
             case EAST -> group.addConfigurator(new Configurator("EAST"));
             default -> group.addConfigurator(new Configurator("DEFAULT"));
         }
+    }
+
+    private SearchComponentConfigurator.ISearchConfigurator<Block> createBlockSearchConfigurator() {
+        return new SearchComponentConfigurator.ISearchConfigurator<>() {
+            @Override
+            public Block defaultValue() {
+                return Blocks.STONE;
+            }
+
+            @Override
+            public void search(String word, IResultHandler<Block> searchHandler) {
+                var lowerWord = word.toLowerCase();
+                for (var key : BuiltInRegistries.BLOCK.keySet()) {
+                    if (Thread.currentThread().isInterrupted()) return;
+                    if (key.toString().toLowerCase().contains(lowerWord)) {
+                        searchHandler.acceptResult(BuiltInRegistries.BLOCK.get(key));
+                    }
+                }
+            }
+
+            @Override
+            public String resultText(@NotNull Block value) {
+                return BuiltInRegistries.BLOCK.getKey(value).toString();
+            }
+
+            @Override
+            public @Nullable UIElementProvider<Block> candidateUIProvider() {
+                return UIElementProvider.iconText(
+                        block -> new ItemStackTexture(block.asItem()),
+                        block -> Component.translatable(block.getDescriptionId())
+                );
+            }
+        };
     }
 
     public static class TestToggleGroup implements IToggleConfigurable {

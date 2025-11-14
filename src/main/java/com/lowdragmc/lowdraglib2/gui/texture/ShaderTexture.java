@@ -262,8 +262,6 @@ public class ShaderTexture extends TransformTexture {
         var configurator = new Configurator();
         // button to select image
         father.addConfigurator(configurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_shader").setOnClick(e -> {
-            var mui = e.currentElement.getModularUI();
-            if (mui == null) return;
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_shader", LDLib2.getAssetsDir(), true, node -> {
                 if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".fsh".toLowerCase())) {
                     if (node.getKey().isFile()) {
@@ -279,7 +277,7 @@ public class ShaderTexture extends TransformTexture {
                         updateShader(location);
                         configurator.notifyChanges();
                     }
-                }).show(mui.ui.rootElement);
+                }).show(e.currentElement.getModularUI());
             }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
         );
     }

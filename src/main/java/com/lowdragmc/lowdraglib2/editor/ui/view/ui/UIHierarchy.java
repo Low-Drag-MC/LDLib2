@@ -25,6 +25,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class UIHierarchy extends UIElement {
     public record DraggingUINode(UITreeNode draggedNode) {}
@@ -253,11 +254,20 @@ public class UIHierarchy extends UIElement {
                         .map(UITreeNode::getKey).orElse(ui.rootElement);
                 for (var holder : LDLib2Registries.UI_ELEMENTS) {
                     if (father.canAddEditorChild(holder)) {
-                        m.leaf(holder.annotation().name(), () -> {
+                        var annotation = holder.annotation();
+                        var group = annotation.group();
+                        var name = annotation.name();
+                        Consumer<TreeBuilder.Menu> buildNode = targetNode -> targetNode.leaf(name, () -> {
                             var uiElement = holder.value().get();
                             uiElement.initEditorTemplate();
                             father.addEditorChild(uiElement, -1);
                         });
+                        if (group.isEmpty()) {
+                            buildNode.accept(m);
+                        } else {
+                            var paths = group.split("\\.");
+                            diveBranch(paths, m, buildNode);
+                        }
                     }
                 }
             });
@@ -288,4 +298,14 @@ public class UIHierarchy extends UIElement {
         return menu;
     }
 
+    private void diveBranch(String[] paths, TreeBuilder.Menu current, Consumer<TreeBuilder.Menu> menu) {
+        if (paths.length == 0) {
+            menu.accept(current);
+            return;
+        }
+        var path = paths[0];
+        var nextPaths = new String[paths.length - 1];
+        System.arraycopy(paths, 1, nextPaths, 0, nextPaths.length);
+        current.branch(path, m -> diveBranch(nextPaths, m, menu));
+    }
 }

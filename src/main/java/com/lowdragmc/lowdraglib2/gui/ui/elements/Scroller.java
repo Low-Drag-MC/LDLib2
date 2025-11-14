@@ -1,16 +1,13 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.FloatValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
@@ -25,38 +22,43 @@ import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public abstract class Scroller extends BindableUIElement<Float> {
-    @Accessors(chain = true, fluent = true)
-    public static class ScrollerStyle extends Style {
-        @Getter
-        @Setter
-        @Configurable(name = "Scroller.scrollDelta")
-        @ConfigNumber(range = {0, 1})
-        private float scrollDelta = 0.1f;
+    @Configurable(name = "ScrollerStyle")
+    public class ScrollerStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.SCROLL_DELTA,
+        };
 
-        public ScrollerStyle(UIElement holder) {
-            super(holder);
+        public ScrollerStyle() {
+            super(Scroller.this);
         }
 
         @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
-            UIStyleRegistries.SCROLL_DELTA.parse(values).ifPresent(this::scrollDelta);
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public ScrollerStyle scrollDelta(float scrollDelta) {
+            set(PropertyRegistry.SCROLL_DELTA, scrollDelta);
+            return this;
+        }
+
+        public float scrollDelta() {
+            return getValueSave(PropertyRegistry.SCROLL_DELTA);
         }
     }
+
     public final Button headButton;
     public final Button tailButton;
     public final UIElement scrollContainer;
     public final Button scrollBar;
     @Getter
-    @Configurable(name = "scrollerStyle", subConfigurable = true)
-    private final ScrollerStyle scrollerStyle = new ScrollerStyle(this);
+    private final ScrollerStyle scrollerStyle = new ScrollerStyle();
     @Getter
     protected float minValue = 0;
     @Getter
@@ -77,6 +79,10 @@ public abstract class Scroller extends BindableUIElement<Float> {
         this.tailButton = new Button();
         this.scrollContainer = new UIElement();
         this.scrollBar = new Button();
+        this.headButton.addClass("__scroller_head_button__");
+        this.tailButton.addClass("__scroller_tail_button__");
+        this.scrollContainer.addClass("__scroller_scroll_container__");
+        this.scrollBar.addClass("__scroller_scroll_bar__");
 
         this.headButton.noText().layout(layout -> {
             layout.setWidth(5);
@@ -118,12 +124,10 @@ public abstract class Scroller extends BindableUIElement<Float> {
         scrollContainer.addEventListener(UIEvents.MOUSE_DOWN, this::clickScrollContainer);
         addChildren(headButton, scrollContainer, tailButton);
         scrollContainer.addEventListener(UIEvents.MOUSE_WHEEL, this::onScrollWheel);
-        markAllChildrenAsInternal();
     }
 
     public Scroller scrollerStyle(Consumer<ScrollerStyle> style) {
         style.accept(scrollerStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -191,12 +195,12 @@ public abstract class Scroller extends BindableUIElement<Float> {
     }
 
     private void moveHead() {
-        var newValue = value - (maxValue - minValue) * scrollerStyle.scrollDelta;
+        var newValue = value - (maxValue - minValue) * scrollerStyle.scrollDelta();
         setValue(newValue);
     }
 
     private void moveTail() {
-        var newValue = value + (maxValue - minValue) * scrollerStyle.scrollDelta;
+        var newValue = value + (maxValue - minValue) * scrollerStyle.scrollDelta();
         setValue(newValue);
     }
 
@@ -232,7 +236,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         return this;
     }
 
-    @LDLRegister(name = "scroller_vertical", registry = "ldlib2:ui_element")
+    @LDLRegister(name = "scroller-vertical", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
             getLayout().setFlexDirection(YogaFlexDirection.COLUMN);
@@ -240,22 +244,23 @@ public abstract class Scroller extends BindableUIElement<Float> {
             getLayout().setWidth(5);
 
             headButton.buttonStyle(style -> style
-                    .defaultTexture(Icons.UP_ARROW_NO_BAR_S)
+                    .baseTexture(Icons.UP_ARROW_NO_BAR_S)
                     .hoverTexture(Icons.UP_ARROW_NO_BAR_S_LIGHT)
                     .pressedTexture(Icons.UP_ARROW_NO_BAR_S_WHITE)
             );
             tailButton.buttonStyle(style -> style
-                    .defaultTexture(Icons.DOWN_ARROW_NO_BAR_S)
+                    .baseTexture(Icons.DOWN_ARROW_NO_BAR_S)
                     .hoverTexture(Icons.DOWN_ARROW_NO_BAR_S_LIGHT)
                     .pressedTexture(Icons.DOWN_ARROW_NO_BAR_S_WHITE)
             );
             scrollContainer.style(style -> style.backgroundTexture(Sprites.SCROLL_CONTAINER_V));
             scrollBar.buttonStyle(style -> style
-                    .defaultTexture(Sprites.SCROLL_BAR_V)
+                    .baseTexture(Sprites.SCROLL_BAR_V)
                     .hoverTexture(Sprites.SCROLL_BAR_LIGHT_V)
                     .pressedTexture(Sprites.SCROLL_BAR_WHITE_V)
             );
             updateScrollBarPosition();
+            internalSetup();
         }
 
         @Override
@@ -291,11 +296,11 @@ public abstract class Scroller extends BindableUIElement<Float> {
 
         @Override
         protected void onScrollWheel(UIEvent event) {
-            if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -getScrollerStyle().scrollDelta : getScrollerStyle().scrollDelta);
+            if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -getScrollerStyle().scrollDelta() : getScrollerStyle().scrollDelta());
         }
     }
 
-    @LDLRegister(name = "scroller_horizontal", registry = "ldlib2:ui_element")
+    @LDLRegister(name = "scroller-horizontal", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {
             getLayout().setFlexDirection(YogaFlexDirection.ROW);
@@ -303,22 +308,23 @@ public abstract class Scroller extends BindableUIElement<Float> {
             getLayout().setHeight(5);
 
             headButton.buttonStyle(style -> style
-                    .defaultTexture(Icons.LEFT_ARROW_NO_BAR_S)
+                    .baseTexture(Icons.LEFT_ARROW_NO_BAR_S)
                     .hoverTexture(Icons.LEFT_ARROW_NO_BAR_S_LIGHT)
                     .pressedTexture(Icons.LEFT_ARROW_NO_BAR_S_WHITE)
             );
             tailButton.buttonStyle(style -> style
-                    .defaultTexture(Icons.RIGHT_ARROW_NO_BAR_S)
+                    .baseTexture(Icons.RIGHT_ARROW_NO_BAR_S)
                     .hoverTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT)
                     .pressedTexture(Icons.RIGHT_ARROW_NO_BAR_S_WHITE)
             );
             scrollContainer.style(style -> style.backgroundTexture(Sprites.SCROLL_CONTAINER_H));
             scrollBar.buttonStyle(style -> style
-                    .defaultTexture(Sprites.SCROLL_BAR_H)
+                    .baseTexture(Sprites.SCROLL_BAR_H)
                     .hoverTexture(Sprites.SCROLL_BAR_LIGHT_H)
                     .pressedTexture(Sprites.SCROLL_BAR_WHITE_H)
             );
             updateScrollBarPosition();
+            internalSetup();
         }
 
         @Override
@@ -355,7 +361,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
 
         @Override
         protected void onScrollWheel(UIEvent event) {
-            var delta = getScrollerStyle().scrollDelta;
+            var delta = getScrollerStyle().scrollDelta();
             if (event.deltaX != 0) scrollValue(event.deltaX > 0 ? -delta : delta);
             else if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -delta : delta);
         }

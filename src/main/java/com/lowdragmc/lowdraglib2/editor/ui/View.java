@@ -90,17 +90,11 @@ public class View extends UIElement {
         if (canRemove) {
             tab.addChild(new Button().setOnClick(e -> {
                 if (e.button == 0) {
-                    Dialog.showCheckBox("", "view.close.info", close -> {
-                        if (canRemove && close) {
-                            if (onRemove != null) {
-                                onRemove.run();
-                            }
-                            removeSelf();
-                        }
-                    }).show(getModularUI().ui.rootElement);
+                    onClose();
+                    // prevent drag event from propagating
                     e.stopPropagation();
                 }
-            }).noText().buttonStyle(buttonStyle -> buttonStyle.defaultTexture(Icons.CLOSE)
+            }).noText().buttonStyle(buttonStyle -> buttonStyle.baseTexture(Icons.CLOSE)
                     .hoverTexture(Icons.CLOSE.copy().setColor(ColorPattern.LIGHT_GRAY.color))
                     .pressedTexture(Icons.CLOSE.copy().setColor(ColorPattern.GRAY.color))).layout(layout -> {
                 layout.setHeightPercent(100);
@@ -131,4 +125,14 @@ public class View extends UIElement {
         return tab;
     }
 
+    protected void onClose() {
+        Dialog.showCheckBox("", "view.close.info", close -> {
+            if (canRemove && close) {
+                if (onRemove != null) {
+                    onRemove.run();
+                }
+                removeSelf();
+            }
+        }).show(getModularUI());
+    }
 }

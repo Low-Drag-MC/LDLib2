@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
@@ -11,9 +10,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.*;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -21,7 +19,6 @@ import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.lowdraglib2.utils.search.ISearch;
 import com.lowdragmc.lowdraglib2.utils.search.SearchEngine;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -42,55 +39,93 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "search_component", registry = "ldlib2:ui_element")
+@LDLRegister(name = "search-component", registry = "ldlib2:ui_element")
 public class SearchComponent<T> extends BindableUIElement<T> {
-    @Accessors(chain = true, fluent = true)
-    public static class SearchStyle extends Style {
-        @Getter @Setter
-        @Configurable(name = "focusOverlay")
-        private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
-        @Getter @Setter
-        @Configurable(name = "maxItemCount")
-        @ConfigNumber(range = {1, Integer.MAX_VALUE})
-        private int maxItemCount = 5; // if more than this, use scroller view.
-        @Getter @Setter
-        @Configurable(name = "scrollerViewHeight", tips = "scrollerViewHeight.tips")
-        @ConfigNumber(range = {0, Float.MAX_VALUE})
-        private float scrollerViewHeight = 50;
-        @Getter @Setter
-        @Configurable(name = "showOverlay")
-        private boolean showOverlay = true;
-        @Getter @Setter
-        @Configurable(name = "closeAfterSelect")
-        private boolean closeAfterSelect = true;
+    @Configurable(name = "SearchStyle")
+    public class SearchStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.FOCUS_OVERLAY,
+                PropertyRegistry.MAX_ITEM,
+                PropertyRegistry.VIEW_HEIGHT,
+                PropertyRegistry.SHOW_OVERLAY,
+                PropertyRegistry.CLOSE_AFTER_SELECT,
+        };
 
-        public SearchStyle(UIElement holder) {
-            super(holder);
+        protected SearchStyle() {
+            super(SearchComponent.this);
+            setDefault(PropertyRegistry.FOCUS_OVERLAY, Sprites.RECT_RD_T_SOLID);
         }
 
-        @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
+        public static void init() {
+            PropertyRegistry.MAX_ITEM.addListener(SearchComponent.SearchStyle::onPropertyChanged);
+            PropertyRegistry.VIEW_HEIGHT.addListener(SearchComponent.SearchStyle::onPropertyChanged);
+            PropertyRegistry.SHOW_OVERLAY.addListener(SearchComponent.SearchStyle::onPropertyChanged);
+        }
 
-            UIStyleRegistries.FOCUS_OVERLAY.parse(values).ifPresent(this::focusOverlay);
-            UIStyleRegistries.MAX_ITEM.parse(values).ifPresent(this::maxItemCount);
-            UIStyleRegistries.VIEW_HEIGHT.parse(values).ifPresent(this::scrollerViewHeight);
-            UIStyleRegistries.SHOW_OVERLAY.parse(values).ifPresent(this::showOverlay);
-            UIStyleRegistries.CLOSE_AFTER_SELECT.parse(values).ifPresent(this::closeAfterSelect);
-
-            if (holder instanceof SearchComponent<?> searchComponent) {
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof SearchComponent<?> searchComponent) {
                 searchComponent.onSearchStyleChanged();
             }
         }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public IGuiTexture focusOverlay() {
+            return getValueSave(PropertyRegistry.FOCUS_OVERLAY);
+        }
+
+        public SearchStyle focusOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.FOCUS_OVERLAY, texture);
+            return this;
+        }
+
+        public int maxItemCount() {
+            return getValueSave(PropertyRegistry.MAX_ITEM);
+        }
+
+        public SearchStyle maxItemCount(int maxItemCount) {
+            set(PropertyRegistry.MAX_ITEM, maxItemCount);
+            return this;
+        }
+
+        public float scrollerViewHeight() {
+            return getValueSave(PropertyRegistry.VIEW_HEIGHT);
+        }
+
+        public SearchStyle scrollerViewHeight(float height) {
+            set(PropertyRegistry.VIEW_HEIGHT, height);
+            return this;
+        }
+
+        public boolean showOverlay() {
+            return getValueSave(PropertyRegistry.SHOW_OVERLAY);
+        }
+
+        public SearchStyle showOverlay(boolean showOverlay) {
+            set(PropertyRegistry.SHOW_OVERLAY, showOverlay);
+            return this;
+        }
+
+        public boolean closeAfterSelect() {
+            return getValueSave(PropertyRegistry.CLOSE_AFTER_SELECT);
+        }
+
+        public SearchStyle closeAfterSelect(boolean closeAfterSelect) {
+            set(PropertyRegistry.CLOSE_AFTER_SELECT, closeAfterSelect);
+            return this;
+        }
     }
+
     public final TextField textField;
     public final UIElement preview;
     public final UIElement dialog;
     public final UIElement listView;
     public final ScrollerView scrollerView;
     @Getter
-    @Configurable(name = "searchStyle", subConfigurable = true)
-    private final SearchStyle searchStyle = new SearchStyle(this);
+    private final SearchStyle searchStyle = new SearchStyle();
     private UIElementProvider<T> candidateUIProvider = UIElementProvider.text(value -> value == null ?
             Component.translatable("text_field.empty").withColor(ColorPattern.LIGHT_GRAY.color) :
             Component.translatable(value.toString()));
@@ -128,6 +163,10 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             layout.setFlex(1);
             layout.setPadding(YogaEdge.ALL, 2);
         });
+
+        this.textField.addClass("__search-component_text-field__");
+        this.dialog.addClass("__search-component_dialog__");
+        this.preview.addClass("__search-component_preview__");
 
         textField.layout(layout -> {
             layout.setHeightPercent(100);
@@ -168,6 +207,9 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                 })
                 .stopInteractionEventsPropagation();
 
+        listView.addClass("__search-component_list-view__");
+        scrollerView.addClass("__search-component_scroller-view__");
+
         scrollerView.verticalScroller.headButton.setDisplay(YogaDisplay.NONE);
         scrollerView.verticalScroller.tailButton.setDisplay(YogaDisplay.NONE);
         scrollerView.horizontalScroller.headButton.setDisplay(YogaDisplay.NONE);
@@ -180,7 +222,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         addChildren(preview, textField);
 
         searchEngine = new SearchEngine<>(searchUI, this::onResultFound);
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     protected void onMouseDown(UIEvent event) {
@@ -272,12 +314,12 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     private UIElement createItemUI(T candidate) {
         var candidateUI = new UIElement().layout(layout -> layout.setWidthPercent(100));
         var overlayButton = new Button();
-        overlayButton.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY)
-                        .hoverTexture(searchStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
-                        .pressedTexture(searchStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
+        overlayButton.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY)
+                        .hoverTexture(searchStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
+                        .pressedTexture(searchStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
                 .setOnClick(e -> {
                     setSelected(candidate);
-                    if (searchStyle.closeAfterSelect) {
+                    if (searchStyle.closeAfterSelect()) {
                         hide();
                     }
                 })
@@ -311,12 +353,12 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         // update overlay button style
         var currentValue = candidateButtons.get(this.value);
         if (currentValue != null) {
-            currentValue.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY));
+            currentValue.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY));
         }
         this.value = value;
         var button = candidateButtons.get(value);
         if (button != null) {
-            button.buttonStyle(style -> style.defaultTexture(searchStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
+            button.buttonStyle(style -> style.baseTexture(searchStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
         }
 
         // update preview
@@ -348,8 +390,6 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
     public SearchComponent<T> searchStyle(Consumer<SearchStyle> style) {
         style.accept(searchStyle);
-        onStyleChanged();
-        onSearchStyleChanged();
         return this;
     }
 
@@ -397,7 +437,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
         if (isChildHover() || textField.isFocused()) {
-            guiContext.drawTexture(getSearchStyle().focusOverlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            guiContext.drawTexture(getSearchStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);
     }

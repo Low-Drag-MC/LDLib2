@@ -88,7 +88,7 @@ public class ResourceView extends View {
             layout.setHeight(14);
             layout.setPadding(YogaEdge.ALL, 1);
             layout.setMargin(YogaEdge.ALL, 1);
-        }).style(style -> style.setTooltips(resourceInstance.resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
+        }).style(style -> style.tooltips(resourceInstance.resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         }).style(style -> style.backgroundTexture(resourceInstance.resource.getIcon())));

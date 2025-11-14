@@ -174,8 +174,6 @@ public class AnimationTexture extends TransformTexture {
                                 }).style(style -> style.backgroundTexture(this::drawRawTextureGuides))),
                         // button to select image
                         new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
-                            var mui = e.currentElement.getModularUI();
-                            if (mui == null) return;
                             Dialog.showFileDialog("ldlib.gui.editor.tips.select_image", LDLib2.getAssetsDir(), true, Dialog.suffixFilter(".png"), r -> {
                                 if (r != null && r.isFile()) {
                                     var location = IGuiTexture.getTextureFromFile(r);
@@ -183,7 +181,7 @@ public class AnimationTexture extends TransformTexture {
                                     imageLocation = location;
                                     configurator.notifyChanges();
                                 }
-                            }).show(mui.ui.rootElement);
+                            }).show(e.currentElement.getModularUI());
                         }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
                 ));
     }

@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
-import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
@@ -11,7 +10,6 @@ import net.minecraft.world.inventory.Slot;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
-import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @OnlyIn(Dist.CLIENT)

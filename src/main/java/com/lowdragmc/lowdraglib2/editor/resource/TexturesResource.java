@@ -17,7 +17,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
     @Override
     public void buildBuiltin(ResourceInstance<IGuiTexture> resourceInstance) {
         super.buildBuiltin(resourceInstance);
-        resourceInstance.addBuiltinProvider(Sprites.getProvider(resourceInstance));
+//        resourceInstance.addBuiltinProvider(Sprites.getProvider(resourceInstance));
     }
 
     @Override

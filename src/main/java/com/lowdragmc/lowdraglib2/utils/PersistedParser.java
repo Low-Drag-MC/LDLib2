@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.ManagedFieldUtils;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
@@ -86,7 +87,7 @@ public final class PersistedParser {
      */
     public static <T> DataResult<T> serialize(DynamicOps<T> op, Object object, HolderLookup.Provider provider) {
         var builder = op.mapBuilder();
-        serializeInternal(true, builder, op, object.getClass(), object, provider);
+        serializeInternal(true, builder, op, new HashMap<>(), object.getClass(), object, provider);
         return builder.build(op.empty());
     }
 
@@ -100,14 +101,24 @@ public final class PersistedParser {
     /**
      * This method is used to serialize the object fields with {@link Persisted} or {@link Configurable} annotation to the op data.
      */
-    private static <T> void serializeInternal(boolean root, RecordBuilder<T> recordBuilder, DynamicOps<T> op, Class<?> clazz, Object object, HolderLookup.Provider provider) {
+    private static <T> void serializeInternal(boolean root, RecordBuilder<T> recordBuilder, DynamicOps<T> op, Map<String, Method> skipValues, Class<?> clazz, Object object, HolderLookup.Provider provider) {
         if (clazz == Object.class || clazz == null) return;
 
         if (root && object instanceof IPersistedSerializable serializable) {
             serializable.beforeSerialize();
         }
 
-        serializeInternal(false, recordBuilder, op, clazz.getSuperclass(), object, provider);
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(SkipPersistedValue.class)) {
+                SkipPersistedValue skipPersistedValue = method.getAnnotation(SkipPersistedValue.class);
+                String name = skipPersistedValue.field();
+                if (!skipValues.containsKey(name)) {
+                    skipValues.put(name, method);
+                }
+            }
+        }
+
+        serializeInternal(false, recordBuilder, op, skipValues, clazz.getSuperclass(), object, provider);
 
         for (Field field : clazz.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) {
@@ -134,6 +145,19 @@ public final class PersistedParser {
                 continue;
             }
 
+            var skipMethod = skipValues.get(field.getName());
+            if (skipMethod != null) {
+                skipMethod.setAccessible(true);
+                field.setAccessible(true);
+                try {
+                    if (skipMethod.invoke(object, field.get(object)) instanceof Boolean skip && skip) {
+                        continue;
+                    }
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
             T data = null;
             if (persistent.map(Configurable::subConfigurable, Persisted::subPersisted)) {
                 // sub configurable
@@ -147,7 +171,7 @@ public final class PersistedParser {
                                     NbtOps.INSTANCE.convertTo(op, serializable.serializeNBT(provider));
                         } else {
                             var builder = op.mapBuilder();
-                            serializeInternal(false, builder, op, ReflectionUtils.getRawType(field.getGenericType()), value, provider);
+                            serializeInternal(false, builder, op, new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider);
                             data = builder.build(op.empty()).getOrThrow();
                         }
                     }
@@ -181,7 +205,7 @@ public final class PersistedParser {
             serializable.beforeDeserialize();
         }
 
-        for (Method method : clazz.getMethods()) {
+        for (Method method : clazz.getDeclaredMethods()) {
             if (method.isAnnotationPresent(ConfigSetter.class)) {
                 ConfigSetter configSetter = method.getAnnotation(ConfigSetter.class);
                 String name = configSetter.field();
@@ -244,6 +268,7 @@ public final class PersistedParser {
                     Method setter = setters.get(field.getName());
 
                     if (setter != null) {
+                        setter.setAccessible(true);
                         field.setAccessible(true);
                         try {
                             setter.invoke(object, field.get(object));

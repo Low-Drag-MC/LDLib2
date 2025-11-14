@@ -9,8 +9,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -25,7 +25,6 @@ import org.appliedenergistics.yoga.*;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -34,31 +33,51 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 @LDLRegister(name = "button", registry = "ldlib2:ui_element")
 public class Button extends UIElement {
-    @Accessors(chain = true, fluent = true)
-    public static class ButtonStyle extends Style {
-        @Getter
-        @Setter
-        @Configurable(name = "defaultTexture")
-        private IGuiTexture defaultTexture = Sprites.RECT_RD;
-        @Getter
-        @Setter
-        @Configurable(name = "hoverTexture")
-        private IGuiTexture hoverTexture = Sprites.RECT_RD_LIGHT;
-        @Getter
-        @Setter
-        @Configurable(name = "pressedTexture")
-        private IGuiTexture pressedTexture = Sprites.RECT_RD_DARK;
+    @Configurable(name = "ButtonStyle")
+    public class ButtonStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.BASE_BACKGROUND,
+                PropertyRegistry.HOVER_BACKGROUND,
+                PropertyRegistry.PRESSED_BACKGROUND,
+        };
 
-        public ButtonStyle(UIElement holder) {
-            super(holder);
+        public ButtonStyle() {
+            super(Button.this);
+            setDefault(PropertyRegistry.BASE_BACKGROUND, Sprites.RECT_RD);
+            setDefault(PropertyRegistry.HOVER_BACKGROUND, Sprites.RECT_RD_LIGHT);
+            setDefault(PropertyRegistry.PRESSED_BACKGROUND, Sprites.RECT_RD_DARK);
         }
 
         @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
-            UIStyleRegistries.DEFAULT_BACKGROUND.parse(values).ifPresent(this::defaultTexture);
-            UIStyleRegistries.HOVER_BACKGROUND.parse(values).ifPresent(this::hoverTexture);
-            UIStyleRegistries.PRESSED_BACKGROUND.parse(values).ifPresent(this::pressedTexture);
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public ButtonStyle baseTexture(IGuiTexture texture) {
+            set(PropertyRegistry.BASE_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture baseTexture() {
+            return getValueSave(PropertyRegistry.BASE_BACKGROUND);
+        }
+
+        public ButtonStyle hoverTexture(IGuiTexture texture) {
+            set(PropertyRegistry.HOVER_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture hoverTexture() {
+            return getValueSave(PropertyRegistry.HOVER_BACKGROUND);
+        }
+
+        public ButtonStyle pressedTexture(IGuiTexture texture) {
+            set(PropertyRegistry.PRESSED_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture pressedTexture() {
+            return getValueSave(PropertyRegistry.PRESSED_BACKGROUND);
         }
     }
     public enum State {
@@ -69,8 +88,7 @@ public class Button extends UIElement {
 
     public final TextElement text = new TextElement();
     @Getter
-    @Configurable(name = "buttonStyle", subConfigurable = true)
-    private final ButtonStyle buttonStyle = new ButtonStyle(this);
+    private final ButtonStyle buttonStyle = new ButtonStyle();
     @Nullable
     @Setter
     private Consumer<UIEvent> onClick = null;
@@ -86,6 +104,7 @@ public class Button extends UIElement {
         getLayout().setPadding(YogaEdge.ALL, 2);
         getLayout().setJustifyContent(YogaJustify.CENTER);
 
+        text.addClass("__button_text__");
         text.getLayout().setHeightPercent(100);
         text.getLayout().setMargin(YogaEdge.HORIZONTAL, 2);
         text.getTextStyle()
@@ -100,7 +119,7 @@ public class Button extends UIElement {
         setText("Button");
 
         addChild(text);
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     public Button textStyle(Consumer<TextElement.TextStyle> style) {
@@ -130,9 +149,21 @@ public class Button extends UIElement {
         return this;
     }
 
+    public Button addPreIcon(IGuiTexture icon) {
+        addChildAt(new UIElement().layout(layout -> layout.setHeightPercent(100).setAspectRatio(1f))
+                .style(style -> style.backgroundTexture(icon)),
+                0);
+        return this;
+    }
+
+    public Button addPostIcon(IGuiTexture icon) {
+        addChild(new UIElement().layout(layout -> layout.setHeightPercent(100).setAspectRatio(1f))
+                        .style(style -> style.backgroundTexture(icon)));
+        return this;
+    }
+
     public Button buttonStyle(Consumer<ButtonStyle> style) {
         style.accept(buttonStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -140,10 +171,10 @@ public class Button extends UIElement {
     public void drawBackgroundAdditional(GUIContext guiContext) {
         // draw button texture
         var texture = isActive() ? switch (state) {
-            case DEFAULT -> getButtonStyle().defaultTexture();
+            case DEFAULT -> getButtonStyle().baseTexture();
             case HOVERED -> getButtonStyle().hoverTexture();
             case PRESSED -> getButtonStyle().pressedTexture();
-        } : getButtonStyle().defaultTexture();
+        } : getButtonStyle().baseTexture();
         guiContext.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         super.drawBackgroundAdditional(guiContext);
     }

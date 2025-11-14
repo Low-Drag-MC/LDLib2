@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
@@ -10,14 +9,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.*;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -36,45 +34,84 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 @LDLRegister(name = "selector", registry = "ldlib2:ui_element")
 public class Selector<T> extends BindableUIElement<T> {
-    @Accessors(chain = true, fluent = true)
-    public static class SelectorStyle extends Style {
-        @Getter @Setter
-        @Configurable(name = "focusOverlay")
-        private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
-        @Getter @Setter
-        @Configurable(name = "maxItemCount")
-        @ConfigNumber(range = {1, Integer.MAX_VALUE})
-        private int maxItemCount = 5; // if more than this, use scroller view.
-        @Getter @Setter
-        @Configurable(name = "scrollerViewHeight", tips = "scrollerViewHeight.tips")
-        @ConfigNumber(range = {0, Float.MAX_VALUE})
-        private float scrollerViewHeight = 50;
-        @Getter @Setter
-        @Configurable(name = "showOverlay")
-        private boolean showOverlay = true;
-        @Getter @Setter
-        @Configurable(name = "closeAfterSelect")
-        private boolean closeAfterSelect = true;
+    @Configurable(name = "SelectorStyle")
+    public class SelectorStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.FOCUS_OVERLAY,
+                PropertyRegistry.MAX_ITEM,
+                PropertyRegistry.VIEW_HEIGHT,
+                PropertyRegistry.SHOW_OVERLAY,
+                PropertyRegistry.CLOSE_AFTER_SELECT,
+        };
 
-        public SelectorStyle(UIElement holder) {
-            super(holder);
+        protected SelectorStyle() {
+            super(Selector.this);
+            setDefault(PropertyRegistry.FOCUS_OVERLAY, Sprites.RECT_RD_T_SOLID);
         }
 
-        @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
+        public static void init() {
+            PropertyRegistry.MAX_ITEM.addListener(Selector.SelectorStyle::onPropertyChanged);
+            PropertyRegistry.VIEW_HEIGHT.addListener(Selector.SelectorStyle::onPropertyChanged);
+            PropertyRegistry.SHOW_OVERLAY.addListener(Selector.SelectorStyle::onPropertyChanged);
+        }
 
-            UIStyleRegistries.FOCUS_OVERLAY.parse(values).ifPresent(this::focusOverlay);
-            UIStyleRegistries.MAX_ITEM.parse(values).ifPresent(this::maxItemCount);
-            UIStyleRegistries.VIEW_HEIGHT.parse(values).ifPresent(this::scrollerViewHeight);
-            UIStyleRegistries.SHOW_OVERLAY.parse(values).ifPresent(this::showOverlay);
-            UIStyleRegistries.CLOSE_AFTER_SELECT.parse(values).ifPresent(this::closeAfterSelect);
-
-            if (holder instanceof Selector<?> selector) {
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof Selector<?> selector) {
                 selector.onSelectorStyleChanged();
             }
         }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public IGuiTexture focusOverlay() {
+            return getValueSave(PropertyRegistry.FOCUS_OVERLAY);
+        }
+
+        public SelectorStyle focusOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.FOCUS_OVERLAY, texture);
+            return this;
+        }
+
+        public int maxItemCount() {
+            return getValueSave(PropertyRegistry.MAX_ITEM);
+        }
+
+        public SelectorStyle maxItemCount(int maxItemCount) {
+            set(PropertyRegistry.MAX_ITEM, maxItemCount);
+            return this;
+        }
+
+        public float scrollerViewHeight() {
+            return getValueSave(PropertyRegistry.VIEW_HEIGHT);
+        }
+
+        public SelectorStyle scrollerViewHeight(float height) {
+            set(PropertyRegistry.VIEW_HEIGHT, height);
+            return this;
+        }
+
+        public boolean showOverlay() {
+            return getValueSave(PropertyRegistry.SHOW_OVERLAY);
+        }
+
+        public SelectorStyle showOverlay(boolean showOverlay) {
+            set(PropertyRegistry.SHOW_OVERLAY, showOverlay);
+            return this;
+        }
+
+        public boolean closeAfterSelect() {
+            return getValueSave(PropertyRegistry.CLOSE_AFTER_SELECT);
+        }
+
+        public SelectorStyle closeAfterSelect(boolean closeAfterSelect) {
+            set(PropertyRegistry.CLOSE_AFTER_SELECT, closeAfterSelect);
+            return this;
+        }
     }
+
     public final UIElement display;
     public final UIElement preview;
     public final UIElement buttonIcon;
@@ -82,8 +119,7 @@ public class Selector<T> extends BindableUIElement<T> {
     public final UIElement listView;
     public final ScrollerView scrollerView;
     @Getter
-    @Configurable(name = "selectorStyle", subConfigurable = true)
-    private final SelectorStyle selectorStyle = new SelectorStyle(this);
+    private final SelectorStyle selectorStyle = new SelectorStyle();
     @Getter
     private List<T> candidates = List.of();
     private UIElementProvider<T> candidateUIProvider = UIElementProvider.text(value -> Component.translatable(value == null ? "---" : value.toString()));
@@ -165,7 +201,14 @@ public class Selector<T> extends BindableUIElement<T> {
         scrollerView.setDisplay(YogaDisplay.NONE);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
         addChildren(display);
-        markAllChildrenAsInternal();
+
+        this.dialog.addClass("__selector_dialog__");
+        this.preview.addClass("__selector_preview__");
+        this.buttonIcon.addClass("__selector_button-icon__");
+        this.listView.addClass("__selector_list-view__");
+        this.scrollerView.addClass("__selector_scroller-view__");
+
+        internalSetup();
     }
 
     public Selector<T> setCandidates(List<T> candidates) {
@@ -206,12 +249,12 @@ public class Selector<T> extends BindableUIElement<T> {
     private UIElement createItemUI(T candidate) {
         var candidateUI = new UIElement().layout(layout -> layout.setWidthPercent(100));
         var overlayButton = new Button();
-        overlayButton.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY)
-                        .hoverTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
-                        .pressedTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
+        overlayButton.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY)
+                        .hoverTexture(selectorStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
+                        .pressedTexture(selectorStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
                 .setOnClick(e -> {
                     setSelected(candidate);
-                    if (selectorStyle.closeAfterSelect) {
+                    if (selectorStyle.closeAfterSelect()) {
                         hide();
                     }
                 })
@@ -245,12 +288,12 @@ public class Selector<T> extends BindableUIElement<T> {
         // update overlay button style
         var currentValue = candidateButtons.get(this.value);
         if (currentValue != null) {
-            currentValue.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY));
+            currentValue.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY));
         }
         this.value = value;
         var button = candidateButtons.get(value);
         if (button != null) {
-            button.buttonStyle(style -> style.defaultTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
+            button.buttonStyle(style -> style.baseTexture(selectorStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
         }
         // update preview
         this.preview.clearAllChildren();
@@ -287,7 +330,6 @@ public class Selector<T> extends BindableUIElement<T> {
 
     public Selector<T> selectorStyle(Consumer<SelectorStyle> style) {
         style.accept(getSelectorStyle());
-        onStyleChanged();
         return this;
     }
 
@@ -330,7 +372,7 @@ public class Selector<T> extends BindableUIElement<T> {
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
         if (isChildHover() || isFocused()) {
-            guiContext.drawTexture(getSelectorStyle().focusOverlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            guiContext.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);
     }

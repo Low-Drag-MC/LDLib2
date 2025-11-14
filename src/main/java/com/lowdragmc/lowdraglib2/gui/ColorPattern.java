@@ -31,6 +31,7 @@ public enum ColorPattern {
     T_BRIGHT_RED(0x88FF0000, "transparent bright red"),
     YELLOW(0xffffff33, "yellow"),
     T_YELLOW(0x88ffff33, "transparent yellow"),
+    BRIGHT_CYAN(0xFF00FFFF, "bright cyan"),
     CYAN(0xff337777, "cyan"),
     T_CYAN(0x88337777, "transparent cyan"),
     PURPLE(0xff9933ff, "purple"),

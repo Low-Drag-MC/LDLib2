@@ -3,10 +3,13 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
-import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
@@ -14,21 +17,17 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaNodeConfigParser;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaNodeSerializer;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaNodeStyleParser;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleSheet;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
+import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.TabBuilder;
-import com.lowdragmc.lowdraglib2.utils.TagUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -36,12 +35,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -78,11 +73,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                                     Optional::ofNullable
                             ))
                     .orElseGet(() -> MapCodec.unit(UIElement::new)));
-    public static Function<String, CompoundTag> RAW_TAG_CACHE = Util.memoize(name -> Optional.ofNullable(
-            LDLib2Registries.UI_ELEMENTS.get(name))
-            .map(AutoRegistry.Holder::value)
-            .map(Supplier::get).orElseGet(UIElement::new)
-            .serializeNBT(Platform.getFrozenRegistry()));
 
     public static final YogaConfig DEFAULT_YOGA_CONFIG;
     static {
@@ -100,28 +90,30 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     // structure
     @Nullable
     private UIElement parent;
-    @Getter
     private final List<UIElement> children = new ArrayList<>();
     // style
-    @Getter @Setter
+    @Getter
     @Accessors(chain = true)
     @Configurable
     private String id = "";
     @Getter
     private final Set<String> classes = new HashSet<>();
     @Getter
-    private List<Style> styles = new ArrayList<>();
+    private final StyleBag styleBag = new StyleBag(this);
     @Getter
-    @Configurable(name = "UIElement.basicStyle", subConfigurable = true)
+    private final List<Style> styles = new ArrayList<>();
+    @Getter
+    private final LayoutStyle layoutStyle = new LayoutStyle(this);
+    @Getter
     private final BasicStyle style = new BasicStyle(this);
     // internal properties
-    @Getter @Setter
+    @Getter @Setter @Accessors(chain = true)
     @Configurable(name = "UIElement.isVisible", tips = "UIElement.isVisible.tips")
     private boolean isVisible = true;
-    @Getter @Setter
+    @Getter @Accessors(chain = true)
     @Configurable(name = "UIElement.isActive", tips = "UIElement.isActive.tips")
     private boolean isActive = true;
-    @Getter @Setter
+    @Getter @Setter @Accessors(chain = true)
     @Configurable(name = "UIElement.focusable", tips = {"UIElement.focusable.tips.0", "UIElement.focusable.tips.1"})
     private boolean focusable = false;
     // event
@@ -140,6 +132,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     private FloatOptional positionYCache = FloatOptional.of();
     @Getter
     private boolean isInternalUI = false;
+    private final UIVisualLayer UIVisualLayer = new UIVisualLayer(this);
 
     public UIElement() {
         layoutNode = new YogaNode(DEFAULT_YOGA_CONFIG);
@@ -201,9 +194,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * You can override this method to do something when the element is removed. e.g. clean up resources, stop animations, etc.
      */
     protected void onRemoved() {
-        for (var child : new ArrayList<>(children)) {
+        for (var child : getSafeChildren()) {
             child.onRemoved();
         }
+        UIVisualLayer.release();
         if (bubbleListeners.containsKey(UIEvents.REMOVED) || captureListeners.containsKey(UIEvents.REMOVED)) {
             var event = UIEvent.create(UIEvents.REMOVED);
             event.target = this;
@@ -214,12 +208,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /// Layout
-    public YogaProps getLayout() {
-        return layoutNode;
+    public LayoutStyle getLayout() {
+        return layoutStyle;
     }
 
-    public UIElement layout(Consumer<YogaProps> layout) {
-        layout.accept(layoutNode);
+    public UIElement layout(Consumer<LayoutStyle> layout) {
+        layout.accept(layoutStyle);
         return this;
     }
 
@@ -229,19 +223,29 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public UIElement setDisplay(YogaDisplay display) {
-        layoutNode.setDisplay(display);
+        layoutStyle.setDisplay(display);
+        return this;
+    }
+
+    public UIElement setDisplay(boolean display) {
+        layoutStyle.setDisplay(display ? YogaDisplay.FLEX : YogaDisplay.NONE);
         return this;
     }
 
     public UIElement setOverflow(YogaOverflow overflow) {
-        layoutNode.setOverflow(overflow);
+        layoutStyle.setOverflow(overflow);
+        return this;
+    }
+
+    public UIElement setOverflow(boolean overflow) {
+        layoutStyle.setOverflow(overflow ? YogaOverflow.VISIBLE : YogaOverflow.HIDDEN);
         return this;
     }
 
     /**
      * Calculate the layout of the element and its children.
      */
-    public void calculateLayout() {
+    protected void calculateLayout() {
         layoutNode.calculateLayout(YogaConstants.UNDEFINED, YogaConstants.UNDEFINED);
         applyLayout();
     }
@@ -477,6 +481,23 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     public UIElement getParent() {
         return parent;
     }
+    
+    public List<UIElement> getChildren() {
+        return Collections.unmodifiableList(children);
+    }
+    
+    public List<UIElement> getSafeChildren() {
+        return List.copyOf(children);
+    }
+
+    public final List<UIElement> getFlattenChildren() {
+        var list = new ArrayList<UIElement>();
+        for (var child : children) {
+            list.add(child);
+            list.addAll(child.getFlattenChildren());
+        }
+        return Collections.unmodifiableList(list);
+    }
 
     public boolean hasParent() {
         return parent != null;
@@ -554,13 +575,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public void clearAllChildren() {
-        for (var element : new ArrayList<>(this.children)) {
+        for (var element : getSafeChildren()) {
             removeChild(element);
         }
     }
 
     public void clearAllExternalChildren() {
-        for (var child : new ArrayList<>(this.children)) {
+        for (var child : getSafeChildren()) {
             if (child.isInternalUI) {
                 child.clearAllExternalChildren();
             } else {
@@ -579,24 +600,46 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return element.getStructurePath().contains(this);
     }
 
+    @ConfigSetter(field = "id")
+    public UIElement setId(String id) {
+        if (this.id.equals(id)) return this;
+        this.id = id;
+        onClassIdChanged();
+        return this;
+    }
+
+    @ConfigSetter(field = "isActive")
+    public UIElement setActive(boolean active) {
+        if (this.isActive == active) return this;
+        isActive = active;
+        if (isActive) {
+            removeClass("__disabled__");
+        } else {
+            addClass("__disabled__");
+        }
+        return this;
+    }
+
     /// Style
     public boolean hasClass(String identifier) {
         return classes.contains(identifier);
     }
 
-    public UIElement removeClass(String identifier) {
+    public final UIElement removeClass(String identifier) {
         if (!classes.contains(identifier)) {
             return this;
         }
         classes.remove(identifier);
+        onClassIdChanged();
         return this;
     }
 
-    public UIElement addClass(String identifier) {
+    public final UIElement addClass(String identifier) {
         if (classes.contains(identifier)) {
             return this;
         }
         classes.add(identifier);
+        onClassIdChanged();
         return this;
     }
 
@@ -611,36 +654,41 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public String getElementName() {
-        return name();
+        var name = name();
+        return name.isEmpty() ? "Unknown" : name();
     }
 
     protected final void _addStyleInternal(Style style) {
         this.styles.add(style);
     }
 
-    /**
-     * Applies the given style sheet to the current object, updates the style accordingly,
-     * and triggers any necessary style change actions.
-     *
-     * @param styleSheet the style sheet to be applied, which contains the styling rules
-     *                   to modify this object's appearance or behavior
-     */
-    public final void applyStyleSheet(StyleSheet styleSheet) {
-        var values = styleSheet.calculateValues(this);
-        if (values.isEmpty()) return;
-        applyStyle(values);
-        onStyleChanged();
+    public void onClassIdChanged() {
+        var mui = getModularUI();
+        if (mui != null) {
+            mui.getStyleEngine().reloadElementStyles(this);
+        }
     }
 
-    /**
-     * Apply a style to the element.
-     * Apply the actual logic of the style to the element.
-     */
-    protected void applyStyle(Map<String, StyleValue<?>> values) {
-        YogaNodeStyleParser.applyStyles(this, values);
-        for (Style style : styles) {
-            style.applyStyles(values);
+    public void addStyleRules(List<StyleRule> rules) {
+        for (var rule : rules) {
+            styleBag.putCandidates(
+                    rule.properties,
+                    StyleOrigin.STYLESHEET,
+                    rule.getSpecificity(),
+                    rule.sourceOrder
+            );
         }
+    }
+
+    public void removeStyleRules(List<StyleRule> rules) {
+        for (StyleRule rule : rules) {
+            styleBag.removeCandidates(slot ->
+                    slot.origin() == StyleOrigin.STYLESHEET && slot.sourceOrder() == rule.sourceOrder);
+        }
+    }
+
+    public void removeAllRules() {
+        styleBag.removeCandidates(slot -> slot.origin() == StyleOrigin.STYLESHEET);
     }
 
     /**
@@ -651,13 +699,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public UIElement style(Consumer<BasicStyle> style) {
         style.accept(this.style);
-        onStyleChanged();
         return this;
     }
 
     public UIElement transform(Consumer<Transform2D> transform) {
-        transform.accept(getStyle().transform2D());
-        onStyleChanged();
+        var t = style.transform2D().copy();
+        transform.accept(t);
+        style.transform2D(t);
         return this;
     }
 
@@ -824,7 +872,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     /// Logic
     public void screenTick() {
-        var safeChildren = new ArrayList<>(children);
+        var safeChildren = getSafeChildren();
         for (var child : safeChildren) {
             if (child.isActive() && child.isDisplayed()) {
                 child.screenTick();
@@ -840,7 +888,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public void serverTick() {
-        var safeChildren = new ArrayList<>(children);
+        var safeChildren = getSafeChildren();
         for (var child : safeChildren) {
             if (child.isActive() && child.isDisplayed()) {
                 child.serverTick();
@@ -1076,7 +1124,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     public final void drawInBackground(GUIContext guiContext) {
         var display = layoutNode.getDisplay();
-        if (display == YogaDisplay.NONE || !isVisible()) {
+        var opacity = style.opacity();
+        if (display == YogaDisplay.NONE || !isVisible() || opacity == 0) {
             return;
         }
         var zIndex = style.zIndex();
@@ -1085,16 +1134,30 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             guiContext.pose.translate(0, 0, zIndex);
         }
 
+        var hasOverlayClip = (layoutNode.getOverflow() == YogaOverflow.HIDDEN ||
+                layoutNode.getOverflow() == YogaOverflow.SCROLL);
+        var hasVisualLayer = hasOverlayClip || opacity < 1;
+        if (hasVisualLayer) {
+            //TODO Visual Layer
+//            guiContext.pushVisualLayer(UIVisualLayer);
+//            UIVisualLayer.clear();
+        }
+
         var transform2D = style.transform2D();
         var pushedTransform = !transform2D.isIdentity();
         if (pushedTransform) {
-            transform2D.pushToPose(guiContext, this);
+            transform2D.pushPose(guiContext, this);
         }
 
         drawInBackgroundInternal(guiContext);
 
         if (pushedTransform) {
             transform2D.popPose(guiContext);
+        }
+
+        if (hasVisualLayer) {
+//            guiContext.popVisualLayer();
+//            UIVisualLayer.draw(opacity, 0);
         }
 
         if (zIndex != 0) {
@@ -1119,10 +1182,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var background = style.backgroundTexture();
         if (background != null && background != IGuiTexture.EMPTY) {
             guiContext.drawTexture(background, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        }
-        var border = style.borderTexture();
-        if (border != null && border != IGuiTexture.EMPTY) {
-            guiContext.drawTexture(border, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
     }
 
@@ -1158,6 +1217,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
+    /// Editor + Serialization
     @Override
     public String toString() {
         return getElementName() + "{" + id + "}";
@@ -1181,23 +1241,24 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return info;
     }
 
-
     /// Editor
     public UIElement markAsInternal() {
+        if (isInternalUI()) return this;
         setInternalUI(true);
+        styleBag.moveInlineAsDefault();
+        children.forEach(UIElement::markAsInternal);
         return this;
     }
 
-    public void markAllChildrenAsInternal() {
+    public void internalSetup() {
+        styleBag.moveInlineAsDefault();
         for (var child : children) {
             child.markAsInternal();
         }
     }
 
     protected void setInternalUI(boolean isInternal) {
-        if (isInternalUI == isInternal) return;
         isInternalUI = isInternal;
-        children.forEach(uiElement -> uiElement.setInternalUI(isInternal));
     }
 
     public Component getEditorName() {
@@ -1216,7 +1277,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public List<UIElement> getEditorVisibleChildren() {
-        return new ArrayList<>(children);
+        return getSafeChildren();
     }
 
     /**
@@ -1244,7 +1305,38 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @OnlyIn(Dist.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
-        YogaNodeConfigParser.buildConfigurator(this, father);
+        // class selector
+        final var classList = new ArrayList<>(classes);
+        var classConfigurator = new ArrayConfiguratorGroup<>("UIElement.class", true, () -> {
+            if (modularUI != null && (modularUI.getTickCounter() & 20) ==0) return classList;
+            var set = new HashSet<>(classList);
+            if (!set.equals(classes)) {
+                classList.removeIf(s -> !classes.contains(s));
+                classes.stream().filter(s -> !classList.contains(s)).forEach(classList::add);
+            }
+            return classList;
+        }, (getter, setter) -> {
+            var value = getter.get();
+            if (value.startsWith("__") && value.endsWith("__")) {
+                return new Configurator(value);
+            }
+            return new StringConfigurator("", getter, setter, "", true);
+        }, true);
+        classConfigurator.setAddDefault(() -> "");
+        classConfigurator.setOnUpdate(list -> {
+            classes.clear();
+            classes.addAll(list);
+            classList.clear();
+            classList.addAll(list);
+            onClassIdChanged();
+        });
+        classConfigurator.setCanRemove(clazz -> !clazz.startsWith("__") || !clazz.endsWith("__"));
+        father.addConfigurators(classConfigurator);
+        // style
+        for (int i = getStyles().size() - 1; i >= 0; i--) {
+            var style = getStyles().get(i);
+            style.buildConfigurator(father);
+        }
     }
 
     public UIElement copy() {
@@ -1257,68 +1349,97 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     public void beforeDeserialize() {
         IPersistedSerializable.super.beforeDeserialize();
         clearAllExternalChildren();
+        setFocusable(false);
+        setVisible(true);
+        setActive(true);
+        setId("");
+        classes.removeIf(s -> !s.startsWith("__") || !s.endsWith("__"));
+    }
+
+    @SkipPersistedValue(field = "focusable")
+    private boolean skipFocusablePersisted(boolean focusable) {
+        return !focusable;
+    }
+
+    @SkipPersistedValue(field = "isVisible")
+    private boolean skipIsVisiblePersisted(boolean isVisible) {
+        return isVisible;
+    }
+
+    @SkipPersistedValue(field = "isActive")
+    private boolean skipIsActivePersisted(boolean isActive) {
+        return isActive;
+    }
+
+    @SkipPersistedValue(field = "id")
+    private boolean skipIdPersisted(String id) {
+        return id.isEmpty();
     }
 
     @Override
     public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
         var tagBuilder = TabBuilder.compound(IPersistedSerializable.super.serializeNBT(provider));
-        tagBuilder.add("layout", YogaNodeSerializer.serialize(layoutNode));
+        // serialize inline styles
+        var inlineTag = new CompoundTag();
+        for (Style style : getStyles()) {
+            var styleTag = style.serializeNBT(provider);
+            // quick merge without copy
+            for (var key : styleTag.getAllKeys()) {
+                var value = styleTag.get(key);
+                if (value != null) {
+                    inlineTag.put(key, value);
+                }
+            }
+        }
+        if (!inlineTag.isEmpty()) {
+            tagBuilder.add("inline", inlineTag);
+        }
+        // serialize classes
+        var classTag = new ListTag();
+        for (var clazz : classes) {
+            // skip internal classes
+            if (clazz.startsWith("__") && clazz.endsWith("__")) continue;
+            classTag.add(StringTag.valueOf(clazz));
+        }
+        if (!classTag.isEmpty()) {
+            tagBuilder.add("classes", classTag);
+        }
         // serialize internal children
-        tagBuilder.add("internal", TabBuilder.list().add(getChildren().stream()
+        var internalTag = TabBuilder.list().add(getChildren().stream()
                 .filter(UIElement::isInternalUI)
                 .map(element -> element.serializeNBT(provider)).toList()
-        ).build());
+        ).build();
+        if (!internalTag.isEmpty()) {
+            tagBuilder.add("internal", internalTag);
+        }
         // serialize external children
-        tagBuilder.add("children", TabBuilder.list().add(getChildren().stream()
+        var childrenTag = TabBuilder.list().add(getChildren().stream()
                 .filter(uiElement -> !uiElement.isInternalUI())
                 .map(child -> TabBuilder.compound()
                         .add("index", child.getSiblingIndex())
-                        .add("data", child.serializeShortNBT(provider))
+                        .add("data", child.serializeNBT(provider))
                         .add("type", child.name())
                         .build()).toList()
-        ).build());
+        ).build();
+        if (!childrenTag.isEmpty()) {
+            tagBuilder.add("children", childrenTag);
+        }
         return tagBuilder.build();
-    }
-
-    @Nullable
-    public CompoundTag serializeShortNBT(HolderLookup.@NotNull Provider provider) {
-        var fullTag = serializeNBT(provider);
-        var rawTag = RAW_TAG_CACHE.apply(name());
-        var result = TagUtils.removeDuplicates(fullTag, rawTag);
-        if (result != null) {
-            if (result.contains("internal") && rawTag.contains("internal")) {
-                var fullInternal = result.getList("internal", Tag.TAG_COMPOUND);
-                var rawInternal = rawTag.getList("internal", Tag.TAG_COMPOUND);
-                result.put("internal", removeInternalDuplicates(fullInternal, rawInternal));
-            }
-        }
-        return result;
-    }
-
-    protected ListTag removeInternalDuplicates(ListTag fullInternals, ListTag rawInternals) {
-        if (fullInternals.size() != rawInternals.size() || fullInternals.isEmpty()) return fullInternals;
-        var newInternals = new ListTag();
-        for (var i = 0; i < fullInternals.size(); i++) {
-            var full = fullInternals.getCompound(i);
-            var raw = rawInternals.getCompound(i);
-            var result = TagUtils.removeDuplicates(full, raw);
-            if (result == null) {
-                result = new CompoundTag();
-            } else if (result.contains("internal") && raw.contains("internal")) {
-                var fullInternal = result.getList("internal", Tag.TAG_COMPOUND);
-                var rawInternal = raw.getList("internal", Tag.TAG_COMPOUND);
-                result.put("internal", removeInternalDuplicates(fullInternal, rawInternal));
-            }
-            newInternals.add(result);
-        }
-        return newInternals;
     }
 
     @Override
     public void deserializeNBT(HolderLookup.@NotNull Provider provider, CompoundTag tag) {
         IPersistedSerializable.super.deserializeNBT(provider, tag);
-        if (tag.contains("layout")) {
-            YogaNodeSerializer.deserialize(tag.getCompound("layout"), layoutNode);
+        // deserialize inline styles
+        if (tag.contains("inline")) {
+            var inlineTag = tag.getCompound("inline");
+            getStyles().forEach(style -> style.deserializeNBT(provider, inlineTag));
+        }
+        // deserialize classes
+        if (tag.contains("classes")) {
+            for (var clazz : tag.getList("classes", Tag.TAG_STRING)) {
+                classes.add(clazz.getAsString());
+            }
         }
         // deserialize internal children
         if (tag.contains("internal")) {

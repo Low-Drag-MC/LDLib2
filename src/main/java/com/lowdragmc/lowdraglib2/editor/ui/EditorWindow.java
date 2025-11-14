@@ -111,7 +111,7 @@ public class EditorWindow extends UIElement {
                             }
                         }).setOverflow(YogaOverflow.HIDDEN),
                 new Button().noText().buttonStyle(style -> {
-                    style.defaultTexture(Icons.REMOVE);
+                    style.baseTexture(Icons.REMOVE);
                     style.hoverTexture(Icons.REMOVE.copy().setColor(ColorPattern.GRAY.color));
                     style.pressedTexture(Icons.REMOVE);
                 }).setOnClick(e -> {

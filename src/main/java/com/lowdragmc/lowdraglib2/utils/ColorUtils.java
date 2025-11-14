@@ -245,11 +245,8 @@ public final class ColorUtils {
                         return 0xFF000000 | (r << 16) | (g << 8) | b;
                     case 6: // #RRGGBB
                         return 0xFF000000 | Integer.parseInt(hex, 16);
-                    case 8: // #RRGGBBAA
-                        long colorLong = Long.parseLong(hex, 16);
-                        int rgb = (int) (colorLong >> 8);
-                        int a = (int) (colorLong & 0xFF);
-                        return (a << 24) | rgb;
+                    case 8: // #AARRGGBB
+                        return (int) (Long.parseLong(hex, 16) & 0xFFFFFFFFL);
                     default:
                         return null;
                 }

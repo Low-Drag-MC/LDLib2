@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
@@ -10,7 +11,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -36,23 +38,69 @@ import java.util.function.Function;
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "tree_list", registry = "ldlib2:ui_element")
+@LDLRegister(name = "tree-list", registry = "ldlib2:ui_element")
 public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
-    @Accessors(chain = true, fluent = true)
     @Getter @Setter
-    public static class TreeListStyle extends Style {
-        private IGuiTexture nodeTexture = IGuiTexture.EMPTY;
-        private IGuiTexture selectedTexture = ColorPattern.BLUE.rectTexture();
-        private IGuiTexture collapseIcon = Icons.RIGHT_ARROW_NO_BAR_S_WHITE;
-        private IGuiTexture expandIcon = Icons.DOWN_ARROW_NO_BAR_S_WHITE;
+    @Configurable(name = "TreeListStyle")
+    public class TreeListStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.NODE_BACKGROUND,
+                PropertyRegistry.NODE_HOVER_BACKGROUND,
+                PropertyRegistry.COLLAPSE_ICON,
+                PropertyRegistry.EXPAND_ICON,
+        };
 
-        public TreeListStyle(UIElement holder) {
-            super(holder);
+        public TreeListStyle() {
+            super(TreeList.this);
+            setDefault(PropertyRegistry.NODE_HOVER_BACKGROUND, ColorPattern.BLUE.rectTexture());
+            setDefault(PropertyRegistry.COLLAPSE_ICON, Icons.RIGHT_ARROW_NO_BAR_S_WHITE);
+            setDefault(PropertyRegistry.EXPAND_ICON, Icons.DOWN_ARROW_NO_BAR_S_WHITE);
+        }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public IGuiTexture nodeTexture() {
+            return getValueSave(PropertyRegistry.NODE_BACKGROUND);
+        }
+
+        public TreeListStyle nodeTexture(IGuiTexture texture) {
+            set(PropertyRegistry.NODE_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture hoverTexture() {
+            return getValueSave(PropertyRegistry.NODE_HOVER_BACKGROUND);
+        }
+
+        public TreeListStyle hoverTexture(IGuiTexture texture) {
+            set(PropertyRegistry.NODE_HOVER_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture expandIcon() {
+            return getValueSave(PropertyRegistry.EXPAND_ICON);
+        }
+
+        public TreeListStyle expandIcon(IGuiTexture texture) {
+            set(PropertyRegistry.EXPAND_ICON, texture);
+            return this;
+        }
+
+        public IGuiTexture collapseIcon() {
+            return getValueSave(PropertyRegistry.COLLAPSE_ICON);
+        }
+
+        public TreeListStyle collapseIcon(IGuiTexture texture) {
+            set(PropertyRegistry.COLLAPSE_ICON, texture);
+            return this;
         }
     }
 
     @Getter
-    private final TreeListStyle treeListStyle = new TreeListStyle(this);
+    private final TreeListStyle treeListStyle = new TreeListStyle();
     protected UIElementProvider<NODE> nodeUISupplier = iconTextTemplate(node -> IGuiTexture.EMPTY, value -> Component.translatable(value.toString()));
     protected BiConsumer<NODE, UIElement> onNodeUICreated = (node, ui) -> {};
     @Setter
@@ -76,6 +124,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     public TreeList() {
         getLayout().setWidthPercent(100);
         getLayout().setGap(YogaGutter.ALL, 1);
+        internalSetup();
     }
 
     public TreeList(NODE root) {
@@ -85,7 +134,6 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     public TreeList<NODE> menuStyle(Consumer<TreeListStyle> treeListStyle) {
         treeListStyle.accept(this.treeListStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -267,14 +315,14 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             layout.setWidthPercent(100);
             layout.setGap(YogaGutter.ALL, 2);
         }).style(style -> {
-            style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.selectedTexture : treeListStyle.nodeTexture));
+            style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.hoverTexture() : treeListStyle.nodeTexture()));
         });
         var arrow = new UIElement().layout(layout -> {
             layout.setMargin(YogaEdge.LEFT, 5 * node.getDimension());
             layout.setWidth(7);
             layout.setHeight(7);
         }).style(style -> style.backgroundTexture(DynamicTexture.of(() -> node.isBranch() ?
-                (isNodeExpanded(node) ? treeListStyle.expandIcon : treeListStyle.collapseIcon) :
+                (isNodeExpanded(node) ? treeListStyle.expandIcon() : treeListStyle.collapseIcon()) :
                 IGuiTexture.EMPTY
         ))).addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (e.button == 0) {

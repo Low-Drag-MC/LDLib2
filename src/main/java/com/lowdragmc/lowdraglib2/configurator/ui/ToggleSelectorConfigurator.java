@@ -36,6 +36,13 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
             layout.setFlexDirection(YogaFlexDirection.ROW);
             layout.setWrap(YogaWrap.WRAP);
         });
+        initToggles(nameMapping, iconProvider);
+    }
+
+    public ToggleSelectorConfigurator<T> initToggles(Function<T, String> nameMapping,
+                                                         Function<T, IGuiTexture> iconProvider) {
+        inlineContainer.clearAllChildren();
+        toggles.clear();
         for (T candidate : this.candidates) {
             var toggle = new Toggle().noText();
             toggle.layout(layout -> {
@@ -65,10 +72,11 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
                 layout.setWidthPercent(100);
                 layout.setHeightPercent(100);
             }).style(style -> style.backgroundTexture(iconProvider.apply(candidate))));
-            toggle.style(style -> style.setTooltips(nameMapping.apply(candidate)));
+            toggle.style(style -> style.tooltips(nameMapping.apply(candidate)));
             toggles.add(toggle);
         }
         inlineContainer.addChildren(toggles.toArray(new Toggle[0]));
+        return this;
     }
 
     @Override

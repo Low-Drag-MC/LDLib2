@@ -35,8 +35,10 @@ public abstract class SplitView extends UIElement {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
 
+        first.addClass("__split_view_first__");
+        second.addClass("__split_view_second__");
+
         addChildren(first, second);
-        markAllChildrenAsInternal();
     }
 
     protected abstract boolean isHoverDragging(float mouseX, float mouseY);
@@ -46,8 +48,6 @@ public abstract class SplitView extends UIElement {
     protected abstract void onDragSourceUpdate(UIEvent event);
 
     public abstract SplitView setPercentage(float percentage);
-
-    public abstract float getPercentage();
 
     public SplitView first(UIElement first) {
         this.first.clearAllChildren();
@@ -89,7 +89,7 @@ public abstract class SplitView extends UIElement {
         }
     }
 
-    @LDLRegister(name = "split_view_horizontal", registry = "ldlib2:ui_element")
+    @LDLRegister(name = "split-view-horizontal", group = "container", registry = "ldlib2:ui_element")
     public static class Horizontal extends SplitView {
         public Horizontal() {
             getLayout().setFlexDirection(YogaFlexDirection.ROW);
@@ -97,6 +97,7 @@ public abstract class SplitView extends UIElement {
             first.getLayout().setHeightPercent(100);
             second.getLayout().setFlex(1);
             second.getLayout().setHeightPercent(100);
+            internalSetup();
         }
 
         @Override
@@ -138,19 +139,16 @@ public abstract class SplitView extends UIElement {
             return this;
         }
 
-        @Override
-        public float getPercentage() {
-            return first.getLayout().getWidth().value;
-        }
     }
 
-    @LDLRegister(name = "split_view_vertical", registry = "ldlib2:ui_element")
+    @LDLRegister(name = "split-view-vertical", group = "container", registry = "ldlib2:ui_element")
     public static class Vertical extends SplitView {
         public Vertical() {
             first.getLayout().setWidthPercent(100);
             first.getLayout().setHeightPercent(50);
             second.getLayout().setFlex(1);
             second.getLayout().setWidthPercent(100);
+            internalSetup();
         }
 
         @Override
@@ -191,9 +189,5 @@ public abstract class SplitView extends UIElement {
             return this;
         }
 
-        @Override
-        public float getPercentage() {
-            return first.getLayout().getHeight().value;
-        }
     }
 }

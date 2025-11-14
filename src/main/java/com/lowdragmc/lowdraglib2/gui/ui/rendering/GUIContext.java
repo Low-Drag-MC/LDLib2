@@ -2,12 +2,15 @@ package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+
+import java.util.Stack;
 
 public class GUIContext {
     @OnlyIn(Dist.CLIENT)
@@ -24,6 +27,8 @@ public class GUIContext {
     // runtime
     @OnlyIn(Dist.CLIENT)
     public float localMouseX, localMouseY;
+    @OnlyIn(Dist.CLIENT)
+    public Stack<UIVisualLayer> UIVisualLayers = new Stack<>();
 
     @OnlyIn(Dist.CLIENT)
     public static GUIContext of(ModularUI modularUI, GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -65,5 +70,22 @@ public class GUIContext {
         var realMouse = pose.last().pose().invert(new Matrix4f()).transformPosition(new Vector3f(mouseX, mouseY, 0));
         localMouseX = realMouse.x;
         localMouseY = realMouse.y;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public void pushVisualLayer(UIVisualLayer layer) {
+        UIVisualLayers.push(layer);
+        layer.bind();
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public void popVisualLayer() {
+        UIVisualLayers.pop();
+        var mainTarget = Minecraft.getInstance().getMainRenderTarget();
+        if (UIVisualLayers.isEmpty()) {
+            mainTarget.bindWrite(false);
+        } else {
+            UIVisualLayers.peek().bind();
+        }
     }
 }

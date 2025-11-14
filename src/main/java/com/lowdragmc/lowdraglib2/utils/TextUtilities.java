@@ -37,7 +37,7 @@ public final class TextUtilities {
         var formattedLines = font.split(text, maxWidthScaled);
         return formattedLines.stream()
                 .map(line -> {
-                    var lineWidth = font.width(line);
+                    var lineWidth = font.getSplitter().stringWidth(line);
                     var realLineWidth = (lineWidth * scale);
                     return new Tuple<>(line, realLineWidth);
                 })

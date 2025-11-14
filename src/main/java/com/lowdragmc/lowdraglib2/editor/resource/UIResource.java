@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -46,7 +47,7 @@ public class UIResource extends Resource<UITemplate> {
 
     @Override
     public UITemplate deserializeResource(Tag nbt, HolderLookup.Provider provider) {
-        return UITemplate.CODEC.parse(NbtOps.INSTANCE, nbt).result().orElse(UITemplate.MISSING);
+        return UITemplate.CODEC.parse(NbtOps.INSTANCE, nbt).result().orElse(UITemplate.missing());
     }
 
     @Override
@@ -55,6 +56,7 @@ public class UIResource extends Resource<UITemplate> {
                 .setAddDefault(() -> UITemplate.of(new UIElement().layout(layout -> {
                     layout.setWidth(150);
                     layout.setHeight(150);
+                    layout.setPadding(YogaEdge.ALL, 3);
                 }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID))))
                 .setUiSupplier(path -> new UIElement().layout(layout -> {
                     layout.setWidthPercent(100);
@@ -68,11 +70,9 @@ public class UIResource extends Resource<UITemplate> {
                         // if it has already opened
                         if (view instanceof UIEditorView uiEditorView && uiEditorView.getTemplate() == template) return;
                     }
-                    // TODO make it saved manually + check if resource is still valid
-                    var newView = new UIEditorView().loadTemplate(template, () -> {
-                        var resource = provider.getResource(path);
-                        if (resource != null) {
-                            provider.addResource(path, resource);
+                    var newView = new UIEditorView().loadTemplate(template, newTemplate -> {
+                        if (provider.hasResource(path)) {
+                            provider.addResource(path, newTemplate);
                             container.reloadSpecificResource(path);
                         }
                     });

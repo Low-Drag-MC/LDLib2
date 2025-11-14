@@ -1,100 +1,130 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
-@Accessors(chain = true, fluent = true)
+@Configurable(name = "BasicStyle")
 public class BasicStyle extends Style {
-    @Getter @Setter
-    @Configurable(name = "BasicStyle.drawBackgroundWhenHover")
-    private boolean drawBackgroundWhenHover = true;
-    @Getter @Setter
-    @Configurable(name = "BasicStyle.backgroundTexture")
-    private IGuiTexture backgroundTexture = IGuiTexture.EMPTY;
-    @Getter @Setter
-    @Configurable(name = "BasicStyle.borderTexture")
-    private IGuiTexture borderTexture = IGuiTexture.EMPTY;
-    @Getter @Setter
-    @Configurable(name = "BasicStyle.overlayTexture")
-    private IGuiTexture overlayTexture = IGuiTexture.EMPTY;
-    @Getter @Setter
-    @Configurable(name = "BasicStyle.tooltips")
-    private List<Component> tooltips = new ArrayList<>();
-    @Getter
-    @Configurable(name = "BasicStyle.zIndex")
-    @ConfigNumber(range = {Integer.MIN_VALUE, Integer.MAX_VALUE})
-    private int zIndex = 0;
-    @Getter
-    @Configurable(name = "BasicStyle.transform2D", subConfigurable = true)
-    private final Transform2D transform2D = new Transform2D();
+    private final static Property<?>[] PROPERTIES = {
+            PropertyRegistry.BACKGROUND,
+            PropertyRegistry.OVERLAY,
+            PropertyRegistry.TOOLTIPS,
+            PropertyRegistry.Z_INDEX,
+            PropertyRegistry.OPACITY,
+            PropertyRegistry.OVERFLOW_CLIP,
+            PropertyRegistry.TRANSFORM_2D,
+    };
 
     public BasicStyle(UIElement holder) {
         super(holder);
     }
 
-    public BasicStyle zIndex(int zIndex) {
-        if (zIndex == this.zIndex) return this;
-        this.zIndex = zIndex;
-        if (holder.getParent() != null) {
-            holder.getParent().clearSortedChildrenCache();
+    public static void init() {
+        PropertyRegistry.Z_INDEX.addListener(BasicStyle::onPropertyChanged);
+    }
+
+    private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+        if (property == PropertyRegistry.Z_INDEX) {
+            if (element.getParent() != null) {
+                element.getParent().clearSortedChildrenCache();
+            }
         }
+    }
+
+    @Override
+    protected Property<?>[] getProperties() {
+        return PROPERTIES;
+    }
+
+    public IGuiTexture backgroundTexture() {
+        return getValueSave(PropertyRegistry.BACKGROUND);
+    }
+
+    public BasicStyle backgroundTexture(IGuiTexture backgroundTexture) {
+        set(PropertyRegistry.BACKGROUND, backgroundTexture);
         return this;
     }
 
-    public BasicStyle setTooltips(Component... tooltips) {
-        this.tooltips.clear();
-        this.tooltips.addAll(Arrays.asList(tooltips));
+    public IGuiTexture overlayTexture() {
+        return getValueSave(PropertyRegistry.OVERLAY);
+    }
+
+    public BasicStyle overlayTexture(IGuiTexture backgroundTexture) {
+        set(PropertyRegistry.OVERLAY, backgroundTexture);
+        return this;
+    }
+
+    public Tooltips tooltips() {
+        return getValueSave(PropertyRegistry.TOOLTIPS);
+    }
+
+    public BasicStyle tooltips(Tooltips tooltips) {
+        set(PropertyRegistry.TOOLTIPS, tooltips);
+        return this;
+    }
+
+    public BasicStyle tooltips(Component... tooltips) {
+        tooltips(Tooltips.of(tooltips));
         return this;
     }
 
     public BasicStyle appendTooltips(Component... tooltips) {
-        this.tooltips.addAll(Arrays.asList(tooltips));
+        tooltips(tooltips().append(tooltips));
         return this;
     }
 
-    public BasicStyle setTooltips(String... tooltips) {
-        this.tooltips.clear();
-        this.tooltips.addAll(Arrays.stream(tooltips).map(Component::translatable).toList());
+    public BasicStyle tooltips(String... tooltips) {
+        tooltips(Tooltips.of(tooltips));
         return this;
     }
 
     public BasicStyle appendTooltipsString(String... tooltips) {
-        this.tooltips.addAll(Arrays.stream(tooltips).map(Component::translatable).toList());
+        tooltips(tooltips().append(Arrays.stream(tooltips).map(Component::translatable).toArray(Component[]::new)));
         return this;
     }
 
-    public BasicStyle copyFrom(BasicStyle other) {
-        this.drawBackgroundWhenHover = other.drawBackgroundWhenHover;
-        this.backgroundTexture = other.backgroundTexture;
-        this.borderTexture = other.borderTexture;
-        this.tooltips = new ArrayList<>(other.tooltips);
-        this.zIndex = other.zIndex;
+    public int zIndex() {
+        return getValueSave(PropertyRegistry.Z_INDEX);
+    }
+
+    public BasicStyle zIndex(int zIndex) {
+        set(PropertyRegistry.Z_INDEX, zIndex);
         return this;
     }
 
-    @Override
-    public void applyStyles(Map<String, StyleValue<?>> values) {
-        super.applyStyles(values);
-        UIStyleRegistries.DRAW_BACKGROUND_WHEN_HOVER.parse(values).ifPresent(this::drawBackgroundWhenHover);
-        UIStyleRegistries.BACKGROUND.parse(values).ifPresent(this::backgroundTexture);
-        UIStyleRegistries.BORDER.parse(values).ifPresent(this::borderTexture);
-        UIStyleRegistries.OVERLAY.parse(values).ifPresent(this::overlayTexture);
-        UIStyleRegistries.TOOLTIPS.parse(values).ifPresent(this::tooltips);
-        UIStyleRegistries.Z_INDEX.parse(values).ifPresent(this::zIndex);
-        UIStyleRegistries.TRANSFORM_2D.parse(values).ifPresent(this.transform2D::copyFrom);
+    public float opacity() {
+        return getValueSave(PropertyRegistry.OPACITY);
     }
+
+    public BasicStyle opacity(float opacity) {
+        set(PropertyRegistry.OPACITY, opacity);
+        return this;
+    }
+
+    public IGuiTexture overflowClip() {
+        return getValueSave(PropertyRegistry.OVERFLOW_CLIP);
+    }
+
+    public BasicStyle overflowClip(IGuiTexture overflowClip) {
+        set(PropertyRegistry.OVERFLOW_CLIP, overflowClip);
+        return this;
+    }
+
+    public Transform2D transform2D() {
+        return getValueSave(PropertyRegistry.TRANSFORM_2D);
+    }
+
+    public BasicStyle transform2D(Transform2D transform2D) {
+        set(PropertyRegistry.TRANSFORM_2D, transform2D);
+        return this;
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
+import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -17,10 +18,7 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Collectors;
 
 /**
@@ -56,7 +54,8 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     protected BiConsumer<Integer, T> onReorder;
     @Setter
     protected boolean forceUpdate;
-    protected boolean canRemove = true, canAdd = true, canReorder = true;
+    protected boolean canAdd = true, canReorder = true;
+    protected Predicate<T> canRemove = Predicates.alwaysTrue();
     @Getter
     @Nullable
     protected ItemConfigurator selected;
@@ -87,11 +86,12 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             layout.setWidth(12);
             layout.setHeight(12);
         }).setDisplay(YogaDisplay.NONE);
-        removeButton.setOnClick(this::onRemove).setText("-").textStyle(textStyle -> textStyle.textColor(ColorPattern.GRAY.color).textShadow(false)
+        removeButton.setOnClick(this::onRemove).setText("-").textStyle(textStyle -> textStyle.textColor(ColorPattern.WHITE.color).textShadow(false)
         ).layout(layout -> {
             layout.setWidth(12);
             layout.setHeight(12);
         }).setActive(false);
+        removeButton.setDisplay(YogaDisplay.NONE);
 
         addChild(buttonGroup.addChildren(addButton, removeButton));
     }
@@ -133,7 +133,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     }
 
     protected void onRemove(UIEvent event) {
-        if (selected != null && canRemove) {
+        if (selected != null && canRemove.test(selected.object)) {
             if (onRemove != null) {
                 onRemove.accept(selected.object);
             }
@@ -177,8 +177,11 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     }
 
     public ArrayConfiguratorGroup<T> setCanRemove(boolean canRemove) {
+        return setCanRemove(canRemove ? Predicates.alwaysTrue() : Predicates.alwaysFalse());
+    }
+
+    public ArrayConfiguratorGroup<T> setCanRemove(Predicate<T> canRemove) {
         this.canRemove = canRemove;
-        removeButton.setDisplay(canRemove ? YogaDisplay.FLEX : YogaDisplay.NONE);
         return this;
     }
 
@@ -218,9 +221,8 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         if (selected != null) {
             selected.setSelected(true);
         }
-        removeButton.textStyle(textStyle -> {
-            textStyle.textColor(selected != null ? ColorPattern.WHITE.color : ColorPattern.GRAY.color);
-        }).setActive(this.selected != null);
+        removeButton.setActive(this.selected != null);
+        removeButton.setDisplay((this.selected != null && canRemove.test(this.selected.object)) ? YogaDisplay.FLEX : YogaDisplay.NONE);
     }
 
     public class ItemConfigurator extends Configurator {
@@ -232,7 +234,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             label.layout(layout -> {
                 layout.setMargin(YogaEdge.LEFT, 1f);
                 layout.setAlignSelf(YogaAlign.CENTER);
-            }).style(style -> style.setTooltips("ldlib.gui.editor.tips.drag_item"));
+            }).style(style -> style.tooltips("ldlib.gui.editor.tips.drag_item"));
             getLayout().setPadding(YogaEdge.LEFT, 2f);
             this.object = object;
             inner = provider.apply(this::getter, this::setter);

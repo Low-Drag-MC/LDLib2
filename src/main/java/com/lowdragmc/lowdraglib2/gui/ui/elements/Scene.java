@@ -50,7 +50,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @LDLRegister(name = "scene", registry = "ldlib2:ui_element")
 public class Scene extends UIElement {
-    private static Object DRAGGING = new Object();
+    private static final Object DRAGGING = new Object();
     @Nullable
     @Getter
     protected WorldSceneRenderer renderer;
@@ -113,6 +113,7 @@ public class Scene extends UIElement {
         addEventListener(UIEvents.MOUSE_UP, this::onMouseUp);
         addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
+        internalSetup();
     }
 
     public Scene useCacheBuffer() {

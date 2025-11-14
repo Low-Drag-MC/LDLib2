@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
@@ -9,77 +8,105 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleHandler;
-import com.lowdragmc.lowdraglib2.gui.ui.style.UIStyleRegistries;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.BoolValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.FloatValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextureValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.appliedenergistics.yoga.YogaPositionType;
 
-import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "graph_view", registry = "ldlib2:ui_element")
+@LDLRegister(name = "graph-view", group = "container", registry = "ldlib2:ui_element")
 public class GraphView extends UIElement {
     private record DragOffset(float startOffsetX, float startOffsetY) {}
 
-    @Accessors(chain = true, fluent = true)
-    public static class GraphViewStyle extends Style {
-        @Getter @Setter
-        @Configurable(name = "GraphView.allowZoom")
-        private boolean allowZoom = true;
-        @Getter @Setter
-        @Configurable(name = "GraphView.allowPan")
-        private boolean allowPan = true;
-        @Getter @Setter
-        @Configurable(name = "GraphView.minScale")
-        @ConfigNumber(range = {0, Float.MAX_VALUE})
-        private float minScale = 0.1f;
-        @Getter @Setter
-        @Configurable(name = "GraphView.maxScale")
-        @ConfigNumber(range = {0, Float.MAX_VALUE})
-        private float maxScale = 10f;
-        @Getter @Setter @Nullable
-        @Configurable(name = "GraphView.gridTexture")
-        private IGuiTexture gridTexture = SpriteTexture.of("ldlib2:textures/gui/grid_bg.png")
-                .setWrapMode(SpriteTexture.WrapMode.REPEAT);
-        @Getter @Setter
-        @Configurable(name = "GraphView.gridSize")
-        @ConfigNumber(range = {0, Float.MAX_VALUE})
-        private float gridSize = 64;
+    @Configurable(name = "GraphViewStyle")
+    public class GraphViewStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.ALLOW_ZOOM,
+                PropertyRegistry.ALLOW_PAN,
+                PropertyRegistry.MIN_SCALE,
+                PropertyRegistry.MAX_SCALE,
+                PropertyRegistry.GRID_BACKGROUND,
+                PropertyRegistry.GRID_SIZE,
+        };
 
-        public GraphViewStyle(UIElement holder) {
-            super(holder);
+        public GraphViewStyle() {
+            super(GraphView.this);
+            setDefault(PropertyRegistry.GRID_BACKGROUND, SpriteTexture.of("ldlib2:textures/gui/grid_bg.png")
+                    .setWrapMode(SpriteTexture.WrapMode.REPEAT));
         }
 
         @Override
-        public void applyStyles(Map<String, StyleValue<?>> values) {
-            super.applyStyles(values);
-            UIStyleRegistries.ALLOW_ZOOM.parse(values).ifPresent(this::allowPan);
-            UIStyleRegistries.ALLOW_PAN.parse(values).ifPresent(this::allowPan);
-            UIStyleRegistries.MIN_SCALE.parse(values).ifPresent(this::minScale);
-            UIStyleRegistries.MAX_SCALE.parse(values).ifPresent(this::maxScale);
-            UIStyleRegistries.GRID_BACKGROUND.parse(values).ifPresent(this::gridTexture);
-            UIStyleRegistries.GRID_SIZE.parse(values).ifPresent(this::gridSize);
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public GraphViewStyle allowZoom(boolean allowZoom) {
+            set(PropertyRegistry.ALLOW_ZOOM, allowZoom);
+            return this;
+        }
+
+        public boolean allowZoom() {
+            return getValueSave(PropertyRegistry.ALLOW_ZOOM);
+        }
+
+        public GraphViewStyle allowPan(boolean allowPan) {
+            set(PropertyRegistry.ALLOW_PAN, allowPan);
+            return this;
+        }
+
+        public boolean allowPan() {
+            return getValueSave(PropertyRegistry.ALLOW_PAN);
+        }
+
+        public GraphViewStyle minScale(float minScale) {
+            set(PropertyRegistry.MIN_SCALE, minScale);
+            return this;
+        }
+
+        public float minScale() {
+            return getValueSave(PropertyRegistry.MIN_SCALE);
+        }
+
+        public GraphViewStyle maxScale(float maxScale) {
+            set(PropertyRegistry.MAX_SCALE, maxScale);
+            return this;
+        }
+
+        public float maxScale() {
+            return getValueSave(PropertyRegistry.MAX_SCALE);
+        }
+
+        public GraphViewStyle gridTexture(IGuiTexture gridTexture) {
+            set(PropertyRegistry.GRID_BACKGROUND, gridTexture);
+            return this;
+        }
+
+        public IGuiTexture gridTexture() {
+            return getValueSave(PropertyRegistry.GRID_BACKGROUND);
+        }
+
+        public GraphViewStyle gridSize(float gridSize) {
+            set(PropertyRegistry.GRID_SIZE, gridSize);
+            return this;
+        }
+
+        public float gridSize() {
+            return getValueSave(PropertyRegistry.GRID_SIZE);
         }
     }
 
     public final UIElement contentRoot = new UIElement();
     @Getter
-    @Configurable(name = "graphViewStyle", subConfigurable = true)
-    private final GraphViewStyle graphViewStyle = new GraphViewStyle(this);
+    private final GraphViewStyle graphViewStyle = new GraphViewStyle();
 
     // runtime
     @Getter @Setter
@@ -94,8 +121,8 @@ public class GraphView extends UIElement {
             l.setPositionType(YogaPositionType.ABSOLUTE);
             l.setWidth(0);
             l.setHeight(0);
-        });
-        contentRoot.getStyle().transform2D().pivot(0f, 0f);
+        }).addClass("__graph-view_content-root__");
+        contentRoot.transform(transform -> transform.pivot(0f, 0f));
 
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
@@ -103,12 +130,11 @@ public class GraphView extends UIElement {
 
         addChild(contentRoot);
         refreshContentTransform();
-        markAllChildrenAsInternal();
+        internalSetup();
     }
 
     public GraphView graphViewStyle(Consumer<GraphViewStyle> style) {
         style.accept(this.graphViewStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -139,9 +165,10 @@ public class GraphView extends UIElement {
     }
 
     private void refreshContentTransform() {
-        contentRoot.getStyle().transform2D()
+        contentRoot.transform(transform -> transform
                 .translate(-(offsetX * scale), -(offsetY * scale))
-                .scale(scale);
+                .scale(scale)
+        );
     }
 
     public void fitToChildren(float padding, float minScaleBound) {
@@ -175,7 +202,7 @@ public class GraphView extends UIElement {
 
         float sW = getContentWidth() / w;
         float sH = getContentHeight() / h;
-        float newScale = Mth.clamp(Math.min(sW, sH), Math.max(minScaleBound, graphViewStyle.minScale), graphViewStyle.maxScale);
+        float newScale = Mth.clamp(Math.min(sW, sH), Math.max(minScaleBound, graphViewStyle.minScale()), graphViewStyle.maxScale());
 
         offsetX = minX;
         offsetY = minY;
@@ -190,7 +217,7 @@ public class GraphView extends UIElement {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (graphViewStyle.allowPan &&
+        if (graphViewStyle.allowPan() &&
                 (event.target == this && event.button == 0 || event.button == 2) &&
                 isChildHover() && isMouseOverContent(event.x, event.y)) {
             startDrag(new DragOffset(offsetX, offsetY), null);
@@ -199,7 +226,7 @@ public class GraphView extends UIElement {
 
     protected void onDragSourceUpdate(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof DragOffset(float startOffsetX, float startOffsetY)) {
-            float invS = 1f / Math.max(0.0001f, Mth.clamp(scale, graphViewStyle.minScale, graphViewStyle.maxScale));
+            float invS = 1f / Math.max(0.0001f, Mth.clamp(scale, graphViewStyle.minScale(), graphViewStyle.maxScale()));
             offsetX = startOffsetX + (event.dragStartX - event.x) * invS;
             offsetY = startOffsetY + (event.dragStartY - event.y) * invS;
             refreshContentTransform();
@@ -207,8 +234,8 @@ public class GraphView extends UIElement {
     }
 
     protected void onMouseWheel(UIEvent event) {
-        if (graphViewStyle.allowZoom && event.target == this && isChildHover() && isMouseOverContent(event.x, event.y)) {
-            var newScale = Mth.clamp(scale + event.deltaY * 0.1f, graphViewStyle.minScale, graphViewStyle.maxScale);
+        if (graphViewStyle.allowZoom() && event.target == this && isChildHover() && isMouseOverContent(event.x, event.y)) {
+            var newScale = Mth.clamp(scale + event.deltaY * 0.1f, graphViewStyle.minScale(), graphViewStyle.maxScale());
             if (newScale != scale) {
                 var rx = event.x - this.getPositionX();
                 var ry = event.y - this.getPositionY();
@@ -223,18 +250,17 @@ public class GraphView extends UIElement {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        if (graphViewStyle.gridTexture == null) return;
         var x = getContentX();
         var y = getContentY();
         var w = getContentWidth();
         var h = getContentHeight();
 
 
-        var imageWidth = graphViewStyle.gridSize;
-        var imageHeight = graphViewStyle.gridSize;
-        var gridSize = graphViewStyle.gridSize;
+        var imageWidth = graphViewStyle.gridSize();
+        var imageHeight = graphViewStyle.gridSize();
+        var gridSize = graphViewStyle.gridSize();
 
-        if (graphViewStyle.gridTexture instanceof SpriteTexture spriteTexture) {
+        if (graphViewStyle.gridTexture() instanceof SpriteTexture spriteTexture) {
             imageWidth = spriteTexture.getImageSize().width;
             imageHeight = spriteTexture.getImageSize().height;
         }
@@ -266,7 +292,7 @@ public class GraphView extends UIElement {
         float drawW = (gridEndX - gridStartX) / textureScaleX;
         float drawH = (gridEndY - gridStartY) / textureScaleY;
 
-        guiContext.drawTexture(graphViewStyle.gridTexture, drawX, drawY, drawW, drawH);
+        guiContext.drawTexture(graphViewStyle.gridTexture(), drawX, drawY, drawW, drawH);
 
         guiContext.pose.popPose();
 

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -35,9 +36,9 @@ public class Dialog extends UIElement {
     private Runnable onClose;
 
     public Dialog() {
-        this.titleBar = new UIElement();
-        this.contentContainer = new UIElement();
-        this.buttonContainer = new UIElement();
+        this.titleBar = new UIElement().addClass("__dialog_title__");
+        this.contentContainer = new UIElement().addClass("__dialog_content-container__");
+        this.buttonContainer = new UIElement().addClass("__dialog_button-container__");
         this.setFocusable(true);
         this.getLayout().setPositionType(YogaPositionType.ABSOLUTE);
         this.getLayout().setWidthPercent(100);
@@ -50,7 +51,7 @@ public class Dialog extends UIElement {
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setJustifyContent(YogaJustify.CENTER);
             layout.setWidth(150);
-        });
+        }).addClass("__dialog_overlay__");
 
         this.titleBar.layout(layout -> {
             layout.setWidthPercent(100);
@@ -148,6 +149,21 @@ public class Dialog extends UIElement {
         parent.addChild(this);
         focus();
         return this;
+    }
+
+    /**
+     * Displays the dialog on the top of the specified {@link ModularUI} instance.
+     *
+     * If the provided {@code modularUI} is null, this method will return the current
+     * dialog instance without performing any action.
+     *
+     * @param modularUI the {@code ModularUI} instance used to display the dialog;
+     *                  it may be null, in which case no action is performed
+     * @return the current {@code Dialog} instance for method chaining
+     */
+    public Dialog show(@Nullable ModularUI modularUI) {
+        if (modularUI == null) return this;
+        return show(modularUI.ui.rootElement);
     }
 
     /**
