@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -104,7 +105,9 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
 
     default IGuiTexture copy() {
-        return CODEC.encodeStart(NbtOps.INSTANCE, this).result().map(tag -> CODEC.parse(NbtOps.INSTANCE, tag).result()
+        return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
+                .result()
+                .map(tag -> CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result()
                 .orElse(IGuiTexture.MISSING_TEXTURE))
                 .orElse(IGuiTexture.MISSING_TEXTURE);
     }

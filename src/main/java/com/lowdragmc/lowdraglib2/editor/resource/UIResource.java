@@ -42,12 +42,12 @@ public class UIResource extends Resource<UITemplate> {
     @Nullable
     @Override
     public Tag serializeResource(UITemplate value, HolderLookup.Provider provider) {
-        return UITemplate.CODEC.encodeStart(NbtOps.INSTANCE, value).result().orElse(null);
+        return UITemplate.CODEC.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), value).result().orElse(null);
     }
 
     @Override
     public UITemplate deserializeResource(Tag nbt, HolderLookup.Provider provider) {
-        return UITemplate.CODEC.parse(NbtOps.INSTANCE, nbt).result().orElse(UITemplate.missing());
+        return UITemplate.CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), nbt).result().orElse(UITemplate.missing());
     }
 
     @Override

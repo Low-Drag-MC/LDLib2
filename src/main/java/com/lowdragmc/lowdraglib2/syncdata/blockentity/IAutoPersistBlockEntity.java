@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.blockentity;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.utils.TagUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -19,7 +20,7 @@ public interface IAutoPersistBlockEntity extends IManagedBlockEntity {
             if (forDrop && !persistedField.getKey().isDrop()) {
                 continue;
             }
-            var data = persistedField.readPersisted(NbtOps.INSTANCE);
+            var data = persistedField.readPersisted(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE));
             if (data != null) {
                 TagUtils.setTagExtended(managedTag, persistedField.getPersistedKey(), data);
             }
@@ -43,7 +44,7 @@ public interface IAutoPersistBlockEntity extends IManagedBlockEntity {
             var key = ref.getPersistedKey();
             var data = TagUtils.getTagExtended(managedTag, key);
             if (data != null) {
-                ref.writePersisted(NbtOps.INSTANCE, data);
+                ref.writePersisted(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), data);
             }
         }
         loadCustomPersistedData(tag.getCompound("custom"));

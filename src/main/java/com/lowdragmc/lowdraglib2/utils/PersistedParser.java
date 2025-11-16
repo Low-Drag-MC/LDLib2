@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.DelegatingOpsAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.ManagedFieldUtils;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
@@ -17,6 +18,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.DelegatingOps;
+import net.minecraft.resources.RegistryOps;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import java.lang.reflect.Field;
@@ -72,14 +75,14 @@ public final class PersistedParser {
      * This method is used to serial the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
     public static CompoundTag serializeNBT(Object object, HolderLookup.Provider provider) {
-        return (CompoundTag) serialize(NbtOps.INSTANCE, object, provider).result().orElse(new CompoundTag());
+        return (CompoundTag) serialize(provider.createSerializationContext(NbtOps.INSTANCE), object, provider).result().orElse(new CompoundTag());
     }
 
     /**
      * This method is used to deserialize the NBT data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
     public static void deserializeNBT(CompoundTag tag, Object object, HolderLookup.Provider provider) {
-        deserialize(NbtOps.INSTANCE, tag, object, provider);
+        deserialize(provider.createSerializationContext(NbtOps.INSTANCE), tag, object, provider);
     }
 
     /**
@@ -166,7 +169,7 @@ public final class PersistedParser {
                     var value = field.get(object);
                     if (value != null) {
                         if (value instanceof INBTSerializable<?> serializable) {
-                            data = op == NbtOps.INSTANCE ? 
+                            data = (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) ?
                                     (T) serializable.serializeNBT(provider) : 
                                     NbtOps.INSTANCE.convertTo(op, serializable.serializeNBT(provider));
                         } else {
@@ -252,7 +255,7 @@ public final class PersistedParser {
                         var value = field.get(object);
                         if (value != null) {
                             if (value instanceof INBTSerializable serializable) {
-                                if (op == NbtOps.INSTANCE) {
+                                if (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
                                     serializable.deserializeNBT(provider, (Tag) data);
                                 } else {
                                     serializable.deserializeNBT(provider, op.convertTo(NbtOps.INSTANCE, data));

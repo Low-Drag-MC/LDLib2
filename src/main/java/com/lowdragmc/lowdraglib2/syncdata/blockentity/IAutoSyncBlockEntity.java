@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.blockentity;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
@@ -85,7 +86,7 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
         var list = new ListTag();
         var syncedFields = getRootStorage().getSyncFields();
         for (IRef<?> syncedField : syncedFields) {
-            list.add(syncedField.readInitialSync(NbtOps.INSTANCE));
+            list.add(syncedField.readInitialSync(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE)));
         }
         if (!list.isEmpty()) {
             tag.put("managed", list);
@@ -106,7 +107,7 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
             throw new IllegalStateException("Synced fields count mismatch");
         }
         for (int i = 0; i < list.size(); i++) {
-            syncedFields[i].writeInitialSync(NbtOps.INSTANCE, list.getCompound(i));
+            syncedFields[i].writeInitialSync(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), list.getCompound(i));
         }
     }
 }

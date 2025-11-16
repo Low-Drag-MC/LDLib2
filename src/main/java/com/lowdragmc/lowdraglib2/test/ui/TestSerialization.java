@@ -23,12 +23,24 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.enchantment.providers.VanillaEnchantmentProviders;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.joml.Vector3f;
@@ -36,6 +48,7 @@ import org.joml.Vector3i;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -55,6 +68,8 @@ public class TestSerialization implements IScreenTest {
         @Configurable
         private Direction enumValue = Direction.NORTH;
         @Configurable
+        private ItemStack itemStack = ItemStack.EMPTY;
+        @Configurable
         private Vector3f vector3fValue = new Vector3f(0, 0, 0);
         @Configurable
         private int[] intArray = new int[]{1, 2, 3};
@@ -68,6 +83,11 @@ public class TestSerialization implements IScreenTest {
         @ConfigList(configuratorMethod = "buildTestGroupConfigurator", addDefaultMethod = "addDefaultTestGroup")
         @ReadOnlyManaged(serializeMethod = "testGroupSerialize", deserializeMethod = "testGroupDeserialize")
         private final List<TestGroup> groupList = new ArrayList<>();
+
+        public TestData() {
+            itemStack = new ItemStack(Items.DIAMOND_PICKAXE);
+            itemStack.enchant(Platform.getFrozenRegistry().lookup(Registries.ENCHANTMENT).get().get(Enchantments.POWER).orElseThrow(), 1);
+        }
 
         public Configurator buildTestGroupConfigurator(Supplier<TestGroup> getter, Consumer<TestGroup> setter) {
             var instance = getter.get();

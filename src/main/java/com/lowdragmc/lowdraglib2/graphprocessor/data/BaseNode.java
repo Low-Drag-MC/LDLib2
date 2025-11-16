@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.graphprocessor.data;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurable;
@@ -114,12 +115,12 @@ public abstract class BaseNode implements IPersistedSerializable, ILDLRegister<B
     }
 
     public CompoundTag serializeWrapper() {
-        return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).result().orElse(new CompoundTag());
+        return (CompoundTag) CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this).result().orElse(new CompoundTag());
     }
 
     @Nullable
     public static BaseNode createFromTag(Tag tag) {
-        return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(null);
+        return CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result().orElse(null);
     }
 
     public BaseNode copy() {

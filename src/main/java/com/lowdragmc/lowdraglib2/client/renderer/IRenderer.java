@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.client.renderer;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
@@ -85,11 +86,11 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
 
     @Nullable
     default CompoundTag serializeWrapper() {
-        return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).result().orElse(null);
+        return (CompoundTag) CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this).result().orElse(null);
     }
 
     static IRenderer deserializeWrapper(Tag tag) {
-        return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(EMPTY);
+        return CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result().orElse(EMPTY);
     }
 
     @OnlyIn(Dist.CLIENT)

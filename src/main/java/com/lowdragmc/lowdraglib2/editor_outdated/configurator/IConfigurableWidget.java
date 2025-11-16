@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor_outdated.configurator;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
@@ -64,12 +65,12 @@ public interface IConfigurableWidget extends IConfigurable, IPersistedSerializab
     }
 
     default CompoundTag serializeWrapper() {
-        return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).result().orElseGet(CompoundTag::new);
+        return (CompoundTag) CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this).result().orElseGet(CompoundTag::new);
     }
 
     @Nullable
     static IConfigurableWidget deserializeWrapper(CompoundTag tag) {
-        return CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(null);
+        return CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result().orElse(null);
     }
 
     // ******* setter ********//

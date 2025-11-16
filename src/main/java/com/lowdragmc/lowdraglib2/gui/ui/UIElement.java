@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -1340,8 +1341,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public UIElement copy() {
-        return CODEC.encodeStart(NbtOps.INSTANCE, this).result().map(tag -> CODEC.parse(NbtOps.INSTANCE, tag).result()
-                        .orElseGet(UIElement::new))
+        return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
+                .result()
+                .map(tag -> CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag)
+                        .result().orElseGet(UIElement::new))
                 .orElseGet(UIElement::new);
     }
 
@@ -1457,7 +1460,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             for (var i = 0; i < externalTag.size(); i++) {
                 var childTag = externalTag.getCompound(i);
                 var index = childTag.getInt("index");
-                var result = CODEC.parse(NbtOps.INSTANCE, childTag).result();
+                var result = CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), childTag).result();
                 if (result.isEmpty()) {
                     LDLib2.LOGGER.error("Failed to deserialize UI Element {}: {}", this, tag);
                 }

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -232,7 +233,7 @@ public abstract class Style implements IConfigurable, IPersistedSerializable {
         for (Property<?> property : getProperties()) {
             var inline = getInline(property);
             if (inline != null) {
-                tag.put(property.name, property.codec.encodeStart(NbtOps.INSTANCE, cast(inline)).result().orElseThrow());
+                tag.put(property.name, property.codec.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), cast(inline)).result().orElseThrow());
             }
         }
         return tag;
@@ -243,7 +244,7 @@ public abstract class Style implements IConfigurable, IPersistedSerializable {
         IPersistedSerializable.super.deserializeNBT(provider, tag);
         for (Property<?> property : getProperties()) {
             if (!tag.contains(property.name)) continue;
-            property.codec.parse(NbtOps.INSTANCE, tag.get(property.name)).result()
+            property.codec.parse(provider.createSerializationContext(NbtOps.INSTANCE), tag.get(property.name)).result()
                     .ifPresent(value -> set(property, cast(value)));
         }
     }

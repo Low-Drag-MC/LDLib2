@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.direct;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.DirectRef;
@@ -126,8 +127,8 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          */
         public Builder<TYPE> codecMark() {
             this.markFunction = new IMarkFunction.Simple<>(
-                    value -> codec.encodeStart(JavaOps.INSTANCE, value).getOrThrow(),
-                    (mark, value) -> !Objects.equals(mark, codec.encodeStart(JavaOps.INSTANCE, value).getOrThrow()));
+                    value -> codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow(),
+                    (mark, value) -> !Objects.equals(mark, codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow()));
             return this;
         }
 
