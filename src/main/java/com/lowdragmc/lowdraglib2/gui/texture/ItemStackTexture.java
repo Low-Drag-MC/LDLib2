@@ -41,6 +41,7 @@ public class ItemStackTexture extends TransformTexture {
 
     public ItemStackTexture setItems(ItemStack... itemStack) {
         this.items = itemStack;
+        this.index = 0;
         return this;
     }
 

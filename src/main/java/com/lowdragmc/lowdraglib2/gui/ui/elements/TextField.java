@@ -46,6 +46,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.text.NumberFormat;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 @ParametersAreNonnullByDefault
@@ -194,6 +195,9 @@ public class TextField extends BindableUIElement<String> {
     @Getter
     @Configurable(name = "value")
     private String rawText = "";
+    @Getter @Setter
+    @Nullable
+    private Function<String, Component> formatter = null;
     @Getter
     private int cursorPos;
     @Getter
@@ -908,8 +912,10 @@ public class TextField extends BindableUIElement<String> {
     public Tuple<FormattedCharSequence, Float> getFormattedLine() {
         if (formattedLineCache == null) {
             var font = getTextFieldStyle().font();
-            var text = rawText.isEmpty() ? textFieldStyle.placeholder() : Component.literal(rawText);
-            var textWithFont = font.equals(net.minecraft.network.chat.Style.DEFAULT_FONT) ? text : text.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(font));
+            var formattedText = rawText.isEmpty() ?
+                    textFieldStyle.placeholder() :
+                    (formatter == null ? Component.literal(rawText) : formatter.apply(rawText));
+            var textWithFont = font.equals(net.minecraft.network.chat.Style.DEFAULT_FONT) ? formattedText : formattedText.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(font));
             var lines = TextUtilities.computeFormattedLines(
                     getFont(),
                     textWithFont,

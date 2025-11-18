@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
@@ -14,8 +12,6 @@ public class StringConfigurator extends ValueConfigurator<String> {
     public final TextField textField;
     @Getter
     protected boolean isResourceLocation;
-    @Getter
-    protected boolean isCompoundTag;
 
     public StringConfigurator(String name, Supplier<String> supplier, Consumer<String> onUpdate, @Nonnull String defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
@@ -30,12 +26,6 @@ public class StringConfigurator extends ValueConfigurator<String> {
     public StringConfigurator setResourceLocation(boolean resourceLocation) {
         isResourceLocation = resourceLocation;
         textField.setResourceLocationOnly();
-        return this;
-    }
-
-    public StringConfigurator setCompoundTag(boolean compoundTag) {
-        isCompoundTag = compoundTag;
-        textField.setCompoundTagOnly();
         return this;
     }
 

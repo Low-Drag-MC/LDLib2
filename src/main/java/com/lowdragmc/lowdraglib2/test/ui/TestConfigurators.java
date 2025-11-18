@@ -26,9 +26,15 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -93,7 +99,11 @@ public class TestConfigurators implements IScreenTest, IConfigurable, IPersisted
     private Direction subConfiguratorSelector = Direction.NORTH;
     @Configurable
     @ConfigSearch(searchConfiguratorMethod = "createBlockSearchConfigurator")
-    private Block block = Blocks.STONE;
+    private Block blockSearch = Blocks.STONE;
+    @Configurable
+    private ItemStack item = new ItemStack(Items.STONE);
+    @Configurable
+    private FluidStack fluid = new FluidStack(Fluids.WATER, 1000);
 
     @Override
     public ModularUI createUI(Player entityPlayer) {

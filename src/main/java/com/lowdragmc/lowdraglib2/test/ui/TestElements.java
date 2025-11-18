@@ -102,6 +102,7 @@ public class TestElements implements IScreenTest {
                                 new ColorSelector().layout(layout -> {
                                     layout.setWidth(60);
                                 }),
+                                new TagField(),
                                 new SearchComponent<>(new SearchComponent.ISearchUI<Block>() {
                                     @Override
                                     public void search(String word, IResultHandler<Block> searchHandler) {

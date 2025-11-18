@@ -148,12 +148,12 @@ public final class LDLibExtraCodecs {
         }
         if (outdated.length == 1) {
             return Codec.either(latest, outdated[0]).xmap(
-                    e -> e.map(v1 -> v1, v0 -> v0),
+                    Either::unwrap,
                     Either::left
             );
         }
         return Codec.either(latest, compat(outdated[0], Arrays.copyOfRange(outdated, 1, outdated.length))).xmap(
-                e -> e.map(v1 -> v1, v0 -> v0),
+                Either::unwrap,
                 Either::left
         );
     }

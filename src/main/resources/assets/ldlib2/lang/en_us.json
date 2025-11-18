@@ -101,6 +101,7 @@
   "ldlib.gui.editor.name.allowXEIIngredientOverMouse": "support xei ingredient lookup",
   "ldlib.gui.editor.tips.allowXEIIngredientOverMouse": "if ture, the widget will be able to jump to the xei viewer",
   "ldlib.gui.editor.name.items": "items",
+  "ldlib.gui.editor.name.fluids": "fluids",
   "ldlib.gui.editor.name.texture_type": "Texture Type",
   "ldlib.gui.editor.name.pos": "position",
   "ldlib.gui.editor.name.hover_tips": "hover tips",
@@ -454,5 +455,11 @@
   "maxValue": "Max Value",
   "ToggleGroup": "Toggle Group",
   "SwitchStyle": "Switch Style",
-  "allowEmpty": "Allow Empty"
+  "allowEmpty": "Allow Empty",
+  "configurator.item": "Item",
+  "configurator.fluid": "Fluid",
+  "configurator.data_component": "Data Component",
+  "configurator.reset_prototype": "reset prototype",
+  "configurator.additional": "Additional",
+  "configurator.additional.tips": "An unregistered data component by the data component holder"
 }

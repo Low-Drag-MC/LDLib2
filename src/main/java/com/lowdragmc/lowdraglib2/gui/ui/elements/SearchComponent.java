@@ -362,7 +362,6 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         }
 
         // update preview
-        // TODO Custom Candidate UI
         this.preview.clearAllChildren();
         if (value != null) {
             var candidateUI = candidateUIProvider.apply(value);

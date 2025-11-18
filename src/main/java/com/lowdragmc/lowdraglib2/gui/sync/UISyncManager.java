@@ -126,7 +126,7 @@ public class UISyncManager {
 
     public <T> void sendEvent(RPCEvent event, Consumer<T> responseCallback, Object... args) {
         var player = modularUI.player;
-        if (player == null) throw new IllegalStateException("Cannot send event to null player");
+        if (player == null) return;
         if (!rpcEvents.contains(event)) {
             LDLib2.LOGGER.warn("No UI RPC event registered for name {}", event);
             return;

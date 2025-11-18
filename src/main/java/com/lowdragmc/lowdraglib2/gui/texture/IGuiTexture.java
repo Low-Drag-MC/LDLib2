@@ -16,6 +16,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
@@ -55,7 +56,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
             Tesselator tessellator = Tesselator.getInstance();
             BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX);
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, TextureManager.INTENTIONAL_MISSING_TEXTURE);
+            RenderSystem.setShaderTexture(0, MissingTextureAtlasSprite.getTexture().getId());
             var matrix4f = graphics.pose().last().pose();
             bufferbuilder.addVertex(matrix4f, x, y + height, 0).setUv(0, 1);
             bufferbuilder.addVertex(matrix4f, x + width, y + height, 0).setUv(1, 1);
