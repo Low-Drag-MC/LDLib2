@@ -55,7 +55,7 @@ public class TagField extends BindableUIElement<Tag> {
         });
 
         addChild(textField);
-        refreshTextField();
+        internalSetup();
     }
 
     private boolean isTagValid(String rawText) {

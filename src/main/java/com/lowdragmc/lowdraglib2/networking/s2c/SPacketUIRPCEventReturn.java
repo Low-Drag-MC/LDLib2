@@ -1,12 +1,9 @@
 package com.lowdragmc.lowdraglib2.networking.s2c;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import lombok.NoArgsConstructor;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;

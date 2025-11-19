@@ -3,10 +3,7 @@ package com.lowdragmc.lowdraglib2;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
-import com.lowdragmc.lowdraglib2.gui.factory_outdated.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
-import com.lowdragmc.lowdraglib2.integration.kjs.ui.BlockUIJSFactory;
-import com.lowdragmc.lowdraglib2.integration.kjs.ui.ItemUIJSFactory;
 import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
 import com.lowdragmc.lowdraglib2.plugin.ILDLibPlugin;
 import com.lowdragmc.lowdraglib2.plugin.LDLibPlugin;
@@ -68,12 +65,6 @@ public class CommonProxy {
     }
 
     public static void init() {
-        UIFactory.register(BlockEntityUIFactory.INSTANCE);
-        UIFactory.register(HeldItemUIFactory.INSTANCE);
-        if (LDLib2.isKubejsLoaded()) {
-            UIFactory.register(BlockUIJSFactory.INSTANCE);
-            UIFactory.register(ItemUIJSFactory.INSTANCE);
-        }
         LDLib2Registries.init();
         AccessorRegistries.init();
         PropertyRegistry.init();

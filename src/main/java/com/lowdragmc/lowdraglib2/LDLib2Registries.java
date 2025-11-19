@@ -5,8 +5,6 @@ import com.lowdragmc.lowdraglib2.configurator.accessors.IConfiguratorAccessor;
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceProviderType;
-import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib2.graphprocessor.data.BaseNode;
 import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -15,7 +13,6 @@ import com.lowdragmc.lowdraglib2.registry.LDLRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.ui.IMenuTest;
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
-import com.lowdragmc.lowdraglib2.utils.TypeAdapter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -23,15 +20,6 @@ import java.util.function.Supplier;
 
 @SuppressWarnings("unchecked")
 public class LDLib2Registries {
-    public final static AutoRegistry.LDLibRegister<TypeAdapter.ITypeAdapter, TypeAdapter.ITypeAdapter> TYPE_ADAPTERS = AutoRegistry.LDLibRegister
-            .create(LDLib2.id("type_adapter"), TypeAdapter.ITypeAdapter.class, AutoRegistry::noArgsInstance);
-
-    public final static AutoRegistry.LDLibRegister<BaseNode, Supplier<BaseNode>> GRAPH_NODES = AutoRegistry.LDLibRegister
-            .create(LDLib2.id("graph_node"), BaseNode.class, AutoRegistry::noArgsCreator);
-
-    public final static AutoRegistry.LDLibRegister<IConfigurableWidget, Supplier<IConfigurableWidget>> WIDGETS = AutoRegistry.LDLibRegister
-            .create(LDLib2.id("widget"), IConfigurableWidget.class, AutoRegistry::noArgsCreator);
-
     public final static AutoRegistry.LDLibRegister<UIElement, Supplier<UIElement>> UI_ELEMENTS = AutoRegistry.LDLibRegister
             .create(LDLib2.id("ui_element"), UIElement.class, AutoRegistry::noArgsCreator);
 

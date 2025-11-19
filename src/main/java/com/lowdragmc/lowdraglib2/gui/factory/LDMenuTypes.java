@@ -13,9 +13,14 @@ import java.util.function.Supplier;
 public final class LDMenuTypes {
     public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(BuiltInRegistries.MENU, LDLib2.MOD_ID);
 
-    // For some DeferredRegister<MenuType<?>> REGISTER
     public static final Supplier<MenuType<ModularUIContainerMenu>> PLAYER_UI = MENUS.register("player_ui",
             () -> IMenuTypeExtension.create(PlayerUIMenuType::create));
+
+    public static final Supplier<MenuType<ModularUIContainerMenu>> HELD_ITEM_UI = MENUS.register("held_item_ui",
+            () -> IMenuTypeExtension.create(HeldItemUIMenuType::create));
+
+    public static final Supplier<MenuType<ModularUIContainerMenu>> BLOCK_UI = MENUS.register("block_ui",
+            () -> IMenuTypeExtension.create(BlockUIMenuType::create));
 
     public static void init(IEventBus eventBus) {
         MENUS.register(eventBus);

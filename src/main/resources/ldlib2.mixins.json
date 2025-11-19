@@ -11,7 +11,6 @@
     "BlockStateModelLoaderMixin",
     "ItemModelShaperMixin",
     "ItemRendererMixin",
-    "LanguageMixin",
     "ModelBakeryMixin",
     "ObjModelMixin",
     "ParticleEngineAccessor",
@@ -23,16 +22,13 @@
     "SimpleTextureMixin",
     "SpriteSourceListMixin",
     "WorldRendererMixin",
-    "accessor.AbstractContainerScreenAccessor",
     "accessor.BufferBuilderAccessor",
     "accessor.MeshDataAccessor",
     "accessor.ModelBakeryAccessor",
     "accessor.MouseHandlerAccessor",
     "accessor.ObjModelAccessor",
     "accessor.ProgramTypeAccessor",
-    "accessor.ShaderInstanceAccessor",
-    "emi.RecipeScreenMixin",
-    "emi.WidgetGroupMixin"
+    "accessor.ShaderInstanceAccessor"
   ],
   "mixins": [
     "BlockEntityMixin",
@@ -40,13 +36,9 @@
     "PackConfigMixin",
     "ReloadableResourceManagerMixin",
     "ReloadableServerResourcesMixin",
-    "accessor.AbstractContainerMenuAccessor",
     "accessor.DelegatingOpsAccessor",
     "accessor.EntityAccessor",
-    "accessor.ServerPlayerAccessor",
     "accessor.SlotAccessor",
-    "emi.EmiRenderHelperMixin",
-    "jei.RecipeSlotBuilderMixin",
     "kjs.ServerScriptManagerAccessor"
   ],
   "injectors": {

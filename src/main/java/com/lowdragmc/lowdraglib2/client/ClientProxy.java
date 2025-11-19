@@ -41,6 +41,8 @@ public class ClientProxy extends CommonProxy {
     @SubscribeEvent
     public void onRegisterMenuScreensEvent(final RegisterMenuScreensEvent event) {
         event.register(LDMenuTypes.PLAYER_UI.get(), ModularUIContainerScreen::new);
+        event.register(LDMenuTypes.HELD_ITEM_UI.get(), ModularUIContainerScreen::new);
+        event.register(LDMenuTypes.BLOCK_UI.get(), ModularUIContainerScreen::new);
     }
 
     @SubscribeEvent

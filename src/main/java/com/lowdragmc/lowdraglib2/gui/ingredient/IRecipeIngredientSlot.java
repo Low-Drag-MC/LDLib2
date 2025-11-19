@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ingredient;
 
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
-import com.lowdragmc.lowdraglib2.integration.jei.IngredientIO;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import net.minecraft.network.chat.Component;
 
 import javax.annotation.Nullable;
@@ -10,8 +9,8 @@ import java.util.List;
 
 public interface IRecipeIngredientSlot extends IIngredientSlot {
 
-    default Widget self() {
-        return (Widget) this;
+    default UIElement self() {
+        return (UIElement) this;
     }
 
     /**
@@ -23,7 +22,7 @@ public interface IRecipeIngredientSlot extends IIngredientSlot {
         if (self().isMouseOverElement(mouseX, mouseY)) {
             var ingredients = getXEIIngredients();
             if (!ingredients.isEmpty()) {
-                return ingredients.get(0);
+                return ingredients.getFirst();
             }
         }
         return null;
@@ -43,16 +42,16 @@ public interface IRecipeIngredientSlot extends IIngredientSlot {
         if (ingredients.isEmpty()) {
             return null;
         }
-        return ingredients.get(0);
+        return ingredients.getFirst();
     }
 
     default float getXEIChance() {
         return 1.0f;
     }
 
-    default IngredientIO getIngredientIO(){
-        return IngredientIO.RENDER_ONLY;
-    }
+//    default IngredientIO getIngredientIO(){
+//        return IngredientIO.RENDER_ONLY;
+//    }
 
     /**
      * Get full tooltips excluding the ingredient's tooltip.

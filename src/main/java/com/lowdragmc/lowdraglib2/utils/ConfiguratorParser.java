@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.utils;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.editor_outdated.configurator.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import lombok.experimental.UtilityClass;
 
 import java.lang.reflect.Field;

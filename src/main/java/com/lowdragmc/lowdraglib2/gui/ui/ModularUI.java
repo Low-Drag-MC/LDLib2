@@ -139,6 +139,7 @@ public class ModularUI {
 
     public void setMenu(@Nullable AbstractContainerMenu menu) {
         this.menu = menu;
+        this.ui.rootElement.setFocusable(true);
         this.ui.rootElement._setModularUIInternal(this);
     }
 

@@ -4,8 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.lowdragmc.lowdraglib2.client.ClientProxy;
 import com.lowdragmc.lowdraglib2.core.mixins.MixinPluginShared;
-import com.lowdragmc.lowdraglib2.integration.emi.EMIPlugin;
-import com.lowdragmc.lowdraglib2.integration.rei.REIPlugin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -96,20 +94,20 @@ public class LDLib2 {
         return Platform.isModLoaded(mod);
     }
 
-    public static boolean isJeiLoaded() {
-        if (!isEmiLoaded() && !isReiLoaded()) {
-            return isModLoaded(MODID_JEI);
-        }
-        return false;
-    }
-
-    public static boolean isReiLoaded() {
-        return isModLoaded(MODID_REI) && (!Platform.isClient() || REIPlugin.isReiEnabled());
-    }
-
-    public static boolean isEmiLoaded() {
-        return isModLoaded(MODID_EMI) && (!Platform.isClient() || EMIPlugin.isEmiEnabled());
-    }
+//    public static boolean isJeiLoaded() {
+//        if (!isEmiLoaded() && !isReiLoaded()) {
+//            return isModLoaded(MODID_JEI);
+//        }
+//        return false;
+//    }
+//
+//    public static boolean isReiLoaded() {
+//        return isModLoaded(MODID_REI) && (!Platform.isClient() || REIPlugin.isReiEnabled());
+//    }
+//
+//    public static boolean isEmiLoaded() {
+//        return isModLoaded(MODID_EMI) && (!Platform.isClient() || EMIPlugin.isEmiEnabled());
+//    }
 
     public static boolean isKubejsLoaded() {
         return Platform.isModLoaded("kubejs");
