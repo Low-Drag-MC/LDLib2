@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.event;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import lombok.ToString;
@@ -179,19 +178,19 @@ public class UIEvent {
     }
 
     public boolean isShiftDown() {
-        return Widget.isShiftDown();
+        return UIElement.isShiftDown();
     }
 
     public boolean isCtrlDown() {
-        return Widget.isCtrlDown();
+        return UIElement.isCtrlDown();
     }
 
     public boolean isAltDown() {
-        return Widget.isAltDown();
+        return UIElement.isAltDown();
     }
 
     public boolean isKeyDown(int keyCode) {
-        return Widget.isKeyDown(keyCode);
+        return UIElement.isKeyDown(keyCode);
     }
 
 }

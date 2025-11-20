@@ -55,6 +55,8 @@ public class TagField extends BindableUIElement<Tag> {
         });
 
         addChild(textField);
+        // TODO code editor dialog
+
         internalSetup();
     }
 

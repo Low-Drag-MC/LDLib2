@@ -14,11 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-/**
- * @author KilaBash
- * @date 2022/05/24
- * @implNote TODO
- */
+
 public class TestBlockEntity extends BlockEntity implements IBlockEntityManaged, IManagedBlockEntity {
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(TestBlockEntity.class);
     @Getter

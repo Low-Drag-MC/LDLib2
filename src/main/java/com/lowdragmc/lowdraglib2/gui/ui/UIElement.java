@@ -21,7 +21,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -29,6 +28,7 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.TabBuilder;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -36,6 +36,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
@@ -47,6 +49,7 @@ import org.appliedenergistics.yoga.config.YogaConfig;
 import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.glfw.GLFW;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
@@ -1091,19 +1094,22 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public static boolean isShiftDown() {
-        return Widget.isShiftDown();
+        long id = Minecraft.getInstance().getWindow().getWindow();
+        return InputConstants.isKeyDown(id, GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(id, GLFW.GLFW_KEY_LEFT_SHIFT);
     }
 
     public static boolean isCtrlDown() {
-        return Widget.isCtrlDown();
+        return Screen.hasControlDown();
     }
 
     public static boolean isAltDown() {
-        return Widget.isAltDown();
+        long id = Minecraft.getInstance().getWindow().getWindow();
+        return InputConstants.isKeyDown(id, GLFW.GLFW_KEY_LEFT_ALT) || InputConstants.isKeyDown(id, GLFW.GLFW_KEY_RIGHT_ALT);
     }
 
     public static boolean isKeyDown(int keyCode) {
-        return Widget.isKeyDown(keyCode);
+        long id = Minecraft.getInstance().getWindow().getWindow();
+        return InputConstants.isKeyDown(id, keyCode);
     }
 
     public boolean isMouseDown(int button) {

@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,7 +21,6 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * A code editor with syntax highlighting support

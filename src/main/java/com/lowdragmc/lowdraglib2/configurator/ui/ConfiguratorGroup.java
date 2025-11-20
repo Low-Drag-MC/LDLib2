@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -66,7 +66,7 @@ public class ConfiguratorGroup extends Configurator {
     protected void onLineContainerClick(UIEvent event) {
         if (event.button == 0 && canCollapse) {
             setCollapse(!isCollapse);
-            Widget.playButtonClickSound();
+            UISoundUtils.playButtonClickSound();
         }
     }
 

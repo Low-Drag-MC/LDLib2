@@ -24,7 +24,6 @@ public class UITemplate {
     private static final UITemplate MISSING = UITemplate.of(new Label().setText("Missing")
             .textStyle(textStyle -> textStyle.textColor(ColorPattern.RED.color)));
 
-    // TODO stylesheet
     public static final Codec<UITemplate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             CompoundTag.CODEC.fieldOf("template").forGetter(range -> range.data),
             Codec.STRING.optionalFieldOf("builtin_styles").forGetter(ui -> Optional.ofNullable((ui.builtinStyles == null || ui.builtinStyles.isBlank()) ? null : ui.builtinStyles)),

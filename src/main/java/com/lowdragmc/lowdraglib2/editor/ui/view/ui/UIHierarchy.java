@@ -108,7 +108,10 @@ public class UIHierarchy extends UIElement {
                             var mode = isMouseOverNodeAbove(e) ? 0 : isMouseOverNodeCenter(e) ? 1 : isMouseOverNodeBelow(e) ? 2 : -1;
                             e.currentElement.style(style -> style.overlayTexture(createDraggingOverlay(mode)));
                         }
-                    });
+                    }, true);
+                    nodeUI.addEventListener(UIEvents.DRAG_LEAVE, e -> {
+                        e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+                    }, true);
                     nodeUI.addEventListener(UIEvents.DRAG_END, e -> {
                         e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
                     });
@@ -116,6 +119,8 @@ public class UIHierarchy extends UIElement {
                         if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
                             var mode = isMouseOverNodeAbove(e) ? 0 : isMouseOverNodeCenter(e) ? 1 : isMouseOverNodeBelow(e) ? 2 : -1;
                             e.currentElement.style(style -> style.overlayTexture(createDraggingOverlay(mode)));
+                        } else {
+                            e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
                         }
                     });
                     nodeUI.addEventListener(UIEvents.DRAG_PERFORM, e -> {

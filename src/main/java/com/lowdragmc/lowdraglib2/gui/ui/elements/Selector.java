@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -320,7 +320,7 @@ public class Selector<T> extends BindableUIElement<T> {
             } else {
                 show();
             }
-            Widget.playButtonClickSound();
+            UISoundUtils.playButtonClickSound();
         }
     }
 

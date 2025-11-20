@@ -12,7 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -186,7 +186,7 @@ public class Button extends UIElement {
     protected void onMouseDown(UIEvent event) {
         // Handle button click
         if (event.button == 0 && isActive()) {
-            Widget.playButtonClickSound();
+            UISoundUtils.playButtonClickSound();
             if (onClick != null) {
                 onClick.accept(event);
             }

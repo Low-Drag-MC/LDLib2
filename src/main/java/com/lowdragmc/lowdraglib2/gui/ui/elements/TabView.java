@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TabBuilder;
@@ -92,7 +92,7 @@ public class TabView extends UIElement {
         }
         tab.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0) {
-                Widget.playButtonClickSound();
+                UISoundUtils.playButtonClickSound();
                 selectTab(tab);
             }
         });
@@ -233,7 +233,7 @@ public class TabView extends UIElement {
                         tabContents.put(tabElement, content);
                         tabElement.addEventListener(UIEvents.MOUSE_DOWN, event -> {
                             if (event.button == 0) {
-                                Widget.playButtonClickSound();
+                                UISoundUtils.playButtonClickSound();
                                 selectTab(tabElement);
                             }
                         });
