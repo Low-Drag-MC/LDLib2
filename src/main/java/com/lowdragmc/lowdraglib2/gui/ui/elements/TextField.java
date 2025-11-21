@@ -2,8 +2,14 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -17,7 +23,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -37,8 +45,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.minecraft.util.Tuple;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaOverflow;
+import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
@@ -48,6 +55,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -171,7 +179,25 @@ public class TextField extends BindableUIElement<String> {
         NUMBER_FLOAT,
         NUMBER_DOUBLE,
         NUMBER_SHORT,
-        NUMBER_BYTE,
+        NUMBER_BYTE
+        ;
+
+        public boolean isNumber() {
+            return this == Mode.NUMBER_LONG || this == Mode.NUMBER_INT || this == Mode.NUMBER_FLOAT || this == Mode.NUMBER_DOUBLE || this == Mode.NUMBER_SHORT || this == Mode.NUMBER_BYTE;
+        }
+
+        @Nullable
+        public ConfigNumber.Type getType() {
+            return switch (this) {
+                case NUMBER_LONG -> ConfigNumber.Type.LONG;
+                case NUMBER_INT -> ConfigNumber.Type.INTEGER;
+                case NUMBER_FLOAT -> ConfigNumber.Type.FLOAT;
+                case NUMBER_DOUBLE -> ConfigNumber.Type.DOUBLE;
+                case NUMBER_SHORT -> ConfigNumber.Type.SHORT;
+                case NUMBER_BYTE -> ConfigNumber.Type.BYTE;
+                default -> null;
+            };
+        }
     }
 
     @Setter
@@ -185,6 +211,17 @@ public class TextField extends BindableUIElement<String> {
     @Getter
     private float wheelDur;
     private NumberFormat numberInstance;
+
+    // editor support
+    @Configurable(name = "EditorMode")
+    @ConfigSelector(subConfiguratorBuilder = "editorModeSubConfigurator")
+    private Mode editorMode = Mode.STRING;
+    @Persisted
+    private String editorRegexValidator = "";
+    @Persisted
+    private Range editorRange = Range.of(0, 100);
+
+
     // runtime
     @Getter
     private final HistoryStack<String> historyStack = new HistoryStack<>(100);
@@ -505,6 +542,16 @@ public class TextField extends BindableUIElement<String> {
         this.formattedLineCache = null;
         updateDisplayOffset();
         return this;
+    }
+
+    public TextField setTextRegexValidator(String regex) {
+        try {
+            var pattern = Pattern.compile(regex);
+            return setTextValidator(s -> pattern.matcher(s).matches());
+        } catch (Exception e) {
+            LDLib2.LOGGER.error("Failed to compile regex{} for text-field: ", regex);
+            return setTextValidator(Predicates.alwaysFalse());
+        }
     }
 
     public TextField setTextResponder(Consumer<String> textResponder) {
@@ -987,6 +1034,74 @@ public class TextField extends BindableUIElement<String> {
                     1,
                     fontSize,
                     textFieldStyle.cursorColor());
+        }
+    }
+
+    /// Editor Supports
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        if (editorMode == Mode.STRING) {
+            // for string
+            if (editorRegexValidator.isEmpty()) {
+                setTextValidator(Predicates.alwaysTrue());
+            } else {
+                setTextRegexValidator(editorRegexValidator);
+            }
+        } else {
+            // for others
+            switch (editorMode) {
+                case RESOURCE_LOCATION -> setResourceLocationOnly();
+                case COMPOUND_TAG -> setCompoundTagOnly();
+                case NUMBER_INT -> setNumbersOnlyInt(editorRange.getMin().intValue(), editorRange.getMax().intValue());
+                case NUMBER_SHORT -> setNumbersOnlyShort(editorRange.getMin().shortValue(), editorRange.getMax().shortValue());
+                case NUMBER_FLOAT -> setNumbersOnlyFloat(editorRange.getMin().floatValue(), editorRange.getMax().floatValue());
+                case NUMBER_DOUBLE -> setNumbersOnlyDouble(editorRange.getMin().doubleValue(), editorRange.getMax().doubleValue());
+                case NUMBER_LONG -> setNumbersOnlyLong(editorRange.getMin().longValue(), editorRange.getMax().longValue());
+                case NUMBER_BYTE -> setNumbersOnlyByte(editorRange.getMin().byteValue(), editorRange.getMax().byteValue());
+                default -> throw new IllegalStateException("Unexpected value: " + editorMode);
+            }
+        }
+    }
+
+    private void editorModeSubConfigurator(Mode value, ConfiguratorGroup group) {
+        if (value == Mode.STRING) {
+            group.addConfigurator(new StringConfigurator("EditorRegValidator",
+                    () -> this.editorRegexValidator,
+                    reg -> this.editorRegexValidator = reg,
+                    "", true).setTips("EditorRegValidator.tips"));
+        } else if (value.isNumber()) {
+            var type = value.getType();
+            if (type == null) return;
+            var configurator = new Configurator("EditorRange");
+            NumberConfigurator min, max;
+
+            configurator.inlineContainer.addChildren(
+                    min = new NumberConfigurator("min", () -> editorRange.getMin(),
+                            v -> editorRange = Range.of(v.floatValue(), editorRange.getMax()), 0, true),
+                    max = new NumberConfigurator("max", () ->editorRange.getMax(),
+                            v -> editorRange = Range.of(editorRange.getMin(), v.floatValue()), 0, true)
+            ).layout(layout -> {
+                layout.setGap(YogaGutter.ALL, 2);
+                layout.setMargin(YogaEdge.LEFT, 2);
+                layout.setFlexDirection(YogaFlexDirection.ROW);
+                layout.setWrap(YogaWrap.WRAP);
+            });
+            min.layout(layout -> {
+                layout.setFlex(1);
+                layout.setMinWidth(40);
+                layout.setHeight(14);
+            });
+            max.layout(layout -> {
+                layout.setFlex(1);
+                layout.setMinWidth(40);
+                layout.setHeight(14);
+            });
+            if (type.min != null && type.max != null && type.wheel != null) {
+                min.setRange(type.min, type.max).setWheel(type.wheel).setType(type);
+                max.setRange(type.min, type.max).setWheel(type.wheel).setType(type);
+            }
+            group.addConfigurators(configurator);
         }
     }
 }
