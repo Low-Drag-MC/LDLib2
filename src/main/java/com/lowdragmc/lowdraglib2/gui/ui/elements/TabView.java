@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib2.utils.TabBuilder;
+import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -187,7 +187,7 @@ public class TabView extends UIElement {
 
     @Override
     public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        var tagBuilder = TabBuilder.compound(super.serializeNBT(provider));
+        var tagBuilder = TagBuilder.compound(super.serializeNBT(provider));
         tagBuilder.addList("tabs", listBuilder -> {
             for (var entry : tabContents.entrySet()) {
                 var tab = entry.getKey();

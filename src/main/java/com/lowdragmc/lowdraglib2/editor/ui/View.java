@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
+import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -126,13 +127,13 @@ public class View extends UIElement {
     }
 
     protected void onClose() {
-        Dialog.showCheckBox("", "view.close.info", close -> {
+        Dialog.showCancelableCheck("Dialog.notify", "view.close.info", close -> {
             if (canRemove && close) {
                 if (onRemove != null) {
                     onRemove.run();
                 }
                 removeSelf();
             }
-        }).show(getModularUI());
+        }, Runnables.doNothing()).show(getModularUI());
     }
 }

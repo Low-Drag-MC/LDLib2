@@ -51,6 +51,7 @@ public final class ConfiguratorParser {
                 ConfigSetter configSetter = method.getAnnotation(ConfigSetter.class);
                 String name = configSetter.field();
                 if (!setters.containsKey(name)) {
+                    method.setAccessible(true);
                     setters.put(name, method);
                 }
             }

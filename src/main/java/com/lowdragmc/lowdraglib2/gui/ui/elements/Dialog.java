@@ -291,6 +291,19 @@ public class Dialog extends UIElement {
                     }
                     dialog.close();
                 })
+                .setText("ldlib.gui.tips.reject"));
+        return dialog;
+    }
+
+    public static Dialog showCancelableCheck(String title, String info, BooleanConsumer onClosed, Runnable onCanceled) {
+        var dialog = showCheckBox(title, info, onClosed);
+        dialog.addButton(new Button()
+                .setOnClick(e -> {
+                    if (onCanceled != null) {
+                        onCanceled.run();
+                    }
+                    dialog.close();
+                })
                 .setText("ldlib.gui.tips.cancel"));
         return dialog;
     }

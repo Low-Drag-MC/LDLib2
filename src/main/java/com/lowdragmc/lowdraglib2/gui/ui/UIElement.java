@@ -27,7 +27,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
-import com.lowdragmc.lowdraglib2.utils.TabBuilder;
+import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -180,6 +180,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
+    /**
+     * Handles logic to be executed when this object is added to a parent or container.
+     */
     protected void onAdded() {
         for (var child : children) {
             child.onAdded();
@@ -1387,7 +1390,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     @Override
     public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        var tagBuilder = TabBuilder.compound(IPersistedSerializable.super.serializeNBT(provider));
+        var tagBuilder = TagBuilder.compound(IPersistedSerializable.super.serializeNBT(provider));
         // serialize inline styles
         var inlineTag = new CompoundTag();
         for (Style style : getStyles()) {
@@ -1414,7 +1417,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             tagBuilder.add("classes", classTag);
         }
         // serialize internal children
-        var internalTag = TabBuilder.list().add(getChildren().stream()
+        var internalTag = TagBuilder.list().add(getChildren().stream()
                 .filter(UIElement::isInternalUI)
                 .map(element -> element.serializeNBT(provider)).toList()
         ).build();
@@ -1422,9 +1425,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             tagBuilder.add("internal", internalTag);
         }
         // serialize external children
-        var childrenTag = TabBuilder.list().add(getChildren().stream()
+        var childrenTag = TagBuilder.list().add(getChildren().stream()
                 .filter(uiElement -> !uiElement.isInternalUI())
-                .map(child -> TabBuilder.compound()
+                .map(child -> TagBuilder.compound()
                         .add("index", child.getSiblingIndex())
                         .add("data", child.serializeNBT(provider))
                         .add("type", child.name())

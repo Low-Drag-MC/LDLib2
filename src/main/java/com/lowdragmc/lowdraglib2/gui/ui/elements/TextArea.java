@@ -11,11 +11,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Cursor;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -350,14 +352,18 @@ public class TextArea extends BindableUIElement<String[]> {
     protected void onExecuteCommand(UIEvent event) {
         if (isEditable()) {
             var current = getValue();
-            if (!Arrays.deepEquals(historyStack.getCurrent().lines, current)) {
+            if (historyStack.getCurrent() == null || !Arrays.deepEquals(historyStack.getCurrent().lines, current)) {
                 historyStack.record(new History(current, cursorPos()));
             }
             if (CommandEvents.UNDO.equals(event.command)) {
                 if (historyStack.undo()) {
                     var value = historyStack.getCurrent().lines;
                     var cursor = historyStack.getCurrent().cursor;
+                    var previousScrollX = scrollX;
+                    var previousScrollY = scrollY;
                     setValue(value);
+                    this.scrollX = previousScrollX;
+                    this.scrollY = previousScrollY;
                     setCursor(cursor.line(), cursor.col());
                     ensureCursorVisible();
                 }
@@ -365,7 +371,11 @@ public class TextArea extends BindableUIElement<String[]> {
                 if (historyStack.redo()) {
                     var value = historyStack.getCurrent().lines;
                     var cursor = historyStack.getCurrent().cursor;
+                    var previousScrollX = scrollX;
+                    var previousScrollY = scrollY;
                     setValue(value);
+                    this.scrollX = previousScrollX;
+                    this.scrollY = previousScrollY;
                     setCursor(cursor.line(), cursor.col());
                     ensureCursorVisible();
                 }
@@ -430,7 +440,8 @@ public class TextArea extends BindableUIElement<String[]> {
 
         if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
             horizontalScroller.layout(layout -> {
-                layout.setMargin(YogaEdge.RIGHT, verticalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX ? textAreaStyle.scrollerViewMargin() : 0);
+                BasicStyle.importantPipeline(layout, l ->
+                        l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));
             });
         }
 
@@ -576,6 +587,7 @@ public class TextArea extends BindableUIElement<String[]> {
         if (!LDLib2.isClient()) return;
         var width = contentView.getContentWidth();
         var height = contentView.getContentHeight();
+        if (width == 0 || height == 0) return;
 
         var font = getFont();
         var s = scale();

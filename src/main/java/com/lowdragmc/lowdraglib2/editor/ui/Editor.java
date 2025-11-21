@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
+import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
@@ -217,7 +218,7 @@ public class Editor extends UIElement {
      */
     public void askToSaveProject(@Nullable Runnable onFinish) {
         if (isCurrentProjectDirty()) {
-            var dialog = Dialog.showCheckBox("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
+            var dialog = Dialog.showCancelableCheck("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
                 if (doSave) {
                     saveProject(onFinish);
                 } else {
@@ -225,7 +226,7 @@ public class Editor extends UIElement {
                         onFinish.run();
                     }
                 }
-            }).show(this);
+            }, Runnables.doNothing()).show(this);
             if (dialog.buttonContainer.getChildren().getFirst() instanceof Button button) {
                 button.setText("ldlib.gui.editor.menu.save");
             }
@@ -285,7 +286,7 @@ public class Editor extends UIElement {
     public final void loadProject(IProject project, @Nullable File projectFile) {
         if (currentProject != null) {
             if (window != null) {
-                Dialog.showCheckBox("","editor.loadProject.info", result -> {
+                Dialog.showCheckBox("Dialog.info","editor.loadProject.info", result -> {
                    if (result) {
                        window.createNewEditor().loadNewProject(project, projectFile);
                    } else {

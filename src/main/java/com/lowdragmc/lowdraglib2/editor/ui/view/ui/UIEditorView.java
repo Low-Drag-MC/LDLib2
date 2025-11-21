@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
+import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
@@ -18,7 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
@@ -30,7 +31,6 @@ import org.appliedenergistics.yoga.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 
 public class UIEditorView extends View {
     public final UIElement header = new UIElement();
-    public final UIElement canvas = new UIElement();
+    public final UICanvas canvas = new UICanvas();
     public final UIElement editor = new UIElement();
     public final UIElement styleView = new UIElement();
     public final UIHierarchy hierarchy = new UIHierarchy(this);
@@ -105,8 +105,8 @@ public class UIEditorView extends View {
                 }).addChildren(
                         // page fit button
                         new Button().noText().setOnClick(event -> {
-                            if (currentUI != null && modularUIPreview.getModularUI() != null) {
-                                var modularUI = modularUIPreview.getModularUI();
+                            if (currentUI != null && modularUIPreview.getPreviewModularUI() != null) {
+                                var modularUI = modularUIPreview.getPreviewModularUI();
                                 var padding = 5;
                                 var x = modularUIPreview.getPositionX() - graphView.getContentX() + modularUI.getLeftPos();
                                 var y = modularUIPreview.getPositionY() - graphView.getContentY() + modularUI.getTopPos();
@@ -154,8 +154,6 @@ public class UIEditorView extends View {
         canvas.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
-            layout.setJustifyContent(YogaJustify.CENTER);
-            layout.setAlignItems(YogaAlign.CENTER);
         });
         canvas.setOverflow(false);
         canvas.setDisplay(YogaDisplay.NONE);
@@ -283,6 +281,14 @@ public class UIEditorView extends View {
         }
     }
 
+    @Override
+    protected void onAdded() {
+        super.onAdded();
+        if (this.template != null) {
+            this.loadTemplate(this.template, this.onTemplateSaved);
+        }
+    }
+
     public UIEditorView clear() {
         this.stopSimulation();
         this.modularUIPreview.clear();
@@ -311,7 +317,7 @@ public class UIEditorView extends View {
     }
 
     public boolean isSimulationRunning() {
-        return canvas.isDisplayed();
+        return canvas.isDisplayed() && canvas.isSimulating();
     }
 
     public void editBuiltinStyles() {
@@ -331,7 +337,7 @@ public class UIEditorView extends View {
     }
 
     private void reloadStyles() {
-        var modularUI = modularUIPreview.getModularUI();
+        var modularUI = modularUIPreview.getPreviewModularUI();
         if (modularUI != null && this.template != null) {
             var styleEngine = modularUI.getStyleEngine();
             styleEngine.clearAllStylesheets();
@@ -344,32 +350,28 @@ public class UIEditorView extends View {
      */
     public void startSimulation() {
         if (currentUI == null || this.template == null) return;
-        var ui = currentUI.toTemplate().createUI();
-
-        canvas.addChildren(ui.rootElement);
         canvas.setDisplay(YogaDisplay.FLEX);
         editor.setDisplay(YogaDisplay.NONE);
 
-        // apply styles
-        var stylesheets =  this.template.getAllStylesheets();
-        var allElements = new ArrayList<>(ui.rootElement.getFlattenChildren());
-        allElements.addFirst(ui.rootElement);
-        for (Stylesheet stylesheet : stylesheets) {
-            for (var flattenChild : allElements) {
-                flattenChild.removeAllRules();
-                flattenChild.addStyleRules(stylesheet.calculateValues(flattenChild));
-            }
-        }
+        // convert to a real UI with styles applied
+        var newTemplate = currentUI.toTemplate();
+        newTemplate.copyStylesFrom(this.template);
+
+        canvas.startSimulation(newTemplate.createUI());
     }
 
     /**
      * Stops the simulation mode for the user interface and transitions the editor UI back to its editing state.
      */
     public void stopSimulation() {
-        canvas.clearAllChildren();
-
         canvas.setDisplay(YogaDisplay.NONE);
         editor.setDisplay(YogaDisplay.FLEX);
+        canvas.stopSimulation();
+    }
+
+    @Override
+    public void drawBackgroundAdditional(GUIContext guiContext) {
+        super.drawBackgroundAdditional(guiContext);
     }
 
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
@@ -447,14 +449,14 @@ public class UIEditorView extends View {
     @Override
     protected void onClose() {
         if (isTemplateDirty()) {
-            Dialog.showCheckBox("", "view.save_before_close.info", save -> {
+            Dialog.showCancelableCheck("Dialog.notify", "view.save_before_close.info", save -> {
                 if (isCanRemove()) {
                     if (save) {
                         notifySaved();
                     }
                     removeSelf();
                 }
-            }).show(getModularUI());
+            }, Runnables.doNothing()).show(getModularUI());
         } else {
             removeSelf();
         }

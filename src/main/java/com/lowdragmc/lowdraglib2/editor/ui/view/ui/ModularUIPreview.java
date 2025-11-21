@@ -32,7 +32,7 @@ public class ModularUIPreview extends UIElement {
     private OptionalInt previewWidth = OptionalInt.empty();
     private OptionalInt previewHeight = OptionalInt.empty();
     @Getter @Nullable
-    private ModularUI modularUI;
+    private ModularUI previewModularUI;
 
     public ModularUIPreview(UIEditorView editorView) {
         this.editorView = editorView;
@@ -40,26 +40,26 @@ public class ModularUIPreview extends UIElement {
     }
 
     public void setModularUI(UI ui) {
-        this.modularUI = new ModularUI(ui);
-        this.modularUI.setDrawTooltips(false);
-        this.modularUI.setDrawDrag(false);
-        this.modularUI.setAllowDebugMode(false);
+        this.previewModularUI = new ModularUI(ui);
+        this.previewModularUI.setDrawTooltips(false);
+        this.previewModularUI.setDrawDrag(false);
+        this.previewModularUI.setAllowDebugMode(false);
         if (previewWidth.isPresent() && previewHeight.isPresent()) {
-            this.modularUI.init(previewWidth.getAsInt(), previewHeight.getAsInt());
+            this.previewModularUI.init(previewWidth.getAsInt(), previewHeight.getAsInt());
         }
     }
 
     public void clear() {
-        if (this.modularUI == null) return;
-        this.modularUI.onRemoved();
-        this.modularUI = null;
+        if (this.previewModularUI == null) return;
+        this.previewModularUI.onRemoved();
+        this.previewModularUI = null;
     }
 
     public void initPreviewSize(int previewWidth, int previewHeight) {
         this.previewWidth = OptionalInt.of(previewWidth);
         this.previewHeight = OptionalInt.of(previewHeight);
-        if (this.modularUI == null) return;
-        this.modularUI.init(previewWidth, previewHeight);
+        if (this.previewModularUI == null) return;
+        this.previewModularUI.init(previewWidth, previewHeight);
     }
 
     @Override
@@ -72,23 +72,23 @@ public class ModularUIPreview extends UIElement {
     public void drawBackgroundAdditional(GUIContext guiContext) {
         updateSelectionBox();
         super.drawBackgroundAdditional(guiContext);
-        if (this.modularUI == null) return;
+        if (this.previewModularUI == null) return;
         guiContext.pose.pushPose();
         var posX = getPositionX();
         var posY = getPositionY();
 
         guiContext.pose.translate(posX, posY, 0);
 
-        this.modularUI.getWidget().render(guiContext.graphics, guiContext.mouseX, guiContext.mouseY, guiContext.partialTick);
+        this.previewModularUI.getWidget().render(guiContext.graphics, guiContext.mouseX, guiContext.mouseY, guiContext.partialTick);
 
         if (isShiftDown()) {
-            var hovered = modularUI.getLastHoveredElement();
+            var hovered = previewModularUI.getLastHoveredElement();
             if (hovered != null) {
-                modularUI.getWidget().renderUISpacing(hovered, guiContext.graphics);
+                previewModularUI.getWidget().renderUISpacing(hovered, guiContext.graphics);
             }
         } else if (selectionBox.isDisplayed() && selectionBox.label.isChildHover()) {
             var selectedOne = editorView.hierarchy.getSelectedOne();
-            selectedOne.ifPresent(element -> modularUI.getWidget().renderUISpacing(element, guiContext.graphics));
+            selectedOne.ifPresent(element -> previewModularUI.getWidget().renderUISpacing(element, guiContext.graphics));
         }
         guiContext.pose.popPose();
     }

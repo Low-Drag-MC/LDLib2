@@ -1,6 +1,7 @@
 {
   "ldlib.author": "Hello kilaBash!",
   "ldlib.gui.tips.confirm": "Confirm",
+  "ldlib.gui.tips.reject": "Reject",
   "ldlib.gui.tips.cancel": "Cancel",
   "ldlib.fluid.empty": "Empty",
   "ldlib.fluid.amount": "§9Amount: %d/%d",
@@ -461,5 +462,9 @@
   "configurator.data_component": "Data Component",
   "configurator.reset_prototype": "reset prototype",
   "configurator.additional": "Additional",
-  "configurator.additional.tips": "An unregistered data component by the data component holder"
+  "configurator.additional.tips": "An unregistered data component by the data component holder",
+  "EditorCandidates": "Candidates",
+  "DefaultValue": "Default Value",
+  "Dialog.info": "Information",
+  "Dialog.notify": "Notification"
 }

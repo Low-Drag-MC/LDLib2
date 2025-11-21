@@ -34,6 +34,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.appliedenergistics.yoga.YogaUnit;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.lwjgl.glfw.GLFW;
 
@@ -420,7 +421,41 @@ public class ModularUI {
         this.topPos = (screenHeight - this.height) / 2;
         this.ui.rootElement._setModularUIInternal(this);
         ui.rootElement.initScreen(screenWidth, screenHeight);
-        ui.rootElement.calculateLayout();
+        calculateStyleAndLayout();
+
+        // if dimension is auto, update real sizes after layout calculation
+        var hasAutoDimension = width.unit == YogaUnit.AUTO || height.unit == YogaUnit.AUTO;
+        if (width.unit == YogaUnit.AUTO) {
+            this.width = ui.rootElement.getLayoutNode().getLayoutWidth();
+            this.leftPos = (screenWidth - this.width) / 2;
+        }
+        if (height.unit == YogaUnit.AUTO) {
+            this.height = ui.rootElement.getSizeHeight();
+            this.topPos = (screenHeight - this.height) / 2;
+        }
+        if (hasAutoDimension) {
+            ui.rootElement.clearLayoutCache();
+        }
+    }
+
+    private void calculateStyleAndLayout() {
+        int dirtyCount = 0;
+        while (styleEngine.requireCalculate() || ui.rootElement.getLayoutNode().isDirty()) {
+            dirtyCount++;
+
+            // calculate style
+            while (styleEngine.requireCalculate()) {
+                styleEngine.calculateStyle();
+            }
+
+            // calculate layout
+            ui.rootElement.calculateLayout();
+
+            if (dirtyCount >= 10) {
+                LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
+                break;
+            }
+        }
     }
 
     public void tick() {
@@ -868,23 +903,7 @@ public class ModularUI {
         /// rendering
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-            int dirtyCount = 0;
-            while (styleEngine.requireCalculate() || ui.rootElement.getLayoutNode().isDirty()) {
-                dirtyCount++;
-
-                // calculate style
-                while (styleEngine.requireCalculate()) {
-                    styleEngine.calculateStyle();
-                }
-
-                // calculate layout
-                ui.rootElement.calculateLayout();
-
-                if (dirtyCount >= 10) {
-                    LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
-                    break;
-                }
-            }
+            calculateStyleAndLayout();
 
             cleanTooltip();
 
@@ -1075,4 +1094,5 @@ public class ModularUI {
 
         }
     }
+
 }

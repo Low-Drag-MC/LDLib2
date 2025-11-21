@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
@@ -24,6 +25,7 @@ import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +129,12 @@ public class Selector<T> extends BindableUIElement<T> {
     @Nullable
     private T value = null;
 
+    // editor support
+    @Configurable(name = "EditorCandidates")
+    private final List<String> editorCandidates = new ArrayList<>();
+    @Configurable(name = "DefaultValue")
+    private String defaultValue = "";
+
     // runtime
     protected final Map<T, Button> candidateButtons = new HashMap<>();
 
@@ -161,7 +169,6 @@ public class Selector<T> extends BindableUIElement<T> {
 
         this.dialog = new UIElement();
         this.dialog
-                .setId("selector#dialog")
                 .layout(layout -> {
                     layout.setHeight(StyleSizeLength.AUTO);
                     layout.setPositionType(YogaPositionType.ABSOLUTE);
@@ -209,6 +216,7 @@ public class Selector<T> extends BindableUIElement<T> {
         this.scrollerView.addClass("__selector_scroller-view__");
 
         internalSetup();
+        this.dialog.markAsInternal();
     }
 
     public Selector<T> setCandidates(List<T> candidates) {
@@ -375,5 +383,22 @@ public class Selector<T> extends BindableUIElement<T> {
             guiContext.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);
+    }
+
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        if (!editorCandidates.isEmpty()) {
+            setCandidates((List) editorCandidates);
+        }
+        if (!defaultValue.isEmpty()) {
+            setValue((T) defaultValue, false);
+        }
+    }
+
+    @ConfigSetter(field = "defaultValue")
+    private void setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+        setValue((T) defaultValue, false);
     }
 }

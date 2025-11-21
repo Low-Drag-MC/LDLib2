@@ -109,4 +109,10 @@ public class UITemplate {
                 stylesheets
         );
     }
+
+    public void copyStylesFrom(UITemplate other) {
+        this.builtinStyles = other.builtinStyles;
+        this.stylesheets.clear();
+        this.stylesheets.addAll(other.stylesheets);
+    }
 }

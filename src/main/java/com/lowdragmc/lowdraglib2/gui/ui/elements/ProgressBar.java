@@ -231,6 +231,11 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     }
 
     @ConfigSetter(field = "value")
+    private void setProgressEditor(float value) {
+        setProgress(value);
+        onProgressBarStyleChanged();
+    }
+
     public ProgressBar setProgress(float value) {
         return setValue(value);
     }

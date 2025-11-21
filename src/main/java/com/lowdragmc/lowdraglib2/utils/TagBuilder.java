@@ -10,7 +10,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 @UtilityClass
-public final class TabBuilder {
+public final class TagBuilder {
 
     public static Compound compound() {
         return Compound.create();
