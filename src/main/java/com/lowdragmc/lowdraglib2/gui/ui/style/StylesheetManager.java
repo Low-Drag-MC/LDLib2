@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class StylesheetManager implements ResourceManagerReloadListener {
     public static final StylesheetManager INSTANCE = new StylesheetManager();
-    public static final String PATH = "css";
+    public static final String PATH = "lss";
     private final Map<ResourceLocation, Stylesheet> builtinStylesheets = new ConcurrentHashMap<>();
     private final Map<ResourceLocation, Stylesheet> packStylesheets = new HashMap<>();
 
@@ -43,14 +43,14 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
     @Override
     public void onResourceManagerReload(@Nonnull ResourceManager resourceManager) {
         var resources = resourceManager.listResources(PATH,
-                location -> location.getPath().endsWith(".css"));
+                location -> location.getPath().endsWith(".lss"));
         packStylesheets.clear();
         for (var entry : resources.entrySet()) {
             var key = entry.getKey();
             var res = entry.getValue();
             try (var reader = res.openAsReader()) {
-                var css = String.join("\n", reader.lines().toList());
-                var stylesheet = Stylesheet.parse(css);
+                var lss = String.join("\n", reader.lines().toList());
+                var stylesheet = Stylesheet.parse(lss);
                 packStylesheets.put(key, stylesheet);
             } catch (Exception e) {
                 LDLib2.LOGGER.error("Failed to load style sheet {} of {}", res.sourcePackId(), key, e);

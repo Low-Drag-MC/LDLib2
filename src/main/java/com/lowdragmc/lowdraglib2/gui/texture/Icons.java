@@ -65,7 +65,7 @@ public class Icons {
     public static ResourceTexture FILE = icon("file");
     public static ResourceTexture IMAGE = icon("image");
     public static ResourceTexture JSON = icon("json");
-    public static ResourceTexture CSS = icon("css");
+    public static ResourceTexture LSS = icon("css");
     public static ResourceTexture RADIOBOX_BLANK = icon("radiobox_blank");
     public static ResourceTexture RADIOBOX_MARKED = icon("radiobox_marked");
     public static ResourceTexture CHECKBOX_BLANK = icon("checkbox_blank");
@@ -136,7 +136,7 @@ public class Icons {
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");
         registerFileIcon(JSON, "json", "nbt");
-        registerFileIcon(CSS, "css");
+        registerFileIcon(LSS, "lss");
     }
 
     public static ResourceTexture icon(String name) {

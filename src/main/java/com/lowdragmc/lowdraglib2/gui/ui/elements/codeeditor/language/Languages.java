@@ -17,23 +17,23 @@ public final class Languages {
             TokenTypes.WHITESPACE,
             TokenTypes.OTHER), Set.of("{"));
 
-    public LanguageDefinition CSS = new LanguageDefinition("CSS", List.of(
-            // CSS Selector
+    public LanguageDefinition LSS = new LanguageDefinition("LSS", List.of(
+            // LSS Selector
             TokenTypes.CSS_CLASS_SELECTOR,
             TokenTypes.CSS_ID_SELECTOR,
             TokenTypes.CSS_COMBINATOR,
             TokenTypes.CSS_PSEUDO,
             TokenTypes.CSS_ATTRIBUTE,
-            // CSS property
+            // LSS property
             TokenTypes.CSS_PROPERTY,
             TokenTypes.STRING,
             TokenTypes.COMMENT,
             TokenTypes.NUMBER,
-            // CSS unit
+            // LSS unit
             TokenTypes.CSS_UNIT,
-            // CSS Color
+            // LSS Color
             TokenTypes.CSS_COLOR,
-            // CSS IMPORTANT
+            // LSS IMPORTANT
             TokenTypes.CSS_IMPORTANT,
             TokenTypes.IDENTIFIER,
             TokenTypes.WHITESPACE,

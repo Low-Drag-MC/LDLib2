@@ -14,8 +14,8 @@ class StylesheetTest {
 
     @Test
     void testParseSingleRule() {
-        String css = ".button { background: color(0xff0000ff); }";
-        Stylesheet sheet = Stylesheet.parse(css);
+        String lss = ".button { background: color(0xff0000ff); }";
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -25,7 +25,7 @@ class StylesheetTest {
 
     @Test
     void testParseMultipleRules() {
-        String css = """
+        String lss = """
             .button {
                 background: color(0xff0000ff);
             }
@@ -33,21 +33,21 @@ class StylesheetTest {
                 text-color: #ffffff;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(2, sheet.rules.size());
     }
 
     @Test
     void testParseMultipleProperties() {
-        String css = """
+        String lss = """
             .element {
                 z-index: 10;
                 text-shadow: false;
                 font-size: 12.5;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -59,8 +59,8 @@ class StylesheetTest {
 
     @Test
     void testParseMultipleSelectors() {
-        String css = ".button, .link, .item { z-index: 5; }";
-        Stylesheet sheet = Stylesheet.parse(css);
+        String lss = ".button, .link, .item { z-index: 5; }";
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(3, sheet.rules.size());
         for (StyleRule rule : sheet.rules) {
@@ -70,7 +70,7 @@ class StylesheetTest {
 
     @Test
     void testParseWithWhitespace() {
-        String css = """
+        String lss = """
             
             .button   {
                 background   :   color(0xff0000ff)  ;
@@ -78,7 +78,7 @@ class StylesheetTest {
             }
             
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         assertEquals(2, sheet.rules.get(0).properties.size());
@@ -86,13 +86,13 @@ class StylesheetTest {
 
     @Test
     void testParseInvalidProperty() {
-        String css = """
+        String lss = """
             .element {
                 invalid-property: somevalue;
                 z-index: 5;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -103,13 +103,13 @@ class StylesheetTest {
 
     @Test
     void testParseInvalidPropertyValue() {
-        String css = """
+        String lss = """
             .element {
                 z-index: not-a-number;
                 font-size: 12.5;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -119,16 +119,16 @@ class StylesheetTest {
 
     @Test
     void testParseEmptyStylesheet() {
-        String css = "";
-        Stylesheet sheet = Stylesheet.parse(css);
+        String lss = "";
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(0, sheet.rules.size());
     }
 
     @Test
     void testParseEmptyRule() {
-        String css = ".element { }";
-        Stylesheet sheet = Stylesheet.parse(css);
+        String lss = ".element { }";
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         assertEquals(0, sheet.rules.get(0).properties.size());
@@ -138,24 +138,24 @@ class StylesheetTest {
     void testParseWithComments() {
         // Note: The current implementation doesn't support comments,
         // this test documents the current behavior
-        String css = """
+        String lss = """
             .element {
                 z-index: 5;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
     }
 
     @Test
     void testParseHierarchicalSelector() {
-        String css = """
+        String lss = """
             .parent .child {
                 z-index: 10;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         assertTrue(sheet.rules.get(0).properties.containsKey(PropertyRegistry.Z_INDEX));
@@ -163,13 +163,13 @@ class StylesheetTest {
 
     @Test
     void testParseBooleanProperties() {
-        String css = """
+        String lss = """
             .element {
                 text-shadow: true;
                 allow-zoom: false;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -179,14 +179,14 @@ class StylesheetTest {
 
     @Test
     void testParseFloatProperties() {
-        String css = """
+        String lss = """
             .element {
                 font-size: 14.5;
                 line-spacing: 1.2;
                 percentage: 75.5;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -198,13 +198,13 @@ class StylesheetTest {
 
     @Test
     void testParseIntegerProperties() {
-        String css = """
+        String lss = """
             .element {
                 z-index: 100;
                 max-item: 10;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -214,13 +214,13 @@ class StylesheetTest {
 
     @Test
     void testParseColorProperties() {
-        String css = """
+        String lss = """
             .element {
                 text-color: #ff0000;
                 error-color: #00ff00;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         StyleRule rule = sheet.rules.get(0);
@@ -230,13 +230,13 @@ class StylesheetTest {
 
     @Test
     void testParsePropertiesWithoutSemicolon() {
-        String css = """
+        String lss = """
             .element {
                 z-index: 5
                 font-size: 12
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(1, sheet.rules.size());
         // Without semicolons, the regex should still match due to optional ';?'
@@ -245,7 +245,7 @@ class StylesheetTest {
 
     @Test
     void testParseComplexStylesheet() {
-        String css = """
+        String lss = """
             .button, .link {
                 background: color(0xff0000ff);
                 z-index: 10;
@@ -261,7 +261,7 @@ class StylesheetTest {
                 percentage: 50.5;
             }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         // .button, .link creates 2 rules, .container .item creates 1, #special creates 1
         assertTrue(sheet.rules.size() >= 3);
@@ -298,11 +298,11 @@ class StylesheetTest {
 
     @Test
     void testClearStylesheet() {
-        String css = """
+        String lss = """
             .button { z-index: 5; }
             .text { font-size: 12; }
             """;
-        Stylesheet sheet = Stylesheet.parse(css);
+        Stylesheet sheet = Stylesheet.parse(lss);
 
         assertEquals(2, sheet.rules.size());
         sheet.clear();

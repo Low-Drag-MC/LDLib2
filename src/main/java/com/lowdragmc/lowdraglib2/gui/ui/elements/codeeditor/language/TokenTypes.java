@@ -23,7 +23,7 @@ public class TokenTypes {
     public static TokenType OPERATOR = new TokenType("Operator").setPattern("[+\\-*/=<>!&|]+");
     public static TokenType WHITESPACE = new TokenType("Whitespace").setPattern("\\s+");
     public static TokenType OTHER = new TokenType("Other").setPattern(".");
-    // CSS
+    // LSS
     public static TokenType CSS_CLASS_SELECTOR = new TokenType("CSSClassSelector").setPattern("\\.[a-zA-Z_][a-zA-Z0-9_-]*");
     public static TokenType CSS_ID_SELECTOR = new TokenType("CSSIdSelector").setPattern("(?<![a-zA-Z0-9_-])#[a-zA-Z_][a-zA-Z0-9_-]*\\b");
     public static TokenType CSS_COMBINATOR = new TokenType("CSSCombinator").setPattern("[>+~]");

@@ -201,7 +201,7 @@ public class UIEditorView extends View {
                         ).addEventListener(UIEvents.CLICK, event -> editBuiltinStyles())
         );
 
-        stylesheetEditor.setLanguage(Languages.CSS);
+        stylesheetEditor.setLanguage(Languages.LSS);
         stylesheetEditor.setActive(false);
         stylesheetEditor.contentView.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
         stylesheetEditor.contentView.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));

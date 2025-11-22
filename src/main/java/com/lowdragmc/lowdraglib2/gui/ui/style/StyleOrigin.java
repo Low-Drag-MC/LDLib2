@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 /**
- * Represents the origin of a style or CSS rule applied to a UI component.
+ * Represents the origin of a style or LSS rule applied to a UI component.
  * This enum provides information about the priority and source of the style,
  * which helps in determining how styling is handled or overridden.
  */

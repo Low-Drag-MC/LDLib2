@@ -437,7 +437,7 @@
   "UIEditor.simulation": "Simulation",
   "builtin_styles": "Builtin Styles",
   "UIElement.class": "Class",
-  "project.css": "CSS Project",
+  "project.lss": "LSS Project",
   "editor.loadProject.info": "Do you want to open the project in a new window?",
   "ButtonStyle": "Button Style",
   "MenuStyle": "Menu Style",

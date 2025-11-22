@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 /**
- * The SelectorType enum defines types of CSS-style selectors that can be used
+ * The SelectorType enum defines types of LSS-style selectors that can be used
  * to identify elements in a UI or styled structure.
  *
  * The following types of selectors are defined:

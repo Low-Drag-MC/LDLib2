@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
-import com.lowdragmc.lowdraglib2.editor.project.CSSProject;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
 import org.appliedenergistics.yoga.YogaDisplay;
 
@@ -24,7 +23,6 @@ public class UIEditor extends Editor {
     @Override
     protected void initMenus() {
         super.initMenus();
-        fileMenu.addProjectProvider(CSSProject.TYPE);
     }
 
     @Override
