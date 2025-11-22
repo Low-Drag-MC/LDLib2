@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.gui.texture.FluidStackTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
@@ -87,6 +88,7 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
                     fluid -> {
                         var bucket = fluid.getBucket();
                         if (bucket != Items.AIR) return new ItemStackTexture(bucket);
+                        if (fluid == Fluids.EMPTY) return IGuiTexture.EMPTY;
                         return new FluidStackTexture(fluid);
                     },
                     fluid -> Component.translatable(fluid.getFluidType().getDescriptionId())

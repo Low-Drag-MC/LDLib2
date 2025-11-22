@@ -470,5 +470,8 @@
   "EditorMode": "Mode",
   "EditorRegexValidator": "Regex Validator",
   "EditorRegValidator.tips": "If non empty, the text field will be validated by the reg expression",
-  "EditorRange": "Number Range"
+  "EditorRange": "Number Range",
+  "EditorItemDisplay": "Item Display",
+  "EditorFluidDisplay": "Fluid Display",
+  "Capacity": "Capacity"
 }

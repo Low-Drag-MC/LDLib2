@@ -117,6 +117,13 @@ public class UICanvas extends UIElement {
     }
 
     @Override
+    public void screenTick() {
+        super.screenTick();
+        if (this.canvasModularUI == null) return;
+        this.canvasModularUI.tick();
+    }
+
+    @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
         if (this.canvasModularUI == null) return;
@@ -134,6 +141,9 @@ public class UICanvas extends UIElement {
         guiContext.pose.translate(posX, posY, 0);
 
         this.canvasModularUI.getWidget().render(guiContext.graphics, guiContext.mouseX, guiContext.mouseY, guiContext.partialTick);
+
+        // end batch
+        guiContext.graphics.bufferSource().endBatch();
 
         guiContext.pose.popPose();
     }

@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.util;
 
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import javax.annotation.Nonnull;
@@ -8,6 +7,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -17,6 +17,9 @@ import java.util.stream.Collectors;
  * @param <K> leaf
  */
 public class TreeNode<T, K> implements ITreeNode<T, K> {
+    @Nullable
+    @Getter
+    public final TreeNode<T, K> parent;
     @Getter
     public final int dimension;
     @Getter
@@ -29,7 +32,12 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
     @Nullable
     protected Predicate<TreeNode<T, K>> valid;
 
-    public TreeNode(int dimension, T key) {
+    public TreeNode(T key) {
+        this(null, 0, key);
+    }
+
+    public TreeNode(@Nullable TreeNode<T, K> parent, int dimension, T key) {
+        this.parent = parent;
         this.dimension = dimension;
         this.key = key;
     }
@@ -50,13 +58,13 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
         TreeNode<T, K> result;
         if (children != null) {
             result = children.stream().filter(child->child.key.equals(childKey)).findFirst().orElseGet(()->{
-                TreeNode<T, K> newNode = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
+                TreeNode<T, K> newNode = new TreeNode<>(this, dimension + 1, childKey).setValid(valid);
                 children.add(newNode);
                 return newNode;
             });
         } else {
             children = new ArrayList<>();
-            result = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
+            result = new TreeNode<>(this,  dimension + 1, childKey).setValid(valid);
             children.add(result);
         }
         return result;
@@ -66,7 +74,7 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
         if (children == null) {
             children = new ArrayList<>();
         }
-        TreeNode<T, K> result = new TreeNode<T, K>(dimension + 1, childKey).setValid(valid);
+        TreeNode<T, K> result = new TreeNode<>(this, dimension + 1, childKey).setValid(valid);
         children.add(result);
         return result;
     }
@@ -95,5 +103,21 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
     @Override
     public String toString() {
         return key.toString();
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TreeNode<?, ?> that = (TreeNode<?, ?>) o;
+        return dimension == that.dimension &&
+                Objects.equals(key, that.key) &&
+                Objects.equals(content, that.content);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(dimension, key, content);
     }
 }

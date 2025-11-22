@@ -39,7 +39,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "search-component", registry = "ldlib2:ui_element")
+@LDLRegister(name = "search-component", group = "basic", registry = "ldlib2:ui_element")
 public class SearchComponent<T> extends BindableUIElement<T> {
     @Configurable(name = "SearchStyle")
     public class SearchStyle extends Style {
@@ -136,6 +136,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     private T value = null;
     @Getter
     private boolean searchOnServer;
+    // editor support
 
     // runtime
     private SearchEngine<T> searchEngine;
@@ -223,6 +224,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
         searchEngine = new SearchEngine<>(searchUI, this::onResultFound);
         internalSetup();
+        dialog.markAsInternal();
     }
 
     protected void onMouseDown(UIEvent event) {
@@ -477,4 +479,17 @@ public class SearchComponent<T> extends BindableUIElement<T> {
          * @param value the selected result of type {@code T}, or {@code null} if no result is selected*/
         void onResultSelected(@Nullable T value);
     }
+
+    /// Editor Support
+    // TODO add supports for editor quick actions
+//    public enum EditorMode {
+//        BLOCK,
+//        ITEM,
+//        FLUID,
+//        ITEM_STACK,
+//        FLUID_STACK,
+//        BIOME,
+//        ENTITY_TYPE,
+//        POTION,
+//    }
 }

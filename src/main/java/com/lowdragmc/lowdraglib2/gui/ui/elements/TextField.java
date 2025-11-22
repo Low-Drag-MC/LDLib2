@@ -60,7 +60,7 @@ import java.util.regex.Pattern;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "text-field", registry = "ldlib2:ui_element")
+@LDLRegister(name = "text-field", group = "basic", registry = "ldlib2:ui_element")
 public class TextField extends BindableUIElement<String> {
     private record NumberStart(double value){}
     private record CursorStart(int value){}
@@ -1038,6 +1038,12 @@ public class TextField extends BindableUIElement<String> {
     }
 
     /// Editor Supports
+    @Override
+    public void beforeDeserialize() {
+        super.beforeDeserialize();
+        this.editorMode = Mode.STRING;
+    }
+
     @Override
     public void afterDeserialize() {
         super.afterDeserialize();

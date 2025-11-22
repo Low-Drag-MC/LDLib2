@@ -57,7 +57,7 @@ import java.util.function.Predicate;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "text-area", registry = "ldlib2:ui_element")
+@LDLRegister(name = "text-area", group = "basic", registry = "ldlib2:ui_element")
 public class TextArea extends BindableUIElement<String[]> {
     // Internal helpers
     public record CursorDragStart(Cursor anchor) {}

@@ -22,7 +22,7 @@ public class TreeBuilder<K, V> {
     protected final Stack<TreeNode<K, V>> stack = new Stack<>();
 
     public TreeBuilder(K key) {
-        stack.push(new TreeNode<>(0, key));
+        stack.push(new TreeNode<>(key));
     }
 
     public static <K, V> TreeBuilder<K, V> start(K key){

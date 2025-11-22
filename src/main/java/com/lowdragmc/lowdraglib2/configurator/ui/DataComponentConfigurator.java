@@ -1,9 +1,13 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.LayoutStyle;
 import com.mojang.serialization.DataResult;
 import lombok.Getter;
 import net.minecraft.core.component.DataComponentMap;
@@ -14,6 +18,10 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import org.appliedenergistics.yoga.YogaDirection;
+import org.appliedenergistics.yoga.YogaDisplay;
+import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaOverflow;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -40,6 +48,9 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
             resetPrototype();
             e.stopPropagation();
         });
+        this.resetButton.text.layout(layout -> layout.setWidthPercent(100));
+        this.resetButton.text.textStyle(textStyle -> textStyle.adaptiveWidth(false).textWrap(TextWrap.HOVER_ROLL)).setOverflow(YogaOverflow.HIDDEN);
+        this.inlineContainer.layout(layout -> layout.setDirection(YogaDirection.RTL));
         this.inlineContainer.addChild(resetButton);
     }
 

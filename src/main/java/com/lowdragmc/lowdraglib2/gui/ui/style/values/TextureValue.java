@@ -100,8 +100,6 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     }
                 }
                 default -> {
-                    // 也支持链式 group(...) 再跟一个 transform（已经处理）
-                    // 其他未知修饰符可忽略或报错
                 }
             }
         }

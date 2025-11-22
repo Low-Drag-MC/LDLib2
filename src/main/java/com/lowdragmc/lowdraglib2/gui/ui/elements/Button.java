@@ -31,7 +31,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
-@LDLRegister(name = "button", registry = "ldlib2:ui_element")
+@LDLRegister(name = "button", group = "basic", registry = "ldlib2:ui_element")
 public class Button extends UIElement {
     @Configurable(name = "ButtonStyle")
     public class ButtonStyle extends Style {

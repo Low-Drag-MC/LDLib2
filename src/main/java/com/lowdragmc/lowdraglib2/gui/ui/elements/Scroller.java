@@ -236,7 +236,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         return this;
     }
 
-    @LDLRegister(name = "scroller-vertical", registry = "ldlib2:ui_element")
+    @LDLRegister(name = "scroller-vertical", group = "utils", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
             getLayout().setFlexDirection(YogaFlexDirection.COLUMN);
@@ -300,7 +300,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         }
     }
 
-    @LDLRegister(name = "scroller-horizontal", registry = "ldlib2:ui_element")
+    @LDLRegister(name = "scroller-horizontal", group = "utils", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {
             getLayout().setFlexDirection(YogaFlexDirection.ROW);

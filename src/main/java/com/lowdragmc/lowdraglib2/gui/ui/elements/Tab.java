@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "tab", registry = "ldlib2:ui_element")
+@LDLRegister(name = "tab", group = "utils", registry = "ldlib2:ui_element")
 public class Tab extends UIElement {
     @Configurable(name = "TabStyle")
     public class TabStyle extends Style {

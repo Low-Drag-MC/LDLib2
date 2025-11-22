@@ -48,7 +48,7 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "scene", registry = "ldlib2:ui_element")
+@LDLRegister(name = "scene", group = "misc", registry = "ldlib2:ui_element")
 public class Scene extends UIElement {
     private static final Object DRAGGING = new Object();
     @Nullable
@@ -97,6 +97,9 @@ public class Scene extends UIElement {
     protected boolean tickWorld = true;
     protected Consumer<Scene> beforeWorldRender;
     protected Consumer<Scene> afterWorldRender;
+    // editor support
+//    @Nullable
+//    private ResourceLocation editorStructureName = null;
     // runtime
     @Getter
     protected ItemStack lastHoverItem;
@@ -541,5 +544,26 @@ public class Scene extends UIElement {
                 renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(this.rotationYaw), Math.toRadians(this.rotationPitch));
             }
         }, x -> interpolator = null);
+    }
+
+    /// Editor support
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        // TODO structure template support
+//        if (LDLib2.isRemote()) {
+//            if (editorStructureName != null) {
+//                var res = Minecraft.getInstance().getResourceManager().getResource(editorStructureName);
+//                if (res.isPresent()) {
+//                    try (var inputstream = res.get().open()){
+//                        try (var datainputstream = new DataInputStream(inputstream)) {
+//                            var structureTag = NbtIo.read(datainputstream);
+//                            var template = new StructureTemplate();
+//                            template.load(BuiltInRegistries.BLOCK.asLookup(), structureTag);
+//                        }
+//                    } catch (IOException ignored) {}
+//                }
+//            }
+//        }
     }
 }

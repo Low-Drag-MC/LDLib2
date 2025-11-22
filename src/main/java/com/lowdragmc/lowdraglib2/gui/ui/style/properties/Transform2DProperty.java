@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style.properties;
 
+import com.lowdragmc.lowdraglib2.configurator.accessors.PivotAccessor;
 import com.lowdragmc.lowdraglib2.configurator.accessors.Vector2fAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -29,7 +30,9 @@ public class Transform2DProperty extends Property<Transform2D> {
                         () -> getter.get().scale(),
                         scale -> setter.accept(getter.get().copy().scale(scale.x, scale.y)), true, getVALUE_FIELD(), this),
                 new NumberConfigurator("Transform2D.rotation", () -> getter.get().rotation(),
-                        rotation -> setter.accept(getter.get().copy().rotation(rotation.floatValue())), 0f, true)
+                        rotation -> setter.accept(getter.get().copy().rotation(rotation.floatValue())), 0f, true),
+                new PivotAccessor().create("Transform2D.pivot", () -> getter.get().pivot(),
+                        pivot -> setter.accept(getter.get().copy().pivot(pivot.x, pivot.y)), true, getVALUE_FIELD(), this)
         );
         return group;
     }

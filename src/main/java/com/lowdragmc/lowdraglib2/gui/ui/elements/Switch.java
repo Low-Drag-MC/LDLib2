@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
-@LDLRegister(name = "switch", registry = "ldlib2:ui_element")
+@LDLRegister(name = "switch", group = "basic", registry = "ldlib2:ui_element")
 public class Switch extends BindableUIElement<Boolean> {
     @Configurable(name = "SwitchStyle")
     public class SwitchStyle extends Style {

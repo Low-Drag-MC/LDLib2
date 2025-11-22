@@ -1,11 +1,13 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -16,18 +18,23 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -39,8 +46,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @LDLRegister(name = "item-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class ItemSlot extends BindableUIElement<ItemStack> {
-    public final static SpriteTexture ITEM_SLOT_TEXTURE = SpriteTexture.of("ldlib2:textures/gui/slot.png")
-            .setSprite(0, 0, 18, 18).setBorder(1, 1, 1, 1);
+    public final static IGuiTexture ITEM_SLOT_TEXTURE = Sprites.RECT_RD_T.copy().setColor(0xffbbbbbb);
 
     @Configurable(name = "SlotStyle")
     public class SlotStyle extends Style {
@@ -111,7 +117,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     @Getter
     private final SlotStyle slotStyle = new SlotStyle();
-
+    // editor support
+    @Configurable(name = "EditorItemDisplay")
+    private ItemStack editorItemDisplay = ItemStack.EMPTY;
     // runtime
     @Getter
     private Slot slot;
@@ -276,4 +284,24 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         guiContext.pose.popPose();
     }
 
+    /// Editor Support
+    @ConfigSetter(field = "editorItemDisplay")
+    private void setEditorItemDisplay(ItemStack itemStack) {
+        this.editorItemDisplay = itemStack;
+        setValue(itemStack, false);
+    }
+
+    @Override
+    public void beforeDeserialize() {
+        super.beforeDeserialize();
+        this.editorItemDisplay = ItemStack.EMPTY;
+    }
+
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        if (!editorItemDisplay.isEmpty()) {
+            setValue(editorItemDisplay, false);
+        }
+    }
 }

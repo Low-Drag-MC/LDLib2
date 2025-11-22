@@ -38,7 +38,7 @@ import java.util.function.Function;
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "tree-list", registry = "ldlib2:ui_element")
+@LDLRegister(name = "tree-list", group = "misc", registry = "ldlib2:ui_element")
 public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @Getter @Setter
     @Configurable(name = "TreeListStyle")
@@ -117,7 +117,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @Getter
     protected NODE root;
     protected final BiMap<NODE, UIElement> nodeUIs = HashBiMap.create();
-    protected final Set<NODE> selectedNodes = new HashSet<>();
+    protected final Set<NODE> selectedNodes = new LinkedHashSet<>();
     protected final Set<NODE> expandedNodes = new HashSet<>();
     protected final Map<NODE, List<NODE>> displayedChildren = new HashMap<>();
 
@@ -337,7 +337,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         });
         var ui = nodeUISupplier.apply(node);
         container.addChildren(arrow, ui);
-        container.addEventListener(UIEvents.MOUSE_DOWN, e -> onNodeClicked(e, node));
+        container.addEventListener(UIEvents.CLICK, e -> onNodeClicked(e, node));
         container.addEventListener(UIEvents.DOUBLE_CLICK, e -> onNodeDoubleClicked(e, node));
         onNodeUICreated.accept(node, container);
         return container;
@@ -345,10 +345,34 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     protected void onNodeClicked(UIEvent event, NODE node) {
         if (event.button == 0) {
+            // shift
+            if (supportMultipleSelection && event.isShiftDown()) {
+                if (!selectedNodes.isEmpty()) {
+                    var first = selectedNodes.iterator().next();
+                    if (node.getDimension() == first.getDimension() && first.getParent() != null) {
+                        selectedNodes.removeIf(n -> n != first);
+                        var allSibling = first.getParent().getChildren();
+                        var currentIndex = first.getSiblingIndex();
+                        var targetIndex = node.getSiblingIndex();
+                        for (int i = Math.min(currentIndex, targetIndex); i <= Math.max(currentIndex, targetIndex); i++) {
+                            if (i < 0 || i >= allSibling.size() || allSibling.get(i) == node) continue;
+                            var sibling = (NODE) allSibling.get(i);
+                            selectedNodes.add(sibling);
+                        }
+                        onSelectedChanged.accept(getSelected());
+                        return;
+                    }
+                }
+            }
+            // ctrl
             if (!supportMultipleSelection || !event.isCtrlDown()) {
                 selectedNodes.clear();
             }
-            selectedNodes.add(node);
+            if (selectedNodes.contains(node)) {
+                selectedNodes.remove(node);
+            } else {
+                selectedNodes.add(node);
+            }
             onSelectedChanged.accept(getSelected());
         }
     }

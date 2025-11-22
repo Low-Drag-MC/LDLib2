@@ -45,7 +45,7 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
         var componentsConfigurator = new DataComponentConfigurator(DataComponentMap.EMPTY,
                 () -> supplier.get().getComponentsPatch(),
                 patch -> updater.accept(new FluidStack(supplier.get().getFluid().builtInRegistryHolder(), supplier.get().getAmount(), patch)), forceUpdate);
-        var itemConfigurator = new RegistrySearchComponent.Fluid("configurator.fluid",
+        var fluidConfigurator = new RegistrySearchComponent.Fluid("configurator.fluid",
                 () -> supplier.get().getFluid(),
                 fluid -> updater.accept(new FluidStack(fluid.builtInRegistryHolder(),
                         Math.max(supplier.get().getAmount(), 1),
@@ -57,7 +57,7 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
                 .setType(ConfigNumber.Type.INTEGER)
                 .setRange(0, Integer.MAX_VALUE)
                 .setWheel(1);
-        group.addConfigurators(itemConfigurator, countConfigurator, componentsConfigurator);
+        group.addConfigurators(fluidConfigurator, countConfigurator, componentsConfigurator);
         return group;
     }
 }

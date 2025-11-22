@@ -37,7 +37,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "progress-bar", registry = "ldlib2:ui_element")
+@LDLRegister(name = "progress-bar", group = "basic", registry = "ldlib2:ui_element")
 public class ProgressBar extends UIElement implements IBindable<Float>, IDataConsumer<Float> {
     @Configurable(name = "ProgressBarStyle")
     public class ProgressBarStyle extends Style {

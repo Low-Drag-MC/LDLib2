@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "toggle-group", registry = "ldlib2:ui_element")
+@LDLRegister(name = "toggle-group", group = "utils", registry = "ldlib2:ui_element")
 public class ToggleGroupElement extends UIElement {
     @Configurable(name = "ToggleGroup", subConfigurable = true)
     public final Toggle.ToggleGroup toggleGroup = new Toggle.ToggleGroup();

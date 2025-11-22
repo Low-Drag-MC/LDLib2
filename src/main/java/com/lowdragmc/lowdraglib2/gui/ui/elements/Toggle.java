@@ -40,7 +40,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
-@LDLRegister(name = "toggle", registry = "ldlib2:ui_element")
+@LDLRegister(name = "toggle", group = "basic", registry = "ldlib2:ui_element")
 public class Toggle extends BindableUIElement<Boolean> {
     public static class ToggleGroup implements IPersistedSerializable, IConfigurable {
         @Setter

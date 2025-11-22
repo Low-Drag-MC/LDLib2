@@ -28,7 +28,7 @@ import java.util.List;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "code-editor", registry = "ldlib2:ui_element")
+@LDLRegister(name = "code-editor", group = "misc", registry = "ldlib2:ui_element")
 public class CodeEditor extends TextArea {
     private static final String CMT = "//";
 

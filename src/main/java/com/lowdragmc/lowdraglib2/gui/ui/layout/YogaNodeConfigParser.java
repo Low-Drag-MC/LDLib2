@@ -41,6 +41,10 @@ public final class YogaNodeConfigParser {
                 ),
                 // spacing
                 new ConfiguratorGroup("property.spacing.group").addConfigurators(
+                        // move all to outer for convenient
+                        createConfigurator(YogaProperties.MARGINS[YogaProperties.MARGINS.length - 1], style).setLabel("margin-all"),
+                        createConfigurator(YogaProperties.PADDINGS[YogaProperties.PADDINGS.length - 1], style).setLabel("padding-all"),
+                        createConfigurator(YogaProperties.GAPS[YogaProperties.GAPS.length - 1], style).setLabel("gap-all"),
                         new ConfiguratorGroup("property.spacing.margin.group").addConfigurators(
                                 createConfigurators(YogaProperties.MARGINS, style)
                         ),

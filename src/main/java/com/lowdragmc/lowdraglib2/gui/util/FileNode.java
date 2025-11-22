@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.util;
 
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -11,10 +10,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
-@EqualsAndHashCode
 public class FileNode implements ITreeNode<File, Void> {
+    @Nullable
+    @Getter
+    public final FileNode parent;
     @Getter
     public final int dimension;
     @Getter
@@ -25,10 +27,11 @@ public class FileNode implements ITreeNode<File, Void> {
     protected Predicate<FileNode> valid;
 
     public FileNode(File dir){
-        this(0, dir);
+        this(null, 0, dir);
     }
 
-    private FileNode(int dimension, File key) {
+    private FileNode(@Nullable FileNode parent, int dimension, File key) {
+        this.parent = parent;
         this.dimension = dimension;
         this.key = key;
     }
@@ -59,7 +62,7 @@ public class FileNode implements ITreeNode<File, Void> {
                 }
                 return 1;
             }).forEach(file -> {
-                var node = new FileNode(dimension + 1, file);
+                var node = new FileNode(this, dimension + 1, file);
                 if (valid != null && !valid.test(node)) return;
                 children.add(node.setValid(valid));
             });
@@ -70,5 +73,19 @@ public class FileNode implements ITreeNode<File, Void> {
     @Override
     public String toString() {
         return getKey().getName();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FileNode fileNode = (FileNode) o;
+        return dimension == fileNode.dimension &&
+                Objects.equals(key, fileNode.key);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(dimension, key);
     }
 }

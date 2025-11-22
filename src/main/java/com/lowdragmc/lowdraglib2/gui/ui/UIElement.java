@@ -68,7 +68,7 @@ import java.util.function.Supplier;
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "element", registry = "ldlib2:ui_element")
+@LDLRegister(name = "element", registry = "ldlib2:ui_element", priority = -1)
 public class UIElement implements IConfigurable, IPersistedSerializable, ILDLRegister<UIElement, Supplier<UIElement>> {
     public static Codec<UIElement> CODEC = LDLib2Registries.UI_ELEMENTS.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
             optional -> optional.map(holder ->
@@ -101,7 +101,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Configurable
     private String id = "";
     @Getter
-    private final Set<String> classes = new HashSet<>();
+    private final Set<String> classes = new LinkedHashSet<>();
     @Getter
     private final StyleBag styleBag = new StyleBag(this);
     @Getter

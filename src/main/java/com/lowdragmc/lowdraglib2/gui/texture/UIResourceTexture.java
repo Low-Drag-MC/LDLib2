@@ -40,7 +40,11 @@ public final class UIResourceTexture extends TransformTexture {
 
     @Override
     public IGuiTexture copy() {
-        return new UIResourceTexture(resourcePath);
+        return this;
     }
 
+    @Override
+    public IGuiTexture setColor(int color) {
+        return getInternalTexture().copy().setColor(color);
+    }
 }

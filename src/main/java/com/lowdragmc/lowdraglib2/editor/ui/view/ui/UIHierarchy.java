@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
@@ -11,24 +13,27 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class UIHierarchy extends UIElement {
     public record DraggingUINode(UITreeNode draggedNode) {}
+    public record NodeCopy(List<CompoundTag> copiedNodes) {}
 
     public final UIEditorView editorView;
     public final ScrollerView scrollerView = new ScrollerView();
@@ -167,6 +172,9 @@ public class UIHierarchy extends UIElement {
                         }
                     });
                 }));
+        setFocusable(true);
+        addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
     }
 
     public void clearUI() {
@@ -235,17 +243,44 @@ public class UIHierarchy extends UIElement {
     }
 
     protected void onMouseDown(UIEvent event) {
+        focus();
         if (event.button == 1) {
             editorView.openMenu(event.x, event.y, createMenu());
             event.stopPropagation();
         }
     }
 
+    protected void onValidateCommand(UIEvent event) {
+        if (CommandEvents.COPY.equals(event.command)) {
+            event.stopPropagation();
+        }
+        if (CommandEvents.PASTE.equals(event.command)) {
+            event.stopPropagation();
+        }
+    }
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.COPY.equals(event.command)) {
+            copySelected();
+        }
+        if (CommandEvents.PASTE.equals(event.command)) {
+            pasteToSelected();
+        }
+    }
+
     private boolean isSelectedNodeValid(Set<UITreeNode> selected) {
-        return (!selected.isEmpty() && selected.stream().findAny().get() != rootNode) && selected.stream()
-                .map(UITreeNode::getKey)
-                .filter(element -> !element.isInternalUI())
-                .map(UIElement::getParent).distinct().count() == 1;
+        if (selected.isEmpty()) return false;
+        UIElement parent = null;
+        for (var node : selected) {
+            if (node == rootNode) return false;
+            var element = node.getKey();
+            if (element.isInternalUI()) return false;
+            if (element.getParent() != parent) {
+                if (parent != null) return false;
+                parent = element.getParent();
+            }
+        }
+        return true;
     }
 
     @Nullable
@@ -288,19 +323,41 @@ public class UIHierarchy extends UIElement {
                     element.removeSelf();
                 }
             });
-            menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> {
-                var nodes = treeList.getSelected();
-                if (!isSelectedNodeValid(nodes)) return;
-                for (var node : nodes) {
-                    var uiElement = node.getKey();
-                    var parent = uiElement.getParent();
-                    if (parent == null) continue;
-                    var copy = uiElement.copy();
-                    parent.addEditorChild(copy, -1);
-                }
-            });
+            menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", this::copySelected);
+        }
+        if (ClipboardManager.INSTANCE.getClipboardType() == NodeCopy.class && selected.size() == 1) {
+            menu.leaf(Icons.PASTE, "ldlib.gui.editor.menu.paste", this::pasteToSelected);
         }
         return menu;
+    }
+
+    public void copySelected() {
+        var nodes = treeList.getSelected();
+        if (!isSelectedNodeValid(nodes)) return;
+        var tags = nodes.stream()
+                .sorted(Comparator.comparingInt(node -> node.getKey().getSiblingIndex()))
+                .map(node -> CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), node.key)
+                        .result().orElse(null))
+                .filter(Objects::nonNull)
+                .filter(CompoundTag.class::isInstance)
+                .map(CompoundTag.class::cast)
+                .toList();
+        var nodeCopy = new NodeCopy(tags);
+        ClipboardManager.INSTANCE.copyDirect(nodeCopy);
+    }
+
+    public void pasteToSelected() {
+        if (ClipboardManager.INSTANCE.getClipboardType() != NodeCopy.class) return;
+        var nodes = treeList.getSelected();
+        if (nodes.size() != 1) return;
+        var parent = nodes.iterator().next().getKey();
+        if (ClipboardManager.INSTANCE.paste() instanceof NodeCopy(List<CompoundTag> copiedNodes)) {
+            copiedNodes.forEach(tag -> {
+                CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result().ifPresent(element -> {
+                    parent.addEditorChild(element, -1);
+                });
+            });
+        }
     }
 
     private void diveBranch(String[] paths, TreeBuilder.Menu current, Consumer<TreeBuilder.Menu> menu) {

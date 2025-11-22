@@ -28,7 +28,7 @@ import java.util.function.IntConsumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "color-selector", registry = "ldlib2:ui_element")
+@LDLRegister(name = "color-selector", group = "misc", registry = "ldlib2:ui_element")
 public class ColorSelector extends BindableUIElement<Integer> {
     public final UIElement pickerContainer;
     public final UIElement colorPreview;

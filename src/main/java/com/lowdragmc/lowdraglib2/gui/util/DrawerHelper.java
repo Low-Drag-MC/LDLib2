@@ -215,7 +215,7 @@ public class DrawerHelper {
     }
 
     public static void drawSolidRect(@Nonnull GuiGraphics graphics, float x, float y, float width, float height, int color, boolean flush) {
-        drawSolidRect(graphics, RenderType.gui(), x, y, width, height, color, flush);
+        drawSolidRect(graphics, RenderType.guiOverlay(), x, y, width, height, color, flush);
     }
 
     public static void drawSolidRect(@Nonnull GuiGraphics graphics, RenderType type, float x, float y, float width, float height, int color) {

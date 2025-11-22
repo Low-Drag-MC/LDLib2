@@ -19,7 +19,7 @@ import java.util.function.Predicate;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "tag-field", registry = "ldlib2:ui_element")
+@LDLRegister(name = "tag-field", group = "basic", registry = "ldlib2:ui_element")
 public class TagField extends BindableUIElement<Tag> {
     private static final ChatFormatting STRING_COLOR = ChatFormatting.GREEN;
     private static final ChatFormatting NUMBER_COLOR = ChatFormatting.GOLD;
@@ -35,6 +35,7 @@ public class TagField extends BindableUIElement<Tag> {
     private Tag value = EndTag.INSTANCE;
 
     public TagField() {
+        textField.addClass("__tag-field_text-field__");
         textField.setFormatter(rawText -> {
             if (rawText.isEmpty()) return Component.empty();
             if (!isTagValid(rawText)) return Component.literal(rawText);

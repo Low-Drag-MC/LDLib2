@@ -61,6 +61,17 @@ public final class PersistedParser {
 
             @Override
             public <T1> DataResult<T1> encode(T input, DynamicOps<T1> ops, T1 prefix) {
+                if (input instanceof IPersistedSerializable persistedSerializable) {
+                    try {
+                        var tag = persistedSerializable.serializeNBT(Platform.getFrozenRegistry());
+                        if (ops == NbtOps.INSTANCE || ops instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
+                            return (DataResult<T1>) DataResult.success(tag);
+                        }
+                        return DataResult.success(NbtOps.INSTANCE.convertTo(ops, tag));
+                    } catch (Exception e) {
+                        return DataResult.error(e::getMessage);
+                    }
+                }
                 return serialize(ops, input, Platform.getFrozenRegistry());
             }
 

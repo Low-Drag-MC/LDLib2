@@ -37,7 +37,7 @@ import java.util.function.Consumer;
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "text", registry = "ldlib2:ui_element")
+@LDLRegister(name = "text", group = "basic", registry = "ldlib2:ui_element")
 public class TextElement extends UIElement {
     @Configurable(name = "TextStyle")
     public class TextStyle extends Style {

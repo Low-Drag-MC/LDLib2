@@ -321,12 +321,12 @@ public class AccessorRegistries {
                 .copyMark(BlockPos::new)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(FluidStack.class)
-                .codec(FluidStack.CODEC)
+                .codec(FluidStack.OPTIONAL_CODEC)
                 .streamCodec(FluidStack.OPTIONAL_STREAM_CODEC)
                 .customMark(FluidStack::copy, FluidStack::matches)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ItemStack.class)
-                .codec(ItemStack.CODEC)
+                .codec(ItemStack.OPTIONAL_CODEC)
                 .streamCodec(ItemStack.OPTIONAL_STREAM_CODEC)
                 .customMark(ItemStack::copy, ItemStack::matches)
                 .build());

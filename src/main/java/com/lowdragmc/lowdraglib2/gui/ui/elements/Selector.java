@@ -34,7 +34,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@LDLRegister(name = "selector", registry = "ldlib2:ui_element")
+@LDLRegister(name = "selector", group = "basic", registry = "ldlib2:ui_element")
 public class Selector<T> extends BindableUIElement<T> {
     @Configurable(name = "SelectorStyle")
     public class SelectorStyle extends Style {
@@ -383,6 +383,15 @@ public class Selector<T> extends BindableUIElement<T> {
             guiContext.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);
+    }
+
+    /// Editor Support
+
+    @Override
+    public void beforeDeserialize() {
+        super.beforeDeserialize();
+        this.editorCandidates.clear();
+        this.defaultValue = "";
     }
 
     @Override

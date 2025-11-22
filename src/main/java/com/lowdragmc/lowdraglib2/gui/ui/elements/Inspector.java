@@ -20,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
-@LDLRegister(name = "inspector", registry = "ldlib2:ui_element")
+@LDLRegister(name = "inspector", group = "misc", registry = "ldlib2:ui_element")
 public class Inspector extends UIElement {
     public final ScrollerView scrollerView;
     @Nullable @Setter @Getter
