@@ -51,10 +51,10 @@ public class Configurator extends UIElement {
     }
 
     public Configurator(String name) {
-        this.lineContainer = new UIElement();
-        this.label = new Label();
-        this.inlineContainer = new UIElement();
-        this.tip = new UIElement();
+        this.lineContainer = new UIElement().addClass("__configurator_line__");
+        this.label = (Label) new Label().addClass("__configurator_label__");
+        this.inlineContainer = new UIElement().addClass("__configurator_inline__");
+        this.tip = new UIElement().addClass("__configurator_tip__");
 
         getLayout().setGap(YogaGutter.ALL, 1);
 
@@ -64,8 +64,6 @@ public class Configurator extends UIElement {
         }).addChildren(
                 this.label.textStyle(textStyle -> {
                     textStyle.adaptiveWidth(true);
-//                    textStyle.fontSize(7);
-//                    textStyle.font(LDLibFonts.JETBRAINS_MONO_BOLD);
                     textStyle.textAlignVertical(Vertical.CENTER);
                 }).setText(name).layout(layout -> {
                     layout.setHeight(14);
@@ -81,6 +79,11 @@ public class Configurator extends UIElement {
         this.tip.setDisplay(YogaDisplay.NONE);
 
         this.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+
+        this.lineContainer.moveInlineAsDefault();
+        this.inlineContainer.moveInlineAsDefault();
+        this.label.moveInlineAsDefault();
+        this.tip.moveInlineAsDefault();
     }
 
     public Configurator setLabel(String name) {

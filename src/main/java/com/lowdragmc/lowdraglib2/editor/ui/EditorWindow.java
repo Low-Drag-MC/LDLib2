@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import lombok.Getter;
 import org.appliedenergistics.yoga.*;
 
@@ -40,6 +41,7 @@ public class EditorWindow extends UIElement {
             layout.setGap(YogaGutter.ALL, 1);
             layout.setHeight(14);
         }).setDisplay(YogaDisplay.NONE).style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
+        this.editorButtonContainer.addClass("__editor-window_editor-button-container__").moveInlineAsDefault();
 
         addChild(editorButtonContainer);
         createNewEditor();
@@ -60,6 +62,15 @@ public class EditorWindow extends UIElement {
             layout.setMargin(YogaEdge.TOP, hasMultipleEditors() ? 14 : 0);
         });
         editorButtonContainer.setDisplay(hasMultipleEditors() ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        for (var entry : editors.entrySet()) {
+            var isCurrent = entry.getKey() == currentEditor;
+            entry.getValue().style(style -> {
+                style.setPipelineState(StyleOrigin.DEFAULT);
+                style.backgroundTexture(isCurrent ? ColorPattern.SLATE_PLUM.rectTexture() : ColorPattern.DARK_GRAY.rectTexture());
+                style.setPipelineState(StyleOrigin.INLINE);
+            }).addClass(isCurrent ? "__editor-window_active__" : "__editor-window_inactive__")
+                    .removeClass(isCurrent ? "__editor-window_inactive__" : "__editor-window_active__");
+        }
     }
 
     public Editor createNewEditor() {
@@ -93,7 +104,11 @@ public class EditorWindow extends UIElement {
             layout.setHeightPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setFlex(1);
-        }).style(style -> style.backgroundTexture(DynamicTexture.of(() -> currentEditor == editor ? ColorPattern.SLATE_PLUM.rectTexture() : ColorPattern.DARK_GRAY.rectTexture()))).addChildren(
+        }).style(style -> {
+            style.setPipelineState(StyleOrigin.DEFAULT);
+            style.backgroundTexture(currentEditor == editor ? ColorPattern.SLATE_PLUM.rectTexture() : ColorPattern.DARK_GRAY.rectTexture());
+            style.setPipelineState(StyleOrigin.INLINE);
+        }).addClass("__editor-window_editor-button__").moveInlineAsDefault().addChildren(
                 new TextElement().setText(editor.getTitle()).textStyle(style -> style
                                 .textAlignVertical(Vertical.CENTER)
                                 .textAlignHorizontal(Horizontal.CENTER)

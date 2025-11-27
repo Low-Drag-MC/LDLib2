@@ -43,18 +43,18 @@ public class ResourceView extends View {
             layout.setFlexDirection(YogaFlexDirection.ROW_REVERSE);
             layout.setHeightPercent(100);
             layout.setFlex(1);
-        });
+        }).moveInlineAsDefault();
         tabView.tabContentContainer.layout(layout -> {
             layout.setFlex(1);
             layout.setPadding(YogaEdge.ALL, 1);
-        }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
+        }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).moveInlineAsDefault();
         tabView.tabHeaderContainer.layout(layout -> {
             layout.setFlexDirection(YogaFlexDirection.COLUMN);
             layout.setHeightPercent(100);
             layout.setWidth(StyleSizeLength.AUTO);
             layout.setPadding(YogaEdge.HORIZONTAL, 1);
             layout.setPadding(YogaEdge.VERTICAL, 1);
-        }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
+        }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).moveInlineAsDefault();
         tabView.tabScroller
                 .viewContainer(viewContainer -> viewContainer.layout(layout -> {
                     layout.setFlexDirection(YogaFlexDirection.COLUMN);
@@ -64,7 +64,7 @@ public class ResourceView extends View {
                     layout.setWidth(16);
                     layout.setFlex(1);
                     layout.setMargin(YogaEdge.BOTTOM, 0);
-                });
+                }).moveInlineAsDefault();
         tabView.setOnTabSelected(this::onResourceSelected);
 
         this.addChildren(tabView);
@@ -92,6 +92,7 @@ public class ResourceView extends View {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         }).style(style -> style.backgroundTexture(resourceInstance.resource.getIcon())));
+        tab.moveInlineAsDefault();
         tabView.addTab(tab, new ResourceContainer<>(resourceInstance, editor));
         resources.put(resourceInstance.resource, resourceInstance);
     }

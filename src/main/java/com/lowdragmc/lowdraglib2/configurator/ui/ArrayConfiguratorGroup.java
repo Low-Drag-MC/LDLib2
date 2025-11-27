@@ -7,14 +7,17 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
@@ -47,7 +50,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     public final Supplier<List<T>> source;
     public final IConfiguratorProvider<T> configuratorProvider;
     protected IAddDefault<T> addDefault;
-    @Setter
+    @Setter @Accessors(chain = true)
     protected Consumer<List<T>> onUpdate;
     protected Consumer<T> onAdd, onRemove;
     @Setter
@@ -59,6 +62,9 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     @Getter
     @Nullable
     protected ItemConfigurator selected;
+    @Setter @Accessors(chain = true)
+    @Nullable
+    protected Consumer<T> onSelectedChanged;
 
     public ArrayConfiguratorGroup(String name, boolean isCollapse, Supplier<List<T>> source,
                                   IConfiguratorProvider<T> configuratorProvider,
@@ -80,7 +86,9 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             layout.setAlignSelf(YogaAlign.FLEX_END);
             layout.setPadding(YogaEdge.ALL, 3f);
         }).setDisplay(isCollapse ? YogaDisplay.NONE : YogaDisplay.FLEX)
-                .style(style -> style.backgroundTexture(Sprites.BORDER_RT1));
+                .style(style -> style.backgroundTexture(Sprites.BORDER_RT1))
+                .moveInlineAsDefault()
+                .addClass("__array-configurator_button-group__");
 
         addButton.setOnClick(this::onAdd).setText("+").textStyle(textStyle -> textStyle.textShadow(false)).layout(layout -> {
             layout.setWidth(12);
@@ -221,6 +229,9 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         if (selected != null) {
             selected.setSelected(true);
         }
+        if (onSelectedChanged != null) {
+            onSelectedChanged.accept(selected == null ? null : selected.object);
+        }
         removeButton.setActive(this.selected != null);
         removeButton.setDisplay((this.selected != null && canRemove.test(this.selected.object)) ? YogaDisplay.FLEX : YogaDisplay.NONE);
     }
@@ -242,6 +253,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             this.addEventListener(UIEvents.MOUSE_DOWN, this::onItemMouseDown, true);
             this.label.addEventListener(UIEvents.MOUSE_DOWN, this::onLabelMouseDown);
             this.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
+            addClass("__array-configurator_item_unselected__");
         }
 
         private void onDragSourceUpdate(UIEvent event) {
@@ -313,7 +325,18 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         }
 
         private void setSelected(boolean selected) {
-            this.style(style -> style.backgroundTexture(selected ? Sprites.RECT_DARK : IGuiTexture.EMPTY));
+            this.style(style -> {
+                style.setPipelineState(StyleOrigin.DEFAULT);
+                style.backgroundTexture(selected ? Sprites.RECT_DARK : IGuiTexture.EMPTY);
+                style.setPipelineState(StyleOrigin.INLINE);
+            });
+            if (selected) {
+                addClass("__array-configurator_item_selected__");
+                removeClass("__array-configurator_item_unselected__");
+            } else {
+                addClass("__array-configurator_item_unselected__");
+                removeClass("__array-configurator_item_selected__");
+            }
         }
     }
 

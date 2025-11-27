@@ -45,11 +45,12 @@ public class ViewContainer extends UIElement {
     public ViewContainer() {
         this.tabView = new TabView();
         this.collapseButton = new Button().noText();
+        this.addClass("__view-container__");
 
         this.tabView.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
-        }).setId("tab_view");
+        }).addClass("__view-container_tab-view__");
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
         getLayout().setPadding(YogaEdge.ALL, 1);
 
@@ -61,7 +62,7 @@ public class ViewContainer extends UIElement {
                 .layout(layout -> layout.setWidth(10).setHeight(10))
                 .style(style -> style.backgroundTexture(Icons.COLLAPSE_HORIZONTAL).tooltips("collapse_or_expand"))
         );
-        collapseButton.layout(layout -> layout.setWidth(14).setAlignItems(YogaAlign.CENTER).setJustifyContent(YogaJustify.CENTER));
+        collapseButton.layout(layout -> layout.setWidth(14).setHeight(14).setAlignItems(YogaAlign.CENTER).setJustifyContent(YogaJustify.CENTER));
         collapseButton.setDisplay(false);
         collapseButton.setOnClick(e -> {
             if (isCollapse) {
@@ -81,6 +82,7 @@ public class ViewContainer extends UIElement {
         tabView.tabHeaderContainer.addEventListener(UIEvents.DRAG_LEAVE, this::onTabHeaderDragLeave, true);
         tabView.tabHeaderContainer.addEventListener(UIEvents.DRAG_UPDATE, this::onTabHeaderDragUpdate, true);
         tabView.tabHeaderContainer.addEventListener(UIEvents.DRAG_PERFORM, this::onTabHeaderDragPerform);
+        moveInlineAsDefault();
     }
 
     protected void _setWindowInternal(@Nullable SplittableWindow splittableWindow) {
@@ -182,7 +184,7 @@ public class ViewContainer extends UIElement {
         if (tabPlaceHolder != null) return;
         if (event.dragHandler.getDraggingObject() instanceof View) {
             tabPlaceHolder = new UIElement().layout(layout -> {
-                layout.setHeight(tabView.tabHeaderContainer.getSizeHeight());
+                layout.setHeight(tabView.tabHeaderContainer.getContentHeight());
                 layout.setWidth(50);
             }).style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
             var index = -1;

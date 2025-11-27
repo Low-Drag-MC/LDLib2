@@ -5,7 +5,9 @@ import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
@@ -59,14 +61,17 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
         preview.getRenderer().setOnLookingAt(null); // better performance
         preview.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
         preview.layout(layout -> {
+            layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setAspectRatio(1.0f);
             layout.setWidthPercent(100);
             layout.setMaxWidth(100);
             layout.setMaxHeight(100);
             layout.setAlignSelf(YogaAlign.CENTER);
             layout.setPadding(YogaEdge.ALL, 3);
+            layout.setPipelineState(StyleOrigin.INLINE);
         });
-        preview.style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
+        preview.style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
+                .addClass("preview_bg");
 
         inlineContainer.addChild(preview);
 

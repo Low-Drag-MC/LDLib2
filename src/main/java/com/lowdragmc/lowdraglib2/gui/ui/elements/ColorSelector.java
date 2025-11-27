@@ -89,8 +89,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
         colorSlider.layout(layout -> {
             layout.setWidth(12);
             layout.setPadding(YogaEdge.ALL, 3);
-        }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1)).addChildren(
-                new UIElement().layout(layout -> layout.setFlex(1))
+        }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                .addChildren(new UIElement().layout(layout -> layout.setFlex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustColorSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustColorSlider)
                         .addClass("__color-selector_color-slider_bar__").style(style -> style.backgroundTexture(this::drawColorSlider)));

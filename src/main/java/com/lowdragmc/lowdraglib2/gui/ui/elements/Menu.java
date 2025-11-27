@@ -138,6 +138,12 @@ public class Menu<K, T> extends UIElement {
         addEventListener(UIEvents.BLUR, this::onBlur, true);
 
         initMenu();
+        internalSetup();
+    }
+
+    @Override
+    public String name() {
+        return "menu";
     }
 
     protected void onBlur(UIEvent event) {
@@ -290,7 +296,7 @@ public class Menu<K, T> extends UIElement {
                         layout.setWidth(8);
                         layout.setHeight(8);
                         layout.setMargin(YogaEdge.HORIZONTAL, 2);
-                    }).style(style -> style.backgroundTexture(menuStyle.arrowIcon())));
+                    }).style(style -> style.backgroundTexture(DynamicTexture.of(menuStyle::arrowIcon))));
                 }
                 nodeUIs.put(child, container);
                 addChild(container);

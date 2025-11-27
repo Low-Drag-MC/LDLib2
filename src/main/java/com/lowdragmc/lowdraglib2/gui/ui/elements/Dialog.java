@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
@@ -54,9 +55,11 @@ public class Dialog extends UIElement {
         }).addClass("__dialog_overlay__");
 
         this.titleBar.layout(layout -> {
+            layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setWidthPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setPadding(YogaEdge.ALL, 5);
+            layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
 
         this.contentContainer.layout(layout -> {
@@ -83,6 +86,13 @@ public class Dialog extends UIElement {
         stopInteractionEventsPropagation();
         addEventListener(UIEvents.BLUR, this::onBlur);
         addEventListener(UIEvents.KEY_DOWN, this::keyDown);
+
+        internalSetup();
+    }
+
+    @Override
+    public String name() {
+        return "dialog";
     }
 
     protected void keyDown(UIEvent event) {

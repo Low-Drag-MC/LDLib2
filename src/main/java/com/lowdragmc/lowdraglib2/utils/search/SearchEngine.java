@@ -15,6 +15,7 @@ public class SearchEngine<T> {
         this.result = result;
     }
 
+    // TODO shall we add a method to schedule searching on the main thread?
     public void searchWord(String word) {
         Thread virtualThread = Thread.ofVirtual()
                 .name("search-" + word.hashCode())

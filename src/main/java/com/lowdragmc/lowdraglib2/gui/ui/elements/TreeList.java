@@ -101,7 +101,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     @Getter
     private final TreeListStyle treeListStyle = new TreeListStyle();
-    protected UIElementProvider<NODE> nodeUISupplier = iconTextTemplate(node -> IGuiTexture.EMPTY, value -> Component.translatable(value.toString()));
+    protected UIElementProvider<NODE> nodeUISupplier = textTemplate(value -> Component.translatable(value.toString()));
     protected BiConsumer<NODE, UIElement> onNodeUICreated = (node, ui) -> {};
     @Setter
     protected Consumer<Set<NODE>> onSelectedChanged = Consumers.nop();
@@ -129,6 +129,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     public TreeList(NODE root) {
         this();
+        setRoot(root);
+    }
+
+    public TreeList(NODE root, boolean staticTree) {
+        this();
+        setStaticTree(staticTree);
         setRoot(root);
     }
 
@@ -395,6 +401,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             Function<NODE, IGuiTexture> iconMapper,
             Function<NODE, Component> textMapper) {
         var provider = UIElementProvider.iconText(iconMapper, textMapper);
+        return node -> provider.apply(node).layout(layout -> layout.setFlex(1));
+    }
+
+    public static <NODE extends ITreeNode<?, ?>> UIElementProvider<NODE> textTemplate(
+            Function<NODE, Component> textMapper) {
+        var provider = UIElementProvider.text(textMapper);
         return node -> provider.apply(node).layout(layout -> layout.setFlex(1));
     }
 }

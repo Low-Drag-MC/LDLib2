@@ -1,6 +1,7 @@
 {
   "ldlib.author": "Hello kilaBash!",
   "ldlib.gui.tips.confirm": "Confirm",
+  "ldlib.gui.tips.apply": "Apply",
   "ldlib.gui.tips.reject": "Reject",
   "ldlib.gui.tips.cancel": "Cancel",
   "ldlib.fluid.empty": "Empty",
@@ -229,6 +230,7 @@
   "editor.file": "file",
   "editor.view": "view",
   "editor.exit": "exit",
+  "editor.settings": "settings",
   "editor.empty_editor": "empty editor",
   "editor.open_project": "open %s",
   "editor.view.inspector": "inspector",
@@ -473,5 +475,6 @@
   "EditorRange": "Number Range",
   "EditorItemDisplay": "Item Display",
   "EditorFluidDisplay": "Fluid Display",
-  "Capacity": "Capacity"
+  "Capacity": "Capacity",
+  "settings.ldlib2.appearance": "Appearance"
 }

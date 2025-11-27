@@ -7,6 +7,7 @@ import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +15,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class StylesheetManager implements ResourceManagerReloadListener {
     public static final StylesheetManager INSTANCE = new StylesheetManager();
     public static final String PATH = "lss";
+
+    public static final ResourceLocation GDP = LDLib2.id(PATH + "/gdp.lss");
+    public static final ResourceLocation MC = LDLib2.id(PATH + "/mc.lss");
+    public static final ResourceLocation MODERN = LDLib2.id(PATH + "/modern.lss");
+
     private final Map<ResourceLocation, Stylesheet> builtinStylesheets = new ConcurrentHashMap<>();
     private final Map<ResourceLocation, Stylesheet> packStylesheets = new HashMap<>();
 
@@ -25,6 +31,10 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
 
     public void unregisterBuiltinStylesheet(ResourceLocation location) {
         builtinStylesheets.remove(location);
+    }
+
+    public Collection<ResourceLocation> getAllPackStylesheets() {
+        return packStylesheets.keySet();
     }
 
     @Nullable

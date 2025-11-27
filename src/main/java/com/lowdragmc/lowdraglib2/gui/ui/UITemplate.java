@@ -59,7 +59,7 @@ public class UITemplate {
     }
 
     @Nullable
-    public Stylesheet getCustomStyleSheet() {
+    public Stylesheet getCustomStylesheet() {
         if (builtinStyles != null) {
             if (customStylesheet == null) {
                 customStylesheet = Stylesheet.parse(builtinStyles);
@@ -77,7 +77,7 @@ public class UITemplate {
 
     public List<Stylesheet> getAllStylesheets() {
         var stylesheets = new ArrayList<Stylesheet>();
-        var customStylesheet = getCustomStyleSheet();
+        var customStylesheet = getCustomStylesheet();
         if (customStylesheet != null) {
             stylesheets.add(customStylesheet);
         }

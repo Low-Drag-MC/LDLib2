@@ -2,15 +2,20 @@ package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.Tuple;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
+import java.util.function.Consumer;
 
 public class GUIContext {
     @OnlyIn(Dist.CLIENT)
@@ -29,6 +34,9 @@ public class GUIContext {
     public float localMouseX, localMouseY;
     @OnlyIn(Dist.CLIENT)
     public Stack<UIVisualLayer> UIVisualLayers = new Stack<>();
+    @OnlyIn(Dist.CLIENT)
+    private List<PostCall> postRenderingCalls = new ArrayList<>();
+    private record PostCall(Consumer<GUIContext> call, PoseStack.Pose pose) {}
 
     @OnlyIn(Dist.CLIENT)
     public static GUIContext of(ModularUI modularUI, GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -86,6 +94,20 @@ public class GUIContext {
             mainTarget.bindWrite(false);
         } else {
             UIVisualLayers.peek().bind();
+        }
+    }
+
+    public void postRendering(Consumer<GUIContext> call) {
+        postRenderingCalls.add(new PostCall(call, pose.last().copy()));
+    }
+
+    public void callPostRendering() {
+        for (var postRenderingCall : postRenderingCalls) {
+            pose.pushPose();
+            pose.setIdentity();
+            pose.mulPose(postRenderingCall.pose.pose());
+            postRenderingCall.call.accept(this);
+            pose.popPose();
         }
     }
 }

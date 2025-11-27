@@ -497,8 +497,8 @@ public class TextArea extends BindableUIElement<String[]> {
         }
         this.value = valueBuilder.toArray(new String[0]);
         // Reset cursor and selection at end
-        cursorLine = Math.max(0, lines.size() - 1);
-        cursorCol = lines.get(cursorLine).length();
+        cursorLine = 0;
+        cursorCol = 0;
         selStartLine = selEndLine = cursorLine;
         selStartCol = selEndCol = cursorCol;
         scrollX = 0;
@@ -747,16 +747,17 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void onKeyDown(UIEvent event) {
-        if (!isEditable()) return;
-
         switch (event.keyCode) {
             case GLFW.GLFW_KEY_ENTER -> {
+                if (!isEditable()) return;
                 insertNewLine();
             }
             case GLFW.GLFW_KEY_BACKSPACE -> {
+                if (!isEditable()) return;
                 deleteChars(-1);
             }
             case GLFW.GLFW_KEY_DELETE -> {
+                if (!isEditable()) return;
                 deleteChars(1);
             }
             case GLFW.GLFW_KEY_LEFT -> {
@@ -814,8 +815,10 @@ public class TextArea extends BindableUIElement<String[]> {
                 } else if (Screen.isCopy(event.keyCode)) {
                     ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
                 } else if (Screen.isPaste(event.keyCode)) {
+                    if (!isEditable()) return;
                     insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
                 } else if (Screen.isCut(event.keyCode)) {
+                    if (!isEditable()) return;
                     ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
                     insertText(""); // replace selection with empty
                 }
@@ -1217,7 +1220,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void drawCursor(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y) {
-        if (isEditable() && System.currentTimeMillis() % 1000 < 500) {
+        if (isVisible() && isFocused() && isDisplayed() && (!isActive() || System.currentTimeMillis() % 1000 < 500)) {
             var current = lines.get(cursorLine);
             float cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(current.substring(0, cursorCol), textFont)) * scale;
             float cursorY = y + cursorLine * lineHeight() - scrollY;

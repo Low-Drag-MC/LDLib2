@@ -8,9 +8,11 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.math.Position;
@@ -300,11 +302,14 @@ public class SpriteTexture extends TransformTexture {
                 .addChildren(
                         // raw image preview
                         new UIElement().layout(layout -> {
+                                    layout.setPipelineState(StyleOrigin.DEFAULT);
                                     layout.setAspectRatio(1.0f);
                                     layout.setWidthPercent(80);
                                     layout.setPadding(YogaEdge.ALL, 3);
                                     layout.setAlignSelf(YogaAlign.CENTER);
-                                }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                                    layout.setPipelineState(StyleOrigin.INLINE);
+                                }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
+                                .addClass("preview_bg")
                                 .addChild(new UIElement().layout(layout -> {
                                     layout.setWidthPercent(100);
                                     layout.setHeightPercent(100);

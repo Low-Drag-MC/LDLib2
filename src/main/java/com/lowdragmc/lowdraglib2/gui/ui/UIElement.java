@@ -164,6 +164,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 rpcEvents.forEach(mui.syncManager::registerRPCEvent);
             }
         }
+        if (bubbleListeners.containsKey(UIEvents.MUI_CHANGED) || captureListeners.containsKey(UIEvents.MUI_CHANGED)) {
+            var event = UIEvent.create(UIEvents.MUI_CHANGED);
+            event.target = this;
+            event.hasBubblePhase = false;
+            event.hasCapturePhase = false;
+            UIEventDispatcher.dispatchEvent(event, false, false, false);
+        }
         for (var child : children) {
             child._setModularUIInternal(mui);
         }
@@ -647,6 +654,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
         classes.add(identifier);
         onClassIdChanged();
+        return this;
+    }
+
+    public final UIElement moveInlineAsDefault() {
+        styleBag.moveInlineAsDefault();
         return this;
     }
 
@@ -1255,13 +1267,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     public UIElement markAsInternal() {
         if (isInternalUI()) return this;
         setInternalUI(true);
-        styleBag.moveInlineAsDefault();
+        moveInlineAsDefault();
         children.forEach(UIElement::markAsInternal);
         return this;
     }
 
     public void internalSetup() {
-        styleBag.moveInlineAsDefault();
+        moveInlineAsDefault();
         for (var child : children) {
             child.markAsInternal();
         }

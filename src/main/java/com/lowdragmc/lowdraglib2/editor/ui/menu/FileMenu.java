@@ -52,6 +52,8 @@ public class FileMenu extends MenuTab {
     protected TreeBuilder.Menu createMenu() {
         var menu = super.createMenu();
         menu.crossLine();
+        menu.leaf("editor.settings", editor::openSettingsPanel);
+        menu.crossLine();
         menu.leaf("editor.exit", editor::exit);
         return menu;
     }

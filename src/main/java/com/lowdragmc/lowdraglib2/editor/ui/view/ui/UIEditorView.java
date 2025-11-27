@@ -1,6 +1,11 @@
 package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
 
 import com.google.common.util.concurrent.Runnables;
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
@@ -10,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
@@ -20,21 +26,32 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Getter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.*;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class UIEditorView extends View {
     public final UIElement header = new UIElement();
@@ -50,17 +67,21 @@ public class UIEditorView extends View {
     private final Button saveButton = new Button();
     // runtime
     private boolean isDirty;
-    @Nullable @Getter
+    @Nullable
+    @Getter
     private UITemplate template;
-    @Nullable @Getter
+    @Nullable
+    @Getter
     private UI currentUI;
-    @Nullable @Getter
+    @Nullable
+    @Getter
     private Consumer<UITemplate> onTemplateSaved;
     @Getter
     private boolean isEditingBuiltinStyles;
 
     public UIEditorView() {
         super("editor.view.ui_editor");
+        addClass("__ui-editor-view__");
         // header initial
         header.layout(layout -> {
             layout.setWidthPercent(100);
@@ -120,8 +141,8 @@ public class UIEditorView extends View {
                             layout.setWidth(14);
                         }).style(style -> style.tooltips("GraphView.fit")).addChild(
                                 new UIElement().layout(layout -> {
-                                    layout.setHeight(10);
-                                    layout.setWidth(10);
+                                    layout.setHeightPercent(100);
+                                    layout.setAspectRatio(1);
                                 }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
                         // selection box toggle
                         new Toggle()
@@ -133,8 +154,10 @@ public class UIEditorView extends View {
                                 }))
                                 .setOnToggleChanged(modularUIPreview::setShowSelectionBox)
                                 .toggleStyle(style -> {
+                                    style.setPipelineState(StyleOrigin.DEFAULT);
                                     style.baseTexture(Sprites.BORDER1_RT1_DARK);
                                     style.hoverTexture(Sprites.BORDER1_RT1);
+                                    style.setPipelineState(StyleOrigin.INLINE);
                                     style.unmarkTexture(Icons.INFORMATION.copy().setColor(ColorPattern.GRAY.color).scale(0.6f));
                                     style.markTexture(Icons.INFORMATION.copy().scale(0.6f));
                                 })
@@ -147,6 +170,7 @@ public class UIEditorView extends View {
                                 .style(style -> style.tooltips("UIEditor.selection_box"))
                 )
         );
+        header.addClass("__ui-editor-view_header__").moveInlineAsDefault();
 
         saveButton.setActive(false);
 
@@ -157,6 +181,7 @@ public class UIEditorView extends View {
         });
         canvas.setOverflow(false);
         canvas.setDisplay(YogaDisplay.NONE);
+        canvas.addClass("__ui-editor-view_canvas__").moveInlineAsDefault();
 
         // editor initial
         editor.layout(layout -> {
@@ -164,11 +189,14 @@ public class UIEditorView extends View {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         });
+        editor.addClass("__ui-editor-view_editor__").moveInlineAsDefault();
 
         hierarchy.layout(layout -> {
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
         });
+        hierarchy.addClass("__ui-editor-view_hierarchy__").moveInlineAsDefault();
+
 
         graphView.layout(layout -> {
             layout.setHeightPercent(100);
@@ -178,28 +206,97 @@ public class UIEditorView extends View {
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
             modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
         });
+        graphView.addClass("__ui-editor-view_graph-view__").moveInlineAsDefault();
 
         // stylesheet
+        var stylesheetSelector = new ArrayConfiguratorGroup<>("", false, () -> {
+            if (this.template == null) return List.of();
+            return this.template.getStylesheets();
+        }, (getter, setter) -> new SearchComponentConfigurator<>("", getter, setter, new SearchComponentConfigurator.ISearchConfigurator<ResourceLocation>() {
+            @Override
+            @Nonnull
+            public ResourceLocation defaultValue() {
+                return LDLib2.id("gdp");
+            }
+
+            @Override
+            @Nonnull
+            public String resultText(@NotNull ResourceLocation value) {
+                return value.toString();
+            }
+
+            @Override
+            public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
+                var lowerWord = word.toLowerCase();
+                for (var key : StylesheetManager.INSTANCE.getAllPackStylesheets()) {
+                    if (Thread.currentThread().isInterrupted()) return;
+                    // TODO skip existing stylesheets. thread unsafe here,
+//                            if (template != null && template.getStylesheets().contains(key)) continue;
+                    if (key.toString().toLowerCase().contains(lowerWord)) {
+                        searchHandler.acceptResult(key);
+                    }
+                }
+            }
+        }, true), true);
+        stylesheetSelector.setAddDefault(() -> LDLib2.id("lss/gdp.lss"))
+                .setOnUpdate(stylesheetList -> {
+                    if (this.template != null) {
+                        var stylesheets = this.template.getStylesheets();
+                        stylesheets.clear();
+                        stylesheets.addAll(stylesheetList);
+                        reloadStyles();
+                        if (stylesheetSelector.getSelected() != null) {
+                            viewStylesheet(stylesheetSelector.getSelected().object);
+                        } else {
+                            editBuiltinStyles();
+                        }
+                        markAsDirty();
+                    }
+                })
+                .setOnSelectedChanged(selected -> {
+                    if (selected != null) {
+                        viewStylesheet(selected);
+                    } else {
+                        editBuiltinStyles();
+                    }
+                })
+                .setCanCollapse(false)
+                .configuratorContainer(container -> container.layout(layout -> layout.setMargin(YogaEdge.LEFT, 0)))
+                .hideTitle();
         styleView.layout(layout -> layout.setHeightPercent(100).setPadding(YogaEdge.ALL, 4));
         styleView.style(style -> style.backgroundTexture(Sprites.BORDER));
         styleView.addChildren(
-                new UIElement()
-                        .layout(layout -> layout.setHeight(16)
-                                .setAlignItems(YogaAlign.CENTER)
-                                .setPadding(YogaEdge.ALL, 2)
-                                .setFlexDirection(YogaFlexDirection.ROW))
-                        .style(style -> style.backgroundTexture(GuiTextureGroup.of(Sprites.RECT_RD_SOLID,
-                                DynamicTexture.of(() -> isEditingBuiltinStyles ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY))))
-                        .addChildren(
-                                new Label().setText("builtin_styles").textStyle(style -> style
-                                                .textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
-                                        .layout(layout -> layout.setFlex(1)).setOverflow(YogaOverflow.HIDDEN),
-                                new UIElement()
-                                        .layout(layout -> layout.setHeightPercent(100).setAspectRatio(1))
-                                        .style(style -> style.backgroundTexture(DynamicTexture.of(() ->
-                                                isEditingBuiltinStyles ? Icons.SETTINGS : IGuiTexture.EMPTY)))
-                        ).addEventListener(UIEvents.CLICK, event -> editBuiltinStyles())
+                new Toggle()
+                        .noText()
+                        .toggleStyle(toggleStyle -> {
+                            toggleStyle.setPipelineState(StyleOrigin.DEFAULT);
+                            toggleStyle.baseTexture(IGuiTexture.EMPTY);
+                            toggleStyle.hoverTexture(Sprites.RECT_RD_T_SOLID);
+                            toggleStyle.unmarkTexture(IGuiTexture.EMPTY);
+                            toggleStyle.markTexture(Sprites.RECT_RD_T_SOLID);
+                            toggleStyle.setPipelineState(StyleOrigin.INLINE);
+                        })
+                        .toggleButton(button -> button.setText("builtin_styles")
+                                .layout(layout -> layout.setAspectRatioAuto().setWidthPercent(100)))
+                        .toggleButton(button -> button.text
+                                .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.LEFT))
+                                .setDisplay(true)
+                                .layout(layout -> layout.setPositionType(YogaPositionType.ABSOLUTE)))
+                        .bindDataSource(SupplierDataSource.of(this::isEditingBuiltinStyles), false)
+                        .selfCall(toggle -> ((Toggle) toggle).setOnToggleChanged(isOn -> {
+                            if (isOn) {
+                                stylesheetSelector.setSelected(null);
+                            } else {
+                                ((Toggle) toggle).setOn(true, false);
+                            }
+                        }))
+                        .addClass("__ui-editor-view_builtin-styles-toggle__"),
+                // style sheet selector
+                new ScrollerView().addScrollViewChildren(stylesheetSelector).layout(layout -> layout.setWidthPercent(100).setFlex(1))
+
         );
+        styleView.addClass("__ui-editor-view_style-view__").moveInlineAsDefault();
+
 
         stylesheetEditor.setLanguage(Languages.LSS);
         stylesheetEditor.setActive(false);
@@ -213,6 +310,8 @@ public class UIEditorView extends View {
         });
         stylesheetEditor.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         stylesheetEditor.setLinesResponder(this::onStylesheetChanged);
+        stylesheetEditor.getStyleBag().moveInlineAsDefault();
+        stylesheetEditor.addClass("__ui-editor-view_stylesheet-editor__").moveInlineAsDefault();
 
         inspector.setHistoryStack(historyStack);
         inspector.layout(layout -> {
@@ -221,7 +320,9 @@ public class UIEditorView extends View {
         });
         inspector.scrollerView.viewPort.layout(layout -> {
             layout.setPadding(YogaEdge.ALL, 5);
-        }).style(style -> style.backgroundTexture(Sprites.BORDER));
+        }).style(style -> style.backgroundTexture(Sprites.BORDER)).moveInlineAsDefault();
+        inspector.addClass("__ui-editor-view_inspector__").moveInlineAsDefault();
+
 
         editor.addChildren(new SplitView.Horizontal().setPercentage(20)
                 .left(new SplitView.Vertical().setPercentage(20)
@@ -327,9 +428,22 @@ public class UIEditorView extends View {
         this.stylesheetEditor.setValue(Optional.ofNullable(this.template.getBuiltinStyles()).orElse("").split("\n"), false);
     }
 
+    public void viewStylesheet(ResourceLocation stylesheet) {
+        isEditingBuiltinStyles = false;
+        var res = Minecraft.getInstance().getResourceManager().getResource(stylesheet);
+        if (res.isPresent()) {
+            try (var reader = res.get().openAsReader()) {
+                this.stylesheetEditor.setValue(reader.lines().toArray(String[]::new), false);
+                this.stylesheetEditor.setActive(false);
+            } catch (Exception e) {
+                LDLib2.LOGGER.error("Failed to load style sheet {}", stylesheet, e);
+            }
+        }
+    }
+
     private void onStylesheetChanged(String[] lines) {
         if (this.template == null) return;
-        var rawStyle = Arrays.stream(lines).reduce("", (a, b) -> a + b + "\n");
+        var rawStyle = lines.length == 0 ? "" : String.join("\n", lines);
         if (Objects.equals(rawStyle, this.template.getBuiltinStyles())) return;
         this.template.setBuiltinStyles(rawStyle);
         markAsDirty();
@@ -424,7 +538,7 @@ public class UIEditorView extends View {
     public void screenTick() {
         super.screenTick();
         var mui = getModularUI();
-        if (!isDirty && mui != null && !isSimulationRunning() && (mui.getTickCounter() & 20) ==0) {
+        if (!isDirty && mui != null && !isSimulationRunning() && (mui.getTickCounter() & 20) == 0) {
             if (isTemplateDirty()) {
                 markAsDirty();
             }

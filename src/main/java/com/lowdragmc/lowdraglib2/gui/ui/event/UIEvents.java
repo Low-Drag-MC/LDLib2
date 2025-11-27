@@ -134,6 +134,8 @@ public interface UIEvents {
      * The {@code layoutChanged} is sent when the layout of an element changes.
      */
     String LAYOUT_CHANGED = "layoutChanged";
+
+    /// Life-Cycle Events, which won't be sent to the server.'
     /**
      * The {@code removed} is sent when the element is removed from the UI tree.
      */
@@ -142,6 +144,10 @@ public interface UIEvents {
      * The {@code added} is sent when the element is added to the UI tree.
      */
     String ADDED = "added";
+    /**
+     * The {@code muiChanged} is sent when the ModularUI of an element changes.
+     */
+    String MUI_CHANGED = "muiChanged";
 
 
     /// Lifecycle Events

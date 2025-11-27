@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
@@ -46,13 +47,20 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
 
         var preview = new UIElement();
         preview.layout(layout -> {
-            layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 2);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
-        }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID).overlayTexture(DynamicTexture.of(() ->
-                preview.isChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY)))
-                .addChild(new Label().bindDataSource(SupplierDataSource.of(() -> {
+                    layout.setPipelineState(StyleOrigin.DEFAULT);
+                    layout.setHeight(14);
+                    layout.setPadding(YogaEdge.ALL, 2);
+                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.setGap(YogaGutter.ALL, 2);
+                    layout.setPipelineState(StyleOrigin.INLINE);
+                }).style(style -> {
+                    style.setPipelineState(StyleOrigin.DEFAULT);
+                    style.backgroundTexture(Sprites.RECT_RD_SOLID);
+                    style.setPipelineState(StyleOrigin.IMPORTANT);
+                    style.overlayTexture(DynamicTexture.of(() -> preview.isChildHover() ?
+                            Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY));
+                    style.setPipelineState(StyleOrigin.INLINE);
+                }).addClass("configurator_preview_bg").addChild(new Label().bindDataSource(SupplierDataSource.of(() -> {
                     var value = getValue();
                     if (value instanceof UIResourceTexture uiResourceTexture) {
                         return Component.literal(uiResourceTexture.getResourcePath().getResourceName());

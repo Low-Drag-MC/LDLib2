@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -75,17 +76,16 @@ public abstract class SplitView extends UIElement {
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
         if (isHoverDragging(guiContext.localMouseX, guiContext.localMouseY)) {
-            guiContext.pose.pushPose();
-            guiContext.pose.translate(0, 0, 200);
-            var icon = getDraggingIcon();
-            var width = icon.spriteSize.width;
-            var height = icon.spriteSize.height;
-            guiContext.drawTexture(icon,
-                    guiContext.localMouseX - width / 2f,
-                    guiContext.localMouseY - height / 2f,
-                    width,
-                    height);
-            guiContext.pose.popPose();
+            guiContext.postRendering(ctx -> {
+                var icon = getDraggingIcon();
+                var width = icon.spriteSize.width;
+                var height = icon.spriteSize.height;
+                ctx.drawTexture(icon,
+                        ctx.localMouseX - width / 2f,
+                        ctx.localMouseY - height / 2f,
+                        width,
+                        height);
+            });
         }
     }
 

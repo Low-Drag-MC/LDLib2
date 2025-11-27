@@ -16,6 +16,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -43,7 +44,6 @@ public class CodeEditor extends TextArea {
 
     public CodeEditor() {
         getTextAreaStyle().setDefault(PropertyRegistry.FONT, LDLibFonts.JETBRAINS_MONO_BOLD);
-        registerValueListener(this::onLinesChanged);
         internalSetup();
     }
 
@@ -62,22 +62,33 @@ public class CodeEditor extends TextArea {
         return syntaxParser.getLanguageDefinition();
     }
 
-    private void onLinesChanged(String[] lines) {
+    @Override
+    public CodeEditor setValue(@Nullable String[] value, boolean notify) {
+        super.setValue(value, notify);
+        needsReparsing = true;
+        return this;
+    }
+
+    @Override
+    protected void onRawLinesUpdated() {
+        super.onRawLinesUpdated();
         needsReparsing = true;
     }
 
-
     @Override
     protected void onKeyDown(UIEvent event) {
-        if (!isEditable()) return;
-        switch (event.keyCode) {
-            case GLFW.GLFW_KEY_TAB -> insertText("  ");
-            case GLFW.GLFW_KEY_SLASH -> {
-                if (Screen.hasControlDown()) {
-                    toggleCommentAtBol();
+        if (isEditable()) {
+            switch (event.keyCode) {
+                case GLFW.GLFW_KEY_TAB -> insertText("  ");
+                case GLFW.GLFW_KEY_SLASH -> {
+                    if (Screen.hasControlDown()) {
+                        toggleCommentAtBol();
+                    }
                 }
+                default -> super.onKeyDown(event);
             }
-            default -> super.onKeyDown(event);
+        } else {
+            super.onKeyDown(event);
         }
     }
 

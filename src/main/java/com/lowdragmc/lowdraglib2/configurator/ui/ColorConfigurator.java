@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import net.minecraft.client.gui.GuiGraphics;
@@ -29,7 +30,12 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         }
 
         this.colorSelector = new ColorSelector();
-        this.colorSelector.style(style -> style.zIndex(1).backgroundTexture(Sprites.BORDER));
+        this.colorSelector.style(style -> {
+            style.setPipelineState(StyleOrigin.DEFAULT);
+            style.backgroundTexture(Sprites.RECT_SOLID);
+            style.setPipelineState(StyleOrigin.INLINE);
+        });
+        this.colorSelector.addClass("panel_bg");
         this.colorSelector.layout(layout -> {
             layout.setPositionType(YogaPositionType.ABSOLUTE);
             layout.setWidthPercent(100);
@@ -44,14 +50,20 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
 
         colorPreview = new UIElement();
         inlineContainer.addChildren(colorPreview.layout(layout -> {
+            layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setHeight(14);
             layout.setPadding(YogaEdge.ALL, 3);
-        }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID).overlayTexture(DynamicTexture.of(() ->
-                        colorPreview.isChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY)))
-                .addChildren(new UIElement()
-                        .layout(layout -> layout.setHeightPercent(100))
-                        .style(style -> style.backgroundTexture(this::drawColorPreview))
-                        .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
+            layout.setPipelineState(StyleOrigin.INLINE);
+        }).style(style -> {
+            style.setPipelineState(StyleOrigin.DEFAULT);
+            style.backgroundTexture(Sprites.RECT_RD_SOLID);
+            style.setPipelineState(StyleOrigin.IMPORTANT);
+            style.overlayTexture(DynamicTexture.of(() -> colorPreview.isChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY));
+            style.setPipelineState(StyleOrigin.INLINE);
+        }).addClass("configurator_preview_bg").addChildren(new UIElement()
+                .layout(layout -> layout.setHeightPercent(100))
+                .style(style -> style.backgroundTexture(this::drawColorPreview))
+                .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
         this.colorSelector.setColor(value, false);
     }

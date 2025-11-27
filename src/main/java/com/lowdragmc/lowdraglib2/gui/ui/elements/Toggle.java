@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
@@ -142,6 +143,12 @@ public class Toggle extends BindableUIElement<Boolean> {
         public ToggleStyle markTexture(IGuiTexture texture) {
             set(PropertyRegistry.MARK_BACKGROUND, texture);
             return this;
+        }
+
+        @Override
+        public void setPipelineState(StyleOrigin pipelineState) {
+            super.setPipelineState(pipelineState);
+            Toggle.this.toggleButton.getButtonStyle().setPipelineState(pipelineState);
         }
     }
 

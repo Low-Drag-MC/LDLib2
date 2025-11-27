@@ -21,6 +21,7 @@ public class MCSprites {
     public static IGuiTexture BORDER = SpriteTexture.of(MC).setSprite(64, 0, 16, 16).setBorder(5);
     public static IGuiTexture BORDER_1 = SpriteTexture.of(MC).setSprite(80, 0, 16, 16).setBorder(6);
     public static IGuiTexture BORDER_2 = SpriteTexture.of(MC).setSprite(96, 0, 16, 16).setBorder(7);
+    public static IGuiTexture BORDER_4 = SpriteTexture.of(MC).setSprite(112, 0, 16, 16).setBorder(6);
 
     public static IGuiTexture RECT_1 = SpriteTexture.of(MC).setSprite(0, 16, 16, 16).setBorder(2);
     public static IGuiTexture RECT_2 = SpriteTexture.of(MC).setSprite(16, 16, 16, 16).setBorder(2);

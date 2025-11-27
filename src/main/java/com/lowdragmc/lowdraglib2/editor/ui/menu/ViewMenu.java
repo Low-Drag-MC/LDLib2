@@ -8,12 +8,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 public class ViewMenu extends MenuTab {
-//    public final Map<String, FloatViewWidget> openedViews = new HashMap<>();
-//    public final List<Pair<String, Supplier<FloatViewWidget>>> views = new ArrayList<>();
-
     public ViewMenu(Editor editor) {
         super(editor);
-//        views.add(Pair.of("history_view", HistoryView::new));
     }
 
     @Override
@@ -32,16 +28,6 @@ public class ViewMenu extends MenuTab {
                 });
             }
         });
-//        for (var view : views) {
-//            String name = view.getLeft();
-//            if (isViewOpened(name)) {
-//                viewMenu.leaf(Icons.CHECK, name, () -> removeView(name));
-//            } else {
-//                viewMenu.leaf(name, () -> {
-//                    openView(view.getRight().get());
-//                });
-//            }
-//        }
         return viewMenu;
     }
 
@@ -49,43 +35,5 @@ public class ViewMenu extends MenuTab {
     protected Component getComponent() {
         return Component.translatable("editor.view");
     }
-
-//    public void addView(String name, Supplier<FloatViewWidget> creator) {
-//        views.add(Pair.of(name, creator));
-//    }
-//
-//
-//    public void openView(FloatViewWidget view) {
-//        if (!isViewOpened(view.name())) {
-//            openedViews.put(view.name(), view);
-//            editor.getFloatView().addWidgetAnima(view, new Transform().duration(200).scale(0.2f));
-//        }
-//    }
-//
-//    public void removeView(String viewName) {
-//        if (isViewOpened(viewName)) {
-//            for (Widget widget : editor.getFloatView().widgets) {
-//                if (widget instanceof FloatViewWidget view) {
-//                    if (view.name().equals(viewName)) {
-//                        editor.getFloatView().removeWidgetAnima(view, new Transform().duration(200).scale(0.2f));
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    public boolean isViewOpened(String viewName) {
-//        if (openedViews.containsKey(viewName)) {
-//            for (Widget widget : editor.getFloatView().widgets) {
-//                if (widget instanceof FloatViewWidget view) {
-//                    if (view.name().equals(viewName)) {
-//                        return true;
-//                    }
-//                }
-//            }
-//            openedViews.remove(viewName);
-//        }
-//        return false;
-//    }
 
 }

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import org.appliedenergistics.yoga.*;
 
@@ -56,9 +57,11 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
                 }
             });
             toggle.toggleStyle(toggleStyle -> {
+                toggleStyle.setPipelineState(StyleOrigin.DEFAULT);
                 toggleStyle.baseTexture(Sprites.RECT_SOLID);
                 toggleStyle.hoverTexture(new GuiTextureGroup(Sprites.RECT_SOLID, ColorPattern.WHITE.borderTexture(-1)));
                 toggleStyle.markTexture(Sprites.RECT_DARK);
+                toggleStyle.setPipelineState(StyleOrigin.INLINE);
             });
             toggle.toggleButton.layout(layout -> {
                 layout.setPadding(YogaEdge.ALL, 1);

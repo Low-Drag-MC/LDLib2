@@ -942,6 +942,8 @@ public class ModularUI {
                 }
             }
 
+            guiContext.callPostRendering();
+
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(true);
             if (screen instanceof AbstractContainerScreen<?> containerScreen && !containerScreen.getMenu().getCarried().isEmpty()) {

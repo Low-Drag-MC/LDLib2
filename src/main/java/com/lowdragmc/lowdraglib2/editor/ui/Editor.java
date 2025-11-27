@@ -3,11 +3,14 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
+import com.lowdragmc.lowdraglib2.editor.settings.AppearanceSettings;
+import com.lowdragmc.lowdraglib2.editor.settings.EditorSettings;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.ViewMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.InspectorView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -26,6 +29,7 @@ import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -54,6 +58,8 @@ public class Editor extends UIElement {
     public final ResourceView resourceView;
     public final HistoryView historyView;
 
+    public final EditorSettings editorSettings;
+
     // runtime
     @Getter
     @Nullable
@@ -69,6 +75,8 @@ public class Editor extends UIElement {
         getLayout().setWidthPercent(100);
         getLayout().setHeightPercent(100);
 
+        addClass("__editor__");
+
         this.top = new UIElement();
         this.icon = new UIElement();
         this.menuContainer = new UIElement();
@@ -79,6 +87,8 @@ public class Editor extends UIElement {
         this.mainView = new UIElement();
         this.fileMenu = new FileMenu(this);
         this.viewMenu = new ViewMenu(this);
+
+        this.editorSettings = createSettings();
 
         rootWindow = new SplittableWindow().setImmortal(true);
         var split1 = rootWindow
@@ -114,8 +124,14 @@ public class Editor extends UIElement {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         }).addChild(rootWindow));
+        top.addClass("__editor_top__").moveInlineAsDefault();
+        mainView.addClass("__editor_main__").moveInlineAsDefault();
 
         /// internal components
+        initEditorSettings();
+        editorSettings.loadAllSettingsFromFile();
+        editorSettings.applyCurrentSettings();
+
         initMenus();
         onPrepareInspectorView();
         onPrepareHistoryView();
@@ -135,6 +151,14 @@ public class Editor extends UIElement {
      */
     protected void initMenus() {
         menuContainer.addChildren(fileMenu.createMenuTab(), viewMenu.createMenuTab());
+    }
+
+    protected EditorSettings createSettings() {
+        return new EditorSettings(this);
+    }
+
+    protected void initEditorSettings() {
+        editorSettings.registerSettings(new AppearanceSettings(), AppearanceSettings.CODEC);
     }
 
     protected void onPrepareInspectorView() {
@@ -167,11 +191,20 @@ public class Editor extends UIElement {
 
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
-        menu.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, posX - getContentX());
-            layout.setPosition(YogaEdge.TOP, posY - getContentY());
-        });
-        addChildren(menu);
+        var mui = getModularUI();
+        if (mui == null) {
+            menu.layout(layout -> {
+                layout.setPosition(YogaEdge.LEFT, posX - getContentX());
+                layout.setPosition(YogaEdge.TOP, posY - getContentY());
+            });
+            addChildren(menu);
+        } else {
+            menu.layout(layout -> {
+                layout.setPosition(YogaEdge.LEFT, posX - mui.ui.rootElement.getContentX());
+                layout.setPosition(YogaEdge.TOP, posY - mui.ui.rootElement.getContentY());
+            });
+            mui.ui.rootElement.addChildren(menu);
+        }
         return menu;
     }
 
@@ -192,6 +225,49 @@ public class Editor extends UIElement {
                 }
             }
         });
+    }
+
+    public void openSettingsPanel() {
+        var dialog = new Dialog();
+        dialog.width(StyleSizeLength.points(350));
+        dialog.setTitle("editor.settings");
+        dialog.addContent(editorSettings.createSettingsPanel());
+
+        var cancelButton = new Button();
+        cancelButton.text.textStyle(textStyle -> textStyle.textColor(ColorPattern.GRAY.color));
+        cancelButton.setActive(false);
+
+        dialog.addButton(new Button()
+                .setOnClick(e -> {
+                    if (editorSettings.isDirty()) {
+                        editorSettings.applyCurrentSettings();
+                        editorSettings.saveAllSettingsToFile();
+                    }
+                    dialog.close();
+                })
+                .setText("ldlib.gui.tips.confirm"));
+        dialog.addButton(new Button()
+                .setOnClick(e -> {
+                    editorSettings.restoreSettings();
+                    editorSettings.applyCurrentSettings();
+                    dialog.close();
+                })
+                .setText("ldlib.gui.tips.cancel"));
+        dialog.addButton(cancelButton
+                .setOnClick(e -> {
+                    if (editorSettings.isDirty()) {
+                        editorSettings.applyCurrentSettings();
+                        editorSettings.saveAllSettingsToFile();
+                    }
+                })
+                .setText("ldlib.gui.tips.apply"));
+        dialog.addEventListener(UIEvents.TICK, e -> {
+            var isDirty = editorSettings.isDirty();
+            cancelButton.text.textStyle(textStyle -> textStyle.textColor(isDirty ? ColorPattern.WHITE.color : ColorPattern.GRAY.color));
+            cancelButton.setActive(isDirty);
+        });
+
+        dialog.show(this);
     }
 
     /**

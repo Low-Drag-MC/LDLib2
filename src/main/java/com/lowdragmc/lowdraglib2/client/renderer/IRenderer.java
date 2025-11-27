@@ -8,7 +8,9 @@ import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -278,12 +280,15 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
         scene.getRenderer().setOnLookingAt(null); // better performance
         scene.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
         scene.layout(layout -> {
+            layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setAspectRatio(1.0f);
             layout.setWidthPercent(80);
             layout.setAlignSelf(YogaAlign.CENTER);
             layout.setPadding(YogaEdge.ALL, 3);
+            layout.setPipelineState(StyleOrigin.INLINE);
         });
-        scene.style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
+        scene.style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)));
+        scene.addClass("preview_bg");
         return scene;
     }
 

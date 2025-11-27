@@ -6,7 +6,9 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -118,11 +120,14 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     default void createPreview(ConfiguratorGroup father) {
         father.addConfigurators(new Configurator("ldlib.gui.editor.group.preview")
                 .addChild(new UIElement().layout(layout -> {
+                    layout.setPipelineState(StyleOrigin.DEFAULT);
                     layout.setAspectRatio(1.0f);
                     layout.setWidthPercent(80);
                     layout.setAlignSelf(YogaAlign.CENTER);
                     layout.setPadding(YogaEdge.ALL, 3);
-                }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                    layout.setPipelineState(StyleOrigin.INLINE);
+                }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
+                        .addClass("preview_bg")
                         .addChild(new UIElement().layout(layout -> {
                             layout.setWidthPercent(100);
                             layout.setHeightPercent(100);

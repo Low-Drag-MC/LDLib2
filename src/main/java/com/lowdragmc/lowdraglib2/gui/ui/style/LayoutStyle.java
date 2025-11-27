@@ -418,6 +418,12 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
+    public LayoutStyle setAspectRatioAuto() {
+        set(YogaProperties.ASPECT_RATE, FloatOptional.of());
+        return this;
+    }
+
+
     public LayoutStyle setGap(YogaGutter gutter, StyleLength value) {
         set(YogaProperties.GAPS[gutter.ordinal()], value);
         return this;

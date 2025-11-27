@@ -95,17 +95,6 @@ public class UIHierarchy extends UIElement {
                         lastClickTime = 0;
                     }, true);
                     nodeUI.addEventListener(UIEvents.MOUSE_UP, e -> {
-                        var element = node.getKey();
-                        var mui = getModularUI();
-                        if (mui != null && nodeUI.isAncestorOf(mui.getLastMouseDownElement())) {
-                            if (treeList.getSelected().size() == 1) {
-                                if (editorView.inspector.getInspectedConfigurable() != element) {
-                                    editorView.inspector.inspect(element);
-                                }
-                            } else {
-                                editorView.inspector.clear();
-                            }
-                        }
                         lastClickTime = 0;
                     });
                     nodeUI.addEventListener(UIEvents.DRAG_ENTER, e -> {
@@ -172,9 +161,23 @@ public class UIHierarchy extends UIElement {
                         }
                     });
                 }));
+
+        treeList.setOnSelectedChanged(this::onSelectedChanged);
+
         setFocusable(true);
         addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+    }
+
+    protected void onSelectedChanged(Set<UITreeNode> selected) {
+        if (selected.size() == 1) {
+            var element = selected.iterator().next().getKey();
+            if (editorView.inspector.getInspectedConfigurable() != element) {
+                editorView.inspector.inspect(element);
+            }
+        } else {
+            editorView.inspector.clear();
+        }
     }
 
     public void clearUI() {
