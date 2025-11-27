@@ -10,7 +10,9 @@ public interface IManaged {
     /**
      * Get the sync field holder, usually a static field.
      */
-    ManagedFieldHolder getFieldHolder();
+    default ManagedFieldHolder getFieldHolder() {
+        return ManagedFieldHolder.ofCache(getClass());
+    }
 
     /**
      * Get managed storage.

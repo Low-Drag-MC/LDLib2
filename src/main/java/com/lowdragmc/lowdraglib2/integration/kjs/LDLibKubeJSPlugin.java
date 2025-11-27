@@ -16,7 +16,6 @@ import org.joml.Vector3f;
  */
 public class LDLibKubeJSPlugin implements KubeJSPlugin {
 
-
     @Override
     public void registerClasses(ClassFilter filter) {
         filter.allow("com.lowdragmc.lowdraglib");

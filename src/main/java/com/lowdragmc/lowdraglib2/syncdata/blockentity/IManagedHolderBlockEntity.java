@@ -6,7 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
-public interface IManagedBlockEntity {
+public interface IManagedHolderBlockEntity {
 
     /**
      * @return the block entity type
@@ -29,6 +29,9 @@ public interface IManagedBlockEntity {
         return (BlockEntity) this;
     }
 
+    /**
+     * Get all fields that are not lazy loaded.
+     */
     default IRef[] getNonLazyFields() {
         return getRootStorage().getNonLazyFields();
     }

@@ -52,6 +52,7 @@ public class BlockUIMenuType {
         throw new IllegalArgumentException("No held item ui found for block " + blockstate);
     }
 
+    @FunctionalInterface
     public interface BlockUI {
         /**
          * Creates and returns the {@link ModularUI} associated with the provided {@link BlockUIHolder}.

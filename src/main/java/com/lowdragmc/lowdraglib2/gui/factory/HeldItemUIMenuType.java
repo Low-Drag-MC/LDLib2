@@ -1,9 +1,13 @@
 package com.lowdragmc.lowdraglib2.gui.factory;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.integration.kjs.ui.UIEvents;
+import lombok.experimental.UtilityClass;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -35,6 +39,10 @@ public class HeldItemUIMenuType {
             var holder = heldItemUI.createUIHolder(player, hand, heldItem);
             return player.openMenu(holder).isPresent();
         }
+        if (LDLib2.isKubejsLoaded()) {
+            var holder = new KubeJSSupport(player, hand, heldItem).createUIHolder(player, hand, heldItem);
+            return player.openMenu(holder).isPresent();
+        }
         return false;
     }
 
@@ -42,15 +50,22 @@ public class HeldItemUIMenuType {
         var player = inv.player;
         var hand = data.readEnum(InteractionHand.class);
         var itemstack = ItemStack.OPTIONAL_STREAM_CODEC.decode(data);
+        HeldItemUIHolder holder = null;
         if (itemstack.getItem() instanceof HeldItemUI heldItemUI) {
-            var holder = heldItemUI.createUIHolder(player, hand, itemstack);
-            var menu = new ModularUIContainerMenu(LDMenuTypes.HELD_ITEM_UI.get(), windowId, inv, holder);
-            menu.readInitialData(data);
-            return menu;
+            holder = heldItemUI.createUIHolder(player, hand, itemstack);
         }
-        throw new IllegalArgumentException("No held item ui found for item " + itemstack);
+        if (LDLib2.isKubejsLoaded()) {
+            holder = new KubeJSSupport(player, hand, itemstack).createUIHolder(player, hand, itemstack);
+        }
+        if (holder == null) {
+            throw new IllegalArgumentException("No held item ui found for item " + itemstack);
+        }
+        var menu = new ModularUIContainerMenu(LDMenuTypes.HELD_ITEM_UI.get(), windowId, inv, holder);
+        menu.readInitialData(data);
+        return menu;
     }
 
+    @FunctionalInterface
     public interface HeldItemUI {
         /**
          * Creates a {@code ModularUI} instance based on the provided {@link HeldItemUIHolder}.
@@ -135,6 +150,18 @@ public class HeldItemUIMenuType {
         @Override
         public ModularUI createUI(Player player) {
             return this.heldItemUI.createUI(this);
+        }
+    }
+
+    private record KubeJSSupport(Player player, InteractionHand hand, ItemStack itemStack) implements HeldItemUI {
+        @Override
+        @Nullable
+        public ModularUI createUI(HeldItemUIHolder holder) {
+            var result = UIEvents.ITEM.post(new UIEvents.ItemUIEventJS(createUIHolder(player, hand, itemStack)), BuiltInRegistries.ITEM.getKey(itemStack.getItem()));
+            if (result.value() instanceof ModularUI modularUI && !result.interruptFalse()) {
+                return modularUI;
+            }
+            return null;
         }
     }
 }

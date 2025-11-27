@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
+import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
@@ -21,7 +22,7 @@ import java.util.Objects;
  * @see DescSynced
  * @see LazyManaged
  */
-public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
+public interface IAutoSyncBlockEntity extends IManagedHolderBlockEntity {
 
     /**
      * do a sync now. if the block entity is tickable then this would be handled automatically, I think.
@@ -85,8 +86,9 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
 
         var list = new ListTag();
         var syncedFields = getRootStorage().getSyncFields();
+        var ctx = Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
         for (IRef<?> syncedField : syncedFields) {
-            list.add(syncedField.readInitialSync(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE)));
+            list.add(TagBuilder.compound().add("d", syncedField.readInitialSync(ctx)).build());
         }
         if (!list.isEmpty()) {
             tag.put("managed", list);
@@ -106,8 +108,10 @@ public interface IAutoSyncBlockEntity extends IManagedBlockEntity {
         if (syncedFields.length != list.size()) {
             throw new IllegalStateException("Synced fields count mismatch");
         }
+        var ctx = Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
         for (int i = 0; i < list.size(); i++) {
-            syncedFields[i].writeInitialSync(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), list.getCompound(i));
+            var data = list.getCompound(i).get("d");
+            syncedFields[i].writeInitialSync(ctx, data);
         }
     }
 }

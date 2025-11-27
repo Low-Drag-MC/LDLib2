@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
@@ -91,7 +92,7 @@ public class Button extends UIElement {
     private final ButtonStyle buttonStyle = new ButtonStyle();
     @Nullable
     @Setter
-    private Consumer<UIEvent> onClick = null;
+    private UIEventListener onClick = null;
 
     // runtime
     @Getter
@@ -120,6 +121,11 @@ public class Button extends UIElement {
 
         addChild(text);
         internalSetup();
+    }
+
+    public Button setOnServerClick(UIEventListener onServerClick) {
+        addServerEventListener(UIEvents.MOUSE_DOWN, onServerClick);
+        return this;
     }
 
     public Button textStyle(Consumer<TextElement.TextStyle> style) {
@@ -188,7 +194,7 @@ public class Button extends UIElement {
         if (event.button == 0 && isActive()) {
             UISoundUtils.playButtonClickSound();
             if (onClick != null) {
-                onClick.accept(event);
+                onClick.handleEvent(event);
             }
             // pressed state
             setButtonState(State.PRESSED);

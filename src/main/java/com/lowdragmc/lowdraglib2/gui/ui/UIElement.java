@@ -1045,7 +1045,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public UIElement addServerEventListener(String eventType, UIEventListener listener) {
-        return addEventListener(eventType, listener, false);
+        return addServerEventListener(eventType, listener, false);
     }
 
     public UIElement addServerEventListener(String eventType, UIEventListener listener, boolean useCapture) {

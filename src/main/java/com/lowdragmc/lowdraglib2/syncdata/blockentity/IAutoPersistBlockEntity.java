@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
  *
  * @see Persisted
  */
-public interface IAutoPersistBlockEntity extends IManagedBlockEntity {
+public interface IAutoPersistBlockEntity extends IManagedHolderBlockEntity {
 
     default void saveManagedPersistentData(CompoundTag tag, boolean forDrop) {
         var persistedFields = getRootStorage().getPersistedFields();

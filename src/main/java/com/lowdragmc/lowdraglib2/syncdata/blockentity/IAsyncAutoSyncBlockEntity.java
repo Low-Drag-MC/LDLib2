@@ -9,19 +9,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.concurrent.locks.Lock;
-
 /**
  * @author KilaBash
  * @date 2022/9/7
  * @implNote IAsyncAutoSyncBlockEntity
  */
 public interface IAsyncAutoSyncBlockEntity extends IAutoSyncBlockEntity, IAsyncLogic {
-
-    /**
-     * Get the lock for syncing in an async thread.
-     */
-    Lock getAsyncLock();
 
     default boolean useAsyncThread() {
         return true;
@@ -47,14 +40,11 @@ public interface IAsyncAutoSyncBlockEntity extends IAutoSyncBlockEntity, IAsyncL
             for (IRef<?> field : getNonLazyFields()) {
                 field.update();
             }
-            if (getRootStorage().hasDirtySyncFields() && getAsyncLock().tryLock()) {
-                Platform.getMinecraftServer().execute(() -> {
-                    if (!Platform.isServerNotSafe()) {
-                        var packet = SPacketAutoSyncBlockEntity.of(this, false);
-                        PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(this.getCurrentPos()), packet);
-                    }
-                    getAsyncLock().unlock();
-                });
+            if (getRootStorage().hasDirtySyncFields()) {
+                if (!Platform.isServerNotSafe()) {
+                    var packet = SPacketAutoSyncBlockEntity.of(this, false);
+                    PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) getSelf().getLevel(), new ChunkPos(this.getCurrentPos()), packet);
+                }
             }
         }
     }

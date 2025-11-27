@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import javax.annotation.Nullable;
 
-public interface IRPCBlockEntity extends IManagedBlockEntity {
+public interface IRPCBlockEntity extends IManagedHolderBlockEntity {
 
     /**
      * Get the RPC method

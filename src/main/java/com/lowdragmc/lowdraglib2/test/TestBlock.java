@@ -86,6 +86,9 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
 
     @Override
     public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
+        if (holder.player.level().getBlockEntity(holder.pos) instanceof TestBlockEntity testBlockEntity) {
+            return testBlockEntity.createUI(holder);
+        }
         var root = new UIElement().layout(layout -> layout
                 .setWidth(100)
                 .setHeight(100)

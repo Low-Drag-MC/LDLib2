@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.core.mixins;
 import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAutoPersistBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAutoSyncBlockEntity;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IManagedBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.blockentity.IManagedHolderBlockEntity;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -54,7 +54,7 @@ public abstract class BlockEntityMixin {
 
     @Inject(method = "clearRemoved", at = @At(value = "RETURN"))
     private void injectClearRemoved(CallbackInfo ci) {
-        if (this instanceof IManagedBlockEntity managed) {
+        if (this instanceof IManagedHolderBlockEntity managed) {
             managed.getRootStorage().requireInit();
             if (managed instanceof IAsyncAutoSyncBlockEntity autoSyncBlockEntity) {
                 autoSyncBlockEntity.onValid();
