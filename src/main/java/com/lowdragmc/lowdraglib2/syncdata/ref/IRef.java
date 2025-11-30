@@ -1,14 +1,10 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
 import com.google.common.base.Strings;
-import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAutoSyncBlockEntity;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAutoPersistBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.mojang.serialization.DynamicOps;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import javax.annotation.Nullable;
@@ -107,42 +103,42 @@ public interface IRef<TYPE> {
     }
 
     /** 
-     * This method is used to read the persisted data. see {@link IAutoPersistBlockEntity#saveManagedPersistentData}
+     * This method is used to read the persisted data.
      */
     default <T> T readPersisted(DynamicOps<T> op) {
         return getAccessor().readField(op, this);
     }
 
     /** 
-     * This method is used to write the persisted data. {@link IAutoPersistBlockEntity#loadManagedPersistentData(CompoundTag)}
+     * This method is used to write the persisted data.
      */
     default <T> void writePersisted(DynamicOps<T> op, T payload) {
         getAccessor().writeField(op, this, payload);
     }
 
     /** 
-     * This method is used to read the sync initial data. see {@link IAutoSyncBlockEntity#serializeInitialData()}
+     * This method is used to read the sync initial data.
      */
     default <T> T readInitialSync(DynamicOps<T> op) {
         return getAccessor().readField(op, this);
     }
 
     /**
-     * This method is used to write the sync initial data. see {@link IAutoSyncBlockEntity#deserializeInitialData(CompoundTag)}
+     * This method is used to write the sync initial data.
      */
     default <T> void writeInitialSync(DynamicOps<T> op, T payload) {
         getAccessor().writeField(op, this, payload);
     }
 
     /** 
-     * This method is used to read the sync changed data . see {@link SPacketAutoSyncBlockEntity#of(IAutoSyncBlockEntity, boolean)}
+     * This method is used to read the sync changed data.
      */
     default void readSyncToStream(RegistryFriendlyByteBuf buffer) {
         getAccessor().readFieldToStream(buffer, this);
     }
 
     /**
-     * This method is used to write the sync changed data . see {@link SPacketAutoSyncBlockEntity#processPacket(IAutoSyncBlockEntity, SPacketAutoSyncBlockEntity)}
+     * This method is used to write the sync changed data.
      */
     default void writeSyncFromStream(RegistryFriendlyByteBuf buffer) {
         getAccessor().writeFieldFromStream(buffer, this);

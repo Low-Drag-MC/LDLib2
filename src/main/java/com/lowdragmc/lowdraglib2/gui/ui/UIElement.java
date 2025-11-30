@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -68,6 +69,7 @@ import java.util.function.Supplier;
 @RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
 @LDLRegister(name = "element", registry = "ldlib2:ui_element", priority = -1)
 public class UIElement implements IConfigurable, IPersistedSerializable, ILDLRegister<UIElement, Supplier<UIElement>> {
     public static Codec<UIElement> CODEC = LDLib2Registries.UI_ELEMENTS.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
@@ -720,6 +722,43 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         style.accept(this.style);
         return this;
     }
+
+    /**
+     * Updates the style properties of the {@code UIElement} based on the
+     * given property name and its corresponding raw value. If {@code rawValue} is
+     * {@code null}, the method removes the associated style property from the
+     * stylesheet. Otherwise, it sets or updates the property value.
+     *
+     * @param propertyName the name of the property to be updated; this must
+     *                     correspond to a valid property in {@link PropertyRegistry}.
+     * @param rawValue     the raw string value to be parsed and applied to the
+     *                     specified property; if {@code null}, the property will
+     *                     be removed from the stylesheet.
+     * @param origin       the origin of the style property.
+     * @return this {@code UIElement} instance for method chaining.
+     */
+    public UIElement lss(String propertyName, @Nullable String rawValue, StyleOrigin origin) {
+        var p = PropertyRegistry.byName(propertyName);
+        if (p == null) {
+            return this;
+        }
+        if (rawValue == null) {
+            styleBag.removeCandidates(p, slot ->
+                    slot.property() == p &&
+                    slot.origin() == origin &&
+                    slot.specificity() == 999 &&
+                    slot.sourceOrder() == 999);
+        } else {
+            var value = p.valueParser.parse(rawValue);
+            styleBag.replaceOrPutCandidate(p, StyleSlot.of(p, origin, 999, 999, value.compute()));
+        }
+        return this;
+    }
+
+    public UIElement lss(String propertyName, @Nullable String rawValue) {
+        return lss(propertyName, rawValue, StyleOrigin.STYLESHEET);
+    }
+
 
     public UIElement transform(Consumer<Transform2D> transform) {
         var t = style.transform2D().copy();

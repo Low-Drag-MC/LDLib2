@@ -17,6 +17,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUIClientElementComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.LDLibKubeJSPlugin;
+import com.lowdragmc.lowdraglib2.integration.kjs.ui.LDKJSMenuTypes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.core.particles.ParticleType;
@@ -43,6 +45,9 @@ public class ClientProxy extends CommonProxy {
         event.register(LDMenuTypes.PLAYER_UI.get(), ModularUIContainerScreen::new);
         event.register(LDMenuTypes.HELD_ITEM_UI.get(), ModularUIContainerScreen::new);
         event.register(LDMenuTypes.BLOCK_UI.get(), ModularUIContainerScreen::new);
+        if (LDLib2.isKubejsLoaded()) {
+            LDKJSMenuTypes.onRegisterMenuScreensEvent(event);
+        }
     }
 
     @SubscribeEvent

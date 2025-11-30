@@ -23,9 +23,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -60,6 +62,7 @@ import java.util.regex.Pattern;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
 @LDLRegister(name = "text-field", group = "basic", registry = "ldlib2:ui_element")
 public class TextField extends BindableUIElement<String> {
     private record NumberStart(double value){}
@@ -171,6 +174,7 @@ public class TextField extends BindableUIElement<String> {
         }
     }
     public enum Mode {
+        INTERNAL,
         STRING,
         COMPOUND_TAG,
         RESOURCE_LOCATION,
@@ -187,7 +191,7 @@ public class TextField extends BindableUIElement<String> {
         }
 
         @Nullable
-        public ConfigNumber.Type getType() {
+        public ConfigNumber.Type getNumberType() {
             return switch (this) {
                 case NUMBER_LONG -> ConfigNumber.Type.LONG;
                 case NUMBER_INT -> ConfigNumber.Type.INTEGER;
@@ -215,12 +219,11 @@ public class TextField extends BindableUIElement<String> {
     // editor support
     @Configurable(name = "EditorMode")
     @ConfigSelector(subConfiguratorBuilder = "editorModeSubConfigurator")
-    private Mode editorMode = Mode.STRING;
+    private Mode editorMode = Mode.INTERNAL;
     @Persisted
     private String editorRegexValidator = "";
     @Persisted
     private Range editorRange = Range.of(0, 100);
-
 
     // runtime
     @Getter
@@ -1041,12 +1044,29 @@ public class TextField extends BindableUIElement<String> {
     @Override
     public void beforeDeserialize() {
         super.beforeDeserialize();
-        this.editorMode = Mode.STRING;
+        this.editorMode = Mode.INTERNAL;
+        this.editorRegexValidator = "";
+    }
+
+    @SkipPersistedValue(field = "editorMode")
+    private boolean skipEditorMode(Mode mode) {
+        return mode == Mode.INTERNAL;
+    }
+
+    @SkipPersistedValue(field = "editorRegexValidator")
+    private boolean skipEditorRegexValidator(String regex) {
+        return regex.isEmpty( ) || editorMode != Mode.STRING;
+    }
+
+    @SkipPersistedValue(field = "editorRange")
+    private boolean skipEditorRange(Range range) {
+        return !editorMode.isNumber();
     }
 
     @Override
     public void afterDeserialize() {
         super.afterDeserialize();
+        if (editorMode == Mode.INTERNAL) return;
         if (editorMode == Mode.STRING) {
             // for string
             if (editorRegexValidator.isEmpty()) {
@@ -1077,7 +1097,7 @@ public class TextField extends BindableUIElement<String> {
                     reg -> this.editorRegexValidator = reg,
                     "", true).setTips("EditorRegValidator.tips"));
         } else if (value.isNumber()) {
-            var type = value.getType();
+            var type = value.getNumberType();
             if (type == null) return;
             var configurator = new Configurator("EditorRange");
             NumberConfigurator min, max;

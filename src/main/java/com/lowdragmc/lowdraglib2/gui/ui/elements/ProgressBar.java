@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Getter;
@@ -37,6 +38,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
 @LDLRegister(name = "progress-bar", group = "basic", registry = "ldlib2:ui_element")
 public class ProgressBar extends UIElement implements IBindable<Float>, IDataConsumer<Float> {
     @Configurable(name = "ProgressBarStyle")

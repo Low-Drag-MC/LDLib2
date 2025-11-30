@@ -47,7 +47,7 @@ public class CommonProxy {
         // used for forge events (ClientProxy + CommonProxy)
         eventBus.addListener(LDLNetworking::registerPayloads);
         // init common features
-        CommonProxy.init();
+        CommonProxy.init(eventBus);
         // load ldlib2 plugin
         ReflectionUtils.findAnnotationClasses(LDLibPlugin.class, data -> true, clazz -> {
             try {
@@ -58,16 +58,17 @@ public class CommonProxy {
                 LDLib2.LOGGER.error("Failed to load plugin {}", clazz.getName(), throwable);
             }
         }, () -> {});
-        BLOCKS.register(eventBus);
-        ITEMS.register(eventBus);
-        BLOCK_ENTITY_TYPES.register(eventBus);
-        LDMenuTypes.init(eventBus);
     }
 
-    public static void init() {
+    public static void init(IEventBus eventBus) {
         LDLib2Registries.init();
         AccessorRegistries.init();
         PropertyRegistry.init();
+        LDMenuTypes.init(eventBus);
+
+        BLOCKS.register(eventBus);
+        ITEMS.register(eventBus);
+        BLOCK_ENTITY_TYPES.register(eventBus);
     }
 
 }

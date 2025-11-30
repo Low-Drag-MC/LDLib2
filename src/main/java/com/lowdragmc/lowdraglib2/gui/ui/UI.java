@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import lombok.Data;
 
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.function.Function;
 
 @Data(staticConstructor = "of")
+@KJSBindings
 public final class UI {
     @FunctionalInterface
     public interface DynamicSizeProvider extends Function<Size, Size> {

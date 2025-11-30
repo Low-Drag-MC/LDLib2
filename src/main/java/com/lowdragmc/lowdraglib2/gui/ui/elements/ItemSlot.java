@@ -20,7 +20,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -44,6 +46,7 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
 @LDLRegister(name = "item-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class ItemSlot extends BindableUIElement<ItemStack> {
     public final static IGuiTexture ITEM_SLOT_TEXTURE = Sprites.RECT_RD_T.copy().setColor(0xffbbbbbb);
@@ -289,6 +292,11 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     private void setEditorItemDisplay(ItemStack itemStack) {
         this.editorItemDisplay = itemStack;
         setValue(itemStack, false);
+    }
+
+    @SkipPersistedValue(field = "editorItemDisplay")
+    private boolean skipEditorItemDisplay(ItemStack itemStack) {
+        return itemStack == ItemStack.EMPTY;
     }
 
     @Override

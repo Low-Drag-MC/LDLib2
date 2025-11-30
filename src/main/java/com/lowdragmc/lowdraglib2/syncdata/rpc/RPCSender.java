@@ -9,9 +9,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface RPCSender {
     /**
-     * @return true if the sender is the server, false if the sender is a client.
+     * @return true if the sender is the server, false if the sender is remote.
      */
     boolean isServer();
+
+    default boolean isRemote() {
+        return !isServer();
+    }
 
     /**
      * If the rpc was sent by a remote player, this method will return the player that sent the rpc.
@@ -40,6 +44,5 @@ public interface RPCSender {
     static RPCSender ofServer() {
         return () -> true;
     }
-
 
 }

@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -32,6 +33,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
+@KJSBindings
 @LDLRegister(name = "button", group = "basic", registry = "ldlib2:ui_element")
 public class Button extends UIElement {
     @Configurable(name = "ButtonStyle")
@@ -152,6 +154,11 @@ public class Button extends UIElement {
 
     public Button setText(String text, boolean translate) {
         this.text.setText(text, translate);
+        return this;
+    }
+
+    public Button kjs$setText(Component text) {
+        this.text.setText(text);
         return this;
     }
 

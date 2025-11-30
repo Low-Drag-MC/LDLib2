@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements.inventory;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import net.minecraft.world.inventory.Slot;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 
+@KJSBindings
 @LDLRegister(name = "inventory-slots", group = "inventory", registry = "ldlib2:ui_element")
 public class InventorySlots extends UIElement {
     public final Row[] rows = new Row[3];

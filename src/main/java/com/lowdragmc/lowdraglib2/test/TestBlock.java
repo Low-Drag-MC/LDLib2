@@ -11,28 +11,39 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.syncdata.holder.IPersistManagedHolder;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
-import org.appliedenergistics.yoga.YogaAlign;
+import net.minecraft.world.phys.HitResult;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaJustify;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author KilaBash
@@ -99,5 +110,41 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
         root.addChild(new Label().setText("Test Block UI"));
         root.addChild(new TextField());
         return new ModularUI(UI.of(root), holder.player);
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        if (!level.isClientSide) {
+            if (level.getBlockEntity(pos) instanceof IPersistManagedHolder persistManagedHolder) {
+                Optional.ofNullable(stack.get(DataComponents.CUSTOM_DATA)).ifPresent(customData -> {
+                    persistManagedHolder.loadManagedPersistentData(customData.copyTag());
+                });
+            }
+        }
+    }
+
+    @Override
+    protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+        var opt = Optional.ofNullable(params.getOptionalParameter(LootContextParams.BLOCK_ENTITY));
+        if (opt.isPresent() && opt.get() instanceof IPersistManagedHolder persistManagedHolder) {
+            var drop = new ItemStack(this);
+            var tag = new CompoundTag();
+            persistManagedHolder.saveManagedPersistentData(tag, true);
+            drop.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+            return List.of(drop);
+        }
+        return super.getDrops(state, params);
+    }
+
+    @Override
+    public ItemStack getCloneItemStack(BlockState state, HitResult target, LevelReader level, BlockPos pos, Player player) {
+        if (level.getBlockEntity(pos) instanceof IPersistManagedHolder persistManagedHolder) {
+            var clone = new ItemStack(this);
+            var tag = new CompoundTag();
+            persistManagedHolder.saveManagedPersistentData(tag, true);
+            clone.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+            return clone;
+        }
+        return super.getCloneItemStack(state, target, level, pos, player);
     }
 }

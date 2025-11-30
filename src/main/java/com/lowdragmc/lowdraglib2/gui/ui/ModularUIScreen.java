@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
-import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.blaze3d.platform.InputConstants;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;

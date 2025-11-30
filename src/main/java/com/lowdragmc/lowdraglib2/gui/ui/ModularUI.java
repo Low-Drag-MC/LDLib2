@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
@@ -27,6 +28,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.main.Main;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -47,6 +49,7 @@ import java.util.regex.Pattern;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
 public class ModularUI {
     public final UI ui;
     public final UISyncManager syncManager;
@@ -137,6 +140,14 @@ public class ModularUI {
         this.syncManager = new UISyncManager(this);
         this.styleEngine.addStylesheets(this.ui.getStylesheets());
         this.ui.rootElement.addClass("__root__");
+    }
+
+    public static ModularUI of(UI ui) {
+        return new ModularUI(ui);
+    }
+
+    public static ModularUI of(UI ui, @Nullable Player player) {
+        return new ModularUI(ui, player);
     }
 
     public void setMenu(@Nullable AbstractContainerMenu menu) {
@@ -420,6 +431,10 @@ public class ModularUI {
             default -> 0;
         };
         this.topPos = (screenHeight - this.height) / 2;
+
+        // we'd better align it to the integer position to avoid floating point error
+        this.leftPos = Mth.floor(this.leftPos);
+        this.topPos = Mth.floor(this.topPos);
         this.ui.rootElement._setModularUIInternal(this);
         ui.rootElement.initScreen(screenWidth, screenHeight);
         calculateStyleAndLayout();
@@ -435,6 +450,8 @@ public class ModularUI {
             this.topPos = (screenHeight - this.height) / 2;
         }
         if (hasAutoDimension) {
+            this.leftPos = Mth.floor(this.leftPos);
+            this.topPos = Mth.floor(this.topPos);
             ui.rootElement.clearLayoutCache();
         }
     }

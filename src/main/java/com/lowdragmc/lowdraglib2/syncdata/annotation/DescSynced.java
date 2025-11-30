@@ -6,7 +6,18 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a field should be synced between client and server.
+ * An annotation that marks a field to be synchronized and sent for descriptive purposes.
+ * This annotation is typically used to indicate that the value of the field should be
+ * synchronized between server and client for presentation or informational purposes.
+ * <pre>{@code
+ * @DescSynced
+ * int a;
+ *
+ * @DescSynced
+ * private ItemStack b = ItemStack.EMPTY;
+ *
+ * @DescSynced
+ * private List<ResourceLocation> c = new ArrayList<>();
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)

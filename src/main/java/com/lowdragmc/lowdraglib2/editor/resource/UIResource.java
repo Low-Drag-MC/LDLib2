@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -16,6 +17,7 @@ import org.appliedenergistics.yoga.YogaEdge;
 import javax.annotation.Nullable;
 import java.io.File;
 
+@KJSBindings
 public class UIResource extends Resource<UITemplate> {
     public static final UIResource INSTANCE = new UIResource();
 

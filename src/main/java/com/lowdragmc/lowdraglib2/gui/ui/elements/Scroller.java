@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
@@ -236,6 +237,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         return this;
     }
 
+    @KJSBindings
     @LDLRegister(name = "scroller-vertical", group = "utils", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
@@ -300,6 +302,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         }
     }
 
+    @KJSBindings
     @LDLRegister(name = "scroller-horizontal", group = "utils", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {

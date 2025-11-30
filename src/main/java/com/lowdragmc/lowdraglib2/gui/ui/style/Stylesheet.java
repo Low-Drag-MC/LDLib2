@@ -6,6 +6,8 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public final class Stylesheet {
+    public static final Stylesheet EMPTY = new Stylesheet(Collections.emptyList());
+
     public static final Pattern RULE = Pattern.compile("(?s)([^{]+)\\{([^}]*)}");
     public static final Pattern DECL = Pattern.compile("(?m)\\s*([\\w-]+)\\s*:\\s*([^;]+)\\s*;?");
 
@@ -77,5 +79,4 @@ public final class Stylesheet {
         }
         return new Stylesheet(rules);
     }
-
 }

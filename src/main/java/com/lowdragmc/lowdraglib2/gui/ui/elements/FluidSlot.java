@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -23,8 +22,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
 import lombok.Getter;
 import lombok.Setter;
@@ -49,6 +50,7 @@ import java.util.function.Consumer;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
 @LDLRegister(name = "fluid-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class FluidSlot extends BindableUIElement<FluidStack> {
     @Configurable(name = "SlotStyle")
@@ -325,6 +327,16 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         this.editorFluidDisplay = fluidStack;
         setValue(fluidStack, false);
         amountLabel.setValue(getFluidAmountText());
+    }
+
+    @SkipPersistedValue(field = "editorFluidDisplay")
+    private boolean skipEditorFluidDisplay(FluidStack fluid) {
+        return fluid == FluidStack.EMPTY;
+    }
+
+    @SkipPersistedValue(field = "capacity")
+    private boolean skipCapacity(int capacity) {
+        return capacity == 0;
     }
 
     @Override

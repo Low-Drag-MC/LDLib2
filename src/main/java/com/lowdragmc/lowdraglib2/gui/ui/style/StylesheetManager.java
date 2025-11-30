@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -10,8 +11,10 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+@KJSBindings
 public final class StylesheetManager implements ResourceManagerReloadListener {
     public static final StylesheetManager INSTANCE = new StylesheetManager();
     public static final String PATH = "lss";
@@ -44,6 +47,14 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
             result = builtinStylesheets.get(location);
         }
         return result;
+    }
+
+    public Stylesheet getStylesheetOrElse(ResourceLocation location, Stylesheet fallback) {
+        return Optional.ofNullable(getStylesheet(location)).orElse(fallback);
+    }
+
+    public Stylesheet getStylesheetSafe(ResourceLocation location) {
+        return getStylesheetOrElse(location, Stylesheet.EMPTY);
     }
 
     public boolean hasStylesheet(ResourceLocation location) {

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.integration.kjs.ui.LDKJSMenuTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
@@ -23,6 +24,9 @@ public final class LDMenuTypes {
             () -> IMenuTypeExtension.create(BlockUIMenuType::create));
 
     public static void init(IEventBus eventBus) {
+        if (LDLib2.isKubejsLoaded()) {
+            LDKJSMenuTypes.init();
+        }
         MENUS.register(eventBus);
     }
 }

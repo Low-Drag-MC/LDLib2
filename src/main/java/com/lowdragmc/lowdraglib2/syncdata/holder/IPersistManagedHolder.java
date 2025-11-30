@@ -1,26 +1,26 @@
-package com.lowdragmc.lowdraglib2.syncdata.blockentity;
+package com.lowdragmc.lowdraglib2.syncdata.holder;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.utils.TagUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 
 /**
  * Interface for block entities that automatically save and load managed data.
  *
  * @see Persisted
  */
-public interface IAutoPersistBlockEntity extends IManagedHolderBlockEntity {
-
+public interface IPersistManagedHolder extends IManagedHolder {
     default void saveManagedPersistentData(CompoundTag tag, boolean forDrop) {
         var persistedFields = getRootStorage().getPersistedFields();
         var managedTag = new CompoundTag();
+        var ctx = Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
         for (var persistedField : persistedFields) {
             if (forDrop && !persistedField.getKey().isDrop()) {
                 continue;
             }
-            var data = persistedField.readPersisted(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE));
+            var data = persistedField.readPersisted(ctx);
             if (data != null) {
                 TagUtils.setTagExtended(managedTag, persistedField.getPersistedKey(), data);
             }
@@ -40,11 +40,12 @@ public interface IAutoPersistBlockEntity extends IManagedHolderBlockEntity {
     default void loadManagedPersistentData(CompoundTag tag) {
         var refs = getRootStorage().getPersistedFields();
         var managedTag = tag.getCompound("managed");
+        var ctx = Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
         for (var ref : refs) {
             var key = ref.getPersistedKey();
             var data = TagUtils.getTagExtended(managedTag, key);
             if (data != null) {
-                ref.writePersisted(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), data);
+                ref.writePersisted(ctx, data);
             }
         }
         loadCustomPersistedData(tag.getCompound("custom"));
@@ -63,6 +64,5 @@ public interface IAutoPersistBlockEntity extends IManagedHolderBlockEntity {
      */
     default void loadCustomPersistedData(CompoundTag tag) {
     }
-
 
 }

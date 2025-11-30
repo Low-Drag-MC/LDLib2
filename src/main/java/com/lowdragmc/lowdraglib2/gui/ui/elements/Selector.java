@@ -15,11 +15,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
@@ -34,6 +37,7 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
 @LDLRegister(name = "selector", group = "basic", registry = "ldlib2:ui_element")
 public class Selector<T> extends BindableUIElement<T> {
     @Configurable(name = "SelectorStyle")
@@ -392,6 +396,16 @@ public class Selector<T> extends BindableUIElement<T> {
         super.beforeDeserialize();
         this.editorCandidates.clear();
         this.defaultValue = "";
+    }
+
+    @SkipPersistedValue(field = "editorCandidates")
+    private boolean skipEditorCandidates(List<String> editorCandidates) {
+        return editorCandidates.isEmpty();
+    }
+
+    @SkipPersistedValue(field = "defaultValue")
+    private boolean skipDefaultValue(String defaultValue) {
+        return defaultValue.isEmpty();
     }
 
     @Override

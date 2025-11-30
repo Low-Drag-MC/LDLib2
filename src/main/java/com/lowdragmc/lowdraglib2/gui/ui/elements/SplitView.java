@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
@@ -89,6 +90,7 @@ public abstract class SplitView extends UIElement {
         }
     }
 
+    @KJSBindings
     @LDLRegister(name = "split-view-horizontal", group = "container", registry = "ldlib2:ui_element")
     public static class Horizontal extends SplitView {
         public Horizontal() {
@@ -141,6 +143,7 @@ public abstract class SplitView extends UIElement {
 
     }
 
+    @KJSBindings
     @LDLRegister(name = "split-view-vertical", group = "container", registry = "ldlib2:ui_element")
     public static class Vertical extends SplitView {
         public Vertical() {

@@ -231,7 +231,9 @@ public class HistoryView extends View implements IHistoryStack {
         }
         if (currentHistory != null) {
             var ui = historyUIs.get(currentHistory);
-            ui.style(style -> style.overlayTexture(ColorPattern.T_BLUE.rectTexture()));
+            if (ui != null) {
+                ui.style(style -> style.overlayTexture(ColorPattern.T_BLUE.rectTexture()));
+            }
         }
         checkStackSize();
     }

@@ -14,7 +14,6 @@ import java.util.stream.Stream;
  * @implNote IManagedStorage
  */
 public interface IManagedStorage {
-
     /**
      * Get all managed objects
      */

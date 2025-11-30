@@ -51,15 +51,15 @@ public class TextureValue extends StyleValue<IGuiTexture> {
         var calls = tokenizeFunctions(rawValue);
         if (calls.isEmpty()) return null;
 
-        // 第一个是“主纹理”
-        var first = calls.get(0);
+        // get the main texture
+        var first = calls.getFirst();
         IGuiTexture texture = parseMainTexture(first.name.toLowerCase(), first.args);
         if (texture == null) return null;
 
         Transform2D transform = new Transform2D();
         Integer color = null;
 
-        // 后面的都是“修饰函数”（scale/translate/rotation/color ...）
+        // parse modification (e.g., scale/translate/rotation/color ...)
         for (int k = 1; k < calls.size(); k++) {
             var f = calls.get(k);
             String type = f.name.toLowerCase();
@@ -207,16 +207,16 @@ public class TextureValue extends StyleValue<IGuiTexture> {
 
     record Func(String name, String args) { }
 
-    // 解析整个字符串里的函数调用链：foo(...)[ space ]bar(...)[ space ]baz(...)
+    // parse tokens based on the format: foo(...)[ space ]bar(...)[ space ]baz(...)
     static List<Func> tokenizeFunctions(String s) {
         ArrayList<Func> out = new ArrayList<>();
         int i = 0, n = s.length();
 
         while (i < n) {
-            // 跳过空白
+            // skip whitespace
             while (i < n && Character.isWhitespace(s.charAt(i))) i++;
 
-            // 读取函数名：字母或 '_' 开头，后续 [a-zA-Z0-9_-]
+            // read function name: starts with a letter or '_', followed by [a-zA-Z0-9_-]
             int startName = i;
             if (i < n && (Character.isLetter(s.charAt(i)) || s.charAt(i) == '_')) {
                 i++;
@@ -226,24 +226,23 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     else break;
                 }
             } else {
-                // 遇到非函数名内容（比如纯色 "#ff0"），直接跳出让上层用颜色解析
+                // match non-function name, skip
                 break;
             }
             String name = s.substring(startName, i).trim();
 
-            // 跳过空白
+            // skip whitespace
             while (i < n && Character.isWhitespace(s.charAt(i))) i++;
 
-            // 必须跟一个 '('
+            // require a '('
             if (i >= n || s.charAt(i) != '(') {
-                // 不是函数调用，回退，让外层处理（比如资源名）
-                // 这里也可选择抛错
+                // not a function call, backtrack, let outer handle (e.g., resource name)
                 // break;
                 return out; // 已有的先返回
             }
-            i++; // 跳过 '('
+            i++; // skip '('
 
-            // 寻找匹配的 ')'
+            // keep matching until ')'
             int depth = 1;
             int startArgs = i;
             while (i < n && depth > 0) {
@@ -255,18 +254,18 @@ public class TextureValue extends StyleValue<IGuiTexture> {
             if (depth != 0) {
                 throw new IllegalArgumentException("Unbalanced parentheses in: " + s);
             }
-            int endArgs = i - 1; // 最后一个 ')'
+            int endArgs = i - 1; // last ')'
             String args = s.substring(startArgs, endArgs).trim();
 
             out.add(new Func(name, args));
 
-            // 接受空白，继续解析链式后面的函数（如 scale(...) rotate(...))
+            // accept whitespace, continue parsing chained functions (e.g., scale(...) rotate(...))
             while (i < n && Character.isWhitespace(s.charAt(i))) i++;
         }
         return out;
     }
 
-    // 在“顶层逗号”处分割参数（忽略括号内部的逗号）
+    // do ',' split
     static String[] splitTopLevelArgs(String s) {
         ArrayList<String> parts = new ArrayList<>();
         int depth = 0;
@@ -280,7 +279,7 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                 last = i + 1;
             }
         }
-        // 收尾
+        // end
         if (last <= s.length()) {
             String tail = s.substring(last).trim();
             if (!tail.isEmpty()) parts.add(tail);

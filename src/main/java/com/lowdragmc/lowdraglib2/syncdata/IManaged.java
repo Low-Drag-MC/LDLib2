@@ -20,19 +20,18 @@ public interface IManaged {
     IManagedStorage getSyncStorage();
 
     /**
-     * on field updated.
-     * it may be called in any thread if you are using {@link com.lowdragmc.lowdraglib2.syncdata.blockentity.IAsyncAutoSyncBlockEntity}.
+     * on field updated. Be aware of that it's not thread safe which may be called in any thread.
      */
-    default void onSyncMarkChanged(IRef ref, boolean isDirty) {
+    default void onSyncMarkChanged(IRef<?> ref, boolean isDirty) {
     }
 
     /**
      * on field updated.
-     * it may be called in any thread if you are using {@link com.lowdragmc.lowdraglib2.syncdata.blockentity.IAsyncAutoSyncBlockEntity}.
+     * Be aware of that it's not thread safe which may be called in any thread.
      */
-    default void onPersistedMarkChanged(IRef ref, boolean isDirty) {
+    default void onPersistedMarkChanged(IRef<?> ref, boolean isDirty) {
         if (isDirty) {
-            onChanged();
+            notifyPersistence();
             ref.clearPersistedDirty();
         }
     }
@@ -40,7 +39,7 @@ public interface IManaged {
     /**
      * notify persisted. it may be called in any thread
      */
-    void onChanged();
+    void notifyPersistence();
 
     /**
      * add a listener to field update

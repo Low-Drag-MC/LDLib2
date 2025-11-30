@@ -23,7 +23,8 @@ import java.lang.annotation.Target;
 public @interface ReadOnlyManaged {
 
     /**
-     * specify a method e.g. {@code boolean methodName()}
+     * specify a method e.g.
+     * <pre>{@code boolean methodName()}</pre>
      * return whether it has changed.
      * if this method is not defined, it will check dirty using default method {@link ReadOnlyRef#readOnlyUpdate()}.
      */
@@ -31,14 +32,14 @@ public @interface ReadOnlyManaged {
 
     /**
      * return a unique id (Tag) of given instance.
-     * e.g. {@code Tag methodName(@Nonnull T obj)}
+     * <pre>{@code Tag methodName(@Nonnull T obj)}</pre>
      * T - field type
      */
     String serializeMethod();
 
     /**
      * create an instance via given uid from server.
-     * e.g. {@code T methodName(@Nonnull Tag tag)}
+     * <pre>{@code T methodName(@Nonnull Tag tag)}</pre>
      * T - field type
      */
     String deserializeMethod();

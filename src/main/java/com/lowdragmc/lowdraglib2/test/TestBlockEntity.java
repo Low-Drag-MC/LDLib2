@@ -11,35 +11,28 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.syncdata.IBlockEntityManaged;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAsyncAutoSyncPersistBlockEntity;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IAutoPersistBlockEntity;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.*;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncPersistRPCBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
 import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
-import com.lowdragmc.lowdraglib2.syncdata.storage.IManagedStorage;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaJustify;
 
+import java.util.List;
 
-public class TestBlockEntity extends BlockEntity implements IAsyncAutoSyncPersistBlockEntity {
+
+public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlockEntity {
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
 
@@ -49,6 +42,7 @@ public class TestBlockEntity extends BlockEntity implements IAsyncAutoSyncPersis
     private int intValue = 10;
     @Persisted
     @DescSynced
+    @DropSaved
     private ItemStack itemStack = ItemStack.EMPTY;
 
     public TestBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
@@ -64,7 +58,7 @@ public class TestBlockEntity extends BlockEntity implements IAsyncAutoSyncPersis
                 .setPadding(YogaEdge.ALL, 4)
                 .setGap(YogaGutter.ALL, 2)
                 .setJustifyContent(YogaJustify.CENTER)
-        ).style(style -> style.backgroundTexture(Sprites.BORDER));
+        ).addClass("panel_bg");
         root.addChild(new Label().setText("Test Block UI"));
         root.addChild(new TextField());
         root.addChild(new Button().setText("Change Random Value").setOnServerClick(e -> {
@@ -73,6 +67,17 @@ public class TestBlockEntity extends BlockEntity implements IAsyncAutoSyncPersis
         }));
         root.addChild(new ItemSlot().bindDataSource(SupplierDataSource.of(() -> itemStack)));
         root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> Component.literal(String.valueOf(intValue)))));
-        return new ModularUI(UI.of(root), holder.player);
+        root.addChild(new Button().setText("Test C2S RPC").setOnClick(e -> rpcToServer("rpcTest", "Hello from client!")));
+        root.addChild(new Button().setText("Test C2S RPC").setOnServerClick(e -> rpcToTracking("rpcTest", "Hello from server!")));
+        return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheet(StylesheetManager.MC))), holder.player);
+    }
+
+    @RPCMethod
+    public void rpcTest(RPCSender sender, String message) {
+        if (sender.isServer()) {
+            LDLib2.LOGGER.info("Received RPC from server: {}", message);
+        } else {
+            LDLib2.LOGGER.info("Received RPC from client: {}", message);
+        }
     }
 }

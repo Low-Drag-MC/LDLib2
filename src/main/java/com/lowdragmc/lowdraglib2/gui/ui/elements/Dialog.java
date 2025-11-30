@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -26,6 +27,7 @@ import java.io.File;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+@KJSBindings
 public class Dialog extends UIElement {
     public final UIElement overlay;
     public final UIElement titleBar;
