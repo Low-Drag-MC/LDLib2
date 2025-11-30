@@ -94,20 +94,17 @@ public class LDLib2 {
         return Platform.isModLoaded(mod);
     }
 
-//    public static boolean isJeiLoaded() {
-//        if (!isEmiLoaded() && !isReiLoaded()) {
-//            return isModLoaded(MODID_JEI);
-//        }
-//        return false;
-//    }
-//
-//    public static boolean isReiLoaded() {
-//        return isModLoaded(MODID_REI) && (!Platform.isClient() || REIPlugin.isReiEnabled());
-//    }
-//
-//    public static boolean isEmiLoaded() {
-//        return isModLoaded(MODID_EMI) && (!Platform.isClient() || EMIPlugin.isEmiEnabled());
-//    }
+    public static boolean isJeiLoaded() {
+        return isModLoaded(MODID_JEI);
+    }
+
+    public static boolean isReiLoaded() {
+        return isModLoaded(MODID_REI);
+    }
+
+    public static boolean isEmiLoaded() {
+        return isModLoaded(MODID_EMI);
+    }
 
     public static boolean isKubejsLoaded() {
         return Platform.isModLoaded("kubejs");

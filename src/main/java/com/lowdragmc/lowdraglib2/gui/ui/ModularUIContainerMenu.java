@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
-import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
@@ -19,7 +18,7 @@ import java.util.*;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ModularUIContainerMenu extends AbstractContainerMenu implements IUISyncManagerHolder, IItemSlotHolderMenu {
+public class ModularUIContainerMenu extends AbstractContainerMenu implements IModularUIHolder, IItemSlotHolderMenu {
     public final Inventory inventory;
     public final IContainerUIHolder uiHolder;
     @Getter

@@ -39,9 +39,11 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
@@ -434,6 +436,27 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             } else if (x + width > screenWidth) {
                 layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
             }
+        }
+    }
+
+    public void appendExtraAreas(List<Rect2i> extraAreas) {
+        if (!isDisplayed() || !isVisible()) return;
+        var rect = new Rect2i((int) getPositionX(), (int) getPositionY(), (int) getSizeWidth(), (int) getSizeHeight());
+        var contains = false;
+        for (var extraArea : extraAreas) {
+            if (extraArea.getX() <= rect.getX() &&
+                    extraArea.getY() <= rect.getY() &&
+                    extraArea.getX() + extraArea.getWidth() >= rect.getX() + rect.getWidth() &&
+                    extraArea.getY() + extraArea.getHeight() >= rect.getY() + rect.getHeight()) {
+                contains = true;
+                break;
+            }
+        }
+        if (!contains) {
+            extraAreas.add(rect);
+        }
+        for (UIElement child : getChildren()) {
+            child.appendExtraAreas(extraAreas);
         }
     }
 
@@ -887,6 +910,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     @Nullable
     public Pair<UIElement, Integer> getHoverElement(double mouseX, double mouseY) {
+        // TODO do hit tree in the future?
         if (!isDisplayed() || !isVisible()) return null;
 
         var transform2D = style.transform2D();
@@ -1528,5 +1552,4 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             }
         }
     }
-
 }

@@ -9,13 +9,13 @@ import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
-import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @OnlyIn(Dist.CLIENT)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ModularUIScreen extends Screen {
+public class ModularUIScreen extends Screen implements IModularUIHolder {
+    @Getter
     public final ModularUI modularUI;
     /**
      * Starting X position for the Gui. Inconsistent use for Gui backgrounds.

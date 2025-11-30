@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
@@ -7,8 +8,6 @@ import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
@@ -20,23 +19,27 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.emi.EMIUIEvents;
+import com.lowdragmc.lowdraglib2.integration.jei.JEIUIEvents;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.rei.REIUIEvents;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
-import com.mojang.blaze3d.systems.RenderSystem;
+import dev.architectury.event.CompoundEventResult;
+import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
 import lombok.Getter;
+import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.api.gui.builder.IClickableIngredientFactory;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -138,6 +141,15 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         getStyle().backgroundTexture(ITEM_SLOT_TEXTURE);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        if (LDLib2.isJeiLoaded()) {
+            addEventListener(JEIUIEvents.CLICKABLE_INGREDIENT, JEISupport::onClickableIngredient);
+        }
+        if (LDLib2.isReiLoaded()) {
+            addEventListener(REIUIEvents.FOCUSED_STACK, REISupport::onFocusedStack);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            addEventListener(EMIUIEvents.STACK_PROVIDER, EMISupport::onStackProvider);
+        }
         bind(slot);
         internalSetup();
     }
@@ -310,6 +322,47 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         super.afterDeserialize();
         if (!editorItemDisplay.isEmpty()) {
             setValue(editorItemDisplay, false);
+        }
+    }
+
+    /// XEI Support
+    public static class JEISupport {
+        public static void onClickableIngredient(UIEvent event) {
+            if (LDLib2.isJeiLoaded() && event.currentElement instanceof ItemSlot itemSlot && itemSlot.isMouseOverElement(event.x, event.y)) {
+                if (event.customData instanceof IClickableIngredientFactory factory) {
+                    var item = itemSlot.getValue();
+                    if (item.isEmpty()) return;
+                    event.customData = factory.createBuilder(item)
+                            .buildWithArea(
+                                    (int) itemSlot.getPositionX(),
+                                    (int) itemSlot.getPositionY(),
+                                    (int) itemSlot.getSizeWidth(),
+                                    (int) itemSlot.getSizeHeight());
+                    event.stopPropagation();
+                }
+            }
+        }
+    }
+
+    public static class REISupport {
+        public static void onFocusedStack(UIEvent event) {
+            if (LDLib2.isReiLoaded() && event.currentElement instanceof ItemSlot itemSlot && itemSlot.isMouseOverElement(event.x, event.y)) {
+                var item = itemSlot.getValue();
+                if (item.isEmpty()) return;
+                event.customData = CompoundEventResult.interruptTrue(EntryStacks.of(item));
+                event.stopPropagation();
+            }
+        }
+    }
+
+    public static class EMISupport {
+        public static void onStackProvider(UIEvent event) {
+            if (LDLib2.isEmiLoaded() && event.currentElement instanceof ItemSlot itemSlot && itemSlot.isMouseOverElement(event.x, event.y)) {
+                var item = itemSlot.getValue();
+                if (item.isEmpty()) return;
+                event.customData = new EmiStackInteraction(EmiStack.of(item), null, false);
+                event.stopPropagation();
+            }
         }
     }
 }

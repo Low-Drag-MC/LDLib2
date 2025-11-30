@@ -27,6 +27,7 @@ import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.main.Main;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -115,6 +116,7 @@ public class ModularUI {
     private float lastMouseX, lastMouseY, lastMouseDownX, lastMouseDownY;
     @Getter @Nullable
     private UIElement focusedElement = null;
+    private final List<Rect2i> extraAreas = new ArrayList<>();
 
     // hover tips
     @Nullable
@@ -468,7 +470,7 @@ public class ModularUI {
 
             // calculate layout
             ui.rootElement.calculateLayout();
-
+            extraAreas.clear();
             if (dirtyCount >= 10) {
                 LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
                 break;
@@ -573,10 +575,27 @@ public class ModularUI {
         return widget;
     }
 
+    @OnlyIn(Dist.CLIENT)
+    public List<Rect2i> getGuiExtraAreas() {
+        if (extraAreas.isEmpty()) calculateExtraAreas();
+        return extraAreas;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void calculateExtraAreas() {
+        extraAreas.clear();
+        ui.rootElement.appendExtraAreas(extraAreas);
+    }
+
     @ParametersAreNonnullByDefault
     @MethodsReturnNonnullByDefault
     @OnlyIn(Dist.CLIENT)
-    public class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable {
+    public class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable, IModularUIHolder {
+        @Override
+        public ModularUI getModularUI() {
+            return ModularUI.this;
+        }
+
         // narration
         @Override
         public NarrationPriority narrationPriority() {
@@ -811,7 +830,6 @@ public class ModularUI {
                 }
                 return hasHandler;
             } else if (command != null){
-                // TODO Do we really need to retrieval the entire ui tree here?
                 var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
                 event.target = ui.rootElement;
                 UIEventDispatcher.dispatchAllChildren(event);

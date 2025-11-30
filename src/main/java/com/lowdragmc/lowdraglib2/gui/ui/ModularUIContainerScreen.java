@@ -15,11 +15,16 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @OnlyIn(Dist.CLIENT)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIContainerMenu> {
+public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIContainerMenu> implements IModularUIHolder {
 
     public ModularUIContainerScreen(ModularUIContainerMenu container, Inventory inventory, Component title) {
         super(container, inventory, title);
         container.modularUI.setScreen(this);
+    }
+
+    @Override
+    public ModularUI getModularUI() {
+        return menu.getModularUI();
     }
 
     @Override

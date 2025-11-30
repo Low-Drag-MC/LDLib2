@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -22,14 +23,24 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
+import com.lowdragmc.lowdraglib2.integration.emi.EMIUIEvents;
+import com.lowdragmc.lowdraglib2.integration.jei.JEIUIEvents;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.rei.REIUIEvents;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
+import dev.architectury.event.CompoundEventResult;
+import dev.architectury.hooks.fluid.forge.FluidStackHooksForge;
+import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.api.gui.builder.IClickableIngredientFactory;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
@@ -130,6 +141,15 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         getStyle().backgroundTexture(Sprites.RECT_DARK);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        if (LDLib2.isJeiLoaded()) {
+            addEventListener(JEIUIEvents.CLICKABLE_INGREDIENT, JEISupport::onClickableIngredient);
+        }
+        if (LDLib2.isReiLoaded()) {
+            addEventListener(REIUIEvents.FOCUSED_STACK, REISupport::onFocusedStack);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            addEventListener(EMIUIEvents.STACK_PROVIDER, EMISupport::onStackProvider);
+        }
         clickEvent = RPCEventBuilder.simple(Boolean.class, this::tryClickContainer);
         addRPCEvent(clickEvent);
 
@@ -350,6 +370,48 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         super.afterDeserialize();
         if (!editorFluidDisplay.isEmpty()) {
             setValue(editorFluidDisplay, false);
+        }
+    }
+
+    /// XEI Support
+
+    public static class JEISupport {
+        public static void onClickableIngredient(UIEvent event) {
+            if (LDLib2.isJeiLoaded() && event.currentElement instanceof FluidSlot fluidSlot && fluidSlot.isMouseOverElement(event.x, event.y)) {
+                if (event.customData instanceof IClickableIngredientFactory factory) {
+                    var fluid = fluidSlot.getValue();
+                    if (fluid.isEmpty()) return;
+                    event.customData = factory.createBuilder(NeoForgeTypes.FLUID_STACK, fluid)
+                            .buildWithArea(
+                                    (int) fluidSlot.getPositionX(),
+                                    (int) fluidSlot.getPositionY(),
+                                    (int) fluidSlot.getSizeWidth(),
+                                    (int) fluidSlot.getSizeHeight());
+                    event.stopPropagation();
+                }
+            }
+        }
+    }
+
+    public static class REISupport {
+        public static void onFocusedStack(UIEvent event) {
+            if (LDLib2.isReiLoaded() && event.currentElement instanceof FluidSlot fluidSlot && fluidSlot.isMouseOverElement(event.x, event.y)) {
+                var fluid = fluidSlot.getValue();
+                if (fluid.isEmpty()) return;
+                event.customData = CompoundEventResult.interruptTrue(EntryStacks.of(FluidStackHooksForge.fromForge(fluid)));
+                event.stopPropagation();
+            }
+        }
+    }
+
+    public static class EMISupport {
+        public static void onStackProvider(UIEvent event) {
+            if (LDLib2.isEmiLoaded() && event.currentElement instanceof FluidSlot fluidSlot && fluidSlot.isMouseOverElement(event.x, event.y)) {
+                var fluid = fluidSlot.getValue();
+                if (fluid.isEmpty()) return;
+                event.customData = new EmiStackInteraction(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()), null, false);
+                event.stopPropagation();
+            }
         }
     }
 }
