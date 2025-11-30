@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -12,6 +13,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+@KJSBindings
 @LDLRegisterClient(name = "item_stack_texture", registry = "ldlib2:gui_texture")
 public class ItemStackTexture extends TransformTexture {
     @Configurable(name = "ldlib.gui.editor.name.items")

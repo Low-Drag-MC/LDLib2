@@ -90,7 +90,7 @@ public abstract class SplitView extends UIElement {
         }
     }
 
-    @KJSBindings
+    @KJSBindings("SplitViewHorizontal")
     @LDLRegister(name = "split-view-horizontal", group = "container", registry = "ldlib2:ui_element")
     public static class Horizontal extends SplitView {
         public Horizontal() {
@@ -143,7 +143,7 @@ public abstract class SplitView extends UIElement {
 
     }
 
-    @KJSBindings
+    @KJSBindings("SplitViewVertical")
     @LDLRegister(name = "split-view-vertical", group = "container", registry = "ldlib2:ui_element")
     public static class Vertical extends SplitView {
         public Vertical() {

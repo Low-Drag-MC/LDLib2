@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 // TODO refactor Shader Texture
+@KJSBindings
 @LDLRegisterClient(name = "shader_texture", registry = "ldlib2:gui_texture")
 public class ShaderTexture extends TransformTexture {
     private static final Map<ResourceLocation, ShaderTexture> CACHE = new HashMap<>();

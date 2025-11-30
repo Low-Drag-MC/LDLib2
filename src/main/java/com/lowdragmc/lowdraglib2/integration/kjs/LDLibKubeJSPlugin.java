@@ -2,21 +2,14 @@ package com.lowdragmc.lowdraglib2.integration.kjs;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
-import com.lowdragmc.lowdraglib2.editor.resource.UIResource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.TextureValue;
-import com.lowdragmc.lowdraglib2.integration.kjs.ui.LDKJSMenuTypes;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Size;
-import com.lowdragmc.lowdraglib2.plugin.ILDLibPlugin;
-import com.lowdragmc.lowdraglib2.plugin.LDLibPlugin;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import dev.latvian.mods.kubejs.event.EventGroupRegistry;
 import dev.latvian.mods.kubejs.plugin.ClassFilter;
@@ -61,15 +54,6 @@ public class LDLibKubeJSPlugin implements KubeJSPlugin {
         event.add("Vector3f", Vector3f.class);
         event.add("GuiSize", Size.class);
         event.add("GuiPos", Position.class);
-
-        // ui
-
-        // TODO register all components automatically
-        // by using annotations? just do it!
-        event.add("UIElement", UIElement.class);
-        event.add("Label", Label.class);
-        event.add("Button", Button.class);
-        event.add("TextField", TextField.class);
     }
 
     @Override

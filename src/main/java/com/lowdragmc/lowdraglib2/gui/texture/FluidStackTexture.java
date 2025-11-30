@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -14,6 +15,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 
+@KJSBindings
 @LDLRegisterClient(name = "fluid_stack_texture", registry = "ldlib2:gui_texture")
 public class FluidStackTexture extends TransformTexture {
     @Configurable(name = "ldlib.gui.editor.name.fluids")

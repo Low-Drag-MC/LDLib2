@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinPath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Optional;
 
+@KJSBindings
 @LDLRegisterClient(name = "ui_resource_texture", registry = "ldlib2:gui_texture")
 @NoArgsConstructor
 @ParametersAreNonnullByDefault

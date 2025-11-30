@@ -237,7 +237,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         return this;
     }
 
-    @KJSBindings
+    @KJSBindings("ScrollerVertical")
     @LDLRegister(name = "scroller-vertical", group = "utils", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
@@ -302,7 +302,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         }
     }
 
-    @KJSBindings
+    @KJSBindings("ScrollerHorizontal")
     @LDLRegister(name = "scroller-horizontal", group = "utils", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {

@@ -5,6 +5,7 @@
     import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
     import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
     import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+    import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
     import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
     import com.lowdragmc.lowdraglib2.utils.ColorUtils;
     import com.mojang.blaze3d.systems.RenderSystem;
@@ -20,6 +21,7 @@
 
     import static com.mojang.blaze3d.vertex.DefaultVertexFormat.*;
 
+    @KJSBindings
     @LDLRegisterClient(name = "sdf_rect_texture", registry = "ldlib2:gui_texture")
     public class SDFRectTexture extends TransformTexture {
         @Getter @Setter

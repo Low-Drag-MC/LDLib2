@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.event;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 
+@KJSBindings
 public interface UIEvents {
     /// Mouse Events
     /**

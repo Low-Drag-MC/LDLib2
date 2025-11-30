@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
@@ -12,6 +13,7 @@ import net.minecraft.util.Mth;
 /**
  * @author youyihj
  */
+@KJSBindings
 @LDLRegisterClient(name = "progress_texture", registry = "ldlib2:gui_texture")
 public class ProgressTexture extends TransformTexture {
     @Configurable

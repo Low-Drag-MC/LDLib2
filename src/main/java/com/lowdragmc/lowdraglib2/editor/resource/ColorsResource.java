@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
@@ -17,6 +18,7 @@ import net.minecraft.network.chat.Component;
 
 import javax.annotation.Nullable;
 
+@KJSBindings
 public class ColorsResource extends Resource<Integer> {
     public static final ColorsResource INSTANCE = new ColorsResource();
 

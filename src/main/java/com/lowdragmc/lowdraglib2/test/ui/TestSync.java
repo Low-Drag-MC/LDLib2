@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -32,6 +33,7 @@ import org.appliedenergistics.yoga.YogaWrap;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.List;
 
 @LDLRegister(name="ui_sync", registry = "ldlib2:menu_test")
 @ParametersAreNonnullByDefault
@@ -111,6 +113,6 @@ public class TestSync implements IMenuTest {
                 )).setSearchOnServer(Block[].class).bind(DataBindingBuilder
                         .create(() -> block, b -> block = b).syncType(Block.class).build())
         );
-        return new ModularUI(UI.of(root), player);
+        return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheetSafe(StylesheetManager.MC))), player);
     }
 }

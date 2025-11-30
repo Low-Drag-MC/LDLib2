@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Data;
 import lombok.Getter;
@@ -15,6 +16,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @Data(staticConstructor = "of")
+@KJSBindings
 public final class SupplierDataSource<T> implements IDataProvider<T>, Tickable {
     @Getter
     private final Supplier<T> supplier;

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -22,6 +23,7 @@ import java.util.function.Supplier;
 @Accessors(chain = true, fluent = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
 public class DataBindingBuilder<T> {
     @Getter @Setter
     private static boolean isRemote;

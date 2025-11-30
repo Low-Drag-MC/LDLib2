@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@KJSBindings
 @LDLRegisterClient(name = "text_texture", registry = "ldlib2:gui_texture")
 public class TextTexture extends TransformTexture {
 
