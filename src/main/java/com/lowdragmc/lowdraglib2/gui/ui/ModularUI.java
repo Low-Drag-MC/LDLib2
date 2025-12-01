@@ -832,9 +832,9 @@ public class ModularUI {
             } else if (command != null){
                 var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
                 event.target = ui.rootElement;
-                UIEventDispatcher.dispatchAllChildren(event);
+                var handled = UIEventDispatcher.dispatchAllChildren(event);
                 hasHandler |= event.hasHandler;
-                if (event.currentElement != ui.rootElement && event.currentElement != null) {
+                if (handled && event.currentElement != null) {
                     var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
                     executeCommandEvent.target = event.currentElement;
                     UIEventDispatcher.dispatchEvent(executeCommandEvent);

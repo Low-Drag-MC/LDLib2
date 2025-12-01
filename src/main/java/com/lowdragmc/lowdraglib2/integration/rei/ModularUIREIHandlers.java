@@ -5,12 +5,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import dev.architectury.event.CompoundEventResult;
 import me.shedaniel.math.Rectangle;
+import me.shedaniel.rei.api.client.gui.drag.DraggableStack;
+import me.shedaniel.rei.api.client.gui.drag.DraggableStackVisitor;
+import me.shedaniel.rei.api.client.gui.drag.DraggedAcceptorResult;
+import me.shedaniel.rei.api.client.gui.drag.DraggingContext;
 import me.shedaniel.rei.api.client.registry.screen.ExclusionZonesProvider;
 import me.shedaniel.rei.api.client.registry.screen.FocusedStackProvider;
 import me.shedaniel.rei.api.common.entry.EntryStack;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 public final class ModularUIREIHandlers {
     public static final ExclusionZonesProvider<Screen> EXCLUSION_ZONES_PROVIDER = screen -> {
@@ -42,5 +49,43 @@ public final class ModularUIREIHandlers {
             }
         }
         return CompoundEventResult.pass();
+    };
+
+    public static final DraggableStackVisitor<Screen> DRAGGABLE_STACK_VISITOR = new DraggableStackVisitor<>() {
+        @Override
+        public boolean isHandingScreen(Screen screen) {
+            return screen.children().stream().anyMatch(IModularUIHolder.class::isInstance);
+        }
+
+        @Override
+        public DraggedAcceptorResult acceptDraggedStack(DraggingContext<Screen> context, DraggableStack stack) {
+            for (var child : context.getScreen().children()) {
+                if (child instanceof IModularUIHolder holder) {
+                    var mui = holder.getModularUI();
+                    var event = UIEvent.create(REIUIEvents.ACCEPT_DRAGGABLE_STACK);
+                    event.target = mui.ui.rootElement;
+                    event.customData = new REIDraggableStackBounds(context, stack, Collections.emptyList());;
+                    if (UIEventDispatcher.dispatchAllChildren(event)) {
+                        return DraggedAcceptorResult.ACCEPTED;
+                    }
+                }
+            }
+            return DraggableStackVisitor.super.acceptDraggedStack(context, stack);
+        }
+
+        @Override
+        public Stream<BoundsProvider> getDraggableAcceptingBounds(DraggingContext<Screen> context, DraggableStack stack) {
+            List<BoundsProvider> boundsProviders = new ArrayList<>();
+            for (var child : context.getScreen().children()) {
+                if (child instanceof IModularUIHolder holder) {
+                    var mui = holder.getModularUI();
+                    var event = UIEvent.create(REIUIEvents.DRAGGABLE_STACK_BOUNDS);
+                    event.target = mui.ui.rootElement;
+                    event.customData = new REIDraggableStackBounds(context, stack, boundsProviders);
+                    UIEventDispatcher.dispatchAllChildren(event);
+                }
+            }
+            return boundsProviders.stream();
+        }
     };
 }

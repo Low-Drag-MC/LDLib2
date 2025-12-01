@@ -6,10 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
@@ -40,6 +37,8 @@ import java.util.List;
 @MethodsReturnNonnullByDefault
 public class TestSync implements IMenuTest {
     private final FluidTank fluidTank = new FluidTank(2000);
+    private final FluidTank phantomTank = new FluidTank(2000);
+    private final FluidTank phantomTank2 = new FluidTank(2000);
     private final ItemStackHandler itemHandler = new ItemStackHandler(10);
     @Nullable
     private Block block = null;
@@ -78,7 +77,21 @@ public class TestSync implements IMenuTest {
                 new ItemSlot().bind(itemHandler, 0),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 2).setCanPlace(itemStack -> itemStack.is(Items.STONE))),
+                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)).addChildren(
+                        new ItemSlot().xeiPhantom().bind(DataBindingBuilder.itemStack(
+                                () -> itemHandler.getStackInSlot(3),
+                                itemStack -> itemHandler.setStackInSlot(3, itemStack)
+                        ).build()),
+                        new ItemSlot().xeiPhantom().bind(DataBindingBuilder.itemStack(
+                                () -> itemHandler.getStackInSlot(4),
+                                itemStack -> itemHandler.setStackInSlot(4, itemStack)
+                        ).build())
+                ),
                 new FluidSlot().bind(fluidTank, 0),
+                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)).addChildren(
+                        new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank::getFluid, phantomTank::setFluid).build()),
+                        new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank2::getFluid, phantomTank2::setFluid).build())
+                ),
                 new Button().addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
                     if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
                         fluidTank.setFluid(new FluidStack(Fluids.LAVA, fluidTank.getFluid().getAmount()));

@@ -19,17 +19,30 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.emi.EMIDragDropHandlers;
 import com.lowdragmc.lowdraglib2.integration.emi.EMIUIEvents;
+import com.lowdragmc.lowdraglib2.integration.emi.LDLibEMIPlugin;
+import com.lowdragmc.lowdraglib2.integration.jei.JEITarget;
+import com.lowdragmc.lowdraglib2.integration.jei.JEITargetsTyped;
 import com.lowdragmc.lowdraglib2.integration.jei.JEIUIEvents;
+import com.lowdragmc.lowdraglib2.integration.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.rei.LDLibREIPlugin;
+import com.lowdragmc.lowdraglib2.integration.rei.REIDraggableStackBounds;
 import com.lowdragmc.lowdraglib2.integration.rei.REIUIEvents;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import dev.architectury.event.CompoundEventResult;
+import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.stack.EmiStackInteraction;
+import dev.emi.emi.api.stack.ItemEmiStack;
 import lombok.Getter;
+import me.shedaniel.math.Point;
+import me.shedaniel.rei.api.client.gui.drag.DraggableStackVisitor;
+import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
 import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IClickableIngredientFactory;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -45,6 +58,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -163,6 +177,22 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         if (this.slot == slot) return this;
         this.slot = slot;
         addSlotToTheMenu();
+        return this;
+    }
+
+    public ItemSlot xeiPhantom() {
+        if (LDLib2.isJeiLoaded()) {
+            addEventListener(JEIUIEvents.VALID_TARGETS_TYPED, JEISupport::onTargetsTyped);
+            addEventListener(JEIUIEvents.EXECUTE_TARGETS_TYPED, JEISupport::onTargetsTyped);
+        }
+        if (LDLib2.isReiLoaded()) {
+            addEventListener(REIUIEvents.DRAGGABLE_STACK_BOUNDS, REISupport::onDraggableStackBounds);
+            addEventListener(REIUIEvents.ACCEPT_DRAGGABLE_STACK, REISupport::onAcceptDraggableStack);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            addEventListener(EMIUIEvents.RENDER_DRAG_HANDLER, EMISupport::onRenderDragHandler);
+            addEventListener(EMIUIEvents.DROP_STACK_HANDLER, EMISupport::onDropStackHandler);
+        }
         return this;
     }
 
@@ -332,15 +362,28 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                 if (event.customData instanceof IClickableIngredientFactory factory) {
                     var item = itemSlot.getValue();
                     if (item.isEmpty()) return;
-                    event.customData = factory.createBuilder(item)
-                            .buildWithArea(
-                                    (int) itemSlot.getPositionX(),
-                                    (int) itemSlot.getPositionY(),
-                                    (int) itemSlot.getSizeWidth(),
-                                    (int) itemSlot.getSizeHeight());
+                    event.customData = factory.createBuilder(item).buildWithArea(LDLibJEIPlugin.getArea(itemSlot));
                     event.stopPropagation();
                 }
             }
+        }
+
+        public static void onTargetsTyped(UIEvent event) {
+            if (LDLib2.isJeiLoaded() &&
+                    event.currentElement instanceof ItemSlot itemSlot &&
+                    event.customData instanceof JEITargetsTyped(var ingredient, var targets)) {
+                Optional.ofNullable(ingredient.cast(VanillaTypes.ITEM_STACK)).ifPresent(typedIngredient -> {
+                    var item = typedIngredient.getIngredient();
+                    if (itemSlot.getSlot().mayPlace(item)) {
+                        targets.add(cast(new JEITarget<ItemStack>(LDLibJEIPlugin.getArea(itemSlot, true), itemSlot::setValue)));
+                    }
+                });
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        public static <T> T cast(Object input) {
+            return (T) input;
         }
     }
 
@@ -353,6 +396,38 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                 event.stopPropagation();
             }
         }
+
+        public static void onDraggableStackBounds(UIEvent event) {
+            if (LDLib2.isReiLoaded() &&
+                    event.currentElement instanceof ItemSlot itemSlot &&
+                    event.customData instanceof REIDraggableStackBounds(var context, var stack, var bounds)) {
+                var target = stack.get();
+                if (target.getType() == VanillaEntryTypes.ITEM) {
+                    ItemStack item = target.castValue();
+                    if (itemSlot.getSlot().mayPlace(item)) {
+                        bounds.add(DraggableStackVisitor.BoundsProvider.ofRectangle(LDLibREIPlugin.getRectangle(itemSlot, true)));
+                    }
+                }
+            }
+        }
+
+        public static void onAcceptDraggableStack(UIEvent event) {
+            if (LDLib2.isReiLoaded() &&
+                    event.currentElement instanceof ItemSlot itemSlot &&
+                    event.customData instanceof REIDraggableStackBounds(var context, var stack, var bounds) &&
+                    context.getCurrentPosition() instanceof Point point &&
+                    itemSlot.isMouseOverElement(point.x, point.y)
+            ) {
+                var target = stack.get();
+                if (target.getType() == VanillaEntryTypes.ITEM) {
+                    ItemStack item = target.castValue();
+                    if (itemSlot.getSlot().mayPlace(item)) {
+                        itemSlot.setValue(item);
+                        event.stopPropagation();
+                    }
+                }
+            }
+        }
     }
 
     public static class EMISupport {
@@ -362,6 +437,33 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                 if (item.isEmpty()) return;
                 event.customData = new EmiStackInteraction(EmiStack.of(item), null, false);
                 event.stopPropagation();
+            }
+        }
+
+        public static void onRenderDragHandler(UIEvent event) {
+            if (LDLib2.isEmiLoaded() &&
+                    event.currentElement instanceof ItemSlot itemSlot &&
+                    event.customData instanceof EMIDragDropHandlers(var dragged, var bounds)) {
+                if (dragged instanceof ItemEmiStack item) {
+                    if (itemSlot.getSlot().mayPlace(item.getItemStack())) {
+                        bounds.add(LDLibEMIPlugin.getBounds(itemSlot, true));
+                    }
+                }
+            }
+        }
+
+        public static void onDropStackHandler(UIEvent event) {
+            if (LDLib2.isEmiLoaded() &&
+                    event.currentElement instanceof ItemSlot itemSlot &&
+                    event.customData instanceof EmiIngredient dragged &&
+                    itemSlot.isMouseOverElement(event.x, event.y)
+            ) {
+                if (dragged instanceof ItemEmiStack item) {
+                    if (itemSlot.getSlot().mayPlace(item.getItemStack())) {
+                        itemSlot.setValue(item.getItemStack());
+                        event.stopPropagation();
+                    }
+                }
             }
         }
     }

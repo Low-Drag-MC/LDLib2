@@ -1,17 +1,52 @@
 package com.lowdragmc.lowdraglib2.gui.ui.event;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.experimental.UtilityClass;
 
 import javax.annotation.Nullable;
 import java.util.Stack;
 
 @UtilityClass
+@KJSBindings
 public final class UIEventDispatcher {
+    /**
+     * Dispatches the given {@link UIEvent} to its target element and through the event phases,
+     * including the capture phase, target phase, and bubble phase with default parameters.
+     *
+     * This method is a simplified wrapper around the more general
+     * {@link #dispatchEvent(UIEvent, boolean, boolean, boolean)} method, using default values.
+     *
+     * @param event the {@link UIEvent} instance to be dispatched. The event's
+     *              {@code target}, {@code phase}, and associated lifecycle fields
+     *              (e.g., propagation flags) will be processed during dispatching.
+     */
     public static void dispatchEvent(UIEvent event) {
         dispatchEvent(event, true, true, true);
     }
 
+    /**
+     * Dispatches the given {@link UIEvent} to its target element and processes the
+     * event through the capture phase, target phase, and bubble phase, depending
+     * on the specified parameters.
+     *
+     * This method triggers appropriate event listeners during each phase, updates
+     * the event's lifecycle fields (such as propagation flags and phase), and optionally
+     * communicates the event to the server.
+     *
+     * @param event the {@link UIEvent} instance to be dispatched. The event's
+     *              {@code target}, {@code phase}, and propagation flags
+     *              will be modified as it flows through the lifecycle phases.
+     * @param capturePhase a {@code boolean} indicating whether the event should
+     *                     propagate through the capture phase, traveling from
+     *                     the root to the target.
+     * @param bubblePhase a {@code boolean} specifying whether the event should
+     *                    propagate through the bubble phase, traveling from the
+     *                    target back to the root.
+     * @param sendServer a {@code boolean} specifying whether server-side event handling
+     *                   should be invoked for the event during its propagation through
+     *                   the different phases.
+     */
     public static void dispatchEvent(UIEvent event, boolean capturePhase, boolean bubblePhase, boolean sendServer) {
         // 1. build path from root to target
         var target = event.target;
@@ -103,6 +138,18 @@ public final class UIEventDispatcher {
         dispatchDirectEvent(event, true);
     }
 
+    /**
+     * Dispatches the given {@link UIEvent} directly to its target element, without
+     * propagating through other phases like capture or bubble, unless specific listeners
+     * are registered for the event type. If no listeners are present, the method returns
+     * without any action. Optionally, the event can also be sent to the server.
+     *
+     * @param event the {@link UIEvent} to be dispatched. It must have a designated target
+     *              and event type. The event's propagation behavior depends on the presence
+     *              of appropriate listeners.
+     * @param sendServer a {@code boolean} flag indicating whether the event should be sent
+     *                   to the server for additional processing after dispatching.
+     */
     public static void dispatchDirectEvent(UIEvent event, boolean sendServer) {
         if (event.target.getCaptureListeners(event.type).isEmpty() && event.target.getBubbleListeners(event.type).isEmpty()) {
             return;
@@ -111,10 +158,20 @@ public final class UIEventDispatcher {
     }
 
 
-    public static void dispatchAllChildren(UIEvent event) {
+    /**
+     * Dispatches the provided {@link UIEvent} to all child elements of its target, ensuring
+     * the event status and phase are updated appropriately during the dispatch operation.
+     *
+     * @param event the {@link UIEvent} to be dispatched to child elements. The event's
+     *              {@code currentElement} is updated to match its {@code target}, and
+     *              its {@code phase} is set to {@link UIEvent.EventPhase#AT_TARGET}.
+     * @return {@code true} if the event dispatch to children is successful as determined
+     *         by the {@code drillDown} operation, otherwise {@code false}.
+     */
+    public static boolean dispatchAllChildren(UIEvent event) {
         event.currentElement = event.target;
         event.phase = UIEvent.EventPhase.AT_TARGET;
-        drillDown(event);
+        return drillDown(event);
     }
 
     // Avoid using DFS?

@@ -1,12 +1,16 @@
 package com.lowdragmc.lowdraglib2.integration.jei;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIScreen;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
@@ -18,7 +22,18 @@ import javax.annotation.ParametersAreNonnullByDefault;
 public class LDLibJEIPlugin implements IModPlugin {
     @Nullable
     public static IJeiRuntime jeiRuntime;
-    public final ModularUIJEIHandler handler = new ModularUIJEIHandler();
+
+    public static Rect2i getArea(UIElement element) {
+        return getArea(element, false);
+    }
+
+    public static Rect2i getArea(UIElement element, boolean content) {
+        if (content) {
+            return new Rect2i((int) element.getContentX(), (int) element.getContentY(), (int) element.getContentWidth(), (int) element.getContentHeight());
+        } else {
+            return new Rect2i((int) element.getPositionX(), (int) element.getPositionY(), (int) element.getSizeWidth(), (int) element.getSizeHeight());
+        }
+    }
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -33,8 +48,9 @@ public class LDLibJEIPlugin implements IModPlugin {
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
-//        registration.addGhostIngredientHandler(ModularUIGuiContainer.class, modularUIGuiHandler);
-        registration.addGuiContainerHandler(((Class) AbstractContainerScreen.class), handler);
+        registration.addGhostIngredientHandler(ModularUIScreen.class, ModularUIJEIHandlers.GHOST_INGREDIENT_HANDLER);
+        registration.addGhostIngredientHandler(ModularUIContainerScreen.class, ModularUIJEIHandlers.GHOST_INGREDIENT_HANDLER);
+        registration.addGenericGuiContainerHandler(AbstractContainerScreen.class, ModularUIJEIHandlers.GUI_CONTAINER_HANDLER);
     }
 
     //    @Nullable
