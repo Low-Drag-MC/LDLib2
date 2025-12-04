@@ -6,8 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Player;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 

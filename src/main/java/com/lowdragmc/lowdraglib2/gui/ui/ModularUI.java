@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
+import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
@@ -26,10 +27,8 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.main.Main;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -38,6 +37,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.appliedenergistics.yoga.YogaPositionType;
 import org.appliedenergistics.yoga.YogaUnit;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.lwjgl.glfw.GLFW;
@@ -400,11 +400,19 @@ public class ModularUI {
     }
 
     /// screen only
+
+    @OnlyIn(Dist.CLIENT)
+    public void setScreenAndInit(Screen screen) {
+        this.screen = screen;
+        init(screen.width, screen.height);
+    }
+
     @OnlyIn(Dist.CLIENT)
     public void setScreen(@Nullable Screen screen) {
         this.screen = screen;
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void init(int screenWidth, int screenHeight) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
@@ -415,6 +423,8 @@ public class ModularUI {
                 layout.setHeight(size.getHeight());
             });
         }
+        var isRelative = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.POSITION))
+                .orElse(YogaPositionType.RELATIVE) != YogaPositionType.ABSOLUTE;
         var width = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.WIDTH))
                 .orElseGet(StyleSizeLength::ofAuto)
                 .asYogaValue();
@@ -426,36 +436,36 @@ public class ModularUI {
             case POINT -> width.value;
             default -> 0;
         };
-        this.leftPos = (screenWidth - this.width) / 2;
         this.height = switch (height.unit) {
             case PERCENT -> height.value * screenHeight * 0.01f;
             case POINT -> height.value;
             default -> 0;
         };
-        this.topPos = (screenHeight - this.height) / 2;
 
-        // we'd better align it to the integer position to avoid floating point error
-        this.leftPos = Mth.floor(this.leftPos);
-        this.topPos = Mth.floor(this.topPos);
+        // we'd better align it to the integer position to avoid a floating point error
         this.ui.rootElement._setModularUIInternal(this);
         ui.rootElement.initScreen(screenWidth, screenHeight);
         calculateStyleAndLayout();
 
         // if dimension is auto, update real sizes after layout calculation
-        var hasAutoDimension = width.unit == YogaUnit.AUTO || height.unit == YogaUnit.AUTO;
         if (width.unit == YogaUnit.AUTO) {
             this.width = ui.rootElement.getLayoutNode().getLayoutWidth();
-            this.leftPos = (screenWidth - this.width) / 2;
+            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.layoutNode.getLayoutX();
+        } else {
+            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.layoutNode.getLayoutX();
         }
         if (height.unit == YogaUnit.AUTO) {
             this.height = ui.rootElement.getSizeHeight();
-            this.topPos = (screenHeight - this.height) / 2;
+            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.layoutNode.getLayoutY();
+        } else {
+            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.layoutNode.getLayoutY();
         }
-        if (hasAutoDimension) {
-            this.leftPos = Mth.floor(this.leftPos);
-            this.topPos = Mth.floor(this.topPos);
-            ui.rootElement.clearLayoutCache();
-        }
+        if (leftPos < 0) leftPos = screenWidth - this.width + leftPos;
+        if (topPos < 0) topPos = screenWidth - this.height + topPos;
+
+        this.leftPos = Math.round(this.leftPos);
+        this.topPos = Math.round(this.topPos);
+        ui.rootElement.clearLayoutCache();
     }
 
     private void calculateStyleAndLayout() {
@@ -655,6 +665,8 @@ public class ModularUI {
                 event.target = lastMouseDownElement;
                 UIEventDispatcher.dispatchEvent(event);
                 return event.hasHandler;
+            } else {
+                clearFocus();
             }
             return false;
         }
@@ -1030,7 +1042,7 @@ public class ModularUI {
 
         public void renderDebugInfo(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
             graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 200);
+            graphics.pose().translate(0, 0, 500);
 
             var x = 2;
             var y = 2;
@@ -1103,6 +1115,13 @@ public class ModularUI {
                         hovered.getContentWidth() + " x " + hovered.getContentHeight()
                 });
             }
+
+            // draw cursor
+            graphics.drawManaged(() -> {
+                DrawerHelper.drawSolidRect(graphics, 0, mouseY - 1, screenWidth, 1, 0xffff0000, false);
+                DrawerHelper.drawSolidRect(graphics, mouseX - 1, 0, 1, screenHeight, 0xffff0000, false);
+            });
+            graphics.drawString(font, "pos(%d, %d)".formatted(mouseX, mouseY), mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
             graphics.pose().popPose();
         }
 

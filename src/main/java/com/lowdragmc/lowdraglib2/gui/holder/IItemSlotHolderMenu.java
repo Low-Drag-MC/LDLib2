@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.gui.ui;
+package com.lowdragmc.lowdraglib2.gui.holder;
 
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import net.minecraft.world.inventory.AbstractContainerMenu;

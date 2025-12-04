@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -7,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.apache.commons.lang3.function.Consumers;
@@ -25,8 +27,6 @@ import java.util.function.Supplier;
 @MethodsReturnNonnullByDefault
 @KJSBindings
 public class DataBindingBuilder<T> {
-    @Getter @Setter
-    private static boolean isRemote;
     @Getter @Setter
     private String name = "unknown";
     @Setter
@@ -84,6 +84,10 @@ public class DataBindingBuilder<T> {
     }
 
     public SimpleBinding<T> build() {
+        return build(LDLib2.isRemote());
+    }
+
+    public SimpleBinding<T> build(boolean isRemote) {
         Objects.requireNonNull(getter);
 
         if (type == null) {
@@ -130,6 +134,18 @@ public class DataBindingBuilder<T> {
 
     public static DataBindingBuilder<FluidStack> fluidStackC2S(Consumer<FluidStack> setter) {
         return fluidStack(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Component> component(Supplier<Component> getter, Consumer<Component> setter) {
+        return create(getter, setter).syncType(Component.class);
+    }
+
+    public static DataBindingBuilder<Component> componentS2C(Supplier<Component> getter) {
+        return component(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Component> componentC2S(Consumer<Component> setter) {
+        return component(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static DataBindingBuilder<Integer> intVal(Supplier<Integer> getter, Consumer<Integer> setter) {

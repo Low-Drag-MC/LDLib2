@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.integration.emi;
 
-import com.lowdragmc.lowdraglib2.gui.ui.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import dev.emi.emi.api.EmiDragDropHandler;
@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 public final class ModularUIEMIHandlers {
     public final static EmiExclusionArea<Screen> EXCLUSION_AREA = (Screen screen, Consumer<Bounds> consumer) -> {
         for (var child : screen.children()) {
-            if (child instanceof IModularUIHolder holder) {
+            if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                 for (var area : holder.getModularUI().getGuiExtraAreas()) {
                     consumer.accept(new Bounds(area.getX(), area.getY(), area.getWidth(), area.getHeight()));
                 }
@@ -31,9 +31,9 @@ public final class ModularUIEMIHandlers {
 
     public final static EmiStackProvider<Screen> STACK_PROVIDER = (screen, x, y) -> {
         for (var child : screen.children()) {
-            if (child instanceof IModularUIHolder holder) {
+            if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                 var lastHovered = holder.getModularUI().getLastHoveredElement();
-                if (lastHovered == null) continue;
+                if (lastHovered == null) return EmiStackInteraction.EMPTY;
                 var event = UIEvent.create(EMIUIEvents.STACK_PROVIDER);
                 event.target = lastHovered;
                 event.x = x;
@@ -52,7 +52,7 @@ public final class ModularUIEMIHandlers {
         @Override
         public boolean dropStack(Screen screen, EmiIngredient stack, int x, int y) {
             for (var child : screen.children()) {
-                if (child instanceof IModularUIHolder holder) {
+                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var mui = holder.getModularUI();
                     var event = UIEvent.create(EMIUIEvents.DROP_STACK_HANDLER);
                     event.target = mui.ui.rootElement;
@@ -71,7 +71,7 @@ public final class ModularUIEMIHandlers {
         public void render(Screen screen, EmiIngredient dragged, GuiGraphics draw, int mouseX, int mouseY, float delta) {
             List<Bounds> bounds = new ArrayList<>();
             for (var child : screen.children()) {
-                if (child instanceof IModularUIHolder holder) {
+                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var mui = holder.getModularUI();
                     var event = UIEvent.create(EMIUIEvents.RENDER_DRAG_HANDLER);
                     event.target = mui.ui.rootElement;

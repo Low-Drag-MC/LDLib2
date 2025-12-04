@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;

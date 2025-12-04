@@ -28,7 +28,10 @@
     "accessor.MouseHandlerAccessor",
     "accessor.ObjModelAccessor",
     "accessor.ProgramTypeAccessor",
-    "accessor.ShaderInstanceAccessor"
+    "accessor.ShaderInstanceAccessor",
+    "ui.AbstractContainerScreenMixin",
+    "ui.ContainerEventHandlerMixin",
+    "ui.ScreenMixin"
   ],
   "mixins": [
     "BlockEntityMixin",
@@ -37,9 +40,11 @@
     "ReloadableResourceManagerMixin",
     "ReloadableServerResourcesMixin",
     "accessor.DelegatingOpsAccessor",
-    "accessor.EntityAccessor",
     "accessor.SlotAccessor",
-    "kjs.ServerScriptManagerAccessor"
+    "kjs.ServerScriptManagerAccessor",
+    "ui.AbstractContainerMenuMixin",
+    "ui.MenuTypeMixin",
+    "ui.ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

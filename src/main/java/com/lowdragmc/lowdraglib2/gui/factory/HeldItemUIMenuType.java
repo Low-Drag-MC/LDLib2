@@ -1,8 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.factory;
 
-import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -43,9 +42,7 @@ public class HeldItemUIMenuType {
         var itemstack = ItemStack.OPTIONAL_STREAM_CODEC.decode(data);
         if (itemstack.getItem() instanceof HeldItemUI heldItemUI) {
             var holder = heldItemUI.createUIHolder(player, hand, itemstack);
-            var menu = new ModularUIContainerMenu(LDMenuTypes.HELD_ITEM_UI.get(), windowId, inv, holder);
-            menu.readInitialData(data);
-            return menu;
+            return new ModularUIContainerMenu(LDMenuTypes.HELD_ITEM_UI.get(), windowId, inv, holder);
         }
         throw new IllegalArgumentException("No held item ui found for item " + itemstack);
     }
@@ -127,9 +124,6 @@ public class HeldItemUIMenuType {
         public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
             buffer.writeEnum(hand);
             ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, itemStack);
-            if (menu instanceof IUISyncManagerHolder syncManagerHolder) {
-                syncManagerHolder.writeInitialData(buffer);
-            }
         }
 
         @Override

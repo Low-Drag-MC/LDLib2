@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib2.integration.jei;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIScreen;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;

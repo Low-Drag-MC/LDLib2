@@ -263,7 +263,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Calculate the layout of the element and its children.
      */
-    protected void calculateLayout() {
+    protected final void calculateLayout() {
         layoutNode.calculateLayout(YogaConstants.UNDEFINED, YogaConstants.UNDEFINED);
         applyLayout();
     }

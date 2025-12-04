@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.integration.rei;
 
-import com.lowdragmc.lowdraglib2.gui.ui.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import dev.architectury.event.CompoundEventResult;
@@ -23,7 +23,7 @@ public final class ModularUIREIHandlers {
     public static final ExclusionZonesProvider<Screen> EXCLUSION_ZONES_PROVIDER = screen -> {
         var areas = new ArrayList<Rectangle>();
         for (var child : screen.children()) {
-            if (child instanceof IModularUIHolder modularUIHolder) {
+            if (child instanceof IModularUIHolder modularUIHolder && modularUIHolder.getModularUI() != null) {
                 for (var area : modularUIHolder.getModularUI().getGuiExtraAreas()) {
                     areas.add(new Rectangle(area.getX(), area.getY(), area.getWidth(), area.getHeight()));
                 }
@@ -35,7 +35,7 @@ public final class ModularUIREIHandlers {
     @SuppressWarnings({"unchecked"})
     public static final FocusedStackProvider FOCUSED_STACK_PROVIDER = (screen, mouse) -> {
         for (var child : screen.children()) {
-            if (child instanceof IModularUIHolder holder) {
+            if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                 var lastHovered = holder.getModularUI().getLastHoveredElement();
                 if (lastHovered == null) continue;
                 var event = UIEvent.create(REIUIEvents.FOCUSED_STACK);
@@ -60,7 +60,7 @@ public final class ModularUIREIHandlers {
         @Override
         public DraggedAcceptorResult acceptDraggedStack(DraggingContext<Screen> context, DraggableStack stack) {
             for (var child : context.getScreen().children()) {
-                if (child instanceof IModularUIHolder holder) {
+                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var mui = holder.getModularUI();
                     var event = UIEvent.create(REIUIEvents.ACCEPT_DRAGGABLE_STACK);
                     event.target = mui.ui.rootElement;
@@ -77,7 +77,7 @@ public final class ModularUIREIHandlers {
         public Stream<BoundsProvider> getDraggableAcceptingBounds(DraggingContext<Screen> context, DraggableStack stack) {
             List<BoundsProvider> boundsProviders = new ArrayList<>();
             for (var child : context.getScreen().children()) {
-                if (child instanceof IModularUIHolder holder) {
+                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var mui = holder.getModularUI();
                     var event = UIEvent.create(REIUIEvents.DRAGGABLE_STACK_BOUNDS);
                     event.target = mui.ui.rootElement;

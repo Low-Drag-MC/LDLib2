@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.IItemSlotHolderMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -387,6 +387,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
     }
 
+    // region XEI Supports
     public static class REISupport {
         public static void onFocusedStack(UIEvent event) {
             if (LDLib2.isReiLoaded() && event.currentElement instanceof ItemSlot itemSlot && itemSlot.isMouseOverElement(event.x, event.y)) {
@@ -467,4 +468,5 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             }
         }
     }
+    // endregion
 }

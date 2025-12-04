@@ -3,9 +3,8 @@ package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
-import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import dev.latvian.mods.kubejs.event.KubeEvent;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -75,9 +74,6 @@ public abstract class UIEventJS implements KubeEvent, MenuProvider, IContainerUI
     @HideFromJS
     public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
         buffer.writeUtf(id);
-        if (menu instanceof IUISyncManagerHolder syncManagerHolder) {
-            syncManagerHolder.writeInitialData(buffer);
-        }
     }
 
     @Override

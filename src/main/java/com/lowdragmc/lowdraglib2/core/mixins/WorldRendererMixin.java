@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class WorldRendererMixin {
 
     @Inject(method = "getLightColor(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)I",  at = @At(value = "HEAD"), cancellable = true)
-    private static void mbd2$getLightColor(BlockAndTintGetter pLevel,
+    private static void ldlib2$getLightColor(BlockAndTintGetter pLevel,
                                                BlockState pState, BlockPos pPos,
                                                CallbackInfoReturnable<Integer> cir) {
         if (pState.getBlock() instanceof IBlockRendererProvider) {

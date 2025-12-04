@@ -400,7 +400,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
     }
 
-    /// XEI Support
+    // region XEI Support
     public static class JEISupport {
         public static void onClickableIngredient(UIEvent event) {
             if (LDLib2.isJeiLoaded() && event.currentElement instanceof FluidSlot fluidSlot && fluidSlot.isMouseOverElement(event.x, event.y)) {
@@ -505,4 +505,5 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
             }
         }
     }
+    // endregion
 }

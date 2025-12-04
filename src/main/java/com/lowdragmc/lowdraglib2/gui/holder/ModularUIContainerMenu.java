@@ -1,9 +1,7 @@
-package com.lowdragmc.lowdraglib2.gui.ui;
+package com.lowdragmc.lowdraglib2.gui.holder;
 
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
-import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Inventory;
@@ -11,20 +9,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ModularUIContainerMenu extends AbstractContainerMenu implements IModularUIHolder, IItemSlotHolderMenu {
+public class ModularUIContainerMenu extends AbstractContainerMenu {
     public final Inventory inventory;
     public final IContainerUIHolder uiHolder;
     @Getter
     public final ModularUI modularUI;
-    // runtime
-    public final Map<Slot, ItemSlot> slotMap = new HashMap<>();
 
     public ModularUIContainerMenu(MenuType<ModularUIContainerMenu> menuType,
                                   int windowID,
@@ -33,27 +27,12 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IMo
         super(menuType, windowID);
         this.inventory = inventory;
         this.uiHolder = uiHolder;
-        // TODO DataBindingBuilder init
-        DataBindingBuilder.isRemote(inventory.player.level().isClientSide);
         this.modularUI = uiHolder.createUI(inventory.player);
-        this.modularUI.setMenu(this);
+        asModularUIHolderMenu().setModularUI(modularUI);
     }
 
-    @Override
-    public void addSlot(ItemSlot itemSlot) {
-        IItemSlotHolderMenu.super.addSlot(itemSlot);
-        slotMap.put(itemSlot.getSlot(), itemSlot);
-    }
-
-    @Override
-    public @Nullable ItemSlot getItemSlot(Slot slot) {
-        return slotMap.get(slot);
-    }
-
-    @Override
-    public void broadcastChanges() {
-        super.broadcastChanges();
-        modularUI.tickServer();
+    public IModularUIHolderMenu asModularUIHolderMenu() {
+        return (IModularUIHolderMenu) this;
     }
 
     @Override
@@ -149,7 +128,7 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IMo
     }
 
     protected int getQuickMovePriority(Slot slot) {
-        var itemSlot = getItemSlot(slot);
+        var itemSlot = asModularUIHolderMenu().getItemSlot(slot);
         if (itemSlot == null) {
             return 0;
         }
@@ -161,7 +140,7 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IMo
      */
     protected boolean isValidQuickMoveDestination(Slot candidateSlot, ItemStack stackToMove,
                                                   boolean fromPlayerSide) {
-        var itemSlot = getItemSlot(candidateSlot);
+        var itemSlot = asModularUIHolderMenu().getItemSlot(candidateSlot);
         return isPlayerSideSlot(candidateSlot) != fromPlayerSide
                 && (itemSlot == null || itemSlot.getSlotStyle().acceptQuickMove())
                 && candidateSlot.mayPlace(stackToMove);
@@ -176,17 +155,12 @@ public class ModularUIContainerMenu extends AbstractContainerMenu implements IMo
             return true;
         }
 
-        var itemSlot = getItemSlot(slot);
+        var itemSlot = asModularUIHolderMenu().getItemSlot(slot);
         return itemSlot != null && itemSlot.getSlotStyle().isPlayerSlot();
     }
 
     @Override
-    public boolean stillValid(@Nonnull Player playerIn) {
+    public boolean stillValid(Player playerIn) {
         return uiHolder.isStillValid(playerIn);
-    }
-
-    @Override
-    public UISyncManager getSyncManager() {
-        return modularUI.syncManager;
     }
 }

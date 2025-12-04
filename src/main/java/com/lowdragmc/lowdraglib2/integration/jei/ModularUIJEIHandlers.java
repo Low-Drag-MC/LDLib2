@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.integration.jei;
 
-import com.lowdragmc.lowdraglib2.gui.ui.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import lombok.experimental.UtilityClass;
@@ -10,7 +10,6 @@ import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.runtime.IClickableIngredient;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
@@ -28,8 +27,8 @@ public final class ModularUIJEIHandlers {
         @Override
         public List<Rect2i> getGuiExtraAreas(AbstractContainerScreen<?> containerScreen) {
             var areas = new ArrayList<Rect2i>();
-            for (GuiEventListener child : containerScreen.children()) {
-                if (child instanceof IModularUIHolder holder) {
+            for (var child : containerScreen.children()) {
+                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     areas.addAll(holder.getModularUI().getGuiExtraAreas());
                 }
             }
@@ -39,7 +38,7 @@ public final class ModularUIJEIHandlers {
         @Override
         public Optional<? extends IClickableIngredient<?>> getClickableIngredientUnderMouse(IClickableIngredientFactory builder, AbstractContainerScreen<?> containerScreen, double mouseX, double mouseY) {
             for (var child : containerScreen.children()) {
-                if (child instanceof IModularUIHolder holder) {
+                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var lastHovered = holder.getModularUI().getLastHoveredElement();
                     if (lastHovered == null) continue;
                     var event = UIEvent.create(JEIUIEvents.CLICKABLE_INGREDIENT);
@@ -64,7 +63,7 @@ public final class ModularUIJEIHandlers {
         public <I> List<Target<I>> getTargetsTyped(Screen gui, ITypedIngredient<I> ingredient, boolean doStart) {
             List<Target<I>> results = new ArrayList<>();
             for (var child : gui.children()) {
-                if (child instanceof IModularUIHolder holder) {
+                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var mui = holder.getModularUI();
                     var targets = new JEITargetsTyped<>(ingredient, results);
                     UIEvent event;

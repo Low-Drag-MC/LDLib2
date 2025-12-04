@@ -83,6 +83,13 @@ public class UISyncManager {
 
     public void readInitialData(RegistryFriendlyByteBuf data) {
         handlePack(data);
+        // clear changed flag
+        for (var value : syncValues.values()) {
+            value.update();
+            if (value.hasChanged()) {
+                value.clearChanged();
+            }
+        }
     }
 
     public void handleSyncPacket(RegistryFriendlyByteBuf data) {

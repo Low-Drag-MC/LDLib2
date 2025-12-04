@@ -68,13 +68,6 @@ repositories {
             includeGroup "dev.latvian.apps"
         }
     }
-    maven {
-        // AE2
-        url = "https://modmaven.dev/artifactory/local-releases/"
-        content {
-            includeGroup "appeng"
-        }
-    }
 }
 
 base {
@@ -161,7 +154,7 @@ dependencies {
     implementation("dev.emi:emi-neoforge:${emi_version}")
 
     // AE2
-    compileOnly("appeng:appliedenergistics2-neoforge:${ae2_version}")
+    implementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
 
     // KJS
     implementation("dev.latvian.mods:kubejs-neoforge:${kjs_version}") {

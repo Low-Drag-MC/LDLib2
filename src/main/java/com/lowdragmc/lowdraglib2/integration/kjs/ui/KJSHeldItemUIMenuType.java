@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -29,10 +29,7 @@ public class KJSHeldItemUIMenuType {
         var id = data.readUtf();
         var event = new ItemUIEventJS(player, hand, itemstack, id);
         UIEvents.ITEM.post(ScriptType.CLIENT, id, event);
-        var menu = event.createMenu(windowId, inv, player);
-        if (menu == null) return null;
-        menu.readInitialData(data);
-        return menu;
+        return event.createMenu(windowId, inv, player);
     }
 
     @ParametersAreNonnullByDefault

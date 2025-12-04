@@ -33,8 +33,10 @@ public class CPacketUIRPCEvent implements CustomPacketPayload {
     public static void execute(CPacketUIRPCEvent packet, IPayloadContext context) {
         var player = context.player();
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
+            var syncManager = syncManagerHolder.getSyncManager();
+            if (syncManager == null) return;
             ByteBufUtil.readCustomData(packet.eventData,
-                    buf -> syncManagerHolder.getSyncManager().handEvent(buf),
+                    syncManager::handEvent,
                     context.player().registryAccess());
         }
     }

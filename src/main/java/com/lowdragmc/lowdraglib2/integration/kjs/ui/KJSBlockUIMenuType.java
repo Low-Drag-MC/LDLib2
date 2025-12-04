@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 
 import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -31,10 +31,7 @@ public class KJSBlockUIMenuType {
         var id = data.readUtf();
         var event = new BlockUIEventJS(player, pos, blockstate, id);
         UIEvents.BLOCK.post(ScriptType.CLIENT, id, event);
-        var menu = event.createMenu(windowId, inv, player);
-        if (menu == null) return null;
-        menu.readInitialData(data);
-        return menu;
+        return event.createMenu(windowId, inv, player);
     }
 
     @ParametersAreNonnullByDefault

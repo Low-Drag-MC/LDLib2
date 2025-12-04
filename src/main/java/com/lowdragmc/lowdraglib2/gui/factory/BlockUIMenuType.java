@@ -1,8 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.factory;
 
-import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -45,9 +44,7 @@ public class BlockUIMenuType {
         var blockstate = BLOCK_STATE_STREAM_CODEC.decode(data);
         if (blockstate.getBlock() instanceof BlockUI blockUI) {
             var holder = blockUI.createUIHolder(player, pos, blockstate);
-            var menu = new ModularUIContainerMenu(LDMenuTypes.BLOCK_UI.get(), windowId, inv, holder);
-            menu.readInitialData(data);
-            return menu;
+            return new ModularUIContainerMenu(LDMenuTypes.BLOCK_UI.get(), windowId, inv, holder);
         }
         throw new IllegalArgumentException("No held item ui found for block " + blockstate);
     }
@@ -127,9 +124,6 @@ public class BlockUIMenuType {
         public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
             buffer.writeBlockPos(pos);
             BLOCK_STATE_STREAM_CODEC.encode(buffer, blockState);
-            if (menu instanceof IUISyncManagerHolder syncManagerHolder) {
-                syncManagerHolder.writeInitialData(buffer);
-            }
         }
 
         @Override
