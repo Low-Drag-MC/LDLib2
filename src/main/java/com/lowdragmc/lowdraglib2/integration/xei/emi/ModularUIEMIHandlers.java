@@ -1,8 +1,9 @@
-package com.lowdragmc.lowdraglib2.integration.emi;
+package com.lowdragmc.lowdraglib2.integration.xei.emi;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
+import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIDragDropHandler;
 import dev.emi.emi.api.EmiDragDropHandler;
 import dev.emi.emi.api.EmiExclusionArea;
 import dev.emi.emi.api.EmiStackProvider;
@@ -13,8 +14,6 @@ import lombok.experimental.UtilityClass;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 @UtilityClass
@@ -69,7 +68,7 @@ public final class ModularUIEMIHandlers {
 
         @Override
         public void render(Screen screen, EmiIngredient dragged, GuiGraphics draw, int mouseX, int mouseY, float delta) {
-            List<Bounds> bounds = new ArrayList<>();
+            var handler = new EMIDragDropHandler(dragged);
             for (var child : screen.children()) {
                 if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var mui = holder.getModularUI();
@@ -77,11 +76,11 @@ public final class ModularUIEMIHandlers {
                     event.target = mui.ui.rootElement;
                     event.x = mouseX;
                     event.y = mouseY;
-                    event.customData = new EMIDragDropHandlers(dragged, bounds);
+                    event.customData = handler;
                     UIEventDispatcher.dispatchAllChildren(event);
                 }
             }
-            for (Bounds bound : bounds) {
+            for (var bound : handler.bounds) {
                 draw.fill(bound.x(), bound.y(), bound.x() + bound.width(), bound.y() + bound.height(), 0x8822BB33);
             }
         }

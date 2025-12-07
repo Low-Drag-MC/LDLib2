@@ -1,8 +1,9 @@
-package com.lowdragmc.lowdraglib2.integration.jei;
+package com.lowdragmc.lowdraglib2.integration.xei.jei;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEITargetsTypedHandler;
 import lombok.experimental.UtilityClass;
 import mezz.jei.api.gui.builder.IClickableIngredientFactory;
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
@@ -61,23 +62,17 @@ public final class ModularUIJEIHandlers {
     public static final IGhostIngredientHandler GHOST_INGREDIENT_HANDLER = new IGhostIngredientHandler<>() {
         @Override
         public <I> List<Target<I>> getTargetsTyped(Screen gui, ITypedIngredient<I> ingredient, boolean doStart) {
-            List<Target<I>> results = new ArrayList<>();
+            var targets = new JEITargetsTypedHandler<>(doStart, ingredient);
             for (var child : gui.children()) {
                 if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {
                     var mui = holder.getModularUI();
-                    var targets = new JEITargetsTyped<>(ingredient, results);
-                    UIEvent event;
-                    if (doStart) {
-                        event = UIEvent.create(JEIUIEvents.VALID_TARGETS_TYPED);
-                    } else {
-                        event = UIEvent.create(JEIUIEvents.EXECUTE_TARGETS_TYPED);
-                    }
+                    UIEvent event = UIEvent.create(JEIUIEvents.GHOST_INGREDIENT);
                     event.target = mui.ui.rootElement;
                     event.customData = targets;
                     UIEventDispatcher.dispatchAllChildren(event);
                 }
             }
-            return results;
+            return targets.targets;
         }
 
         @Override

@@ -263,8 +263,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Calculate the layout of the element and its children.
      */
-    protected final void calculateLayout() {
-        layoutNode.calculateLayout(YogaConstants.UNDEFINED, YogaConstants.UNDEFINED);
+    protected final void calculateLayout(float width, float height) {
+        layoutNode.calculateLayout(width, height);
         applyLayout();
     }
 
@@ -441,7 +441,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public void appendExtraAreas(List<Rect2i> extraAreas) {
         if (!isDisplayed() || !isVisible()) return;
-        var rect = new Rect2i((int) getPositionX(), (int) getPositionY(), (int) getSizeWidth(), (int) getSizeHeight());
+        var rect = new Rect2i(Math.round(getPositionX()), Math.round(getPositionY()),
+                Math.round(getSizeWidth()), Math.round(getSizeHeight()));
         var contains = false;
         for (var extraArea : extraAreas) {
             if (extraArea.getX() <= rect.getX() &&
@@ -819,7 +820,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     /// Interaction
     public boolean isMouseOverElement(double mouseX, double mouseY) {
-        return isDisplayed() && isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
+        return isDisplayed() &&
+                isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY) &&
+                isChildHover();
     }
 
     /**

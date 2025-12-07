@@ -20,12 +20,12 @@ public class LDLib2MixinPlugin implements IMixinConfigPlugin, MixinPluginShared 
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (mixinClassName.contains("com.lowdragmc.lowdraglib.core.mixins.jei")) {
+        if (mixinClassName.contains("com.lowdragmc.lowdraglib2.core.mixins.jei")) {
             return IS_JEI_LOAD;
-        } else if (mixinClassName.contains("com.lowdragmc.lowdraglib.core.mixins.rei")) {
+        } else if (mixinClassName.contains("com.lowdragmc.lowdraglib2.core.mixins.rei")) {
             return IS_REI_LOAD;
-        } else if (mixinClassName.contains("com.lowdragmc.lowdraglib.core.mixins.emi")) {
-            return IS_MEI_LOAD;
+        } else if (mixinClassName.contains("com.lowdragmc.lowdraglib2.core.mixins.emi")) {
+            return IS_EMI_LOADED;
         }
         return true;
     }

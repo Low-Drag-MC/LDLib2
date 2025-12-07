@@ -36,6 +36,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.appliedenergistics.yoga.YogaConstants;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaPositionType;
 import org.appliedenergistics.yoga.YogaUnit;
@@ -77,6 +78,8 @@ public class ModularUI {
     private AbstractContainerMenu menu;
     @Getter
     private int screenWidth, screenHeight;
+    @Getter
+    private float layoutWidth = YogaConstants.UNDEFINED, layoutHeight = YogaConstants.UNDEFINED;
     @Getter
     private float leftPos, topPos, width, height;
     @Getter
@@ -120,12 +123,15 @@ public class ModularUI {
 
     // hover tips
     @Nullable
+    @Getter
     private List<Component> tooltipTexts;
     @Nullable
+    @Getter
     private TooltipComponent tooltipComponent;
     @Nullable
     @OnlyIn(Dist.CLIENT)
     private Font tooltipFont;
+    @Getter
     private ItemStack tooltipStack = ItemStack.EMPTY;
     @Getter @Setter
     private boolean allowDebugMode = true;
@@ -442,9 +448,21 @@ public class ModularUI {
             default -> 0;
         };
 
+        if (width.unit == YogaUnit.PERCENT) {
+            this.layoutWidth = screenWidth;
+        } else {
+            this.layoutWidth = YogaConstants.UNDEFINED;
+        }
+        if (height.unit == YogaUnit.PERCENT) {
+            this.layoutHeight = screenHeight;
+        } else {
+            this.layoutHeight = YogaConstants.UNDEFINED;
+        }
+
         // we'd better align it to the integer position to avoid a floating point error
         this.ui.rootElement._setModularUIInternal(this);
         ui.rootElement.initScreen(screenWidth, screenHeight);
+        ui.rootElement.getLayoutNode().markDirtyAndPropagate();
         calculateStyleAndLayout();
 
         // if dimension is auto, update real sizes after layout calculation
@@ -460,8 +478,6 @@ public class ModularUI {
         } else {
             this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.layoutNode.getLayoutY();
         }
-        if (leftPos < 0) leftPos = screenWidth - this.width + leftPos;
-        if (topPos < 0) topPos = screenWidth - this.height + topPos;
 
         this.leftPos = Math.round(this.leftPos);
         this.topPos = Math.round(this.topPos);
@@ -479,7 +495,7 @@ public class ModularUI {
             }
 
             // calculate layout
-            ui.rootElement.calculateLayout();
+            ui.rootElement.calculateLayout(layoutWidth, layoutHeight);
             extraAreas.clear();
             if (dirtyCount >= 10) {
                 LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
@@ -578,6 +594,12 @@ public class ModularUI {
     }
 
     @OnlyIn(Dist.CLIENT)
+    @Nullable
+    public Font getTooltipFont() {
+        return tooltipFont;
+    }
+
+    @OnlyIn(Dist.CLIENT)
     public ModularUIWidget getWidget() {
         if (widget == null) {
             widget = new ModularUIWidget();
@@ -632,7 +654,7 @@ public class ModularUI {
 
         @Override
         public ScreenRectangle getRectangle() {
-            return new ScreenRectangle((int) leftPos, (int) topPos, (int) width, (int) height);
+            return new ScreenRectangle(Math.round(leftPos), Math.round(topPos), Math.round(width), Math.round(height));
         }
 
         /// event handling
@@ -1006,6 +1028,7 @@ public class ModularUI {
                 guiGraphics.pose().pushPose();
                 guiGraphics.pose().translate(0, 0, 200);
                 DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
+                guiGraphics.flush();
                 guiGraphics.pose().popPose();
             }
 

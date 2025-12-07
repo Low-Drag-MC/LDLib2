@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -134,6 +135,10 @@ public final class StyleBag {
 
     public void compute(int currentStyleEpoch) {
         if (!isDirty() && lastStyleEpoch == currentStyleEpoch) return;
+
+        if (element instanceof SplitView splitView) {
+            System.out.println("");
+        }
 
         var old = new HashMap<Property<?>, Object>();
 

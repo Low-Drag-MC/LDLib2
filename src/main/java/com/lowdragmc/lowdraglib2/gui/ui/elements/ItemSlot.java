@@ -19,31 +19,22 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.integration.emi.EMIDragDropHandlers;
-import com.lowdragmc.lowdraglib2.integration.emi.EMIUIEvents;
-import com.lowdragmc.lowdraglib2.integration.emi.LDLibEMIPlugin;
-import com.lowdragmc.lowdraglib2.integration.jei.JEITarget;
-import com.lowdragmc.lowdraglib2.integration.jei.JEITargetsTyped;
-import com.lowdragmc.lowdraglib2.integration.jei.JEIUIEvents;
-import com.lowdragmc.lowdraglib2.integration.jei.LDLibJEIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.*;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
-import com.lowdragmc.lowdraglib2.integration.rei.LDLibREIPlugin;
-import com.lowdragmc.lowdraglib2.integration.rei.REIDraggableStackBounds;
-import com.lowdragmc.lowdraglib2.integration.rei.REIUIEvents;
+import com.lowdragmc.lowdraglib2.integration.xei.rei.LDLibREIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
-import dev.architectury.event.CompoundEventResult;
-import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.stack.EmiStackInteraction;
 import dev.emi.emi.api.stack.ItemEmiStack;
 import lombok.Getter;
-import me.shedaniel.math.Point;
-import me.shedaniel.rei.api.client.gui.drag.DraggableStackVisitor;
 import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
+import me.shedaniel.rei.api.common.util.EntryIngredients;
 import me.shedaniel.rei.api.common.util.EntryStacks;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.gui.builder.IClickableIngredientFactory;
+import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -58,7 +49,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -156,13 +146,13 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         if (LDLib2.isJeiLoaded()) {
-            addEventListener(JEIUIEvents.CLICKABLE_INGREDIENT, JEISupport::onClickableIngredient);
+            JEISupport.clickableIngredient(this);
         }
         if (LDLib2.isReiLoaded()) {
-            addEventListener(REIUIEvents.FOCUSED_STACK, REISupport::onFocusedStack);
+            REISupport.focusedStack(this);
         }
         if (LDLib2.isEmiLoaded()) {
-            addEventListener(EMIUIEvents.STACK_PROVIDER, EMISupport::onStackProvider);
+            EMISupport.stackProvider(this);
         }
         bind(slot);
         internalSetup();
@@ -182,16 +172,45 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiPhantom() {
         if (LDLib2.isJeiLoaded()) {
-            addEventListener(JEIUIEvents.VALID_TARGETS_TYPED, JEISupport::onTargetsTyped);
-            addEventListener(JEIUIEvents.EXECUTE_TARGETS_TYPED, JEISupport::onTargetsTyped);
+            JEISupport.ghostIngredient(this);
         }
         if (LDLib2.isReiLoaded()) {
-            addEventListener(REIUIEvents.DRAGGABLE_STACK_BOUNDS, REISupport::onDraggableStackBounds);
-            addEventListener(REIUIEvents.ACCEPT_DRAGGABLE_STACK, REISupport::onAcceptDraggableStack);
+            REISupport.draggableStackBounds(this);
+            REISupport.acceptDraggableStack(this);
         }
         if (LDLib2.isEmiLoaded()) {
-            addEventListener(EMIUIEvents.RENDER_DRAG_HANDLER, EMISupport::onRenderDragHandler);
-            addEventListener(EMIUIEvents.DROP_STACK_HANDLER, EMISupport::onDropStackHandler);
+            EMISupport.renderDragHandler(this);
+            EMISupport.dropStackHandler(this);
+        }
+        return this;
+    }
+
+    public ItemSlot xeiRecipeIngredient(IngredientIO io) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeIngredient(this, io);
+        }
+        return this;
+    }
+
+    public ItemSlot xeiRecipeSlot() {
+        return xeiRecipeSlot(IngredientIO.NONE, 1);
+    }
+
+    public ItemSlot xeiRecipeSlot(IngredientIO io, float chance) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeSlot(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeSlot(this, chance);
         }
         return this;
     }
@@ -357,115 +376,99 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     /// XEI Support
     public static class JEISupport {
-        public static void onClickableIngredient(UIEvent event) {
-            if (LDLib2.isJeiLoaded() && event.currentElement instanceof ItemSlot itemSlot && itemSlot.isMouseOverElement(event.x, event.y)) {
-                if (event.customData instanceof IClickableIngredientFactory factory) {
-                    var item = itemSlot.getValue();
-                    if (item.isEmpty()) return;
-                    event.customData = factory.createBuilder(item).buildWithArea(LDLibJEIPlugin.getArea(itemSlot));
-                    event.stopPropagation();
-                }
-            }
+        public static void clickableIngredient(ItemSlot itemSlot) {
+            LDLibJEIPlugin.clickableIngredient(itemSlot, () -> {
+                var current = itemSlot.getValue();
+                if (current.isEmpty()) return null;
+                return TypedItemStack.create(current);
+            });
         }
 
-        public static void onTargetsTyped(UIEvent event) {
-            if (LDLib2.isJeiLoaded() &&
-                    event.currentElement instanceof ItemSlot itemSlot &&
-                    event.customData instanceof JEITargetsTyped(var ingredient, var targets)) {
-                Optional.ofNullable(ingredient.cast(VanillaTypes.ITEM_STACK)).ifPresent(typedIngredient -> {
-                    var item = typedIngredient.getIngredient();
-                    if (itemSlot.getSlot().mayPlace(item)) {
-                        targets.add(cast(new JEITarget<ItemStack>(LDLibJEIPlugin.getArea(itemSlot, true), itemSlot::setValue)));
-                    }
-                });
-            }
+        public static void ghostIngredient(ItemSlot itemSlot) {
+            LDLibJEIPlugin.ghostIngredient(itemSlot, VanillaTypes.ITEM_STACK,
+                    ingredient -> itemSlot.getSlot().mayPlace(ingredient.getIngredient()),
+                    itemSlot::setValue);
         }
 
-        @SuppressWarnings("unchecked")
-        public static <T> T cast(Object input) {
-            return (T) input;
+        public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io) {
+            LDLibJEIPlugin.recipeIngredient(itemSlot, io, () -> List.of(TypedItemStack.create(itemSlot.getValue())));
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot) {
+            LDLibJEIPlugin.recipeSlot(itemSlot, () -> {
+                var item = itemSlot.getValue();
+                return item.isEmpty() ? null : TypedItemStack.create(item);
+            }, () -> {
+                var item = itemSlot.getValue();
+                return List.of(TypedItemStack.create(item));
+            });
         }
     }
 
     // region XEI Supports
     public static class REISupport {
-        public static void onFocusedStack(UIEvent event) {
-            if (LDLib2.isReiLoaded() && event.currentElement instanceof ItemSlot itemSlot && itemSlot.isMouseOverElement(event.x, event.y)) {
+        public static void focusedStack(ItemSlot itemSlot) {
+            LDLibREIPlugin.focusedStack(itemSlot, () -> {
                 var item = itemSlot.getValue();
-                if (item.isEmpty()) return;
-                event.customData = CompoundEventResult.interruptTrue(EntryStacks.of(item));
-                event.stopPropagation();
-            }
+                if (item.isEmpty()) return null;
+                return EntryStacks.of(item);
+            });
         }
 
-        public static void onDraggableStackBounds(UIEvent event) {
-            if (LDLib2.isReiLoaded() &&
-                    event.currentElement instanceof ItemSlot itemSlot &&
-                    event.customData instanceof REIDraggableStackBounds(var context, var stack, var bounds)) {
-                var target = stack.get();
-                if (target.getType() == VanillaEntryTypes.ITEM) {
-                    ItemStack item = target.castValue();
-                    if (itemSlot.getSlot().mayPlace(item)) {
-                        bounds.add(DraggableStackVisitor.BoundsProvider.ofRectangle(LDLibREIPlugin.getRectangle(itemSlot, true)));
-                    }
-                }
-            }
+        public static void draggableStackBounds(ItemSlot itemSlot) {
+            LDLibREIPlugin.draggableStackBounds(itemSlot,
+                    VanillaEntryTypes.ITEM,
+                    stack -> itemSlot.getSlot().mayPlace(stack.getValue()));
         }
 
-        public static void onAcceptDraggableStack(UIEvent event) {
-            if (LDLib2.isReiLoaded() &&
-                    event.currentElement instanceof ItemSlot itemSlot &&
-                    event.customData instanceof REIDraggableStackBounds(var context, var stack, var bounds) &&
-                    context.getCurrentPosition() instanceof Point point &&
-                    itemSlot.isMouseOverElement(point.x, point.y)
-            ) {
-                var target = stack.get();
-                if (target.getType() == VanillaEntryTypes.ITEM) {
-                    ItemStack item = target.castValue();
-                    if (itemSlot.getSlot().mayPlace(item)) {
-                        itemSlot.setValue(item);
-                        event.stopPropagation();
-                    }
-                }
-            }
+        public static void acceptDraggableStack(ItemSlot itemSlot) {
+            LDLibREIPlugin.acceptDraggableStack(itemSlot,
+                    VanillaEntryTypes.ITEM,
+                    stack -> itemSlot.getSlot().mayPlace(stack.getValue()),
+                    stack -> itemSlot.setValue(stack.getValue()));
+        }
+
+        public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeIngredient(itemSlot, io, () -> List.of(EntryIngredients.of(itemSlot.getValue())));
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeSlot(itemSlot, io,
+                    () -> EntryStacks.of(itemSlot.getValue()),
+                    () -> List.of(EntryStacks.of(itemSlot.getValue())));
         }
     }
 
     public static class EMISupport {
-        public static void onStackProvider(UIEvent event) {
-            if (LDLib2.isEmiLoaded() && event.currentElement instanceof ItemSlot itemSlot && itemSlot.isMouseOverElement(event.x, event.y)) {
+        public static void stackProvider(ItemSlot itemSlot) {
+            LDLibEMIPlugin.stackProvider(itemSlot, () -> {
                 var item = itemSlot.getValue();
-                if (item.isEmpty()) return;
-                event.customData = new EmiStackInteraction(EmiStack.of(item), null, false);
-                event.stopPropagation();
-            }
+                if (item.isEmpty()) return null;
+                return new EmiStackInteraction(EmiStack.of(item), null, false);
+            });
         }
 
-        public static void onRenderDragHandler(UIEvent event) {
-            if (LDLib2.isEmiLoaded() &&
-                    event.currentElement instanceof ItemSlot itemSlot &&
-                    event.customData instanceof EMIDragDropHandlers(var dragged, var bounds)) {
-                if (dragged instanceof ItemEmiStack item) {
-                    if (itemSlot.getSlot().mayPlace(item.getItemStack())) {
-                        bounds.add(LDLibEMIPlugin.getBounds(itemSlot, true));
-                    }
-                }
-            }
+        public static void renderDragHandler(ItemSlot itemSlot) {
+            LDLibEMIPlugin.renderDragHandler(itemSlot,
+                    dragged -> dragged instanceof ItemEmiStack item && itemSlot.getSlot().mayPlace(item.getItemStack()));
         }
 
-        public static void onDropStackHandler(UIEvent event) {
-            if (LDLib2.isEmiLoaded() &&
-                    event.currentElement instanceof ItemSlot itemSlot &&
-                    event.customData instanceof EmiIngredient dragged &&
-                    itemSlot.isMouseOverElement(event.x, event.y)
-            ) {
-                if (dragged instanceof ItemEmiStack item) {
-                    if (itemSlot.getSlot().mayPlace(item.getItemStack())) {
-                        itemSlot.setValue(item.getItemStack());
-                        event.stopPropagation();
-                    }
-                }
-            }
+        public static void dropStackHandler(ItemSlot itemSlot) {
+            LDLibEMIPlugin.dropStackHandler(itemSlot,
+                    dragged -> dragged instanceof ItemEmiStack item && itemSlot.getSlot().mayPlace(item.getItemStack()),
+                    dragged -> {
+                        if (dragged instanceof ItemEmiStack item) {
+                            itemSlot.setValue(item.getItemStack());
+                        }
+                    });
+        }
+
+        public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io) {
+            LDLibEMIPlugin.recipeIngredient(itemSlot, io, () -> List.of(EmiStack.of(itemSlot.getValue())));
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot, float chance) {
+            LDLibEMIPlugin.recipeSlot(itemSlot, () -> EmiStack.of(itemSlot.getValue()).setChance(chance));
         }
     }
     // endregion

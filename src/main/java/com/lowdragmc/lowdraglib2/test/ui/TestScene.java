@@ -7,8 +7,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import lombok.NoArgsConstructor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.EntityType;
@@ -21,8 +23,8 @@ import org.appliedenergistics.yoga.YogaEdge;
 @LDLRegisterClient(name="scene", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestScene implements IScreenTest {
-    @Override
-    public ModularUI createUI(Player entityPlayer) {
+
+    public static DummyWorld createTestScene() {
         var dummyWorld = new TrackedDummyWorld();
         // prepare the dummy world
         dummyWorld.setBlockAndUpdate(new BlockPos(0, 0, 0), Blocks.GRASS_BLOCK.defaultBlockState());
@@ -39,7 +41,8 @@ public class TestScene implements IScreenTest {
         dummyWorld.setBlockAndUpdate(new BlockPos(2, 0, 1), Blocks.REDSTONE_BLOCK.defaultBlockState());
         dummyWorld.setBlockAndUpdate(new BlockPos(0, 1, 1), Blocks.CHEST.defaultBlockState());
 
-        if (dummyWorld.getBlockEntity(new BlockPos(0, 1, 1)) instanceof ChestBlockEntity chest) {
+        var entityPlayer = Minecraft.getInstance().player;
+        if (entityPlayer != null && dummyWorld.getBlockEntity(new BlockPos(0, 1, 1)) instanceof ChestBlockEntity chest) {
             // add some items to the chest
             chest.startOpen(entityPlayer);
         }
@@ -56,10 +59,14 @@ public class TestScene implements IScreenTest {
             item.setItem(Items.DIAMOND.getDefaultInstance());
             dummyWorld.addEntity(item);
         }
+        return dummyWorld;
+    }
 
-
+    @Override
+    public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         var scene = new Scene();
+        var dummyWorld = createTestScene();
         root.layout(layout -> {
             layout.setWidth(300);
             layout.setHeight(300);

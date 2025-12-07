@@ -31,6 +31,8 @@ public class GUIContext {
 
     // runtime
     @OnlyIn(Dist.CLIENT)
+    public boolean refreshLocalMouse = true;
+    @OnlyIn(Dist.CLIENT)
     public float localMouseX, localMouseY;
     @OnlyIn(Dist.CLIENT)
     public Stack<UIVisualLayer> UIVisualLayers = new Stack<>();

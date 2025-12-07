@@ -23,32 +23,23 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
-import com.lowdragmc.lowdraglib2.integration.emi.EMIDragDropHandlers;
-import com.lowdragmc.lowdraglib2.integration.emi.EMIUIEvents;
-import com.lowdragmc.lowdraglib2.integration.emi.LDLibEMIPlugin;
-import com.lowdragmc.lowdraglib2.integration.jei.JEITarget;
-import com.lowdragmc.lowdraglib2.integration.jei.JEITargetsTyped;
-import com.lowdragmc.lowdraglib2.integration.jei.JEIUIEvents;
-import com.lowdragmc.lowdraglib2.integration.jei.LDLibJEIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
-import com.lowdragmc.lowdraglib2.integration.rei.LDLibREIPlugin;
-import com.lowdragmc.lowdraglib2.integration.rei.REIDraggableStackBounds;
-import com.lowdragmc.lowdraglib2.integration.rei.REIUIEvents;
+import com.lowdragmc.lowdraglib2.integration.xei.rei.LDLibREIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
-import dev.architectury.event.CompoundEventResult;
 import dev.architectury.hooks.fluid.forge.FluidStackHooksForge;
 import dev.emi.emi.api.stack.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import me.shedaniel.math.Point;
-import me.shedaniel.rei.api.client.gui.drag.DraggableStackVisitor;
 import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
+import me.shedaniel.rei.api.common.util.EntryIngredients;
 import me.shedaniel.rei.api.common.util.EntryStacks;
-import mezz.jei.api.gui.builder.IClickableIngredientFactory;
 import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -66,7 +57,6 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 @MethodsReturnNonnullByDefault
@@ -153,13 +143,13 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         if (LDLib2.isJeiLoaded()) {
-            addEventListener(JEIUIEvents.CLICKABLE_INGREDIENT, JEISupport::onClickableIngredient);
+            JEISupport.clickableIngredient(this);
         }
         if (LDLib2.isReiLoaded()) {
-            addEventListener(REIUIEvents.FOCUSED_STACK, REISupport::onFocusedStack);
+            REISupport.focusedStack(this);
         }
         if (LDLib2.isEmiLoaded()) {
-            addEventListener(EMIUIEvents.STACK_PROVIDER, EMISupport::onStackProvider);
+            EMISupport.stackProvider(this);
         }
         clickEvent = RPCEventBuilder.simple(Boolean.class, this::tryClickContainer);
         addRPCEvent(clickEvent);
@@ -207,16 +197,45 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public FluidSlot xeiPhantom() {
         if (LDLib2.isJeiLoaded()) {
-            addEventListener(JEIUIEvents.VALID_TARGETS_TYPED, JEISupport::onTargetsTyped);
-            addEventListener(JEIUIEvents.EXECUTE_TARGETS_TYPED, JEISupport::onTargetsTyped);
+            JEISupport.ghostIngredient(this);
         }
         if (LDLib2.isReiLoaded()) {
-            addEventListener(REIUIEvents.DRAGGABLE_STACK_BOUNDS, REISupport::onDraggableStackBounds);
-            addEventListener(REIUIEvents.ACCEPT_DRAGGABLE_STACK, REISupport::onAcceptDraggableStack);
+            REISupport.draggableStackBounds(this);
+            REISupport.acceptDraggableStack(this);
         }
         if (LDLib2.isEmiLoaded()) {
-            addEventListener(EMIUIEvents.RENDER_DRAG_HANDLER, EMISupport::onRenderDragHandler);
-            addEventListener(EMIUIEvents.DROP_STACK_HANDLER, EMISupport::onDropStackHandler);
+            EMISupport.renderDragHandler(this);
+            EMISupport.dropStackHandler(this);
+        }
+        return this;
+    }
+
+    public FluidSlot xeiRecipeIngredient(IngredientIO io) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeIngredient(this, io);
+        }
+        return this;
+    }
+
+    public FluidSlot xeiRecipeSlot() {
+        return xeiRecipeSlot(IngredientIO.NONE, 1);
+    }
+
+    public FluidSlot xeiRecipeSlot(IngredientIO io, float chance) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeSlot(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeSlot(this, chance);
         }
         return this;
     }
@@ -402,107 +421,113 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     // region XEI Support
     public static class JEISupport {
-        public static void onClickableIngredient(UIEvent event) {
-            if (LDLib2.isJeiLoaded() && event.currentElement instanceof FluidSlot fluidSlot && fluidSlot.isMouseOverElement(event.x, event.y)) {
-                if (event.customData instanceof IClickableIngredientFactory factory) {
-                    var fluid = fluidSlot.getValue();
-                    if (fluid.isEmpty()) return;
-                    event.customData = factory.createBuilder(NeoForgeTypes.FLUID_STACK, fluid)
-                            .buildWithArea(LDLibJEIPlugin.getArea(fluidSlot));
-                    event.stopPropagation();
-                }
-            }
+        public static void clickableIngredient(FluidSlot fluidSlot) {
+            LDLibJEIPlugin.clickableIngredient(fluidSlot, () -> {
+                var current = fluidSlot.getValue();
+                if (current.isEmpty()) return null;
+                return LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, current)
+                        .orElse(null);
+            });
         }
 
-        public static void onTargetsTyped(UIEvent event) {
-            if (LDLib2.isJeiLoaded() &&
-                    event.currentElement instanceof FluidSlot fluidSlot &&
-                    event.customData instanceof JEITargetsTyped(var ingredient, var targets)) {
-                Optional.ofNullable(ingredient.cast(NeoForgeTypes.FLUID_STACK)).ifPresent(typedIngredient -> {
-                    targets.add(cast(new JEITarget<FluidStack>(LDLibJEIPlugin.getArea(fluidSlot, true), fluidSlot::setValue)));
-                });
-            }
+        public static void ghostIngredient(FluidSlot fluidSlot) {
+            LDLibJEIPlugin.ghostIngredient(fluidSlot, NeoForgeTypes.FLUID_STACK,
+                    ingredient -> true,
+                    fluidSlot::setValue);
         }
 
-        @SuppressWarnings("unchecked")
-        public static <T> T cast(Object input) {
-            return (T) input;
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibJEIPlugin.recipeIngredient(fluidSlot, io, () -> List.of(
+                    LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidSlot.getFluid()).orElseThrow()
+            ));
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot) {
+            LDLibJEIPlugin.recipeSlot(fluidSlot, () -> {
+                var fluid = fluidSlot.getValue();
+                return fluid.isEmpty() ? null : LDLibJEIPlugin
+                        .createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidSlot.getFluid())
+                        .orElse(null);
+            }, () -> {
+                var fluid = fluidSlot.getValue();
+                return List.of(LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid)
+                        .orElseThrow());
+            });
         }
     }
 
     public static class REISupport {
-        public static void onFocusedStack(UIEvent event) {
-            if (LDLib2.isReiLoaded() && event.currentElement instanceof FluidSlot fluidSlot && fluidSlot.isMouseOverElement(event.x, event.y)) {
+        public static void focusedStack(FluidSlot fluidSlot) {
+            LDLibREIPlugin.focusedStack(fluidSlot, () -> {
                 var fluid = fluidSlot.getValue();
-                if (fluid.isEmpty()) return;
-                event.customData = CompoundEventResult.interruptTrue(EntryStacks.of(FluidStackHooksForge.fromForge(fluid)));
-                event.stopPropagation();
-            }
+                if (fluid.isEmpty()) return null;
+                return EntryStacks.of(FluidStackHooksForge.fromForge(fluid));
+            });
         }
 
-        public static void onDraggableStackBounds(UIEvent event) {
-            if (LDLib2.isReiLoaded() &&
-                    event.currentElement instanceof FluidSlot fluidSlot &&
-                    event.customData instanceof REIDraggableStackBounds(var context, var stack, var bounds)) {
-                var target = stack.get();
-                if (target.getType() == VanillaEntryTypes.FLUID) {
-                    bounds.add(DraggableStackVisitor.BoundsProvider.ofRectangle(LDLibREIPlugin.getRectangle(fluidSlot, true)));
-                }
-            }
+        public static void draggableStackBounds(FluidSlot fluidSlot) {
+            LDLibREIPlugin.draggableStackBounds(fluidSlot,
+                    VanillaEntryTypes.FLUID,
+                    stack -> true);
         }
 
-        public static void onAcceptDraggableStack(UIEvent event) {
-            if (LDLib2.isReiLoaded() &&
-                    event.currentElement instanceof FluidSlot fluidSlot &&
-                    event.customData instanceof REIDraggableStackBounds(var context, var stack, var bounds) &&
-                    context.getCurrentPosition() instanceof Point point &&
-                    fluidSlot.isMouseOverElement(point.x, point.y)
-            ) {
-                var target = stack.get();
-                if (target.getType() == VanillaEntryTypes.ITEM) {
-                    dev.architectury.fluid.FluidStack fluid = target.castValue();
-                    fluidSlot.setValue(FluidStackHooksForge.toForge(fluid));
-                    event.stopPropagation();
-                }
-            }
+        public static void acceptDraggableStack(FluidSlot fluidSlot) {
+            LDLibREIPlugin.acceptDraggableStack(fluidSlot,
+                    VanillaEntryTypes.FLUID,
+                    stack -> true,
+                    stack -> fluidSlot.setValue(FluidStackHooksForge.toForge(stack.getValue())));
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeIngredient(fluidSlot, io, () -> List.of(EntryIngredients.of(FluidStackHooksForge.fromForge(fluidSlot.getFluid()))));
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeSlot(fluidSlot, io,
+                    () -> EntryStacks.of(FluidStackHooksForge.fromForge(fluidSlot.getValue())),
+                    () -> List.of(EntryStacks.of(FluidStackHooksForge.fromForge(fluidSlot.getValue()))));
         }
     }
 
     public static class EMISupport {
-        public static void onStackProvider(UIEvent event) {
-            if (LDLib2.isEmiLoaded() && event.currentElement instanceof FluidSlot fluidSlot && fluidSlot.isMouseOverElement(event.x, event.y)) {
+        public static void stackProvider(FluidSlot fluidSlot) {
+            LDLibEMIPlugin.stackProvider(fluidSlot, () -> {
                 var fluid = fluidSlot.getValue();
-                if (fluid.isEmpty()) return;
-                event.customData = new EmiStackInteraction(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()), null, false);
-                event.stopPropagation();
-            }
+                if (fluid.isEmpty()) return null;
+                return new EmiStackInteraction(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()), null, false);
+            });
         }
 
-        public static void onRenderDragHandler(UIEvent event) {
-            if (LDLib2.isEmiLoaded() &&
-                    event.currentElement instanceof FluidSlot fluidSlot &&
-                    event.customData instanceof EMIDragDropHandlers(var dragged, var bounds)) {
-                if (dragged instanceof FluidEmiStack fluid) {
-                    bounds.add(LDLibEMIPlugin.getBounds(fluidSlot, true));
-                }
-            }
+        public static void renderDragHandler(FluidSlot fluidSlot) {
+            LDLibEMIPlugin.renderDragHandler(fluidSlot, dragged -> dragged instanceof FluidEmiStack);
         }
 
-        public static void onDropStackHandler(UIEvent event) {
-            if (LDLib2.isEmiLoaded() &&
-                    event.currentElement instanceof FluidSlot fluidSlot &&
-                    event.customData instanceof EmiIngredient dragged &&
-                    fluidSlot.isMouseOverElement(event.x, event.y)
-            ) {
-                if (dragged instanceof FluidEmiStack fluid) {
-                    var fluidStack = new FluidStack(
-                            ((Fluid) fluid.getKey()).builtInRegistryHolder(),
-                            Math.max(1000, (int) fluid.getAmount()),
-                            fluid.getComponentChanges());
-                    fluidSlot.setValue(fluidStack);
-                    event.stopPropagation();
-                }
-            }
+        public static void dropStackHandler(FluidSlot fluidSlot) {
+            LDLibEMIPlugin.dropStackHandler(fluidSlot,
+                    dragged -> dragged instanceof FluidEmiStack,
+                    dragged -> {
+                        if (dragged instanceof FluidEmiStack fluid) {
+                            var fluidStack = new FluidStack(
+                                    ((Fluid) fluid.getKey()).builtInRegistryHolder(),
+                                    Math.max(1000, (int) fluid.getAmount()),
+                                    fluid.getComponentChanges());
+                            fluidSlot.setValue(fluidStack);
+                        }
+                    });
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibEMIPlugin.recipeIngredient(fluidSlot, io, () -> {
+                var fluid = fluidSlot.getValue();
+                return List.of(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()));
+            });
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, float chance) {
+            LDLibEMIPlugin.recipeSlot(fluidSlot, () -> {
+                var fluid = fluidSlot.getValue();
+                return EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()).setChance(chance);
+            });
         }
     }
     // endregion

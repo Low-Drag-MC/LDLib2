@@ -1,8 +1,9 @@
-package com.lowdragmc.lowdraglib2.integration.rei;
+package com.lowdragmc.lowdraglib2.integration.xei.rei;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
+import com.lowdragmc.lowdraglib2.integration.xei.rei.handler.REIDraggableStackBoundsHandler;
 import dev.architectury.event.CompoundEventResult;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.gui.drag.DraggableStack;
@@ -64,7 +65,7 @@ public final class ModularUIREIHandlers {
                     var mui = holder.getModularUI();
                     var event = UIEvent.create(REIUIEvents.ACCEPT_DRAGGABLE_STACK);
                     event.target = mui.ui.rootElement;
-                    event.customData = new REIDraggableStackBounds(context, stack, Collections.emptyList());;
+                    event.customData = new REIDraggableStackBoundsHandler(context, stack, Collections.emptyList());;
                     if (UIEventDispatcher.dispatchAllChildren(event)) {
                         return DraggedAcceptorResult.ACCEPTED;
                     }
@@ -81,7 +82,7 @@ public final class ModularUIREIHandlers {
                     var mui = holder.getModularUI();
                     var event = UIEvent.create(REIUIEvents.DRAGGABLE_STACK_BOUNDS);
                     event.target = mui.ui.rootElement;
-                    event.customData = new REIDraggableStackBounds(context, stack, boundsProviders);
+                    event.customData = new REIDraggableStackBoundsHandler(context, stack, boundsProviders);
                     UIEventDispatcher.dispatchAllChildren(event);
                 }
             }
