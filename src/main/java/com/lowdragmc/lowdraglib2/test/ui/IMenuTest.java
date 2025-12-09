@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public interface IMenuTest extends PlayerUIMenuType.PlayerUIHolder, ILDLRegister<IMenuTest, Supplier<IMenuTest>> {
-    void init(Player player);
+    default void init(Player player) {}
 
     @Override
     default ResourceLocation getUIId() {

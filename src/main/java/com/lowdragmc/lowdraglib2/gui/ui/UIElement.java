@@ -1012,6 +1012,16 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return addEventListener(eventType, listener, false);
     }
 
+    public boolean hasEventListener(String eventType, UIEventListener listener) {
+        return captureListeners.getOrDefault(eventType, Collections.emptyList()).contains(listener) ||
+                bubbleListeners.getOrDefault(eventType, Collections.emptyList()).contains(listener);
+    }
+
+    public boolean hasEventListener(String eventType, UIEventListener listener, boolean useCapture) {
+        return useCapture ? captureListeners.getOrDefault(eventType, Collections.emptyList()).contains(listener) :
+                bubbleListeners.getOrDefault(eventType, Collections.emptyList()).contains(listener);
+    }
+
     /**
      * Block the propagation of the event for the interaction.
      */

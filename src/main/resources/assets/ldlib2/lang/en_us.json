@@ -232,7 +232,7 @@
   "editor.exit": "exit",
   "editor.settings": "settings",
   "editor.empty_editor": "empty editor",
-  "editor.open_project": "open %s",
+  "editor.open_project": "[%s]",
   "editor.view.inspector": "inspector",
   "editor.view.resources": "resources",
   "editor.view.history": "history",
@@ -476,5 +476,9 @@
   "EditorItemDisplay": "Item Display",
   "EditorFluidDisplay": "Fluid Display",
   "Capacity": "Capacity",
-  "settings.ldlib2.appearance": "Appearance"
+  "settings.ldlib2.appearance": "Appearance",
+  "settings.ldlib2.behavior": "Behavior",
+  "editor.minimized.title": "Editor Tips",
+  "editor.minimized.tips": "Welcome Back!",
+  "EditorAllowXEILookup": "Editor Allow XEI Lookup"
 }

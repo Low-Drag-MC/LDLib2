@@ -130,6 +130,8 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     // editor support
     @Configurable(name = "EditorItemDisplay")
     private ItemStack editorItemDisplay = ItemStack.EMPTY;
+    @Configurable(name = "EditorAllowXEILookup")
+    private boolean allowXEILookup = true;
     // runtime
     @Getter
     private Slot slot;
@@ -360,6 +362,16 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         return itemStack == ItemStack.EMPTY;
     }
 
+    @ConfigSetter(field = "allowXEILookup")
+    private void setAllowXEILookup(boolean allowXEILookup) {
+        this.allowXEILookup = allowXEILookup;
+    }
+
+    @SkipPersistedValue(field = "allowXEILookup")
+    private boolean skipAllowXEILookup(boolean allowXEILookup) {
+        return allowXEILookup;
+    }
+
     @Override
     public void beforeDeserialize() {
         super.beforeDeserialize();
@@ -378,6 +390,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public static class JEISupport {
         public static void clickableIngredient(ItemSlot itemSlot) {
             LDLibJEIPlugin.clickableIngredient(itemSlot, () -> {
+                if (!itemSlot.allowXEILookup) return null;
                 var current = itemSlot.getValue();
                 if (current.isEmpty()) return null;
                 return TypedItemStack.create(current);
@@ -409,6 +422,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public static class REISupport {
         public static void focusedStack(ItemSlot itemSlot) {
             LDLibREIPlugin.focusedStack(itemSlot, () -> {
+                if (!itemSlot.allowXEILookup) return null;
                 var item = itemSlot.getValue();
                 if (item.isEmpty()) return null;
                 return EntryStacks.of(item);
@@ -442,6 +456,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public static class EMISupport {
         public static void stackProvider(ItemSlot itemSlot) {
             LDLibEMIPlugin.stackProvider(itemSlot, () -> {
+                if (!itemSlot.allowXEILookup) return null;
                 var item = itemSlot.getValue();
                 if (item.isEmpty()) return null;
                 return new EmiStackInteraction(EmiStack.of(item), null, false);

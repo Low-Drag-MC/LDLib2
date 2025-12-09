@@ -23,8 +23,8 @@ public class TestEditor implements IScreenTest {
     @Override
     public ModularUI createUI(Player entityPlayer) {
         var root = new EditorWindow(com.lowdragmc.lowdraglib2.test.TestEditor::new);
-        return new ModularUI(UI.of(root, size -> size))
-//                .shouldCloseOnEsc(false).shouldCloseOnKeyInventory(false)
+        return new ModularUI(UI.of(root))
+                .shouldCloseOnEsc(false).shouldCloseOnKeyInventory(false)
                 ;
     }
 }

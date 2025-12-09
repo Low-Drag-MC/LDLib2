@@ -53,6 +53,10 @@ public class EditorSettings implements IPersistedSerializable {
         codecs.remove(id);
     }
 
+    public Optional<Settings> getSettings(ResourceLocation id) {
+        return Optional.ofNullable(settings.get(id));
+    }
+
     public UIElement createSettingsPanel() {
         var splitView = new SplitView.Horizontal();
         var inspector = new Inspector();
@@ -181,5 +185,9 @@ public class EditorSettings implements IPersistedSerializable {
         if (isDirty) return true;
         isDirty = !storedSettings.equals(serializeSettings());
         return isDirty;
+    }
+
+    public void markDirty() {
+        isDirty = true;
     }
 }

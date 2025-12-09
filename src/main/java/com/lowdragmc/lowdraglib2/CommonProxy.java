@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
+import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
 import com.lowdragmc.lowdraglib2.plugin.ILDLibPlugin;

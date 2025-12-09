@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.math.Range;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
@@ -26,12 +27,10 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -46,9 +45,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegisterClient(name="configurators", registry = "ldlib2:screen_test")
+@LDLRegister(name="configurators", registry = "ldlib2:menu_test")
 @NoArgsConstructor
-public class TestConfigurators implements IScreenTest, IConfigurable, IPersistedSerializable {
+public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSerializable {
     @Configurable
     @ConfigNumber(range = {-5, 5})
     private float numberFloat = 0.0f;

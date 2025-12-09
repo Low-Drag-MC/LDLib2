@@ -3,33 +3,42 @@ package com.lowdragmc.lowdraglib2.editor.settings;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.SelectorConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AppearanceSettings implements Settings {
+    public static final ResourceLocation ID = LDLib2.id("appearance");
     public static final Codec<AppearanceSettings> CODEC = PersistedParser.createCodec(AppearanceSettings::new);
 
     @Configurable
     @ConfigSearch(searchConfiguratorMethod = "searchStyles")
     @Getter @Setter
     private ResourceLocation stylesheet = StylesheetManager.GDP;
+    @Persisted(key = "windowSize")
+    @Getter @Setter
+    private int screenScale = -1;
 
     // runtime
     @Nullable
@@ -37,7 +46,7 @@ public class AppearanceSettings implements Settings {
 
     @Override
     public ResourceLocation getId() {
-        return LDLib2.id("appearance");
+        return ID;
     }
 
     @Override
@@ -48,6 +57,7 @@ public class AppearanceSettings implements Settings {
     @Override
     public void onApply(Editor editor) {
         var mui = editor.getModularUI();
+        // stylesheet
         var stylesheet = StylesheetManager.INSTANCE.getStylesheet(this.stylesheet);
         if (stylesheet != null) {
             if (mui != null) {
@@ -59,6 +69,17 @@ public class AppearanceSettings implements Settings {
                 editor.addEventListener(UIEvents.MUI_CHANGED, postEventHandler(editor));
             }
             currentStylesheet = stylesheet;
+        }
+        // screenScale
+        var minecraft = Minecraft.getInstance();
+        var guiScale = minecraft.options.guiScale();
+        var maxScale =  minecraft.getWindow().calculateScale(0, minecraft.isEnforceUnicode());
+        if (screenScale > maxScale) {
+            screenScale = maxScale;
+        }
+        if (guiScale.get() != screenScale) {
+            guiScale.set(screenScale);
+            Minecraft.getInstance().resizeDisplay();
         }
     }
 
@@ -110,5 +131,22 @@ public class AppearanceSettings implements Settings {
                 return UIElementProvider.text(res -> Component.literal(res.toString()));
             }
         };
+    }
+
+    @Override
+    public void buildConfigurator(ConfiguratorGroup father) {
+        Settings.super.buildConfigurator(father);
+        // scale
+        var minecraft = Minecraft.getInstance();
+        var guiScale = minecraft.options.guiScale();
+        var maxScale =  minecraft.getWindow().calculateScale(0, minecraft.isEnforceUnicode());
+        var scales = new ArrayList<Integer>(maxScale + 1);
+        for (int i = 0; i <= maxScale; i++) {
+            scales.add(i);
+        }
+        father.addConfiguratorAt(new SelectorConfigurator<>("ldlib.gui.editor.menu.view.window_size", () -> screenScale, scale -> {
+            guiScale.set(scale);
+            setScreenScale(scale);
+        }, -1, true, scales, scale -> scale == 0 ? "options.guiScale.auto" : scale + ""), 1);
     }
 }

@@ -57,6 +57,8 @@ public class Dialog extends UIElement {
         }).addClass("__dialog_overlay__");
 
         this.titleBar.layout(layout -> {
+            layout.flexDirection(YogaFlexDirection.ROW);
+            layout.gapAll(2);
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setWidthPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);

@@ -80,7 +80,7 @@ public class ColorsResource extends Resource<Integer> {
                                 dialog.close();
                             }).setText("ldlib.gui.tips.confirm"))
                             .addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel"))
-                            .show(container.getEditor());
+                            .show(container.getModularUI());
                 });
     }
 }

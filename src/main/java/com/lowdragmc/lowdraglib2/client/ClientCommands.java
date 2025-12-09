@@ -40,13 +40,6 @@ public class ClientCommands {
                     ShaderManager.getInstance().reload();
                     return 1;
                 })));
-        commands.add(createLiteral("ldlib2_ui_editor").executes(context -> {
-            var modularUI = new ModularUI(UI.of(new EditorWindow(UIEditor::new), size -> size))
-                    .shouldCloseOnEsc(false)
-                    .shouldCloseOnKeyInventory(false);
-            Minecraft.getInstance().pushGuiLayer(new ModularUIScreen(modularUI, Component.empty()));
-            return 1;
-        }));
         if (Platform.isDevEnv()) {
             commands.add(createScreenTestCommands());
         }
@@ -54,7 +47,7 @@ public class ClientCommands {
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> createScreenTestCommands() {
-        var builder = Commands.literal("ldlib_screen_test");
+        var builder = Commands.literal("ldlib2_screen_test");
         if (LDLib2Registries.SCREEN_TESTS == null) {
             return builder;
         }

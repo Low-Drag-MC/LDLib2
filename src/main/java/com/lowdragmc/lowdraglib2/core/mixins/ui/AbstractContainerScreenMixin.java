@@ -20,6 +20,18 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
     @Shadow
     public abstract T getMenu();
 
+    @Inject(method = "removed", at = @At(value = "RETURN"))
+    private void ldlib2$removed(CallbackInfo ci) {
+        for (var child : children()) {
+            if (child instanceof IModularUIHolder holder) {
+                var mui = holder.getModularUI();
+                if (mui != null) {
+                    mui.onRemoved();
+                }
+            }
+        }
+    }
+
     @Inject(method = "mouseDragged", at = @At(value = "HEAD"), cancellable = true)
     private void ldlib2$mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY, CallbackInfoReturnable<Boolean> cir) {
         if (getMenu() instanceof IModularUIHolder holder) {

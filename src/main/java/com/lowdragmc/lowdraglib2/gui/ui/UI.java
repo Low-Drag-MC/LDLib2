@@ -13,6 +13,12 @@ import java.util.function.Function;
 @Data(staticConstructor = "of")
 @KJSBindings
 public final class UI {
+    private static final UI EMPTY = UI.of(new UIElement());
+
+    public static UI empty() {
+        return EMPTY;
+    }
+
     @FunctionalInterface
     public interface DynamicSizeProvider extends Function<Size, Size> {
         /**

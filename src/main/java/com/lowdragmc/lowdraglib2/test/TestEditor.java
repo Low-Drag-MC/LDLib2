@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.test;
 
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.editor.ui.EditorWindow;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
@@ -10,6 +11,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nonnull;
 
 
 public class TestEditor extends Editor {
@@ -34,6 +37,11 @@ public class TestEditor extends Editor {
         var view = new View("Stylesheet Editor", Icons.LSS);
         view.addChildren(stylesheetEditor);
         centerWindow.getLeftTop().addView(view);
+    }
+
+    @Override
+    protected @Nonnull Editor createNewEditorInstance() {
+        return new TestEditor();
     }
 
     private void onStylesheetChanged(String[] lines) {

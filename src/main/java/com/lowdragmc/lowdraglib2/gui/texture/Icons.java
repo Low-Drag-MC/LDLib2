@@ -75,6 +75,10 @@ public class Icons {
     public static ResourceTexture TRANSFORM_SCALE = icon("transform_scale");
     public static ResourceTexture GLOBAL = icon("global");
     public static ResourceTexture LOCAL = icon("local");
+    public static ResourceTexture WINDOW_MINIMIZE = icon("window_minimize");
+    public static ResourceTexture WINDOW_MAXIMIZE = icon("window_maximize");
+    public static ResourceTexture WINDOW_RESTORE = icon("window_restore");
+    public static ResourceTexture WINDOW_CLOSE = icon("window_close");
     //align
     public static ResourceTexture ALIGN_H_C = icon("align_horizontal_center");
     public static ResourceTexture ALIGN_H_D = icon("align_horizontal_distribute");

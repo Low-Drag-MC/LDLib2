@@ -50,9 +50,6 @@ public class TestSync implements IMenuTest {
     }
 
     @Override
-    public void init(Player player) {}
-
-    @Override
     public ModularUI createUI(Player player) {
         var root = new UIElement();
         root.layout(layout -> {

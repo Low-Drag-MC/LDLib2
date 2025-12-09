@@ -677,6 +677,14 @@ public class ModularUI {
             if (lastMouseDownElement != null) {
                 if (!lastMouseDownElement.isFocusable()) {
                     clearFocus();
+                    var structurePath = lastMouseDownElement.getStructurePath();
+                    for (int i = structurePath.size() - 1; i >= 0; i--) {
+                        var element = structurePath.get(i);
+                        if (element.isFocusable()) {
+                            requestFocus(element);
+                            break;
+                        }
+                    }
                 } else if (lastMouseDownElement.isActive()) {
                     requestFocus(lastMouseDownElement);
                 }

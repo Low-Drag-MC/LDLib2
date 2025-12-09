@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
+import com.google.common.base.Predicates;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
@@ -58,6 +60,24 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
                 .setRange(0, Integer.MAX_VALUE)
                 .setWheel(1);
         group.addConfigurators(fluidConfigurator, countConfigurator, componentsConfigurator);
+        if (LDLib2.isJeiLoaded()) {
+            RegistrySearchComponent.JEISupport.ghostFluid(group, Predicates.alwaysTrue(), fluidStack -> {
+                updater.accept(fluidStack);
+                group.notifyChanges();
+            });
+        }
+        if (LDLib2.isReiLoaded()) {
+            RegistrySearchComponent.REISupport.ghostFluid(group, Predicates.alwaysTrue(), fluidStack -> {
+                updater.accept(fluidStack);
+                group.notifyChanges();
+            });
+        }
+        if (LDLib2.isEmiLoaded()) {
+            RegistrySearchComponent.EMISupport.ghostFluid(group, Predicates.alwaysTrue(), fluidStack -> {
+                updater.accept(fluidStack);
+                group.notifyChanges();
+            });
+        }
         return group;
     }
 }

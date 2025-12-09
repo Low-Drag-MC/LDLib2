@@ -120,6 +120,8 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     // editor support
     @Configurable(name = "EditorFluidDisplay")
     private FluidStack editorFluidDisplay = FluidStack.EMPTY;
+    @Configurable(name = "EditorAllowXEILookup")
+    private boolean allowXEILookup = true;
     // runtime
     @Getter
     private FluidStack fluid = FluidStack.EMPTY;
@@ -400,6 +402,16 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         return fluid == FluidStack.EMPTY;
     }
 
+    @ConfigSetter(field = "allowXEILookup")
+    private void setAllowXEILookup(boolean allowXEILookup) {
+        this.allowXEILookup = allowXEILookup;
+    }
+
+    @SkipPersistedValue(field = "allowXEILookup")
+    private boolean skipAllowXEILookup(boolean allowXEILookup) {
+        return allowXEILookup;
+    }
+    
     @SkipPersistedValue(field = "capacity")
     private boolean skipCapacity(int capacity) {
         return capacity == 0;
@@ -423,6 +435,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public static class JEISupport {
         public static void clickableIngredient(FluidSlot fluidSlot) {
             LDLibJEIPlugin.clickableIngredient(fluidSlot, () -> {
+                if (!fluidSlot.allowXEILookup) return null;
                 var current = fluidSlot.getValue();
                 if (current.isEmpty()) return null;
                 return LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, current)
@@ -459,6 +472,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public static class REISupport {
         public static void focusedStack(FluidSlot fluidSlot) {
             LDLibREIPlugin.focusedStack(fluidSlot, () -> {
+                if (!fluidSlot.allowXEILookup) return null;
                 var fluid = fluidSlot.getValue();
                 if (fluid.isEmpty()) return null;
                 return EntryStacks.of(FluidStackHooksForge.fromForge(fluid));
@@ -492,6 +506,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public static class EMISupport {
         public static void stackProvider(FluidSlot fluidSlot) {
             LDLibEMIPlugin.stackProvider(fluidSlot, () -> {
+                if (!fluidSlot.allowXEILookup) return null;
                 var fluid = fluidSlot.getValue();
                 if (fluid.isEmpty()) return null;
                 return new EmiStackInteraction(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()), null, false);

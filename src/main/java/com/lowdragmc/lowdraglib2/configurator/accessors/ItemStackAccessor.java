@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
+import com.google.common.base.Predicates;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
@@ -38,7 +40,6 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
         Consumer<ItemStack> updater = itemStack -> {
             slot.setItem(itemStack);
             consumer.accept(itemStack);
-
         };
         group.inlineContainer.addChild(slot);
         var defaultValue = defaultValue(field, field.getType());
@@ -61,6 +62,27 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
                 .setRange(0, Integer.MAX_VALUE)
                 .setWheel(1);
         group.addConfigurators(itemConfigurator, countConfigurator, componentsConfigurator);
+        if (LDLib2.isJeiLoaded()) {
+            RegistrySearchComponent.JEISupport.ghostItem(group, Predicates.alwaysTrue(), itemStack -> {
+                updater.accept(itemStack);
+                componentsConfigurator.setPrototype(itemStack.getItem().components());
+                group.notifyChanges();
+            });
+        }
+        if (LDLib2.isReiLoaded()) {
+            RegistrySearchComponent.REISupport.ghostItem(group, Predicates.alwaysTrue(), itemStack -> {
+                updater.accept(itemStack);
+                componentsConfigurator.setPrototype(itemStack.getItem().components());
+                group.notifyChanges();
+            });
+        }
+        if (LDLib2.isEmiLoaded()) {
+            RegistrySearchComponent.EMISupport.ghostItem(group, Predicates.alwaysTrue(), itemStack -> {
+                updater.accept(itemStack);
+                componentsConfigurator.setPrototype(itemStack.getItem().components());
+                group.notifyChanges();
+            });
+        }
         return group;
     }
 }
