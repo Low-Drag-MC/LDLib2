@@ -67,9 +67,9 @@ public class ModularUI {
     @OnlyIn(Dist.CLIENT)
     @Nullable
     private ModularUIWidget widget;
-    @Getter
     @Nullable
     @OnlyIn(Dist.CLIENT)
+    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
     private Screen screen;
     @Getter
     private final StyleEngine styleEngine = new StyleEngine(this);

@@ -1,15 +1,19 @@
 package com.lowdragmc.lowdraglib2.syncdata.rpc;
 
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacketHandler;
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.IDirectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.var.ManagedHolderVar;
+import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 
-public final class RPCMethodMeta {
+public final class RPCMethodMeta implements RPCPacketHandler {
     @Getter
     private final String name;
     private final IDirectAccessor<?>[] argsAccessor;
@@ -100,4 +104,37 @@ public final class RPCMethodMeta {
         throw new IllegalArgumentException("Accessor for type " + type + " is not a ManagedAccessor");
     }
 
+    @Override
+    public byte[] args2Bytes(Object... args) {
+        return ByteBufUtil.writeCustomData(buf ->
+                serializeArgs(buf, args), Platform.getFrozenRegistry());
+    }
+
+    @Override
+    public Object[] bytes2Args(byte[] data) {
+        var args = new Object[argsAccessor.length];
+        ByteBufUtil.readCustomData(data, buf -> {
+            for (int i = 0; i < argsAccessor.length; i++) {
+                var holder = ManagedHolderVar.ofType(argsType[i]);
+                ((IDirectAccessor)argsAccessor[i]).writeDirectVarFromStream(buf, holder);
+                args[i] = holder.value();
+            }
+        }, Platform.getFrozenRegistry());
+        return args;
+    }
+
+    @Override
+    public void handler(RPCSender sender, Object... args) {
+        try {
+           if (isFirstArgSender) {
+               var newArgs = new Object[args.length + 1];
+               newArgs[0] = sender;
+               System.arraycopy(args, 0, newArgs, 1, args.length);
+               args = newArgs;
+           }
+            method.invoke(null, args);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

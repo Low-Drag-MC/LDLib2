@@ -40,6 +40,8 @@ public class LDLibKubeJSPlugin implements KubeJSPlugin {
     public void registerBindings(BindingRegistry event) {
         // LDLib2 Auto Bindings
         ReflectionUtils.findAnnotationClasses(KJSBindings.class, data -> {
+            var isClientOnly = (boolean) data.getOrDefault("clientOnly", false);
+            if (isClientOnly && !LDLib2.isClient()) return false;
             var modId = data.getOrDefault("modId", "").toString();
             if (modId.isEmpty()) return true;
             return LDLib2.isModLoaded(modId);
@@ -48,6 +50,18 @@ public class LDLibKubeJSPlugin implements KubeJSPlugin {
             var bindingName = annotation.value();
             if (bindingName.isEmpty()) bindingName = clazz.getSimpleName();
             event.add(bindingName, clazz);
+        }, () -> {});
+
+        ReflectionUtils.findAnnotationStaticField(KJSBindings.class, data -> {
+            var modId = data.getOrDefault("modId", "").toString();
+            if (modId.isEmpty()) return true;
+            return LDLib2.isModLoaded(modId);
+        }, (field, o) -> {
+            var annotation = field.getAnnotation(KJSBindings.class);
+            var bindingName = annotation.value();
+            if (bindingName.isEmpty()) bindingName = field.getName();
+
+            event.add(bindingName, o);
         }, () -> {});
 
         // math

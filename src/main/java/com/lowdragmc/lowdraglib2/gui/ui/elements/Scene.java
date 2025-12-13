@@ -33,6 +33,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -54,7 +56,8 @@ import java.util.function.Consumer;
 public class Scene extends UIElement {
     private static final Object DRAGGING = new Object();
     @Nullable
-    @Getter
+    @OnlyIn(Dist.CLIENT)
+    @Getter(onMethod_ = @OnlyIn(Dist.CLIENT))
     protected WorldSceneRenderer renderer;
     @Nullable
     @Getter
@@ -147,6 +150,7 @@ public class Scene extends UIElement {
         return this;
     }
 
+    @OnlyIn(Dist.CLIENT)
     public Scene setBeforeWorldRender(Consumer<Scene> beforeWorldRender) {
         this.beforeWorldRender = beforeWorldRender;
         if (this.beforeWorldRender != null && renderer != null) {
@@ -177,6 +181,7 @@ public class Scene extends UIElement {
     }
 
     @Nullable
+    @OnlyIn(Dist.CLIENT)
     public ParticleManager getParticleManager() {
         if (renderer == null) return null;
         return renderer.getParticleManager();
@@ -210,15 +215,11 @@ public class Scene extends UIElement {
         }
     }
 
-
-    protected ParticleManager createParticleManager() {
-        return new ParticleManager();
-    }
-
     /**
      * Creates a scene with the given world and whether to use FBO scene renderer.
      */
-    public final Scene createScene(@Nonnull Level world, boolean useFBOSceneRenderer, @Nullable Size fboSize) {
+    @OnlyIn(Dist.CLIENT)
+    public final Scene createScene(Level world, boolean useFBOSceneRenderer, @Nullable Size fboSize) {
         releaseRendererResource();
         core.clear();
         level = world;
@@ -255,10 +256,10 @@ public class Scene extends UIElement {
     }
 
 
+    @OnlyIn(Dist.CLIENT)
     public final Scene createScene(Level world) {
         return createScene(world, false, null);
     }
-
 
     /**
      * Sets the core blocks to be rendered in the scene.
@@ -304,9 +305,11 @@ public class Scene extends UIElement {
         return setRenderedCore(blocks, null);
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void renderBeforeBatchEnd(MultiBufferSource bufferSource, float partialTicks) {
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void renderBlockOverLay(WorldSceneRenderer renderer) {
         if (renderer == null || dummyWorld == null || core == null || core.isEmpty()) {
             return;
@@ -367,10 +370,12 @@ public class Scene extends UIElement {
         }
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void drawFacingBorder(PoseStack poseStack, BlockPosFace posFace, int color) {
         drawFacingBorder(poseStack, posFace, color, 0);
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void drawFacingBorder(PoseStack poseStack, BlockPosFace posFace, int color, int inner) {
         poseStack.pushPose();
         RenderSystem.disableDepthTest();
@@ -383,6 +388,7 @@ public class Scene extends UIElement {
         poseStack.popPose();
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void drawBorder(PoseStack poseStack, int x, int y, int width, int height, int color, int border) {
         drawSolidRect(poseStack,x - border, y - border, width + 2 * border, border, color);
         drawSolidRect(poseStack,x - border, y + height, width + 2 * border, border, color);
@@ -390,11 +396,13 @@ public class Scene extends UIElement {
         drawSolidRect(poseStack,x + width, y, border, height, color);
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void drawSolidRect(PoseStack poseStack, int x, int y, int width, int height, int color) {
         fill(poseStack, x, y, x + width, y + height, 0, color);
         RenderSystem.enableBlend();
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void fill(PoseStack matrices, int x1, int y1, int x2, int y2, int z, int color) {
         Matrix4f matrix4f = matrices.last().pose();
         int i;

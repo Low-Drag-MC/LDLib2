@@ -43,7 +43,6 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
@@ -439,6 +438,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void appendExtraAreas(List<Rect2i> extraAreas) {
         if (!isDisplayed() || !isVisible()) return;
         var rect = new Rect2i(Math.round(getPositionX()), Math.round(getPositionY()),

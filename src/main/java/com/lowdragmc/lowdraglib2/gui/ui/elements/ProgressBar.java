@@ -22,7 +22,7 @@ import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.renderer.texture.Tickable;
+import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -245,7 +245,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     @Override
     public ProgressBar bindDataSource(IDataProvider<Float> dataProvider) {
         UIEventListener tickableListener;
-        if (dataProvider instanceof Tickable tickable) {
+        if (dataProvider instanceof ITickable tickable) {
             tickableListener = e -> tickable.tick();
             addEventListener(UIEvents.TICK, tickableListener);
         } else {

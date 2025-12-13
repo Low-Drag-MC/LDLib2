@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
+import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.client.renderer.texture.Tickable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 
 @Data(staticConstructor = "of")
 @KJSBindings
-public final class SupplierDataSource<T> implements IDataProvider<T>, Tickable {
+public final class SupplierDataSource<T> implements IDataProvider<T>, ITickable {
     @Getter
     private final Supplier<T> supplier;
     private final List<Consumer<T>> listeners = new ArrayList<>();

@@ -13,6 +13,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.networking.both.PacketRPCPacket;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacket;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacketDistributor;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.*;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncPersistRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
@@ -25,6 +28,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaJustify;
@@ -69,6 +73,8 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
         root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> Component.literal(String.valueOf(intValue)))));
         root.addChild(new Button().setText("Test C2S RPC").setOnClick(e -> rpcToServer("rpcTest", "Hello from client!")));
         root.addChild(new Button().setText("Test C2S RPC").setOnServerClick(e -> rpcToTracking("rpcTest", "Hello from server!")));
+        root.addChild(new Button().setText("Test C2S RPC Packet").setOnClick(e -> RPCPacketDistributor.rpcToServer("rpcPacketTest", "Hello from client!", true)));
+        root.addChild(new Button().setText("Test C2S RPC Packet").setOnServerClick(e -> RPCPacketDistributor.rpcToAllPlayers("rpcPacketTest", "Hello from server!", false)));
         return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheet(StylesheetManager.MC))), holder.player);
     }
 
@@ -78,6 +84,15 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
             LDLib2.LOGGER.info("Received RPC from server: {}", message);
         } else {
             LDLib2.LOGGER.info("Received RPC from client: {}", message);
+        }
+    }
+
+    @RPCPacket("rpcPacketTest")
+    public static void rpcPacketTest(RPCSender sender, String message, boolean message2) {
+        if (sender.isServer()) {
+            LDLib2.LOGGER.info("Received RPC packet from server: {}, {}", message, message2);
+        } else {
+            LDLib2.LOGGER.info("Received RPC packet from client: {}, {}", message, message2);
         }
     }
 }

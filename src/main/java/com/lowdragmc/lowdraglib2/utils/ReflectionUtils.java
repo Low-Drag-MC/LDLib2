@@ -31,11 +31,14 @@ public final class ReflectionUtils {
         };
     }
 
-    public static <A extends Annotation> void findAnnotationClasses(Class<A> annotationClass, @Nullable Predicate<Map<String, Object>> annotationPredicate, Consumer<Class<?>> consumer, Runnable onFinished) {
+    public static <A extends Annotation> void findAnnotationClasses(Class<A> annotationClass,
+                                                                    @Nullable Predicate<Map<String, Object>> annotationPredicate,
+                                                                    Consumer<Class<?>> consumer,
+                                                                    Runnable onFinished) {
         org.objectweb.asm.Type annotationType = org.objectweb.asm.Type.getType(annotationClass);
         for (ModFileScanData data : ModList.get().getAllScanData()) {
             for (ModFileScanData.AnnotationData annotation : data.getAnnotations()) {
-                if (annotationType.equals(annotation.annotationType())) {
+                if (annotationType.equals(annotation.annotationType()) && annotation.targetType() == ElementType.TYPE) {
                     if (annotationPredicate == null || annotationPredicate.test(annotation.annotationData())) {
                         try {
                             consumer.accept(Class.forName(annotation.memberName(), false, ReflectionUtils.class.getClassLoader()));
@@ -49,7 +52,10 @@ public final class ReflectionUtils {
         onFinished.run();
     }
 
-    public static <A extends Annotation> void findAnnotationStaticField(Class<A> annotationClass, @Nullable Predicate<Map<String, Object>> annotationPredicate, BiConsumer<Field, Object> consumer, Runnable onFinished) {
+    public static <A extends Annotation> void findAnnotationStaticField(Class<A> annotationClass,
+                                                                        @Nullable Predicate<Map<String, Object>> annotationPredicate,
+                                                                        BiConsumer<Field, Object> consumer,
+                                                                        Runnable onFinished) {
         org.objectweb.asm.Type annotationType = org.objectweb.asm.Type.getType(annotationClass);
         for (ModFileScanData data : ModList.get().getAllScanData()) {
             for (ModFileScanData.AnnotationData annotation : data.getAnnotations()) {
@@ -66,6 +72,40 @@ public final class ReflectionUtils {
                             }
                         } catch (Throwable throwable) {
                             LDLib2.LOGGER.error("Failed to load static field for notation: {} in {}", fieldName, clazz, throwable);
+                        }
+                    }
+                }
+            }
+        }
+        onFinished.run();
+    }
+
+    public static <A extends Annotation> void findAnnotationStaticMethod(Class<A> annotationClass,
+                                                                         @Nullable Predicate<Map<String, Object>> annotationPredicate,
+                                                                         Consumer<Method> consumer,
+                                                                         Runnable onFinished) {
+        org.objectweb.asm.Type annotationType = org.objectweb.asm.Type.getType(annotationClass);
+        for (ModFileScanData data : ModList.get().getAllScanData()) {
+            for (ModFileScanData.AnnotationData annotation : data.getAnnotations()) {
+                if (annotationType.equals(annotation.annotationType()) && annotation.targetType() == ElementType.METHOD) {
+                    if (annotationPredicate == null || annotationPredicate.test(annotation.annotationData())) {
+                        var clazz = annotation.clazz();
+                        var methodFullDesc = annotation.memberName();
+                        var methodName = methodFullDesc.substring(0, methodFullDesc.indexOf('('));
+                        var methodDesc = methodFullDesc.substring(methodFullDesc.indexOf('('));
+                        try {
+                            for (var method : Class.forName(annotation.clazz().getClassName()).getDeclaredMethods()) {
+                                if (method.getName().equals(methodName) &&
+                                        methodDesc.equals(org.objectweb.asm.Type.getMethodDescriptor(method))) {
+                                    if (Modifier.isStatic(method.getModifiers())) {
+                                        consumer.accept(method);
+                                    } else {
+                                        LDLib2.LOGGER.error("Method is not static for notation: {} in {}", methodDesc, clazz);
+                                    }
+                                }
+                            }
+                        } catch (Throwable throwable) {
+                            LDLib2.LOGGER.error("Failed to load static method for notation: {} in {}", methodDesc, clazz, throwable);
                         }
                     }
                 }

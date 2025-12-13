@@ -47,6 +47,8 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.minecraft.util.Tuple;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 
@@ -955,6 +957,7 @@ public class TextField extends BindableUIElement<String> {
 
 
     /// rendering
+    @OnlyIn(Dist.CLIENT)
     public Font getFont() {
         return Minecraft.getInstance().font;
     }

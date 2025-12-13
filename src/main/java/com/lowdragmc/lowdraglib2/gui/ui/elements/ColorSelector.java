@@ -17,6 +17,8 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -286,10 +288,12 @@ public class ColorSelector extends BindableUIElement<Integer> {
         hsbButton.setText(mode.name());
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         DrawerHelper.drawSolidRect(graphics, x, y, width, height, argb);
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawHsbContext(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
         RenderSystem.setShader(LDLibShaders::getHsbShader);
@@ -411,6 +415,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         DrawerHelper.drawSolidRect(graphics, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2, b > 0.5f ? 0xff000000 : 0xffffffff);
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawColorSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
         RenderSystem.setShader(LDLibShaders::getHsbShader);
@@ -487,6 +492,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
 
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawAlphaSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         DrawerHelper.drawGradientRect(graphics, x, y, width, height, argb & 0x00ffffff, argb | 0xff000000, true);
 
@@ -497,6 +503,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
     /**
      * put hsb color into BufferBuilder
      */
+    @OnlyIn(Dist.CLIENT)
     private BufferBuilder putColor(BufferBuilder builder, float h, float s, float b, float a) {
         if (builder instanceof BufferBuilderAccessor accessor) {
             var i = accessor.invokeBeginElement(LDLibShaders.HSB_Alpha);

@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.renderer.texture.Tickable;
+import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,7 +33,7 @@ public class Label extends TextElement implements IBindable<Component>, IDataCon
     @Override
     public Label bindDataSource(IDataProvider<Component> dataProvider) {
         UIEventListener tickableListener;
-        if (dataProvider instanceof Tickable tickable) {
+        if (dataProvider instanceof ITickable tickable) {
             tickableListener = e -> tickable.tick();
             addEventListener(UIEvents.TICK, tickableListener);
         } else {

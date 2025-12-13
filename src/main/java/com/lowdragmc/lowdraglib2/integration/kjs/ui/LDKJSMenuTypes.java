@@ -17,6 +17,7 @@ import static com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes.MENUS;
 
 @KJSBindings("LDLib2UIFactory")
 public class LDKJSMenuTypes {
+    @KJSBindings
     public static final Supplier<MenuType<ModularUIContainerMenu>> PLAYER_UI = MENUS.register("kjs_player_ui",
             () -> IMenuTypeExtension.create(KJSPlayerUIMenuType::create));
 

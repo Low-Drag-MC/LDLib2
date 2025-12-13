@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.renderer.texture.Tickable;
+import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -37,7 +37,7 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
             return this;
         }
         UIEventListener tickableListener;
-        if (observer instanceof Tickable tickable) {
+        if (observer instanceof ITickable tickable) {
             tickableListener = e -> tickable.tick();
             addEventListener(UIEvents.TICK, tickableListener);
         } else {
@@ -71,7 +71,7 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
             return this;
         }
         UIEventListener tickableListener;
-        if (dataProvider instanceof Tickable tickable) {
+        if (dataProvider instanceof ITickable tickable) {
             tickableListener = e -> tickable.tick();
             addEventListener(UIEvents.TICK, tickableListener);
         } else {

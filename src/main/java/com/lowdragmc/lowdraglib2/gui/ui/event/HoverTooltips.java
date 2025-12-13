@@ -9,7 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import javax.annotation.Nullable;
 import java.util.List;
 
-@KJSBindings
+@KJSBindings(clientOnly = true)
 public record HoverTooltips(List<Component> tooltipTexts,
                             @Nullable TooltipComponent tooltipComponent,
                             @Nullable Font tooltipFont,

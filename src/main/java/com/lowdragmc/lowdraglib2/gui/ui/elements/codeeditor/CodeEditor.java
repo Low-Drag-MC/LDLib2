@@ -17,6 +17,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -211,6 +213,7 @@ public class CodeEditor extends TextArea {
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void drawContentView(GUIContext guiContext) {
         // Ensure we have latest styled lines
         if (needsReparsing) {
@@ -220,6 +223,7 @@ public class CodeEditor extends TextArea {
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     protected void drawLines(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
         for (int i = firstVisibleLine; i <= lastVisibleLine && i < styledLines.size(); i++) {
             float lineY = y + i * lineHeight() - getScrollY();

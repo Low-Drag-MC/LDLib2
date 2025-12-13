@@ -53,6 +53,10 @@ public class BasicStyle extends Style {
         return this;
     }
 
+    public BasicStyle background(IGuiTexture backgroundTexture) {
+        return backgroundTexture(backgroundTexture);
+    }
+
     public IGuiTexture overlayTexture() {
         return getValueSave(PropertyRegistry.OVERLAY);
     }
@@ -60,6 +64,10 @@ public class BasicStyle extends Style {
     public BasicStyle overlayTexture(IGuiTexture backgroundTexture) {
         set(PropertyRegistry.OVERLAY, backgroundTexture);
         return this;
+    }
+
+    public BasicStyle overlay(IGuiTexture backgroundTexture) {
+        return overlayTexture(backgroundTexture);
     }
 
     public Tooltips tooltips() {
