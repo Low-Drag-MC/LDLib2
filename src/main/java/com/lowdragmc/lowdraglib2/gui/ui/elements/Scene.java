@@ -40,7 +40,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collection;
 import java.util.HashSet;
@@ -54,7 +53,8 @@ import java.util.function.Consumer;
 @KJSBindings
 @LDLRegister(name = "scene", group = "misc", registry = "ldlib2:ui_element")
 public class Scene extends UIElement {
-    private static final Object DRAGGING = new Object();
+    private static final Object ROTATION_DRAGGING = new Object();
+    private static final Object PAN_DRAGGING = new Object();
     @Nullable
     @OnlyIn(Dist.CLIENT)
     @Getter(onMethod_ = @OnlyIn(Dist.CLIENT))
@@ -442,20 +442,53 @@ public class Scene extends UIElement {
         if (event.button == 0 && isHover()) {
             if (draggable) {
                 dragging = true;
-                startDrag(DRAGGING, null);
+                startDrag(ROTATION_DRAGGING, null);
             }
             lastClickPosFace = lastHoverPosFace;
+        } else if (event.button == 2 && isHover()) {
+            if (draggable) {
+                dragging = true;
+                startDrag(PAN_DRAGGING, null);
+            }
         }
     }
 
     protected void onDragSourceUpdate(UIEvent event) {
-        if (!intractable || event.target != this || event.dragHandler.getDraggingObject() != DRAGGING || !dragging) return;
-        rotationYaw += event.deltaX + 360;
-        rotationYaw = rotationYaw % 360;
-        rotationPitch = (float) Mth.clamp(rotationPitch + event.deltaY, -89.9, 89.9);
-        if (renderer != null) {
-            renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+        if (!intractable || event.target != this || !dragging) return;
+        if (event.dragHandler.getDraggingObject() == ROTATION_DRAGGING) {
+            rotationYaw += event.deltaX + 360;
+            rotationYaw = rotationYaw % 360;
+            rotationPitch = (float) Mth.clamp(rotationPitch + event.deltaY, -89.9, 89.9);
+            if (renderer != null) {
+                renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+            }
+        } else if (event.dragHandler.getDraggingObject() == PAN_DRAGGING) {
+            // Calculate right vector as cross product of world up and camera direction
+            var forward = new Vector3f(
+                    (float) (Math.cos(Math.toRadians(rotationPitch)) * Math.cos(Math.toRadians(rotationYaw))),
+                    (float) Math.sin(Math.toRadians(rotationPitch)),
+                    (float) (Math.cos(Math.toRadians(rotationPitch)) * Math.sin(Math.toRadians(rotationYaw)))
+            );
+            var worldUp = new Vector3f(0, 1, 0);
+            var right = new Vector3f();
+            forward.cross(worldUp, right);
+            right.normalize();
+            // Calculate camera up vector
+            var up = new Vector3f();
+            right.cross(forward, up);
+            up.normalize();
+            // Move center based on drag delta
+            var moveSpeed = zoom * 0.005f;
+            center.add(
+                    right.x * event.deltaX * moveSpeed + up.x * event.deltaY * moveSpeed,
+                    right.y * event.deltaX * moveSpeed + up.y * event.deltaY * moveSpeed,
+                    right.z * event.deltaX * moveSpeed + up.z * event.deltaY * moveSpeed
+            );
+            if (renderer != null) {
+                renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+            }
         }
+
     }
 
     protected void onMouseUp(UIEvent event) {

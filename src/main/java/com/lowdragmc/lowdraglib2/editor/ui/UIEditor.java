@@ -8,7 +8,7 @@ import org.appliedenergistics.yoga.YogaDisplay;
 import javax.annotation.Nonnull;
 
 public class UIEditor extends Editor {
-    public final static ResourceLocation UI_ID = LDLib2.id("ui_editor");
+    public final static ResourceLocation WINDOW_ID = LDLib2.id("ui_editor");
 
     public UIEditor() {
         this.leftWindow.setDisplay(YogaDisplay.NONE);

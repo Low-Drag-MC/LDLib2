@@ -2,27 +2,21 @@ package com.lowdragmc.lowdraglib2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.lowdragmc.lowdraglib2.editor.ui.UIEditor;
 import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
-import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.world.level.block.Blocks;
 
 /**
  * @author KilaBash
@@ -72,7 +66,12 @@ public class ServerCommands {
 											return 1;
 										}))),
                 Commands.literal("ldlib2_ui_editor").executes(context -> {
-                    PlayerUIMenuType.openUI(context.getSource().getPlayer(), UIEditor.UI_ID);
+                    if (!context.getSource().getServer().isSingleplayer()) {
+                        context.getSource().sendFailure(Component.literal("This command can only be used in singleplayer"));
+                        return 0;
+                    }
+                    if (context.getSource().getPlayer() == null) return 0;
+                    PlayerUIMenuType.openUI(context.getSource().getPlayer(), UIEditor.WINDOW_ID);
                     return 1;
                 })
         ));

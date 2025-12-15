@@ -8,14 +8,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.integration.kjs.ui.LDKJSMenuTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-import javax.annotation.Nonnull;
 import java.util.function.Supplier;
 
 public final class LDMenuTypes {
@@ -31,9 +28,9 @@ public final class LDMenuTypes {
             () -> IMenuTypeExtension.create(BlockUIMenuType::create));
 
     public static void init(IEventBus eventBus) {
-        PlayerUIMenuType.register(UIEditor.UI_ID, ignored -> player -> {
+        PlayerUIMenuType.register(UIEditor.WINDOW_ID, ignored -> player -> {
             if (player.level().isClientSide) {
-                return new ModularUI(UI.of(EditorWindow.open(UIEditor.UI_ID, UIEditor::new)))
+                return new ModularUI(UI.of(EditorWindow.open(UIEditor.WINDOW_ID, UIEditor::new)))
                         .shouldCloseOnEsc(false)
                         .shouldCloseOnKeyInventory(false);
             }
