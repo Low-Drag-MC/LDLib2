@@ -1,4 +1,4 @@
-## v2.1.0
+## v2.1.0 (beta release)
 * Refactor UI System
   * modern UI layout system
   * modern UI event system

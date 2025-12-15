@@ -26,6 +26,8 @@ public class LDLib2MixinPlugin implements IMixinConfigPlugin, MixinPluginShared 
             return IS_REI_LOAD;
         } else if (mixinClassName.contains("com.lowdragmc.lowdraglib2.core.mixins.emi")) {
             return IS_EMI_LOADED;
+        } else if (mixinClassName.contains("com.lowdragmc.lowdraglib2.core.mixins.kjs")) {
+            return IS_KJS_LOAD;
         }
         return true;
     }
