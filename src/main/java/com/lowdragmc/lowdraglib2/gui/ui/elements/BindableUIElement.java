@@ -28,10 +28,6 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
 
     @Override
     public BindableUIElement<T> bindObserver(IObserver<T> observer) {
-        return bindObserver(observer, true);
-    }
-
-    public BindableUIElement<T> bindObserver(IObserver<T> observer, boolean notify) {
         if (observers.containsKey(observer)) {
             LDLib2.LOGGER.warn("Trying to bind an observer to a bindable UI element that already has a binding to it.");
             return this;
@@ -43,7 +39,7 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
         } else {
             tickableListener = null;
         }
-        var subscription = registerValueListener(v -> observer.setValue(v, notify));
+        var subscription = registerValueListener(observer::onValueChanged);
         if (tickableListener != null) {
             subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
         }

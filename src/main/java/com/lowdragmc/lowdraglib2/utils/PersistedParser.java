@@ -18,8 +18,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.DelegatingOps;
-import net.minecraft.resources.RegistryOps;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import java.lang.reflect.Field;

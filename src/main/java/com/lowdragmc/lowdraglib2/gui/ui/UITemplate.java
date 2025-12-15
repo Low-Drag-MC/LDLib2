@@ -71,8 +71,12 @@ public class UITemplate {
 
     public UI createUI() {
         var root = new UIElement();
-        root.deserializeNBT(Platform.getFrozenRegistry(), data);
+        initUI(root);
         return UI.of(root, getAllStylesheets());
+    }
+
+    public void initUI(UIElement root) {
+        root.deserializeNBT(Platform.getFrozenRegistry(), data);
     }
 
     public List<Stylesheet> getAllStylesheets() {
@@ -96,6 +100,10 @@ public class UITemplate {
 
     public static UITemplate of(UIElement root) {
         return new UITemplate(root.serializeNBT(Platform.getFrozenRegistry()), null);
+    }
+
+    public static UITemplate of(UIElement root, ResourceLocation... styles) {
+        return new UITemplate(root.serializeNBT(Platform.getFrozenRegistry()), null, styles);
     }
 
     public static UITemplate missing() {

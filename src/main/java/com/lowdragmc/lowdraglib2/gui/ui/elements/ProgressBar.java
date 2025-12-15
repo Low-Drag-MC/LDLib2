@@ -277,7 +277,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             if (!progressBarStyle.interpolate()) {
                 lastValue = this.value;
             }
-            updateProgressBarStyle(lastValue);
+            updateProgressBarStyle(getNormalizedValue(lastValue));
         }
         return this;
     }
@@ -325,7 +325,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     }
                 }
             }
-            updateProgressBarStyle(lastValue);
+            updateProgressBarStyle(getNormalizedValue(lastValue));
         }
     }
 

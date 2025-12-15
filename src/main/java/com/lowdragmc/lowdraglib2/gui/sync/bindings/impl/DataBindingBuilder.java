@@ -84,7 +84,9 @@ public class DataBindingBuilder<T> {
     }
 
     public SimpleBinding<T> build() {
-        return build(LDLib2.isRemote());
+        if (LDLib2.isRemote()) return build(true);
+        if (LDLib2.isServer()) return build(false);
+        throw new IllegalStateException("Cannot de");
     }
 
     public SimpleBinding<T> build(boolean isRemote) {

@@ -103,6 +103,23 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         return cache.get(path);
     }
 
+    public List<Map.Entry<IResourcePath, T>> listAllResources() {
+        var resources = new ArrayList<Map.Entry<IResourcePath, T>>();
+        listProviderResources(resources, builtinProviders);
+        listProviderResources(resources, customProviders);
+        return Collections.unmodifiableList(resources);
+    }
+
+    private void listProviderResources(List<Map.Entry<IResourcePath, T>> resources, Map<ResourceProviderType, List<IResourceProvider<T>>> customProviders) {
+        for (List<IResourceProvider<T>> providers : customProviders.values()) {
+            for (IResourceProvider<T> provider : providers) {
+                for (Map.Entry<IResourcePath, T> entry : provider) {
+                    resources.add(entry);
+                }
+            }
+        }
+    }
+
     public void setDisplayMode(Resource.DisplayMode displayMode) {
         if (this.displayMode == displayMode) return;
         this.displayMode = displayMode;

@@ -1,0 +1,344 @@
+// panel
+.panel_bg {
+  background: built-in(ui-mc:RECT);
+  padding-all: 5;
+  gap-all: 4;
+}
+
+.preview_bg {
+  background: built-in(ui-mc:BORDER);
+  padding-all: 4;
+}
+
+.configurator_preview_bg {
+  background: built-in(ui-mc:RECT_BLACK);
+  padding-all: 3;
+}
+
+// button
+button:host {
+  base-background: built-in(ui-mc:RECT_BORDER);
+  hover-background: built-in(ui-mc:RECT_3);
+  pressed-background: built-in(ui-mc:RECT_3) color(#dddddd);
+  padding-all: 3;
+  height: 16;
+}
+
+// text-field
+text-field:host,
+.__tag-field_text-field__,
+.__search-component_text-field__ {
+  background: built-in(ui-mc:RECT_5);
+  focus-overlay: built-in(ui-mc:RECT_6);
+  // height: 14;
+  padding-all: 2;
+}
+
+// search-component
+search-component:host {
+  background: built-in(ui-mc:RECT_5);
+  height: 16;
+  focus-overlay: built-in(ui-mc:RECT_6);
+}
+
+// switch
+switch:host {
+  base-background: built-in(ui-mc:RECT_2);
+  pressed-background: group(built-in(ui-mc:RECT_1), rect(#af00ff00) scale(0.9, 0.8));
+  //pressed-background: built-in(ui-mc:RECT_1);
+  unmark-background: built-in(ui-mc:SCROLLER_H);
+  mark-background: built-in(ui-mc:SCROLLER_H);
+  padding-all: 1;
+}
+
+// selector
+selector:host {
+  background: built-in(ui-mc:RECT_BORDER);
+  focus-overlay: built-in(ui-mc:RECT_6);
+  // height: 16;
+}
+
+.__selector_button-icon__ {
+  background: sprite(ldlib2:textures/gui/down.png) scale(0.6);
+}
+
+.__selector_dialog__, .__search-component_dialog__ {
+  background: built-in(ui-mc:RECT_4);
+}
+
+// progress-bar
+progress-bar:host {
+  height: 16;
+}
+
+.__progress-bar_bar-container__ {
+  background: built-in(ui-mc:BORDER);
+}
+
+// slot
+item-slot {
+  background: built-in(ui-mc:RECT_1);
+}
+
+fluid-slot {
+  background: built-in(ui-mc:RECT_2);
+}
+
+// color-selector
+color-selector:host text-field {
+  background: built-in(ui-mc:RECT_5);
+  focus-overlay: built-in(ui-mc:RECT_6);
+  height: 16;
+  padding-all: 2;
+}
+
+color-selector:host button {
+  base-background: built-in(ui-mc:RECT_BORDER);
+  hover-background: built-in(ui-mc:RECT_3);
+  pressed-background: built-in(ui-mc:RECT_3);
+}
+
+color-selector:host .__color-selector_alpha-slider__ {
+  background: built-in(ui-mc:RECT_1);
+  margin-right: 2;
+  padding-all: 1;
+}
+
+color-selector:host .__color-selector_color-slider__ {
+  background: built-in(ui-mc:RECT_1);
+  margin-bottom: 2;
+  padding-all: 1;
+}
+
+color-selector:host .__color-selector_color-preview__ {
+  background: built-in(ui-mc:RECT_1);
+  margin-right: 2;
+  margin-bottom: 2;
+  padding-all: 1;
+}
+
+// toggle
+.__toggle_button__ {
+  base-background: built-in(ui-mc:RECT_2);
+  pressed-background: built-in(ui-mc:RECT_2);
+  hover-background: group(built-in(ui-mc:RECT_2), built-in(ui-mc:RECT_6));
+}
+
+// text-area
+text-area {
+  scroller-view-margin: 10;
+}
+
+text-area:host {
+  focus-overlay: built-in(ui-mc:RECT_6);
+}
+
+.__text-area_content-view__ {
+  background: built-in(ui-mc:RECT_5);
+  padding-all: 2;
+}
+
+.__text-area_horizontal-scroller__ {
+  height: 8;
+  margin-top: 2;
+}
+
+.__text-area_vertical-scroller__ {
+  width: 8;
+  margin-left: 2;
+}
+
+// scroller
+scroller-horizontal:host {
+  height: 14;
+}
+
+scroller-vertical:host {
+  width: 14;
+}
+
+.__scroller_scroll_container__ {
+  background: built-in(ui-mc:RECT_1);
+}
+
+scroller-horizontal .__scroller_scroll_bar__ {
+  base-background: built-in(ui-mc:SCROLLER_H);
+  hover-background: built-in(ui-mc:SCROLLER_H_DARK);
+  pressed-background: built-in(ui-mc:SCROLLER_H_DARK) color(#dddddd);
+}
+
+scroller-vertical .__scroller_scroll_bar__ {
+  base-background: built-in(ui-mc:SCROLLER_V);
+  hover-background: built-in(ui-mc:SCROLLER_V_DARK);
+  pressed-background: built-in(ui-mc:SCROLLER_V_DARK) color(#dddddd);
+}
+
+.__scroller_head_button__ {
+  display: none;
+}
+
+.__scroller_tail_button__ {
+  display: none;
+}
+
+
+scroller-view {
+  scroller-view-margin: 10;
+}
+
+.__scroller_view_view-port__ {
+  background: built-in(ui-mc:RECT_1);
+  padding-all: 2;
+}
+
+.__scroller_view_horizontal-scroller__ {
+  height: 8;
+  margin-top: 2;
+}
+
+.__scroller_view_vertical-scroller__ {
+  width: 8;
+  margin-left: 2;
+}
+
+// tab
+.__tab-view_tab_content_container__ {
+  background: built-in(ui-mc:BORDER_4);
+}
+
+tab-view .__tab-view_tab_scroller__ {
+  margin-bottom: -4;
+}
+
+tab:host {
+  base-background: built-in(ui-mc:TAB_OFF);
+  hover-background: built-in(ui-mc:TAB_OFF) color(#ddd);
+  pressed-background: built-in(ui-mc:TAB_ON);
+  padding-all: 4;
+  height: 18;
+}
+
+// dialog
+.__dialog_title__ {
+  background: built-in(ui-mc:BORDER);
+  transform: translateY(1);
+}
+
+.__dialog_content-container__ {
+  background: built-in(ui-mc:RECT_THIN);
+}
+
+.__dialog_button-container__ {
+  background: built-in(ui-mc:RECT_THIN);
+  transform: translateY(-1);
+}
+
+// menu
+menu {
+  background: built-in(ui-mc:RECT_BLACK);
+}
+
+// for editor
+.__editor__ code-editor {
+  background: built-in(ui-mc:RECT_5);
+}
+
+.__editor_top__ {
+  background: built-in(ui-mc:RECT_3);
+}
+
+.__view-container__ {
+  background: built-in(ui-mc:RECT_2);
+}
+
+ResourceView tab:host {
+  base-background: empty;
+  hover-background: built-in(ui-mc:RECT_THIN);
+  pressed-background: built-in(ui-mc:RECT_THIN);
+  width: 16;
+  height: 16;
+  padding-all: 2;
+  margin-all: 0;
+}
+
+ResourceView .__tab-view_tab_header_container__ {
+  background: empty;
+  padding-vertical: 4;
+  padding-horizontal: 0;
+  transform: translateY(-2);
+}
+
+ResourceView .__tab-view_tab_content_container__ {
+  padding-vertical: 0;
+  background: empty;
+}
+
+.__ui-editor-view__ graph-view {
+  background: built-in(ui-mc:RECT_1);
+}
+
+.__ui-editor-view__ {
+  gap-all: 3;
+  padding-all: 1;
+}
+
+.__ui-editor-view_header__ {
+  background: built-in(ui-mc:RECT_INVERSE);
+  padding-all: 3;
+  height: 20;
+}
+
+.__ui-editor-view_header__ button {
+  height: 14;
+}
+
+.__ui-editor-view_header__ .__toggle_button__ {
+  base-background: built-in(ui-mc:RECT_4);
+  pressed-background: built-in(ui-mc:RECT_2);
+  hover-background: built-in(ui-mc:RECT_2);
+}
+
+.__ui-editor-view_canvas__ {
+  background: built-in(ui-mc:RECT_2);
+}
+
+.__ui-editor-view_builtin-styles-toggle__ {
+  padding-all: 0;
+  mark-background: built-in(ui-mc:RECT_6);
+}
+
+.__ui-editor-view_style-view__ {
+  background: built-in(ui-mc:RECT_INVERSE);
+  padding-all: 3;
+  gap-all: 1;
+}
+
+.__editor-window_active__ {
+  background: built-in(ui-mc:RECT_2)
+}
+
+.__editor-window_inactive__ {
+  background: built-in(ui-mc:RECT_3)
+}
+
+// configurator
+.__configurator-group__ .__configurator-group_container__ {
+  background: built-in(ui-mc:BORDER);
+  padding-all: 6;
+}
+
+.__configurator-group__ > .__configurator_line__ {
+  background: built-in(ui-mc:RECT_THIN);
+}
+
+ToggleSelectorConfigurator toggle {
+  mark-background: built-in(ui-mc:SWITCH);
+}
+
+.__array-configurator_button-group__ {
+  background: built-in(ui-mc:BORDER);
+}
+
+.__array-configurator_item_selected__ {
+  background: built-in(ui-mc:RECT_BORDER);
+}

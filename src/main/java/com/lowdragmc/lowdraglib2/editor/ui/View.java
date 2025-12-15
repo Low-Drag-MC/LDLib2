@@ -18,6 +18,7 @@ import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaGutter;
 
 import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 public class View extends UIElement {
     @Getter @Setter
@@ -32,6 +33,9 @@ public class View extends UIElement {
     @Setter
     private Runnable onRemove;
     // runtime
+    @Setter
+    @Nullable
+    protected Supplier<Component> dynamicName;
     @Getter
     @Nullable
     private ViewContainer viewContainer;
@@ -73,14 +77,19 @@ public class View extends UIElement {
      * Get the name of the view.
      */
     protected Component getViewName() {
-        return Component.translatable(name);
+        return dynamicName == null ? Component.translatable(name) : dynamicName.get();
     }
 
     /**
      * Create a tab for this view which will be displayed in the window's tab view.
      */
     public Tab createTab() {
-        var tab = new Tab().setText(getViewName());
+        var tab = new Tab();
+        if (dynamicName == null) {
+            tab.setText(getViewName());
+        } else {
+            tab.setDynamicText(this::getViewName);
+        }
         if (icon != IGuiTexture.EMPTY && icon != null) {
             tab.getLayout().setGap(YogaGutter.ALL, 2);
             tab.addChildAt(new UIElement().layout(layout -> {

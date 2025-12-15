@@ -339,7 +339,7 @@ public class UIEditorView extends View {
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
         addEventListener(UIEvents.BLUR, this::onBlur, true);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown, true);
-
+        dynamicName = () -> Component.translatable(getName());
         addChildren(header, canvas, editor);
     }
 
@@ -547,17 +547,11 @@ public class UIEditorView extends View {
 
     @Override
     protected Component getViewName() {
-        var viewName = Component.translatable(getName());
+        var viewName = super.getViewName();
         if (isDirty) {
-            return viewName.append(" *");
+            return viewName.copy().append(" *");
         }
         return viewName;
-    }
-
-    @Override
-    public Tab createTab() {
-        var tab = super.createTab();
-        return tab.setDynamicText(this::getViewName);
     }
 
     @Override

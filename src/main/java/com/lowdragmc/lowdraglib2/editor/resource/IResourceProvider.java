@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
@@ -70,15 +69,6 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
 v     */
     default String getResourceName(IResourcePath path) {
         return path.getResourceName();
-    }
-
-    /**
-     * Create a container ui for this resource provider.
-     * This is used to display the resources in the UI.
-     * @return a new ResourceProviderContainer for this provider.
-     */
-    default ResourceProviderContainer<T> createContainer() {
-        return new ResourceProviderContainer<>(this);
     }
 
     default T getResourceOrDefault(IResourcePath path, T defaultValue) {

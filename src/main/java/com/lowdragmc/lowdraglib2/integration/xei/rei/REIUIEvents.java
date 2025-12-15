@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.integration.xei.rei;
 
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.experimental.UtilityClass;
 
+@KJSBindings(modId = "rei")
 @UtilityClass
 public final class REIUIEvents {
     public static final String FOCUSED_STACK = "focusedStack";

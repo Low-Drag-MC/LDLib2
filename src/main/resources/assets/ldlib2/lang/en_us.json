@@ -480,5 +480,6 @@
   "settings.ldlib2.behavior": "Behavior",
   "editor.minimized.title": "Editor Tips",
   "editor.minimized.tips": "Welcome Back!",
-  "EditorAllowXEILookup": "Editor Allow XEI Lookup"
+  "EditorAllowXEILookup": "Editor Allow XEI Lookup",
+  "ui_template": "UI Template"
 }

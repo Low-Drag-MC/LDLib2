@@ -31,21 +31,13 @@ public final class LDMenuTypes {
             () -> IMenuTypeExtension.create(BlockUIMenuType::create));
 
     public static void init(IEventBus eventBus) {
-        PlayerUIMenuType.register(UIEditor.UI_ID, player -> new PlayerUIMenuType.PlayerUIHolder() {
-            @Override
-            public @Nonnull ResourceLocation getUIId() {
-                return UIEditor.UI_ID;
+        PlayerUIMenuType.register(UIEditor.UI_ID, ignored -> player -> {
+            if (player.level().isClientSide) {
+                return new ModularUI(UI.of(EditorWindow.open(UIEditor.UI_ID, UIEditor::new)))
+                        .shouldCloseOnEsc(false)
+                        .shouldCloseOnKeyInventory(false);
             }
-
-            @Override
-            public @Nonnull ModularUI createUI(@Nonnull Player player) {
-                if (player.level().isClientSide) {
-                    return new ModularUI(UI.of(EditorWindow.open(UIEditor.UI_ID, UIEditor::new)))
-                            .shouldCloseOnEsc(false)
-                            .shouldCloseOnKeyInventory(false);
-                }
-                return new ModularUI(UI.empty());
-            }
+            return new ModularUI(UI.empty());
         });
 
         if (LDLib2.isKubejsLoaded()) {

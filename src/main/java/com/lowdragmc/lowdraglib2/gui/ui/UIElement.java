@@ -761,7 +761,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * @param origin       the origin of the style property.
      * @return this {@code UIElement} instance for method chaining.
      */
-    public UIElement lss(String propertyName, @Nullable String rawValue, StyleOrigin origin) {
+    public UIElement lss(String propertyName, @Nullable Object rawValue, StyleOrigin origin) {
         var p = PropertyRegistry.byName(propertyName);
         if (p == null) {
             return this;
@@ -773,16 +773,15 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                     slot.specificity() == 999 &&
                     slot.sourceOrder() == 999);
         } else {
-            var value = p.valueParser.parse(rawValue);
+            var value = p.valueParser.parse(rawValue.toString());
             styleBag.replaceOrPutCandidate(p, StyleSlot.of(p, origin, 999, 999, value.compute()));
         }
         return this;
     }
 
-    public UIElement lss(String propertyName, @Nullable String rawValue) {
+    public UIElement lss(String propertyName, @Nullable Object rawValue) {
         return lss(propertyName, rawValue, StyleOrigin.STYLESHEET);
     }
-
 
     public UIElement transform(Consumer<Transform2D> transform) {
         var t = style.transform2D().copy();

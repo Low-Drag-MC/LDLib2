@@ -11,7 +11,6 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 
 public final class RPCMethodMeta implements RPCPacketHandler {
     @Getter

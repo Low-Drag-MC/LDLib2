@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.integration.xei.emi;
 
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.experimental.UtilityClass;
 
+@KJSBindings(modId = "emi")
 @UtilityClass
 public final class EMIUIEvents {
     // TODO Documents necessary

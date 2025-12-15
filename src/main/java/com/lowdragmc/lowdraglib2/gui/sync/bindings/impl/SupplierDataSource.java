@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Data(staticConstructor = "of")
@@ -30,6 +31,10 @@ public final class SupplierDataSource<T> implements IDataProvider<T>, ITickable 
     private SupplierDataSource(Supplier<T> supplier) {
         this.supplier = supplier;
         this.lastValue = supplier.get();
+    }
+
+    public <D> SupplierDataSource<D> map(Function<T, D> mapper) {
+        return SupplierDataSource.of(() -> mapper.apply(getValue()));
     }
 
     @Override

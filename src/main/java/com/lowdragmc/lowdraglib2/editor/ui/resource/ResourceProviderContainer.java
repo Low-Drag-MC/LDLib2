@@ -417,20 +417,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                         count++;
                         newPath = resourceProvider.createSubPath(newName + " (" + count + ")");
                     }
-                    IResourcePath finalNewPath = newPath;
-                    editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(() -> {
-                        resourceProvider.addResource(finalNewPath, resourceProvider.getResource(key));
-                        resourceProvider.removeResource(key);
-                        removeResource(key, false);
-                        appendResourceUI(finalNewPath);
-                        selectResource(finalNewPath);
-                    }, () -> {
-                        resourceProvider.addResource(key, resourceProvider.getResource(finalNewPath));
-                        resourceProvider.removeResource(finalNewPath);
-                        removeResource(finalNewPath, false);
-                        appendResourceUI(key);
-                        selectResource(key);
-                    }));
+                    onRename(key, newPath);
                 });
                 textField.addEventListener(UIEvents.KEY_DOWN, e -> {
                     if (e.keyCode == GLFW.GLFW_KEY_ENTER) {
@@ -445,6 +432,22 @@ public class ResourceProviderContainer<T> extends UIElement {
                 textField.focus();
             }
         }
+    }
+
+    protected void onRename(IResourcePath oldPath, IResourcePath newPath) {
+        editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(() -> {
+            resourceProvider.addResource(newPath, resourceProvider.getResource(oldPath));
+            resourceProvider.removeResource(oldPath);
+            removeResource(oldPath, false);
+            appendResourceUI(newPath);
+            selectResource(newPath);
+        }, () -> {
+            resourceProvider.addResource(oldPath, resourceProvider.getResource(newPath));
+            resourceProvider.removeResource(newPath);
+            removeResource(newPath, false);
+            appendResourceUI(oldPath);
+            selectResource(oldPath);
+        }));
     }
 
 }

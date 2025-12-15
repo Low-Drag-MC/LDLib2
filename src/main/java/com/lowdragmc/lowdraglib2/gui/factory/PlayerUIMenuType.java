@@ -9,13 +9,14 @@ import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class PlayerUIMenuType {
     private final static Map<ResourceLocation, Function<Player, PlayerUIHolder>> UI_HOLDERS = new ConcurrentHashMap<>();
 
@@ -41,7 +42,23 @@ public class PlayerUIMenuType {
         if (!UI_HOLDERS.containsKey(id)) return false;
         var holder = UI_HOLDERS.get(id).apply(player);
         if (holder == null) return false;
-        player.openMenu(holder);
+        player.openMenu(new MenuProvider() {
+            @Override
+            public Component getDisplayName() {
+                return Component.translatable(id.toLanguageKey());
+            }
+
+            @Override
+            public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
+                return new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), containerId, playerInventory, holder);
+            }
+
+
+            @Override
+            public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
+                buffer.writeResourceLocation(id);
+            }
+        });
         return true;
     }
 
@@ -52,31 +69,12 @@ public class PlayerUIMenuType {
         return new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), windowId, inv, holder);
     }
 
-    @ParametersAreNonnullByDefault
-    @MethodsReturnNonnullByDefault
-    public interface PlayerUIHolder extends MenuProvider, IContainerUIHolder {
 
-        ResourceLocation getUIId();
-
+    @FunctionalInterface
+    public interface PlayerUIHolder extends IContainerUIHolder {
         @Override
         default boolean isStillValid(Player player) {
             return true;
-        }
-
-        @Override
-        default Component getDisplayName() {
-            return Component.translatable(getUIId().toLanguageKey());
-        }
-
-        @Override
-        @Nullable
-        default ModularUIContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-            return new ModularUIContainerMenu(LDMenuTypes.PLAYER_UI.get(), containerId, playerInventory, this);
-        }
-
-        @Override
-        default void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
-            buffer.writeResourceLocation(getUIId());
         }
     }
 }

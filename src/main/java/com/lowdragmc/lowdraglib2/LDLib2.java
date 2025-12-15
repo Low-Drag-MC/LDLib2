@@ -89,6 +89,15 @@ public class LDLib2 {
         return false;
     }
 
+    public static boolean isServer() {
+        if (!isClient()) return true;
+        var server = Platform.getMinecraftServer();
+        if (server != null) {
+            return server.isSameThread();
+        }
+        return false;
+    }
+
     public static boolean isModLoaded(String mod) {
         return Platform.isModLoaded(mod);
     }

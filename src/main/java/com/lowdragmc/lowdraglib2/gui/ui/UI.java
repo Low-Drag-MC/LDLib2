@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.math.Size;
 import lombok.Data;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -41,6 +42,10 @@ public final class UI {
 
     public static UI of(UIElement rootElement, List<Stylesheet> stylesheets) {
         return of(rootElement, stylesheets, null);
+    }
+
+    public static UI of(UIElement rootElement, Stylesheet... stylesheets) {
+        return of(rootElement, Arrays.stream(stylesheets).toList(), null);
     }
 
     public static UI of(UIElement rootElement, @Nullable DynamicSizeProvider dynamicSize) {

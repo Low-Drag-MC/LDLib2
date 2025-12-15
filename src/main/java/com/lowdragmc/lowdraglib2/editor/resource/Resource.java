@@ -73,7 +73,7 @@ public abstract class Resource<T> {
      * e.g. how to add a new resource, how to display the resource in the UI, etc.
      */
     public ResourceProviderContainer<T> createResourceProviderContainer(IResourceProvider<T> provider) {
-        return provider.createContainer();
+        return new ResourceProviderContainer<>(provider);
     }
 
     public Component getDisplayName() {
