@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
@@ -13,16 +14,20 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     public final Resource<T> resource;
-    private final BuiltinResourceProvider<T> builtinProvider = new BuiltinResourceProvider<>(this);
-    private final PackResourceProvider<T> packProvider = new PackResourceProvider<>(this);
-    private final Map<File, FileResourceProvider<T>> fileResourceProviders = new LinkedHashMap<>();
+
+    @Getter
+    private final Map<ResourceProviderType, List<IResourceProvider<T>>> builtinProviders = new LinkedHashMap<>();
+    @Getter
+    private final Map<ResourceProviderType, List<IResourceProvider<T>>> customProviders = new LinkedHashMap<>();
+    // runtime
+    private final Map<IResourcePath, T> cache = new ConcurrentHashMap<>();
+    private final PackFileResourceProvider<T> packFileProvider = new PackFileResourceProvider<>(this);
+
     @Getter
     private Resource.DisplayMode displayMode;
     @Getter
@@ -42,18 +47,12 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
             var data = NbtIo.read(metaFile.toPath());
             if (data != null) {
                 deserializeNBT(Platform.getFrozenRegistry(), data);
-                return;
             }
         } catch (Exception ignored) {}
-        buildDefault();
     }
 
     protected void buildBuiltin() {
-        this.resource.buildBuiltin(builtinProvider);
-    }
-
-    protected void buildDefault() {
-        this.resource.buildDefault(this);
+        this.resource.buildBuiltin(this);
     }
 
     protected void saveResource() {
@@ -72,45 +71,52 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         }
     }
 
-    public List<ResourceProvider<T>> getFileResourceProviders() {
-        var list = new ArrayList<ResourceProvider<T>>(fileResourceProviders.values());
-        list.addFirst(builtinProvider);
-        return list;
+    public void clearCache() {
+        cache.clear();
     }
 
     @Nullable
     public T getResource(IResourcePath path) {
-        if (path instanceof BuiltinPath builtinPath) {
-            return builtinProvider.getResource(builtinPath);
-        } else if (path instanceof FilePath filePath) {
-            var key = filePath.file.getParentFile();
-            var provider = fileResourceProviders.get(key);
-            if (provider != null && provider.supportResourcePath(path)) {
-                var resource = provider.getResource(path);
-                if (resource != null) return resource;
-            }
-            if (packProvider.supportResourcePath(path)) {
-                return packProvider.getResource(path);
-            }
+        if (path == null) {
+            return null;
         }
-        return null;
+        if (!cache.containsKey(path)) {
+            var type = path.getType();
+            var result = builtinProviders.getOrDefault(type, Collections.emptyList()).stream()
+                    .map(provider -> provider.getResource(path))
+                    .filter(Objects::nonNull).findFirst();
+            if (result.isPresent()) {
+                cache.put(path, result.get());
+                return result.get();
+            }
+            result = customProviders.getOrDefault(type, Collections.emptyList()).stream()
+                    .map(provider -> provider.getResource(path))
+                    .filter(Objects::nonNull).findFirst();
+            if (result.isPresent()) {
+                cache.put(path, result.get());
+                return result.get();
+            }
+            var resource = packFileProvider.getResource(path);
+            if (resource == null) return null;
+            cache.put(path, resource);
+        }
+        return cache.get(path);
     }
 
-    /**
-     * Add a resource provider to this resource.
-     */
-    public void addFileResourceProvider(FileResourceProvider<T> provider) {
-        if (fileResourceProviders.containsKey(provider.resourceLocation)) return;
-        fileResourceProviders.put(provider.resourceLocation, provider);
-        saveResource();
+    public List<Map.Entry<IResourcePath, T>> listAllResources() {
+        var resources = new ArrayList<Map.Entry<IResourcePath, T>>();
+        listProviderResources(resources, builtinProviders);
+        listProviderResources(resources, customProviders);
+        return Collections.unmodifiableList(resources);
     }
 
-    /**
-     * Remove a resource provider from this resource.
-     */
-    public void removeResourceProvider(FileResourceProvider<T> provider) {
-        if (fileResourceProviders.remove(provider.resourceLocation) != null) {
-            saveResource();
+    private void listProviderResources(List<Map.Entry<IResourcePath, T>> resources, Map<ResourceProviderType, List<IResourceProvider<T>>> customProviders) {
+        for (List<IResourceProvider<T>> providers : customProviders.values()) {
+            for (IResourceProvider<T> provider : providers) {
+                for (Map.Entry<IResourcePath, T> entry : provider) {
+                    resources.add(entry);
+                }
+            }
         }
     }
 
@@ -126,53 +132,107 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         saveResource();
     }
 
-    /**
-     * Whether this resource can add a file resource provider. This is used to determine whether the button should be displayed in the UI.
-     */
-    public boolean canAddFileResourceProvider() {
-        return true;
+    public void addBuiltinProvider(IResourceProvider<T> provider) {
+        addResourceProvider(builtinProviders, provider);
     }
 
-    /**
-     * Whether this resource can remove a resource provider. This is used to determine whether the remove button should be displayed in the UI.
-     * By default, only FileResourceProvider can be removed.
-     */
-    public boolean canRemoveResourceProvider(ResourceProvider<T> provider) {
-        return provider instanceof FileResourceProvider<T>;
+    public void addCustomProvider(IResourceProvider<T> provider) {
+        addResourceProvider(customProviders, provider);
+        saveResource();
     }
 
-    /**
-     * Create a new file resource provider for this resource. This is used to create a new resource provider that can read and write resources from files.
-     */
-    public FileResourceProvider<T> createNewFileResourceProvider(File directory) {
-        return new FileResourceProvider<>(this, directory);
+    public void removeBuiltinProvider(IResourceProvider<T> provider) {
+        removeResourceProvider(builtinProviders, provider);
+        clearCache();
+    }
+
+    public void removeCustomProvider(IResourceProvider<T> provider) {
+        removeResourceProvider(customProviders, provider);
+        saveResource();
+        clearCache();
+    }
+
+    private void addResourceProvider(Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
+        var type = provider.getType();
+        if (resourceProviders.containsKey(type)) {
+            var providers = resourceProviders.get(type);
+            if (!providers.contains(provider)) {
+                providers.add(provider);
+            }
+        } else {
+            var list = new ArrayList<IResourceProvider<T>>();
+            list.add(provider);
+            resourceProviders.put(type, list);
+        }
+    }
+
+    private void removeResourceProvider(Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
+        var type = provider.getType();
+        if (resourceProviders.containsKey(type)) {
+            var providers = resourceProviders.get(type);
+            providers.remove(provider);
+            if (providers.isEmpty()) {
+                resourceProviders.remove(type);
+            }
+        }
     }
 
     @Override
     public @Nonnull CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
         var data = new CompoundTag();
-        var providerList = new ListTag();
-        for (var resourceProvider : fileResourceProviders.values()) {
-            providerList.add(resourceProvider.serializeNBT());
-        }
-        data.put("fileProviders", providerList);
+
         data.putString("displayMode", displayMode.name());
         data.putInt("uiWidth", uiWidth);
+
+        var customProviders = new CompoundTag();
+        for (var type : LDLib2Registries.RESOURCE_PROVIDER_TYPES) {
+            if (type.supportCustom()) {
+                var list = new ListTag();
+                for (var rp : this.customProviders.getOrDefault(type, Collections.emptyList())) {
+                    var nbt = rp.serializeNBT();
+                    if (nbt == null) continue;
+                    list.add(nbt);
+                }
+                if (!list.isEmpty()) {
+                    customProviders.put(type.getTypeName(), list);
+                }
+            }
+        }
+        data.put("customProviders", customProviders);
         return data;
     }
 
     @Override
     public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt) {
-        fileResourceProviders.clear();
-        var providerList = nbt.getList("fileProviders", Tag.TAG_COMPOUND);
-        for (var tag : providerList) {
-            var fileResourceProvider = FileResourceProvider.fromNBT(this, (CompoundTag) tag);
-            fileResourceProviders.put(fileResourceProvider.resourceLocation, fileResourceProvider);
-        }
+        clearCache();
+        customProviders.clear();
+
         try {
             displayMode = Resource.DisplayMode.valueOf(nbt.getString("displayMode"));
         } catch (IllegalArgumentException ignored) {}
         uiWidth = nbt.getInt("uiWidth");
-    }
 
+        // compatible with previous
+        if (nbt.contains("fileProviders")) {
+            var providerList = nbt.getList("fileProviders", Tag.TAG_COMPOUND);
+            for (var tag : providerList) {
+                var fileResourceProvider = FileResourceProvider.fromNBT(this, (CompoundTag) tag);
+                if (fileResourceProvider.getName().equals("global")) continue;
+                addResourceProvider(customProviders, fileResourceProvider);
+            }
+        } else {
+            var customProviders = nbt.getCompound("customProviders");
+            for (var type : LDLib2Registries.RESOURCE_PROVIDER_TYPES) {
+                if (type.supportCustom()) {
+                    var list = customProviders.getList(type.getTypeName(), Tag.TAG_COMPOUND);
+                    for (var tag : list) {
+                        var rp = type.fromNbt(this, (CompoundTag) tag);
+                        if (rp != null) {
+                            addResourceProvider(this.customProviders, rp);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

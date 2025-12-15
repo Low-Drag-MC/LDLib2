@@ -6,8 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Player;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerMenu;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -23,13 +23,14 @@ public interface IContainerUIHolder {
      * and managed through a {@link UISyncManager}.
      * This method is typically used to create a user interface for remote
      *
-     * @param player the {@link Player} for whom the UI is being created; represents
-     *               the user interacting with the interface.
-     * @param syncManager an instance of {@link UISyncManager} responsible for
-     *                    managing synchronization between the client and server for the UI.
+     * @param player      the {@link Player} for whom the UI is being created; represents
+     *                    the user interacting with the interface.
      * @return the created {@link ModularUI} instance that handles the interface logic.
      */
     ModularUI createUI(Player player);
 
+    /**
+     * Determines if the UI is still valid for the specified player.
+     */
     boolean isStillValid(Player player);
 }

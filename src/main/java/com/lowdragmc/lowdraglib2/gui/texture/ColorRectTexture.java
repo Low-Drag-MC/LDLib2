@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -16,6 +17,7 @@ import java.util.function.IntSupplier;
 
 @LDLRegisterClient(name = "color_rect_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
+@KJSBindings
 public class ColorRectTexture extends TransformTexture{
 
     @Configurable

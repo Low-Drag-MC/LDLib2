@@ -6,12 +6,10 @@ import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -29,17 +27,18 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaWrap;
-import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.List;
 
-@LDLRegister(name="ui_sync", registry = "menu_test")
+@LDLRegister(name="ui_sync", registry = "ldlib2:menu_test")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class TestSync implements IMenuTest {
     private final FluidTank fluidTank = new FluidTank(2000);
+    private final FluidTank phantomTank = new FluidTank(2000);
+    private final FluidTank phantomTank2 = new FluidTank(2000);
     private final ItemStackHandler itemHandler = new ItemStackHandler(10);
     @Nullable
     private Block block = null;
@@ -75,7 +74,21 @@ public class TestSync implements IMenuTest {
                 new ItemSlot().bind(itemHandler, 0),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 2).setCanPlace(itemStack -> itemStack.is(Items.STONE))),
+                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)).addChildren(
+                        new ItemSlot().xeiPhantom().bind(DataBindingBuilder.itemStack(
+                                () -> itemHandler.getStackInSlot(3),
+                                itemStack -> itemHandler.setStackInSlot(3, itemStack)
+                        ).build()),
+                        new ItemSlot().xeiPhantom().bind(DataBindingBuilder.itemStack(
+                                () -> itemHandler.getStackInSlot(4),
+                                itemStack -> itemHandler.setStackInSlot(4, itemStack)
+                        ).build())
+                ),
                 new FluidSlot().bind(fluidTank, 0),
+                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)).addChildren(
+                        new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank::getFluid, phantomTank::setFluid).build()),
+                        new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank2::getFluid, phantomTank2::setFluid).build())
+                ),
                 new Button().addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
                     if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
                         fluidTank.setFluid(new FluidStack(Fluids.LAVA, fluidTank.getFluid().getAmount()));
@@ -96,8 +109,7 @@ public class TestSync implements IMenuTest {
                     }
 
                     @Override
-                    @Nonnull
-                    public String resultDisplay(@NotNull Block value) {
+                    public String resultText(Block value) {
                         return BuiltInRegistries.BLOCK.getKey(value).toString();
                     }
 
@@ -111,6 +123,6 @@ public class TestSync implements IMenuTest {
                 )).setSearchOnServer(Block[].class).bind(DataBindingBuilder
                         .create(() -> block, b -> block = b).syncType(Block.class).build())
         );
-        return new ModularUI(UI.of(root), player);
+        return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheetSafe(StylesheetManager.MC))), player);
     }
 }

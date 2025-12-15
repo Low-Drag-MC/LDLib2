@@ -1,57 +1,123 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
+@LDLRegister(name = "selector", group = "basic", registry = "ldlib2:ui_element")
 public class Selector<T> extends BindableUIElement<T> {
-    @Accessors(chain = true, fluent = true)
-    public static class SelectorStyle extends Style {
-        @Getter @Setter
-        private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
-        @Getter @Setter
-        private int maxItemCount = 5; // if more than this, use scroller view.
-        @Getter @Setter
-        private int scrollerViewHeight = 50;
-        @Getter @Setter
-        private boolean showOverlay = true;
-        @Getter @Setter
-        private boolean closeAfterSelect = true;
+    @Configurable(name = "SelectorStyle")
+    public class SelectorStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.FOCUS_OVERLAY,
+                PropertyRegistry.MAX_ITEM,
+                PropertyRegistry.VIEW_HEIGHT,
+                PropertyRegistry.SHOW_OVERLAY,
+                PropertyRegistry.CLOSE_AFTER_SELECT,
+        };
 
-        public SelectorStyle(UIElement holder) {
-            super(holder);
+        protected SelectorStyle() {
+            super(Selector.this);
+            setDefault(PropertyRegistry.FOCUS_OVERLAY, Sprites.RECT_RD_T_SOLID);
+        }
+
+        public static void init() {
+            PropertyRegistry.MAX_ITEM.addListener(Selector.SelectorStyle::onPropertyChanged);
+            PropertyRegistry.VIEW_HEIGHT.addListener(Selector.SelectorStyle::onPropertyChanged);
+            PropertyRegistry.SHOW_OVERLAY.addListener(Selector.SelectorStyle::onPropertyChanged);
+        }
+
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof Selector<?> selector) {
+                selector.onSelectorStyleChanged();
+            }
+        }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public IGuiTexture focusOverlay() {
+            return getValueSave(PropertyRegistry.FOCUS_OVERLAY);
+        }
+
+        public SelectorStyle focusOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.FOCUS_OVERLAY, texture);
+            return this;
+        }
+
+        public int maxItemCount() {
+            return getValueSave(PropertyRegistry.MAX_ITEM);
+        }
+
+        public SelectorStyle maxItemCount(int maxItemCount) {
+            set(PropertyRegistry.MAX_ITEM, maxItemCount);
+            return this;
+        }
+
+        public float scrollerViewHeight() {
+            return getValueSave(PropertyRegistry.VIEW_HEIGHT);
+        }
+
+        public SelectorStyle scrollerViewHeight(float height) {
+            set(PropertyRegistry.VIEW_HEIGHT, height);
+            return this;
+        }
+
+        public boolean showOverlay() {
+            return getValueSave(PropertyRegistry.SHOW_OVERLAY);
+        }
+
+        public SelectorStyle showOverlay(boolean showOverlay) {
+            set(PropertyRegistry.SHOW_OVERLAY, showOverlay);
+            return this;
+        }
+
+        public boolean closeAfterSelect() {
+            return getValueSave(PropertyRegistry.CLOSE_AFTER_SELECT);
+        }
+
+        public SelectorStyle closeAfterSelect(boolean closeAfterSelect) {
+            set(PropertyRegistry.CLOSE_AFTER_SELECT, closeAfterSelect);
+            return this;
         }
     }
+
     public final UIElement display;
     public final UIElement preview;
     public final UIElement buttonIcon;
@@ -59,13 +125,19 @@ public class Selector<T> extends BindableUIElement<T> {
     public final UIElement listView;
     public final ScrollerView scrollerView;
     @Getter
-    private final SelectorStyle selectorStyle = new SelectorStyle(this);
+    private final SelectorStyle selectorStyle = new SelectorStyle();
     @Getter
     private List<T> candidates = List.of();
     private UIElementProvider<T> candidateUIProvider = UIElementProvider.text(value -> Component.translatable(value == null ? "---" : value.toString()));
     @Getter
     @Nullable
     private T value = null;
+
+    // editor support
+    @Configurable(name = "EditorCandidates")
+    private final List<String> editorCandidates = new ArrayList<>();
+    @Configurable(name = "DefaultValue")
+    private String defaultValue = "";
 
     // runtime
     protected final Map<T, Button> candidateButtons = new HashMap<>();
@@ -75,6 +147,7 @@ public class Selector<T> extends BindableUIElement<T> {
         getStyle().backgroundTexture(Sprites.RECT_RD_LIGHT);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         this.preview = new UIElement().layout(layout -> {
+            layout.setJustifyContent(YogaJustify.CENTER);
             layout.setHeightPercent(100);
             layout.setFlex(1);
         });
@@ -100,7 +173,6 @@ public class Selector<T> extends BindableUIElement<T> {
 
         this.dialog = new UIElement();
         this.dialog
-                .setId("selector#dialog")
                 .layout(layout -> {
                     layout.setHeight(StyleSizeLength.AUTO);
                     layout.setPositionType(YogaPositionType.ABSOLUTE);
@@ -140,6 +212,15 @@ public class Selector<T> extends BindableUIElement<T> {
         scrollerView.setDisplay(YogaDisplay.NONE);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
         addChildren(display);
+
+        this.dialog.addClass("__selector_dialog__");
+        this.preview.addClass("__selector_preview__");
+        this.buttonIcon.addClass("__selector_button-icon__");
+        this.listView.addClass("__selector_list-view__");
+        this.scrollerView.addClass("__selector_scroller-view__");
+
+        internalSetup();
+        this.dialog.markAsInternal();
     }
 
     public Selector<T> setCandidates(List<T> candidates) {
@@ -180,12 +261,12 @@ public class Selector<T> extends BindableUIElement<T> {
     private UIElement createItemUI(T candidate) {
         var candidateUI = new UIElement().layout(layout -> layout.setWidthPercent(100));
         var overlayButton = new Button();
-        overlayButton.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY)
-                        .hoverTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
-                        .pressedTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
+        overlayButton.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY)
+                        .hoverTexture(selectorStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
+                        .pressedTexture(selectorStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
                 .setOnClick(e -> {
                     setSelected(candidate);
-                    if (selectorStyle.closeAfterSelect) {
+                    if (selectorStyle.closeAfterSelect()) {
                         hide();
                     }
                 })
@@ -219,12 +300,12 @@ public class Selector<T> extends BindableUIElement<T> {
         // update overlay button style
         var currentValue = candidateButtons.get(this.value);
         if (currentValue != null) {
-            currentValue.buttonStyle(style -> style.defaultTexture(IGuiTexture.EMPTY));
+            currentValue.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY));
         }
         this.value = value;
         var button = candidateButtons.get(value);
         if (button != null) {
-            button.buttonStyle(style -> style.defaultTexture(selectorStyle.showOverlay ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
+            button.buttonStyle(style -> style.baseTexture(selectorStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY));
         }
         // update preview
         this.preview.clearAllChildren();
@@ -251,7 +332,7 @@ public class Selector<T> extends BindableUIElement<T> {
             } else {
                 show();
             }
-            Widget.playButtonClickSound();
+            UISoundUtils.playButtonClickSound();
         }
     }
 
@@ -261,15 +342,11 @@ public class Selector<T> extends BindableUIElement<T> {
 
     public Selector<T> selectorStyle(Consumer<SelectorStyle> style) {
         style.accept(getSelectorStyle());
-        onStyleChanged();
-        setupDialog();
         return this;
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        selectorStyle.applyStyles(values);
+    protected void onSelectorStyleChanged() {
+        setupDialog();
     }
 
     /// Logic
@@ -307,8 +384,44 @@ public class Selector<T> extends BindableUIElement<T> {
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
         if (isChildHover() || isFocused()) {
-            guiContext.drawTexture(getSelectorStyle().focusOverlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            guiContext.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);
+    }
+
+    /// Editor Support
+
+    @Override
+    public void beforeDeserialize() {
+        super.beforeDeserialize();
+        this.editorCandidates.clear();
+        this.defaultValue = "";
+    }
+
+    @SkipPersistedValue(field = "editorCandidates")
+    private boolean skipEditorCandidates(List<String> editorCandidates) {
+        return editorCandidates.isEmpty();
+    }
+
+    @SkipPersistedValue(field = "defaultValue")
+    private boolean skipDefaultValue(String defaultValue) {
+        return defaultValue.isEmpty();
+    }
+
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        if (!editorCandidates.isEmpty()) {
+            setCandidates((List) editorCandidates);
+        }
+        if (!defaultValue.isEmpty()) {
+            setValue((T) defaultValue, false);
+        }
+    }
+
+    @ConfigSetter(field = "defaultValue")
+    private void setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+        setValue((T) defaultValue, false);
     }
 }

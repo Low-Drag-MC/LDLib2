@@ -6,22 +6,29 @@ import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.client.scene.FBOWorldSceneRenderer;
+import com.lowdragmc.lowdraglib2.client.scene.ImmediateWorldSceneRenderer;
+import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.Optional;
 
+@KJSBindings
 public class IRendererResource extends Resource<IRenderer> {
     public static final IRendererResource INSTANCE = new IRendererResource();
 
@@ -52,27 +59,9 @@ public class IRendererResource extends Resource<IRenderer> {
     }
 
     @Override
-    public ResourceProviderContainer<IRenderer> createResourceProviderContainer(ResourceProvider<IRenderer> provider) {
+    public ResourceProviderContainer<IRenderer> createResourceProviderContainer(IResourceProvider<IRenderer> provider) {
         var container = super.createResourceProviderContainer(provider);
-        container.setUiSupplier(path -> {
-            var level = new TrackedDummyWorld();
-            level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(RendererBlock.BLOCK));
-            Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
-                if (blockEntity instanceof RendererBlockEntity holder) {
-                    holder.setRenderer(provider.getResource(path));
-                }
-            });
-            var fboRenderer = new FBOWorldSceneRenderer(level, 512, 512);
-            fboRenderer.setFov(40);
-            fboRenderer.addRenderedBlocks(List.of(BlockPos.ZERO), null);
-            fboRenderer.setCameraLookAt(new Vector3f(0.5f), 2.5, Math.toRadians(-135), Math.toRadians(25));
-            return new UIElement().layout(layout -> {
-                layout.setWidthPercent(100);
-                layout.setHeightPercent(100);
-            }).style(style -> style.backgroundTexture(fboRenderer.drawAsTexture()))
-                    // release resources here
-                    .addEventListener(UIEvents.REMOVED, e -> fboRenderer.releaseResource());
-        });
+        container.setUiSupplier(path -> ClientWrapper.uiProvider(provider, path));
         container.setOnEdit((c, path) -> {
             var renderer = provider.getResource(path);
             if (renderer == null) return;
@@ -95,4 +84,25 @@ public class IRendererResource extends Resource<IRenderer> {
         return container;
     }
 
+    private static class ClientWrapper {
+        private static UIElement uiProvider(IResourceProvider<IRenderer> provider, IResourcePath path) {
+            var level = new TrackedDummyWorld();
+            level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(RendererBlock.BLOCK));
+            Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
+                if (blockEntity instanceof RendererBlockEntity holder) {
+                    holder.setRenderer(provider.getResource(path));
+                }
+            });
+            var fboRenderer = new FBOWorldSceneRenderer(level, 512, 512);
+            fboRenderer.setFov(40);
+            fboRenderer.addRenderedBlocks(List.of(BlockPos.ZERO), null);
+            fboRenderer.setCameraLookAt(new Vector3f(0.5f), 2.5, Math.toRadians(-135), Math.toRadians(25));
+            return new UIElement().layout(layout -> {
+                        layout.setWidthPercent(100);
+                        layout.setHeightPercent(100);
+                    }).style(style -> style.backgroundTexture(fboRenderer.drawAsTexture()))
+                    // release resources here
+                    .addEventListener(UIEvents.REMOVED, e -> fboRenderer.releaseResource());
+        }
+    }
 }

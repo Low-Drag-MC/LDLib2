@@ -11,7 +11,6 @@
     "BlockStateModelLoaderMixin",
     "ItemModelShaperMixin",
     "ItemRendererMixin",
-    "LanguageMixin",
     "ModelBakeryMixin",
     "ObjModelMixin",
     "ParticleEngineAccessor",
@@ -23,16 +22,17 @@
     "SimpleTextureMixin",
     "SpriteSourceListMixin",
     "WorldRendererMixin",
-    "accessor.AbstractContainerScreenAccessor",
     "accessor.BufferBuilderAccessor",
     "accessor.MeshDataAccessor",
+    "accessor.MinecraftAccessor",
     "accessor.ModelBakeryAccessor",
     "accessor.MouseHandlerAccessor",
     "accessor.ObjModelAccessor",
     "accessor.ProgramTypeAccessor",
     "accessor.ShaderInstanceAccessor",
-    "emi.RecipeScreenMixin",
-    "emi.WidgetGroupMixin"
+    "ui.AbstractContainerScreenMixin",
+    "ui.ContainerEventHandlerMixin",
+    "ui.ScreenMixin"
   ],
   "mixins": [
     "BlockEntityMixin",
@@ -40,13 +40,13 @@
     "PackConfigMixin",
     "ReloadableResourceManagerMixin",
     "ReloadableServerResourcesMixin",
-    "accessor.AbstractContainerMenuAccessor",
-    "accessor.EntityAccessor",
-    "accessor.ServerPlayerAccessor",
+    "accessor.DelegatingOpsAccessor",
     "accessor.SlotAccessor",
-    "emi.EmiRenderHelperMixin",
-    "jei.RecipeSlotBuilderMixin",
-    "kjs.ServerScriptManagerAccessor"
+    "emi.RecipeScreenMixin",
+    "kjs.ServerScriptManagerAccessor",
+    "ui.AbstractContainerMenuMixin",
+    "ui.MenuTypeMixin",
+    "ui.ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

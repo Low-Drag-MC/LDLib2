@@ -1,0 +1,10 @@
+.panel_bg {
+    background: built-in(ui-gdp:RECT_SOLID);
+    padding-all: 5;
+    gap-all: 4;
+}
+
+.preview_bg {
+  background: built-in(ui-gdp:BORDER1_RT1);
+  padding-all: 3;
+}

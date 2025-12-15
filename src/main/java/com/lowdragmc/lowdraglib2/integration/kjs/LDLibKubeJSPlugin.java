@@ -1,12 +1,22 @@
 package com.lowdragmc.lowdraglib2.integration.kjs;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.TextureValue;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Size;
+import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import dev.latvian.mods.kubejs.event.EventGroupRegistry;
 import dev.latvian.mods.kubejs.plugin.ClassFilter;
 import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
 import dev.latvian.mods.kubejs.script.BindingRegistry;
 import com.lowdragmc.lowdraglib2.integration.kjs.ui.UIEvents;
+import dev.latvian.mods.kubejs.script.TypeWrapperRegistry;
 import org.joml.Vector3f;
 
 /**
@@ -16,10 +26,9 @@ import org.joml.Vector3f;
  */
 public class LDLibKubeJSPlugin implements KubeJSPlugin {
 
-
     @Override
     public void registerClasses(ClassFilter filter) {
-        filter.allow("com.lowdragmc.lowdraglib");
+        filter.allow("com.lowdragmc.lowdraglib2");
     }
 
     @Override
@@ -29,51 +38,53 @@ public class LDLibKubeJSPlugin implements KubeJSPlugin {
 
     @Override
     public void registerBindings(BindingRegistry event) {
-        // TODO UI
-//        event.add("BlockUIFactory", BlockUIJSFactory.class);
-//        event.add("ItemUIFactory", ItemUIJSFactory.class);
-//        event.add("UIProject", UIProject.class);
-//        // texture
-//        event.add("ResourceTexture", ResourceTexture.class);
-//        event.add("FillDirection", ProgressTexture.FillDirection.class);
-//        event.add("ProgressTexture", ProgressTexture.class);
-//        event.add("AnimationTexture", AnimationTexture.class);
-//        event.add("ColorRectTexture", ColorRectTexture.class);
-//        event.add("ColorRectTexture", ColorRectTexture.class);
-//        event.add("ItemStackTexture", ItemStackTexture.class);
-//        event.add("ResourceBorderTexture", ResourceBorderTexture.class);
-//        event.add("ShaderTexture", ShaderTexture.class);
-//        event.add("TextTexture", TextTexture.class);
-//        event.add("GuiTextureGroup", GuiTextureGroup.class);
-//        event.add("ColorPattern", ColorPattern.class);
-//        event.add("TextType", TextTexture.TextType.class);
-//        // LDLib Widget
-//        event.add("ModularUI", ModularUI.class);
-//        event.add("ButtonWidget", ButtonWidget.class);
-//        event.add("DialogWidget", DialogWidget.class);
-//        event.add("DraggableScrollableWidgetGroup", DraggableScrollableWidgetGroup.class);
-//        event.add("DraggableWidgetGroup", DraggableWidgetGroup.class);
-//        event.add("ImageWidget", ImageWidget.class);
-//        event.add("LabelWidget", LabelWidget.class);
-//        event.add("PhantomTankWidget", PhantomTankWidget.class);
-//        event.add("PhantomSlotWidget", PhantomSlotWidget.class);
-//        event.add("SceneWidget", SceneWidget.class);
-//        event.add("SelectableWidgetGroup", SelectableWidgetGroup.class);
-//        event.add("SlotWidget", SlotWidget.class);
-//        event.add("SwitchWidget", SwitchWidget.class);
-//        event.add("TabButton", TabButton.class);
-//        event.add("TabContainer", TabContainer.class);
-//        event.add("TankWidget", TankWidget.class);
-//        event.add("TextBoxWidget", TextBoxWidget.class);
-//        event.add("TextFieldWidget", TextFieldWidget.class);
-//        event.add("TreeListWidget", TreeListWidget.class);
-//        event.add("WidgetGroup", WidgetGroup.class);
-//        event.add("Widget", Widget.class);
-//        event.add("ProgressWidget", ProgressWidget.class);
+        // LDLib2 Auto Bindings
+        ReflectionUtils.findAnnotationClasses(KJSBindings.class, data -> {
+            var isClientOnly = (boolean) data.getOrDefault("clientOnly", false);
+            if (isClientOnly && !LDLib2.isClient()) return false;
+            var modId = data.getOrDefault("modId", "").toString();
+            if (modId.isEmpty()) return true;
+            return LDLib2.isModLoaded(modId);
+        }, clazz -> {
+            var annotation = clazz.getAnnotation(KJSBindings.class);
+            var bindingName = annotation.value();
+            if (bindingName.isEmpty()) bindingName = clazz.getSimpleName();
+            event.add(bindingName, clazz);
+        }, () -> {});
+
+        ReflectionUtils.findAnnotationStaticField(KJSBindings.class, data -> {
+            var modId = data.getOrDefault("modId", "").toString();
+            if (modId.isEmpty()) return true;
+            return LDLib2.isModLoaded(modId);
+        }, (field, o) -> {
+            var annotation = field.getAnnotation(KJSBindings.class);
+            var bindingName = annotation.value();
+            if (bindingName.isEmpty()) bindingName = field.getName();
+
+            event.add(bindingName, o);
+        }, () -> {});
+
         // math
         event.add("Vector3f", Vector3f.class);
         event.add("GuiSize", Size.class);
         event.add("GuiPos", Position.class);
     }
 
+    @Override
+    public void registerTypeWrappers(TypeWrapperRegistry registry) {
+        KubeJSPlugin.super.registerTypeWrappers(registry);
+        registry.register(IResourcePath.class, obj -> {
+            if (obj instanceof IResourcePath path) {
+                return path;
+            }
+            return obj == null ? null : IResourcePath.parse(obj.toString());
+        });
+        registry.register(IGuiTexture.class, obj -> {
+            if (obj instanceof IGuiTexture texture) {
+                return texture;
+            }
+            var result = obj == null ? null : TextureValue.parseTexture(obj.toString());
+            return result == null ? IGuiTexture.EMPTY : result;
+        });
+    }
 }

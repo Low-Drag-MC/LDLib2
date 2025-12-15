@@ -8,9 +8,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.math.interpolate.Interpolator;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -19,7 +21,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
@@ -32,12 +33,13 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collection;
 import java.util.HashSet;
@@ -48,10 +50,14 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
+@LDLRegister(name = "scene", group = "misc", registry = "ldlib2:ui_element")
 public class Scene extends UIElement {
-    private static Object DRAGGING = new Object();
+    private static final Object ROTATION_DRAGGING = new Object();
+    private static final Object PAN_DRAGGING = new Object();
     @Nullable
-    @Getter
+    @OnlyIn(Dist.CLIENT)
+    @Getter(onMethod_ = @OnlyIn(Dist.CLIENT))
     protected WorldSceneRenderer renderer;
     @Nullable
     @Getter
@@ -96,6 +102,9 @@ public class Scene extends UIElement {
     protected boolean tickWorld = true;
     protected Consumer<Scene> beforeWorldRender;
     protected Consumer<Scene> afterWorldRender;
+    // editor support
+//    @Nullable
+//    private ResourceLocation editorStructureName = null;
     // runtime
     @Getter
     protected ItemStack lastHoverItem;
@@ -112,6 +121,7 @@ public class Scene extends UIElement {
         addEventListener(UIEvents.MOUSE_UP, this::onMouseUp);
         addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
+        internalSetup();
     }
 
     public Scene useCacheBuffer() {
@@ -140,6 +150,7 @@ public class Scene extends UIElement {
         return this;
     }
 
+    @OnlyIn(Dist.CLIENT)
     public Scene setBeforeWorldRender(Consumer<Scene> beforeWorldRender) {
         this.beforeWorldRender = beforeWorldRender;
         if (this.beforeWorldRender != null && renderer != null) {
@@ -170,6 +181,7 @@ public class Scene extends UIElement {
     }
 
     @Nullable
+    @OnlyIn(Dist.CLIENT)
     public ParticleManager getParticleManager() {
         if (renderer == null) return null;
         return renderer.getParticleManager();
@@ -203,24 +215,17 @@ public class Scene extends UIElement {
         }
     }
 
-
-    protected ParticleManager createParticleManager() {
-        return new ParticleManager();
-    }
-
     /**
      * Creates a scene with the given world and whether to use FBO scene renderer.
      */
-    public final Scene createScene(@Nonnull Level world, boolean useFBOSceneRenderer, @Nullable Size fboSize) {
+    @OnlyIn(Dist.CLIENT)
+    public final Scene createScene(Level world, boolean useFBOSceneRenderer, @Nullable Size fboSize) {
         releaseRendererResource();
         core.clear();
         level = world;
         dummyWorld = world instanceof TrackedDummyWorld trackedLevel ? trackedLevel : new TrackedDummyWorld(world);
         //compute window size from scaled width & height
-        final WorldSceneRenderer renderer = useFBOSceneRenderer ?
-                new FBOWorldSceneRenderer(dummyWorld, fboSize == null ? 1080 : fboSize.width, fboSize == null ? 1080 : fboSize.height) :
-                new ImmediateWorldSceneRenderer(dummyWorld);
-        this.renderer = renderer;
+        this.renderer = ClientWrapper.createWorldSceneRenderer(dummyWorld, useFBOSceneRenderer, fboSize);
         dummyWorld.setBlockFilter(core::contains);
         center = new Vector3f(0, 0, 0);
         renderer.useOrtho(useOrtho);
@@ -242,10 +247,19 @@ public class Scene extends UIElement {
         return this;
     }
 
+    private static class ClientWrapper {
+        private static WorldSceneRenderer createWorldSceneRenderer(Level world, boolean useFBOSceneRenderer, @Nullable Size fboSize) {
+            return useFBOSceneRenderer ?
+                    new FBOWorldSceneRenderer(world, fboSize == null ? 1080 : fboSize.width, fboSize == null ? 1080 : fboSize.height) :
+                    new ImmediateWorldSceneRenderer(world);
+        }
+    }
+
+
+    @OnlyIn(Dist.CLIENT)
     public final Scene createScene(Level world) {
         return createScene(world, false, null);
     }
-
 
     /**
      * Sets the core blocks to be rendered in the scene.
@@ -291,9 +305,11 @@ public class Scene extends UIElement {
         return setRenderedCore(blocks, null);
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void renderBeforeBatchEnd(MultiBufferSource bufferSource, float partialTicks) {
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void renderBlockOverLay(WorldSceneRenderer renderer) {
         if (renderer == null || dummyWorld == null || core == null || core.isEmpty()) {
             return;
@@ -329,10 +345,10 @@ public class Scene extends UIElement {
                     }
                 }
             }
-            if (lastHoverPosFace != null && hit != null) {
+            var mui = getModularUI();
+            if (lastHoverPosFace != null && hit != null && mui != null && mui.player != null) {
                 var state = dummyWorld.getBlockState(lastHoverPosFace.pos());
-                lastHoverItem = state.getBlock().getCloneItemStack(state, hit, dummyWorld, lastHoverPosFace.pos(),
-                        Minecraft.getInstance().player);
+                lastHoverItem = state.getBlock().getCloneItemStack(state, hit, dummyWorld, lastHoverPosFace.pos(), mui.player);
             }
         }
 
@@ -354,10 +370,12 @@ public class Scene extends UIElement {
         }
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void drawFacingBorder(PoseStack poseStack, BlockPosFace posFace, int color) {
         drawFacingBorder(poseStack, posFace, color, 0);
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void drawFacingBorder(PoseStack poseStack, BlockPosFace posFace, int color, int inner) {
         poseStack.pushPose();
         RenderSystem.disableDepthTest();
@@ -370,6 +388,7 @@ public class Scene extends UIElement {
         poseStack.popPose();
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void drawBorder(PoseStack poseStack, int x, int y, int width, int height, int color, int border) {
         drawSolidRect(poseStack,x - border, y - border, width + 2 * border, border, color);
         drawSolidRect(poseStack,x - border, y + height, width + 2 * border, border, color);
@@ -377,11 +396,13 @@ public class Scene extends UIElement {
         drawSolidRect(poseStack,x + width, y, border, height, color);
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void drawSolidRect(PoseStack poseStack, int x, int y, int width, int height, int color) {
         fill(poseStack, x, y, x + width, y + height, 0, color);
         RenderSystem.enableBlend();
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void fill(PoseStack matrices, int x1, int y1, int x2, int y2, int z, int color) {
         Matrix4f matrix4f = matrices.last().pose();
         int i;
@@ -421,20 +442,53 @@ public class Scene extends UIElement {
         if (event.button == 0 && isHover()) {
             if (draggable) {
                 dragging = true;
-                startDrag(DRAGGING, null);
+                startDrag(ROTATION_DRAGGING, null);
             }
             lastClickPosFace = lastHoverPosFace;
+        } else if (event.button == 2 && isHover()) {
+            if (draggable) {
+                dragging = true;
+                startDrag(PAN_DRAGGING, null);
+            }
         }
     }
 
     protected void onDragSourceUpdate(UIEvent event) {
-        if (!intractable || event.target != this || event.dragHandler.getDraggingObject() != DRAGGING || !dragging) return;
-        rotationYaw += event.deltaX + 360;
-        rotationYaw = rotationYaw % 360;
-        rotationPitch = (float) Mth.clamp(rotationPitch + event.deltaY, -89.9, 89.9);
-        if (renderer != null) {
-            renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+        if (!intractable || event.target != this || !dragging) return;
+        if (event.dragHandler.getDraggingObject() == ROTATION_DRAGGING) {
+            rotationYaw += event.deltaX + 360;
+            rotationYaw = rotationYaw % 360;
+            rotationPitch = (float) Mth.clamp(rotationPitch + event.deltaY, -89.9, 89.9);
+            if (renderer != null) {
+                renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+            }
+        } else if (event.dragHandler.getDraggingObject() == PAN_DRAGGING) {
+            // Calculate right vector as cross product of world up and camera direction
+            var forward = new Vector3f(
+                    (float) (Math.cos(Math.toRadians(rotationPitch)) * Math.cos(Math.toRadians(rotationYaw))),
+                    (float) Math.sin(Math.toRadians(rotationPitch)),
+                    (float) (Math.cos(Math.toRadians(rotationPitch)) * Math.sin(Math.toRadians(rotationYaw)))
+            );
+            var worldUp = new Vector3f(0, 1, 0);
+            var right = new Vector3f();
+            forward.cross(worldUp, right);
+            right.normalize();
+            // Calculate camera up vector
+            var up = new Vector3f();
+            right.cross(forward, up);
+            up.normalize();
+            // Move center based on drag delta
+            var moveSpeed = zoom * 0.005f;
+            center.add(
+                    right.x * event.deltaX * moveSpeed + up.x * event.deltaY * moveSpeed,
+                    right.y * event.deltaX * moveSpeed + up.y * event.deltaY * moveSpeed,
+                    right.z * event.deltaX * moveSpeed + up.z * event.deltaY * moveSpeed
+            );
+            if (renderer != null) {
+                renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+            }
         }
+
     }
 
     protected void onMouseUp(UIEvent event) {
@@ -468,7 +522,7 @@ public class Scene extends UIElement {
             interpolator.update(getModularUI().getTickCounter() + guiContext.partialTick);
         }
         if (renderer != null) {
-            renderer.render(guiContext.pose, x, y, width, height, guiContext.mouseX, guiContext.mouseY);
+            renderer.render(guiContext.pose.pose, x, y, width, height, (int) guiContext.localMouseX, (int) guiContext.localMouseY);
             if (renderer.isCompiling()) {
                 double progress = renderer.getCompileProgress();
                 if (progress > 0) {
@@ -533,5 +587,26 @@ public class Scene extends UIElement {
                 renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(this.rotationYaw), Math.toRadians(this.rotationPitch));
             }
         }, x -> interpolator = null);
+    }
+
+    /// Editor support
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        // TODO structure template support
+//        if (LDLib2.isRemote()) {
+//            if (editorStructureName != null) {
+//                var res = Minecraft.getInstance().getResourceManager().getResource(editorStructureName);
+//                if (res.isPresent()) {
+//                    try (var inputstream = res.get().open()){
+//                        try (var datainputstream = new DataInputStream(inputstream)) {
+//                            var structureTag = NbtIo.read(datainputstream);
+//                            var template = new StructureTemplate();
+//                            template.load(BuiltInRegistries.BLOCK.asLookup(), structureTag);
+//                        }
+//                    } catch (IOException ignored) {}
+//                }
+//            }
+//        }
     }
 }

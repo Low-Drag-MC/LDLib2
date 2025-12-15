@@ -146,6 +146,9 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
                               Class<C> baseClazz,
                               BiFunction<LDLRegister, Class<? extends C>, V> supplier) {
             super(registryName, LDLRegister.class, baseClazz, annotationData -> {
+                if (annotationData.containsKey("registry") && annotationData.get("registry") instanceof java.lang.String targetRegistry) {
+                    if (!registryName.toString().equals(targetRegistry)) return false;
+                }
                 if (annotationData.containsKey("modID") && annotationData.get("modID") instanceof java.lang.String modID) {
                     return modID.isEmpty() || Platform.isModLoaded(modID);
                 } else return !annotationData.containsKey("manual") || !(annotationData.get("manual") instanceof Boolean manual) || !manual;
@@ -168,6 +171,9 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
                               Class<C> baseClazz,
                               BiFunction<LDLRegisterClient, Class<? extends C>, V> supplier) {
             super(registryName, LDLRegisterClient.class, baseClazz, annotationData -> {
+                if (annotationData.containsKey("registry") && annotationData.get("registry") instanceof java.lang.String targetRegistry) {
+                    if (!registryName.toString().equals(targetRegistry)) return false;
+                }
                 if (annotationData.containsKey("modID") && annotationData.get("modID") instanceof java.lang.String modID) {
                     return modID.isEmpty() || Platform.isModLoaded(modID);
                 } else return !annotationData.containsKey("manual") || !(annotationData.get("manual") instanceof Boolean manual) || !manual;

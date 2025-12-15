@@ -29,6 +29,14 @@ public class TextFormattingUtil {
         suffixesBucket.put(1_000_000_000_000_000_000L, "P");
     }
 
+    /**
+     * Converts a given long value into a compact string representation using appropriate suffixes,
+     * such as "k" for thousands or "M" for millions, while maintaining the specified precision.
+     *
+     * @param value     the long value to be formatted
+     * @param precision the maximum number of digits to include before applying a suffix
+     * @return a compact string representation of the long value with an appropriate suffix
+     */
     public static String formatLongToCompactString(long value, int precision) {
         //Long.MIN_VALUE == -Long.MIN_VALUE so we need an adjustment here
         if (value == Long.MIN_VALUE) return formatLongToCompactString(Long.MIN_VALUE + 1, precision);
@@ -44,10 +52,19 @@ public class TextFormattingUtil {
         return hasDecimal ? (truncated / 10d) + suffix : (truncated / 10) + suffix;
     }
 
+    /**
+     * Formats a given long value into a compact string representation corresponding to fluid buckets,
+     * using appropriate suffixes like "kB" for thousands of buckets or "MB" for millions of buckets.
+     * The output is computed based on the specified precision and the fluid bucket volume.
+     *
+     * @param value     the {@code long} value to be formatted
+     * @param precision the maximum number of digits to include before applying a suffix
+     * @return a compact string representation of the value in terms of fluid buckets
+     */
     public static String formatLongToCompactStringBuckets(long value, int precision) {
         if (value == 0) return value + "";
         value = value * 1000 / FluidHelper.getBucket();
-        if (value == 0) return String.format("%sm", new DecimalFormat("0.####").format(value * 1000d / FluidHelper.getBucket()));
+        if (value == 0) return String.format("%sm", new DecimalFormat("0.####").format(value));
         //Long.MIN_VALUE == -Long.MIN_VALUE so we need an adjustment here
         if (value == Long.MIN_VALUE) return formatLongToCompactStringBuckets(Long.MIN_VALUE + 1, precision);
         if (value < 0) return "-" + formatLongToCompactStringBuckets(-value, precision);

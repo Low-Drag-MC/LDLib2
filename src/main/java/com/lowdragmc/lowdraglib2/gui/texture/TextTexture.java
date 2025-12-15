@@ -5,8 +5,9 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@KJSBindings
 @LDLRegisterClient(name = "text_texture", registry = "ldlib2:gui_texture")
 public class TextTexture extends TransformTexture {
 
@@ -182,20 +184,20 @@ public class TextTexture extends TransformTexture {
                 graphics.drawString(fontRenderer, line, (int) (x + width - lineWidth), (int) _y, color, dropShadow);
             }
         } else if (type == TextType.HIDE) {
-            if (Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
+            if (UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
                 drawTextLine(graphics, x, y, width, height, fontRenderer, textH, line);
             }
         } else if (type == TextType.ROLL || type == TextType.ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
+            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 drawTextLine(graphics, x, y, width, height, fontRenderer, textH, texts.get(0));
             }
         } else if (type == TextType.LEFT_HIDE) {
-            if (Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
+            if (UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
@@ -203,7 +205,7 @@ public class TextTexture extends TransformTexture {
                 graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
             }
         } else if (type == TextType.LEFT_ROLL || type == TextType.LEFT_ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || Widget.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
+            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 float _y = y + (height - textH) / 2f;

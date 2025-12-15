@@ -23,11 +23,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.*;
-import org.jetbrains.annotations.NotNull;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
@@ -169,12 +167,12 @@ public class SceneEditor extends UIElement implements IScene {
                                 .textAlignVertical(Vertical.CENTER))
                         .setText(candidate == null ? "---" : candidate ? "editor.camera.ortho" : "editor.camera.prospective"))
                 .layout(layout -> layout.setWidth(50))
-                .style(style -> style.setTooltips("editor.camera.mode")));
+                .style(style -> style.tooltips("editor.camera.mode")));
 
     }
 
     public void initGizmos() {
-        var toggleGroup = new Toggle.ToggleGroup();
+        var toggleGroup = new Toggle.ToggleGroup().setAllowEmpty(true);
         // translate
         gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.TRANSLATE, Icons.TRANSFORM_TRANSLATE));
         // rotation

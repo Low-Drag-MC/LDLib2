@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.syncdata.*;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.RequireRerender;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IBlockEntityManaged;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
 import net.minecraft.Util;
 import org.apache.commons.lang3.function.Consumers;
@@ -102,11 +103,11 @@ public class FieldManagedStorage implements IManagedStorage {
 
             nonLazyFields = result.nonLazyFields();
             fieldMap = result.fieldRefMap();
+            initialized = true;
             if (LDLib2.isClient()) {
                 initUpdateListeners();
                 initBlockEntityManagedFeature();
             }
-            initialized = true;
         } finally {
             lock.unlock();
         }
@@ -157,12 +158,8 @@ public class FieldManagedStorage implements IManagedStorage {
         while (clazz != null && method == null) {
             try {
                 // make sure the method types
-                method = clazz.getDeclaredMethod(methodName, ManagedKey.class, rawField.getType());
-                if (method.getReturnType() != Consumer.class) {
-                    method = null;
-                } else {
-                    method.setAccessible(true);
-                }
+                method = clazz.getDeclaredMethod(methodName, rawField.getType(), rawField.getType());
+                method.setAccessible(true);
             } catch (NoSuchMethodException ignored) {
             }
             clazz = clazz.getSuperclass();
@@ -173,15 +170,16 @@ public class FieldManagedStorage implements IManagedStorage {
         return method;
     });
 
+    @SuppressWarnings("unchecked")
     private void initUpdateListeners() {
         for (IRef<?> syncField : getSyncFields()) {
             var rawField = syncField.getKey().getRawField();
             if (rawField.isAnnotationPresent(UpdateListener.class)) {
                 final var method = METHOD_CACHES.apply(rawField, owner.getClass());
                 if (method != null) {
-                    addSyncUpdateListener(syncField.getKey(), (key, currentValue) -> {
+                    addSyncUpdateListener(syncField.getKey(), (key, currentValue) -> (Consumer) (newValue) -> {
                         try {
-                            return (Consumer) method.invoke(owner, key, currentValue);
+                            method.invoke(owner, currentValue, newValue);
                         } catch (IllegalAccessException | InvocationTargetException e) {
                             throw new RuntimeException(e);
                         }

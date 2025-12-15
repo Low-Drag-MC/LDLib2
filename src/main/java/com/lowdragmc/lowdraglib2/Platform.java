@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2;
 
+import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -16,7 +17,11 @@ import java.nio.file.Path;
 
 public class Platform {
 
-    private static final RegistryAccess BLANK = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+    @Getter(lazy = true)
+    private static final RegistryAccess BLANK_REGISTRY_ACCESS = getBlankRegistryAccess();
+
+    @ApiStatus.Internal
+    public static RegistryAccess FROZEN_REGISTRY_ACCESS = null;
 
     // This is a helper method to check if the ServerLevel is safe to access.
     // @return true if the ServerLevel is not safe to access, otherwise false.
@@ -28,9 +33,6 @@ public class Platform {
             return server == null || server.isStopped() || server.isShutdown() || !server.isRunning() || server.isCurrentlySaving();
         }
     }
-    @ApiStatus.Internal
-    public static RegistryAccess FROZEN_REGISTRY_ACCESS = BLANK;
-
 
     public static String platformName() {
         return "NeoForge";
@@ -64,6 +66,10 @@ public class Platform {
         return FMLLoader.getGamePath();
     }
 
+    private static RegistryAccess getBlankRegistryAccess() {
+        return RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+    }
+
     public static RegistryAccess getFrozenRegistry() {
         if (FROZEN_REGISTRY_ACCESS != null) {
             return FROZEN_REGISTRY_ACCESS;
@@ -72,7 +78,7 @@ public class Platform {
                 return Minecraft.getInstance().getConnection().registryAccess();
             }
         }
-        return BLANK;
+        return getBLANK_REGISTRY_ACCESS();
     }
 
 }

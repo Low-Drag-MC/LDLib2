@@ -1,17 +1,16 @@
 package com.lowdragmc.lowdraglib2.networking.s2c;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.modular.ModularUIGuiContainer;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import lombok.NoArgsConstructor;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import javax.annotation.Nonnull;
 
 @NoArgsConstructor
 public class SPacketUIRPCEventReturn implements CustomPacketPayload {
@@ -37,13 +36,16 @@ public class SPacketUIRPCEventReturn implements CustomPacketPayload {
     public static void execute(SPacketUIRPCEventReturn packet, IPayloadContext context) {
         var player = context.player();
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
+            var syncManager = syncManagerHolder.getSyncManager();
+            if (syncManager == null) return;
             ByteBufUtil.readCustomData(packet.returnData,
-                    buf -> syncManagerHolder.getSyncManager().handEventReturn(buf),
+                    syncManager::handEventReturn,
                     context.player().registryAccess());
         }
     }
 
     @Override
+    @Nonnull
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }

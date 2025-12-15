@@ -1,0 +1,402 @@
+// panel
+.panel_bg {
+  background: rect(#dd2c2c34, 5);
+  padding-all: 5;
+  gap-all: 4;
+}
+
+.preview_bg {
+  background: rect(#00000000, 4, 2, #7f8084);
+  padding-all: 3;
+}
+
+.configurator_preview_bg {
+  background: rect(#00000000, 4, 1, #7f8084);
+  padding-all: 3;
+}
+
+// button
+button:host {
+  base-background: rect(#71a4f4, 4);
+  hover-background: rect(#9ec4f8, 4);
+  pressed-background: rect(#8ec4f8, 4);
+  padding-all: 3;
+  height: 16;
+}
+
+text, label {
+  text-shadow: false;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+// text-field
+text-field:host,
+.__tag-field_text-field__,
+.__search-component_text-field__ {
+  background: rect(#1e1f22, 4, 1, #7f8084);
+  focus-overlay: rect(#00000000, 4, 1, #71a4f4);
+  // height: 14;
+  padding-all: 2;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+// search-component
+search-component:host {
+  background: rect(#1e1f22, 4, 1, #7f8084);
+  height: 16;
+  focus-overlay: rect(#00000000, 4, 1, #71a4f4);
+}
+
+// switch
+switch:host {
+  base-background: rect(#52525a, 5);
+  pressed-background: rect(#71a4f4, 5);
+  unmark-background: rect(#a1a1a9, 4);
+  mark-background: rect(#18181b, 4);
+  height: 10;
+  width: 20;
+  padding-all: 1;
+}
+
+// selector
+selector:host {
+  background: rect(#1e1f22, 4, 1, #7f8084);
+  focus-overlay: rect(#00000000, 4, 1, #71a4f4);
+  // height: 16;
+}
+
+.__selector_button-icon__ {
+  background: sprite(ldlib2:textures/gui/down.png) scale(0.6);
+}
+
+.__selector_dialog__, .__search-component_dialog__ {
+  background: rect(#1a1a1F, 4, 1, #7f8084);
+}
+
+// progress-bar
+progress-bar:host {
+  height: 8;
+}
+
+progress-bar:host label {
+  font-size: 6;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+.__progress-bar_bar-container__ {
+  background: rect(#55565b, 3);
+  padding-all: 0;
+}
+
+.__progress-bar_bar__ {
+  background: rect(#71a4f4, 3);
+  padding-all: 0;
+}
+
+// slot
+item-slot {
+  background: rect(#55565b, 3, 1, #00ffffff);
+  hover-overlay: rect(#80FFFFFF, 2);
+}
+
+fluid-slot {
+  background: rect(#3a3a3F, 0, 1, #55565b);
+}
+
+// color-selector
+color-selector:host text-field {
+  background: rect(#1e1f22, 4, 1, #7f8084);
+  focus-overlay: rect(#00000000, 4, 1, #71a4f4);
+  // height: 16;
+  padding-all: 2;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+color-selector:host button {
+  base-background: rect(#71a4f4, 3);
+  hover-background: rect(#9ec4f8, 3);
+  pressed-background: rect(#8ec4f8, 3);
+}
+
+color-selector:host .__color-selector_alpha-slider__ {
+  background: rect(#1e1f22, 4, 2, #7f8084);
+  margin-right: 2;
+  padding-all: 2;
+}
+
+color-selector:host .__color-selector_color-slider__ {
+  background: rect(#1e1f22, 4, 2, #7f8084);
+  margin-bottom: 2;
+  padding-all: 2;
+}
+
+color-selector:host .__color-selector_color-preview__ {
+  background: rect(#1e1f22, 4, 2, #7f8084);
+  margin-right: 2;
+  margin-bottom: 2;
+  padding-all: 2;
+}
+
+// toggle
+toggle:host {
+  mark-background: rect(#71a4f4, 3);
+  height: 12;
+}
+
+.__toggle_button__ {
+  base-background: rect(#55565b, 5, 1, #aaa);
+  pressed-background: rect(#55565b, 5, 1, #aaa);
+  hover-background: rect(#55565b, 5, 1, #fff);
+}
+
+.__toggle_mark-icon__ {
+  margin-all: 2;
+  width: auto;
+  height: auto;
+  flex: 1;
+}
+
+// text-area
+text-area {
+  scroller-view-margin: 8;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+text-area:host. {
+  focus-overlay: rect(#00000000, 4, 1, #71a4f4);
+}
+
+.__text-area_content-view__ {
+  background: rect(#1e1f22, 4, 1, #7f8084);
+  padding-all: 2;
+}
+
+.__text-area_horizontal-scroller__ {
+  height: 6;
+  margin-top: 2;
+}
+
+.__text-area_vertical-scroller__ {
+  width: 6;
+  margin-left: 2;
+}
+
+// scroller
+scroller-horizontal:host {
+  height: 6;
+}
+
+scroller-vertical:host {
+  width: 6;
+}
+
+.__scroller_scroll_container__ {
+  background: rect(#1e1f22, 3, 1, #7f8084);
+  padding-all: 1
+}
+
+scroller-horizontal .__scroller_scroll_bar__ {
+  base-background: rect(#999999, 2);
+  hover-background: rect(#afafaf, 2);
+  pressed-background: rect(#a0a0a0, 2);
+}
+
+scroller-vertical .__scroller_scroll_bar__ {
+  base-background: rect(#999999, 2);
+  hover-background: rect(#afafaf, 2);
+  pressed-background: rect(#a0a0a0, 2);
+}
+
+.__scroller_head_button__ {
+  display: none;
+}
+
+.__scroller_tail_button__ {
+  display: none;
+}
+
+scroller-view {
+  scroller-view-margin: 8;
+}
+
+.__scroller_view_view-port__ {
+  background: rect(#1e1f22, 3, 1, #7f8084);
+  padding-all: 2;
+}
+
+.__scroller_view_horizontal-scroller__ {
+  height: 6;
+  margin-top: 2;
+}
+
+.__scroller_view_vertical-scroller__ {
+  width: 6;
+  margin-left: 2;
+}
+
+// tab
+.__tab-view_tab_header_container__{
+  background: rect(#1e1f22,  0 0 3 3, 1, #7f8084);
+  margin-bottom: -1;
+  padding-all: 3;
+}
+
+.__tab-view_tab_header_container__ .__scroller_view_view-container__{
+  gap-all: 3
+}
+
+.__tab-view_tab_content_container__ {
+  background: rect(#2c2c34 , 5 5 0 0 , 1, #7f8084);
+
+}
+
+tab-view .__tab-view_tab_scroller__ {
+  margin-bottom: 0;
+}
+
+tab:host {
+  base-background: empty;
+  hover-background: rect(#9ec4f8) scale(1, 0.1) translate(0, 6.5);
+  pressed-background: rect(#71a4f4) scale(1, 0.1) translate(0, 6.5);
+  padding-all: 2;
+  // height: 14;
+}
+
+// dialog
+.__dialog_title__ {
+  background: rect(#7e56c2, 0 0 4 4, 1, #ddd);
+  transform: translateY(1);
+}
+
+.__dialog_content-container__ {
+  background: rect(#ff2c2c34, 0, 1, #ddd)
+}
+
+.__dialog_button-container__ {
+  background: rect(#ff2c2c34, 4 4 0 0, 1, #ddd);
+  transform: translateY(-1);
+}
+
+// menu
+menu {
+  background: rect(#2c2c34,  3, 1, #7f8084);
+  arrow: sprite(ldlib2:textures/gui/right.png) scale(0.6);
+}
+
+// for editor
+.__editor__ code-editor {
+  background: rect(#1e1f22, 4, 1, #7f8084);
+}
+
+.__editor_top__ {
+  background: rect(#7e56c2, 0 0 4 4);
+}
+
+.__editor__ button:host {
+  base-background: rect(#00000000, 4, 1, #ddd);
+}
+
+.__editor__ tab:host {
+  height: 14;
+}
+
+.__view-container__ {
+  background: rect(#1e1f22);
+}
+
+.__view-container_tab-view__ .__tab-view_tab_content_container__ {
+  padding-all: 3
+}
+
+ResourceView .__tab-view_tab_header_container__ .__scroller_view_view-container__{
+  gap-all: 0;
+}
+
+ResourceView tab:host {
+  base-background: empty;
+  hover-background: rect(#ddd, 3) scale(0.9);
+  pressed-background: rect(#aaa, 3) scale(0.9);
+}
+
+ResourceView .__tab-view_tab_header_container__ {
+  background: rect(#1e1f22,  3 0 0 3, 1, #7f8084);
+  transform: translate(1, 0);
+}
+
+ResourceView .__tab-view_tab_content_container__ {
+  background: rect(#2c2c34 , 0 5 5 0 , 1, #7f8084);
+}
+
+.__ui-editor-view_header__ {
+  background: rect(#363640);
+}
+
+.__ui-editor-view_header__ button {
+  height: 14;
+}
+
+.__ui-editor-view_header__ .__toggle_button__ {
+  base-background: rect(#00000000, 4, 1, #ddd);
+  pressed-background: rect(#bbb, 5, 1, #aaa);
+  hover-background: rect(#55565b, 5, 1, #fff);
+}
+
+.__ui-editor-view_canvas__ {
+  background: #1e1f22
+}
+
+.__ui-editor-view_builtin-styles-toggle__ {
+  height: 14;
+  padding-all: 0;
+  mark-background: rect(#00000000, 4, 1, #71a4f4);
+}
+
+.__ui-editor-view_builtin-styles-toggle__ .__toggle_button__{
+  base-background: rect(#00000000, 4, 1, #ddd);
+  hover-background: rect(#55565b, 4, 1, #ddd);
+}
+
+.__ui-editor-view_builtin-styles-toggle__ .__toggle_mark-icon__ {
+  margin-all: 0;
+}
+
+.__ui-editor-view_style-view__ {
+  background: empty;
+  gap-all: 2;
+}
+
+.__editor-window_active__ {
+  background: #55565b;
+}
+
+.__editor-window_inactive__ {
+  background: #2c2c34;
+}
+
+// configurator
+.__configurator-group__ .__configurator-group_container__ {
+  background: rect(#363640, 4 4 4 0, 1, #7f8084);
+}
+
+.__configurator-group__ > .__configurator_line__ {
+  background: rect(#1e1f22, 4, 1, #7f8084);
+}
+
+ToggleSelectorConfigurator .__toggle_mark-icon__ {
+  margin-all: 0;
+}
+
+ToggleSelectorConfigurator .__toggle_button__ {
+  base-background: rect(#00000000, 3, 1, #ddd);
+  pressed-background: rect(#bbb, 3, 1, #aaa);
+  hover-background: rect(#55565b, 3, 1, #fff);
+}
+
+.__array-configurator_button-group__ {
+  background: rect(#00000000, 4, 1, #7f8084);
+  padding-all: 2;
+}
+
+.__array-configurator_item_selected__ {
+  background: rect(#71a4f4, 3);
+}

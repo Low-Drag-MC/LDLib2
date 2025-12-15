@@ -1,13 +1,16 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
+import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
@@ -24,6 +27,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -32,8 +36,11 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import org.appliedenergistics.yoga.YogaConstants;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.appliedenergistics.yoga.YogaPositionType;
+import org.appliedenergistics.yoga.YogaUnit;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
@@ -44,6 +51,7 @@ import java.util.regex.Pattern;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
 public class ModularUI {
     public final UI ui;
     public final UISyncManager syncManager;
@@ -59,15 +67,19 @@ public class ModularUI {
     @OnlyIn(Dist.CLIENT)
     @Nullable
     private ModularUIWidget widget;
-    @Getter
     @Nullable
     @OnlyIn(Dist.CLIENT)
+    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
     private Screen screen;
+    @Getter
+    private final StyleEngine styleEngine = new StyleEngine(this);
     @Getter
     @Nullable
     private AbstractContainerMenu menu;
     @Getter
     private int screenWidth, screenHeight;
+    @Getter
+    private float layoutWidth = YogaConstants.UNDEFINED, layoutHeight = YogaConstants.UNDEFINED;
     @Getter
     private float leftPos, topPos, width, height;
     @Getter
@@ -75,12 +87,17 @@ public class ModularUI {
     @Getter
     private long tickCounter = 0;
     // Element registry for fast retrieval
+    private final List<UIElement> elements = new ArrayList<>();
     private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
     private final Map<Class<?>, List<UIElement>> elementsByType = new ConcurrentHashMap<>();
 
     // UI state
     @Getter @Setter
     private boolean focused;
+    @Getter @Setter
+    private boolean drawTooltips = true;
+    @Getter @Setter
+    private boolean drawDrag = true;
     @Nullable
     @Getter
     private UIElement lastHoveredElement;
@@ -100,18 +117,26 @@ public class ModularUI {
     private long lastMouseClickTime;
     @Getter
     private float lastMouseX, lastMouseY, lastMouseDownX, lastMouseDownY;
-    @Getter
+    @Getter @Nullable
     private UIElement focusedElement = null;
+    private final List<Rect2i> extraAreas = new ArrayList<>();
 
     // hover tips
     @Nullable
+    @Getter
     private List<Component> tooltipTexts;
     @Nullable
+    @Getter
     private TooltipComponent tooltipComponent;
     @Nullable
     @OnlyIn(Dist.CLIENT)
     private Font tooltipFont;
+    @Getter
     private ItemStack tooltipStack = ItemStack.EMPTY;
+    @Getter @Setter
+    private boolean allowDebugMode = true;
+    @Getter @Setter
+    private boolean debugMode = false;
 
     public ModularUI(UI ui) {
         this(ui, null);
@@ -121,10 +146,21 @@ public class ModularUI {
         this.ui = ui;
         this.player = player;
         this.syncManager = new UISyncManager(this);
+        this.styleEngine.addStylesheets(this.ui.getStylesheets());
+        this.ui.rootElement.addClass("__root__");
+    }
+
+    public static ModularUI of(UI ui) {
+        return new ModularUI(ui);
+    }
+
+    public static ModularUI of(UI ui, @Nullable Player player) {
+        return new ModularUI(ui, player);
     }
 
     public void setMenu(@Nullable AbstractContainerMenu menu) {
         this.menu = menu;
+        this.ui.rootElement.setFocusable(true);
         this.ui.rootElement._setModularUIInternal(this);
     }
 
@@ -139,6 +175,7 @@ public class ModularUI {
      */
     public void registerElement(@Nullable UIElement element) {
         if (element == null) return;
+        elements.add(element);
 
         // Register by ID if present and not empty
         String id = element.getId();
@@ -149,6 +186,9 @@ public class ModularUI {
         // Register by type
         Class<?> elementType = element.getClass();
         elementsByType.computeIfAbsent(elementType, k -> new ArrayList<>()).add(element);
+
+        // Enqueue StyleEngine
+        styleEngine.onElementRegister(element);
     }
 
 
@@ -158,6 +198,11 @@ public class ModularUI {
      * @param element the element to remove from the registry
      */
     public void unregisterElement(@Nullable UIElement element) {
+        if (element == null) return;
+
+        // Remove StyleEngine
+        styleEngine.onElementUnregister(element);
+
         // Remove by ID if present and not empty
         String id = element.getId();
         if (!id.isEmpty()) {
@@ -181,8 +226,13 @@ public class ModularUI {
                 elementsByType.remove(elementType);
             }
         }
+
+        elements.remove(element);
     }
 
+    public List<UIElement> getAllElements() {
+        return Collections.unmodifiableList(elements);
+    }
 
     /**
      * Find the first element by its ID.
@@ -356,11 +406,19 @@ public class ModularUI {
     }
 
     /// screen only
+
+    @OnlyIn(Dist.CLIENT)
+    public void setScreenAndInit(Screen screen) {
+        this.screen = screen;
+        init(screen.width, screen.height);
+    }
+
     @OnlyIn(Dist.CLIENT)
     public void setScreen(@Nullable Screen screen) {
         this.screen = screen;
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void init(int screenWidth, int screenHeight) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
@@ -371,23 +429,79 @@ public class ModularUI {
                 layout.setHeight(size.getHeight());
             });
         }
-        var width = ui.rootElement.getLayout().getWidth();
-        var height = ui.rootElement.getLayout().getHeight();
+        var isRelative = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.POSITION))
+                .orElse(YogaPositionType.RELATIVE) != YogaPositionType.ABSOLUTE;
+        var width = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.WIDTH))
+                .orElseGet(StyleSizeLength::ofAuto)
+                .asYogaValue();
+        var height = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.HEIGHT))
+                .orElseGet(StyleSizeLength::ofAuto)
+                .asYogaValue();
         this.width = switch (width.unit) {
             case PERCENT -> width.value * screenWidth * 0.01f;
             case POINT -> width.value;
             default -> 0;
         };
-        this.leftPos = (screenWidth - this.width) / 2;
         this.height = switch (height.unit) {
             case PERCENT -> height.value * screenHeight * 0.01f;
             case POINT -> height.value;
             default -> 0;
         };
-        this.topPos = (screenHeight - this.height) / 2;
+
+        if (width.unit == YogaUnit.PERCENT) {
+            this.layoutWidth = screenWidth;
+        } else {
+            this.layoutWidth = YogaConstants.UNDEFINED;
+        }
+        if (height.unit == YogaUnit.PERCENT) {
+            this.layoutHeight = screenHeight;
+        } else {
+            this.layoutHeight = YogaConstants.UNDEFINED;
+        }
+
+        // we'd better align it to the integer position to avoid a floating point error
         this.ui.rootElement._setModularUIInternal(this);
         ui.rootElement.initScreen(screenWidth, screenHeight);
-        ui.rootElement.calculateLayout();
+        ui.rootElement.getLayoutNode().markDirtyAndPropagate();
+        calculateStyleAndLayout();
+
+        // if dimension is auto, update real sizes after layout calculation
+        if (width.unit == YogaUnit.AUTO) {
+            this.width = ui.rootElement.getLayoutNode().getLayoutWidth();
+            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.layoutNode.getLayoutX();
+        } else {
+            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.layoutNode.getLayoutX();
+        }
+        if (height.unit == YogaUnit.AUTO) {
+            this.height = ui.rootElement.getSizeHeight();
+            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.layoutNode.getLayoutY();
+        } else {
+            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.layoutNode.getLayoutY();
+        }
+
+        this.leftPos = Math.round(this.leftPos);
+        this.topPos = Math.round(this.topPos);
+        ui.rootElement.clearLayoutCache();
+    }
+
+    private void calculateStyleAndLayout() {
+        int dirtyCount = 0;
+        while (styleEngine.requireCalculate() || ui.rootElement.getLayoutNode().isDirty()) {
+            dirtyCount++;
+
+            // calculate style
+            while (styleEngine.requireCalculate()) {
+                styleEngine.calculateStyle();
+            }
+
+            // calculate layout
+            ui.rootElement.calculateLayout(layoutWidth, layoutHeight);
+            extraAreas.clear();
+            if (dirtyCount >= 10) {
+                LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
+                break;
+            }
+        }
     }
 
     public void tick() {
@@ -436,6 +550,7 @@ public class ModularUI {
         focusedElement = element;
 
         if (lastFocusedElement != null) {
+            lastFocusedElement.removeClass("__focused__");
             var blur = UIEvent.create(UIEvents.BLUR);
             blur.target = lastFocusedElement;
             blur.relatedTarget = focusedElement;
@@ -444,6 +559,7 @@ public class ModularUI {
         }
 
         if (focusedElement != null) {
+            focusedElement.addClass("__focused__");
             var focus = UIEvent.create(UIEvents.FOCUS);
             focus.target = focusedElement;
             focus.relatedTarget = lastFocusedElement;
@@ -478,6 +594,12 @@ public class ModularUI {
     }
 
     @OnlyIn(Dist.CLIENT)
+    @Nullable
+    public Font getTooltipFont() {
+        return tooltipFont;
+    }
+
+    @OnlyIn(Dist.CLIENT)
     public ModularUIWidget getWidget() {
         if (widget == null) {
             widget = new ModularUIWidget();
@@ -485,10 +607,27 @@ public class ModularUI {
         return widget;
     }
 
+    @OnlyIn(Dist.CLIENT)
+    public List<Rect2i> getGuiExtraAreas() {
+        if (extraAreas.isEmpty()) calculateExtraAreas();
+        return extraAreas;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void calculateExtraAreas() {
+        extraAreas.clear();
+        ui.rootElement.appendExtraAreas(extraAreas);
+    }
+
     @ParametersAreNonnullByDefault
     @MethodsReturnNonnullByDefault
     @OnlyIn(Dist.CLIENT)
-    public class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable {
+    public class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable, IModularUIHolder {
+        @Override
+        public ModularUI getModularUI() {
+            return ModularUI.this;
+        }
+
         // narration
         @Override
         public NarrationPriority narrationPriority() {
@@ -515,7 +654,7 @@ public class ModularUI {
 
         @Override
         public ScreenRectangle getRectangle() {
-            return new ScreenRectangle((int) leftPos, (int) topPos, (int) width, (int) height);
+            return new ScreenRectangle(Math.round(leftPos), Math.round(topPos), Math.round(width), Math.round(height));
         }
 
         /// event handling
@@ -538,6 +677,14 @@ public class ModularUI {
             if (lastMouseDownElement != null) {
                 if (!lastMouseDownElement.isFocusable()) {
                     clearFocus();
+                    var structurePath = lastMouseDownElement.getStructurePath();
+                    for (int i = structurePath.size() - 1; i >= 0; i--) {
+                        var element = structurePath.get(i);
+                        if (element.isFocusable()) {
+                            requestFocus(element);
+                            break;
+                        }
+                    }
                 } else if (lastMouseDownElement.isActive()) {
                     requestFocus(lastMouseDownElement);
                 }
@@ -548,6 +695,8 @@ public class ModularUI {
                 event.target = lastMouseDownElement;
                 UIEventDispatcher.dispatchEvent(event);
                 return event.hasHandler;
+            } else {
+                clearFocus();
             }
             return false;
         }
@@ -699,6 +848,9 @@ public class ModularUI {
 
         @Override
         public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            if (allowDebugMode && keyCode == GLFW.GLFW_KEY_F3) {
+                debugMode = !debugMode;
+            }
             lastPressedKeyCode = keyCode;
             lastPressedScanCode = scanCode;
             lastPressedModifiers = modifiers;
@@ -720,12 +872,11 @@ public class ModularUI {
                 }
                 return hasHandler;
             } else if (command != null){
-                // TODO Do we really need to retrieval the entire ui tree here?
                 var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
                 event.target = ui.rootElement;
-                UIEventDispatcher.dispatchAllChildren(event);
+                var handled = UIEventDispatcher.dispatchAllChildren(event);
                 hasHandler |= event.hasHandler;
-                if (event.currentElement != ui.rootElement && event.currentElement != null) {
+                if (handled && event.currentElement != null) {
                     var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
                     executeCommandEvent.target = event.currentElement;
                     UIEventDispatcher.dispatchEvent(executeCommandEvent);
@@ -830,32 +981,18 @@ public class ModularUI {
         /// rendering
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-            if (ui.rootElement.getLayoutNode().isDirty()) {
-                int dirtyCount = 0;
-                while (ui.rootElement.getLayoutNode().isDirty() && dirtyCount < 10) {
-                    dirtyCount++;
-                    ui.rootElement.calculateLayout();
-                }
-                if (dirtyCount >= 10) {
-                    LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your layout code.");
-                }
-            }
+            calculateStyleAndLayout();
 
             cleanTooltip();
 
-            var hoverElement = ui.rootElement.getHoverElement(mouseX, mouseY);
-            lastHoveredElement = hoverElement == null ? null : hoverElement.getA();
-            lastMouseX = mouseX;
-            lastMouseY = mouseY;
-
             // rendering
-            var guiContext = new GUIContext();
-            guiContext.modularUI = ModularUI.this;
-            guiContext.graphics = guiGraphics;
-            guiContext.mouseX = mouseX;
-            guiContext.mouseY = mouseY;
-            guiContext.partialTick = partialTick;
-            guiContext.pose = guiGraphics.pose();
+            var guiContext = GUIContext.of(ModularUI.this, guiGraphics, mouseX, mouseY, partialTick);
+
+            lastMouseX = guiContext.localMouseX;
+            lastMouseY = guiContext.localMouseY;
+
+            var hoverElement = ui.rootElement.getHoverElement(lastMouseX, lastMouseY);
+            lastHoveredElement = hoverElement == null ? null : hoverElement.getA();
 
             ui.rootElement.drawInBackground(guiContext);
 
@@ -875,55 +1012,83 @@ public class ModularUI {
                         break;
                     }
                     if (!element.getStyle().tooltips().isEmpty()) {
-                        setHoverTooltip(element.getStyle().tooltips(), ItemStack.EMPTY, null, null);
+                        setHoverTooltip(element.getStyle().tooltips().asList(), ItemStack.EMPTY, null, null);
                         break;
                     }
                     element = element.getParent();
                 }
             }
 
+            guiContext.callPostRendering();
+
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(true);
             if (screen instanceof AbstractContainerScreen<?> containerScreen && !containerScreen.getMenu().getCarried().isEmpty()) {
-                // TODO dragging
-//            var itemstack = containerScreen.getMenu().getCarried();
-//            if (!itemstack.isEmpty()) {
-//                this.renderFloatingItem(guiGraphics, itemstack, mouseX - 8, mouseY - 8, null);
-//            }
                 return;
             }
 
             // Do not render tooltips if carried item is existing
-            if (dragHandler.isDragging() && dragHandler.dragTexture != null) {
-                dragHandler.dragTexture.draw(guiGraphics, mouseX, mouseY, mouseX + dragHandler.offsetX, mouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
+            if (drawDrag && dragHandler.isDragging() && dragHandler.dragTexture != null) {
+                dragHandler.dragTexture.draw(guiGraphics, (int) lastMouseX, (int) lastMouseY, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
             }
 
-            if (!dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
+            if (drawTooltips && !dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
                 guiGraphics.pose().pushPose();
                 guiGraphics.pose().translate(0, 0, 200);
-                DrawerHelper.drawTooltip(guiGraphics, mouseX, mouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
+                DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
+                guiGraphics.flush();
                 guiGraphics.pose().popPose();
+            }
+
+            if (debugMode) {
+                renderDebugInfo(guiGraphics, mouseX, mouseY, partialTick);
             }
         }
 
-        protected void renderFloatingItem(GuiGraphics guiGraphics, ItemStack stack, int x, int y, @Nullable String text) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0.0F, 0.0F, 232.0F);
-            guiGraphics.renderItem(stack, x, y);
-            var font = IClientItemExtensions.of(stack).getFont(stack, IClientItemExtensions.FontContext.ITEM_COUNT);
-            guiGraphics.renderItemDecorations(font == null ? Minecraft.getInstance().font : font, stack, x, y
-//                - (this.draggingItem.isEmpty() ? 0 : 8) // TODO dragging offset
-                    , text);
-            guiGraphics.pose().popPose();
+        public void renderUISpacing(UIElement element, GuiGraphics graphics) {
+            graphics.drawManaged(() -> {
+                var posX = element.getPositionX();
+                var posY = element.getPositionY();
+                var sizeX = element.getSizeWidth();
+                var sizeY = element.getSizeHeight();
+                var marginTop = element.getMarginTop();
+                var marginBottom = element.getMarginBottom();
+                var marginLeft = element.getMarginLeft();
+                var marginRight = element.getMarginRight();
+                DrawerHelper.drawSolidRect(graphics, posX - marginLeft, posY - marginTop,
+                        sizeX + marginLeft + marginRight, sizeY + marginTop + marginBottom, ColorPattern.T_ORANGE.color);
+                DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000, false);
+                var paddingX = element.getPaddingX();
+                var paddingY = element.getPaddingY();
+                var paddingWidth = element.getPaddingWidth();
+                var paddingHeight = element.getPaddingHeight();
+                DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00, false);
+                var contentX = element.getContentX();
+                var contentY = element.getContentY();
+                var contentWidth = element.getContentWidth();
+                var contentHeight = element.getContentHeight();
+                DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff, false);
+            });
         }
 
         public void renderDebugInfo(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 500);
+
             var x = 2;
             var y = 2;
             var font = Minecraft.getInstance().font;
+            // focus element
+            if (focusedElement != null) {
+                var posX = focusedElement.getPositionX();
+                var posY = focusedElement.getPositionY();
+                var sizeX = focusedElement.getSizeWidth();
+                var sizeY = focusedElement.getSizeHeight();
+                DrawerHelper.drawBorder(graphics, posX, posY, sizeX, sizeY, ColorPattern.PURPLE.color, -1);
+            }
             // hover element
             var hovered = getLastHoveredElement();
-            if (hovered != null && Widget.isShiftDown()) {
+            if (hovered != null) {
 
                 graphics.drawString(font, "hovered element:", x, y, 0xffff0000, true);
                 x += 10;
@@ -934,35 +1099,15 @@ public class ModularUI {
                 }
                 x -= 10;
 
-                // draw overlay
-                graphics.pose().pushPose();
-                graphics.pose().translate(0, 0, 200);
-
-                graphics.drawManaged(() -> {
-                    var posX = hovered.getPositionX();
-                    var posY = hovered.getPositionY();
-                    var sizeX = hovered.getSizeWidth();
-                    var sizeY = hovered.getSizeHeight();
-                    DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000, false);
-                    var paddingX = hovered.getPaddingX();
-                    var paddingY = hovered.getPaddingY();
-                    var paddingWidth = hovered.getPaddingWidth();
-                    var paddingHeight = hovered.getPaddingHeight();
-                    DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00, false);
-                    var contentX = hovered.getContentX();
-                    var contentY = hovered.getContentY();
-                    var contentWidth = hovered.getContentWidth();
-                    var contentHeight = hovered.getContentHeight();
-                    DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff, false);
-                });
+                renderUISpacing(hovered, graphics);
 
                 ///  draw layout box
                 // draw layout on the right
-                var sw = 200;
-                var sh = 200;
+                var sw = 300;
+                var sh = 300;
                 var sx = screenWidth - sw - 2;
                 var sy = 12;
-                var dist = 25;
+                var dist = 30;
 
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "margin", 0x80646669, new String[]{
                         String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.TOP)),
@@ -1000,8 +1145,15 @@ public class ModularUI {
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "content", 0x800000ff, new String[]{
                         hovered.getContentWidth() + " x " + hovered.getContentHeight()
                 });
-                graphics.pose().popPose();
             }
+
+            // draw cursor
+            graphics.drawManaged(() -> {
+                DrawerHelper.drawSolidRect(graphics, 0, mouseY - 1, screenWidth, 1, 0xffff0000, false);
+                DrawerHelper.drawSolidRect(graphics, mouseX - 1, 0, 1, screenHeight, 0xffff0000, false);
+            });
+            graphics.drawString(font, "pos(%d, %d)".formatted(mouseX, mouseY), mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
+            graphics.pose().popPose();
         }
 
         private void drawLayoutBox(GuiGraphics graphics, Font font, int x, int y, int width, int height, String labels, int color, String[] value) {
@@ -1030,4 +1182,5 @@ public class ModularUI {
 
         }
     }
+
 }

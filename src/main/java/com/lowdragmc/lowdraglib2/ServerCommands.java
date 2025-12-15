@@ -2,25 +2,21 @@ package com.lowdragmc.lowdraglib2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.lowdragmc.lowdraglib2.editor.ui.UIEditor;
+import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.world.level.block.Blocks;
 
 /**
  * @author KilaBash
@@ -31,7 +27,7 @@ public class ServerCommands {
 	public static List<LiteralArgumentBuilder<CommandSourceStack>> createServerCommands() {
         var commands = new ArrayList<LiteralArgumentBuilder<CommandSourceStack>>();
         commands.addAll(List.of(
-                Commands.literal("ldlib2")
+                Commands.literal("ldlib2_utils")
 						.then(Commands.literal("copy_block_tag")
 								.then(Commands.argument("pos", BlockPosArgument.blockPos())
 										.executes(context -> {
@@ -69,18 +65,15 @@ public class ServerCommands {
 													.append(NbtUtils.toPrettyComponent(tag)), true);
 											return 1;
 										}))),
-				Commands.literal("compass_server").then(Commands.literal("build_scene")
-						.then(Commands.argument("start", BlockPosArgument.blockPos())
-								.then(Commands.argument("end", BlockPosArgument.blockPos())
-										.executes(context -> runBuildScene(context, false, new BlockPos(0, 0, 0)))
-										.then(Commands.argument("saveNbt", BoolArgumentType.bool())
-												.executes(context -> runBuildScene(context,
-														BoolArgumentType.getBool(context, "saveNbt"),
-														new BlockPos(0, 0, 0)))
-												.then(Commands.argument("offset", BlockPosArgument.blockPos())
-														.executes(context -> runBuildScene(context,
-																BoolArgumentType.getBool(context, "saveNbt"),
-																BlockPosArgument.getBlockPos(context, "offset"))))))))
+                Commands.literal("ldlib2_ui_editor").executes(context -> {
+                    if (!context.getSource().getServer().isSingleplayer()) {
+                        context.getSource().sendFailure(Component.literal("This command can only be used in singleplayer"));
+                        return 0;
+                    }
+                    if (context.getSource().getPlayer() == null) return 0;
+                    PlayerUIMenuType.openUI(context.getSource().getPlayer(), UIEditor.WINDOW_ID);
+                    return 1;
+                })
         ));
         if (Platform.isDevEnv()) {
             commands.add(createMenuTestCommands());
@@ -89,88 +82,19 @@ public class ServerCommands {
 	}
 
     private static LiteralArgumentBuilder<CommandSourceStack> createMenuTestCommands() {
-        var builder = Commands.literal("ldlib_menu_test");
+        var builder = Commands.literal("ldlib2_menu_test");
         if (LDLib2Registries.MENU_TESTS == null) {
             return builder;
         }
         for (var uiTest : LDLib2Registries.MENU_TESTS) {
             builder = builder.then(Commands.literal(uiTest.annotation().name())
                     .executes(context -> {
-                        var test = uiTest.value();
                         var player = context.getSource().getPlayer();
-                        if (player != null) {
-                            player.openMenu(test);
-                        }
+                        PlayerUIMenuType.openUI(player, LDLib2.id(uiTest.annotation().name()));
                         return 1;
                     }));
         }
         return builder;
     }
 
-	public static int runBuildScene(CommandContext<CommandSourceStack> context, boolean saveNbt, BlockPos offset) {
-
-		var start = BlockPosArgument.getBlockPos(context, "start");
-		var end = BlockPosArgument.getBlockPos(context, "end");
-		var world = context.getSource().getLevel();
-
-		int smallestX = start.getX() <= end.getX() ? start.getX() : end.getX();
-		int smallestY = start.getY() <= end.getY() ? start.getY() : end.getY();
-		int smallestZ = start.getZ() <= end.getZ() ? start.getZ() : end.getZ();
-
-		int largestX = start.getX() >= end.getX() ? start.getX() : end.getX();
-		int largestY = start.getY() >= end.getY() ? start.getY() : end.getY();
-		int largestZ = start.getZ() >= end.getZ() ? start.getZ() : end.getZ();
-
-		int offsetX = -((largestX - smallestX) / 2) + offset.getX();
-		int offsetY = offset.getY();
-		int offsetZ = -((largestZ - smallestZ) / 2) + offset.getZ();
-
-		ArrayList<String> nodes = new ArrayList<>();
-
-		for (int x = smallestX; x <= largestX; x++) {
-			for (int y = smallestY; y <= largestY; y++) {
-				for (int z = smallestZ; z <= largestZ; z++) {
-					var block = world.getBlockState(new BlockPos(x, y, z));
-					var blockentity = world
-							.getBlockEntity(new BlockPos(x, y, z));
-					if (block.getBlock() != Blocks.AIR) {
-						String id = BuiltInRegistries.BLOCK
-								.getKey(block.getBlock()).toString();
-						nodes.add(
-								String.format(
-										"<add pos=\"%d %d %d\" block=\"%s\">",
-										x - smallestX + offsetX, y - smallestY + offsetY,
-										z - smallestZ + offsetZ, id));
-						nodes.addAll(block.getValues().entrySet().stream()
-								.map(e -> String.format(
-										"<properties name=\"%s\" value=\"%s\" />",
-										e.getKey().getName(),
-										e.getValue().toString()))
-								.collect(Collectors.toList()));
-						if (saveNbt && blockentity != null) {
-							var tag = blockentity.saveWithoutMetadata(context.getSource().registryAccess());
-							nodes.add("<nbt>");
-							nodes.add(NbtUtils.toPrettyComponent(tag)
-									.getString());
-							nodes.add("</nbt>");
-						}
-						nodes.add("</add>");
-					}
-				}
-			}
-		}
-
-		var text = nodes.stream().collect(Collectors.joining("\n"));
-
-		context.getSource().sendSuccess(() -> Component
-				.literal("[Copy XML to clipboard]")
-				.withStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW)
-						.withClickEvent(new ClickEvent(
-								ClickEvent.Action.COPY_TO_CLIPBOARD,
-								text))),
-				true);
-
-		return 1;
-
-	}
 }

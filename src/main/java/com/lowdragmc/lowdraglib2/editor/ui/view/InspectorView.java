@@ -6,54 +6,29 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
-import lombok.Getter;
-import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import org.appliedenergistics.yoga.YogaDisplay;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaGutter;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Inspector;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 
 public class InspectorView extends View {
-    public final ScrollerView scrollerView;
+    public final Inspector inspector;
     public final Editor editor;
-    // runtime
-    @Getter
-    @Nullable
-    private IConfigurable inspectedConfigurable;
-    @Nullable
-    private Runnable onClose;
 
     public InspectorView(Editor editor) {
         super("editor.view.inspector", Icons.SETTINGS);
         this.editor = editor;
-        this.scrollerView = new ScrollerView();
-        scrollerView.layout(layout -> {
+        this.inspector = new Inspector();
+        this.inspector.layout(layout -> {
+            layout.setHeightPercent(100);
             layout.setWidthPercent(100);
-            layout.setFlex(1);
         });
-        scrollerView.viewPort.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 1);
-        }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
-        scrollerView.viewContainer.layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 1);
-        });
-        addChild(scrollerView);
+        this.inspector.setHistoryStack(editor.getHistoryView());
+        addChild(inspector);
     }
 
     public void clear() {
-        if (inspectedConfigurable != null) {
-            if (this.onClose != null) {
-                this.onClose.run();
-            }
-            scrollerView.clearAllScrollViewChildren();
-        }
-        inspectedConfigurable = null;
-        onClose = null;
+        inspector.clear();
     }
 
     public ConfiguratorGroup inspect(IConfigurable configurable) {
@@ -68,65 +43,8 @@ public class InspectorView extends View {
         return inspect(configurable, listener, onClose, null);
     }
 
-    /**
-     * Inspects a configurable instance and generates a configurable group for editor interaction.
-     * This method allows observing changes in the configurators, managing history actions,
-     * and handling closure of the inspection.
-     *
-     * @param <T>           the type of the configurable instance, which must extend {@link IConfigurable}
-     * @param configurable  the configurable instance to inspect
-     * @param listener      an optional {@link Consumer} that is triggered whenever a configurator's value changes,
-     *                      providing the changed configurator as its argument
-     * @param onClose       an optional {@link Runnable} that is executed when the inspection session is closed
-     * @param historyAction an optional {@link Consumer} for handling undo/redo operations during history actions,
-     *                      receiving configurable instances when executed
-     * @return a {@link ConfiguratorGroup} representing the configurable instance's structure and properties
-     */
     public <T extends IConfigurable> ConfiguratorGroup inspect(T configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose, @Nullable Consumer<T> historyAction) {
-        clear();
-        this.inspectedConfigurable = configurable;
-        this.onClose = onClose;
-        var group = inspectInternal(configurable);
-        group.addEventListener(Configurator.CHANGE_EVENT, e -> {
-            if (e.target instanceof Configurator configurator) {
-                if (listener != null) {
-                    listener.accept(configurator);
-                }
-                if (configurable instanceof INBTSerializable<?> serializable) {
-                    var notifyName = configurator.getNotifyName();
-                    var recordHistory = editor.historyView.recordSerializableObject(notifyName.getString().isEmpty() ?
-                                    Component.literal(configurable.getConfigurableName()) : notifyName,
-                            serializable, configurator);
-                    if (historyAction != null) {
-                        recordHistory.setOnExecute(value -> historyAction.accept((T) value));
-                        recordHistory.setOnUndo(value -> historyAction.accept((T) value));
-                    }
-                }
-            }
-        });
-
-        if (configurable instanceof INBTSerializable<?> serializable) {
-            editor.historyView.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable, configurable)
-                    .setOnExecute(value -> {
-                        clear();
-                        scrollerView.addScrollViewChild(group);
-                        inspectedConfigurable = configurable;
-                        this.onClose = onClose;
-                    })
-                    .setOnUndo(value -> clear());
-        }
-        return group;
+        return inspector.inspect(configurable, listener, onClose, historyAction);
     }
 
-    private <T extends IConfigurable> ConfiguratorGroup inspectInternal(T configurable) {
-        var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
-        group.lineContainer.setDisplay(YogaDisplay.NONE);
-        group.configuratorContainer.layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 0);
-            layout.setPadding(YogaEdge.ALL, 0);
-        }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
-        configurable.buildConfigurator(group);
-        scrollerView.addScrollViewChild(group);
-        return group;
-    }
 }

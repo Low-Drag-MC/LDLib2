@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBindable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
@@ -7,15 +9,20 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
@@ -31,29 +38,77 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
+@LDLRegister(name = "progress-bar", group = "basic", registry = "ldlib2:ui_element")
 public class ProgressBar extends UIElement implements IBindable<Float>, IDataConsumer<Float> {
-    @Accessors(chain = true, fluent = true)
-    public static class ProgressBarStyle extends Style {
-        @Getter @Setter
-        private FillDirection fillDirection = FillDirection.LEFT_TO_RIGHT;
-        @Getter @Setter
-        private boolean interpolate = true;
-        @Getter @Setter
-        private float interpolateStep = 0.1f;
+    @Configurable(name = "ProgressBarStyle")
+    public class ProgressBarStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.FILL_DIRECTION,
+                PropertyRegistry.INTERPOLATE,
+                PropertyRegistry.INTERPOLATE_STEP,
+        };
 
-        public ProgressBarStyle(UIElement holder) {
-            super(holder);
+        public static void init() {
+            PropertyRegistry.FILL_DIRECTION.addListener(ProgressBarStyle::onPropertyChanged);
+        }
+
+        public ProgressBarStyle() {
+            super(ProgressBar.this);
+            setDefault(PropertyRegistry.FILL_DIRECTION, FillDirection.LEFT_TO_RIGHT);
+        }
+
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof ProgressBar progressBar) {
+                progressBar.onProgressBarStyleChanged();
+            }
+        }
+
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public ProgressBarStyle fillDirection(FillDirection fillDirection) {
+            set(PropertyRegistry.FILL_DIRECTION, fillDirection);
+            return this;
+        }
+
+        public FillDirection fillDirection() {
+            return getValueSave(PropertyRegistry.FILL_DIRECTION);
+        }
+
+        public ProgressBarStyle interpolate(boolean interpolate) {
+            set(PropertyRegistry.INTERPOLATE, interpolate);
+            return this;
+        }
+
+        public boolean interpolate() {
+            return getValueSave(PropertyRegistry.INTERPOLATE);
+        }
+
+        public ProgressBarStyle interpolateStep(float interpolateStep) {
+            set(PropertyRegistry.INTERPOLATE_STEP, interpolateStep);
+            return this;
+        }
+
+        public float interpolateStep() {
+            return getValueSave(PropertyRegistry.INTERPOLATE_STEP);
         }
     }
+
     public final UIElement barContainer;
     public final Label label;
     public final UIElement bar;
     @Getter
-    private final ProgressBarStyle progressBarStyle = new ProgressBarStyle(this);
+    private final ProgressBarStyle progressBarStyle = new ProgressBarStyle();
     @Getter
+    @Configurable(name = "minValue")
     private float minValue = 0;
     @Getter
+    @Configurable(name = "maxValue")
     private float maxValue = 1;
+    @Configurable(name = "value")
     private float value = 0;
     // runtime
     protected final Map<IDataProvider<Float>, ISubscription> dataSources = new LinkedHashMap<>();
@@ -65,6 +120,9 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         this.barContainer = new UIElement();
         this.label = new Label();
         this.bar = new UIElement();
+        this.barContainer.addClass("__progress-bar_bar-container__");
+        this.label.addClass("__progress-bar_label__");
+        this.bar.addClass("__progress-bar_bar__");
 
         this.barContainer.layout(layout -> {
             layout.setHeightPercent(100);
@@ -89,14 +147,17 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 .addChildren(this.bar, this.label));
         this.addChildren(this.barContainer);
         updateProgressBarStyle(getNormalizedValue());
+        internalSetup();
     }
 
     public ProgressBar progressBarStyle(Consumer<ProgressBarStyle> style) {
         style.accept(this.progressBarStyle);
-        onStyleChanged();
+        return this;
+    }
+
+    protected void onProgressBarStyleChanged() {
         lastValue = value;
         updateProgressBarStyle(getNormalizedValue());
-        return this;
     }
 
     public float getNormalizedValue() {
@@ -108,7 +169,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     }
 
     protected void updateProgressBarStyle(float normalizedValue) {
-        switch (progressBarStyle.fillDirection) {
+        switch (progressBarStyle.fillDirection()) {
             case LEFT_TO_RIGHT -> {
                 this.barContainer.layout(layout -> {
                     layout.setFlexDirection(YogaFlexDirection.COLUMN);
@@ -152,6 +213,16 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         }
     }
 
+    @ConfigSetter(field = "minValue")
+    public ProgressBar setMinValue(float minValue) {
+        return setRange(minValue, maxValue);
+    }
+
+    @ConfigSetter(field = "maxValue")
+    public ProgressBar setMaxValue(float maxValue) {
+        return setRange(minValue, maxValue);
+    }
+
     public ProgressBar setRange(float minValue, float maxValue) {
         this.minValue = minValue;
         this.maxValue = maxValue;
@@ -161,19 +232,36 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         return this;
     }
 
+    @ConfigSetter(field = "value")
+    private void setProgressEditor(float value) {
+        setProgress(value);
+        onProgressBarStyleChanged();
+    }
+
     public ProgressBar setProgress(float value) {
         return setValue(value);
     }
 
     @Override
-    public ProgressBar bindDataSource(IDataProvider<Float> dataSource) {
-        this.dataSources.put(dataSource, dataSource.registerListener(this::setProgress, true));
+    public ProgressBar bindDataSource(IDataProvider<Float> dataProvider) {
+        UIEventListener tickableListener;
+        if (dataProvider instanceof ITickable tickable) {
+            tickableListener = e -> tickable.tick();
+            addEventListener(UIEvents.TICK, tickableListener);
+        } else {
+            tickableListener = null;
+        }
+        var subscription = dataProvider.registerListener(this::setProgress, true);
+        if (tickableListener != null) {
+            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+        }
+        this.dataSources.put(dataProvider, subscription);
         return this;
     }
 
     @Override
-    public ProgressBar unbindDataSource(IDataProvider<Float> dataSource) {
-        var removed = this.dataSources.remove(dataSource);
+    public ProgressBar unbindDataSource(IDataProvider<Float> dataProvider) {
+        var removed = this.dataSources.remove(dataProvider);
         if (removed != null) {
             removed.unsubscribe();
         }
@@ -186,10 +274,10 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         var newValue = Math.max(minValue, Math.min(maxValue, value));
         if (newValue != this.value) {
             this.value = newValue;
-            if (!progressBarStyle.interpolate) {
+            if (!progressBarStyle.interpolate()) {
                 lastValue = this.value;
             }
-            updateProgressBarStyle(lastValue);
+            updateProgressBarStyle(getNormalizedValue(lastValue));
         }
         return this;
     }
@@ -215,16 +303,10 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     }
 
     @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        progressBarStyle.applyStyles(values);
-    }
-
-    @Override
     public void screenTick() {
         super.screenTick();
         if (lastValue != value) {
-            var stepValue = progressBarStyle.interpolateStep * (maxValue - minValue);
+            var stepValue = progressBarStyle.interpolateStep() * (maxValue - minValue);
             if (stepValue < 0) {
                 // invalid step
                 lastValue = value;
@@ -243,15 +325,15 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     }
                 }
             }
-            updateProgressBarStyle(lastValue);
+            updateProgressBarStyle(getNormalizedValue(lastValue));
         }
     }
 
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        if (progressBarStyle.interpolate && lastValue != value) {
-            var stepValue = progressBarStyle.interpolateStep * (maxValue - minValue);
+        if (progressBarStyle.interpolate() && lastValue != value) {
+            var stepValue = progressBarStyle.interpolateStep() * (maxValue - minValue);
             if (stepValue < 0) {
                 updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, value)));
             } else {

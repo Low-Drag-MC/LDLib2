@@ -31,6 +31,19 @@ public @interface ConfigSelector {
      * or managing sub-configurations related to the annotated field.
      * This method is expected to define or initialize sub-configurations
      * as required by the application logic.
+     * <pre>{@code
+     * @ConfigSelector(subConfiguratorBuilder = "subConfiguratorBuilder")
+     * private Direction direction = Direction.NORTH;
+     *
+     * private void subConfiguratorBuilder(Direction direction, ConfiguratorGroup group) {
+     *     switch (direction) {
+     *         case NORTH -> group.addConfigurator(new Configurator("NORTH"));
+     *         case WEST -> {}
+     *         case EAST -> group.addConfigurator(new Configurator("EAST"));
+     *         default -> group.addConfigurator(new Configurator("DEFAULT"));
+     *     }
+     * }
+     * }</pre>
      *
      * @return the name of the sub-configurator builder method as a String;
      * returns an empty string if no builder method is specified

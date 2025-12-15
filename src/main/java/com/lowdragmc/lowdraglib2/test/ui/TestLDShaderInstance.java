@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import lombok.NoArgsConstructor;
@@ -20,7 +20,7 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.entity.player.Player;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 
-@LDLRegisterClient(name="ld_shader_instance", registry = "screen_test")
+@LDLRegisterClient(name="ld_shader_instance", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestLDShaderInstance implements IScreenTest {
     CompoundTag serialized = new CompoundTag();

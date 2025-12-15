@@ -1,71 +1,98 @@
 package com.lowdragmc.lowdraglib2.test;
 
 import com.lowdragmc.lowdraglib2.CommonProxy;
-import com.lowdragmc.lowdraglib2.gui.factory_outdated.BlockEntityUIFactory;
-import com.lowdragmc.lowdraglib2.gui.modular.IUIHolder;
-import com.lowdragmc.lowdraglib2.gui.modular.ModularUI;
-import com.lowdragmc.lowdraglib2.syncdata.IBlockEntityManaged;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IManagedBlockEntity;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.networking.both.PacketRPCPacket;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacket;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacketDistributor;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.*;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncPersistRPCBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
 import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
-import com.lowdragmc.lowdraglib2.syncdata.storage.IManagedStorage;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.appliedenergistics.yoga.YogaEdge;
+import org.appliedenergistics.yoga.YogaGutter;
+import org.appliedenergistics.yoga.YogaJustify;
 
-/**
- * @author KilaBash
- * @date 2022/05/24
- * @implNote TODO
- */
-public class TestBlockEntity extends BlockEntity implements IUIHolder.BlockEntityUI, IBlockEntityManaged, IManagedBlockEntity {
-    protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(TestBlockEntity.class);
+import java.util.List;
+
+
+public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlockEntity {
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
+
     @Persisted
     @DescSynced
     @UpdateListener(methodName = "onIntValueChanged")
     private int intValue = 10;
+    @Persisted
+    @DescSynced
+    @DropSaved
+    private ItemStack itemStack = ItemStack.EMPTY;
 
     public TestBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(CommonProxy.TEST_BE_TYPE.get(), pWorldPosition, pBlockState);
     }
 
     private void onIntValueChanged(int oldValue, int newValue) {
-
+        LDLib2.LOGGER.info("Int value changed from {} to {}", oldValue, newValue);
     }
 
-    public void use(Player player) {
-        if (!getLevel().isClientSide) {
-            BlockEntityUIFactory.INSTANCE.openUI(this, (ServerPlayer) player);
+    public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
+        var root = new UIElement().layout(layout -> layout
+                .setPadding(YogaEdge.ALL, 4)
+                .setGap(YogaGutter.ALL, 2)
+                .setJustifyContent(YogaJustify.CENTER)
+        ).addClass("panel_bg");
+        root.addChild(new Label().setText("Test Block UI"));
+        root.addChild(new TextField());
+        root.addChild(new Button().setText("Change Random Value").setOnServerClick(e -> {
+            intValue = (int) (Math.random() * 100);
+            itemStack = new ItemStack(BuiltInRegistries.ITEM.getRandom(LDLib2.RANDOM).orElse(Items.APPLE.builtInRegistryHolder()));
+        }));
+        root.addChild(new ItemSlot().bindDataSource(SupplierDataSource.of(() -> itemStack)));
+        root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> Component.literal(String.valueOf(intValue)))));
+        root.addChild(new Button().setText("Test C2S RPC").setOnClick(e -> rpcToServer("rpcTest", "Hello from client!")));
+        root.addChild(new Button().setText("Test C2S RPC").setOnServerClick(e -> rpcToTracking("rpcTest", "Hello from server!")));
+        root.addChild(new Button().setText("Test C2S RPC Packet").setOnClick(e -> RPCPacketDistributor.rpcToServer("rpcPacketTest", "Hello from client!", true)));
+        root.addChild(new Button().setText("Test C2S RPC Packet").setOnServerClick(e -> RPCPacketDistributor.rpcToAllPlayers("rpcPacketTest", "Hello from server!", false)));
+        return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheet(StylesheetManager.MC))), holder.player);
+    }
+
+    @RPCMethod
+    public void rpcTest(RPCSender sender, String message) {
+        if (sender.isServer()) {
+            LDLib2.LOGGER.info("Received RPC from server: {}", message);
+        } else {
+            LDLib2.LOGGER.info("Received RPC from client: {}", message);
         }
     }
 
-    @Override
-    public ModularUI createUI(Player entityPlayer) {
-        return new ModularUI(this, entityPlayer);
-//        return new ModularUI(this, entityPlayer).widget(new UIEditor(LDLib.location));
+    @RPCPacket("rpcPacketTest")
+    public static void rpcPacketTest(RPCSender sender, String message, boolean message2) {
+        if (sender.isServer()) {
+            LDLib2.LOGGER.info("Received RPC packet from server: {}, {}", message, message2);
+        } else {
+            LDLib2.LOGGER.info("Received RPC packet from client: {}, {}", message, message2);
+        }
     }
-
-    @Override
-    public IManagedStorage getRootStorage() {
-        return getSyncStorage();
-    }
-
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
-
-    @Override
-    public void onChanged() {
-        markAsDirty();
-    }
-
 }

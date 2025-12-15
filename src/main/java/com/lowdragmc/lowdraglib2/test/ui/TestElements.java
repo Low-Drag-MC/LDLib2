@@ -8,6 +8,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
@@ -18,10 +20,8 @@ import lombok.NoArgsConstructor;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
 
-@LDLRegisterClient(name = "ui_elements", registry = "screen_test")
+@LDLRegisterClient(name = "ui_elements", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestElements implements IScreenTest {
     @Nullable
@@ -46,7 +46,7 @@ public class TestElements implements IScreenTest {
             layout.setPadding(YogaEdge.ALL, 10);
         }).setId("root");
         root.getStyle().backgroundTexture(Sprites.BORDER);
-        root.addChildren(new TabView().addTab(new Tab().setText("tab1"), new UIElement().layout(layout -> {
+        root.addChildren(new TabView().addTab(new Tab().setText("element1"), new UIElement().layout(layout -> {
                             layout.setWidthPercent(100);
                         }).addChildren(
                                 new Label()
@@ -96,12 +96,13 @@ public class TestElements implements IScreenTest {
                                                                 }
                                                             }
                                                         }))))
-                ).addTab(new Tab().setText("second tab"), new UIElement().layout(layout -> {
+                ).addTab(new Tab().setText("element2"), new UIElement().layout(layout -> {
                             layout.setGap(YogaGutter.ROW, 2);
                         }).addChildren(
                                 new ColorSelector().layout(layout -> {
                                     layout.setWidth(60);
                                 }),
+                                new TagField(),
                                 new SearchComponent<>(new SearchComponent.ISearchUI<Block>() {
                                     @Override
                                     public void search(String word, IResultHandler<Block> searchHandler) {
@@ -116,7 +117,7 @@ public class TestElements implements IScreenTest {
 
                                     @Override
                                     @Nonnull
-                                    public String resultDisplay(@NotNull Block value) {
+                                    public String resultText(@NotNull Block value) {
                                         return BuiltInRegistries.BLOCK.getKey(value).toString();
                                     }
 
@@ -134,7 +135,24 @@ public class TestElements implements IScreenTest {
                                                 "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
                                                 "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. ",
                                                 "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-                                        ))
+                                        )),
+                                new CodeEditor().setLanguage(Languages.LSS)
+                        )
+                ).addTab(new Tab().setText("transform"), new UIElement().layout(layout -> {
+                            layout.setGap(YogaGutter.ROW, 2);
+                        }).addChildren(
+                                new Button().transform(transform -> transform.translate(10, 0)),
+                                new Button().transform(transform -> transform.translate(0, -5)),
+                                new Button().transform(transform -> transform.scale(1.5f, 1)),
+                                new Button().transform(transform -> transform.rotation(30)),
+                                new Button().transform(transform -> transform.pivot(0, 0).rotation(30)),
+                                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
+                                        .addChildren(
+                                                new Button(),
+                                                new Button().transform(transform -> transform.translate(0, -5)),
+                                                new Button().transform(transform -> transform.scale(1.5f, 1)),
+                                                new Button().transform(transform -> transform.rotation(30))
+                                        ).transform(transform -> transform.translate(0, 10).rotation(15))
                         )
                 )
         );

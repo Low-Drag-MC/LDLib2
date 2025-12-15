@@ -52,24 +52,28 @@ public abstract class Resource<T> {
     /**
      * Generate builtin resources
      */
-    public void buildBuiltin(BuiltinResourceProvider<T> provider) {
+    public void buildBuiltin(ResourceInstance<T> resourceInstance) {
+        var builtinProvider = new BuiltinResourceProvider<>("built-in", resourceInstance);
+        buildBuiltin(builtinProvider);
+        resourceInstance.addBuiltinProvider(builtinProvider);
+
+        var global = new FileResourceProvider<>(resourceInstance, new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
+        global.setName("global");
+        resourceInstance.addBuiltinProvider(global);
     }
 
     /**
-     * Generate default resources.
+     * Generate builtin resources
      */
-    public void buildDefault(ResourceInstance<T> instance) {
-        var global = instance.createNewFileResourceProvider(new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
-        global.setName("global");
-        instance.addFileResourceProvider(global);
+    public void buildBuiltin(BuiltinResourceProvider<T> provider) {
     }
 
     /**
      * Create a resource provider container for the given provider. You should override it to attach additional UI elements or behaviors.
      * e.g. how to add a new resource, how to display the resource in the UI, etc.
      */
-    public ResourceProviderContainer<T> createResourceProviderContainer(ResourceProvider<T> provider) {
-        return provider.createContainer();
+    public ResourceProviderContainer<T> createResourceProviderContainer(IResourceProvider<T> provider) {
+        return new ResourceProviderContainer<>(provider);
     }
 
     public Component getDisplayName() {

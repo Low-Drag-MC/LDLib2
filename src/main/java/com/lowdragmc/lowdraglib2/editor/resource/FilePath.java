@@ -44,8 +44,8 @@ public final class FilePath implements IResourcePath {
     }
 
     @Override
-    public boolean isBuiltin() {
-        return false;
+    public ResourceProviderType getType() {
+        return FileResourceProvider.TYPE;
     }
 
     @Override

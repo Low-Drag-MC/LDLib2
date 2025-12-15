@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui;
 
 import com.lowdragmc.lowdraglib2.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 
 /**
@@ -9,6 +10,7 @@ import com.lowdragmc.lowdraglib2.utils.ColorUtils;
  * @date 2022/12/1
  * @implNote ColorPattern
  */
+@KJSBindings
 public enum ColorPattern {
     WHITE(0xffffffff, "white"),
     T_WHITE(0x88ffffff, "transparent white"),
@@ -31,6 +33,7 @@ public enum ColorPattern {
     T_BRIGHT_RED(0x88FF0000, "transparent bright red"),
     YELLOW(0xffffff33, "yellow"),
     T_YELLOW(0x88ffff33, "transparent yellow"),
+    BRIGHT_CYAN(0xFF00FFFF, "bright cyan"),
     CYAN(0xff337777, "cyan"),
     T_CYAN(0x88337777, "transparent cyan"),
     PURPLE(0xff9933ff, "purple"),

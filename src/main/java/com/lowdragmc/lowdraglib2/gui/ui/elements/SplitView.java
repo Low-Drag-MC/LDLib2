@@ -6,6 +6,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -34,6 +37,9 @@ public abstract class SplitView extends UIElement {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
 
+        first.addClass("__split_view_first__");
+        second.addClass("__split_view_second__");
+
         addChildren(first, second);
     }
 
@@ -44,8 +50,6 @@ public abstract class SplitView extends UIElement {
     protected abstract void onDragSourceUpdate(UIEvent event);
 
     public abstract SplitView setPercentage(float percentage);
-
-    public abstract float getPercentage();
 
     public SplitView first(UIElement first) {
         this.first.clearAllChildren();
@@ -72,21 +76,22 @@ public abstract class SplitView extends UIElement {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        if (isHoverDragging(guiContext.mouseX, guiContext.mouseY)) {
-            guiContext.pose.pushPose();
-            guiContext.pose.translate(0, 0, 200);
-            var icon = getDraggingIcon();
-            var width = icon.spriteSize.width;
-            var height = icon.spriteSize.height;
-            guiContext.drawTexture(icon,
-                    guiContext.mouseX - width / 2f,
-                    guiContext.mouseY - height / 2f,
-                    width,
-                    height);
-            guiContext.pose.popPose();
+        if (isHoverDragging(guiContext.localMouseX, guiContext.localMouseY)) {
+            guiContext.postRendering(ctx -> {
+                var icon = getDraggingIcon();
+                var width = icon.spriteSize.width;
+                var height = icon.spriteSize.height;
+                ctx.drawTexture(icon,
+                        ctx.localMouseX - width / 2f,
+                        ctx.localMouseY - height / 2f,
+                        width,
+                        height);
+            });
         }
     }
 
+    @KJSBindings("SplitViewHorizontal")
+    @LDLRegister(name = "split-view-horizontal", group = "container", registry = "ldlib2:ui_element")
     public static class Horizontal extends SplitView {
         public Horizontal() {
             getLayout().setFlexDirection(YogaFlexDirection.ROW);
@@ -94,6 +99,7 @@ public abstract class SplitView extends UIElement {
             first.getLayout().setHeightPercent(100);
             second.getLayout().setFlex(1);
             second.getLayout().setHeightPercent(100);
+            internalSetup();
         }
 
         @Override
@@ -135,18 +141,17 @@ public abstract class SplitView extends UIElement {
             return this;
         }
 
-        @Override
-        public float getPercentage() {
-            return first.getLayout().getWidth().value;
-        }
     }
 
+    @KJSBindings("SplitViewVertical")
+    @LDLRegister(name = "split-view-vertical", group = "container", registry = "ldlib2:ui_element")
     public static class Vertical extends SplitView {
         public Vertical() {
             first.getLayout().setWidthPercent(100);
             first.getLayout().setHeightPercent(50);
             second.getLayout().setFlex(1);
             second.getLayout().setWidthPercent(100);
+            internalSetup();
         }
 
         @Override
@@ -187,9 +192,5 @@ public abstract class SplitView extends UIElement {
             return this;
         }
 
-        @Override
-        public float getPercentage() {
-            return first.getLayout().getHeight().value;
-        }
     }
 }

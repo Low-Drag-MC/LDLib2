@@ -2,11 +2,15 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
@@ -15,6 +19,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
@@ -31,6 +36,7 @@ import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
+@KJSBindings
 public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
     //region builtin textures
     @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", manual = true)
@@ -54,7 +60,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
             Tesselator tessellator = Tesselator.getInstance();
             BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX);
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, TextureManager.INTENTIONAL_MISSING_TEXTURE);
+            RenderSystem.setShaderTexture(0, MissingTextureAtlasSprite.getTexture().getId());
             var matrix4f = graphics.pose().last().pose();
             bufferbuilder.addVertex(matrix4f, x, y + height, 0).setUv(0, 1);
             bufferbuilder.addVertex(matrix4f, x + width, y + height, 0).setUv(1, 1);
@@ -104,7 +110,9 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
 
     default IGuiTexture copy() {
-        return CODEC.encodeStart(NbtOps.INSTANCE, this).result().map(tag -> CODEC.parse(NbtOps.INSTANCE, tag).result()
+        return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
+                .result()
+                .map(tag -> CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result()
                 .orElse(IGuiTexture.MISSING_TEXTURE))
                 .orElse(IGuiTexture.MISSING_TEXTURE);
     }
@@ -114,11 +122,14 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     default void createPreview(ConfiguratorGroup father) {
         father.addConfigurators(new Configurator("ldlib.gui.editor.group.preview")
                 .addChild(new UIElement().layout(layout -> {
+                    layout.setPipelineState(StyleOrigin.DEFAULT);
                     layout.setAspectRatio(1.0f);
                     layout.setWidthPercent(80);
                     layout.setAlignSelf(YogaAlign.CENTER);
                     layout.setPadding(YogaEdge.ALL, 3);
-                }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                    layout.setPipelineState(StyleOrigin.INLINE);
+                }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
+                        .addClass("preview_bg")
                         .addChild(new UIElement().layout(layout -> {
                             layout.setWidthPercent(100);
                             layout.setHeightPercent(100);
@@ -130,6 +141,14 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     default void buildConfigurator(ConfiguratorGroup father) {
         createPreview(father);
         IConfigurable.super.buildConfigurator(father);
+    }
+
+    static DynamicTexture dynamic(Supplier<IGuiTexture> textureSupplier) {
+        return DynamicTexture.of(textureSupplier);
+    }
+
+    static GuiTextureGroup group(IGuiTexture... textures) {
+        return GuiTextureGroup.of(textures);
     }
 
     @Nullable

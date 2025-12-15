@@ -4,9 +4,11 @@ import com.google.common.base.Strings;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.DelegatingOpsAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.ManagedFieldUtils;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
@@ -41,12 +43,33 @@ public final class PersistedParser {
             @Override
             public <T1> DataResult<Pair<T, T1>> decode(DynamicOps<T1> ops, T1 input) {
                 T instance = creator.get();
-                deserialize(ops, input, instance, Platform.getFrozenRegistry());
+                if (instance instanceof IPersistedSerializable persistedSerializable) {
+                    CompoundTag tag;
+                    if (input instanceof CompoundTag compoundTag) {
+                        tag = compoundTag;
+                    } else {
+                        tag = (CompoundTag) ops.convertMap(NbtOps.INSTANCE, input);
+                    }
+                    persistedSerializable.deserializeNBT(Platform.getFrozenRegistry(), tag);
+                } else {
+                    deserialize(ops, input, instance, Platform.getFrozenRegistry());
+                }
                 return DataResult.success(Pair.of(instance, ops.empty()));
             }
 
             @Override
             public <T1> DataResult<T1> encode(T input, DynamicOps<T1> ops, T1 prefix) {
+                if (input instanceof IPersistedSerializable persistedSerializable) {
+                    try {
+                        var tag = persistedSerializable.serializeNBT(Platform.getFrozenRegistry());
+                        if (ops == NbtOps.INSTANCE || ops instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
+                            return (DataResult<T1>) DataResult.success(tag);
+                        }
+                        return DataResult.success(NbtOps.INSTANCE.convertTo(ops, tag));
+                    } catch (Exception e) {
+                        return DataResult.error(e::getMessage);
+                    }
+                }
                 return serialize(ops, input, Platform.getFrozenRegistry());
             }
 
@@ -61,14 +84,14 @@ public final class PersistedParser {
      * This method is used to serial the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
     public static CompoundTag serializeNBT(Object object, HolderLookup.Provider provider) {
-        return (CompoundTag) serialize(NbtOps.INSTANCE, object, provider).result().orElse(new CompoundTag());
+        return (CompoundTag) serialize(provider.createSerializationContext(NbtOps.INSTANCE), object, provider).result().orElse(new CompoundTag());
     }
 
     /**
      * This method is used to deserialize the NBT data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
     public static void deserializeNBT(CompoundTag tag, Object object, HolderLookup.Provider provider) {
-        deserialize(NbtOps.INSTANCE, tag, object, provider);
+        deserialize(provider.createSerializationContext(NbtOps.INSTANCE), tag, object, provider);
     }
 
     /**
@@ -76,7 +99,7 @@ public final class PersistedParser {
      */
     public static <T> DataResult<T> serialize(DynamicOps<T> op, Object object, HolderLookup.Provider provider) {
         var builder = op.mapBuilder();
-        serializeInternal(true, builder, op, object.getClass(), object, provider);
+        serializeInternal(true, builder, op, new HashMap<>(), object.getClass(), object, provider);
         return builder.build(op.empty());
     }
 
@@ -90,14 +113,24 @@ public final class PersistedParser {
     /**
      * This method is used to serialize the object fields with {@link Persisted} or {@link Configurable} annotation to the op data.
      */
-    private static <T> void serializeInternal(boolean root, RecordBuilder<T> recordBuilder, DynamicOps<T> op, Class<?> clazz, Object object, HolderLookup.Provider provider) {
+    private static <T> void serializeInternal(boolean root, RecordBuilder<T> recordBuilder, DynamicOps<T> op, Map<String, Method> skipValues, Class<?> clazz, Object object, HolderLookup.Provider provider) {
         if (clazz == Object.class || clazz == null) return;
 
         if (root && object instanceof IPersistedSerializable serializable) {
             serializable.beforeSerialize();
         }
 
-        serializeInternal(false, recordBuilder, op, clazz.getSuperclass(), object, provider);
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(SkipPersistedValue.class)) {
+                SkipPersistedValue skipPersistedValue = method.getAnnotation(SkipPersistedValue.class);
+                String name = skipPersistedValue.field();
+                if (!skipValues.containsKey(name)) {
+                    skipValues.put(name, method);
+                }
+            }
+        }
+
+        serializeInternal(false, recordBuilder, op, skipValues, clazz.getSuperclass(), object, provider);
 
         for (Field field : clazz.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) {
@@ -124,6 +157,19 @@ public final class PersistedParser {
                 continue;
             }
 
+            var skipMethod = skipValues.get(field.getName());
+            if (skipMethod != null) {
+                skipMethod.setAccessible(true);
+                field.setAccessible(true);
+                try {
+                    if (skipMethod.invoke(object, field.get(object)) instanceof Boolean skip && skip) {
+                        continue;
+                    }
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
             T data = null;
             if (persistent.map(Configurable::subConfigurable, Persisted::subPersisted)) {
                 // sub configurable
@@ -132,12 +178,12 @@ public final class PersistedParser {
                     var value = field.get(object);
                     if (value != null) {
                         if (value instanceof INBTSerializable<?> serializable) {
-                            data = op == NbtOps.INSTANCE ? 
+                            data = (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) ?
                                     (T) serializable.serializeNBT(provider) : 
                                     NbtOps.INSTANCE.convertTo(op, serializable.serializeNBT(provider));
                         } else {
                             var builder = op.mapBuilder();
-                            serializeInternal(false, builder, op, ReflectionUtils.getRawType(field.getGenericType()), value, provider);
+                            serializeInternal(false, builder, op, new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider);
                             data = builder.build(op.empty()).getOrThrow();
                         }
                     }
@@ -171,7 +217,7 @@ public final class PersistedParser {
             serializable.beforeDeserialize();
         }
 
-        for (Method method : clazz.getMethods()) {
+        for (Method method : clazz.getDeclaredMethods()) {
             if (method.isAnnotationPresent(ConfigSetter.class)) {
                 ConfigSetter configSetter = method.getAnnotation(ConfigSetter.class);
                 String name = configSetter.field();
@@ -218,7 +264,7 @@ public final class PersistedParser {
                         var value = field.get(object);
                         if (value != null) {
                             if (value instanceof INBTSerializable serializable) {
-                                if (op == NbtOps.INSTANCE) {
+                                if (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
                                     serializable.deserializeNBT(provider, (Tag) data);
                                 } else {
                                     serializable.deserializeNBT(provider, op.convertTo(NbtOps.INSTANCE, data));
@@ -234,6 +280,7 @@ public final class PersistedParser {
                     Method setter = setters.get(field.getName());
 
                     if (setter != null) {
+                        setter.setAccessible(true);
                         field.setAccessible(true);
                         try {
                             setter.invoke(object, field.get(object));

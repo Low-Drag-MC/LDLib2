@@ -16,8 +16,7 @@ public interface MixinPluginShared {
 	boolean IS_SODIUM_LOAD = isModLoaded("sodium");
 	boolean IS_JEI_LOAD = isModLoaded("jei");
 	boolean IS_REI_LOAD = isModLoaded("rei");
-	boolean IS_MEI_LOAD = isModLoaded("emi");
-	boolean IS_EMI_LOADED = IS_MEI_LOAD;
+	boolean IS_EMI_LOADED = isModLoaded("emi");
 	boolean IS_RUBIDIUM_LOAD = IS_SODIUM_LOAD;
 	boolean IS_IRIS_LOAD = isModLoaded("iris");
 	boolean IS_OCULUS_LOAD = IS_IRIS_LOAD || isModLoaded("oculus");

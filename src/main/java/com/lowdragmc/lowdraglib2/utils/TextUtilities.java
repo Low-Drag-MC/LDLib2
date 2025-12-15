@@ -2,7 +2,11 @@ package com.lowdragmc.lowdraglib2.utils;
 
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 
@@ -33,11 +37,19 @@ public final class TextUtilities {
         var formattedLines = font.split(text, maxWidthScaled);
         return formattedLines.stream()
                 .map(line -> {
-                    var lineWidth = font.width(line);
+                    var lineWidth = font.getSplitter().stringWidth(line);
                     var realLineWidth = (lineWidth * scale);
                     return new Tuple<>(line, realLineWidth);
                 })
                 .toList();
+    }
+
+    public Component withFont(String text, ResourceLocation font) {
+        return font.equals(Style.DEFAULT_FONT) ? Component.literal(text) : Component.literal(text).withStyle(style -> style.withFont(font));
+    }
+
+    public Component withFont(Component component, ResourceLocation font) {
+        return font.equals(Style.DEFAULT_FONT) ? component : component.copy().withStyle(style -> style.withFont(font));
     }
 
 }

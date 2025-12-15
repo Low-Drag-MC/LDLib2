@@ -245,8 +245,6 @@ public class IModelRenderer implements IRenderer {
         IRenderer.super.buildConfigurator(father);
         var buttonConfigurator = new Configurator();
         father.addConfigurators(buttonConfigurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_model").setOnClick(e -> {
-            var mui = e.currentElement.getModularUI();
-            if (mui == null) return;
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_model", LDLib2.getAssetsDir(), true, node -> {
                 if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".json".toLowerCase())) {
                     if (node.getKey().isFile()) {
@@ -263,7 +261,7 @@ public class IModelRenderer implements IRenderer {
                     updateModelWithReloadingResource(newModel);
                     buttonConfigurator.notifyChanges();
                 }
-            }).show(mui.ui.rootElement);
+            }).show(e.currentElement.getModularUI());
         }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))));
     }
 

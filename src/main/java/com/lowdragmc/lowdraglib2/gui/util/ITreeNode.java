@@ -47,6 +47,16 @@ public interface ITreeNode<KEY, CONTENT> {
     }
 
     /**
+     * Retrieves the parent node of the current tree node.
+     * The parent node is the node immediately above the current node in the hierarchy.
+     * If the current node is a root node (i.e., it has no parent), this method will return {@code null}.
+     *
+     * @return the parent node of the current node, or {@code null} if the node is a root.
+     */
+    @Nullable
+    ITreeNode<KEY, CONTENT> getParent();
+    
+    /**
      * Retrieves the list of child nodes of the current tree node.
      *
      * The returned list contains all the immediate child nodes of this node.
@@ -57,6 +67,21 @@ public interface ITreeNode<KEY, CONTENT> {
      */
     @Nonnull
     List<? extends ITreeNode<KEY, CONTENT>> getChildren();
+
+    /**
+     * Determines the index of the current node among its siblings in the parent's child list.
+     * <p>
+     * The sibling index is calculated based on the position of this node in the list of children
+     * returned by {@link #getParent()}{@code .getChildren()}. If the current node does not have a
+     * parent (i.e., it is a root node), the method will return {@code -1}.
+     *
+     * @return the zero-based index of the node within its sibling list, or {@code -1} if the node
+     * does not have a parent.
+     */
+    default int getSiblingIndex() {
+        if (getParent() == null) return -1;
+        return getParent().getChildren().indexOf(this);
+    }
 
     /**
      * Retrieves a child node of the current node that matches the specified key.

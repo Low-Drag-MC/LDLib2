@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.slot;
 
 import com.google.common.base.Predicates;
-import com.lowdragmc.lowdraglib2.gui.widget.SlotWidget;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+@KJSBindings
 public class ItemHandlerSlot extends Slot {
     private static final Container emptyInventory = new SimpleContainer(0);
     @Getter @Setter @Accessors(chain = true)

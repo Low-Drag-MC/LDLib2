@@ -1,4 +1,5 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.IDirectAccessor;
@@ -150,9 +151,9 @@ public class CollectionAccessor<TYPE> implements
             return switch (childAccessor) {
                 case IMarkFunction markFunction -> markFunction.obtainManagedMark(v);
                 case IDirectAccessor<TYPE> directAccessor ->
-                        directAccessor.readDirectVar(JavaOps.INSTANCE, ManagedHolderVar.of(v));
+                        directAccessor.readDirectVar(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), ManagedHolderVar.of(v));
                 case IReadOnlyAccessor<TYPE> readOnlyAccessor ->
-                        readOnlyAccessor.readReadOnlyValue(JavaOps.INSTANCE, v);
+                        readOnlyAccessor.readReadOnlyValue(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), v);
                 case null, default ->
                         throw new IllegalArgumentException("Child accessor %s is not managed for collection accessor".formatted(childAccessor));
             };
@@ -180,12 +181,12 @@ public class CollectionAccessor<TYPE> implements
                     }
                 }
                 case IDirectAccessor<TYPE> directAccessor -> {
-                    if (!directAccessor.readDirectVar(JavaOps.INSTANCE, ManagedHolderVar.of(v)).equals(mark)) {
+                    if (!directAccessor.readDirectVar(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), ManagedHolderVar.of(v)).equals(mark)) {
                         return true;
                     }
                 }
                 case IReadOnlyAccessor<TYPE> readOnlyAccessor -> {
-                    if (!readOnlyAccessor.readReadOnlyValue(JavaOps.INSTANCE, v).equals(mark)) {
+                    if (!readOnlyAccessor.readReadOnlyValue(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), v).equals(mark)) {
                         return true;
                     }
                 }

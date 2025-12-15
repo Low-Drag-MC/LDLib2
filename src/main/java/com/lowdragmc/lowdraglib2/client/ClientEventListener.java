@@ -1,18 +1,23 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.integration.emi.ModularEmiRecipe;
-import com.lowdragmc.lowdraglib2.integration.rei.ModularDisplay;
+import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import dev.emi.emi.screen.RecipeScreen;
-import me.shedaniel.rei.api.client.gui.screen.DisplayScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
+import org.appliedenergistics.yoga.YogaPositionType;
 
 import java.util.List;
 
@@ -33,21 +38,13 @@ public class ClientEventListener {
     }
 
     @SubscribeEvent
-    public static void onScreenClosed(ScreenEvent.Closing event) {
-        if (LDLib2.isReiLoaded()) {
-            if (event.getScreen() instanceof DisplayScreen && !ModularDisplay.CACHE_OPENED.isEmpty()) {
-                synchronized (ModularDisplay.CACHE_OPENED) {
-                    ModularDisplay.CACHE_OPENED.forEach(modular -> modular.modularUI.triggerCloseListeners());
-                    ModularDisplay.CACHE_OPENED.clear();
-                }
-            }
-        }
-        if (LDLib2.isEmiLoaded()) {
-            if (event.getScreen() instanceof RecipeScreen && !ModularEmiRecipe.CACHE_OPENED.isEmpty()) {
-                synchronized (ModularEmiRecipe.CACHE_OPENED) {
-                    ModularEmiRecipe.CACHE_OPENED.forEach(modular -> modular.modularUI.triggerCloseListeners());
-                    ModularEmiRecipe.CACHE_OPENED.clear();
-                }
+    public static void onRegisterClientCommands(ScreenEvent.Init.Pre event) {
+        var screen = event.getScreen();
+        if (screen instanceof AbstractContainerScreen<?> containerScreen && containerScreen.getMenu() instanceof IModularUIHolder holder) {
+            var mui = holder.getModularUI();
+            if (mui != null) {
+                mui.setScreenAndInit(containerScreen);
+                event.addListener(mui.getWidget());
             }
         }
     }

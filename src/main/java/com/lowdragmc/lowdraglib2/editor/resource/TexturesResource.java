@@ -6,12 +6,21 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
+@KJSBindings
 public class TexturesResource extends Resource<IGuiTexture> {
     public static final TexturesResource INSTANCE = new TexturesResource();
+
+    @Override
+    public void buildBuiltin(ResourceInstance<IGuiTexture> resourceInstance) {
+        super.buildBuiltin(resourceInstance);
+//        resourceInstance.addBuiltinProvider(Sprites.getProvider(resourceInstance));
+    }
 
     @Override
     public void buildBuiltin(BuiltinResourceProvider<IGuiTexture> provider) {
@@ -31,16 +40,16 @@ public class TexturesResource extends Resource<IGuiTexture> {
 
     @Override
     public Tag serializeResource(IGuiTexture value, HolderLookup.Provider provider) {
-        return IGuiTexture.CODEC.encodeStart(NbtOps.INSTANCE, value).result().orElse(null);
+        return IGuiTexture.CODEC.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), value).result().orElse(null);
     }
 
     @Override
     public IGuiTexture deserializeResource(Tag nbt, HolderLookup.Provider provider) {
-        return IGuiTexture.CODEC.parse(NbtOps.INSTANCE, nbt).result().orElse(IGuiTexture.MISSING_TEXTURE);
+        return IGuiTexture.CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), nbt).result().orElse(IGuiTexture.MISSING_TEXTURE);
     }
 
     @Override
-    public ResourceProviderContainer<IGuiTexture> createResourceProviderContainer(ResourceProvider<IGuiTexture> provider) {
+    public ResourceProviderContainer<IGuiTexture> createResourceProviderContainer(IResourceProvider<IGuiTexture> provider) {
         var container = super.createResourceProviderContainer(provider)
                 .setUiSupplier(path -> new UIElement().layout(layout -> {
                     layout.setWidthPercent(100);

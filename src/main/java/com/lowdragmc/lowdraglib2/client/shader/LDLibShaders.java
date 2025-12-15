@@ -15,7 +15,6 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import org.lwjgl.opengl.GL;
-import org.spongepowered.asm.mixin.Unique;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -103,11 +102,16 @@ public class LDLibShaders {
 	private static ShaderInstance hsbShader;
 	@Getter
 	private static ShaderInstance compassLineShader;
+    @Getter
+    private static ShaderInstance visualLayerShader;
+    @Getter
+    private static ShaderInstance SDFRect;
 
 	/**
 	 * the vertex format for HSB color, three four of float
 	 */
 	public static final VertexFormatElement HSB_Alpha = VertexFormatElement.register(VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 4);
+	public static final VertexFormatElement AA = VertexFormatElement.register(VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 1);
 
 	public static VertexFormat HSB_VERTEX_FORMAT = VertexFormat.builder()
 			.add("Position", POSITION)
@@ -123,6 +127,9 @@ public class LDLibShaders {
 			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
 							LDLib2.id("fast_blit"), DefaultVertexFormat.POSITION),
 					shaderInstance -> blitShader = shaderInstance);
+            registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+                            LDLib2.id("visual_layer"), DefaultVertexFormat.POSITION_TEX),
+                    shaderInstance -> visualLayerShader = shaderInstance);
 			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
 							LDLib2.id("sprite_blit"), DefaultVertexFormat.POSITION_TEX_COLOR),
 					shaderInstance -> spriteBlitShader = shaderInstance);
@@ -132,6 +139,9 @@ public class LDLibShaders {
 			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
 							LDLib2.id("compass_line"), DefaultVertexFormat.POSITION_TEX_COLOR),
 					shaderInstance -> compassLineShader = shaderInstance);
+            registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+                            LDLib2.id("sdf_rect"), DefaultVertexFormat.POSITION),
+                    shaderInstance -> SDFRect = shaderInstance);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

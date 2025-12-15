@@ -2,16 +2,17 @@ package com.lowdragmc.lowdraglib2;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.configurator.accessors.IConfiguratorAccessor;
-import com.lowdragmc.lowdraglib2.editor_outdated.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib2.graphprocessor.data.BaseNode;
+import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceProviderType;
 import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
-import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.LDLRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.ui.IMenuTest;
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
-import com.lowdragmc.lowdraglib2.utils.TypeAdapter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -19,16 +20,12 @@ import java.util.function.Supplier;
 
 @SuppressWarnings("unchecked")
 public class LDLib2Registries {
-    public final static AutoRegistry.LDLibRegister<TypeAdapter.ITypeAdapter, TypeAdapter.ITypeAdapter> TYPE_ADAPTERS = AutoRegistry.LDLibRegister
-            .create(LDLib2.id("type_adapter"), TypeAdapter.ITypeAdapter.class, AutoRegistry::noArgsInstance);
+    public final static AutoRegistry.LDLibRegister<UIElement, Supplier<UIElement>> UI_ELEMENTS = AutoRegistry.LDLibRegister
+            .create(LDLib2.id("ui_element"), UIElement.class, AutoRegistry::noArgsCreator);
 
-    public final static AutoRegistry.LDLibRegister<BaseNode, Supplier<BaseNode>> GRAPH_NODES = AutoRegistry.LDLibRegister
-            .create(LDLib2.id("graph_node"), BaseNode.class, AutoRegistry::noArgsCreator);
+    public final static LDLRegistry.String<ResourceProviderType> RESOURCE_PROVIDER_TYPES = new LDLRegistry.String<>(LDLib2.id("resource_provider_types"));
 
-    public final static AutoRegistry.LDLibRegister<IConfigurableWidget, Supplier<IConfigurableWidget>> WIDGETS = AutoRegistry.LDLibRegister
-            .create(LDLib2.id("widget"), IConfigurableWidget.class, AutoRegistry::noArgsCreator);
-
-    public static AutoRegistry.LDLibRegister<IMenuTest, IMenuTest> MENU_TESTS;
+    public static AutoRegistry.LDLibRegister<IMenuTest, Supplier<IMenuTest>> MENU_TESTS;
 
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IConfiguratorAccessor, IConfiguratorAccessor<?>> CONFIGURATOR_ACCESSORS;
@@ -48,6 +45,7 @@ public class LDLib2Registries {
                     .create(LDLib2.id("configurator_accessor"), IConfiguratorAccessor.class, AutoRegistry::noArgsInstance);
             GUI_TEXTURES = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
+            GUI_TEXTURES.setMissingKey("missing");
             RENDERERS = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
             if (Platform.isDevEnv()) {
@@ -55,9 +53,13 @@ public class LDLib2Registries {
             }
         }
         if (Platform.isDevEnv()) {
-            MENU_TESTS = AutoRegistry.LDLibRegister.create(LDLib2.id("menu_test"), IMenuTest.class, AutoRegistry::noArgsInstance);
+            MENU_TESTS = AutoRegistry.LDLibRegister.create(LDLib2.id("menu_test"), IMenuTest.class, AutoRegistry::noArgsCreator);
             for (var menuTest : MENU_TESTS) {
-                PlayerUIMenuType.register(LDLib2.id(menuTest.annotation().name()), menuTest.value());
+                PlayerUIMenuType.register(LDLib2.id(menuTest.annotation().name()), player -> {
+                    var test = menuTest.value().get();
+                    test.init(player);
+                    return test;
+                });
             }
         }
     }
@@ -77,5 +79,8 @@ public class LDLib2Registries {
                     IRenderer.EmptyRenderer.class,
                     () -> IRenderer.EMPTY));
         }
+
+        RESOURCE_PROVIDER_TYPES.register(BuiltinResourceProvider.TYPE.getTypeName(), BuiltinResourceProvider.TYPE);
+        RESOURCE_PROVIDER_TYPES.register(FileResourceProvider.TYPE.getTypeName(), FileResourceProvider.TYPE);
     }
 }

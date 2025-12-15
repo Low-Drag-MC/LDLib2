@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.IReadOnlyAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
@@ -26,7 +27,7 @@ public class ReadOnlyRef<TYPE> extends ReadOnlyManagedRef<TYPE> {
             if (!isReadOnlyManaged()) {
                 this.oldValueMark = accessor instanceof IMarkFunction markFunction ?
                         markFunction.obtainManagedMark(value) :
-                        accessor.readReadOnlyValue(JavaOps.INSTANCE, value);
+                        accessor.readReadOnlyValue(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value);
             }
             if (isReadOnlyManaged()) {
                 assert field.getManagedVar() != null;
@@ -58,7 +59,7 @@ public class ReadOnlyRef<TYPE> extends ReadOnlyManagedRef<TYPE> {
                 markAsDirty();
             }
         } else {
-            var newValueMark = accessor.readReadOnlyValue(JavaOps.INSTANCE, value);
+            var newValueMark = accessor.readReadOnlyValue(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value);
             if (!oldValueMark.equals(newValueMark)) {
                 oldValueMark = newValueMark;
                 markAsDirty();

@@ -93,7 +93,7 @@ public class ValueConfigurator<T> extends Configurator {
     /**
      * Set value.
      */
-    private void setValue(T value, boolean notify) {
+    protected void setValue(T value, boolean notify) {
         onValueUpdatePassively(value);
         if (notify) {
             updateValue();

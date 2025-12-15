@@ -8,11 +8,14 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -38,6 +41,7 @@ import javax.annotation.Nullable;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
+@KJSBindings
 @LDLRegisterClient(name = "sprite_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 public class SpriteTexture extends TransformTexture {
@@ -119,6 +123,10 @@ public class SpriteTexture extends TransformTexture {
         this.borderLT = Position.of(left, top);
         this.borderRB = Position.of(right, bottom);
         return this;
+    }
+
+    public SpriteTexture setBorder(int border) {
+        return setBorder(border, border, border, border);
     }
 
     @Override
@@ -296,19 +304,20 @@ public class SpriteTexture extends TransformTexture {
                 .addChildren(
                         // raw image preview
                         new UIElement().layout(layout -> {
+                                    layout.setPipelineState(StyleOrigin.DEFAULT);
                                     layout.setAspectRatio(1.0f);
                                     layout.setWidthPercent(80);
                                     layout.setPadding(YogaEdge.ALL, 3);
                                     layout.setAlignSelf(YogaAlign.CENTER);
-                                }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                                    layout.setPipelineState(StyleOrigin.INLINE);
+                                }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
+                                .addClass("preview_bg")
                                 .addChild(new UIElement().layout(layout -> {
                                     layout.setWidthPercent(100);
                                     layout.setHeightPercent(100);
                                 }).style(style -> style.backgroundTexture(this::drawRawTextureGuides))),
                         // button to select image
                         new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
-                            var mui = e.currentElement.getModularUI();
-                            if (mui == null) return;
                             Dialog.showFileDialog("ldlib.gui.editor.tips.select_image", LDLib2.getAssetsDir(), true, Dialog.suffixFilter(".png"), r -> {
                                 if (r != null && r.isFile()) {
                                     var location = IGuiTexture.getTextureFromFile(r);
@@ -318,7 +327,7 @@ public class SpriteTexture extends TransformTexture {
                                     setSprite(0, 0, size.getWidth(), size.getHeight());
                                     configurator.notifyChanges();
                                 }
-                            }).show(mui.ui.rootElement);
+                            }).show(e.currentElement.getModularUI());
                         }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
                 ));
     }

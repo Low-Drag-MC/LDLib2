@@ -8,9 +8,11 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ShaderInstanceAccessor;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.pipeline.RenderTarget;
@@ -310,19 +312,20 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
             samplerConfigurator.addChildren(
                     // preview
                     new UIElement().layout(layout -> {
+                        layout.setPipelineState(StyleOrigin.DEFAULT);
                         layout.setAspectRatio(1.0f);
                         layout.setWidthPercent(80);
                         layout.setAlignSelf(YogaAlign.CENTER);
                         layout.setPadding(YogaEdge.ALL, 3);
-                    }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                        layout.setPipelineState(StyleOrigin.INLINE);
+                    }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
+                    .addClass("preview_bg")
                     .addChild(new UIElement().layout(layout -> {
                         layout.setWidthPercent(100);
                         layout.setHeightPercent(100);
                     }).style(style -> style.backgroundTexture(createSamplerPreview(samplerName)))),
                     // button to select image
                     new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
-                        var mui = e.currentElement.getModularUI();
-                        if (mui == null) return;
                         Dialog.showFileDialog("ldlib.gui.editor.tips.select_image", LDLib2.getAssetsDir(), true, Dialog.suffixFilter(".png"), r -> {
                             if (r != null && r.isFile()) {
                                 var location = IGuiTexture.getTextureFromFile(r);
@@ -331,7 +334,7 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
                                 samplerCache.put(samplerName, location);
                                 samplerConfigurator.notifyChanges();
                             }
-                        }).show(mui.ui.rootElement);
+                        }).show(e.currentElement.getModularUI());
                     }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
             );
             father.addConfigurator(samplerConfigurator);

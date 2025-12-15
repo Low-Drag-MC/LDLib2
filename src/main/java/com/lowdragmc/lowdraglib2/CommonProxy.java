@@ -3,10 +3,9 @@ package com.lowdragmc.lowdraglib2;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
-import com.lowdragmc.lowdraglib2.gui.factory_outdated.*;
-import com.lowdragmc.lowdraglib2.integration.kjs.ui.BlockUIJSFactory;
-import com.lowdragmc.lowdraglib2.integration.kjs.ui.ItemUIJSFactory;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacketDistributor;
 import com.lowdragmc.lowdraglib2.plugin.ILDLibPlugin;
 import com.lowdragmc.lowdraglib2.plugin.LDLibPlugin;
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
@@ -16,7 +15,6 @@ import com.lowdragmc.lowdraglib2.test.TestBlockEntity;
 import com.lowdragmc.lowdraglib2.test.TestItem;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -50,7 +48,7 @@ public class CommonProxy {
         // used for forge events (ClientProxy + CommonProxy)
         eventBus.addListener(LDLNetworking::registerPayloads);
         // init common features
-        CommonProxy.init();
+        CommonProxy.init(eventBus);
         // load ldlib2 plugin
         ReflectionUtils.findAnnotationClasses(LDLibPlugin.class, data -> true, clazz -> {
             try {
@@ -61,21 +59,18 @@ public class CommonProxy {
                 LDLib2.LOGGER.error("Failed to load plugin {}", clazz.getName(), throwable);
             }
         }, () -> {});
+    }
+
+    public static void init(IEventBus eventBus) {
+        LDLib2Registries.init();
+        AccessorRegistries.init();
+        RPCPacketDistributor.init();
+        PropertyRegistry.init();
+        LDMenuTypes.init(eventBus);
+
         BLOCKS.register(eventBus);
         ITEMS.register(eventBus);
         BLOCK_ENTITY_TYPES.register(eventBus);
-        LDMenuTypes.init(eventBus);
-    }
-
-    public static void init() {
-        UIFactory.register(BlockEntityUIFactory.INSTANCE);
-        UIFactory.register(HeldItemUIFactory.INSTANCE);
-        if (LDLib2.isKubejsLoaded()) {
-            UIFactory.register(BlockUIJSFactory.INSTANCE);
-            UIFactory.register(ItemUIJSFactory.INSTANCE);
-        }
-        AccessorRegistries.init();
-        LDLib2Registries.init();
     }
 
 }

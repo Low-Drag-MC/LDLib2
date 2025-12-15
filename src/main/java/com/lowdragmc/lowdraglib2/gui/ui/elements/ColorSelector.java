@@ -10,11 +10,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -27,6 +31,8 @@ import java.util.function.IntConsumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
+@LDLRegister(name = "color-selector", group = "misc", registry = "ldlib2:ui_element")
 public class ColorSelector extends BindableUIElement<Integer> {
     public final UIElement pickerContainer;
     public final UIElement colorPreview;
@@ -77,20 +83,21 @@ public class ColorSelector extends BindableUIElement<Integer> {
     private HSB_MODE mode = HSB_MODE.H;
 
     public ColorSelector() {
-        this.pickerContainer = new UIElement();
-        this.colorPreview = new UIElement();
-        this.colorSlider = new UIElement();
-        this.alphaSlider = new UIElement();
+        this.pickerContainer = new UIElement().addClass("__color-selector_picker-container__");
+        this.colorPreview = new UIElement().addClass("__color-selector_color-preview__");
+        this.colorSlider = new UIElement().addClass("__color-selector_color-slider__");
+        this.alphaSlider = new UIElement().addClass("__color-selector_alpha-slider__");
         this.hsbButton = new Button();
+        this.hsbButton.addClass("__color-selector_hsb-button__");
 
         colorSlider.layout(layout -> {
             layout.setWidth(12);
             layout.setPadding(YogaEdge.ALL, 3);
-        }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1)).addChildren(
-                new UIElement().layout(layout -> layout.setFlex(1))
+        }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
+                .addChildren(new UIElement().layout(layout -> layout.setFlex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustColorSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustColorSlider)
-                        .setId("color_slider").style(style -> style.backgroundTexture(this::drawColorSlider)));
+                        .addClass("__color-selector_color-slider_bar__").style(style -> style.backgroundTexture(this::drawColorSlider)));
 
         alphaSlider.layout(layout -> {
             layout.setFlexGrow(1);
@@ -100,7 +107,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                 new UIElement().layout(layout -> layout.setFlex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustAlphaSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustAlphaSlider)
-                        .setId("alpha_slider").style(style -> style.backgroundTexture(this::drawAlphaSlider)));
+                        .addClass("__color-selector_alpha-slider_bar__").style(style -> style.backgroundTexture(this::drawAlphaSlider)));
 
         hsbButton.setOnClick(this::onSwitchHSB).textStyle(textStyle -> textStyle.fontSize(6)).setText("H").layout(layout -> {
             layout.setWidth(12);
@@ -120,7 +127,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                         new UIElement().layout(layout -> layout.setFlex(1))
                                 .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustHsbContext)
                                 .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustHsbContext)
-                                .setId("color_context").style(style -> style.backgroundTexture(this::drawHsbContext))
+                                .addClass("__color-selector_color-preview_display__").style(style -> style.backgroundTexture(this::drawHsbContext))
                 ), colorSlider),
 
                 new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
@@ -129,7 +136,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         this.textContainer = new UIElement().layout(layout -> {
             layout.setMargin(YogaEdge.TOP, 2);
             layout.setGap(YogaGutter.ALL, 1);
-        });
+        }).addClass("__color-selector_text-container__");
         this.textContainer.addChildren(
                 new UIElement().layout(layout -> {
                     layout.setFlexDirection(YogaFlexDirection.ROW);
@@ -150,16 +157,21 @@ public class ColorSelector extends BindableUIElement<Integer> {
                                     layout.setPadding(YogaEdge.HORIZONTAL, 2);
                                 })),
                 new NumberConfigurator("r", () -> ColorUtils.redI(argb), r -> setColor(ColorUtils.color(ColorUtils.alphaI(argb),
-                        r.intValue(), ColorUtils.greenI(argb), ColorUtils.blueI(argb))), 255, true).setRange(0, 255),
+                        r.intValue(), ColorUtils.greenI(argb), ColorUtils.blueI(argb))), 255, true).setRange(0, 255)
+                        .addClass("__color-selector_red-configurator__"),
                 new NumberConfigurator("g", () -> ColorUtils.greenI(argb), g -> setColor(ColorUtils.color(ColorUtils.alphaI(argb),
-                        ColorUtils.redI(argb), g.intValue(), ColorUtils.blueI(argb))), 255, true).setRange(0, 255),
+                        ColorUtils.redI(argb), g.intValue(), ColorUtils.blueI(argb))), 255, true).setRange(0, 255)
+                        .addClass("__color-selector_green-configurator__"),
                 new NumberConfigurator("b", () -> ColorUtils.blueI(argb), b -> setColor(ColorUtils.color(ColorUtils.alphaI(argb),
-                        ColorUtils.redI(argb), ColorUtils.greenI(argb), b.intValue())), 255, true).setRange(0, 255));
+                        ColorUtils.redI(argb), ColorUtils.greenI(argb), b.intValue())), 255, true).setRange(0, 255)
+                        .addClass("__color-selector_blue-configurator__"));
 
         hexConfigurator.layout(layout -> layout.setFlexGrow(1));
+        hexConfigurator.addClass("__color-selector_hex-configurator__");
 
         addChildren(pickerContainer, textContainer);
         refreshRGB();
+        internalSetup();
     }
 
     protected void onCopy(UIEvent event) {
@@ -276,10 +288,12 @@ public class ColorSelector extends BindableUIElement<Integer> {
         hsbButton.setText(mode.name());
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         DrawerHelper.drawSolidRect(graphics, x, y, width, height, argb);
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawHsbContext(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
         RenderSystem.setShader(LDLibShaders::getHsbShader);
@@ -401,6 +415,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         DrawerHelper.drawSolidRect(graphics, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2, b > 0.5f ? 0xff000000 : 0xffffffff);
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawColorSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
         RenderSystem.setShader(LDLibShaders::getHsbShader);
@@ -477,6 +492,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
 
     }
 
+    @OnlyIn(Dist.CLIENT)
     protected void drawAlphaSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         DrawerHelper.drawGradientRect(graphics, x, y, width, height, argb & 0x00ffffff, argb | 0xff000000, true);
 
@@ -487,6 +503,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
     /**
      * put hsb color into BufferBuilder
      */
+    @OnlyIn(Dist.CLIENT)
     private BufferBuilder putColor(BufferBuilder builder, float h, float s, float b, float a) {
         if (builder instanceof BufferBuilderAccessor accessor) {
             var i = accessor.invokeBeginElement(LDLibShaders.HSB_Alpha);

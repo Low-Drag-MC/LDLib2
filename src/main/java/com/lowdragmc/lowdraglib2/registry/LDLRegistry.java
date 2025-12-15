@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
@@ -25,6 +27,8 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
     protected final ResourceLocation registryName;
     @Getter
     protected boolean frozen = false;
+    @Getter @Setter @Accessors(chain = true)
+    protected K missingKey = null;
 
     public LDLRegistry(ResourceLocation registryName) {
         registry = initRegistry();
@@ -197,7 +201,10 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
         @Override
         public Codec<Optional<V>> optionalCodec() {
             return Codec.STRING.flatXmap(str -> DataResult.success(getOptional(str)),
-                    optional -> optional.map(obj -> DataResult.success(this.getKey(obj))).orElseGet(() -> DataResult.error(() -> "registry key in " + this.registryName)));
+                    optional -> optional.map(obj -> DataResult.success(this.getKey(obj)))
+                            .orElseGet(() -> missingKey == null ?
+                                    DataResult.error(() -> "empty obj require mising key of registry key " + this.registryName) :
+                                    DataResult.success(missingKey)));
         }
 
         public StreamCodec<RegistryFriendlyByteBuf, V> streamCodec() {
@@ -249,7 +256,10 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
         @Override
         public Codec<Optional<V>> optionalCodec() {
             return ResourceLocation.CODEC.flatXmap(rl -> DataResult.success(getOptional(rl)),
-                    optional -> optional.map(obj -> DataResult.success(this.getKey(obj))).orElseGet(() -> DataResult.error(() -> "registry key in " + this.registryName)));
+                    optional -> optional.map(obj -> DataResult.success(this.getKey(obj)))
+                            .orElseGet(() -> missingKey == null ?
+                                    DataResult.error(() -> "empty obj require mising key of registry key " + this.registryName) :
+                                    DataResult.success(missingKey)));
         }
 
         @Override

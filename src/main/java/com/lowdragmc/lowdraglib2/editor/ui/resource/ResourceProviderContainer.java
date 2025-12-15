@@ -2,10 +2,12 @@ package com.lowdragmc.lowdraglib2.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -18,13 +20,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 
@@ -131,6 +134,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setJustifyContent(YogaJustify.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
+            style.font(LDLibFonts.JETBRAINS_MONO_BOLD);
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 style.textAlignHorizontal(Horizontal.LEFT).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
                 style.fontSize(9);
@@ -274,6 +278,11 @@ public class ResourceProviderContainer<T> extends UIElement {
             m.leaf(uiWidth == 100 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.extra_large", () -> setUiWidth(100));
         });
         menu.crossLine();
+        if (selected != null) {
+            menu.leaf("ldlib.gui.editor.menu.copy_path", () ->
+                    ClipboardManager.INSTANCE.copyDirect(selected.getPathWithType())
+            );
+        }
         if (selected != null && canEdit.test(selected) && onEdit != null) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> editResource(selected));
         }
@@ -308,10 +317,10 @@ public class ResourceProviderContainer<T> extends UIElement {
 
     public void addNewResource(T value) {
         if (value == null) return;
-        var key = resourceProvider.createPath("new resource");
+        var key = resourceProvider.createSubPath("new_res");
         var count = 1;
         while (resourceProvider.hasResource(key)) {
-            key = resourceProvider.createPath("new resource (" + count + ")");
+            key = resourceProvider.createSubPath("new_res_" + count);
             count++;
         }
         IResourcePath finalKey = key;
@@ -328,9 +337,9 @@ public class ResourceProviderContainer<T> extends UIElement {
                     var copied = resourceProvider.getResourceInstance().resource.deserializeResource(tag, Platform.getFrozenRegistry());
                     if (copied != null) {
                         var count = 1;
-                        var newKey = resourceProvider.createPath(resourceProvider.getResourceName(key) + " copy");
+                        var newKey = resourceProvider.createSubPath(resourceProvider.getResourceName(key) + "_copy");
                         while(resourceProvider.hasResource(newKey)) {
-                            newKey = resourceProvider.createPath(resourceProvider.getResourceName(key) + " copy (" + count + ")");
+                            newKey = resourceProvider.createSubPath(resourceProvider.getResourceName(key) + "_copy_" + count);
                             count++;
                         }
                         IResourcePath finalNewKey = newKey;
@@ -392,10 +401,10 @@ public class ResourceProviderContainer<T> extends UIElement {
             var ui = resourceUIs.get(key);
             if (ui != null && ui.getChildren().getLast() instanceof Label label) {
                 // remove current label and add a TextField for renaming
-                var textField = new TextField().setText(nameSupplier.apply(key));
+                var textField = new TextField().setText(nameSupplier.apply(key)).setCharValidator(ResourceLocation::isAllowedInResourceLocation);
                 textField.addEventListener(UIEvents.BLUR, e -> {
                     var newName = textField.getText().trim();
-                    var newPath = resourceProvider.createPath(newName);
+                    var newPath = resourceProvider.createSubPath(newName);
                     if (newPath.equals(key)) {
                         // if the name is the same, just update the label
                         label.setText(nameSupplier.apply(key));
@@ -406,22 +415,9 @@ public class ResourceProviderContainer<T> extends UIElement {
                     var count = 0;
                     while (resourceProvider.hasResource(newPath)) {
                         count++;
-                        newPath = resourceProvider.createPath(newName + " (" + count + ")");
+                        newPath = resourceProvider.createSubPath(newName + " (" + count + ")");
                     }
-                    IResourcePath finalNewPath = newPath;
-                    editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(() -> {
-                        resourceProvider.addResource(finalNewPath, resourceProvider.getResource(key));
-                        resourceProvider.removeResource(key);
-                        removeResource(key, false);
-                        appendResourceUI(finalNewPath);
-                        selectResource(finalNewPath);
-                    }, () -> {
-                        resourceProvider.addResource(key, resourceProvider.getResource(finalNewPath));
-                        resourceProvider.removeResource(finalNewPath);
-                        removeResource(finalNewPath, false);
-                        appendResourceUI(key);
-                        selectResource(key);
-                    }));
+                    onRename(key, newPath);
                 });
                 textField.addEventListener(UIEvents.KEY_DOWN, e -> {
                     if (e.keyCode == GLFW.GLFW_KEY_ENTER) {
@@ -436,6 +432,22 @@ public class ResourceProviderContainer<T> extends UIElement {
                 textField.focus();
             }
         }
+    }
+
+    protected void onRename(IResourcePath oldPath, IResourcePath newPath) {
+        editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(() -> {
+            resourceProvider.addResource(newPath, resourceProvider.getResource(oldPath));
+            resourceProvider.removeResource(oldPath);
+            removeResource(oldPath, false);
+            appendResourceUI(newPath);
+            selectResource(newPath);
+        }, () -> {
+            resourceProvider.addResource(oldPath, resourceProvider.getResource(newPath));
+            resourceProvider.removeResource(newPath);
+            removeResource(newPath, false);
+            appendResourceUI(oldPath);
+            selectResource(oldPath);
+        }));
     }
 
 }

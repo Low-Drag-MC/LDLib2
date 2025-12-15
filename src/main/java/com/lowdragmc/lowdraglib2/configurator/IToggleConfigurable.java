@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -19,6 +21,7 @@ public interface IToggleConfigurable extends IConfigurable, IPersistedSerializab
     void setEnable(boolean enable);
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     default void buildConfigurator(ConfiguratorGroup father) {
         father.setCanCollapse(isEnable());
         father.lineContainer.addChildAt(new Toggle()

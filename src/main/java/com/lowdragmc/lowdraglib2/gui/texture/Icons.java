@@ -24,6 +24,8 @@ public class Icons {
     public static ResourceTexture ROTATION = icon("rotation");
     public static ResourceTexture REPLAY = icon("replay");
     public static ResourceTexture PLAY_PAUSE = icon("play_pause");
+    public static ResourceTexture PLAY = icon("play");
+    public static ResourceTexture STOP = icon("stop");
     public static ResourceTexture RESOURCE = icon("resource");
     public static ResourceTexture PALETTE = icon("palette");
     public static ResourceTexture RESOURCE_SETTING = icon("resource_setting");
@@ -42,6 +44,7 @@ public class Icons {
     public static ResourceTexture COPY = icon("copy");
     public static ResourceTexture PASTE = icon("paste");
     public static ResourceTexture CUT = icon("cut");
+    public static ResourceTexture CLOSE = icon("close");
     public static ResourceTexture REMOVE = icon("remove");
     public static ResourceTexture DELETE = icon("delete");
     public static ResourceTexture EXPORT = icon("export");
@@ -62,6 +65,7 @@ public class Icons {
     public static ResourceTexture FILE = icon("file");
     public static ResourceTexture IMAGE = icon("image");
     public static ResourceTexture JSON = icon("json");
+    public static ResourceTexture LSS = icon("css");
     public static ResourceTexture RADIOBOX_BLANK = icon("radiobox_blank");
     public static ResourceTexture RADIOBOX_MARKED = icon("radiobox_marked");
     public static ResourceTexture CHECKBOX_BLANK = icon("checkbox_blank");
@@ -71,6 +75,10 @@ public class Icons {
     public static ResourceTexture TRANSFORM_SCALE = icon("transform_scale");
     public static ResourceTexture GLOBAL = icon("global");
     public static ResourceTexture LOCAL = icon("local");
+    public static ResourceTexture WINDOW_MINIMIZE = icon("window_minimize");
+    public static ResourceTexture WINDOW_MAXIMIZE = icon("window_maximize");
+    public static ResourceTexture WINDOW_RESTORE = icon("window_restore");
+    public static ResourceTexture WINDOW_CLOSE = icon("window_close");
     //align
     public static ResourceTexture ALIGN_H_C = icon("align_horizontal_center");
     public static ResourceTexture ALIGN_H_D = icon("align_horizontal_distribute");
@@ -92,6 +100,11 @@ public class Icons {
     public static ResourceTexture RIGHT_CLICK = icon("right_click");
     public static ResourceTexture SCREEN = icon("screen");
     public static ResourceTexture CAMERA = icon("camera");
+    public static ResourceTexture PAGE_FIT = icon("page_fit");
+    public static ResourceTexture COLLAPSE_VERTICAL = icon("collapse_vertical");
+    public static ResourceTexture COLLAPSE_HORIZONTAL = icon("collapse_horizontal");
+    public static ResourceTexture EXPAND_VERTICAL = icon("expand_vertical");
+    public static ResourceTexture EXPAND_HORIZONTAL = icon("expand_horizontal");
 
 
     public static SpriteTexture CHECK_SPRITE = SpriteTexture.of(GDP_ICONS).setSprite(72, 0, 12, 12);
@@ -116,9 +129,18 @@ public class Icons {
     public static SpriteTexture ARROW_LEFT_RIGHT = SpriteTexture.of(GDP_ICONS).setSprite(214, 191, 13, 7);
     public static SpriteTexture ARROW_UP_DOWN = SpriteTexture.of(GDP_ICONS).setSprite(219, 233, 7, 11);
 
+
+    public static ResourceTexture NOWRAP = icon("nowrap");
+    public static ResourceTexture WRAP = icon("wrap");
+    public static ResourceTexture WRAP_REVERSE = icon("wrap_reverse");
+
+    public static ResourceTexture EDITING = icon("editing");
+    public static ResourceTexture NON_EDITING = icon("non_editing");
+
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");
         registerFileIcon(JSON, "json", "nbt");
+        registerFileIcon(LSS, "lss");
     }
 
     public static ResourceTexture icon(String name) {
@@ -127,14 +149,6 @@ public class Icons {
 
     public static ResourceTexture icon(String modId, String name) {
         return CACHE.apply(modId, name);
-    }
-
-    public static IGuiTexture borderText(int border, String text, int color) {
-        return new GuiTextureGroup(new ColorBorderTexture(border, color), new TextTexture(text, color).transform(1, 1));
-    }
-
-    public static IGuiTexture borderText(String text) {
-        return borderText(1, text, -1);
     }
 
     public static void registerFileIcon(ResourceTexture icon, String... suffixes) {

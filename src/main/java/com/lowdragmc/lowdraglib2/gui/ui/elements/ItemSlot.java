@@ -1,26 +1,43 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.*;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.xei.rei.LDLibREIPlugin;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
+import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
+import dev.emi.emi.api.stack.ItemEmiStack;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
+import me.shedaniel.rei.api.common.util.EntryIngredients;
+import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -32,31 +49,89 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
+@LDLRegister(name = "item-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class ItemSlot extends BindableUIElement<ItemStack> {
-    public final static SpriteTexture ITEM_SLOT_TEXTURE = SpriteTexture.of("ldlib2:textures/gui/slot.png")
-            .setSprite(0, 0, 18, 18).setBorder(1, 1, 1, 1);
+    public final static IGuiTexture ITEM_SLOT_TEXTURE = Sprites.RECT_RD_T.copy().setColor(0xffbbbbbb);
 
-    @Accessors(chain = true, fluent = true)
-    public static class SlotStyle extends Style {
-        @Getter
-        @Setter
-        private IGuiTexture hoverOverlay = new ColorRectTexture(0x80FFFFFF);
+    @Configurable(name = "SlotStyle")
+    public class SlotStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.HOVER_OVERLAY,
+                PropertyRegistry.SHOW_ITEM_TOOLTIPS,
+                PropertyRegistry.IS_PLAYER_SLOT,
+                PropertyRegistry.ACCEPT_QUICK_MOVE,
+                PropertyRegistry.QUICK_MOVE_PRIORITY,
+        };
 
-        @Getter @Setter
-        private List<Component> tooltips = List.of();
-
-        public SlotStyle(ItemSlot holder) {
-            super(holder);
+        public SlotStyle() {
+            super(ItemSlot.this);
+            setDefault(PropertyRegistry.HOVER_OVERLAY, new ColorRectTexture(0x80FFFFFF));
         }
-    }
-    @Getter
-    private final SlotStyle slotStyle = new SlotStyle(this);
 
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public IGuiTexture hoverOverlay() {
+            return getValueSave(PropertyRegistry.HOVER_OVERLAY);
+        }
+
+        public SlotStyle hoverOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.HOVER_OVERLAY, texture);
+            return this;
+        }
+
+        public boolean showItemTooltips() {
+            return getValueSave(PropertyRegistry.SHOW_ITEM_TOOLTIPS);
+        }
+
+        public SlotStyle showItemTooltips(boolean show) {
+            set(PropertyRegistry.SHOW_ITEM_TOOLTIPS, show);
+            return this;
+        }
+
+        public boolean isPlayerSlot() {
+            return getValueSave(PropertyRegistry.IS_PLAYER_SLOT);
+        }
+
+        public SlotStyle isPlayerSlot(boolean playerSlot) {
+            set(PropertyRegistry.IS_PLAYER_SLOT, playerSlot);
+            return this;
+        }
+
+        public int quickMovePriority() {
+            return getValueSave(PropertyRegistry.QUICK_MOVE_PRIORITY);
+        }
+
+        public SlotStyle quickMovePriority(int priority) {
+            set(PropertyRegistry.QUICK_MOVE_PRIORITY, priority);
+            return this;
+        }
+
+        public boolean acceptQuickMove() {
+            return getValueSave(PropertyRegistry.ACCEPT_QUICK_MOVE);
+        }
+
+        public SlotStyle acceptQuickMove(boolean accept) {
+            set(PropertyRegistry.ACCEPT_QUICK_MOVE, accept);
+            return this;
+        }
+
+    }
+
+    @Getter
+    private final SlotStyle slotStyle = new SlotStyle();
+    // editor support
+    @Configurable(name = "EditorItemDisplay")
+    private ItemStack editorItemDisplay = ItemStack.EMPTY;
+    @Configurable(name = "EditorAllowXEILookup")
+    private boolean allowXEILookup = true;
     // runtime
     @Getter
     private Slot slot;
@@ -72,7 +147,17 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         getStyle().backgroundTexture(ITEM_SLOT_TEXTURE);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
-        this.slot = slot;
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.clickableIngredient(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.focusedStack(this);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.stackProvider(this);
+        }
+        bind(slot);
+        internalSetup();
     }
 
     public ItemSlot bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
@@ -87,6 +172,51 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         return this;
     }
 
+    public ItemSlot xeiPhantom() {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.ghostIngredient(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.draggableStackBounds(this);
+            REISupport.acceptDraggableStack(this);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.renderDragHandler(this);
+            EMISupport.dropStackHandler(this);
+        }
+        return this;
+    }
+
+    public ItemSlot xeiRecipeIngredient(IngredientIO io) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeIngredient(this, io);
+        }
+        return this;
+    }
+
+    public ItemSlot xeiRecipeSlot() {
+        return xeiRecipeSlot(IngredientIO.NONE, 1);
+    }
+
+    public ItemSlot xeiRecipeSlot(IngredientIO io, float chance) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeSlot(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeSlot(this, chance);
+        }
+        return this;
+    }
+
     private void addSlotToTheMenu() {
         if (slot instanceof LocalSlot) return;
         updateSlotPosition();
@@ -94,12 +224,12 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         if (mui != null) {
             var menu = mui.getMenu();
             if (menu != null) {
-                // TODO shall we do this
-                if (mui.player != null && mui.player.level().isClientSide) {
-                    slot = new Slot(new SimpleContainer(1), 0, 0,0);
-                }
                 if (!menu.slots.contains(slot)) {
-                    menu.addSlot(slot);
+                    if (menu instanceof IItemSlotHolderMenu itemSlotHolderMenu) {
+                        itemSlotHolderMenu.addSlot(this);
+                    } else {
+                        menu.addSlot(slot);
+                    }
                 }
             }
         }
@@ -107,14 +237,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot slotStyle(Consumer<SlotStyle> style) {
         style.accept(slotStyle);
-        onStyleChanged();
         return this;
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        slotStyle.applyStyles(values);
     }
 
     public void updateSlotPosition() {
@@ -146,8 +269,11 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     public List<Component> getFullTooltipTexts() {
-        var tips = new ArrayList<>(DrawerHelper.getItemToolTip(getValue()));
-        tips.addAll(getStyle().tooltips());
+        var tips = new ArrayList<Component>();
+        if (slotStyle.showItemTooltips()) {
+            tips.addAll(DrawerHelper.getItemToolTip(getValue()));
+        }
+        tips.addAll(getStyle().tooltips().asList());
         return tips;
     }
 
@@ -219,9 +345,146 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             DrawerHelper.drawItemStack(guiContext.graphics, value, 0, 0, -1, null);
         }
         if (hovered) {
-            guiContext.drawTexture(slotStyle.hoverOverlay, 0, 0, 16, 16);
+            guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
         }
         guiContext.pose.popPose();
     }
 
+    /// Editor Support
+    @ConfigSetter(field = "editorItemDisplay")
+    private void setEditorItemDisplay(ItemStack itemStack) {
+        this.editorItemDisplay = itemStack;
+        setValue(itemStack, false);
+    }
+
+    @SkipPersistedValue(field = "editorItemDisplay")
+    private boolean skipEditorItemDisplay(ItemStack itemStack) {
+        return itemStack == ItemStack.EMPTY;
+    }
+
+    @ConfigSetter(field = "allowXEILookup")
+    private void setAllowXEILookup(boolean allowXEILookup) {
+        this.allowXEILookup = allowXEILookup;
+    }
+
+    @SkipPersistedValue(field = "allowXEILookup")
+    private boolean skipAllowXEILookup(boolean allowXEILookup) {
+        return allowXEILookup;
+    }
+
+    @Override
+    public void beforeDeserialize() {
+        super.beforeDeserialize();
+        this.editorItemDisplay = ItemStack.EMPTY;
+    }
+
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        if (!editorItemDisplay.isEmpty()) {
+            setValue(editorItemDisplay, false);
+        }
+    }
+
+    /// XEI Support
+    public static class JEISupport {
+        public static void clickableIngredient(ItemSlot itemSlot) {
+            LDLibJEIPlugin.clickableIngredient(itemSlot, () -> {
+                if (!itemSlot.allowXEILookup) return null;
+                var current = itemSlot.getValue();
+                if (current.isEmpty()) return null;
+                return TypedItemStack.create(current);
+            });
+        }
+
+        public static void ghostIngredient(ItemSlot itemSlot) {
+            LDLibJEIPlugin.ghostIngredient(itemSlot, VanillaTypes.ITEM_STACK,
+                    ingredient -> itemSlot.getSlot().mayPlace(ingredient.getIngredient()),
+                    itemSlot::setValue);
+        }
+
+        public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io) {
+            LDLibJEIPlugin.recipeIngredient(itemSlot, io, () -> List.of(TypedItemStack.create(itemSlot.getValue())));
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot) {
+            LDLibJEIPlugin.recipeSlot(itemSlot, () -> {
+                var item = itemSlot.getValue();
+                return item.isEmpty() ? null : TypedItemStack.create(item);
+            }, () -> {
+                var item = itemSlot.getValue();
+                return List.of(TypedItemStack.create(item));
+            });
+        }
+    }
+
+    // region XEI Supports
+    public static class REISupport {
+        public static void focusedStack(ItemSlot itemSlot) {
+            LDLibREIPlugin.focusedStack(itemSlot, () -> {
+                if (!itemSlot.allowXEILookup) return null;
+                var item = itemSlot.getValue();
+                if (item.isEmpty()) return null;
+                return EntryStacks.of(item);
+            });
+        }
+
+        public static void draggableStackBounds(ItemSlot itemSlot) {
+            LDLibREIPlugin.draggableStackBounds(itemSlot,
+                    VanillaEntryTypes.ITEM,
+                    stack -> itemSlot.getSlot().mayPlace(stack.getValue()));
+        }
+
+        public static void acceptDraggableStack(ItemSlot itemSlot) {
+            LDLibREIPlugin.acceptDraggableStack(itemSlot,
+                    VanillaEntryTypes.ITEM,
+                    stack -> itemSlot.getSlot().mayPlace(stack.getValue()),
+                    stack -> itemSlot.setValue(stack.getValue()));
+        }
+
+        public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeIngredient(itemSlot, io, () -> List.of(EntryIngredients.of(itemSlot.getValue())));
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeSlot(itemSlot, io,
+                    () -> EntryStacks.of(itemSlot.getValue()),
+                    () -> List.of(EntryStacks.of(itemSlot.getValue())));
+        }
+    }
+
+    public static class EMISupport {
+        public static void stackProvider(ItemSlot itemSlot) {
+            LDLibEMIPlugin.stackProvider(itemSlot, () -> {
+                if (!itemSlot.allowXEILookup) return null;
+                var item = itemSlot.getValue();
+                if (item.isEmpty()) return null;
+                return new EmiStackInteraction(EmiStack.of(item), null, false);
+            });
+        }
+
+        public static void renderDragHandler(ItemSlot itemSlot) {
+            LDLibEMIPlugin.renderDragHandler(itemSlot,
+                    dragged -> dragged instanceof ItemEmiStack item && itemSlot.getSlot().mayPlace(item.getItemStack()));
+        }
+
+        public static void dropStackHandler(ItemSlot itemSlot) {
+            LDLibEMIPlugin.dropStackHandler(itemSlot,
+                    dragged -> dragged instanceof ItemEmiStack item && itemSlot.getSlot().mayPlace(item.getItemStack()),
+                    dragged -> {
+                        if (dragged instanceof ItemEmiStack item) {
+                            itemSlot.setValue(item.getItemStack());
+                        }
+                    });
+        }
+
+        public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io) {
+            LDLibEMIPlugin.recipeIngredient(itemSlot, io, () -> List.of(EmiStack.of(itemSlot.getValue())));
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot, float chance) {
+            LDLibEMIPlugin.recipeSlot(itemSlot, () -> EmiStack.of(itemSlot.getValue()).setChance(chance));
+        }
+    }
+    // endregion
 }

@@ -1,17 +1,17 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import net.minecraft.nbt.CompoundTag;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -19,13 +19,24 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
 
     String getName();
 
-    IGuiTexture getIcon();
-
     ResourceInstance<T> getResourceInstance();
 
     boolean hasResource(IResourcePath key);
 
-    IResourcePath createPath(String name);
+    /**
+     * Creates a subpath within the resource hierarchy using the specified name.
+     *
+     * @param name The name of the subpath to be created. Must not be {@code null}.
+     * @return The {@link IResourcePath} representing the newly created subpath.
+     */
+    IResourcePath createSubPath(String name);
+
+    /**
+     * Retrieves the type of the resource provider.
+     *
+     * @return the {@link ResourceProviderType} associated with this resource provider.
+     */
+    ResourceProviderType getType();
 
     /**
      * Add a resource to the provider. if the resource is existing, it will be replaced.
@@ -40,29 +51,24 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
      * @param path The resource path to remove.
      * @return the removed resource, or null if the resource was not found.
      */
-    T removeResource(IResourcePath path);
+    @Nullable T removeResource(IResourcePath path);
 
     /**
      * Get a resource from the provider.
      * @param path The resource path to get.
      * @return the resource, or null if the resource was not found.
      */
-    T getResource(IResourcePath path);
+    @Nullable T getResource(IResourcePath path);
+
+    default @Nullable CompoundTag serializeNBT() {
+        return null;
+    }
 
     /**
      * Get the name of the resource from the resource path.
 v     */
     default String getResourceName(IResourcePath path) {
         return path.getResourceName();
-    }
-
-    /**
-     * Create a container ui for this resource provider.
-     * This is used to display the resources in the UI.
-     * @return a new ResourceProviderContainer for this provider.
-     */
-    default ResourceProviderContainer<T> createContainer() {
-        return new ResourceProviderContainer<>(this);
     }
 
     default T getResourceOrDefault(IResourcePath path, T defaultValue) {
@@ -117,7 +123,7 @@ v     */
                 new UIElement().layout(layout -> {
                     layout.setWidth(9);
                     layout.setHeight(9);
-                }).style(style -> style.backgroundTexture(getIcon())),
+                }).style(style -> style.backgroundTexture(getType().getIcon())),
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())
                         .layout(layout -> layout.setFlex(1))

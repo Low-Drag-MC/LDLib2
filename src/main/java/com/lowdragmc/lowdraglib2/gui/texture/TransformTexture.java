@@ -1,13 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Pivot;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import lombok.Getter;
 import net.minecraft.client.gui.GuiGraphics;
-import org.joml.Quaternionf;
 
 /**
  * @author KilaBash
@@ -15,61 +14,56 @@ import org.joml.Quaternionf;
  * @implNote TransformTexture
  */
 @Getter
-@Configurable(name = "ldlib.gui.editor.group.transform")
 public abstract class TransformTexture implements IGuiTexture {
-    @Configurable
-    protected Pivot pivot = Pivot.CENTER;
-    @Configurable
-    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
-    protected float xOffset;
-
-    @Configurable
-    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 1)
-    protected float yOffset;
-
-    @Configurable
-    @ConfigNumber(range = {0, Float.MAX_VALUE})
-    protected float scale = 1;
-
-    @Configurable
-    @ConfigNumber(range = {-Float.MAX_VALUE, Float.MAX_VALUE}, wheel = 5)
-    protected float rotation;
+    @Configurable(name = "Transform", subConfigurable = true)
+    protected final Transform2D transform2D = new Transform2D();
 
     public TransformTexture rotate(float degree) {
-        rotation = degree;
+        transform2D.rotation(degree);
         return this;
     }
 
     public TransformTexture scale(float scale) {
-        this.scale = scale;
+        transform2D.scale(scale);
+        return this;
+    }
+
+    public TransformTexture scale(float width, float height) {
+        transform2D.scale(width, height);
         return this;
     }
 
     public TransformTexture transform(float xOffset, float yOffset) {
-        this.xOffset = xOffset;
-        this.yOffset = yOffset;
+        transform2D.translate(xOffset, yOffset);
         return this;
+    }
+
+    @Override
+    public void beforeDeserialize() {
+        transform2D.setIdentity();
+    }
+
+    @SkipPersistedValue(field = "transform2D")
+    private boolean skipTransform2DPersisted(Transform2D transform2D) {
+        return transform2D.isIdentity();
+    }
+
+    public TransformTexture copyWithTransform() {
+        if (copy() instanceof TransformTexture copied) {
+            copied.transform2D.copyFrom(transform2D);
+            return copied;
+        }
+        throw new RuntimeException("Copying a TransformTexture is not supported");
     }
 
     @OnlyIn(Dist.CLIENT)
     protected void preDraw(GuiGraphics graphics, float x, float y, float width, float height) {
-        graphics.pose().pushPose();
-        graphics.pose().translate(xOffset, yOffset, 0);
-
-        var xPivot = pivot.x * width;
-        var yPivot = pivot.y * height;
-        var translationX = x + xPivot;
-        var translationY = y + yPivot;
-
-        graphics.pose().translate(translationX, translationY, 0);
-        graphics.pose().scale(scale, scale, 1);
-        graphics.pose().mulPose(new Quaternionf().rotationXYZ(0, 0, (float) Math.toRadians(rotation)));
-        graphics.pose().translate(-translationX, -translationY, 0);
+        transform2D.pushPose(graphics.pose(), x, y, width, height);
     }
 
     @OnlyIn(Dist.CLIENT)
     protected void postDraw(GuiGraphics graphics, float x, float y, float width, float height) {
-        graphics.pose().popPose();
+        transform2D.popPose(graphics.pose());
     }
 
     @Override

@@ -1,22 +1,24 @@
 package com.lowdragmc.lowdraglib2.configurator;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.accessors.IConfiguratorAccessor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigHeader;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.HeaderConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import lombok.experimental.UtilityClass;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import org.appliedenergistics.yoga.YogaEdge;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author KilaBash
@@ -44,11 +46,12 @@ public final class ConfiguratorParser {
     public static void createConfigurators(ConfiguratorGroup father, Map<String, Method> setters, Class<?> clazz, Object object, boolean recursive) {
         if (clazz == Object.class || clazz == null) return;
 
-        for (Method method : clazz.getMethods()) {
+        for (Method method : clazz.getDeclaredMethods()) {
             if (method.isAnnotationPresent(ConfigSetter.class)) {
                 ConfigSetter configSetter = method.getAnnotation(ConfigSetter.class);
                 String name = configSetter.field();
                 if (!setters.containsKey(name)) {
+                    method.setAccessible(true);
                     setters.put(name, method);
                 }
             }
@@ -81,10 +84,7 @@ public final class ConfiguratorParser {
         }
         if (field.isAnnotationPresent(ConfigHeader.class)) {
             ConfigHeader configHeader = field.getAnnotation(ConfigHeader.class);
-            var header = new Configurator();
-            header.layout(layout -> layout.setMargin(YogaEdge.TOP, configHeader.topMargin()));
-            header.setLabel(Component.translatable(configHeader.value()).withStyle(Style.EMPTY.withBold(true)));
-            father.addConfigurator(header);
+            father.addConfigurator(new HeaderConfigurator(configHeader.value(), configHeader.topMargin()));
         }
         if (field.isAnnotationPresent(Configurable.class)) {
             Configurable configurable = field.getAnnotation(Configurable.class);
@@ -108,28 +108,49 @@ public final class ConfiguratorParser {
                     }
                 } catch (IllegalAccessException ignored) {}
             } else {
-                IConfiguratorAccessor accessor = ConfiguratorAccessors.findByType(field.getGenericType());
                 field.setAccessible(true);
                 String name = configurable.showName() ? (configurable.name().isEmpty() ? field.getName() : configurable.name()) : "";
-                Method setter = setters.get(field.getName());
-
-                var configurator = accessor.create(name, () -> {
+                Method setterMethod = setters.get(field.getName());
+                Supplier getter = () -> {
                     try {
                         return field.get(object);
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
-                }, value -> {
+                };
+                Consumer setter = value -> {
                     try {
-                        if (setter == null) {
+                        if (setterMethod == null) {
                             field.set(object, value);
                         } else {
-                            setter.invoke(object, value);
+                            setterMethod.invoke(object, value);
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                }, configurable.forceUpdate(), field, object).setTips(configurable.tips());
+                };
+
+                // if is annotated with @ConfigSearch
+                if (field.isAnnotationPresent(ConfigSearch.class)) {
+                    ConfigSearch configSearch = field.getAnnotation(ConfigSearch.class);
+                    try {
+                        var searchConfiguratorMethod = clazz.getDeclaredMethod(configSearch.searchConfiguratorMethod());
+                        if (searchConfiguratorMethod.getReturnType() != SearchComponentConfigurator.ISearchConfigurator.class) {
+                            LDLib2.LOGGER.error("The return type of the search configurator method {} for field {} with @ConfigSearch in class {} is not SearchComponentConfigurator.ISearchConfigurator", searchConfiguratorMethod.getName(), field.getName(), clazz.getName());
+                            return;
+                        }
+                        searchConfiguratorMethod.setAccessible(true);
+                        var searchConfigurator = (SearchComponentConfigurator.ISearchConfigurator) searchConfiguratorMethod.invoke(object);
+                        father.addConfigurators(new SearchComponentConfigurator<>(name, getter, setter, searchConfigurator, configurable.forceUpdate()));
+                    } catch (Exception e) {
+                        LDLib2.LOGGER.error("Error while creating search component configurator for field {} with @ConfigSearch in class {}", field.getName(), clazz.getName(), e);
+                    }
+                    return;
+                }
+
+                // try to find accessor based on type
+                IConfiguratorAccessor accessor = ConfiguratorAccessors.findByType(field.getGenericType());
+                var configurator = accessor.create(name, getter, setter, configurable.forceUpdate(), field, object).setTips(configurable.tips());
                 father.addConfigurators(configurator);
             }
         }

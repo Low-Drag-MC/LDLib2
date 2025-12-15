@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.IDirectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
@@ -27,7 +28,7 @@ public final class MutableDirectRef<TYPE> extends DirectRef<TYPE> {
         oldValueMark = value == null ? null :
                 accessor instanceof IMarkFunction markFunction ?
                 markFunction.obtainManagedMark(getField().value()) :
-                        accessor.readDirectVar(JavaOps.INSTANCE, field);
+                        accessor.readDirectVar(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), field);
     }
 
     @Override
@@ -53,10 +54,10 @@ public final class MutableDirectRef<TYPE> extends DirectRef<TYPE> {
             }
         } else if (accessor instanceof IDirectAccessor) {
             if (oldValueMark == null) {
-                oldValueMark = accessor.readDirectVar(JavaOps.INSTANCE, field);
+                oldValueMark = accessor.readDirectVar(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), field);
                 markAsDirty();
             } else {
-                var newValueMark = accessor.readDirectVar(JavaOps.INSTANCE, field);
+                var newValueMark = accessor.readDirectVar(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), field);
                 if (!oldValueMark.equals(newValueMark)) {
                     oldValueMark = newValueMark;
                     markAsDirty();

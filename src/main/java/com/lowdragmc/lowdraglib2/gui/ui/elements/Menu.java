@@ -1,17 +1,19 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.util.concurrent.Runnables;
-import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -29,36 +31,75 @@ import java.util.function.Function;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
 public class Menu<K, T> extends UIElement {
-    @Accessors(chain = true, fluent = true)
-    public static class MenuStyle extends Style {
-        @Getter @Setter
-        private IGuiTexture nodeTexture = IGuiTexture.EMPTY;
-        @Getter @Setter
-        private IGuiTexture leafTexture = IGuiTexture.EMPTY;
-        @Getter @Setter
-        private IGuiTexture nodeHoverTexture = ColorPattern.BLUE.rectTexture();
-        @Getter @Setter
-        private IGuiTexture leafHoverTexture = ColorPattern.BLUE.rectTexture();
-        @Getter @Setter
-        private IGuiTexture arrowIcon = Icons.RIGHT_ARROW_NO_BAR_S_WHITE;
+    @Configurable(name = "MenuStyle")
+    public class MenuStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.NODE_BACKGROUND,
+                PropertyRegistry.LEAF_BACKGROUND,
+                PropertyRegistry.NODE_HOVER_BACKGROUND,
+                PropertyRegistry.LEAF_HOVER_BACKGROUND,
+                PropertyRegistry.ARROW,
+        };
 
-        public MenuStyle(UIElement holder) {
-            super(holder);
+        public MenuStyle() {
+            super(Menu.this);
         }
 
-        public MenuStyle copyFrom(MenuStyle other) {
-            this.nodeTexture = other.nodeTexture;
-            this.leafTexture = other.leafTexture;
-            this.nodeHoverTexture = other.nodeHoverTexture;
-            this.leafHoverTexture = other.leafHoverTexture;
-            this.arrowIcon = other.arrowIcon;
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public IGuiTexture nodeTexture() {
+            return getValueSave(PropertyRegistry.NODE_BACKGROUND);
+        }
+
+        public MenuStyle nodeTexture(IGuiTexture texture) {
+            set(PropertyRegistry.NODE_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture leafTexture() {
+            return getValueSave(PropertyRegistry.LEAF_BACKGROUND);
+        }
+
+        public MenuStyle leafTexture(IGuiTexture texture) {
+            set(PropertyRegistry.LEAF_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture nodeHoverTexture() {
+            return getValueSave(PropertyRegistry.NODE_HOVER_BACKGROUND);
+        }
+
+        public MenuStyle nodeHoverTexture(IGuiTexture texture) {
+            set(PropertyRegistry.NODE_HOVER_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture leafHoverTexture() {
+            return getValueSave(PropertyRegistry.LEAF_HOVER_BACKGROUND);
+        }
+
+        public MenuStyle leafHoverTexture(IGuiTexture texture) {
+            set(PropertyRegistry.LEAF_HOVER_BACKGROUND, texture);
+            return this;
+        }
+
+        public IGuiTexture arrowIcon() {
+            return getValueSave(PropertyRegistry.ARROW);
+        }
+
+        public MenuStyle arrowIcon(IGuiTexture texture) {
+            set(PropertyRegistry.ARROW, texture);
             return this;
         }
     }
     public final ITreeNode<K, T> root;
     @Getter
-    private final MenuStyle menuStyle = new MenuStyle(this);
+    private final MenuStyle menuStyle = new MenuStyle();
     @Nonnull
     protected UIElementProvider<K> uiProvider;
     @Setter @Nullable
@@ -68,9 +109,9 @@ public class Menu<K, T> extends UIElement {
     @Getter
     protected final Map<ITreeNode<K, T>, UIElement> nodeUIs = new LinkedHashMap<>();
     @Setter
-    protected Function<ITreeNode<K, T>, IGuiTexture> textureProvider = node -> node.isLeaf() ? menuStyle.leafTexture : menuStyle.nodeTexture;
+    protected Function<ITreeNode<K, T>, IGuiTexture> textureProvider = node -> DynamicTexture.of(() -> node.isLeaf() ? menuStyle.leafTexture() : menuStyle.nodeTexture());
     @Setter
-    protected Function<ITreeNode<K, T>, IGuiTexture> hoverTextureProvider = node -> node.isLeaf() ? menuStyle.leafHoverTexture : menuStyle.nodeHoverTexture;
+    protected Function<ITreeNode<K, T>, IGuiTexture> hoverTextureProvider = node -> DynamicTexture.of(() -> node.isLeaf() ? menuStyle.leafHoverTexture() : menuStyle.nodeHoverTexture());
     @Setter
     protected Runnable onClose = Runnables.doNothing();
     // runtime
@@ -99,6 +140,12 @@ public class Menu<K, T> extends UIElement {
         addEventListener(UIEvents.BLUR, this::onBlur, true);
 
         initMenu();
+        internalSetup();
+    }
+
+    @Override
+    public String name() {
+        return "menu";
     }
 
     protected void onBlur(UIEvent event) {
@@ -175,17 +222,7 @@ public class Menu<K, T> extends UIElement {
 
     public Menu<K, T> menuStyle(Consumer<MenuStyle> menuStyle) {
         menuStyle.accept(this.menuStyle);
-        onStyleChanged();
-        nodeUIs.forEach((node, element) -> {
-            element.style(style -> style.backgroundTexture(textureProvider.apply(node)));
-        });
         return this;
-    }
-
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        menuStyle.applyStyles(values);
     }
 
     public void close(){
@@ -253,12 +290,15 @@ public class Menu<K, T> extends UIElement {
                         .addEventListener(UIEvents.MOUSE_LEAVE, e -> {
                             e.currentElement.style(style -> style.backgroundTexture(textureProvider.apply(child)));
                         }, true);
-                if (!child.isLeaf()) {
+                if (child.isLeaf()) {
+                    container.addClass("__menu_leaf-node__");
+                } else {
+                    container.addClass("__menu_branch-node__");
                     container.addChild(new UIElement().layout(layout -> {
                         layout.setWidth(8);
                         layout.setHeight(8);
                         layout.setMargin(YogaEdge.HORIZONTAL, 2);
-                    }).style(style -> style.backgroundTexture(menuStyle.arrowIcon)));
+                    }).style(style -> style.backgroundTexture(DynamicTexture.of(menuStyle::arrowIcon))));
                 }
                 nodeUIs.put(child, container);
                 addChild(container);

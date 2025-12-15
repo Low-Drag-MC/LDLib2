@@ -2,10 +2,8 @@ package com.lowdragmc.lowdraglib2.networking.both;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.networking.PacketIntLocation;
-import com.lowdragmc.lowdraglib2.syncdata.IManaged;
-import com.lowdragmc.lowdraglib2.syncdata.blockentity.IRPCBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
-import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -19,7 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -33,29 +30,16 @@ public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPac
 
     private BlockEntityType<?> blockEntityType;
 
-    private String methodName;
-    private int managedId;
     private byte[] data;
 
-    public PacketRPCBlockEntity(int managedId, BlockEntityType<?> type, BlockPos pos, String methodName, byte[] data) {
+    public PacketRPCBlockEntity(BlockEntityType<?> type, BlockPos pos, byte[] data) {
         super(pos);
-        this.managedId = managedId;
         blockEntityType = type;
-        this.methodName = methodName;
         this.data = data;
     }
 
-    public static PacketRPCBlockEntity of(IManaged managed, IRPCBlockEntity tile, String methodName, Object... args) {
-        var index = Arrays.stream(tile.getRootStorage().getManaged()).toList().indexOf(managed);
-        if (index < 0) {
-            throw new IllegalArgumentException("No such rpc managed: " + methodName);
-        }
-        var rpcMethod = tile.getRPCMethod(managed, methodName);
-        if (rpcMethod == null) {
-            throw new IllegalArgumentException("No such RPC method: " + methodName);
-        }
-        var data = ByteBufUtil.writeCustomData(buf -> rpcMethod.serializeArgs(buf, args), tile.getSelf().getLevel().registryAccess());
-        return new PacketRPCBlockEntity(index, tile.getBlockEntityType(), tile.getCurrentPos(), methodName, data);
+    public static PacketRPCBlockEntity of(IRPCBlockEntity tile, byte[] data) {
+        return new PacketRPCBlockEntity(tile.getSelf().getType(), tile.getSelf().getBlockPos(), data);
     }
 
     public static void processPacket(@NotNull BlockEntity blockEntity, RPCSender sender, PacketRPCBlockEntity packet, IPayloadContext context) {
@@ -67,34 +51,21 @@ public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPac
             LDLib2.LOGGER.error("Received managed payload packet for block entity that does not implement IRPCBlockEntity: " + blockEntity);
             return;
         }
-        if (tile.getRootStorage().getManaged().length >= packet.managedId) {
-            LDLib2.LOGGER.error("Received managed couldn't be found in IRPCBlockEntity: " + blockEntity);
-            return;
-        }
-        var rpcMethod = tile.getRPCMethod(tile.getRootStorage().getManaged()[packet.managedId], packet.methodName);
-        if (rpcMethod == null) {
-            LDLib2.LOGGER.error("Cannot find RPC method: " + packet.methodName);
-            return;
-        }
-        ByteBufUtil.readCustomData(packet.data, buf -> rpcMethod.invoke(tile, sender, buf), context.player().registryAccess());
+        tile.handleRPCPacket(sender, packet.data);
     }
 
     @Override
     public void write(RegistryFriendlyByteBuf buf) {
         super.write(buf);
-        buf.writeVarInt(this.managedId);
         buf.writeResourceLocation(Objects.requireNonNull(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntityType)));
-        buf.writeUtf(methodName);
         buf.writeByteArray(data);
     }
 
     public static PacketRPCBlockEntity decode(RegistryFriendlyByteBuf buffer) {
         var pos = buffer.readBlockPos();
-        var managedId = buffer.readVarInt();
         var blockEntityType = BuiltInRegistries.BLOCK_ENTITY_TYPE.get(buffer.readResourceLocation());
-        var methodName = buffer.readUtf();
         var data = buffer.readByteArray();
-        return new PacketRPCBlockEntity(managedId, blockEntityType, pos, methodName, data);
+        return new PacketRPCBlockEntity(blockEntityType, pos, data);
     }
 
     public static void execute(PacketRPCBlockEntity packet, IPayloadContext context) {

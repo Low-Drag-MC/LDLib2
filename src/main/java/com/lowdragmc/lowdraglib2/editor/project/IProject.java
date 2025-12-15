@@ -19,14 +19,23 @@ public interface IProject extends INBTSerializable<CompoundTag> {
     Resources getResources();
 
     /**
+     * Get the type of this project.
+     */
+    ProjectType getProjectType();
+
+    /**
      * Get the file suffix for this project. It will be used to save the project file or load it.
      */
-    String getSuffix();
+    default String getSuffix() {
+        return getProjectType().getSuffix();
+    }
 
     /**
      * Get the name of this project.
      */
-    String getName();
+    default String getName() {
+        return getProjectType().getName();
+    }
 
     /**
      * Serialize the project to NBT.

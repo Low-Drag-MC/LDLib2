@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 // TODO refactor Shader Texture
+@KJSBindings
 @LDLRegisterClient(name = "shader_texture", registry = "ldlib2:gui_texture")
 public class ShaderTexture extends TransformTexture {
     private static final Map<ResourceLocation, ShaderTexture> CACHE = new HashMap<>();
@@ -262,8 +264,6 @@ public class ShaderTexture extends TransformTexture {
         var configurator = new Configurator();
         // button to select image
         father.addConfigurator(configurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_shader").setOnClick(e -> {
-            var mui = e.currentElement.getModularUI();
-            if (mui == null) return;
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_shader", LDLib2.getAssetsDir(), true, node -> {
                 if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".fsh".toLowerCase())) {
                     if (node.getKey().isFile()) {
@@ -279,7 +279,7 @@ public class ShaderTexture extends TransformTexture {
                         updateShader(location);
                         configurator.notifyChanges();
                     }
-                }).show(mui.ui.rootElement);
+                }).show(e.currentElement.getModularUI());
             }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
         );
     }

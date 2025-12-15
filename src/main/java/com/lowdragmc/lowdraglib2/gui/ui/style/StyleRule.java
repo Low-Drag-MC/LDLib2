@@ -1,35 +1,31 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
-import lombok.Getter;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-@Getter
 public class StyleRule {
-    public enum SelectorType { CLASS, ID, ELEMENT, UNIVERSAL }
+    private final static AtomicInteger SOURCE_ID_COUNTER = new AtomicInteger(0);
+    public final HierarchicalStyleMatcher matcher;
+    public final Map<Property<?>, StyleValue<?>> properties;
+    public final int sourceOrder;
 
-    private final SelectorType type;
-    private final String identifier;
-    private final Map<String, StyleValue<?>> properties = new ConcurrentHashMap<>();
-
-    public StyleRule(SelectorType type, String identifier) {
-        this.type = type;
-        this.identifier = identifier;
+    public StyleRule(HierarchicalStyleMatcher matcher, Map<Property<?>, StyleValue<?>> properties) {
+        this.sourceOrder = SOURCE_ID_COUNTER.getAndIncrement();
+        this.matcher = matcher;
+        this.properties = properties;
     }
 
-    public void addProperty(String name, StyleValue<?> value) {
-        properties.put(name, value);
+    public StyleValue<?> getProperty(Property<?> property) {
+        return properties.get(property);
     }
 
     public boolean matches(UIElement element) {
-        return switch (type) {
-            case CLASS -> element.hasClass(identifier);
-            case ID -> identifier.equals(element.getId());
-            case ELEMENT -> identifier.equals(element.getElementName());
-            case UNIVERSAL -> true;
-        };
+        return matcher.matches(element);
+    }
+
+    public int getSpecificity() {
+        return matcher.getSpecificity();
     }
 }

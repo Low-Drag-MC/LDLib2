@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.utils;
 
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.editor_outdated.data.resource.Resource;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.resources.language.I18n;
 
@@ -11,16 +10,7 @@ import java.util.Map;
 
 @UtilityClass
 public final class LocalizationUtils {
-    public static Resource<String> RESOURCE;
     private final static Map<String, String> DYNAMIC_LANG = new HashMap<>();
-
-    public static void setResource(Resource<String> resource) {
-        RESOURCE = resource;
-    }
-
-    public static void clearResource() {
-        RESOURCE = null;
-    }
 
     public static void appendDynamicLang(Map<String, String> dynamicLang) {
         DYNAMIC_LANG.putAll(dynamicLang);
@@ -52,9 +42,6 @@ public final class LocalizationUtils {
         if (!LDLib2.isClient()) {
             return String.format(localisationKey, substitutions);
         } else {
-            if (RESOURCE != null && RESOURCE.hasBuiltinResource(localisationKey)) {
-                return RESOURCE.getBuiltinResource(localisationKey);
-            }
             return I18n.get(localisationKey, substitutions);
         }
     }

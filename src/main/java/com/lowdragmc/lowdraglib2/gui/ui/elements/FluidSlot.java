@@ -1,30 +1,53 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.xei.rei.LDLibREIPlugin;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
+import dev.architectury.hooks.fluid.forge.FluidStackHooksForge;
+import dev.emi.emi.api.stack.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
+import me.shedaniel.rei.api.common.util.EntryIngredients;
+import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -34,43 +57,77 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
+@LDLRegister(name = "fluid-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class FluidSlot extends BindableUIElement<FluidStack> {
-    public final static SpriteTexture FLUID_SLOT_TEXTURE =SpriteTexture.of("ldlib2:textures/gui/fluid_slot.png")
-            .setSprite(0, 0, 18, 18).setBorder(1, 1, 1, 1);
+    @Configurable(name = "SlotStyle")
+    public class SlotStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.HOVER_OVERLAY,
+                PropertyRegistry.FILL_DIRECTION,
+                PropertyRegistry.SHOW_FLUID_TOOLTIPS,
+        };
+        public SlotStyle() {
+            super(FluidSlot.this);
+            setDefault(PropertyRegistry.HOVER_OVERLAY, new ColorRectTexture(0x80FFFFFF));
+        }
 
-    @Accessors(chain = true, fluent = true)
-    public static class SlotStyle extends Style {
-        @Getter
-        @Setter
-        private IGuiTexture hoverOverlay = new ColorRectTexture(0x80FFFFFF);
-        @Getter @Setter
-        private FillDirection fillDirection = FillDirection.DOWN_TO_UP;
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
 
-        @Getter @Setter
-        private List<Component> tooltips = List.of();
+        public IGuiTexture hoverOverlay() {
+            return getValueSave(PropertyRegistry.HOVER_OVERLAY);
+        }
 
-        public SlotStyle(FluidSlot holder) {
-            super(holder);
+        public SlotStyle hoverOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.HOVER_OVERLAY, texture);
+            return this;
+        }
+
+        public FillDirection fillDirection() {
+            return getValueSave(PropertyRegistry.FILL_DIRECTION);
+        }
+
+        public SlotStyle fillDirection(FillDirection fillDirection) {
+            set(PropertyRegistry.FILL_DIRECTION, fillDirection);
+            return this;
+        }
+
+        public boolean showFluidTooltips() {
+            return getValueSave(PropertyRegistry.SHOW_FLUID_TOOLTIPS);
+        }
+
+        public SlotStyle showFluidTooltips(boolean showFluidTooltips) {
+            set(PropertyRegistry.SHOW_FLUID_TOOLTIPS, showFluidTooltips);
+            return this;
         }
     }
 
+    public final Label amountLabel = new Label();
     @Getter
-    private final SlotStyle slotStyle = new SlotStyle(this);
+    private final SlotStyle slotStyle = new SlotStyle();
     @Getter @Setter
     private boolean allowClickFilled = true;
     @Getter @Setter
     private boolean allowClickDrained = true;
-
+    // editor support
+    @Configurable(name = "EditorFluidDisplay")
+    private FluidStack editorFluidDisplay = FluidStack.EMPTY;
+    @Configurable(name = "EditorAllowXEILookup")
+    private boolean allowXEILookup = true;
     // runtime
     @Getter
     private FluidStack fluid = FluidStack.EMPTY;
     @Getter @Setter
+    @Configurable(name = "Capacity")
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     private int capacity = 0;
     private final RPCEvent clickEvent;
 
@@ -84,16 +141,36 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         getLayout().setWidth(18);
         getLayout().setHeight(18);
         getLayout().setPadding(YogaEdge.ALL, 1);
-        getStyle().backgroundTexture(FLUID_SLOT_TEXTURE);
+        getStyle().backgroundTexture(Sprites.RECT_DARK);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.clickableIngredient(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.focusedStack(this);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.stackProvider(this);
+        }
         clickEvent = RPCEventBuilder.simple(Boolean.class, this::tryClickContainer);
         addRPCEvent(clickEvent);
+
+        amountLabel.addClass("__fluid-slot_amount-label__");
+        amountLabel.layout(layout -> layout.setWidthPercent(100).setHeightPercent(100));
+        amountLabel.textStyle(textStyle -> textStyle
+                .textAlignVertical(Vertical.BOTTOM)
+                .textAlignHorizontal(Horizontal.RIGHT)
+                .fontSize(4.5f)
+        );
+        amountLabel.bindDataSource(SupplierDataSource.of(this::getFluidAmountText));
+        addChild(amountLabel);
+        internalSetup();
     }
+
 
     public FluidSlot slotStyle(Consumer<SlotStyle> style) {
         style.accept(slotStyle);
-        onStyleChanged();
         return this;
     }
 
@@ -117,6 +194,51 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
             fluidTankSubscription = null;
         };
 
+        return this;
+    }
+
+    public FluidSlot xeiPhantom() {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.ghostIngredient(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.draggableStackBounds(this);
+            REISupport.acceptDraggableStack(this);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.renderDragHandler(this);
+            EMISupport.dropStackHandler(this);
+        }
+        return this;
+    }
+
+    public FluidSlot xeiRecipeIngredient(IngredientIO io) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeIngredient(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeIngredient(this, io);
+        }
+        return this;
+    }
+
+    public FluidSlot xeiRecipeSlot() {
+        return xeiRecipeSlot(IngredientIO.NONE, 1);
+    }
+
+    public FluidSlot xeiRecipeSlot(IngredientIO io, float chance) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeSlot(this, io);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeSlot(this, chance);
+        }
         return this;
     }
 
@@ -185,13 +307,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         sendEvent(clickEvent, event.isShiftDown());
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        slotStyle.applyStyles(values);
-    }
-
-    public FluidSlot setFluid(FluidStack fluid) {
+    public FluidSlot  setFluid(FluidStack fluid) {
         return setValue(fluid, true);
     }
 
@@ -201,19 +317,27 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public List<Component> getFullTooltipTexts() {
         var tooltips = new ArrayList<Component>();
-        var fluidStack = getFluid();
-        capacity = Math.max(capacity, fluidStack.getAmount());
-        if (!fluidStack.isEmpty()) {
-            tooltips.add(FluidHelper.getDisplayName(fluidStack));
-            tooltips.add(Component.translatable("ldlib.fluid.amount", fluidStack.getAmount(), capacity).append(" " + FluidHelper.getUnit()));
-            tooltips.add(Component.translatable("ldlib.fluid.temperature", FluidHelper.getTemperature(fluidStack)));
-            tooltips.add(Component.translatable(FluidHelper.isLighterThanAir(fluidStack) ? "ldlib.fluid.state_gas" : "ldlib.fluid.state_liquid"));
-        } else {
-            tooltips.add(Component.translatable("ldlib.fluid.empty"));
-            tooltips.add(Component.translatable("ldlib.fluid.amount", 0, capacity).append(" " + FluidHelper.getUnit()));
+        if (slotStyle.showFluidTooltips()) {
+            var fluidStack = getFluid();
+            capacity = Math.max(capacity, fluidStack.getAmount());
+            if (!fluidStack.isEmpty()) {
+                tooltips.add(FluidHelper.getDisplayName(fluidStack));
+                tooltips.add(Component.translatable("ldlib.fluid.amount", fluidStack.getAmount(), capacity).append(" " + FluidHelper.getUnit()));
+                tooltips.add(Component.translatable("ldlib.fluid.temperature", FluidHelper.getTemperature(fluidStack)));
+                tooltips.add(Component.translatable(FluidHelper.isLighterThanAir(fluidStack) ? "ldlib.fluid.state_gas" : "ldlib.fluid.state_liquid"));
+            } else {
+                tooltips.add(Component.translatable("ldlib.fluid.empty"));
+                tooltips.add(Component.translatable("ldlib.fluid.amount", 0, capacity).append(" " + FluidHelper.getUnit()));
+            }
         }
-        tooltips.addAll(getStyle().tooltips());
+        tooltips.addAll(getStyle().tooltips().asList());
         return tooltips;
+    }
+
+    public Component getFluidAmountText() {
+        var renderedFluid = getValue();
+        if (renderedFluid.isEmpty()) return Component.empty();
+        return Component.literal(TextFormattingUtil.formatLongToCompactStringBuckets(renderedFluid.getAmount(), 3) + "B");
     }
 
     protected void onHoverTooltips(UIEvent event) {
@@ -247,7 +371,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         var contentHeight = getContentHeight();
 
         if (!renderedFluid.isEmpty()) {
-            var fillDirection = slotStyle.fillDirection;
+            var fillDirection = slotStyle.fillDirection();
             double progress = renderedFluid.getAmount() * 1.0 / Math.max(Math.max(renderedFluid.getAmount(), capacity), 1);
             float drawnU = (float) fillDirection.getDrawnU(progress);
             float drawnV = (float) fillDirection.getDrawnV(progress);
@@ -261,7 +385,165 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
 
         if (hovered) {
-            guiContext.drawTexture(slotStyle.hoverOverlay, contentX, contentY, contentWidth, contentHeight);
+            guiContext.drawTexture(slotStyle.hoverOverlay(), contentX, contentY, contentWidth, contentHeight);
         }
     }
+
+    /// Editor Support
+    @ConfigSetter(field = "editorFluidDisplay")
+    private void setEditorFluidDisplay(FluidStack fluidStack) {
+        this.editorFluidDisplay = fluidStack;
+        setValue(fluidStack, false);
+        amountLabel.setValue(getFluidAmountText());
+    }
+
+    @SkipPersistedValue(field = "editorFluidDisplay")
+    private boolean skipEditorFluidDisplay(FluidStack fluid) {
+        return fluid == FluidStack.EMPTY;
+    }
+
+    @ConfigSetter(field = "allowXEILookup")
+    private void setAllowXEILookup(boolean allowXEILookup) {
+        this.allowXEILookup = allowXEILookup;
+    }
+
+    @SkipPersistedValue(field = "allowXEILookup")
+    private boolean skipAllowXEILookup(boolean allowXEILookup) {
+        return allowXEILookup;
+    }
+    
+    @SkipPersistedValue(field = "capacity")
+    private boolean skipCapacity(int capacity) {
+        return capacity == 0;
+    }
+
+    @Override
+    public void beforeDeserialize() {
+        super.beforeDeserialize();
+        this.editorFluidDisplay = FluidStack.EMPTY;
+    }
+
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        if (!editorFluidDisplay.isEmpty()) {
+            setValue(editorFluidDisplay, false);
+        }
+    }
+
+    // region XEI Support
+    public static class JEISupport {
+        public static void clickableIngredient(FluidSlot fluidSlot) {
+            LDLibJEIPlugin.clickableIngredient(fluidSlot, () -> {
+                if (!fluidSlot.allowXEILookup) return null;
+                var current = fluidSlot.getValue();
+                if (current.isEmpty()) return null;
+                return LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, current)
+                        .orElse(null);
+            });
+        }
+
+        public static void ghostIngredient(FluidSlot fluidSlot) {
+            LDLibJEIPlugin.ghostIngredient(fluidSlot, NeoForgeTypes.FLUID_STACK,
+                    ingredient -> true,
+                    fluidSlot::setValue);
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibJEIPlugin.recipeIngredient(fluidSlot, io, () -> List.of(
+                    LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidSlot.getFluid()).orElseThrow()
+            ));
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot) {
+            LDLibJEIPlugin.recipeSlot(fluidSlot, () -> {
+                var fluid = fluidSlot.getValue();
+                return fluid.isEmpty() ? null : LDLibJEIPlugin
+                        .createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidSlot.getFluid())
+                        .orElse(null);
+            }, () -> {
+                var fluid = fluidSlot.getValue();
+                return List.of(LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid)
+                        .orElseThrow());
+            });
+        }
+    }
+
+    public static class REISupport {
+        public static void focusedStack(FluidSlot fluidSlot) {
+            LDLibREIPlugin.focusedStack(fluidSlot, () -> {
+                if (!fluidSlot.allowXEILookup) return null;
+                var fluid = fluidSlot.getValue();
+                if (fluid.isEmpty()) return null;
+                return EntryStacks.of(FluidStackHooksForge.fromForge(fluid));
+            });
+        }
+
+        public static void draggableStackBounds(FluidSlot fluidSlot) {
+            LDLibREIPlugin.draggableStackBounds(fluidSlot,
+                    VanillaEntryTypes.FLUID,
+                    stack -> true);
+        }
+
+        public static void acceptDraggableStack(FluidSlot fluidSlot) {
+            LDLibREIPlugin.acceptDraggableStack(fluidSlot,
+                    VanillaEntryTypes.FLUID,
+                    stack -> true,
+                    stack -> fluidSlot.setValue(FluidStackHooksForge.toForge(stack.getValue())));
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeIngredient(fluidSlot, io, () -> List.of(EntryIngredients.of(FluidStackHooksForge.fromForge(fluidSlot.getFluid()))));
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibREIPlugin.recipeSlot(fluidSlot, io,
+                    () -> EntryStacks.of(FluidStackHooksForge.fromForge(fluidSlot.getValue())),
+                    () -> List.of(EntryStacks.of(FluidStackHooksForge.fromForge(fluidSlot.getValue()))));
+        }
+    }
+
+    public static class EMISupport {
+        public static void stackProvider(FluidSlot fluidSlot) {
+            LDLibEMIPlugin.stackProvider(fluidSlot, () -> {
+                if (!fluidSlot.allowXEILookup) return null;
+                var fluid = fluidSlot.getValue();
+                if (fluid.isEmpty()) return null;
+                return new EmiStackInteraction(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()), null, false);
+            });
+        }
+
+        public static void renderDragHandler(FluidSlot fluidSlot) {
+            LDLibEMIPlugin.renderDragHandler(fluidSlot, dragged -> dragged instanceof FluidEmiStack);
+        }
+
+        public static void dropStackHandler(FluidSlot fluidSlot) {
+            LDLibEMIPlugin.dropStackHandler(fluidSlot,
+                    dragged -> dragged instanceof FluidEmiStack,
+                    dragged -> {
+                        if (dragged instanceof FluidEmiStack fluid) {
+                            var fluidStack = new FluidStack(
+                                    ((Fluid) fluid.getKey()).builtInRegistryHolder(),
+                                    Math.max(1000, (int) fluid.getAmount()),
+                                    fluid.getComponentChanges());
+                            fluidSlot.setValue(fluidStack);
+                        }
+                    });
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
+            LDLibEMIPlugin.recipeIngredient(fluidSlot, io, () -> {
+                var fluid = fluidSlot.getValue();
+                return List.of(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()));
+            });
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, float chance) {
+            LDLibEMIPlugin.recipeSlot(fluidSlot, () -> {
+                var fluid = fluidSlot.getValue();
+                return EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()).setChance(chance);
+            });
+        }
+    }
+    // endregion
 }

@@ -2,19 +2,31 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Cursor;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.StyleValue;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.HistoryStack;
+import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -24,60 +36,202 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
+import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
+@KJSBindings
+@LDLRegister(name = "text-area", group = "basic", registry = "ldlib2:ui_element")
 public class TextArea extends BindableUIElement<String[]> {
     // Internal helpers
-    public record Cursor(int line, int col) {}
     public record CursorDragStart(Cursor anchor) {}
+    public record History(String[] lines, Cursor cursor) {
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof History(String[] lines1, Cursor cursor1) &&
+                    Arrays.deepEquals(lines1, lines) &&
+                    Objects.equals(cursor1, cursor);
+        }
+    }
 
-    @Accessors(chain = true, fluent = true)
-    public static class TextAreaStyle extends Style {
-        @Getter @Setter
-        private float fontSize = 9f;
-        @Getter @Setter
-        private int textColor = -1;
-        @Getter @Setter
-        private int errorColor = 0xffff0000;
-        @Getter @Setter
-        private int cursorColor = 0xffeeeeee;
-        @Getter @Setter
-        private boolean textShadow = true;
-        @Getter @Setter
-        private Component placeholder = Component.translatable("text_field.empty");
-        @Getter @Setter
-        private ScrollDisplay verticalScrollDisplay = ScrollDisplay.AUTO;
-        @Getter @Setter
-        private ScrollDisplay horizontalScrollDisplay = ScrollDisplay.AUTO;
-        @Getter @Setter
-        private ScrollerMode mode = ScrollerMode.BOTH;
+    @Configurable(name = "TextAreaStyle")
+    public class TextAreaStyle extends Style {
+        private static final Property<?>[] PROPERTIES = new Property[] {
+                PropertyRegistry.SCROLLER_VIEW_MARGIN,
+                PropertyRegistry.FONT,
+                PropertyRegistry.FONT_SIZE,
+                PropertyRegistry.TEXT_COLOR,
+                PropertyRegistry.ERROR_COLOR,
+                PropertyRegistry.CURSOR_COLOR,
+                PropertyRegistry.TEXT_SHADOW,
+                PropertyRegistry.PLACEHOLDER,
+                PropertyRegistry.SCROLLER_VERTICAL_DISPLAY,
+                PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY,
+                PropertyRegistry.SCROLLER_VIEW_MODE,
+                PropertyRegistry.LINE_SPACING,
+                PropertyRegistry.FOCUS_OVERLAY,
+        };
+        public TextAreaStyle() {
+            super(TextArea.this);
+            setDefault(PropertyRegistry.FOCUS_OVERLAY, Sprites.RECT_RD_T_SOLID);
+        }
 
-        @Getter @Setter
-        private float lineSpacing = 1f; // extra pixels between lines
+        public static void init() {
+            PropertyRegistry.SCROLLER_VIEW_MARGIN.addListener(TextAreaStyle::onPropertyChanged);
+            PropertyRegistry.FONT_SIZE.addListener(TextAreaStyle::onPropertyChanged);
+            PropertyRegistry.FONT.addListener(TextAreaStyle::onPropertyChanged);
+            PropertyRegistry.LINE_SPACING.addListener(TextAreaStyle::onPropertyChanged);
+            PropertyRegistry.SCROLLER_VIEW_MODE.addListener(TextAreaStyle::onPropertyChanged);
+            PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY.addListener(TextAreaStyle::onPropertyChanged);
+            PropertyRegistry.SCROLLER_VERTICAL_DISPLAY.addListener(TextAreaStyle::onPropertyChanged);
+        }
 
-        // Focus overlay
-        @Getter @Setter
-        private IGuiTexture focusOverlay = Sprites.RECT_RD_T_SOLID;
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof TextArea textArea) {
+                textArea.onTextAreaStyleChanged();
+            }
+        }
 
-        public TextAreaStyle(UIElement holder) {
-            super(holder);
+        @Override
+        protected Property<?>[] getProperties() {
+            return PROPERTIES;
+        }
+
+        public float scrollerViewMargin() {
+            return getValueSave(PropertyRegistry.SCROLLER_VIEW_MARGIN);
+        }
+
+        public TextAreaStyle scrollerViewStyle(float scrollerViewMargin) {
+            set(PropertyRegistry.SCROLLER_VIEW_MARGIN, scrollerViewMargin);
+            return this;
+        }
+
+        public ResourceLocation font() {
+            return getValueSave(PropertyRegistry.FONT);
+        }
+
+        public TextAreaStyle font(ResourceLocation font) {
+            set(PropertyRegistry.FONT, font);
+            return this;
+        }
+
+        public float fontSize() {
+            return getValueSave(PropertyRegistry.FONT_SIZE);
+        }
+
+        public TextAreaStyle fontSize(float fontSize) {
+            set(PropertyRegistry.FONT_SIZE, fontSize);
+            return this;
+        }
+
+        public int textColor() {
+            return getValueSave(PropertyRegistry.TEXT_COLOR);
+        }
+
+        public TextAreaStyle textColor(int textColor) {
+            set(PropertyRegistry.TEXT_COLOR, textColor);
+            return this;
+        }
+
+        public int errorColor() {
+            return getValueSave(PropertyRegistry.ERROR_COLOR);
+        }
+
+        public TextAreaStyle errorColor(int errorColor) {
+            set(PropertyRegistry.ERROR_COLOR, errorColor);
+            return this;
+        }
+
+        public int cursorColor() {
+            return getValueSave(PropertyRegistry.CURSOR_COLOR);
+        }
+
+        public TextAreaStyle cursorColor(int cursorColor) {
+            set(PropertyRegistry.CURSOR_COLOR, cursorColor);
+            return this;
+        }
+
+        public boolean textShadow() {
+            return getValueSave(PropertyRegistry.TEXT_SHADOW);
+        }
+
+        public TextAreaStyle textShadow(boolean textShadow) {
+            set(PropertyRegistry.TEXT_SHADOW, textShadow);
+            return this;
+        }
+
+        public Component placeholder() {
+            return getValueSave(PropertyRegistry.PLACEHOLDER);
+        }
+
+        public TextAreaStyle placeholder(Component placeholder) {
+            set(PropertyRegistry.PLACEHOLDER, placeholder);
+            return this;
+        }
+
+        public ScrollDisplay horizontalScrollDisplay() {
+            return getValueSave(PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY);
+        }
+
+        public TextAreaStyle horizontalScrollDisplay(ScrollDisplay horizontalScrollDisplay) {
+            set(PropertyRegistry.SCROLLER_HORIZONTAL_DISPLAY, horizontalScrollDisplay);
+            return this;
+        }
+
+        public ScrollDisplay verticalScrollDisplay() {
+            return getValueSave(PropertyRegistry.SCROLLER_VERTICAL_DISPLAY);
+        }
+
+        public TextAreaStyle verticalScrollDisplay(ScrollDisplay verticalScrollDisplay) {
+            set(PropertyRegistry.SCROLLER_VERTICAL_DISPLAY, verticalScrollDisplay);
+            return this;
+        }
+
+        public ScrollerMode viewMode() {
+            return getValueSave(PropertyRegistry.SCROLLER_VIEW_MODE);
+        }
+
+        public TextAreaStyle viewMode(ScrollerMode viewMode) {
+            set(PropertyRegistry.SCROLLER_VIEW_MODE, viewMode);
+            return this;
+        }
+
+        public float lineSpacing() {
+            return getValueSave(PropertyRegistry.LINE_SPACING);
+        }
+
+        public TextAreaStyle lineSpacing(float lineSpacing) {
+            set(PropertyRegistry.LINE_SPACING, lineSpacing);
+            return this;
+        }
+
+        public IGuiTexture focusOverlay() {
+            return getValueSave(PropertyRegistry.FOCUS_OVERLAY);
+        }
+
+        public TextAreaStyle focusOverlay(IGuiTexture focusOverlay) {
+            set(PropertyRegistry.FOCUS_OVERLAY, focusOverlay);
+            return this;
         }
     }
 
@@ -90,14 +244,16 @@ public class TextArea extends BindableUIElement<String[]> {
     @Setter private Predicate<Character> charValidator = Predicates.alwaysTrue();
 
     // Style
-    @Getter private final TextAreaStyle textAreaStyle = new TextAreaStyle(this);
+    @Getter private final TextAreaStyle textAreaStyle = new TextAreaStyle();
 
     // Raw edit buffer (what user is editing right now)
-    private final List<String> lines = new ArrayList<>();
-    // Last accepted valid value (used for getValue/notify)
-    private final List<String> valueLines = new ArrayList<>();
+    protected final List<String> lines = new ArrayList<>();
+    @Configurable(name = "value")
+    private String[] value = new String[0];
 
     // runtime
+    @Getter
+    private final HistoryStack<History> historyStack = new HistoryStack<>(100);
     @Getter private boolean isError = false;
 
     // Cursor and selection
@@ -112,9 +268,15 @@ public class TextArea extends BindableUIElement<String[]> {
     @Getter private float scrollY = 0f; // vertical pixels
     @Getter private float scrollX = 0f; // horizontal pixels
 
+    //runtime
+    private float lastWidth = -1;
+    private float lastHeight = -1;
+
     public TextArea() {
         this.horizontalScroller = new Scroller.Horizontal().setRange(0, 1f).setClampNormalizedValue(this::horizontalClamp);
         this.verticalScroller = new Scroller.Vertical().setRange(0, 1f).setClampNormalizedValue(this::verticalClamp);
+        this.horizontalScroller.addClass("__text-area_horizontal-scroller__");
+        this.verticalScroller.addClass("__text-area_vertical-scroller__");
 
         // Default layout and look
         getLayout().setHeight(60);
@@ -125,8 +287,9 @@ public class TextArea extends BindableUIElement<String[]> {
                 drawContentView(guiContext);
             }
         };
+        this.contentView.addClass("__text-area_content-view__");
         this.contentView.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 2);
+            layout.setPadding(YogaEdge.ALL, 3);
             layout.setFlex(1);
             layout.setHeightPercent(100);
         });
@@ -144,7 +307,10 @@ public class TextArea extends BindableUIElement<String[]> {
         // Event wiring
         addEventListener(UIEvents.CHAR_TYPED, this::onCharTyped);
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
+        addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
         this.contentView.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        this.contentView.addEventListener(UIEvents.DOUBLE_CLICK, this::onDoubleClick);
         this.contentView.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSource);
         this.contentView.addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
         addEventListener(UIEvents.BLUR, this::onBlur);
@@ -157,25 +323,68 @@ public class TextArea extends BindableUIElement<String[]> {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         }).addChildren(contentView, verticalScroller), horizontalScroller);
+        internalSetup();
     }
 
     public TextArea textAreaStyle(Consumer<TextAreaStyle> style) {
         style.accept(textAreaStyle);
-        onStyleChanged();
-        ensureCursorVisible();
         return this;
     }
 
-    @Override
-    public void applyStyle(Map<String, StyleValue<?>> values) {
-        super.applyStyle(values);
-        textAreaStyle.applyStyles(values);
+    protected void onTextAreaStyleChanged() {
         ensureCursorVisible();
     }
 
     @Override
     protected void onLayoutChanged() {
         super.onLayoutChanged();
+        if (lastWidth != contentView.getContentWidth() || lastHeight != contentView.getContentHeight()) {
+            ensureCursorVisible();
+        }
+    }
+
+    public void pushHistory() {
+        historyStack.record(new History(getValue(), cursorPos()));
+    }
+
+    protected void onValidateCommand(UIEvent event) {
+        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command)) && isEditable()) {
+            event.stopPropagation();
+        }
+    }
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (isEditable()) {
+            var current = getValue();
+            if (historyStack.getCurrent() == null || !Arrays.deepEquals(historyStack.getCurrent().lines, current)) {
+                historyStack.record(new History(current, cursorPos()));
+            }
+            if (CommandEvents.UNDO.equals(event.command)) {
+                if (historyStack.undo()) {
+                    var value = historyStack.getCurrent().lines;
+                    var cursor = historyStack.getCurrent().cursor;
+                    var previousScrollX = scrollX;
+                    var previousScrollY = scrollY;
+                    setValue(value);
+                    this.scrollX = previousScrollX;
+                    this.scrollY = previousScrollY;
+                    setCursor(cursor.line(), cursor.col());
+                    ensureCursorVisible();
+                }
+            } else if (CommandEvents.REDO.equals(event.command)) {
+                if (historyStack.redo()) {
+                    var value = historyStack.getCurrent().lines;
+                    var cursor = historyStack.getCurrent().cursor;
+                    var previousScrollX = scrollX;
+                    var previousScrollY = scrollY;
+                    setValue(value);
+                    this.scrollX = previousScrollX;
+                    this.scrollY = previousScrollY;
+                    setCursor(cursor.line(), cursor.col());
+                    ensureCursorVisible();
+                }
+            }
+        }
     }
 
     protected void onHorizontalScroll(float value) {
@@ -190,36 +399,40 @@ public class TextArea extends BindableUIElement<String[]> {
 
     protected float horizontalClamp(float normalizedValue) {
         var containerWidth = getMaxWidth() - contentView.getContentWidth();
+        var fontSize = textAreaStyle.fontSize();
         return Mth.clamp(Mth.abs(normalizedValue),
-                textAreaStyle.fontSize / containerWidth,
-                (textAreaStyle.fontSize + textAreaStyle.lineSpacing) / containerWidth)
+                fontSize / containerWidth,
+                (fontSize + textAreaStyle.lineSpacing()) / containerWidth)
                 * (normalizedValue > 0 ? 1 : -1);
     }
 
     protected float verticalClamp(float normalizedValue) {
         var containerHeight = getMaxHeight() - contentView.getContentHeight();
+        var fontSize = textAreaStyle.fontSize();
         return Mth.clamp(Mth.abs(normalizedValue),
-                textAreaStyle.fontSize / containerHeight,
-                (textAreaStyle.fontSize + textAreaStyle.lineSpacing) / containerHeight)
+                fontSize / containerHeight,
+                (fontSize + textAreaStyle.lineSpacing()) / containerHeight)
                 * (normalizedValue > 0 ? 1 : -1);
     }
 
-    private void updateScrollers() {
+    protected void updateScrollers() {
         var maxWidth = getMaxWidth();
         var maxHeight = getMaxHeight();
-        var hP = scrollX / (maxWidth - contentView.getContentWidth());
+        var leftWidth = maxWidth - contentView.getContentWidth();
+        var leftHeight = maxHeight - contentView.getContentHeight();
+        var hP = leftWidth == 0 ? 0 : scrollX / leftWidth;
         hP = Mth.clamp(hP, 0, 1);
-        var wP = scrollY / (maxHeight - contentView.getContentHeight());
+        var wP = leftHeight == 0 ? 0 : scrollY / leftHeight;
         wP = Mth.clamp(wP, 0, 1);
         horizontalScroller.setValue(hP);
         verticalScroller.setValue(wP);
-
-        if (textAreaStyle.mode == ScrollerMode.HORIZONTAL || textAreaStyle.mode == ScrollerMode.BOTH) {
+        var mode = textAreaStyle.viewMode();
+        if (mode == ScrollerMode.HORIZONTAL || mode == ScrollerMode.BOTH) {
             // cause we are using a flexbox, the width of the view container is not the same as the width of the view port
             // so we need to calculate the width ourselves
             var vp = Math.min(1, contentView.getContentWidth() / maxWidth);
             horizontalScroller.setScrollBarSize(vp * 100);
-            if ((textAreaStyle.horizontalScrollDisplay == ScrollDisplay.AUTO && vp < 1) || textAreaStyle.horizontalScrollDisplay == ScrollDisplay.ALWAYS) {
+            if ((textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS) {
                 horizontalScroller.setDisplay(YogaDisplay.FLEX);
 
             } else {
@@ -229,10 +442,17 @@ public class TextArea extends BindableUIElement<String[]> {
             horizontalScroller.setDisplay(YogaDisplay.NONE);
         }
 
-        if (textAreaStyle.mode == ScrollerMode.VERTICAL || textAreaStyle.mode == ScrollerMode.BOTH) {
+        if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
+            horizontalScroller.layout(layout -> {
+                BasicStyle.importantPipeline(layout, l ->
+                        l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));
+            });
+        }
+
+        if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
             var hp = Math.min(1, contentView.getContentHeight() / maxHeight);
             verticalScroller.setScrollBarSize(hp * 100);
-            if ((textAreaStyle.verticalScrollDisplay == ScrollDisplay.AUTO && hp < 1) || textAreaStyle.verticalScrollDisplay == ScrollDisplay.ALWAYS) {
+            if ((textAreaStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || textAreaStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS) {
                 verticalScroller.setDisplay(YogaDisplay.FLEX);
             } else {
                 verticalScroller.setDisplay(YogaDisplay.NONE);
@@ -245,7 +465,12 @@ public class TextArea extends BindableUIElement<String[]> {
     // Bindable value
     @Override
     public String[] getValue() {
-        return valueLines.toArray(String[]::new);
+        return Arrays.copyOf(value, value.length);
+    }
+
+    public TextArea setLinesResponder(Consumer<String[]> textResponder) {
+        registerValueListener(textResponder);
+        return this;
     }
 
     public TextArea setLines(List<String> lines) {
@@ -256,6 +481,7 @@ public class TextArea extends BindableUIElement<String[]> {
         return setValue(lines, notify);
     }
 
+    @ConfigSetter(field = "value")
     public TextArea setValue(@Nullable String[] value) {
         return setValue(value, true);
     }
@@ -263,19 +489,20 @@ public class TextArea extends BindableUIElement<String[]> {
     @Override
     public TextArea setValue(@Nullable String[] value, boolean notify) {
         lines.clear();
-        valueLines.clear();
+        var valueBuilder = new ArrayList<String>();
         if (value != null && value.length > 0) {
             for (String s : value) {
                 lines.add(s == null ? "" : s);
-                valueLines.add(s == null ? "" : s);
+                valueBuilder.add(s == null ? "" : s);
             }
         } else {
             lines.add("");
-            valueLines.add("");
+            valueBuilder.add("");
         }
+        this.value = valueBuilder.toArray(new String[0]);
         // Reset cursor and selection at end
-        cursorLine = Math.max(0, lines.size() - 1);
-        cursorCol = lines.get(cursorLine).length();
+        cursorLine = 0;
+        cursorCol = 0;
         selStartLine = selEndLine = cursorLine;
         selStartCol = selEndCol = cursorCol;
         scrollX = 0;
@@ -289,15 +516,16 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     // Editing helpers
-    private Font getFont() {
+    @OnlyIn(Dist.CLIENT)
+    public Font getFont() {
         return Minecraft.getInstance().font;
     }
 
-    private float scale() {
+    public float scale() {
         return textAreaStyle.fontSize() / getFont().lineHeight;
     }
 
-    private float lineHeight() {
+    public float lineHeight() {
         return textAreaStyle.fontSize() + textAreaStyle.lineSpacing();
     }
 
@@ -310,8 +538,8 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     private static int comparePos(Cursor a, Cursor b) {
-        if (a.line != b.line) return Integer.compare(a.line, b.line);
-        return Integer.compare(a.col, b.col);
+        if (a.line() != b.line()) return Integer.compare(a.line(), b.line());
+        return Integer.compare(a.col(), b.col());
     }
 
     private Cursor selMin() {
@@ -331,7 +559,7 @@ public class TextArea extends BindableUIElement<String[]> {
         var s = scale();
         var max = 0f;
         for (String line : lines) {
-            max = Math.max(font.width(line) * s, max);
+            max = Math.max(font.getSplitter().stringWidth(TextUtilities.withFont(line, getTextAreaStyle().font())) * s, max);
         }
         return max;
     }
@@ -351,8 +579,8 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     public void setSelection(Cursor a, Cursor b) {
-        selStartLine = a.line; selStartCol = a.col;
-        selEndLine = b.line; selEndCol = b.col;
+        selStartLine = a.line(); selStartCol = a.col();
+        selEndLine = b.line(); selEndCol = b.col();
     }
 
     public void collapseSelectionToCursor() {
@@ -360,17 +588,18 @@ public class TextArea extends BindableUIElement<String[]> {
         selStartCol = selEndCol = cursorCol;
     }
 
-    private void ensureCursorVisible() {
+    protected void ensureCursorVisible() {
         if (!LDLib2.isClient()) return;
         var width = contentView.getContentWidth();
         var height = contentView.getContentHeight();
+        if (width == 0 || height == 0) return;
 
         var font = getFont();
         var s = scale();
         var currentLine = lines.get(cursorLine);
 
         // Compute cursor pixel positions
-        float cursorX = font.width(currentLine.substring(0, cursorCol)) * s;
+        float cursorX = font.getSplitter().stringWidth(TextUtilities.withFont(currentLine.substring(0, cursorCol), getTextAreaStyle().font())) * s;
         float lineTop = cursorLine * lineHeight();
         float lineBottom = lineTop + textAreaStyle.fontSize();
 
@@ -398,97 +627,142 @@ public class TextArea extends BindableUIElement<String[]> {
         // Clamp horizontal scroll
         scrollX = Math.max(0, Float.isNaN(scrollX) ? 0 : scrollX);
         updateScrollers();
+
+        lastHeight = height;
+        lastWidth = width;
     }
 
-    private void onBlur(UIEvent e) {
+    protected void onBlur(UIEvent e) {
         if (hasSelection()) {
             collapseSelectionToCursor();
         }
     }
 
-    private void onMouseWheel(UIEvent event) {
-        if (event.deltaY != 0 && (textAreaStyle.mode == ScrollerMode.VERTICAL || textAreaStyle.mode == ScrollerMode.BOTH)) {
+    protected void onMouseWheel(UIEvent event) {
+        var mode = textAreaStyle.viewMode();
+        if (event.deltaY != 0 && (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH)) {
             verticalScroller.onScrollWheel(event);
         }
-        if (event.deltaX != 0 && (textAreaStyle.mode == ScrollerMode.HORIZONTAL || textAreaStyle.mode == ScrollerMode.BOTH)) {
+        if (event.deltaX != 0 && (mode == ScrollerMode.HORIZONTAL || mode == ScrollerMode.BOTH)) {
             horizontalScroller.onScrollWheel(event);
-        } else if (event.deltaY != 0 && textAreaStyle.mode == ScrollerMode.HORIZONTAL) {
+        } else if (event.deltaY != 0 && mode == ScrollerMode.HORIZONTAL) {
             horizontalScroller.onScrollWheel(event);
         }
         event.stopPropagation();
     }
 
-    private void onMouseDown(UIEvent event) {
+    protected void onMouseDown(UIEvent event) {
         if (event.button == 0 && isMouseOver(event.x, event.y)) {
             var pos = getCursorUnderMouse(event.x, event.y);
-            setCursor(pos.line, pos.col);
+            setCursor(pos.line(), pos.col());
             if (isShiftDown()) {
                 // Extend selection
-                setSelection(new Cursor(selStartLine, selStartCol), cursorPos());
+                var startCursor = new Cursor(selStartLine, selStartCol);
+                setSelection(startCursor, cursorPos());
+                contentView.startDrag(new CursorDragStart(startCursor), null);
             } else {
                 // Reset selection
                 setSelection(cursorPos(), cursorPos());
+                contentView.startDrag(new CursorDragStart(pos), null);
             }
-            contentView.startDrag(new CursorDragStart(pos), null);
             event.stopPropagation();
             focus();
         }
     }
 
-    private void onDragSource(UIEvent event) {
+    protected void onDoubleClick(UIEvent event) {
+        if (event.button == 0 && isMouseOver(event.x, event.y)) {
+            var pos = getCursorUnderMouse(event.x, event.y);
+            // select string
+            var selected = selectWord(pos);
+            if (!selected.getA().equals(selected.getB())) {
+                setSelection(new Cursor(pos.line(), selected.getA()), new Cursor(pos.line(), selected.getB()));
+            }
+        }
+    }
+
+    /**
+     * Selects a word based on the position of the given cursor in a line of text.
+     * The method calculates the start and end positions of a contiguous sequence of alphanumeric characters,
+     * treating it as a word. If the cursor is not positioned within an alphanumeric sequence,
+     * the start and end positions will be the same as the cursor's position.
+     *
+     * @param cursor the {@code Cursor} object containing the line and column position in the text for word selection
+     * @return a {@code Pair} object containing the start and end column indices of the selected word
+     */
+    protected Pair<Integer, Integer> selectWord(Cursor cursor) {
+        var line = lines.get(cursor.line());
+        var col = cursor.col();
+        var start = col;
+        var end = col;
+        while (start > 0 && isWordChar(line.charAt(start - 1))) start--;
+        while (end < line.length() && isWordChar(line.charAt(end))) end++;
+        return new Pair<>(start, end);
+    }
+
+    protected boolean isWordChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '_';
+    }
+
+    protected void onDragSource(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof CursorDragStart(Cursor anchor)) {
             var pos = getCursorUnderMouse(event.x, event.y);
-            setCursor(pos.line, pos.col);
+            setCursor(pos.line(), pos.col());
             setSelection(anchor, cursorPos());
         }
     }
 
     public Cursor getCursorUnderMouse(double mouseX, double mouseY) {
-        var x = getContentX();
-        var y = getContentY();
+        var x = contentView.getContentX();
+        var y = contentView.getContentY();
         var s = scale();
         var font = getFont();
+        var textFont = getTextAreaStyle().font();
 
         // Determine line
-        var relY = (float) (mouseY - y + scrollY);
+        var relY = (float) (mouseY - y + scrollY) - 2;
         int line = Mth.clamp((int) Math.floor(relY / lineHeight()), 0, Math.max(0, lines.size() - 1));
 
-        // Determine column by measuring width
+        // Determine col by measuring width
         var lineText = lines.get(line);
         var relX = (float) (mouseX - x + scrollX);
 
-        // Estimate column using font width and substring fitting
-        var sub = font.plainSubstrByWidth(lineText, (int) (relX / s));
-        float length = font.width(sub) * s;
+        // Estimate col using font width and substring fitting
+        var lineWithFont = TextUtilities.withFont(lineText, textFont);
+        var subWithFont = font.substrByWidth(lineWithFont, (int) (relX / s));
+        float fullLength = font.getSplitter().stringWidth(lineWithFont) * s;
+        float subLength = font.getSplitter().stringWidth(subWithFont) * s;
         int col;
-        if (sub.length() >= lineText.length()) {
+        if (subLength >= fullLength) {
             col = lineText.length();
         } else {
-            float nextCharWidth = font.width(lineText.substring(sub.length(), sub.length() + 1)) * s;
-            col = (relX - length) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+            var sub = subWithFont.getString();
+            float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(lineText.substring(sub.length(), sub.length() + 1), textFont)) * s;
+            col = (relX - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
         }
         col = Mth.clamp(col, 0, lineText.length());
         return new Cursor(line, col);
     }
 
-    private void onCharTyped(UIEvent event) {
+    protected void onCharTyped(UIEvent event) {
         if (!isEditable()) return;
         if (StringUtil.isAllowedChatCharacter(event.codePoint) && charValidator.test(event.codePoint)) {
             insertText(Character.toString(event.codePoint));
         }
     }
 
-    private void onKeyDown(UIEvent event) {
-        if (!isEditable()) return;
-
+    protected void onKeyDown(UIEvent event) {
         switch (event.keyCode) {
             case GLFW.GLFW_KEY_ENTER -> {
+                if (!isEditable()) return;
                 insertNewLine();
             }
             case GLFW.GLFW_KEY_BACKSPACE -> {
+                if (!isEditable()) return;
                 deleteChars(-1);
             }
             case GLFW.GLFW_KEY_DELETE -> {
+                if (!isEditable()) return;
                 deleteChars(1);
             }
             case GLFW.GLFW_KEY_LEFT -> {
@@ -546,8 +820,10 @@ public class TextArea extends BindableUIElement<String[]> {
                 } else if (Screen.isCopy(event.keyCode)) {
                     ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
                 } else if (Screen.isPaste(event.keyCode)) {
+                    if (!isEditable()) return;
                     insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
                 } else if (Screen.isCut(event.keyCode)) {
+                    if (!isEditable()) return;
                     ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
                     insertText(""); // replace selection with empty
                 }
@@ -555,7 +831,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    private void updateSelectionAfterMove() {
+    protected void updateSelectionAfterMove() {
         if (isShiftDown()) {
             setSelection(new Cursor(selStartLine, selStartCol), cursorPos());
         } else {
@@ -563,7 +839,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    private void moveLeft() {
+    protected void moveLeft() {
         if (cursorCol > 0) {
             setCursor(cursorLine, cursorCol - 1);
         } else if (cursorLine > 0) {
@@ -573,7 +849,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    private void moveRight() {
+    protected void moveRight() {
         if (cursorCol < lines.get(cursorLine).length()) {
             setCursor(cursorLine, cursorCol + 1);
         } else if (cursorLine < lines.size() - 1) {
@@ -581,7 +857,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    private void moveUp() {
+    protected void moveUp() {
         if (cursorLine > 0) {
             int newLine = cursorLine - 1;
             int col = Math.min(cursorCol, lines.get(newLine).length());
@@ -589,7 +865,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    private void moveDown() {
+    protected void moveDown() {
         if (cursorLine < lines.size() - 1) {
             int newLine = cursorLine + 1;
             int col = Math.min(cursorCol, lines.get(newLine).length());
@@ -597,7 +873,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    private void moveWord(int dir) {
+    protected void moveWord(int dir) {
         var lineText = lines.get(cursorLine);
         int idx = cursorCol;
         if (dir < 0) {
@@ -612,14 +888,14 @@ public class TextArea extends BindableUIElement<String[]> {
         setCursor(cursorLine, idx);
     }
 
-    private void page(int direction) {
+    protected void page(int direction) {
         float visibleLines = Math.max(1, (int) (contentView.getContentHeight() / lineHeight()));
         int newLine = Mth.clamp(cursorLine + (int) (direction * visibleLines), 0, lines.size() - 1);
         int col = Math.min(cursorCol, lines.get(newLine).length());
         setCursor(newLine, col);
     }
 
-    private void selectAll() {
+    protected void selectAll() {
         selStartLine = 0;
         selStartCol = 0;
         selEndLine = Math.max(0, lines.size() - 1);
@@ -627,15 +903,16 @@ public class TextArea extends BindableUIElement<String[]> {
         setCursor(selEndLine, selEndCol);
     }
 
-    private void insertNewLine() {
+    protected void insertNewLine() {
         replaceSelectionWith("\n");
     }
 
-    private void deleteChars(int dir) {
+    protected void deleteChars(int dir) {
         if (hasSelection()) {
             replaceSelectionWith("");
             return;
         }
+        pushHistory();
         if (dir < 0) { // backspace
             if (cursorCol > 0) {
                 var s = lines.get(cursorLine);
@@ -664,60 +941,61 @@ public class TextArea extends BindableUIElement<String[]> {
         onRawLinesUpdated();
     }
 
-    private void replaceSelectionWith(String text) {
+    protected void replaceSelectionWith(String text) {
+        pushHistory();
         if (hasSelection()) {
             var start = selMin();
             var end = selMax();
 
-            if (start.line == end.line) {
-                var s = lines.get(start.line);
-                String before = s.substring(0, start.col);
-                String after = s.substring(end.col);
+            if (start.line() == end.line()) {
+                var s = lines.get(start.line());
+                String before = s.substring(0, start.col());
+                String after = s.substring(end.col());
                 List<String> incoming = splitLines(text);
 
                 if (incoming.size() == 1) {
-                    lines.set(start.line, before + incoming.get(0) + after);
-                    setCursor(start.line, before.length() + incoming.get(0).length());
+                    lines.set(start.line(), before + incoming.get(0) + after);
+                    setCursor(start.line(), before.length() + incoming.get(0).length());
                 } else {
                     String first = before + incoming.get(0);
                     String last = incoming.get(incoming.size() - 1) + after;
-                    lines.set(start.line, first);
+                    lines.set(start.line(), first);
                     // drop lines between start..end
-                    for (int i = end.line; i > start.line; i--) {
+                    for (int i = end.line(); i > start.line(); i--) {
                         lines.remove(i);
                     }
                     // insert middle lines
                     for (int i = 1; i < incoming.size() - 1; i++) {
-                        lines.add(start.line + i, incoming.get(i));
+                        lines.add(start.line() + i, incoming.get(i));
                     }
-                    lines.add(start.line + incoming.size() - 1, last);
-                    setCursor(start.line + incoming.size() - 1, incoming.get(incoming.size() - 1).length());
+                    lines.add(start.line() + incoming.size() - 1, last);
+                    setCursor(start.line() + incoming.size() - 1, incoming.get(incoming.size() - 1).length());
                 }
             } else {
                 // multi-line selection
-                var startLine = lines.get(start.line);
-                var endLine = lines.get(end.line);
-                String before = startLine.substring(0, start.col);
-                String after = endLine.substring(end.col);
+                var startLine = lines.get(start.line());
+                var endLine = lines.get(end.line());
+                String before = startLine.substring(0, start.col());
+                String after = endLine.substring(end.col());
                 List<String> incoming = splitLines(text);
 
                 // remove lines between start+1 .. end
-                for (int i = end.line; i > start.line; i--) {
+                for (int i = end.line(); i > start.line(); i--) {
                     lines.remove(i);
                 }
 
                 if (incoming.size() == 1) {
-                    lines.set(start.line, before + incoming.get(0) + after);
-                    setCursor(start.line, before.length() + incoming.get(0).length());
+                    lines.set(start.line(), before + incoming.get(0) + after);
+                    setCursor(start.line(), before.length() + incoming.get(0).length());
                 } else {
                     String first = before + incoming.get(0);
                     String last = incoming.get(incoming.size() - 1) + after;
-                    lines.set(start.line, first);
+                    lines.set(start.line(), first);
                     for (int i = 1; i < incoming.size() - 1; i++) {
-                        lines.add(start.line + i, incoming.get(i));
+                        lines.add(start.line() + i, incoming.get(i));
                     }
-                    lines.add(start.line + incoming.size() - 1, last);
-                    setCursor(start.line + incoming.size() - 1, incoming.get(incoming.size() - 1).length());
+                    lines.add(start.line() + incoming.size() - 1, last);
+                    setCursor(start.line() + incoming.size() - 1, incoming.get(incoming.size() - 1).length());
                 }
             }
         } else {
@@ -728,11 +1006,11 @@ public class TextArea extends BindableUIElement<String[]> {
                 String before = s.substring(0, cursorCol);
                 String after = s.substring(cursorCol);
                 if (incoming.size() == 1) {
-                    lines.set(cursorLine, before + incoming.get(0) + after);
-                    setCursor(cursorLine, cursorCol + incoming.get(0).length());
+                    lines.set(cursorLine, before + incoming.getFirst() + after);
+                    setCursor(cursorLine, cursorCol + incoming.getFirst().length());
                 } else {
-                    String first = before + incoming.get(0);
-                    String last = incoming.get(incoming.size() - 1) + after;
+                    String first = before + incoming.getFirst();
+                    String last = incoming.getLast() + after;
                     lines.set(cursorLine, first);
                     for (int i = 1; i < incoming.size() - 1; i++) {
                         lines.add(cursorLine + i, incoming.get(i));
@@ -750,7 +1028,7 @@ public class TextArea extends BindableUIElement<String[]> {
         onRawLinesUpdated();
     }
 
-    private void insertText(String text) {
+    protected void insertText(@Nullable String text) {
         // Filter disallowed characters if needed
         if (text == null || text.isEmpty()) {
             // Replacing selection with empty still needs to notify
@@ -777,14 +1055,14 @@ public class TextArea extends BindableUIElement<String[]> {
      * Called whenever raw 'lines' changed.
      * If passes validator, update valueLines and notify listeners.
      */
-    private void onRawLinesUpdated() {
+    protected void onRawLinesUpdated() {
         // Validate
         String[] candidate = lines.toArray(String[]::new);
         if (textValidator.test(candidate)) {
             isError = false;
             if (!equalsValue(candidate)) {
-                valueLines.clear();
-                for (String s : candidate) valueLines.add(s);
+                value = new String[candidate.length];
+                System.arraycopy(candidate, 0, value, 0, candidate.length);
                 notifyListeners();
             }
         } else {
@@ -794,9 +1072,9 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     private boolean equalsValue(String[] candidate) {
-        if (candidate.length != valueLines.size()) return false;
+        if (candidate.length != value.length) return false;
         for (int i = 0; i < candidate.length; i++) {
-            if (!candidate[i].equals(valueLines.get(i))) return false;
+            if (!candidate[i].equals(value[i])) return false;
         }
         return true;
     }
@@ -805,17 +1083,17 @@ public class TextArea extends BindableUIElement<String[]> {
         if (!hasSelection()) return "";
         var start = selMin();
         var end = selMax();
-        if (start.line == end.line) {
-            var s = lines.get(start.line);
-            return s.substring(start.col, end.col);
+        if (start.line() == end.line()) {
+            var s = lines.get(start.line());
+            return s.substring(start.col(), end.col());
         }
         StringBuilder sb = new StringBuilder();
-        sb.append(lines.get(start.line).substring(start.col));
+        sb.append(lines.get(start.line()).substring(start.col()));
         sb.append('\n');
-        for (int i = start.line + 1; i < end.line; i++) {
+        for (int i = start.line() + 1; i < end.line(); i++) {
             sb.append(lines.get(i)).append('\n');
         }
-        sb.append(lines.get(end.line), 0, end.col);
+        sb.append(lines.get(end.line()), 0, end.col());
         return sb.toString();
     }
 
@@ -834,34 +1112,48 @@ public class TextArea extends BindableUIElement<String[]> {
         super.drawBackgroundOverlay(guiContext);
     }
 
+    @OnlyIn(Dist.CLIENT)
     public void drawContentView(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
         var x = contentView.getContentX();
         var y = contentView.getContentY();
-        var width = contentView.getContentWidth();
         var height = contentView.getContentHeight();
 
         var font = getFont();
-        var s = scale();
+        var textFont = getTextAreaStyle().font();
+        var scale = scale();
 
         // Draw lines of text
-        float totalHeight = Math.max(lineHeight(), lines.size() * lineHeight());
         int firstVisibleLine = (int) Math.floor(scrollY / lineHeight());
         int maxVisibleLines = (int) Math.ceil(height / lineHeight()) + 1;
         int lastVisibleLine = Mth.clamp(firstVisibleLine + maxVisibleLines, 0, Math.max(lines.size() - 1, 0));
 
         // Text
+        RenderSystem.depthMask(false);
+        guiContext.graphics.drawManaged(() -> drawLines(guiContext, font, textFont, scale, x, y, firstVisibleLine, lastVisibleLine));
+        RenderSystem.depthMask(true);
+
+        // Selection
+        drawSelection(guiContext, font, textFont, scale, x, y, firstVisibleLine, lastVisibleLine);
+
+        // Cursor
+        drawCursor(guiContext, font, textFont, scale, x, y);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    protected void drawLines(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
         for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.size(); i++) {
             float lineY = y + i * lineHeight() - scrollY;
             var text = lines.get(i);
             var drawX = x - scrollX;
+            var textWithFont = Component.literal(text).withStyle(style -> style.withFont(textFont));
 
             guiContext.pose.pushPose();
             guiContext.pose.translate(drawX, lineY, 0);
-            guiContext.pose.scale(s, s, 1);
+            guiContext.pose.scale(scale, scale, 1);
             guiContext.graphics.drawString(
                     font,
-                    text,
+                    textWithFont,
                     0,
                     0,
                     isError ? textAreaStyle.errorColor() : textAreaStyle.textColor(),
@@ -872,42 +1164,53 @@ public class TextArea extends BindableUIElement<String[]> {
 
         // Placeholder
         if (lines.size() == 1 && lines.getFirst().isEmpty()) {
-            guiContext.pose.pushPose();
-            guiContext.pose.translate(x, y, 0);
-            guiContext.pose.scale(s, s, 1);
-            guiContext.graphics.drawString(
-                    font,
-                    textAreaStyle.placeholder(),
-                    0,
-                    0,
-                    ColorPattern.LIGHT_GRAY.color,
-                    false
-            );
-            guiContext.pose.popPose();
+            drawPlaceHolder(guiContext, font, scale, x, y);
         }
+    }
 
+    @OnlyIn(Dist.CLIENT)
+    protected void drawPlaceHolder(GUIContext guiContext, Font font, float scale, float x, float y) {
+        guiContext.pose.pushPose();
+        guiContext.pose.translate(x, y, 0);
+        guiContext.pose.scale(scale, scale, 1);
+        guiContext.graphics.drawString(
+                font,
+                textAreaStyle.placeholder(),
+                0,
+                0,
+                ColorPattern.LIGHT_GRAY.color,
+                false
+        );
+        guiContext.pose.popPose();
+    }
+
+    /**
+     * Draw selection highlight and cursor
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected void drawSelection(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
         // Selection highlight
         if (isFocused() && hasSelection()) {
             var start = selMin();
             var end = selMax();
             var highlightColor = -16776961; // same as TextField
-            var maxWidth = getMaxWidth();
+            var maxWidth = getContentWidth();
 
             guiContext.graphics.drawManaged(() -> {
-                for (int line = start.line; line <= end.line; line++) {
+                for (int line = start.line(); line <= end.line(); line++) {
                     if (line < firstVisibleLine || line > lastVisibleLine) continue;
 
                     String text = lines.get(line);
-                    int from = (line == start.line) ? start.col : 0;
-                    int to = (line == end.line) ? end.col : text.length();
+                    int from = (line == start.line()) ? start.col() : 0;
+                    int to = (line == end.line()) ? end.col() : text.length();
 
-                    float minX = font.width(text.substring(0, from)) * s - scrollX;
+                    float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - scrollX;
                     float maxX;
-                    if (line == end.line) {
+                    if (line == end.line()) {
                         if (from == to) continue;
-                        maxX = font.width(text.substring(0, to)) * s - scrollX;
+                        maxX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, to), textFont)) * scale - scrollX;
                     } else {
-                        maxX = maxWidth * s - scrollX;
+                        maxX = maxWidth;
                     }
                     float lineY = y + line * lineHeight() - scrollY;
 
@@ -923,11 +1226,13 @@ public class TextArea extends BindableUIElement<String[]> {
                 }
             });
         }
+    }
 
-        // Cursor
-        if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
+    @OnlyIn(Dist.CLIENT)
+    protected void drawCursor(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y) {
+        if (isVisible() && isFocused() && isDisplayed() && (!isActive() || System.currentTimeMillis() % 1000 < 500)) {
             var current = lines.get(cursorLine);
-            float cursorPosX = font.width(current.substring(0, cursorCol)) * s;
+            float cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(current.substring(0, cursorCol), textFont)) * scale;
             float cursorY = y + cursorLine * lineHeight() - scrollY;
             DrawerHelper.drawSolidRect(
                     guiContext.graphics,

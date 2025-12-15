@@ -13,21 +13,29 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.joml.Vector3f;
@@ -38,7 +46,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@LDLRegisterClient(name="serialization", registry = "screen_test")
+@LDLRegisterClient(name="serialization", registry = "ldlib2:screen_test")
 @NoArgsConstructor
 public class TestSerialization implements IScreenTest {
     public class TestData implements IConfigurable, IPersistedSerializable {
@@ -54,6 +62,8 @@ public class TestSerialization implements IScreenTest {
         @Configurable
         private Direction enumValue = Direction.NORTH;
         @Configurable
+        private ItemStack itemStack = ItemStack.EMPTY;
+        @Configurable
         private Vector3f vector3fValue = new Vector3f(0, 0, 0);
         @Configurable
         private int[] intArray = new int[]{1, 2, 3};
@@ -67,6 +77,15 @@ public class TestSerialization implements IScreenTest {
         @ConfigList(configuratorMethod = "buildTestGroupConfigurator", addDefaultMethod = "addDefaultTestGroup")
         @ReadOnlyManaged(serializeMethod = "testGroupSerialize", deserializeMethod = "testGroupDeserialize")
         private final List<TestGroup> groupList = new ArrayList<>();
+        @Persisted
+        private final INBTSerializable<CompoundTag> stackHandler = new ItemStackHandler(5);
+        @Persisted(subPersisted = true)
+        private final TestContainer testContainer = new TestContainer();
+
+        public TestData() {
+            itemStack = new ItemStack(Items.DIAMOND_PICKAXE);
+            itemStack.enchant(Platform.getFrozenRegistry().lookup(Registries.ENCHANTMENT).get().get(Enchantments.POWER).orElseThrow(), 1);
+        }
 
         public Configurator buildTestGroupConfigurator(Supplier<TestGroup> getter, Consumer<TestGroup> setter) {
             var instance = getter.get();
@@ -76,6 +95,18 @@ public class TestSerialization implements IScreenTest {
                 return group;
             }
             return new Configurator();
+        }
+
+        public static class TestContainer {
+            @Persisted
+            private Vector3f vector3fValue = new Vector3f(0, 0, 0);
+            @Persisted
+            private int[] intArray = new int[]{1, 2, 3};
+        }
+
+        @SkipPersistedValue(field = "vector3fValue")
+        public boolean skipTest(Vector3f value) {
+            return value.x == 0f && value.y == 0f && value.z == 0f;
         }
 
         public TestGroup addDefaultTestGroup() {

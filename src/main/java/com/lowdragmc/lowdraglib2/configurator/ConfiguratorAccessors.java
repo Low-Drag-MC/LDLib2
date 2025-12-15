@@ -33,6 +33,12 @@ public class ConfiguratorAccessors {
         var rawType = ReflectionUtils.getRawType(clazz);
 
         if (rawType != null) {
+            var accessor = findByClass(rawType);
+
+            if (accessor != IConfiguratorAccessor.DEFAULT) {
+                return accessor;
+            }
+
             if (rawType.isArray()) {
                 var componentType = rawType.getComponentType();
                 var childAccessor = findByType(componentType);
@@ -46,8 +52,6 @@ public class ConfiguratorAccessors {
 
                 return new CollectionConfiguratorAccessor(rawType, rawComponentType == null ? Object.class : rawComponentType, childAccessor);
             }
-
-            return findByClass(rawType);
         }
         return IConfiguratorAccessor.DEFAULT;
     }

@@ -2,15 +2,17 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.style.value.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -25,6 +27,7 @@ import java.io.File;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+@KJSBindings
 public class Dialog extends UIElement {
     public final UIElement overlay;
     public final UIElement titleBar;
@@ -36,9 +39,9 @@ public class Dialog extends UIElement {
     private Runnable onClose;
 
     public Dialog() {
-        this.titleBar = new UIElement();
-        this.contentContainer = new UIElement();
-        this.buttonContainer = new UIElement();
+        this.titleBar = new UIElement().addClass("__dialog_title__");
+        this.contentContainer = new UIElement().addClass("__dialog_content-container__");
+        this.buttonContainer = new UIElement().addClass("__dialog_button-container__");
         this.setFocusable(true);
         this.getLayout().setPositionType(YogaPositionType.ABSOLUTE);
         this.getLayout().setWidthPercent(100);
@@ -51,12 +54,16 @@ public class Dialog extends UIElement {
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setJustifyContent(YogaJustify.CENTER);
             layout.setWidth(150);
-        });
+        }).addClass("__dialog_overlay__");
 
         this.titleBar.layout(layout -> {
+            layout.flexDirection(YogaFlexDirection.ROW);
+            layout.gapAll(2);
+            layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setWidthPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setPadding(YogaEdge.ALL, 5);
+            layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
 
         this.contentContainer.layout(layout -> {
@@ -83,6 +90,13 @@ public class Dialog extends UIElement {
         stopInteractionEventsPropagation();
         addEventListener(UIEvents.BLUR, this::onBlur);
         addEventListener(UIEvents.KEY_DOWN, this::keyDown);
+
+        internalSetup();
+    }
+
+    @Override
+    public String name() {
+        return "dialog";
     }
 
     protected void keyDown(UIEvent event) {
@@ -149,6 +163,21 @@ public class Dialog extends UIElement {
         parent.addChild(this);
         focus();
         return this;
+    }
+
+    /**
+     * Displays the dialog on the top of the specified {@link ModularUI} instance.
+     *
+     * If the provided {@code modularUI} is null, this method will return the current
+     * dialog instance without performing any action.
+     *
+     * @param modularUI the {@code ModularUI} instance used to display the dialog;
+     *                  it may be null, in which case no action is performed
+     * @return the current {@code Dialog} instance for method chaining
+     */
+    public Dialog show(@Nullable ModularUI modularUI) {
+        if (modularUI == null) return this;
+        return show(modularUI.ui.rootElement);
     }
 
     /**
@@ -273,6 +302,19 @@ public class Dialog extends UIElement {
                 .setOnClick(e -> {
                     if (onClosed != null) {
                         onClosed.accept(false);
+                    }
+                    dialog.close();
+                })
+                .setText("ldlib.gui.tips.reject"));
+        return dialog;
+    }
+
+    public static Dialog showCancelableCheck(String title, String info, BooleanConsumer onClosed, Runnable onCanceled) {
+        var dialog = showCheckBox(title, info, onClosed);
+        dialog.addButton(new Button()
+                .setOnClick(e -> {
+                    if (onCanceled != null) {
+                        onCanceled.run();
                     }
                     dialog.close();
                 })

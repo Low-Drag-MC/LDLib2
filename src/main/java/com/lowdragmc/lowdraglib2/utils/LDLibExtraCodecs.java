@@ -11,6 +11,7 @@ import org.joml.Vector2f;
 import org.joml.Vector2i;
 import org.joml.Vector3i;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -117,7 +118,66 @@ public final class LDLibExtraCodecs {
         return ops.createString(NULL_STRING);
     }
 
+    /**
+     * Checks if the provided payload is equivalent to the empty value in the given {@link DynamicOps} instance
+     * or if it represents a string with the value of "null".
+     *
+     * @param <T>    the generic type representing the data structure being operated on within {@link DynamicOps}
+     * @param ops    the {@link DynamicOps} instance to interpret the payload
+     * @param payload the data payload to be checked
+     * @return {@code true} if the payload is empty or evaluates to the string "null"; otherwise, {@code false}
+     */
     public static <T> boolean isEmptyOrStringNull(DynamicOps<T> ops, T payload) {
         return ops == ops.empty() || ops.getStringValue(payload).map(s -> s.equals(NULL_STRING)).result().orElse(false);
+    }
+
+    /**
+     * Combines multiple codecs into one, maintaining compatibility with outdated versions.
+     * The method tries to decode values using the latest codec first and falls back to
+     * the outdated codecs in the order they are provided.
+     *
+     * @param <T>      the type of the object being encoded/decoded
+     * @param latest   the most recent and preferred {@link Codec} to use for encoding/decoding
+     * @param outdated an array of older {@link Codec} versions to maintain backward compatibility
+     * @return a {@link Codec} that combines the latest codec with the fallback compatibility of outdated codecs
+     */
+    @SafeVarargs
+    public static <T> Codec<T> compat(Codec<T> latest, Codec<T>... outdated) {
+        if (outdated.length < 1) {
+            return latest;
+        }
+        if (outdated.length == 1) {
+            return Codec.either(latest, outdated[0]).xmap(
+                    Either::unwrap,
+                    Either::left
+            );
+        }
+        return Codec.either(latest, compat(outdated[0], Arrays.copyOfRange(outdated, 1, outdated.length))).xmap(
+                Either::unwrap,
+                Either::left
+        );
+    }
+
+    /**
+     * Creates a codec for a given {@link Enum} type, allowing serialization and deserialization
+     * between the enum's name and its corresponding instance. If deserialization fails, a fallback
+     * enum value is returned.
+     *
+     * @param <T>      the type of the enum
+     * @param clazz    the class object of the enum type
+     * @param fallback the fallback value to return in case of a deserialization failure
+     * @return a {@link Codec} for the supplied enum type
+     */
+    public static <T extends Enum<T>> Codec<T> enumCodec(Class<T> clazz, T fallback) {
+        return Codec.STRING.xmap(
+                name -> {
+                    try {
+                        return Enum.valueOf(clazz, name);
+                    } catch (Exception e) {
+                        return fallback;
+                    }
+                },
+                Enum::name
+        );
     }
 }

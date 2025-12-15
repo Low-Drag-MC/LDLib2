@@ -1,17 +1,26 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
+import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
+import com.lowdragmc.lowdraglib2.editor.settings.AppearanceSettings;
+import com.lowdragmc.lowdraglib2.editor.settings.BehaviorSettings;
+import com.lowdragmc.lowdraglib2.editor.settings.EditorSettings;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.ViewMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.view.HistoryView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.InspectorView;
 import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -22,24 +31,26 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaGutter;
+import org.appliedenergistics.yoga.*;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
-import java.util.function.Function;
+import java.util.List;
 
 @Getter
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class Editor extends UIElement {
+public abstract class Editor extends UIElement {
     public final UIElement top;
     public final UIElement icon;
     public final UIElement menuContainer;
+    public final UIElement buttonContainer;
+
+    public final Button closeButton;
+
     public final FileMenu fileMenu;
     public final ViewMenu viewMenu;
 
@@ -54,6 +65,8 @@ public class Editor extends UIElement {
     public final InspectorView inspectorView;
     public final ResourceView resourceView;
     public final HistoryView historyView;
+
+    public final EditorSettings editorSettings;
 
     // runtime
     @Getter
@@ -70,53 +83,101 @@ public class Editor extends UIElement {
         getLayout().setWidthPercent(100);
         getLayout().setHeightPercent(100);
 
+        addClass("__editor__");
+
+        // top bar
         this.top = new UIElement();
         this.icon = new UIElement();
         this.menuContainer = new UIElement();
+        this.buttonContainer = new UIElement();
+
+        this.closeButton = new Button();
+
+        // view
+        this.historyView = new HistoryView(this);
         this.inspectorView = new InspectorView(this);
         this.resourceView = new ResourceView(this);
-        this.historyView = new HistoryView(this);
 
+        // view container
         this.mainView = new UIElement();
+
+        // menu
         this.fileMenu = new FileMenu(this);
         this.viewMenu = new ViewMenu(this);
 
+        this.editorSettings = createSettings();
+
         rootWindow = new SplittableWindow().setImmortal(true);
         var split1 = rootWindow
-                .splitStyle(style -> style.percentage(80).minPercentage(1).maxPercentage(99))
+                .splitStyle(style -> style.percentage(80).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.LEFT);
         rightWindow = split1.getSecond().setImmortal(true);
         var split2 = split1.getFirst()
-                .splitStyle(style -> style.percentage(75).minPercentage(1).maxPercentage(99))
+                .splitStyle(style -> style.percentage(75).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.TOP);
         bottomWindow = split2.getSecond().setImmortal(true);
         var split3 = split2.getFirst()
-                .splitStyle(style -> style.percentage(28).minPercentage(1).maxPercentage(99))
+                .splitStyle(style -> style.percentage(28).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.LEFT);
         centerWindow = split3.getSecond().setImmortal(true);
         leftWindow = split3.getFirst().setImmortal(true);
 
-        addChildren(top.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 1);
-            layout.setWidthPercent(100);
-            layout.setHeight(15);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
-        }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).addChildren(icon.layout(layout -> {
-            layout.setWidth(11);
-            layout.setHeight(11);
-            layout.setMargin(YogaEdge.ALL, 1);
-            layout.setMargin(YogaEdge.HORIZONTAL, 5);
-        }).style(style -> style.backgroundTexture(new SpriteTexture())), menuContainer.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
-        })), mainView.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
-        }).addChild(rootWindow));
+        addChildren(
+                top.layout(layout -> {
+                    layout.setPadding(YogaEdge.ALL, 1);
+                    layout.setWidthPercent(100);
+                    layout.setHeight(15);
+                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.setGap(YogaGutter.ALL, 2);
+                }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID))
+                .addChildren(
+                        icon.layout(layout -> {
+                            layout.setWidth(11);
+                            layout.setHeight(11);
+                            layout.setMargin(YogaEdge.ALL, 1);
+                            layout.setMargin(YogaEdge.HORIZONTAL, 5);
+                        }).style(style -> style.backgroundTexture(new SpriteTexture())),
+                        menuContainer.layout(layout -> {
+                            layout.setHeightPercent(100);
+                            layout.setFlexDirection(YogaFlexDirection.ROW);
+                            layout.setGap(YogaGutter.ALL, 2);
+                        }).addClass("__editor_top-menu-container__"),
+                        new UIElement().layout(layout -> layout.flex(1))
+                                .addEventListener(UIEvents.DOUBLE_CLICK, e -> {
+                                    if (window != null) {
+                                        if (window.isMaximized()) {
+                                            window.retoreWindow();
+                                        } else {
+                                            window.maximizeWindow();
+                                        }
+                                    }
+                                })
+                                .addClass("__editor_top-placeholder__"), // placeholder
+                        buttonContainer.layout(layout -> {
+                            layout.flexDirection(YogaFlexDirection.ROW);
+                            layout.alignItems(YogaAlign.CENTER);
+                            layout.gapAll(2);
+                            layout.marginRight(1);
+                        }).addChildren(
+                                closeButton.noText().addPreIcon(Icons.WINDOW_CLOSE).layout(layout -> layout.height(12))
+                        ).addClass("__editor_top_button-container__")
+                ),
+                mainView.layout(layout -> {
+                    layout.setWidthPercent(100);
+                    layout.setFlex(1);
+                }).addChild(rootWindow)
+        );
+
+        closeButton.setOnClick(e -> close());
+
+        top.addClass("__editor_top__").moveInlineAsDefault();
+        mainView.addClass("__editor_main__").moveInlineAsDefault();
 
         /// internal components
+        initEditorSettings();
+        editorSettings.loadAllSettingsFromFile();
+        editorSettings.applyCurrentSettings();
+
         initMenus();
         onPrepareInspectorView();
         onPrepareHistoryView();
@@ -127,6 +188,11 @@ public class Editor extends UIElement {
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
     }
 
+    /**
+     * Used to create seperated editor.
+     */
+    protected abstract Editor createNewEditorInstance();
+
     protected void _setEditorWindowInternal(@Nullable EditorWindow window) {
         this.window = window;
     }
@@ -136,6 +202,15 @@ public class Editor extends UIElement {
      */
     protected void initMenus() {
         menuContainer.addChildren(fileMenu.createMenuTab(), viewMenu.createMenuTab());
+    }
+
+    protected EditorSettings createSettings() {
+        return new EditorSettings(this);
+    }
+
+    protected void initEditorSettings() {
+        editorSettings.registerSettings(new AppearanceSettings(), AppearanceSettings.CODEC);
+        editorSettings.registerSettings(new BehaviorSettings(), BehaviorSettings.CODEC);
     }
 
     protected void onPrepareInspectorView() {
@@ -162,13 +237,26 @@ public class Editor extends UIElement {
         }
     }
 
+    public List<View> getAllViews() {
+        return rootWindow.getAllViews();
+    }
+
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
-        menu.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, posX - getContentX());
-            layout.setPosition(YogaEdge.TOP, posY - getContentY());
-        });
-        addChildren(menu);
+        var mui = getModularUI();
+        if (mui == null) {
+            menu.layout(layout -> {
+                layout.setPosition(YogaEdge.LEFT, posX - getContentX());
+                layout.setPosition(YogaEdge.TOP, posY - getContentY());
+            });
+            addChildren(menu);
+        } else {
+            menu.layout(layout -> {
+                layout.setPosition(YogaEdge.LEFT, posX - mui.ui.rootElement.getContentX());
+                layout.setPosition(YogaEdge.TOP, posY - mui.ui.rootElement.getContentY());
+            });
+            mui.ui.rootElement.addChildren(menu);
+        }
         return menu;
     }
 
@@ -179,7 +267,26 @@ public class Editor extends UIElement {
                 .setOnNodeClicked(TreeBuilder.Menu::handle);
     }
 
+    /**
+     * Close the entire editor window.
+     */
+    public void close() {
+        if (window != null) {
+            window.closeWindow();
+        } else {
+            exit();
+        }
+    }
+
     public void exit() {
+        exit(null);
+    }
+
+    /**
+     * Exit the current editor and run the given runnable after the editor is closed.
+     * It doesn't mean the window is closed.
+     */
+    public void exit(@Nullable Runnable onFinish) {
         askToSaveProject(() -> {
             if (window != null) {
                 window.removeEditor(this);
@@ -188,7 +295,54 @@ public class Editor extends UIElement {
                     getModularUI().getScreen().onClose();
                 }
             }
+            if (onFinish != null) {
+                onFinish.run();
+            }
         });
+    }
+
+    public void openSettingsPanel() {
+        var dialog = new Dialog();
+        dialog.setAutoClose(false);
+        dialog.width(StyleSizeLength.points(350));
+        dialog.setTitle("editor.settings");
+        dialog.addContent(editorSettings.createSettingsPanel());
+
+        var cancelButton = new Button();
+        cancelButton.text.textStyle(textStyle -> textStyle.textColor(ColorPattern.GRAY.color));
+        cancelButton.setActive(false);
+
+        dialog.addButton(new Button()
+                .setOnClick(e -> {
+                    if (editorSettings.isDirty()) {
+                        editorSettings.applyCurrentSettings();
+                        editorSettings.saveAllSettingsToFile();
+                    }
+                    dialog.close();
+                })
+                .setText("ldlib.gui.tips.confirm"));
+        dialog.addButton(new Button()
+                .setOnClick(e -> {
+                    editorSettings.restoreSettings();
+                    editorSettings.applyCurrentSettings();
+                    dialog.close();
+                })
+                .setText("ldlib.gui.tips.cancel"));
+        dialog.addButton(cancelButton
+                .setOnClick(e -> {
+                    if (editorSettings.isDirty()) {
+                        editorSettings.applyCurrentSettings();
+                        editorSettings.saveAllSettingsToFile();
+                    }
+                })
+                .setText("ldlib.gui.tips.apply"));
+        dialog.addEventListener(UIEvents.TICK, e -> {
+            var isDirty = editorSettings.isDirty();
+            cancelButton.text.textStyle(textStyle -> textStyle.textColor(isDirty ? ColorPattern.WHITE.color : ColorPattern.GRAY.color));
+            cancelButton.setActive(isDirty);
+        });
+
+        dialog.show(this.getModularUI());
     }
 
     /**
@@ -202,10 +356,8 @@ public class Editor extends UIElement {
         if (currentProjectFile == null) {
             return true; // Project is dirty if it has not been saved yet
         }
-        var data = currentProject.serializeNBT(Platform.getFrozenRegistry());
         try {
-            var fileData = NbtIo.read(currentProjectFile.toPath());
-            return !data.equals(fileData);
+            return currentProject.getProjectType().isProjectDirty(currentProject, currentProjectFile);
         } catch (Exception e) {
             return true;
         }
@@ -217,7 +369,7 @@ public class Editor extends UIElement {
      */
     public void askToSaveProject(@Nullable Runnable onFinish) {
         if (isCurrentProjectDirty()) {
-            var dialog = Dialog.showCheckBox("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
+            var dialog = Dialog.showCancelableCheck("ldlib.gui.editor.tips.save_project", "ldlib.gui.editor.tips.ask_to_save", doSave -> {
                 if (doSave) {
                     saveProject(onFinish);
                 } else {
@@ -225,7 +377,16 @@ public class Editor extends UIElement {
                         onFinish.run();
                     }
                 }
-            }).show(this);
+            }, Runnables.doNothing());
+            dialog.titleBar.addChild(new Label()
+                    .textStyle(style -> style
+                            .textAlignVertical(Vertical.CENTER)
+                            .textAlignHorizontal(Horizontal.CENTER)
+                            .textWrap(TextWrap.HOVER_ROLL))
+                    .setText(Component.literal("-").append(getTitle()))
+                    .setOverflow(YogaOverflow.HIDDEN)
+                    .layout(layout -> layout.flex(1)));
+            dialog.show(this.getModularUI());
             if (dialog.buttonContainer.getChildren().getFirst() instanceof Button button) {
                 button.setText("ldlib.gui.editor.menu.save");
             }
@@ -246,11 +407,10 @@ public class Editor extends UIElement {
                 saveAsProject(onFinish);
             } else {
                 try {
-                    var fileData = currentProject.serializeNBT(Platform.getFrozenRegistry());
-                    NbtIo.write(fileData, currentProjectFile.toPath());
+                    currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
                 } catch (Exception ignored) {}
                 Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
-                        .show(this);
+                        .show(this.getModularUI());
             }
         }
     }
@@ -269,15 +429,14 @@ public class Editor extends UIElement {
                                 file = new File(file.getParentFile(), file.getName() + suffix);
                             }
                             try {
-                                var fileData = currentProject.serializeNBT(Platform.getFrozenRegistry());
-                                NbtIo.write(fileData, file.toPath());
+                                currentProject.getProjectType().saveProjectToFile(currentProject, file);
                                 currentProjectFile = file;
                             } catch (Exception ignored) {}
                         }
                         if (onFinish != null) {
                             onFinish.run();
                         }
-                    }).show(this);
+                    }).show(this.getModularUI());
         }
     }
 
@@ -287,9 +446,9 @@ public class Editor extends UIElement {
     public final void loadProject(IProject project, @Nullable File projectFile) {
         if (currentProject != null) {
             if (window != null) {
-                Dialog.showCheckBox("","Do you want to open the project in a new window?", result -> {
+                Dialog.showCheckBox("Dialog.info","editor.loadProject.info", result -> {
                    if (result) {
-                       window.createNewEditor().loadNewProject(project, projectFile);
+                       window.createNewEditor(this::createNewEditorInstance).loadNewProject(project, projectFile);
                    } else {
                        closeCurrentProject(true, () -> loadNewProject(project, projectFile));
                    }
