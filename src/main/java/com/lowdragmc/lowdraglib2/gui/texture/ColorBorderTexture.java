@@ -172,6 +172,11 @@ public class ColorBorderTexture extends TransformTexture{
         return this;
     }
 
+    @Override
+    public ColorBorderTexture copy() {
+        return new ColorBorderTexture(border, color);
+    }
+
     @OnlyIn(Dist.CLIENT)
     @Override
     protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {

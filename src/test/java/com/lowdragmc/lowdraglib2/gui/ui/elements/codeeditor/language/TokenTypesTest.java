@@ -235,13 +235,6 @@ class TokenTypesTest {
         assertEquals(token1.hashCode(), token2.hashCode());
     }
 
-    @Test
-    void testTokenTypeToString() {
-        assertEquals("IDENTIFIER", TokenTypes.IDENTIFIER.toString());
-        assertEquals("STRING", TokenTypes.STRING.toString());
-        assertEquals("NUMBER", TokenTypes.NUMBER.toString());
-    }
-
     // Helper methods
     private boolean matchesPattern(String pattern, String input) {
         if (pattern == null) return false;

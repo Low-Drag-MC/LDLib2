@@ -2,8 +2,10 @@ package com.lowdragmc.lowdraglib2;
 
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModList;
@@ -12,8 +14,11 @@ import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.neoforge.data.loading.DatagenModLoader;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public class Platform {
 
@@ -67,7 +72,26 @@ public class Platform {
     }
 
     private static RegistryAccess getBlankRegistryAccess() {
-        return RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        try {
+            return RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        } catch (Throwable e) {
+            return new RegistryAccess.Frozen() {
+                @Override
+                public <T> @NotNull Optional<Registry<T>> registry(ResourceKey<? extends Registry<? extends T>> p_206220_) {
+                    return Optional.empty();
+                }
+
+                @Override
+                public @NotNull Stream<RegistryEntry<?>> registries() {
+                    return Stream.empty();
+                }
+
+                @Override
+                public @NotNull RegistryAccess.Frozen freeze() {
+                    return this;
+                }
+            };
+        }
     }
 
     public static RegistryAccess getFrozenRegistry() {

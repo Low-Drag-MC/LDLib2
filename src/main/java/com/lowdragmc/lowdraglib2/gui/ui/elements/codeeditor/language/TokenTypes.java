@@ -25,12 +25,13 @@ public class TokenTypes {
     public static TokenType OTHER = new TokenType("Other").setPattern(".");
     // LSS
     public static TokenType CSS_CLASS_SELECTOR = new TokenType("CSSClassSelector").setPattern("\\.[a-zA-Z_][a-zA-Z0-9_-]*");
-    public static TokenType CSS_ID_SELECTOR = new TokenType("CSSIdSelector").setPattern("(?<![a-zA-Z0-9_-])#[a-zA-Z_][a-zA-Z0-9_-]*\\b");
+    public static TokenType CSS_ID_SELECTOR = new TokenType("CSSIdSelector")
+            .setPattern("(?<![a-zA-Z0-9_-])#(?![0-9a-fA-F]{3,4}\\b)(?![0-9a-fA-F]{6}\\b)(?![0-9a-fA-F]{8}\\b)[a-zA-Z_][a-zA-Z0-9_-]*\\b");
     public static TokenType CSS_COMBINATOR = new TokenType("CSSCombinator").setPattern("[>+~]");
     public static TokenType CSS_PSEUDO = new TokenType("CSSPseudo").setPattern(":+[a-zA-Z_-][a-zA-Z0-9_-]*(?:\\([^)]*\\))?");
     public static TokenType CSS_ATTRIBUTE = new TokenType("CSSAttribute").setPattern("\\[[^\\]]*\\]");
     public static TokenType CSS_PROPERTY = new TokenType("CSSProperty").setPattern("\\b[a-zA-Z-]+(?=\\s*:)");
-    public static TokenType CSS_UNIT = new TokenType("CSSUnit").setPattern("\\b\\d+\\.?\\d*(px|em|rem|%|vh|vw|pt|cm|mm|in|pc|ex|ch|vmin|vmax|deg|rad|turn|s|ms)\\b");
+    public static TokenType CSS_UNIT = new TokenType("CSSUnit").setPattern("\\b\\d+\\.?\\d*(px|em|rem|%|vh|vw|pt|cm|mm|in|pc|ex|ch|vmin|vmax|deg|rad|turn|s|ms)(?!\\w)");
     public static TokenType CSS_COLOR = new TokenType("CSSColor").setPattern("(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\b|rgba?\\(\\s*(?:\\d{1,3}%?\\s*,\\s*){2}\\d{1,3}%?(?:\\s*,\\s*(?:\\d*\\.\\d+|\\d+)%?)?\\s*\\))");
     public static TokenType CSS_IMPORTANT = new TokenType("CSSImportant").setPattern("!important");
 }
