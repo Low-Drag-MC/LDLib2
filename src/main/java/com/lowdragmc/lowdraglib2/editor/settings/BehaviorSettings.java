@@ -57,27 +57,5 @@ public class BehaviorSettings implements Settings {
         if (shouldCloseOnEsc && event.keyCode == GLFW.GLFW_KEY_ESCAPE && event.currentElement instanceof Editor editor) {
             editor.close();
         }
-
-        if (!(event.currentElement instanceof Editor editor)) return;
-
-        // Ctrl + Alt + S → open settings panel
-        if ((event.modifiers & GLFW.GLFW_MOD_ALT) != 0
-                && (event.modifiers & GLFW.GLFW_MOD_CONTROL) != 0
-                && event.keyCode == GLFW.GLFW_KEY_S) {
-            editor.openSettingsPanel();
-        }
-
-        // Ctrl + SHIFT + S → save as project
-        if ((event.modifiers & GLFW.GLFW_MOD_CONTROL) != 0
-                && (event.modifiers & GLFW.GLFW_MOD_SHIFT) != 0
-                && event.keyCode == GLFW.GLFW_KEY_S) {
-            editor.saveAsProject(null); // pass null
-        }
-
-        // Ctrl + S → save project
-        if ((event.modifiers & GLFW.GLFW_MOD_CONTROL) != 0
-                && event.keyCode == GLFW.GLFW_KEY_S) {
-            editor.saveProject(null); // pass null
-        }
     }
 }
