@@ -52,7 +52,8 @@ public class BehaviorSettings implements Settings {
      * <br><br> &#064;-  Ctrl + Shift + S → save project as
      * <br><br> &#064;-  Ctrl + S → save project
      */
-    private void onKeyDown(UIEvent event) {
+
+   private void onKeyDown(UIEvent event) {
         if (shouldCloseOnEsc && event.keyCode == GLFW.GLFW_KEY_ESCAPE && event.currentElement instanceof Editor editor) {
             editor.close();
         }
