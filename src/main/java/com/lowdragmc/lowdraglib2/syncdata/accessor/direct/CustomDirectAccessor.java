@@ -55,11 +55,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
 
     @Override
     public <T> T readDirectVar(DynamicOps<T> op, IVar<TYPE> var) {
-        try {
-            return codec.encodeStart(op, var.value()).getOrThrow();
-        } catch (Exception e) {
-            return codec.encodeStart(op, var.value()).getOrThrow();
-        }
+        return codec.encodeStart(op, var.value()).getOrThrow();
     }
 
     @Override

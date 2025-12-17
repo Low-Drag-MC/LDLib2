@@ -17,6 +17,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -26,7 +27,7 @@ public class Platform {
     private static final RegistryAccess BLANK_REGISTRY_ACCESS = getBlankRegistryAccess();
 
     @ApiStatus.Internal
-    public static RegistryAccess FROZEN_REGISTRY_ACCESS = null;
+    public static RegistryAccess SERVER_REGISTRY_ACCESS = null;
 
     // This is a helper method to check if the ServerLevel is safe to access.
     // @return true if the ServerLevel is not safe to access, otherwise false.
@@ -95,14 +96,32 @@ public class Platform {
     }
 
     public static RegistryAccess getFrozenRegistry() {
-        if (FROZEN_REGISTRY_ACCESS != null) {
-            return FROZEN_REGISTRY_ACCESS;
-        } else if (LDLib2.isRemote()) {
+        RegistryAccess serverRegistryAccess = SERVER_REGISTRY_ACCESS;
+        if (LDLib2.isClient()) {
             if (Minecraft.getInstance().getConnection() != null) {
-                return Minecraft.getInstance().getConnection().registryAccess();
+                return getRegistryFromMultipleSources(Minecraft.getInstance().getConnection().registryAccess(), serverRegistryAccess);
             }
         }
-        return getBLANK_REGISTRY_ACCESS();
+        return serverRegistryAccess == null ? getBLANK_REGISTRY_ACCESS() : serverRegistryAccess;
     }
 
+    private static RegistryAccess getRegistryFromMultipleSources(RegistryAccess... accesses) {
+        return new RegistryAccess() {
+            @Override
+            public <E> Optional<Registry<E>> registry(ResourceKey<? extends Registry<? extends E>> registryKey) {
+                for (RegistryAccess access : accesses) {
+                    Optional<Registry<E>> registry = access.registry(registryKey);
+                    if (registry.isPresent()) {
+                        return registry;
+                    }
+                }
+                return Optional.empty();
+            }
+
+            @Override
+            public Stream<RegistryEntry<?>> registries() {
+                return Arrays.stream(accesses).flatMap(RegistryAccess::registries);
+            }
+        };
+    }
 }

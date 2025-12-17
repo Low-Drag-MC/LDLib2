@@ -37,6 +37,29 @@ public class TestDoc implements IScreenTest{
 //        return step6();
 //        return step6_2();
 //        return step6_3();
+        var element = new UIElement();
+        // many ways to set the layout
+        // set the layout directly
+        element.getLayout()
+                .flexDirection(YogaFlexDirection.ROW)
+                .width(150)
+                .heightPercent(100)
+                .marginAll(10)
+                .paddingAll(10);
+        // set the layout with chaining methods
+        element.layout(layout -> layout
+                .flexDirection(YogaFlexDirection.ROW)
+                .width(150)
+                .heightPercent(100)
+                .marginAll(10)
+                .paddingAll(10)
+        );
+        // set the layout by stylesheet
+        element.lss("flex-direction", "row");
+        element.lss("width", 150);
+        element.lss("height-percent", 100);
+        element.lss("margin-all", 10);
+        element.lss("padding-all", 10);
         return step7();
     }
 

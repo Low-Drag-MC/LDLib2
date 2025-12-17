@@ -29,6 +29,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.client.event.*;
 
 @OnlyIn(Dist.CLIENT)
@@ -66,11 +67,16 @@ public class ClientProxy {
         e.enqueueWork(() -> {
             LDLibShaders.init();
             DrawerHelper.init();
+        });
+    }
+
+    @SubscribeEvent
+    public void clientSetup(final FMLLoadCompleteEvent e) {
+        e.enqueueWork(() -> {
             Sprites.init();
             MCSprites.init();
         });
     }
-
 
     @SubscribeEvent
     public void modelRegistry(final ModelEvent.RegisterGeometryLoaders e) {

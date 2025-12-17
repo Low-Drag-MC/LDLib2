@@ -22,6 +22,6 @@ public abstract class ReloadableServerResourcesMixin {
                              FeatureFlagSet flags, Commands.CommandSelection commands, int functionCompilationLevel,
                              Executor gameExecutor, Executor backgroundExecutor,
                              CallbackInfoReturnable<CompletableFuture<ReloadableServerResources>> cir) {
-		Platform.FROZEN_REGISTRY_ACCESS = access.compositeAccess();
+		Platform.SERVER_REGISTRY_ACCESS = access.compositeAccess();
 	}
 }
