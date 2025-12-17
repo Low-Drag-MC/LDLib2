@@ -12,6 +12,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 
 import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.common.NeoForge;
 
 public abstract class Resource<T> {
     public enum DisplayMode {
@@ -60,6 +61,9 @@ public abstract class Resource<T> {
         var global = new FileResourceProvider<>(resourceInstance, new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
         global.setName("global");
         resourceInstance.addBuiltinProvider(global);
+
+        // send an Event to register built resources
+        NeoForge.EVENT_BUS.post(new EditorResourceEvent.LoadBuiltin(resourceInstance));
     }
 
     /**

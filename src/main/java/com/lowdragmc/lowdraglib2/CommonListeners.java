@@ -80,12 +80,12 @@ public class CommonListeners {
 
     @SubscribeEvent
     public static void onServerAboutToStart(ServerAboutToStartEvent event) {
-        Platform.FROZEN_REGISTRY_ACCESS = event.getServer().registryAccess();
+        Platform.SERVER_REGISTRY_ACCESS = event.getServer().registryAccess();
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
-        Platform.FROZEN_REGISTRY_ACCESS = null;
+        Platform.SERVER_REGISTRY_ACCESS = null;
     }
 
     @SubscribeEvent
@@ -109,22 +109,22 @@ public class CommonListeners {
         event.addListener(PackResourceManager.INSTANCE);
     }
 
-    @SubscribeEvent
-    public static void onContainerMenuCreateEvent(ContainerMenuEvent.Create event) {
-        if (event.menu instanceof CraftingMenu craftingMenu && craftingMenu instanceof IModularUIHolderMenu uiHolderMenu) {
-            var player = event.player;
-            var mui = ModularUI.of(UI.of(
-                    // root
-                    new UIElement().layout(l -> l.width(176).height(166)).addChildren(
-                            new ItemSlot().bind(new Slot(event.player.getInventory(), 10, 0, 0)),
-                            new Label().bind(DataBindingBuilder.componentS2C(player::getDisplayName).build()),
-                            new Toggle().bind(DataBindingBuilder.bool(player::isCreative, isCreative -> {
-                                if (player instanceof ServerPlayer serverPlayer) {
-                                    serverPlayer.setGameMode(isCreative ? GameType.CREATIVE : GameType.DEFAULT_MODE);
-                                }
-                            }).build())
-                    )), player);
-            uiHolderMenu.setModularUI(mui);
-        }
-    }
+//    @SubscribeEvent
+//    public static void onContainerMenuCreateEvent(ContainerMenuEvent.Create event) {
+//        if (event.menu instanceof CraftingMenu craftingMenu && craftingMenu instanceof IModularUIHolderMenu uiHolderMenu) {
+//            var player = event.player;
+//            var mui = ModularUI.of(UI.of(
+//                    // root
+//                    new UIElement().layout(l -> l.width(176).height(166)).addChildren(
+//                            new ItemSlot().bind(new Slot(event.player.getInventory(), 10, 0, 0)),
+//                            new Label().bind(DataBindingBuilder.componentS2C(player::getDisplayName).build()),
+//                            new Toggle().bind(DataBindingBuilder.bool(player::isCreative, isCreative -> {
+//                                if (player instanceof ServerPlayer serverPlayer) {
+//                                    serverPlayer.setGameMode(isCreative ? GameType.CREATIVE : GameType.DEFAULT_MODE);
+//                                }
+//                            }).build())
+//                    )), player);
+//            uiHolderMenu.setModularUI(mui);
+//        }
+//    }
 }

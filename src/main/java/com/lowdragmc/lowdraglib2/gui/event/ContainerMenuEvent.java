@@ -4,7 +4,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.bus.api.Event;
 
-public class ContainerMenuEvent extends Event {
+public abstract class ContainerMenuEvent extends Event {
     public final Player player;
     public final AbstractContainerMenu menu;
     protected ContainerMenuEvent(Player player, AbstractContainerMenu menu) {

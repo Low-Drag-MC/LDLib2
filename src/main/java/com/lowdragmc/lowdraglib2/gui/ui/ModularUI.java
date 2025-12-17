@@ -191,7 +191,6 @@ public class ModularUI {
         styleEngine.onElementRegister(element);
     }
 
-
     /**
      * Remove an element from the registry.
      * This method is automatically called when elements are removed from the UI tree.

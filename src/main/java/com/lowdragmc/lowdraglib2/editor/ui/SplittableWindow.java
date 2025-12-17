@@ -387,7 +387,7 @@ public class SplittableWindow extends UIElement {
         }
     }
 
-    protected void removeSplitWindow(SplittableWindow window) {
+    public void removeSplitWindow(SplittableWindow window) {
         if (this.parentWindow == null) return;
         var target = window == this.first ? this.second : this.first;
         if (target != null && this.parentWindow.splitView != null) {

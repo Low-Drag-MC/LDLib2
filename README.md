@@ -8,7 +8,7 @@ LDLib2 features a large, well-structured codebase that offers robust infrastruct
 
 [LDLib2 Repository](https://github.com/Low-Drag-MC/LDLib2)
 
-[Wiki](https://github.com/Low-Drag-MC/LDLib2/wiki)
+[Wiki](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/)
 
 ---
 
@@ -21,3 +21,4 @@ LDLib2 features a large, well-structured codebase that offers robust infrastruct
   Many outdated or unused frameworks have been removed, making LDLib2 more lightweight and easier to maintain.
 * Improved mod compatibility
   Provides more stable and stable integration for mainstream mods such as JEI, KubeJS, and EMI, etc.
+ 

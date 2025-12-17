@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.resource.EditorResourceEvent;
+import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -39,6 +41,14 @@ public class ClientEventListener {
                 mui.setScreenAndInit(containerScreen);
                 event.addListener(mui.getWidget());
             }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLoadBuiltinEditorResource(EditorResourceEvent.LoadBuiltin event) {
+        if (event.resourceInstance.resource == TexturesResource.INSTANCE) {
+            Sprites.init();
+            MCSprites.init();
         }
     }
 }
