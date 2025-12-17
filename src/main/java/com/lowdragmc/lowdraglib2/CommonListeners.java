@@ -9,12 +9,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
+import com.lowdragmc.lowdraglib2.test.NoRendererTestBlock;
+import com.lowdragmc.lowdraglib2.test.TestItem;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelAccessor;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
@@ -23,6 +30,9 @@ import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+import java.util.function.Supplier;
 
 /**
  * @author KilaBash
@@ -31,6 +41,34 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent;
  */
 @EventBusSubscriber(modid = LDLib2.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public class CommonListeners {
+
+    public static class ModCreativeModeTab {
+        // Deferred register for creative tabs
+        public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
+                DeferredRegister.create(Registries.CREATIVE_MODE_TAB, LDLib2.MOD_ID);
+
+        // Supplier for your dev-only tab
+        public static final Supplier<CreativeModeTab> LDLIB2_DEV_TAB =
+                CREATIVE_MODE_TABS.register("ldlib2_dev_tab", () -> {
+                    // Only create the tab in dev environment
+                    if (!Platform.isDevEnv()) return null;
+
+                    return CreativeModeTab.builder()
+                            .title(Component.translatable("itemGroup.ldlib2.dev_tab"))
+                            .icon(() -> new ItemStack(TestItem.ITEM.getBlock()))
+                            .displayItems((parameters, output) -> {
+                                // Add dev-only items here
+                                output.accept(TestItem.ITEM.getBlock());
+                                output.accept(NoRendererTestBlock.BLOCK);
+                            })
+                            .build();
+                });
+
+        // Method to hook the deferred register to the event bus
+        public static void register(IEventBus eventBus) {
+            CREATIVE_MODE_TABS.register(eventBus);
+        }
+    }
 
     @SubscribeEvent
     public static void onWorldUnLoad(LevelEvent.Unload event) {
