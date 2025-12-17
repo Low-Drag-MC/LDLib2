@@ -40,9 +40,9 @@ public class FileMenu extends MenuTab {
         menu.crossLine();
         if (editor.getCurrentProject() != null) {
             if (editor.getCurrentProjectFile() != null) {
-                menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save", () -> editor.saveProject(null));
+                menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save.menu", () -> editor.saveProject(null));
             }
-            menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save_as", () -> editor.saveAsProject(null));
+            menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save_as.menu", () -> editor.saveAsProject(null));
         }
         menu.crossLine();
         return menu;
@@ -52,7 +52,7 @@ public class FileMenu extends MenuTab {
     protected TreeBuilder.Menu createMenu() {
         var menu = super.createMenu();
         menu.crossLine();
-        menu.leaf("editor.settings", editor::openSettingsPanel);
+        menu.leaf("editor.settings.menu", editor::openSettingsPanel);
         menu.crossLine();
         menu.leaf("editor.exit", editor::exit);
         return menu;

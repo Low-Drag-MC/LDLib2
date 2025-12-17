@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.EditorResourceEvent;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.commands.CommandSourceStack;

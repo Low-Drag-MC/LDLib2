@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.editor.settings;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -52,7 +53,6 @@ public class BehaviorSettings implements Settings {
      * <br><br> &#064;-  Ctrl + Shift + S → save project as
      * <br><br> &#064;-  Ctrl + S → save project
      */
-
    private void onKeyDown(UIEvent event) {
         if (shouldCloseOnEsc && event.keyCode == GLFW.GLFW_KEY_ESCAPE && event.currentElement instanceof Editor editor) {
             editor.close();
@@ -60,22 +60,22 @@ public class BehaviorSettings implements Settings {
 
        if (!(event.currentElement instanceof Editor editor)) return;
 
+       // TODO Add Key Bindings system,
        // Ctrl + Alt + S → open settings panel
-       if ((event.modifiers & GLFW.GLFW_MOD_ALT) != 0
-               && (event.modifiers & GLFW.GLFW_MOD_CONTROL) != 0
+       if (UIElement.isAltDown()
                && event.keyCode == GLFW.GLFW_KEY_S) {
            editor.openSettingsPanel();
        }
 
        // Ctrl + SHIFT + S → save as project
-       if ((event.modifiers & GLFW.GLFW_MOD_CONTROL) != 0
-               && (event.modifiers & GLFW.GLFW_MOD_SHIFT) != 0
+       if (UIElement.isCtrlDown()
+               && UIElement.isShiftDown()
                && event.keyCode == GLFW.GLFW_KEY_S) {
            editor.saveAsProject(null); // pass null
        }
 
        // Ctrl + S → save project
-       if ((event.modifiers & GLFW.GLFW_MOD_CONTROL) != 0
+       if (UIElement.isCtrlDown()
                && event.keyCode == GLFW.GLFW_KEY_S) {
            editor.saveProject(null); // pass null
        }
