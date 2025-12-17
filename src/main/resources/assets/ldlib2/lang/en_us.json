@@ -1,5 +1,13 @@
 {
   "ldlib.author": "Hello kilaBash!",
+
+  "block.ldlib2.test": "Test Block",
+  "block.ldlib2.test_2": "Test Block 2",
+
+  "item.ldlib2.test": "Test Block",
+  "item.ldlib2.test_2": "Test Block 2",
+  "itemGroup.ldlib2.dev_tab": "LDLib2 Dev Tab",
+
   "ldlib.gui.tips.confirm": "Confirm",
   "ldlib.gui.tips.apply": "Apply",
   "ldlib.gui.tips.reject": "Reject",
@@ -100,8 +108,8 @@
   "ldlib.gui.editor.tips.layoutPadding": "Layout Padding Of Children",
   "ldlib.gui.editor.name.isDynamicSized": "Auto Size",
   "ldlib.gui.editor.tips.isDynamicSized": "Size will be adjusted according to content",
-  "ldlib.gui.editor.name.allowXEIIngredientOverMouse": "Support jei ingredient lookup",
-  "ldlib.gui.editor.tips.allowXEIIngredientOverMouse": "If true, The widget will be able to jump to the jei viewer",
+  "ldlib.gui.editor.name.allowXEIIngredientOverMouse": "Support xei ingredient lookup",
+  "ldlib.gui.editor.tips.allowXEIIngredientOverMouse": "If true, The widget will be able to jump to the xei viewer",
   "ldlib.gui.editor.name.items": "Items",
   "ldlib.gui.editor.name.fluids": "Fluids",
   "ldlib.gui.editor.name.texture_type": "Texture Type",
@@ -481,5 +489,10 @@
   "editor.minimized.title": "Editor Tips",
   "editor.minimized.tips": "Welcome Back!",
   "EditorAllowXEILookup": "Editor Allow XEI Lookup",
-  "ui_template": "UI Template"
+  "ui_template": "UI Template",
+  "initial": "Initial",
+  "max-content": "Max-Content",
+  "fit-content": "Fit-Content",
+  "stretch": "Stretch",
+  "auto": "Auto"
 }
