@@ -8,7 +8,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
-import com.lowdragmc.lowdraglib2.CommonListeners.ModCreativeModeTab;
 import com.lowdragmc.lowdraglib2.core.mixins.MixinPluginShared;
 import com.lowdragmc.lowdraglib2.client.ClientProxy;
 import com.google.gson.GsonBuilder;
@@ -38,7 +37,6 @@ public class LDLib2 {
         if (FMLEnvironment.dist == Dist.CLIENT) {
             new ClientProxy(eventBus);
         }
-        ModCreativeModeTab.register(eventBus);
     }
 
     public static void init() {
