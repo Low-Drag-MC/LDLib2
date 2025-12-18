@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.styletemplate;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinPath;
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
@@ -124,8 +125,7 @@ public class Sprites {
     public static IGuiTexture TAB_DARK = SpriteTexture.of(GDP).setSprite(242, 71, 13, 13).setBorder(3, 3, 3, 3);
     public static IGuiTexture TAB_WHITE = SpriteTexture.of(GDP).setSprite(242, 113, 13, 13).setBorder(3, 3, 3, 3);
 
-    public static void init() {
-        var instance = TexturesResource.INSTANCE.getResourceInstance();
+    public static void init(ResourceInstance<IGuiTexture> instance) {
         var provider = new BuiltinResourceProvider<>("ui-gdp", instance);
         for (var field : Sprites.class.getDeclaredFields()) {
             if (IGuiTexture.class.isAssignableFrom(field.getType())

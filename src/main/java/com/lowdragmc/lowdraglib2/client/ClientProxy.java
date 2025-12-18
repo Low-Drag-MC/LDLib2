@@ -12,8 +12,6 @@ import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUIClientElementComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -67,14 +65,6 @@ public class ClientProxy {
         e.enqueueWork(() -> {
             LDLibShaders.init();
             DrawerHelper.init();
-        });
-    }
-
-    @SubscribeEvent
-    public void clientSetup(final FMLLoadCompleteEvent e) {
-        e.enqueueWork(() -> {
-            Sprites.init();
-            MCSprites.init();
         });
     }
 

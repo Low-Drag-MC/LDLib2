@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.styletemplate;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinPath;
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
@@ -41,8 +42,7 @@ public class MCSprites {
     public static IGuiTexture SWITCH = SpriteTexture.of(MC).setSprite(64, 48, 16, 16).setBorder(2);
 
 
-    public static void init() {
-        var instance = TexturesResource.INSTANCE.getResourceInstance();
+    public static void init(ResourceInstance<IGuiTexture> instance) {
         var provider = new BuiltinResourceProvider<>("ui-mc", instance);
         for (var field : MCSprites.class.getDeclaredFields()) {
             if (IGuiTexture.class.isAssignableFrom(field.getType())

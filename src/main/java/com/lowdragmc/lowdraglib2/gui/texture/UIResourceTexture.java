@@ -33,8 +33,10 @@ public final class UIResourceTexture extends TransformTexture {
     }
 
     private IGuiTexture getTextureFromResource() {
-        return Optional.ofNullable(TexturesResource.INSTANCE.getResourceInstance().getResource(resourcePath))
+        var result = Optional.ofNullable(TexturesResource.INSTANCE.getResourceInstance().getResource(resourcePath))
                 .orElse(IGuiTexture.MISSING_TEXTURE);
+        // prevent infinite loop
+        return result == this ? IGuiTexture.MISSING_TEXTURE : result;
     }
 
     @Override
