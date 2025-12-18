@@ -38,21 +38,16 @@ public class CommonListeners {
                 DeferredRegister.create(Registries.CREATIVE_MODE_TAB, LDLib2.MOD_ID);
 
         // Supplier for your dev-only tab
-        public static final Supplier<CreativeModeTab> LDLIB2_DEV_TAB =
-                CREATIVE_MODE_TABS.register("ldlib2_dev_tab", () -> {
-                    // Only create the tab in dev environment
-                    if (!Platform.isDevEnv()) return null;
-
-                    return CreativeModeTab.builder()
-                            .title(Component.translatable("itemGroup.ldlib2.dev_tab"))
-                            .icon(() -> new ItemStack(TestItem.ITEM.getBlock()))
-                            .displayItems((parameters, output) -> {
-                                // Add dev-only items here
-                                output.accept(TestItem.ITEM.getBlock());
-                                output.accept(NoRendererTestBlock.BLOCK);
-                            })
-                            .build();
-                });
+        public static final Supplier<CreativeModeTab> LDLIB2_DEV_TAB = Platform.isDevEnv() ?
+                CREATIVE_MODE_TABS.register("ldlib2_dev_tab", () -> CreativeModeTab.builder()
+                        .title(Component.translatable("itemGroup.ldlib2.dev_tab"))
+                        .icon(() -> new ItemStack(TestItem.ITEM.getBlock()))
+                        .displayItems((parameters, output) -> {
+                            // Add dev-only items here
+                            output.accept(TestItem.ITEM.getBlock());
+                            output.accept(NoRendererTestBlock.BLOCK);
+                        })
+                        .build()) : null;
 
         // Method to hook the deferred register to the event bus
         public static void register(IEventBus eventBus) {
