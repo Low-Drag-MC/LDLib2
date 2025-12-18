@@ -1,5 +1,8 @@
 # ChangeLogs
 
+## v2.1.2 (hotfix)
+* Fixed Infinite Loop while loading texture resources
+
 ## v2.1.1
 * Fixed FrozenRegistryAccess lacks of client-side only RegistryAccess
 * Removed test code
