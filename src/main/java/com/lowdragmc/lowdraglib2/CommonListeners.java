@@ -2,24 +2,14 @@ package com.lowdragmc.lowdraglib2;
 
 import com.lowdragmc.lowdraglib2.async.AsyncThreadData;
 import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
-import com.lowdragmc.lowdraglib2.gui.event.ContainerMenuEvent;
-import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolderMenu;
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.test.NoRendererTestBlock;
 import com.lowdragmc.lowdraglib2.test.TestItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.inventory.CraftingMenu;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelAccessor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -39,7 +29,7 @@ import java.util.function.Supplier;
  * @date 2022/11/27
  * @implNote CommonListeners
  */
-@EventBusSubscriber(modid = LDLib2.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = LDLib2.MOD_ID)
 public class CommonListeners {
 
     public static class ModCreativeModeTab {

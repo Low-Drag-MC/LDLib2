@@ -38,7 +38,9 @@ public class LDLib2 {
         if (FMLEnvironment.dist == Dist.CLIENT) {
             new ClientProxy(eventBus);
         }
-        ModCreativeModeTab.register(eventBus);
+        if (Platform.isDevEnv()) {
+            ModCreativeModeTab.register(eventBus);
+        }
     }
 
     public static void init() {

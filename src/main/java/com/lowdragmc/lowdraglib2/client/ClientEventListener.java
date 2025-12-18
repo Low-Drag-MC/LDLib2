@@ -25,7 +25,7 @@ import java.util.List;
  * @date 2022/5/12
  * @implNote EventListener
  */
-@EventBusSubscriber(modid = LDLib2.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = LDLib2.MOD_ID, value = Dist.CLIENT)
 @OnlyIn(Dist.CLIENT)
 public class ClientEventListener {
 
