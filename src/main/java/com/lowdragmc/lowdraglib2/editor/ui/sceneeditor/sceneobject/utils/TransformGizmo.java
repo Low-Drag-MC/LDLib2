@@ -19,6 +19,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -234,10 +235,10 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     targetTransform.localScale(localScale);
                     hasChanged = true;
                 } else if (mode == Mode.ROTATE) {
-                    var localRotation = transform().localRotation();
+                    var localRotation = new Quaternionf(transform().localRotation());
                     localRotation.rotateAxis(-scaleDelta, moveDirection);
                     transform().localRotation(localRotation);
-                    targetTransform.localRotation(localRotation);
+                    targetTransform.rotation(transform().rotation());
                     hasChanged = true;
                 }
 
