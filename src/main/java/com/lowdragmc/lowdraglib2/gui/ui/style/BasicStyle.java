@@ -6,11 +6,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
+@RemapPrefixForJS("kjs$")
 @Configurable(name = "BasicStyle")
 public class BasicStyle extends Style {
     private final static Property<?>[] PROPERTIES = {
@@ -79,18 +83,24 @@ public class BasicStyle extends Style {
         return this;
     }
 
+    @HideFromJS
     public BasicStyle tooltips(Component... tooltips) {
         tooltips(Tooltips.of(tooltips));
         return this;
     }
 
-    public BasicStyle appendTooltips(Component... tooltips) {
-        tooltips(tooltips().append(tooltips));
+    @HideFromJS
+    public BasicStyle tooltips(String... tooltips) {
+        tooltips(Tooltips.of(tooltips));
         return this;
     }
 
-    public BasicStyle tooltips(String... tooltips) {
-        tooltips(Tooltips.of(tooltips));
+    public BasicStyle kjs$tooltips(Component... tooltips) {
+        return tooltips(tooltips);
+    }
+
+    public BasicStyle appendTooltips(Component... tooltips) {
+        tooltips(tooltips().append(tooltips));
         return this;
     }
 

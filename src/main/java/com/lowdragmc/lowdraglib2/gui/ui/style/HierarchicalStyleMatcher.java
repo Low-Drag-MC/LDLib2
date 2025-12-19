@@ -25,7 +25,7 @@ public class HierarchicalStyleMatcher {
 
     // Match selectors and combinators: element, class, ID, or >
     private static final Pattern SELECTOR_PATTERN = Pattern.compile(
-            "((?:[a-zA-Z0-9_-]+|[#.][a-zA-Z0-9_-]+)(?::[a-zA-Z0-9_-]+)?)|(>)|(\\s+)"
+            ":not\\((.*?)\\)|((?:[a-zA-Z0-9*_-]+|[#.][a-zA-Z0-9_-]+)(?::(?!not\\()[a-zA-Z0-9_-]+)?)|(>)|(\\s+)"
     );
 
     /**
@@ -45,26 +45,34 @@ public class HierarchicalStyleMatcher {
         boolean expectingSelector = true;
 
         while (matcher.find()) {
-            String g1 = matcher.group(1); // simple selector: tag / .class / #id
-            String g2 = matcher.group(2); // '>'
-            String g3 = matcher.group(3); // spaces
+            var not = matcher.group(1); // :not(...)
+            var selector = matcher.group(2); // simple selector: tag / .class / #id
+            var child = matcher.group(3); // '>'
+            var space = matcher.group(4); // spaces
 
-            if (g1 != null) {
+            if (not != null) {
+                // save not selector
+                currentSelectors.add(StyleSelector.parseNotSelector(not));
+                expectingSelector = false;
+                continue;
+            }
+
+            if (selector != null) {
                 // save selector
-                currentSelectors.add(StyleSelector.parse(g1));
+                currentSelectors.add(StyleSelector.parse(selector));
                 expectingSelector = false;
                 continue;
             }
 
             // check child or descendant combinator
-            if (g2 != null || g3 != null) {
+            if (child != null || space != null) {
                 // make current group follow `nextIsChild`
                 if (!currentSelectors.isEmpty()) {
                     groups.add(new SelectorGroup(StyleMatcher.create(currentSelectors), nextIsChild));
                     currentSelectors.clear();
                 }
 
-                if (g3 != null) {
+                if (space != null) {
                     continue;
                 }
 
@@ -168,7 +176,6 @@ public class HierarchicalStyleMatcher {
      *
      * @param isChildCombinator false = descendant selector，true = child selector
      */
-
     public record SelectorGroup(StyleMatcher styleMatcher, boolean isChildCombinator) {
     }
 }

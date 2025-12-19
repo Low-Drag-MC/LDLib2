@@ -116,4 +116,23 @@ class HierarchicalStyleMatcherTest {
                 "Exception message should indicate the invalid combinator."
         );
     }
+
+    @Test
+    void testParse_validSelector_notPseudoClass() {
+        String selector = "div:not(.class1)";
+        HierarchicalStyleMatcher matcher = HierarchicalStyleMatcher.parse(selector);
+
+        Assertions.assertNotNull(matcher, "Matcher should not be null for a valid :not selector.");
+        Assertions.assertEquals("div:not(.class1)", matcher.toString(), "Matcher's toString should return the correct selector.");
+    }
+
+    @Test
+    void testParse_validSelector_final() {
+        String selector = "button:host:not(.label#id > child):not(.button) > .class:host";
+        HierarchicalStyleMatcher matcher = HierarchicalStyleMatcher.parse(selector);
+
+        Assertions.assertNotNull(matcher, "Matcher should not be null.");
+        Assertions.assertEquals("button:host:not(.label#id > child):not(.button) > .class:host", matcher.toString(), "Final Test error.");
+    }
+
 }

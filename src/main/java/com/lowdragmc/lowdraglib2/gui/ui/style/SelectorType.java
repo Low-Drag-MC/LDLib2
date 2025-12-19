@@ -11,4 +11,4 @@ package com.lowdragmc.lowdraglib2.gui.ui.style;
  * - ELEMENT: Represents an element selector, used to select HTML-like element tags directly.
  * - UNIVERSAL: Represents a universal selector, used to select all elements in a given context.
  */
-public enum SelectorType {CLASS, ID, ELEMENT, UNIVERSAL}
+public enum SelectorType {NOT, CLASS, ID, ELEMENT, UNIVERSAL}

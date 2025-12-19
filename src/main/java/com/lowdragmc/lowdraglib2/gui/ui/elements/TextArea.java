@@ -11,13 +11,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Cursor;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -444,7 +442,7 @@ public class TextArea extends BindableUIElement<String[]> {
 
         if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
             horizontalScroller.layout(layout -> {
-                BasicStyle.importantPipeline(layout, l ->
+                Style.importantPipeline(layout, l ->
                         l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));
             });
         }

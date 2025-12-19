@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -283,7 +282,7 @@ public class ScrollerView extends UIElement {
         }
 
         if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
-            horizontalScroller.layout(layout -> BasicStyle.importantPipeline(layout, l ->
+            horizontalScroller.layout(layout -> Style.importantPipeline(layout, l ->
                     l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? scrollerViewStyle.scrollerViewMargin() : 0)));
         }
 
