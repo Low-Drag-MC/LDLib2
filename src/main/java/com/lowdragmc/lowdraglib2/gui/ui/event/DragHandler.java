@@ -47,7 +47,12 @@ public class DragHandler {
     }
 
     /**
-     * Start dragging an object.
+     * Initiates the dragging process using the specified object, drag texture, and drag source.
+     * If a drag process is already active, it will stop the current drag before starting a new one.
+     *
+     * @param draggingObject the object being dragged; can be of any type to represent the drag payload
+     * @param dragTexture the {@link IGuiTexture} used to visually represent the drag operation
+     * @param dragSource the {@link UIElement} that acts as the source of the drag operation
      */
     public void startDrag(Object draggingObject, IGuiTexture dragTexture, UIElement dragSource) {
         if (isDragging) {
@@ -88,6 +93,8 @@ public class DragHandler {
             var event = UIEvent.create(UIEvents.DRAG_END);
             event.target = dragSource;
             event.relatedTarget = dropElement;
+            event.hasCapturePhase = false;
+            event.hasBubblePhase = false;
             UIEventDispatcher.dispatchEvent(event, true, true, false);
         }
         draggingObject = null;

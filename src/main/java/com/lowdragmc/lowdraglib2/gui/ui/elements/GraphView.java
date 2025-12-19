@@ -112,7 +112,7 @@ public class GraphView extends UIElement {
 
     // runtime
     @Getter @Setter
-    private float offsetX = 0f, offsetY = 0f;  // 世界偏移
+    private float offsetX = 0f, offsetY = 0f;  // world offset
     @Getter
     private float scale = 1f;
 

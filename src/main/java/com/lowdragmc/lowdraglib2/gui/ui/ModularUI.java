@@ -799,6 +799,8 @@ public class ModularUI {
                 var current = getLastHoveredElement();
                 if (dragHandler.dragSource != null) {
                     var event = UIEvent.create(UIEvents.DRAG_SOURCE_UPDATE);
+                    event.hasBubblePhase = false;
+                    event.hasCapturePhase = false;
                     dispatchDragEvent(mouseX, mouseY, dragX, dragY, dragHandler.dragSource, event);
                     hasHandler = event.hasHandler;
                 }
@@ -952,6 +954,8 @@ public class ModularUI {
                 var event = UIEvent.create(UIEvents.CHAR_TYPED);
                 event.codePoint = codePoint;
                 event.modifiers = modifiers;
+                event.hasCapturePhase = false;
+                event.hasBubblePhase = false;
                 event.target = focusedElement;
                 UIEventDispatcher.dispatchEvent(event);
                 return event.hasHandler;

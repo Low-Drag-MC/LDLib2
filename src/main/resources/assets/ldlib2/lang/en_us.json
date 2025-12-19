@@ -382,6 +382,8 @@
   "property.overlay": "Overlay",
   "property.tooltips": "Tooltips",
   "property.z-index": "z-index",
+  "property.opacity": "Opacity",
+  "property.overflow-clip": "Overflow Clip",
   "property.transform": "Transform",
   "property.base-background": "Base Background",
   "property.hover-background": "Hover Background",

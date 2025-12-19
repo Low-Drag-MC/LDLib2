@@ -11,6 +11,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.lwjgl.opengl.GL46;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,8 @@ public class GUIContext {
     public float partialTick;
     @OnlyIn(Dist.CLIENT)
     public EnhancedPoseStack pose;
+    @OnlyIn(Dist.CLIENT)
+    public Minecraft mc;
 
     // runtime
     @OnlyIn(Dist.CLIENT)
@@ -37,7 +40,7 @@ public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     public Stack<UIVisualLayer> UIVisualLayers = new Stack<>();
     @OnlyIn(Dist.CLIENT)
-    private List<PostCall> postRenderingCalls = new ArrayList<>();
+    private final List<PostCall> postRenderingCalls = new ArrayList<>();
     private record PostCall(Consumer<GUIContext> call, PoseStack.Pose pose) {}
 
     @OnlyIn(Dist.CLIENT)
@@ -49,6 +52,7 @@ public class GUIContext {
         context.mouseY = mouseY;
         context.partialTick = partialTick;
         context.pose = new EnhancedPoseStack(graphics.pose()).setOnTransform(context::refreshLocalMouse);
+        context.mc = Minecraft.getInstance();
         context.refreshLocalMouse();
         return context;
     }
@@ -85,17 +89,22 @@ public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     public void pushVisualLayer(UIVisualLayer layer) {
         UIVisualLayers.push(layer);
-        layer.bind();
+        layer.bind(this);
+        layer.clear();
     }
 
     @OnlyIn(Dist.CLIENT)
     public void popVisualLayer() {
-        UIVisualLayers.pop();
-        var mainTarget = Minecraft.getInstance().getMainRenderTarget();
-        if (UIVisualLayers.isEmpty()) {
-            mainTarget.bindWrite(false);
-        } else {
-            UIVisualLayers.peek().bind();
+        var popped = UIVisualLayers.pop();
+        if (popped != null) {
+            var mainTarget = Minecraft.getInstance().getMainRenderTarget();
+            if (UIVisualLayers.isEmpty()) {
+                mainTarget.bindWrite(false);
+            } else {
+                UIVisualLayers.peek().bind(this);
+            }
+            popped.draw(this);
+            popped.release();
         }
     }
 

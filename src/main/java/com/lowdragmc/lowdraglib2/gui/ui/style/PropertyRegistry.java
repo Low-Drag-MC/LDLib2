@@ -145,7 +145,7 @@ public final class PropertyRegistry {
     public static final Property<Integer> Z_INDEX = create("z-index", 0);
     public static final Property<Transform2D> TRANSFORM_2D = create("transform", Transform2D.identity());
     public static final Property<Float> OPACITY = create("opacity", 1f).setRange(0f, 1f);
-    public static final Property<IGuiTexture> OVERFLOW_CLIP = create("overflow-clip", ColorPattern.WHITE.rectTexture());
+    public static final Property<IGuiTexture> OVERFLOW_CLIP = create("overflow-clip", IGuiTexture.EMPTY);
 
     public static final Property<IGuiTexture> BASE_BACKGROUND = create("base-background", IGuiTexture.EMPTY);
     public static final Property<IGuiTexture> HOVER_BACKGROUND = create("hover-background", IGuiTexture.EMPTY);

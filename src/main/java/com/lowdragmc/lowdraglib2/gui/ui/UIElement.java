@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
@@ -52,6 +53,7 @@ import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GL46;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
@@ -1231,13 +1233,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             guiContext.pose.translate(0, 0, zIndex);
         }
 
-        var hasOverlayClip = (layoutNode.getOverflow() == YogaOverflow.HIDDEN ||
-                layoutNode.getOverflow() == YogaOverflow.SCROLL);
+        var hasOverlayClip = (
+                layoutNode.getOverflow() == YogaOverflow.HIDDEN ||
+                layoutNode.getOverflow() == YogaOverflow.SCROLL
+        ) && getStyle().overflowClip() != IGuiTexture.EMPTY;
         var hasVisualLayer = hasOverlayClip || opacity < 1;
         if (hasVisualLayer) {
-            //TODO Visual Layer
-//            guiContext.pushVisualLayer(UIVisualLayer);
-//            UIVisualLayer.clear();
+            guiContext.pushVisualLayer(UIVisualLayer);
         }
 
         var transform2D = style.transform2D();
@@ -1253,8 +1255,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
 
         if (hasVisualLayer) {
-//            guiContext.popVisualLayer();
-//            UIVisualLayer.draw(opacity, 0);
+            guiContext.popVisualLayer();
         }
 
         if (zIndex != 0) {

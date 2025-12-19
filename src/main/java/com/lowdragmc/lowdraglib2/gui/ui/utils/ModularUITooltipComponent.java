@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
@@ -13,6 +14,7 @@ import java.util.Optional;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@KJSBindings
 public class ModularUITooltipComponent implements TooltipComponent {
     public final ModularUI modularUI;
 

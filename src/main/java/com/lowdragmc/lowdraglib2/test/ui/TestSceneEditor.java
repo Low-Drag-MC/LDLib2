@@ -46,9 +46,13 @@ public class TestSceneEditor implements IScreenTest {
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(sceneEditor);
         var blockModel = new BlockModelObject();
+        var childModel = new BlockModelObject();
         blockModel.transform().position(entityPlayer.position().toVector3f().add(0, 1, 0));
+        blockModel.transform().rotateLocal(entityPlayer.position().toVector3f().add(0, 1, 0));
+        childModel.transform().parent(blockModel.transform(), false);
         sceneEditor.addSceneObject(blockModel);
-        sceneEditor.setTransformGizmoTarget(blockModel.transform());
+        sceneEditor.addSceneObject(childModel);
+        sceneEditor.setTransformGizmoTarget(childModel.transform());
         return new ModularUI(UI.of(root));
     }
 
