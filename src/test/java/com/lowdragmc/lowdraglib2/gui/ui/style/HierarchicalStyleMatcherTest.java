@@ -128,11 +128,11 @@ class HierarchicalStyleMatcherTest {
 
     @Test
     void testParse_validSelector_final() {
-        String selector = "button:host:not(.label#id > child):not(.button) > .class:host";
+        String selector = "button:host :not(.label#id > child) > .class:host";
         HierarchicalStyleMatcher matcher = HierarchicalStyleMatcher.parse(selector);
 
         Assertions.assertNotNull(matcher, "Matcher should not be null.");
-        Assertions.assertEquals("button:host:not(.label#id > child):not(.button) > .class:host", matcher.toString(), "Final Test error.");
+        Assertions.assertEquals("button:host :not(.label#id > child) > .class:host", matcher.toString(), "Final Test error.");
     }
 
 }

@@ -1285,7 +1285,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * Renders the contents of the GUI element. includes additional background and children
      */
     public void drawContents(GUIContext guiContext) {
-        var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
+        // not need to use scissoring if overflow cip defined
+        var hidden = (layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL)
+                && getStyle().overflowClip() == IGuiTexture.EMPTY ;
         if (hidden) {
             guiContext.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
         }

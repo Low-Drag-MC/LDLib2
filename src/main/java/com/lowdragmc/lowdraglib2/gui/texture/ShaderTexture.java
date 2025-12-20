@@ -282,6 +282,16 @@ public class ShaderTexture extends TransformTexture {
                 }).show(e.currentElement.getModularUI());
             }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
         );
+        // button to reload shader
+        father.addConfigurator(new Configurator().addInlineChild(new Button().setText("reload").setOnClick(e -> {
+                    var currentShader = location;
+                    if (currentShader == null) return;
+                    var location = ResourceLocation.fromNamespaceAndPath(currentShader.getNamespace(), "shaders/" + currentShader.getPath() + Shader.ShaderType.FRAGMENT.shaderExtension);
+                    var shader = LDLibShaders.CACHE.remove(location);
+                    if (shader != null) shader.deleteShader();
+                    updateShader(currentShader);
+                }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
+        );
     }
 
     @Nullable

@@ -1,10 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 
 import java.util.*;
 import java.util.regex.Pattern;
 
+@KJSBindings
 public final class Stylesheet {
     public static final Stylesheet EMPTY = new Stylesheet(Collections.emptyList());
 
