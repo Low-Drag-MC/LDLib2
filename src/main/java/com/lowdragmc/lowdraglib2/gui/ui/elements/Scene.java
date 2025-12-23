@@ -580,13 +580,13 @@ public class Scene extends UIElement {
         final float oRotationYaw = this.rotationPitch;
         final float oRotationPitch = this.rotationYaw;
         startTick = getModularUI().getTickCounter();
-        interpolator = new Interpolator(0, 1, dur, Eases.EaseQuadOut, value -> {
+        interpolator = new Interpolator(0, 1, dur, Eases.QUAD_OUT, value -> {
             this.rotationPitch = (rotationYaw - oRotationYaw) * value.floatValue() + oRotationYaw;
             this.rotationYaw = (rotationPitch - oRotationPitch) * value.floatValue() + oRotationPitch;
             if (renderer != null) {
                 renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(this.rotationYaw), Math.toRadians(this.rotationPitch));
             }
-        }, x -> interpolator = null);
+        }, () -> interpolator = null);
     }
 
     /// Editor support

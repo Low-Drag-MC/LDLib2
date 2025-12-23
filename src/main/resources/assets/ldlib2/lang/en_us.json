@@ -336,7 +336,9 @@
   "nodeTexture": "Node Texture",
   "selectedTexture": "Selected Texture",
   "property.style_name": "§aStyle name:§r %s",
+  "property.name": "Property",
   "property.display": "Display",
+  "property.transition": "Transition",
   "property.layout-direction": "Layout Direction",
   "property.flex.group": "Flex",
   "property.flex-basis": "Flex Basis",
@@ -499,5 +501,8 @@
   "max-content": "Max-Content",
   "fit-content": "Fit-Content",
   "stretch": "Stretch",
-  "auto": "Auto"
+  "auto": "Auto",
+  "animation.duration": "duration",
+  "animation.delay": "delay",
+  "animation.ease": "ease"
 }

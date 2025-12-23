@@ -32,6 +32,8 @@ import java.util.function.Supplier;
 @SuppressWarnings("unchecked")
 @Accessors(chain = true)
 public class Property<VALUE> {
+
+    public static final Codec<Property<?>> CODEC = Codec.STRING.xmap(PropertyRegistry::byName, property -> property.name);
     private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
 
     public final int id;
@@ -41,7 +43,11 @@ public class Property<VALUE> {
     public final VALUE initialValue;
     public final ValueParser<VALUE> valueParser;
     private final List<StyleChangeListener<VALUE>> styleChangeListeners = new ArrayList<>();
+    @Setter @Getter
+    private IValueInterpolator<VALUE> interpolator = IValueInterpolator.BINARY;
     // config
+    @Setter @Getter
+    private boolean allowTransition = false;
     @Getter @Setter
     private String configName;
     @Setter

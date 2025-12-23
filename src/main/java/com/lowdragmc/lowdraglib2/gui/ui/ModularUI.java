@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
@@ -74,6 +76,8 @@ public class ModularUI {
     @Getter
     private final StyleEngine styleEngine = new StyleEngine(this);
     @Getter
+    private final AnimationEngine animationEngine = new AnimationEngine();
+    @Getter
     @Nullable
     private AbstractContainerMenu menu;
     @Getter
@@ -101,6 +105,8 @@ public class ModularUI {
     @Nullable
     @Getter
     private UIElement lastHoveredElement;
+    @Getter
+    private final List<UIElement> lastHoveredElements = new ArrayList<>();
     @Getter
     private UIElement lastMouseDownElement;
     @Getter
@@ -497,7 +503,9 @@ public class ModularUI {
             ui.rootElement.calculateLayout(layoutWidth, layoutHeight);
             extraAreas.clear();
             if (dirtyCount >= 10) {
-                LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
+                if (isDebugMode() || Platform.isDevEnv()) {
+                    LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
+                }
                 break;
             }
         }
@@ -984,6 +992,8 @@ public class ModularUI {
         /// rendering
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            animationEngine.updateFrame();
+
             calculateStyleAndLayout();
 
             cleanTooltip();
@@ -995,8 +1005,24 @@ public class ModularUI {
             lastMouseY = guiContext.localMouseY;
 
             var hoverElement = ui.rootElement.getHoverElement(lastMouseX, lastMouseY);
-            lastHoveredElement = hoverElement == null ? null : hoverElement.getA();
+            var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
+            if (lastHoveredElements.isEmpty() ||
+                    newHoveredElement != null && !newHoveredElement.getStructurePath().equals(lastHoveredElements)) {
+                for (var element : lastHoveredElements) {
+                    element.removeClass("__hovered__");
+                }
 
+                lastHoveredElements.clear();
+
+                if (newHoveredElement != null) {
+                    lastHoveredElements.addAll(newHoveredElement.getStructurePath());
+                    for (var element : lastHoveredElements) {
+                        element.addClass("__hovered__");
+                    }
+                }
+            }
+
+            lastHoveredElement = newHoveredElement;
             ui.rootElement.drawInBackground(guiContext);
 
             if (lastHoveredElement != null && tooltipTexts == null) {

@@ -239,4 +239,14 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         this.pivot = transform2D.pivot;
         this.rotationRad = transform2D.rotationRad;
     }
+
+    public static Transform2D interpolate(Transform2D a, Transform2D b, float t) {
+        var copied = new Transform2D();
+        copied.translate = a.translate.lerp(b.translate, t, new Vector2f());
+        copied.scale = a.scale.lerp(b.scale, t, new Vector2f());
+        copied.rotation = a.rotation + (b.rotation - a.rotation) * t;
+        copied.pivot = Pivot.of(a.pivot.x + (b.pivot.x - a.pivot.x) * t, a.pivot.y + (b.pivot.y - a.pivot.y) * t);
+        copied.rotationRad = a.rotationRad + (b.rotationRad - a.rotationRad) * t;
+        return copied;
+    }
 }

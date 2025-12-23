@@ -24,8 +24,7 @@ public class EnumProperty<T extends Enum<T>> extends Property<T> {
     private Function<T, IGuiTexture> iconProvider;
 
     public EnumProperty(String name, Class<T> clazz, T initialValue) {
-        super(name, clazz, LDLibExtraCodecs.enumCodec(clazz, initialValue), initialValue, EnumValue.of(clazz));
-        this.candidates = List.of(clazz.getEnumConstants());
+        this(name, clazz, initialValue, List.of(clazz.getEnumConstants()));
     }
 
     public EnumProperty(String name, Class<T> clazz, T initialValue, List<T> candidates) {

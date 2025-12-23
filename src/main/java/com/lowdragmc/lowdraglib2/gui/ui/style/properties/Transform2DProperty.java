@@ -6,9 +6,12 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.style.IValueInterpolator;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.Transform2DValue;
 import lombok.experimental.Accessors;
+import org.appliedenergistics.yoga.YogaValue;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -17,6 +20,8 @@ import java.util.function.Supplier;
 public class Transform2DProperty extends Property<Transform2D> {
     public Transform2DProperty(String name, Transform2D initialValue) {
         super(name, Transform2D.class, Transform2D.CODEC, initialValue, Transform2DValue::new);
+        setAllowTransition(true);
+        setInterpolator(this::interpolate);
     }
 
     @Override
@@ -35,5 +40,9 @@ public class Transform2DProperty extends Property<Transform2D> {
                         pivot -> setter.accept(getter.get().copy().pivot(pivot.x, pivot.y)), true, getVALUE_FIELD(), this)
         );
         return group;
+    }
+
+    private Transform2D interpolate(Transform2D from, Transform2D to, float interpolation) {
+        return Transform2D.interpolate(from, to, interpolation);
     }
 }

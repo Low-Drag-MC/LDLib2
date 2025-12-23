@@ -43,9 +43,9 @@ public class Transform2DValue extends StyleValue<Transform2D> {
                 case "scale": {
                     float[] a = parseArgs(argsStr);
                     if (a.length == 1) {
-                        t.scale(a[0]);          // 等比
+                        t.scale(a[0]);
                     } else {
-                        t.scale(a[0], a[1]);    // 非等比（如果 Transform2D 支持）
+                        t.scale(a[0], a[1]);
                     }
                     break;
                 }
@@ -95,7 +95,7 @@ public class Transform2DValue extends StyleValue<Transform2D> {
         if (s.endsWith("deg")) {
             return parseNumber(s.substring(0, s.length() - 3));
         }
-        // 也可以支持 "rad"
+        // support "rad"
         if (s.endsWith("rad")) {
             float rad = parseNumber(s.substring(0, s.length() - 3));
             return (float) Math.toDegrees(rad);

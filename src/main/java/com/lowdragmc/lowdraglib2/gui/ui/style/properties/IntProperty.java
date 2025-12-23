@@ -24,6 +24,8 @@ public class IntProperty extends Property<Integer> {
 
     public IntProperty(String name, int initialValue) {
         super(name, Integer.class, Codec.INT, initialValue, IntValue::new);
+        setAllowTransition(true);
+        setInterpolator(this::interpolate);
     }
 
     public IntProperty setRange(int min, int max) {
@@ -36,5 +38,9 @@ public class IntProperty extends Property<Integer> {
                 .setType(ConfigNumber.Type.INTEGER)
                 .setRange(min, max)
                 .setWheel(step);
+    }
+
+    private int interpolate(int from, int to, float interpolation) {
+        return Math.round(from + (to - from) * interpolation);
     }
 }

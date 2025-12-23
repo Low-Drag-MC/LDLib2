@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.data.*;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
 import com.lowdragmc.lowdraglib2.gui.ui.style.properties.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.*;
 import com.mojang.serialization.Codec;
@@ -103,6 +104,10 @@ public final class PropertyRegistry {
         return create(new TooltipsProperty(name, initialValue));
     }
 
+    public static TransitionProperty create(String name, Transition initialValue) {
+        return create(new TransitionProperty(name, initialValue));
+    }
+
     public static Transform2DProperty create(String name, Transform2D initialValue) {
         return create(new Transform2DProperty(name, initialValue));
     }
@@ -146,6 +151,7 @@ public final class PropertyRegistry {
     public static final Property<Transform2D> TRANSFORM_2D = create("transform", Transform2D.identity());
     public static final Property<Float> OPACITY = create("opacity", 1f).setRange(0f, 1f);
     public static final Property<IGuiTexture> OVERFLOW_CLIP = create("overflow-clip", IGuiTexture.EMPTY);
+    public static final Property<Transition> TRANSITION = create("transition", Transition.EMPTY);
 
     public static final Property<IGuiTexture> BASE_BACKGROUND = create("base-background", IGuiTexture.EMPTY);
     public static final Property<IGuiTexture> HOVER_BACKGROUND = create("hover-background", IGuiTexture.EMPTY);

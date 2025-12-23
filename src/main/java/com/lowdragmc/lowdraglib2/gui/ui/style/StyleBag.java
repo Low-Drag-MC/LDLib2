@@ -1,7 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
+import com.lowdragmc.lowdraglib2.gui.ui.style.animation.TransitionAnimation;
+import com.lowdragmc.lowdraglib2.gui.ui.style.properties.TransitionProperty;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -10,13 +11,14 @@ import java.util.function.Predicate;
 public final class StyleBag {
     public final UIElement element;
     public final Map<Property<?>, List<StyleSlot<?>>> candidates = new HashMap<>();
-    public final Map<Property<?>, Object> computed = new HashMap<>();
 
     // runtime
     private int inlineSourceOrder = 0;
-    private final BitSet dirtyProps = new BitSet(); // 按属性粒度
+    private final BitSet dirtyProps = new BitSet();
     private boolean dirty = true;
     private int lastStyleEpoch = -1;
+    private final Map<Property<?>, StyleSlot<?>> computedSlots = new HashMap<>();
+    private final Map<Property<?>, TransitionAnimation<?>> transitionAnimations = new HashMap<>();
 
     public StyleBag(UIElement element) {
         this.element = element;
@@ -136,55 +138,89 @@ public final class StyleBag {
     public void compute(int currentStyleEpoch) {
         if (!isDirty() && lastStyleEpoch == currentStyleEpoch) return;
 
-        if (element instanceof SplitView splitView) {
-            System.out.println("");
-        }
-
-        var old = new HashMap<Property<?>, Object>();
+        var old = new HashMap<Property<?>, StyleSlot<?>>();
 
         for (int pid = dirtyProps.nextSetBit(0); pid >= 0; pid = dirtyProps.nextSetBit(pid + 1)) {
             var p = PropertyRegistry.byId(pid);
             if (p == null) continue;
-            old.put(p, computed.get(p));
-            computed.put(p, computeCandidate(p));
+            old.put(p, computedSlots.get(p));
+            computedSlots.put(p, computeCandidateSlot(p));
         }
 
         dirtyProps.clear();
         dirty = false;
-        lastStyleEpoch = currentStyleEpoch;
+
+        var transition = getComputed(PropertyRegistry.TRANSITION);
+        if (transition == null) transition = PropertyRegistry.TRANSITION.initialValue;
 
         for (var entry : old.entrySet()) {
             var property = entry.getKey();
-            Object oldValue = entry.getValue();
-            Object newValue = computed.get(property);
+            var oldSlot = entry.getValue();
+            var newSlot = computedSlots.get(property);
+            var oldValue = oldSlot == null ? null : oldSlot.value();
+            var newValue = newSlot == null ? null : newSlot.value();
             if (!Objects.equals(oldValue, newValue)) {
-                property.notifyListeners(element, cast(oldValue), cast(newValue));
+                // apply transition while changes
+                var animation = transition.animations().get(property);
+                if (lastStyleEpoch > -1 && animation != null && TransitionProperty.shouldTriggerTransition(cast(property), cast(oldSlot), cast(newSlot))) {
+                    var transitionAnimation = new TransitionAnimation<>(this, property, animation);
+                    var from = oldValue == null ? property.initialValue : oldValue;
+                    var to = newValue == null ? property.initialValue : newValue;
+                    if (transitionAnimations.containsKey(property)) {
+                        var anim = transitionAnimations.get(property);
+                        var current = anim.getCurrentValue();
+                        if (current != null) {
+                            from = current;
+                        }
+                        anim.stop();
+                    }
+
+                    transitionAnimation.play(
+                            cast(from),
+                            cast(to)
+                    );
+                    transitionAnimations.put(property, transitionAnimation);
+                } else {
+                    property.notifyListeners(element, cast(oldValue), cast(newValue));
+                }
             }
         }
+        lastStyleEpoch = currentStyleEpoch;
     }
 
     @SuppressWarnings("unchecked")
     private static <T> T cast(Object o) { return (T) o; }
 
-    public <T> T computeCandidate(Property<T> p) {
+    public <T> StyleSlot<T> computeCandidateSlot(Property<T> p) {
         List<StyleSlot<?>> list = candidates.get(p);
         if (list != null && !list.isEmpty()) {
-            StyleSlot<?> best = list.getFirst();
+            var best = list.getFirst();
             for (int i = 1; i < list.size(); i++) {
                 StyleSlot<?> cur = list.get(i);
                 if (StyleSlot.compare(best, cur) < 0) {
                     best = cur;
                 }
             }
-            return p.type.cast(best.value());
+            return cast(best);
         }
+        return null;
+    }
+
+    public <T> T computeCandidate(Property<T> p) {
+        var slot = computeCandidateSlot(p);
+        if (slot != null) return slot.value();
         return null;
     }
 
     @SuppressWarnings("unchecked")
     @Nullable
     public <T> T getComputed(Property<T> p) {
-        return (T) computed.get(p);
+        var transited = transitionAnimations.get(p);
+        if (transited != null) {
+            return (T) transited.getCurrentValue();
+        }
+        var computedSlot = computedSlots.get(p);
+        return computedSlot == null ? null : (T) computedSlot.value();
     }
 
     public void markDirty() {
@@ -199,5 +235,15 @@ public final class StyleBag {
 
     public boolean isDirty() {
         return dirty;
+    }
+
+    public <T> void onTransitionUpdate(TransitionAnimation<T> transitionAnimation, T oldValue, T newValue) {
+        if (!Objects.equals(oldValue, newValue)) {
+            transitionAnimation.property.notifyListeners(element, oldValue, newValue);
+        }
+    }
+
+    public <T> void onTransitionFinished(TransitionAnimation<T> transitionAnimation) {
+        transitionAnimations.remove(transitionAnimation.property);
     }
 }

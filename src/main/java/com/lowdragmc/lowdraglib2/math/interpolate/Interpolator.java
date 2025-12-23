@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.math.interpolate;
 
+import com.google.common.util.concurrent.Runnables;
+
 import java.util.function.Consumer;
 
 /**
@@ -9,56 +11,63 @@ import java.util.function.Consumer;
 public class Interpolator {
     private final float from;
     private final float to;
-    private final float durationTick;
+    private final float range;
+    private final float duration;
     private final IEase ease;
     private final Consumer<Number> interpolate;
-    private final Consumer<Number> callback;
+    private final Runnable onFinished;
 
-    private float tick = -1;
-    private float startTick = 0;
+    private float time = Float.NaN;
+    private float startTime = 0;
+    private boolean finished = false;
 
-    public Interpolator(float from, float to, float durationTick, IEase ease, Consumer<Number> interpolate) {
-        this(from, to, durationTick, ease, interpolate, null);
+    public Interpolator(float from, float to, float duration, IEase ease, Consumer<Number> interpolate) {
+        this(from, to, duration, ease, interpolate, Runnables.doNothing());
     }
 
-    public Interpolator(float from, float to, float durationTick, IEase ease, Consumer<Number> interpolate, Consumer<Number> callback) {
+    public Interpolator(float from, float to, float duration, IEase ease, Consumer<Number> interpolate, Runnable onFinished) {
         this.from = from;
         this.to = to;
-        this.durationTick = durationTick;
+        this.range = to - from;
+        this.duration = duration;
         this.ease = ease;
         this.interpolate = interpolate;
-        this.callback = callback;
+        this.onFinished = onFinished;
     }
 
     public void reset() {
-        tick = -1;
+        time = Float.NaN;
+        finished = false;
     }
 
     public boolean isFinished(){
-        return tick == durationTick;
+        return finished;
     }
 
-    public void update(float tickTime) {
-        if (tick == -2) {
+    public void update(float currentTime) {
+        if (finished) {
             return;
         }
 
-        if (tick == -1) {
-            startTick = tickTime;
+        if (Float.isNaN(this.time)) {
+            startTime = currentTime;
         }
 
-        if ((tick - startTick) >= durationTick) {
-            tick = -2;
+        float elapsed = currentTime - startTime;
+
+        if (elapsed >= duration) {
+            this.time = startTime + duration;
+            finished = true;
             if (interpolate != null) {
-                interpolate.accept(ease.getInterpolation(1) * (to - from) + from);
+                interpolate.accept(to);
             }
-            if (callback != null) {
-                callback.accept(ease.getInterpolation(1) * (to - from) + from);
+            if (onFinished != null) {
+                onFinished.run();
             }
         } else {
-            tick = tickTime;
+            this.time = currentTime;
             if (interpolate != null) {
-                interpolate.accept(ease.getInterpolation((tick - startTick) / durationTick) * (to - from) + from);
+                interpolate.accept(ease.interpolate(elapsed / duration) * range + from);
             }
         }
     }

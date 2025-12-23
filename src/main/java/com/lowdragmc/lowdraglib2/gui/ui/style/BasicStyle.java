@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
+import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import net.minecraft.network.chat.Component;
@@ -25,6 +26,7 @@ public class BasicStyle extends Style {
             PropertyRegistry.OPACITY,
             PropertyRegistry.OVERFLOW_CLIP,
             PropertyRegistry.TRANSFORM_2D,
+            PropertyRegistry.TRANSITION,
     };
 
     public BasicStyle(UIElement holder) {
@@ -142,6 +144,15 @@ public class BasicStyle extends Style {
 
     public BasicStyle transform2D(Transform2D transform2D) {
         set(PropertyRegistry.TRANSFORM_2D, transform2D);
+        return this;
+    }
+
+    public Transition transition() {
+        return getValueSave(PropertyRegistry.TRANSITION);
+    }
+
+    public BasicStyle transition(Transition transition) {
+        set(PropertyRegistry.TRANSITION, transition);
         return this;
     }
 

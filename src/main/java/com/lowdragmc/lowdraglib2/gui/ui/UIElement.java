@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
+import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
@@ -790,6 +791,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
+    public StyleAnimation animation() {
+        return StyleAnimation.of(getModularUI()).select(this);
+    }
+
     /// Focus
     public void focus() {
         var ui = getModularUI();
@@ -1231,6 +1236,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             guiContext.pose.translate(0, 0, zIndex);
         }
 
+        var transform2D = style.transform2D();
+        var pushedTransform = !transform2D.isIdentity();
+        if (pushedTransform) {
+            transform2D.pushPose(guiContext, this);
+        }
+
         var hasOverlayClip = (
                 layoutNode.getOverflow() == YogaOverflow.HIDDEN ||
                 layoutNode.getOverflow() == YogaOverflow.SCROLL
@@ -1240,20 +1251,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             guiContext.pushVisualLayer(UIVisualLayer);
         }
 
-        var transform2D = style.transform2D();
-        var pushedTransform = !transform2D.isIdentity();
-        if (pushedTransform) {
-            transform2D.pushPose(guiContext, this);
-        }
-
         drawInBackgroundInternal(guiContext);
-
-        if (pushedTransform) {
-            transform2D.popPose(guiContext);
-        }
 
         if (hasVisualLayer) {
             guiContext.popVisualLayer();
+        }
+
+        if (pushedTransform) {
+            transform2D.popPose(guiContext);
         }
 
         if (zIndex != 0) {
