@@ -150,6 +150,18 @@ public class TextTexture extends TransformTexture {
         return this;
     }
 
+    @Override
+    public TextTexture copy() {
+        var copied = new TextTexture(text, color);
+        copied.type = type;
+        copied.dropShadow = dropShadow;
+        copied.rollSpeed = rollSpeed;
+        copied.width = width;
+        copied.backgroundColor = backgroundColor;
+        copied.copyTransform(this);
+        return copied;
+    }
+
     @OnlyIn(Dist.CLIENT)
     @Override
     protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {

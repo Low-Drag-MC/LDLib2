@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -137,12 +138,37 @@ public class SpriteTexture extends TransformTexture {
 
     @Override
     public SpriteTexture copy() {
-        return new SpriteTexture()
+        var copied = new SpriteTexture()
                 .setImageLocation(imageLocation)
                 .setSprite(spritePosition.getX(), spritePosition.getY(), spriteSize.getWidth(), spriteSize.getHeight())
                 .setBorder(borderLT.getX(), borderLT.getY(), borderRB.getX(), borderRB.getY())
                 .setColor(color)
                 .setWrapMode(wrapMode);
+        copied.copyTransform(this);
+        return copied;
+    }
+
+    @Override
+    public IGuiTexture interpolate(IGuiTexture other, float lerp) {
+        if (other.getRawTexture() instanceof SpriteTexture spriteTexture) {
+            return new IGuiTexture() {
+                @Override
+                @OnlyIn(Dist.CLIENT)
+                public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height,
+                                 float partialTicks) {
+                    SpriteTexture.this.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+                    var currentColor = spriteTexture.color;
+                    spriteTexture.color = ColorUtils.color(
+                            ColorUtils.alpha(currentColor) * lerp,
+                            ColorUtils.red(currentColor) * lerp,
+                            ColorUtils.green(currentColor) * lerp,
+                            ColorUtils.blue(currentColor) * lerp);
+                    spriteTexture.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+                    spriteTexture.color = currentColor;
+                }
+            };
+        }
+        return super.interpolate(other, lerp);
     }
 
     @OnlyIn(Dist.CLIENT)

@@ -80,7 +80,10 @@ public class ResourceTexture extends TransformTexture {
     }
 
     public ResourceTexture copy() {
-        return getSubTexture(0, 0, 1, 1);
+        var copied = new ResourceTexture(imageLocation, offsetX, offsetY, imageWidth, imageHeight);
+        copied.color = color;
+        copied.copyTransform(this);
+        return copied;
     }
 
     public ResourceTexture setColor(int color) {

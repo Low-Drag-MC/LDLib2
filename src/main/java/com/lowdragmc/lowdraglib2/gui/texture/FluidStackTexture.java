@@ -55,6 +55,14 @@ public class FluidStackTexture extends TransformTexture {
         return this;
     }
 
+    @Override
+    public FluidStackTexture copy() {
+        var copied= new FluidStackTexture(fluids);
+        copied.color = color;
+        copied.copyTransform(this);
+        return copied;
+    }
+
     @OnlyIn(Dist.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {

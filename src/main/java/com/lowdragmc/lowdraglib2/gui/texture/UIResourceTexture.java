@@ -54,4 +54,9 @@ public final class UIResourceTexture extends TransformTexture {
     public IGuiTexture setColor(int color) {
         return getInternalTexture().copy().setColor(color);
     }
+
+    @Override
+    public IGuiTexture getRawTexture() {
+        return getInternalTexture().getRawTexture();
+    }
 }

@@ -84,7 +84,9 @@ public class AnimationTexture extends TransformTexture {
     }
 
     public AnimationTexture copy() {
-        return new AnimationTexture(imageLocation).setCellSize(cellSize).setAnimation(from, to).setAnimation(animation).setColor(color);
+        var copied = new AnimationTexture(imageLocation).setCellSize(cellSize).setAnimation(from, to).setAnimation(animation).setColor(color);
+        copied.copyTransform(this);
+        return copied;
     }
 
     public AnimationTexture setTexture(String imageLocation) {

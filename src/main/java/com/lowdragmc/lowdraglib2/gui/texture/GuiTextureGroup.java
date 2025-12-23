@@ -34,10 +34,13 @@ public class GuiTextureGroup extends TransformTexture {
 
     @Override
     public GuiTextureGroup setColor(int color) {
-        for (IGuiTexture texture : textures) {
-            texture.setColor(color);
+        var copiedTextures = new IGuiTexture[textures.length];
+        for (int i = 0; i < textures.length; i++) {
+            copiedTextures[i] = textures[i].copy().setColor(color);
         }
-        return this;
+        var copied = new GuiTextureGroup(copiedTextures);
+        copied.copyTransform(this);
+        return copied;
     }
 
     @Override
@@ -49,7 +52,9 @@ public class GuiTextureGroup extends TransformTexture {
     }
 
     @Override
-    public IGuiTexture copy() {
-        return new GuiTextureGroup(textures);
+    public GuiTextureGroup copy() {
+        var copied = new GuiTextureGroup(textures);
+        copied.copyTransform(this);
+        return copied;
     }
 }

@@ -104,14 +104,22 @@ public class TextureValue extends StyleValue<IGuiTexture> {
             }
         }
 
+        var isCopied = false;
         if (color != null) {
             texture = texture.copy().setColor(color);
+            isCopied = true;
         }
-        if (texture instanceof TransformTexture tt) {
-            tt = tt.copyWithTransform();
-            tt.getTransform2D().copyFrom(transform);
-            texture = tt;
+        if (!transform.isIdentity()) {
+            if (texture instanceof TransformTexture transformTexture) {
+                if (isCopied) {
+                    transformTexture.copyTransform(transform);
+                } else if (transformTexture.copy() instanceof TransformTexture copiedTransformTexture) {
+                    copiedTransformTexture.copyTransform(transform);
+                    texture = copiedTransformTexture;
+                }
+            }
         }
+
         return texture;
     }
 

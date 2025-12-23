@@ -48,12 +48,12 @@ public abstract class TransformTexture implements IGuiTexture {
         return transform2D.isIdentity();
     }
 
-    public TransformTexture copyWithTransform() {
-        if (copy() instanceof TransformTexture copied) {
-            copied.transform2D.copyFrom(transform2D);
-            return copied;
-        }
-        throw new RuntimeException("Copying a TransformTexture is not supported");
+    public void copyTransform(TransformTexture transformTexture) {
+        transform2D.copyFrom(transformTexture.transform2D);
+    }
+
+    public void copyTransform(Transform2D transform) {
+        transform2D.copyFrom(transform);
     }
 
     @OnlyIn(Dist.CLIENT)

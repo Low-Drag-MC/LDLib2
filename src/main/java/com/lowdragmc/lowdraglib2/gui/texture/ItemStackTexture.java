@@ -53,6 +53,14 @@ public class ItemStackTexture extends TransformTexture {
         return this;
     }
 
+    @Override
+    public ItemStackTexture copy() {
+        var copied = new ItemStackTexture(items);
+        copied.color = color;
+        copied.copyTransform(this);
+        return copied;
+    }
+
     @OnlyIn(Dist.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {

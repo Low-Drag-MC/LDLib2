@@ -5,6 +5,7 @@
     import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
     import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
     import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+    import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
     import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
     import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
     import com.lowdragmc.lowdraglib2.utils.ColorUtils;
@@ -57,6 +58,31 @@
             this.borderColor = borderColor;
             this.borderColorVec4 = ColorUtils.toVector4f(borderColor);
             return this;
+        }
+
+        @Override
+        public SDFRectTexture copy() {
+            var copied = new SDFRectTexture();
+            copied.setRadius(new Vector4f(radius));
+            copied.setStroke(stroke);
+            copied.setColor(color);
+            copied.setBorderColor(borderColor);
+            copied.copyTransform(this);
+            return copied;
+        }
+
+        @Override
+        public IGuiTexture interpolate(IGuiTexture other, float lerp) {
+            if (other.getRawTexture() instanceof SDFRectTexture sdfRect) {
+                var blended = new SDFRectTexture();
+                blended.setRadius(new Vector4f(radius).lerp(sdfRect.getRadius(), lerp));
+                blended.setStroke((1 - lerp) * stroke + sdfRect.stroke * lerp);
+                blended.setColor(ColorUtils.blendOklabColor(color, sdfRect.color, lerp));
+                blended.setBorderColor(ColorUtils.blendOklabColor(borderColor, sdfRect.borderColor, lerp));
+                blended.copyTransform(Transform2D.interpolate(getTransform2D(), sdfRect.getTransform2D(), lerp));
+                return blended;
+            }
+            return super.interpolate(other, lerp);
         }
 
         @Override

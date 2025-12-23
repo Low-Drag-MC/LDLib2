@@ -92,8 +92,8 @@ public final class PropertyRegistry {
         return property;
     }
 
-    public static Property<IGuiTexture> create(String name, IGuiTexture initialValue) {
-        return create(name, IGuiTexture.class, IGuiTexture.CODEC, initialValue, TextureValue::new);
+    public static TextureProperty create(String name, IGuiTexture initialValue) {
+        return create(new TextureProperty(name, initialValue));
     }
 
     public static Property<Boolean> create(String name, boolean initialValue) {

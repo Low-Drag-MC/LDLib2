@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -100,6 +101,34 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         return this;
     }
 
+    default IGuiTexture getRawTexture() {
+        return this;
+    }
+
+    default IGuiTexture copy() {
+        try {
+            return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
+                    .result()
+                    .map(tag -> CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result()
+                            .orElse(this))
+                    .orElse(this);
+        } catch (Exception e) {
+            return this;
+        }
+    }
+
+    default IGuiTexture interpolate(IGuiTexture other, float lerp) {
+        return new IGuiTexture() {
+            @Override
+            @OnlyIn(Dist.CLIENT)
+            public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+                IGuiTexture.this.getRawTexture().copy().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+                other.getRawTexture().copy().setColor(ColorUtils.color(lerp, lerp, lerp, lerp))
+                        .draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+            }
+        };
+    }
+
     @OnlyIn(Dist.CLIENT)
     @Deprecated
     default void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height) {
@@ -108,14 +137,6 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
 
     @OnlyIn(Dist.CLIENT)
     void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
-
-    default IGuiTexture copy() {
-        return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
-                .result()
-                .map(tag -> CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result()
-                .orElse(IGuiTexture.MISSING_TEXTURE))
-                .orElse(IGuiTexture.MISSING_TEXTURE);
-    }
 
     // ***************** EDITOR  ***************** //
     @OnlyIn(Dist.CLIENT)

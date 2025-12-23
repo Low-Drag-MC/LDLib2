@@ -68,6 +68,13 @@ public class ProgressTexture extends TransformTexture {
     }
 
     @Override
+    public ProgressTexture copy() {
+        var copied = new ProgressTexture(emptyBarArea.copy(), filledBarArea.copy());
+        copied.copyTransform(this);
+        return copied;
+    }
+
+    @Override
     @OnlyIn(Dist.CLIENT)
     protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         updateTick();
