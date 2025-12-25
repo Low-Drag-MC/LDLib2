@@ -46,6 +46,7 @@ import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.gametest.GameTestHolder;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.config.MutableYogaConfig;
 import org.appliedenergistics.yoga.config.YogaConfig;
@@ -231,11 +232,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public UIElement layout(Consumer<LayoutStyle> layout) {
+        if (LDLib2.isServer()) return this;
         layout.accept(layoutStyle);
         return this;
     }
 
     public UIElement node(Consumer<YogaNode> node) {
+        if (LDLib2.isServer()) return this;
         node.accept(layoutNode);
         return this;
     }
@@ -744,6 +747,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public UIElement style(Consumer<BasicStyle> style) {
+        if (LDLib2.isServer()) return this;
         style.accept(this.style);
         return this;
     }
@@ -1534,16 +1538,19 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     @Override
     public void deserializeNBT(HolderLookup.@NotNull Provider provider, CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(provider, tag);
-        // deserialize inline styles
-        if (tag.contains("inline")) {
-            var inlineTag = tag.getCompound("inline");
-            getStyles().forEach(style -> style.deserializeNBT(provider, inlineTag));
-        }
-        // deserialize classes
-        if (tag.contains("classes")) {
-            for (var clazz : tag.getList("classes", Tag.TAG_STRING)) {
-                classes.add(clazz.getAsString());
+        if (!LDLib2.isServer()) {
+            // only for client side
+            IPersistedSerializable.super.deserializeNBT(provider, tag);
+            // deserialize inline styles
+            if (tag.contains("inline")) {
+                var inlineTag = tag.getCompound("inline");
+                getStyles().forEach(style -> style.deserializeNBT(provider, inlineTag));
+            }
+            // deserialize classes
+            if (tag.contains("classes")) {
+                for (var clazz : tag.getList("classes", Tag.TAG_STRING)) {
+                    classes.add(clazz.getAsString());
+                }
             }
         }
         // deserialize internal children

@@ -75,7 +75,7 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
         root.addChild(new Button().setText("Test C2S RPC").setOnServerClick(e -> rpcToTracking("rpcTest", "Hello from server!")));
         root.addChild(new Button().setText("Test C2S RPC Packet").setOnClick(e -> RPCPacketDistributor.rpcToServer("rpcPacketTest", "Hello from client!", true)));
         root.addChild(new Button().setText("Test C2S RPC Packet").setOnServerClick(e -> RPCPacketDistributor.rpcToAllPlayers("rpcPacketTest", "Hello from server!", false)));
-        return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheet(StylesheetManager.MC))), holder.player);
+        return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheetSafe(StylesheetManager.MC))), holder.player);
     }
 
     @RPCMethod
