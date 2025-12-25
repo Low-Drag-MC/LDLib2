@@ -99,7 +99,7 @@ jobs:
       matrix:
         include:
           - name: "Main Build"
-            gradle-tasks: "build test"
+            gradle-tasks: "build test runGameTestServer"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

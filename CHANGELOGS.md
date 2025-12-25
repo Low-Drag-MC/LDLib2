@@ -1,5 +1,16 @@
 # ChangeLogs
 
+## v2.1.3
+* Fixed TransformGizmo rotation behavior
+* Added game tests
+* UI features:
+    * Added overflow clip
+    * Added opacity
+    * Added `:not()` for stylesheet
+    * Added Transition / Animation
+    * Refactor `IGUITexture` APIs
+    * Minor fixes
+
 ## v2.1.2.a (hotfix)
 * Fixed Creative Mode Tab crash for production
 
