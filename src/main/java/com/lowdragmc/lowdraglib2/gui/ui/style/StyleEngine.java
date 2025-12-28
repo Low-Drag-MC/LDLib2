@@ -105,7 +105,59 @@ public final class StyleEngine {
     }
 
     public void reloadElementStyles(UIElement element) {
-        onElementUnregister(element);
-        onElementRegister(element);
+        updateElementStyleRecursive(element);
+    }
+
+    private void updateElementStyleRecursive(UIElement element) {
+        // 1. cache old for comparison
+        List<StyleRule> oldRules = new ArrayList<>();
+        var currentRulesMap = elementStyleRules.get(element);
+        if (currentRulesMap != null) {
+            for (List<StyleRule> rules : currentRulesMap.values()) {
+                oldRules.addAll(rules);
+            }
+        }
+
+        // 2. calculate new style rules
+        Map<Stylesheet, List<StyleRule>> newRulesMap = new HashMap<>();
+        List<StyleRule> newRules = new ArrayList<>();
+
+        for (var stylesheet : globalSheets) {
+            var rules = stylesheet.calculateValues(element);
+            if (!rules.isEmpty()) {
+                newRulesMap.put(stylesheet, rules);
+                newRules.addAll(rules);
+            }
+        }
+
+        // 3. compare old and new rules
+        boolean rulesChanged = !oldRules.equals(newRules);
+
+        if (rulesChanged) {
+            // A. clear old rules
+            if (!oldRules.isEmpty()) {
+                element.removeStyleRules(oldRules);
+            }
+
+            // B. update rules map
+            if (newRulesMap.isEmpty()) {
+                elementStyleRules.remove(element);
+            } else {
+                elementStyleRules.put(element, new ConcurrentHashMap<>(newRulesMap));
+            }
+
+            // C. apply new rules
+            if (!newRules.isEmpty()) {
+                element.addStyleRules(newRules);
+                enqueue(element.getStyleBag());
+            }
+        } else {
+            // ok, nothing changes
+        }
+
+        // 4. update children
+        for (var child : element.getSafeChildren()) {
+            updateElementStyleRecursive(child);
+        }
     }
 }

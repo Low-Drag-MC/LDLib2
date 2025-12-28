@@ -157,6 +157,9 @@ public final class UIEventDispatcher {
         UIEventDispatcher.dispatchEvent(event, false, false, sendServer);
     }
 
+    public static boolean dispatchAllChildren(UIEvent event) {
+        return dispatchAllChildren(event, true, true);
+    }
 
     /**
      * Dispatches the provided {@link UIEvent} to all child elements of its target, ensuring
@@ -168,14 +171,14 @@ public final class UIEventDispatcher {
      * @return {@code true} if the event dispatch to children is successful as determined
      *         by the {@code drillDown} operation, otherwise {@code false}.
      */
-    public static boolean dispatchAllChildren(UIEvent event) {
+    public static boolean dispatchAllChildren(UIEvent event, boolean onlyActive, boolean onlyDisplay) {
         event.currentElement = event.target;
         event.phase = UIEvent.EventPhase.AT_TARGET;
-        return drillDown(event);
+        return drillDown(event, onlyActive, onlyDisplay);
     }
 
     // Avoid using DFS?
-    private static boolean drillDown(UIEvent event) {
+    private static boolean drillDown(UIEvent event, boolean onlyActive, boolean onlyDisplay) {
         var currentElement = event.currentElement;
 
         for (var listener : currentElement.getCaptureListeners(event.type)) {
@@ -187,11 +190,11 @@ public final class UIEventDispatcher {
         if (event.propagationStopped) return true;
 
         for (var child : currentElement.getSortedChildren()) {
-            if (!child.isActive() || !child.isDisplayed()) {
+            if ((onlyActive && !child.isActive()) || (onlyDisplay && !child.isDisplayed())) {
                 continue;
             }
             event.currentElement = child;
-            boolean handled = drillDown(event);
+            boolean handled = drillDown(event, onlyActive, onlyDisplay);
             if (handled) return true;
         }
 

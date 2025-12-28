@@ -75,7 +75,7 @@ public class ServerCommands {
                     return 1;
                 })
         ));
-        if (Platform.isDevEnv()) {
+        if (LDLib2Registries.MENU_TESTS != null && !LDLib2Registries.MENU_TESTS.values().isEmpty()) {
             commands.add(createMenuTestCommands());
         }
         return commands;

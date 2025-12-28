@@ -5,12 +5,13 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @OnlyIn(Dist.CLIENT)
 @UtilityClass
 public final class LDProgramDefineManager {
-    private static Set<String> PROGRAM_DEFINES = new HashSet<>();
+    private static final Set<String> PROGRAM_DEFINES = new LinkedHashSet<>();
 
     public static void addProgramDefine(String define) {
         PROGRAM_DEFINES.add(define);
@@ -36,5 +37,13 @@ public final class LDProgramDefineManager {
         StringBuilder sb = new StringBuilder();
         PROGRAM_DEFINES.forEach(def -> sb.append("#define ").append(def).append("\n"));
         return sb.toString();
+    }
+
+    public static String createProgramNameWithDefines(String name) {
+        return PROGRAM_DEFINES.isEmpty() ? name : name + "_" + createProgramDefinesString();
+    }
+
+    public static Set<String> getProgramDefines() {
+        return PROGRAM_DEFINES;
     }
 }

@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -147,6 +146,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         getStyle().backgroundTexture(ITEM_SLOT_TEXTURE);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        addEventListener(UIEvents.MUI_CHANGED, this::onModularUIChanged);
         if (LDLib2.isJeiLoaded()) {
             JEISupport.clickableIngredient(this);
         }
@@ -158,6 +158,10 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
         bind(slot);
         internalSetup();
+    }
+
+    protected void onModularUIChanged(UIEvent event) {
+        addSlotToTheMenu();
     }
 
     public ItemSlot bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
@@ -252,12 +256,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     protected void onLayoutChanged() {
         super.onLayoutChanged();
         updateSlotPosition();
-    }
-
-    @Override
-    protected void _setModularUIInternal(@Nullable ModularUI mui) {
-        super._setModularUIInternal(mui);
-        addSlotToTheMenu();
     }
 
     public ItemSlot setItem(ItemStack item) {

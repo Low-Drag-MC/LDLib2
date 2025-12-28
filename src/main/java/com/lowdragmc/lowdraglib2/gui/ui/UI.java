@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
+import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -10,6 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 @Data(staticConstructor = "of")
 @KJSBindings
@@ -58,5 +61,38 @@ public final class UI {
 
     public UITemplate toTemplate() {
         return UITemplate.of(rootElement);
+    }
+
+    /**
+     * Selects and retrieves a stream of {@link UIElement} objects that match the specified selector.
+     * The method analyzes the hierarchy of {@code rootElement}'s children and filters elements based on the provided selector.
+     *
+     * @param selector the CSS-like selector used to filter the {@link UIElement} objects
+     * @return a {@link Stream} of {@link UIElement} objects that match the given selector
+     */
+    public Stream<UIElement> select(String selector) {
+        var match = HierarchicalStyleMatcher.parse(selector);
+        return rootElement.selfAndAllChildren().filter(match::matches);
+    }
+
+    public <T> Stream<T> select(String selector, Class<T> type) {
+        return select(selector).filter(type::isInstance).map(type::cast);
+    }
+
+    /**
+     * Selects and retrieves a stream of {@link UIElement} objects whose IDs match the specified regular expression.
+     * The method evaluates all the children, including the {@code rootElement} itself,
+     * and filters elements based on their IDs using the provided regex pattern.
+     *
+     * @param regex the regular expression used to match the {@code id} of {@link UIElement} objects
+     * @return a {@link Stream} of {@link UIElement} objects whose IDs satisfy the given regex
+     */
+    public Stream<UIElement> selectRegex(String regex) {
+        var pattern = Pattern.compile(regex);
+        return rootElement.selfAndAllChildren().filter(element -> pattern.matcher(element.getId()).find());
+    }
+
+    public <T> Stream<T> selectRegex(String regex, Class<T> type) {
+        return selectRegex(regex).filter(type::isInstance).map(type::cast);
     }
 }

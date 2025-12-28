@@ -1,258 +1,121 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
-import com.lowdragmc.lowdraglib2.client.shader.management.Shader;
-import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
-import com.lowdragmc.lowdraglib2.client.shader.management.ShaderProgram;
-import com.lowdragmc.lowdraglib2.client.shader.uniform.UniformCache;
+import com.lowdragmc.lowdraglib2.client.shader.LDShaderHolder;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaAlign;
+import org.jetbrains.annotations.NotNull;
+import org.joml.Vector4f;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 
-// TODO refactor Shader Texture
 @KJSBindings
 @LDLRegisterClient(name = "shader_texture", registry = "ldlib2:gui_texture")
-public class ShaderTexture extends TransformTexture {
-    private static final Map<ResourceLocation, ShaderTexture> CACHE = new HashMap<>();
-
+public class ShaderTexture extends TransformTexture implements AutoCloseable {
+    @Getter
     @Configurable(name = "ldlib.gui.editor.name.resource", tips = "ldlib.gui.editor.tips.shader_location")
-    public ResourceLocation location;
-
-    @OnlyIn(Dist.CLIENT)
-    private ShaderProgram program;
-
-    @OnlyIn(Dist.CLIENT)
-    private Shader shader;
-
-    @Configurable(tips = "ldlib.gui.editor.tips.shader_resolution")
-    @ConfigNumber(range = {1, 3})
-    private float resolution = 2;
-
-    @Configurable
+    private ResourceLocation shaderLocation;
+    @Configurable(name = "widget.basic.color")
     @ConfigColor
+    @Getter @Setter @Accessors(chain = true)
     private int color = -1;
 
-    private Consumer<UniformCache> uniformCache;
-
-    private final boolean isRaw;
-
-    private ShaderTexture(boolean isRaw) {
-        this.isRaw = isRaw;
-    }
+    //runtime
+    @Getter @Nullable
+    private LDShaderHolder shaderHolder;
 
     public ShaderTexture() {
-        this(false);
-        this.location = LDLib2.id("fbm");
-        if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
-            if (shader == null) return;
-            this.program = new ShaderProgram();
-            this.shader = shader;
-            program.attach(LDLibShaders.GUI_IMAGE_V);
-            program.attach(shader);
-        }
+        this(LDLib2.id("fbm"));
     }
 
-    @Override
-    public void beforeSerialize() {
-        super.beforeSerialize();
-        dispose();
+    public ShaderTexture(ResourceLocation shaderLocation) {
+        setShader(shaderLocation);
     }
 
-    @Override
-    public void afterSerialize() {
-        super.afterSerialize();
-        Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
-        if (shader == null) return;
-        this.program = new ShaderProgram();
-        this.shader = shader;
-        program.attach(LDLibShaders.GUI_IMAGE_V);
-        program.attach(shader);
-    }
-
-    public static void clearCache() {
-        CACHE.values().forEach(ShaderTexture::dispose);
-        CACHE.clear();
-    }
-
-    public void dispose() {
-        if (isRaw && shader != null) {
-            shader.deleteShader();
-        }
-        if (program != null) {
-            program.delete();
-        }
-        shader = null;
-        program = null;
-    }
-
-    @Override
-    public ShaderTexture setColor(int color) {
-        this.color = color;
-        return this;
-    }
-
-    @ConfigSetter(field = "location")
-    public void updateShader(ResourceLocation location) {
-        if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            this.location = location;
-            dispose();
-            Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
-            if (shader == null) return;
-            this.program = new ShaderProgram();
-            this.shader = shader;
-            program.attach(LDLibShaders.GUI_IMAGE_V);
-            program.attach(shader);
-        }
-    }
-
-    public void updateRawShader(String rawShader) {
-        if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            dispose();
-            shader = new Shader(Shader.ShaderType.FRAGMENT, rawShader).compileShader();
-            program = new ShaderProgram();
-            program.attach(LDLibShaders.GUI_IMAGE_V);
-            program.attach(shader);
-        }
-    }
-
-    public String getRawShader() {
-        if (LDLib2.isRemote() && ShaderManager.allowedShader() && shader != null) {
-            return shader.source;
-        }
-        return "";
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private ShaderTexture(Shader shader, boolean isRaw) {
-        this.isRaw = isRaw;
-        if (shader == null) return;
-        this.program = new ShaderProgram();
-        this.shader = shader;
-        program.attach(LDLibShaders.GUI_IMAGE_V);
-        program.attach(shader);
-    }
-
-    public static ShaderTexture createShader(ResourceLocation location) {
-        if (CACHE.containsKey(location) && CACHE.get(location).shader != null) {
-            return CACHE.get(location);
-        }
-        ShaderTexture texture;
-        if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            Shader shader = LDLibShaders.load(Shader.ShaderType.FRAGMENT, location);
-            texture = new ShaderTexture(shader, false);
-            CACHE.put(location, texture);
-        } else {
-            texture = new ShaderTexture(false);
-        }
-        texture.location = location;
-        return texture;
-    }
-
-    public static ShaderTexture createRawShader(String rawShader) {
-        if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            Shader shader = new Shader(Shader.ShaderType.FRAGMENT, rawShader).compileShader();
-            return new ShaderTexture(shader, true);
-        } else {
-            return new ShaderTexture(true);
-        }
-    }
-
-    public ShaderTexture setUniformCache(Consumer<UniformCache> uniformCache) {
-        this.uniformCache = uniformCache;
-        return this;
-    }
-
-    public ShaderTexture setResolution(float resolution) {
-        this.resolution = resolution;
-        return this;
-    }
-
-    public float getResolution() {
-        return resolution;
-    }
-
-    public void bindTexture(String samplerName, int id) {
-        if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            if (program != null) {
-                program.bindTexture(samplerName, id);
-            }
-        }
-    }
-
-    public void bindTexture(String samplerName, ResourceLocation location) {
-        if (LDLib2.isRemote() && ShaderManager.allowedShader()) {
-            if (program != null) {
-                program.bindTexture(samplerName, location);
-            }
-        }
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        if (program != null) {
-            try {
-                program.use(cache->{
-                    Minecraft mc = Minecraft.getInstance();
-                    float time;
-                    if (mc.player != null) {
-                        time = (mc.player.tickCount + partialTicks) / 20;
-                    } else {
-                        time = System.currentTimeMillis() / 1000f;
-                    }
-                    float mX = Mth.clamp((mouseX - x), 0, width);
-                    float mY = Mth.clamp((mouseY - y), 0, height);
-                    cache.glUniformMatrix4F("ModelViewMat", RenderSystem.getModelViewMatrix());
-                    cache.glUniformMatrix4F("ProjMat", RenderSystem.getProjectionMatrix());
-                    cache.glUniform2F("iResolution", width * resolution, height * resolution);
-                    cache.glUniform2F("iMouse", mX * resolution, mY * resolution);
-                    cache.glUniform1F("iTime", time);
-                    if (uniformCache != null) {
-                        uniformCache.accept(cache);
-                    }
+    @ConfigSetter(field = "shaderLocation")
+    public ShaderTexture setShader(ResourceLocation shaderLocation) {
+        this.shaderLocation = shaderLocation;
+        if (LDLib2.isClient()) {
+            if (!RenderSystem.isOnRenderThread()) {
+                RenderSystem.recordRenderCall(() -> {
+                    if (shaderHolder != null) shaderHolder.close();
+                    shaderHolder = LDShaderHolder.create(shaderLocation, DefaultVertexFormat.POSITION_TEX_COLOR);
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
-                dispose();
-                return;
+            } else {
+                if (shaderHolder != null) shaderHolder.close();
+                shaderHolder = LDShaderHolder.create(shaderLocation, DefaultVertexFormat.POSITION_TEX_COLOR);
             }
+        }
+        return this;
+    }
 
+    @Override
+    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
+        return TagBuilder.compound(super.serializeNBT(provider))
+                .add("config", shaderHolder == null ? null : shaderHolder.serializeNBT(provider))
+                .build();
+    }
+
+    @Override
+    public void deserializeNBT(HolderLookup.@NotNull Provider provider, @NotNull CompoundTag tag) {
+        super.deserializeNBT(provider, tag);
+        if (tag.contains("config") && shaderHolder != null) {
+            shaderHolder.deserializeNBT(provider, tag.getCompound("config"));
+        }
+    }
+
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY,
+                                float x, float y, float width, float height, float partialTicks) {
+        if (shaderHolder != null) {
+            shaderHolder.addDynamicUniform("U_GuiRect", uniform -> uniform.set(new Vector4f(x, y, width, height)));
+            shaderHolder.addDynamicUniform("U_GuiMouse", uniform -> uniform.set((float) mouseX, (float) mouseY));
+
+            RenderSystem.setShader(shaderHolder::getShaderInstance);
             RenderSystem.enableBlend();
-            Tesselator tessellator = Tesselator.getInstance();
+            RenderSystem.defaultBlendFunc();
             var mat = graphics.pose().last().pose();
-            BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
             buffer.addVertex(mat, x, y + height, 0).setUv(0, 0).setColor(color);
             buffer.addVertex(mat, x + width, y + height, 0).setUv(1, 0).setColor(color);
             buffer.addVertex(mat, x + width, y, 0).setUv(1, 1).setColor(color);
             buffer.addVertex(mat, x, y, 0).setUv(0, 1).setColor(color);
-            BufferUploader.draw(buffer.buildOrThrow());
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
 
-            program.release();
+            shaderHolder.removeDynamicUniform("U_GuiRect");
+            shaderHolder.removeDynamicUniform("U_GuiMouse");
         } else {
             DrawerHelper.drawText(graphics, "Error compiling shader", x + 2, y + 2, 1, 0xffff0000);
         }
@@ -262,10 +125,11 @@ public class ShaderTexture extends TransformTexture {
     public void createPreview(ConfiguratorGroup father) {
         super.createPreview(father);
         var configurator = new Configurator();
+
         // button to select image
         father.addConfigurator(configurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_shader").setOnClick(e -> {
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_shader", LDLib2.getAssetsDir(), true, node -> {
-                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".fsh".toLowerCase())) {
+                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".json".toLowerCase())) {
                     if (node.getKey().isFile()) {
                             return getShaderFromFile(node.getKey()) != null;
                         }
@@ -276,22 +140,40 @@ public class ShaderTexture extends TransformTexture {
                     if (r != null && r.isFile()) {
                         var location = getShaderFromFile(r);
                         if (location == null) return;
-                        updateShader(location);
+                        setShader(location);
                         configurator.notifyChanges();
                     }
                 }).show(e.currentElement.getModularUI());
             }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
         );
+
         // button to reload shader
         father.addConfigurator(new Configurator().addInlineChild(new Button().setText("reload").setOnClick(e -> {
-                    var currentShader = location;
-                    if (currentShader == null) return;
-                    var location = ResourceLocation.fromNamespaceAndPath(currentShader.getNamespace(), "shaders/" + currentShader.getPath() + Shader.ShaderType.FRAGMENT.shaderExtension);
-                    var shader = LDLibShaders.CACHE.remove(location);
-                    if (shader != null) shader.deleteShader();
-                    updateShader(currentShader);
-                }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
-        );
+            setShader(this.shaderLocation);
+        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))));
+    }
+
+    @Override
+    public void buildConfigurator(ConfiguratorGroup father) {
+        super.buildConfigurator(father);
+        var holderConfigContainer = new ConfiguratorGroup().hideTitle().setCollapse(false);
+        AtomicReference<LDShaderHolder> holderRef = new AtomicReference<>(shaderHolder);
+        // holder configurator
+        if (shaderHolder != null) {
+            shaderHolder.buildConfigurator(holderConfigContainer);
+        }
+        holderConfigContainer.configuratorContainer.setDisplay(!holderConfigContainer.getConfigurators().isEmpty());
+        holderConfigContainer.addEventListener(UIEvents.TICK, e -> {
+           if (holderRef.get() != shaderHolder) {
+               holderConfigContainer.removeAllConfigurators();
+               if (shaderHolder != null) {
+                   shaderHolder.buildConfigurator(holderConfigContainer);
+               }
+               holderConfigContainer.configuratorContainer.setDisplay(!holderConfigContainer.getConfigurators().isEmpty());
+               holderRef.set(shaderHolder);
+           }
+        });
+        father.addConfigurator(holderConfigContainer);
     }
 
     @Nullable
@@ -316,21 +198,28 @@ public class ShaderTexture extends TransformTexture {
         var subPath = relativePath.substring(slashIndex + 1);
 
         // find shader location
-        var shaderIndex = subPath.indexOf("shaders/");
+        var shaderIndex = subPath.indexOf("shaders/core/");
         if (shaderIndex == -1) {
             return null;
         }
 
-        var shaderPath = subPath.substring(shaderIndex + "shaders/".length());
-        if (!shaderPath.endsWith(".fsh")) {
+        var shaderPath = subPath.substring(shaderIndex + "shaders/core/".length());
+        if (!shaderPath.endsWith(".json")) {
             return null;
         }
 
-        var location = modId + ":" + shaderPath.substring(0, shaderPath.length() - 4); // remove ".fsh" suffix
+        var location = modId + ":" + shaderPath.substring(0, shaderPath.length() - 5); // remove ".json" suffix
 
         if (LDLib2.isValidResourceLocation(location)) {
             return ResourceLocation.parse(location);
         }
         return null;
+    }
+
+    @Override
+    public void close() {
+        if (LDLib2.isClient() && shaderHolder != null) {
+            shaderHolder.close();
+        }
     }
 }

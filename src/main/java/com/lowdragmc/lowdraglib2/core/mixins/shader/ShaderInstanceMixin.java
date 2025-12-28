@@ -1,8 +1,10 @@
-package com.lowdragmc.lowdraglib2.core.mixins;
+package com.lowdragmc.lowdraglib2.core.mixins.shader;
 
 import com.google.gson.JsonObject;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.lowdragmc.lowdraglib2.client.shader.ILDShaderInstance;
+import com.lowdragmc.lowdraglib2.client.shader.LDProgramDefineManager;
+import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
@@ -11,6 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.IOException;
 
@@ -31,4 +34,14 @@ public abstract class ShaderInstanceMixin implements ILDShaderInstance {
         this.onCreateShader(resourceProvider, shaderLocation, vertexFormat, json);
     }
 
+    @Inject(method = "getOrCreate", at = {@At(value = "HEAD")}, cancellable = true)
+    private static void ldlib2$getOrCreate(ResourceProvider resourceProvider,
+                                           Program.Type programType,
+                                           String name,
+                                           CallbackInfoReturnable<Program> cir) {
+        if (LDProgramDefineManager.hasProgramDefines()) {
+            var program = programType.getPrograms().get(LDProgramDefineManager.createProgramNameWithDefines(name));
+            if (program != null) cir.setReturnValue(program);
+        }
+    }
 }

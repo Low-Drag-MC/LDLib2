@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -81,6 +82,17 @@ public class ColorsResource extends Resource<Integer> {
                             }).setText("ldlib.gui.tips.confirm"))
                             .addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel"))
                             .show(container.getModularUI());
+                })
+                .setOnMenu((container, menu) -> {
+                    if (container.getSelected() != null) {
+                        var color = getResourceInstance().getResource(container.getSelected());
+                        if (color != null) {
+                            menu.branch("ldlib.gui.editor.menu.copy_color", branch -> {
+                                branch.leaf("int(%d)".formatted(color), () -> ClipboardManager.INSTANCE.copyDirect(color.toString()));
+                                branch.leaf("hex(%06X)".formatted(color), () -> ClipboardManager.INSTANCE.copyDirect("#%06X".formatted(color)));
+                            });
+                        }
+                    }
                 });
     }
 }

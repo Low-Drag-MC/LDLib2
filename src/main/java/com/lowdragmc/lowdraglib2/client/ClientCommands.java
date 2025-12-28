@@ -40,7 +40,7 @@ public class ClientCommands {
                     ShaderManager.getInstance().reload();
                     return 1;
                 })));
-        if (Platform.isDevEnv()) {
+        if (LDLib2Registries.SCREEN_TESTS != null && !LDLib2Registries.SCREEN_TESTS.values().isEmpty()) {
             commands.add(createScreenTestCommands());
         }
         return commands;

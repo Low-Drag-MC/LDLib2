@@ -62,6 +62,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * The base class for all UI elements.
@@ -152,23 +153,25 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * Set the Modular UI for this element. In general, this method should only be called automatically.
      * You should not call this method manually.
      */
-    protected void _setModularUIInternal(@Nullable ModularUI mui) {
-        if (this.modularUI == mui) return;
-        if (this.modularUI != null) {
-            this.modularUI.unregisterElement(this);
-            if (this.modularUI.syncManager != null) {
-                syncValues.forEach(this.modularUI.syncManager::unregisterSyncValue);
-                rpcEvents.forEach(this.modularUI.syncManager::unregisterRPCEvent);
+    protected final void _setModularUIInternal(@Nullable ModularUI mui) {
+        if (this.modularUI != mui) {
+            if (this.modularUI != null) {
+                this.modularUI.unregisterElement(this);
+                if (this.modularUI.syncManager != null) {
+                    syncValues.forEach(this.modularUI.syncManager::unregisterSyncValue);
+                    rpcEvents.forEach(this.modularUI.syncManager::unregisterRPCEvent);
+                }
+            }
+            this.modularUI = mui;
+            if (mui != null) {
+                mui.registerElement(this);
+                if (mui.syncManager != null) {
+                    syncValues.forEach(mui.syncManager::registerSyncValue);
+                    rpcEvents.forEach(mui.syncManager::registerRPCEvent);
+                }
             }
         }
-        this.modularUI = mui;
-        if (mui != null) {
-            mui.registerElement(this);
-            if (mui.syncManager != null) {
-                syncValues.forEach(mui.syncManager::registerSyncValue);
-                rpcEvents.forEach(mui.syncManager::registerRPCEvent);
-            }
-        }
+        // always notify mui changes for menu and screen changes
         if (bubbleListeners.containsKey(UIEvents.MUI_CHANGED) || captureListeners.containsKey(UIEvents.MUI_CHANGED)) {
             var event = UIEvent.create(UIEvents.MUI_CHANGED);
             event.target = this;
@@ -534,6 +537,17 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return List.copyOf(children);
     }
 
+    public Stream<UIElement> selfAndAllChildren() {
+        return Stream.concat(
+                Stream.of(this),
+                children.stream().flatMap(UIElement::selfAndAllChildren)
+        );
+    }
+
+    public Stream<UIElement> allChildrenStream() {
+        return children.stream().flatMap(UIElement::selfAndAllChildren);
+    }
+
     public final List<UIElement> getFlattenChildren() {
         var list = new ArrayList<UIElement>();
         for (var child : children) {
@@ -646,7 +660,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     @ConfigSetter(field = "id")
     public UIElement setId(String id) {
-        if (this.id.equals(id)) return this;
         this.id = id;
         onClassIdChanged();
         return this;
@@ -654,7 +667,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     @ConfigSetter(field = "isActive")
     public UIElement setActive(boolean active) {
-        if (this.isActive == active) return this;
         isActive = active;
         if (isActive) {
             removeClass("__disabled__");
@@ -662,6 +674,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             addClass("__disabled__");
         }
         return this;
+    }
+
+    public UIElement disabled() {
+        return setActive(false);
     }
 
     /// Style

@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.core.mixins;
+package com.lowdragmc.lowdraglib2.core.mixins.shader;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDShaderInstance;
 import com.mojang.blaze3d.shaders.ProgramManager;

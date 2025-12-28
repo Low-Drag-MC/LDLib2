@@ -8,3 +8,8 @@
   background: built-in(ui-gdp:BORDER1_RT1);
   padding-all: 3;
 }
+
+button.__disabled__ .__button_text__ {
+  text-color: #666;
+  text-shadow: false;
+}

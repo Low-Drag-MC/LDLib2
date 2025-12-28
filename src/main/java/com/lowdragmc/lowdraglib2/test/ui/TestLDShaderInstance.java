@@ -2,8 +2,9 @@ package com.lowdragmc.lowdraglib2.test.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.client.shader.LDShaderInstance;
+import com.lowdragmc.lowdraglib2.client.shader.LDShaderHolder;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.texture.ShaderTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -36,9 +37,8 @@ public class TestLDShaderInstance implements IScreenTest {
 
         var group = new ConfiguratorGroup("root");
         group.setCollapse(false);
-        var shaderInstance= LDShaderInstance.create(LDLib2.id("test_shader"), DefaultVertexFormat.PARTICLE);
-        assert shaderInstance != null;
-        shaderInstance.buildConfigurator(group);
+        var shaderTexture= new ShaderTexture();
+        shaderTexture.buildConfigurator(group);
         var text = new TextElement();
         root.addChildren(
                 new ScrollerView().addScrollViewChild(group).layout(layout -> {
@@ -50,11 +50,11 @@ public class TestLDShaderInstance implements IScreenTest {
                     layout.setHeightPercent(100);
                 }).addChildren(
                         new Button().setText("serialize").setOnClick(e -> {
-                            serialized = shaderInstance.serializeNBT(Platform.getFrozenRegistry());
+                            serialized = shaderTexture.serializeNBT(Platform.getFrozenRegistry());
                             text.setText(NbtUtils.toPrettyComponent(serialized));
                         }),
                         new Button().setText("deserialize").setOnClick(e -> {
-                            shaderInstance.deserializeNBT(Platform.getFrozenRegistry(), serialized);
+                            shaderTexture.deserializeNBT(Platform.getFrozenRegistry(), serialized);
                         }),
                         new ScrollerView().addScrollViewChild(text.textStyle(style -> {
                             style.adaptiveHeight(true);
@@ -65,7 +65,7 @@ public class TestLDShaderInstance implements IScreenTest {
                             layout.setFlex(1);
                             layout.setWidthPercent(100);
                         })))
-                .addEventListener(UIEvents.REMOVED, e -> shaderInstance.close());
+                .addEventListener(UIEvents.REMOVED, e -> shaderTexture.close());
 
         return new ModularUI(UI.of(root));
     }

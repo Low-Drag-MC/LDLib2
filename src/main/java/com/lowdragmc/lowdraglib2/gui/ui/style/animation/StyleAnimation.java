@@ -57,12 +57,7 @@ public class StyleAnimation {
 
     public StyleAnimation select(String selector) {
         if (mui == null) return this;
-        var match = HierarchicalStyleMatcher.parse(selector);
-        for (var element : mui.getAllElements()) {
-            if (match.matches(element)) {
-                select(element);
-            }
-        }
+        mui.select(selector).forEach(this::select);
         return this;
     }
 

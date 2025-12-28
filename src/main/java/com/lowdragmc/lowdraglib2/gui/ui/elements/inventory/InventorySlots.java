@@ -3,6 +3,8 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements.inventory;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import net.minecraft.world.inventory.Slot;
@@ -39,12 +41,13 @@ public class InventorySlots extends UIElement {
                 row.slots[c].setId("inventory_%d".formatted(slotIndex));
             }
         }
+
+        addEventListener(UIEvents.MUI_CHANGED, this::onModularUIChanged);
         internalSetup();
     }
 
-    @Override
-    protected void _setModularUIInternal(@Nullable ModularUI mui) {
-        super._setModularUIInternal(mui);
+    protected void onModularUIChanged(UIEvent event) {
+        var mui = getModularUI();
         if (mui != null) {
             var menu = mui.getMenu();
             var player = mui.player;

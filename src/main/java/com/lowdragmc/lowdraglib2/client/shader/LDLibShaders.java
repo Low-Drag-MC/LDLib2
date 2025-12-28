@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.shader.management.Shader;
-import com.lowdragmc.lowdraglib2.gui.texture.ShaderTexture;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -72,7 +71,6 @@ public class LDLibShaders {
 		CACHE.clear();
 		init();
 		DrawerHelper.init();
-		ShaderTexture.clearCache();
 		reloadListeners.forEach(Runnable::run);
 	}
 

@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
 import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
@@ -50,6 +51,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -164,12 +166,6 @@ public class ModularUI {
         return new ModularUI(ui, player);
     }
 
-    public void setMenu(@Nullable AbstractContainerMenu menu) {
-        this.menu = menu;
-        this.ui.rootElement.setFocusable(true);
-        this.ui.rootElement._setModularUIInternal(this);
-    }
-
     public boolean isHoverSlot(Slot slot) {
         return getLastHoveredElement() instanceof ItemSlot itemSlot && itemSlot.getSlot() == slot;
     }
@@ -237,6 +233,22 @@ public class ModularUI {
 
     public List<UIElement> getAllElements() {
         return Collections.unmodifiableList(elements);
+    }
+
+    /**
+     * Selects a stream of {@link UIElement} instances that match a given CSS-like selector.
+     * The selector is parsed and used to filter the {@link UIElement} objects within the current UI structure.
+     *
+     * @param selector the CSS-like selector used to match elements
+     * @return a stream of {@link UIElement} instances that match the provided selector
+     */
+    public Stream<UIElement> select(String selector) {
+        var match = HierarchicalStyleMatcher.parse(selector);
+        return getAllElements().stream().filter(match::matches);
+    }
+
+    public <T> Stream<T> select(String selector, Class<T> type) {
+        return select(selector).filter(type::isInstance).map(type::cast);
     }
 
     /**
@@ -410,11 +422,16 @@ public class ModularUI {
         return elements != null ? elements.size() : 0;
     }
 
-    /// screen only
+    public void setMenu(@Nullable AbstractContainerMenu menu) {
+        this.menu = menu;
+        this.ui.rootElement.setFocusable(true);
+        this.ui.rootElement._setModularUIInternal(this);
+    }
 
+    /// screen only
     @OnlyIn(Dist.CLIENT)
     public void setScreenAndInit(Screen screen) {
-        this.screen = screen;
+        setScreen(screen);
         init(screen.width, screen.height);
     }
 
@@ -466,8 +483,8 @@ public class ModularUI {
 
         // we'd better align it to the integer position to avoid a floating point error
         this.ui.rootElement._setModularUIInternal(this);
-        ui.rootElement.initScreen(screenWidth, screenHeight);
-        ui.rootElement.getLayoutNode().markDirtyAndPropagate();
+        this.ui.rootElement.initScreen(screenWidth, screenHeight);
+        this.ui.rootElement.getLayoutNode().markDirtyAndPropagate();
         calculateStyleAndLayout();
 
         // if dimension is auto, update real sizes after layout calculation
@@ -486,7 +503,7 @@ public class ModularUI {
 
         this.leftPos = Math.round(this.leftPos);
         this.topPos = Math.round(this.topPos);
-        ui.rootElement.clearLayoutCache();
+        this.ui.rootElement.clearLayoutCache();
     }
 
     private void calculateStyleAndLayout() {

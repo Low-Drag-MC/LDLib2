@@ -24,6 +24,11 @@ button:host {
   height: 16;
 }
 
+button.__disabled__ .__button_text__ {
+  text-color: #666;
+  text-shadow: false;
+}
+
 text, label {
   text-shadow: false;
   font: ldlib2:jetbrains_mono_bold;
