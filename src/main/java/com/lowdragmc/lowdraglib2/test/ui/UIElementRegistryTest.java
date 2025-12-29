@@ -14,12 +14,12 @@ public class UIElementRegistryTest {
     @GameTest(template = "empty")
     @PrefixGameTestTemplate(false)
     public static void uiRegistryTest(GameTestHelper helper) {
-        LDLib2.LOGGER.info("Start UIRegistry Test");
+        LDLib2.LOGGER.info("Start UI Registry Test");
         for (var holder : LDLib2Registries.UI_ELEMENTS.values()) {
             var element = holder.value().get();
             element.deserializeNBT(helper.getLevel().registryAccess(), new CompoundTag());
         }
-        LDLib2.LOGGER.info("End UIRegistry Test");
+        LDLib2.LOGGER.info("End UI Registry Test");
         helper.succeed();
     }
 

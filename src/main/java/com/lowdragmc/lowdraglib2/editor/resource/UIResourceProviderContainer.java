@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.google.common.collect.Maps;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
-import com.lowdragmc.lowdraglib2.editor.ui.view.ui.UIEditorView;
+import com.lowdragmc.lowdraglib2.gui.editor.view.UIEditorView;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;

@@ -23,6 +23,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -218,4 +219,12 @@ public class Tab extends UIElement {
         super.drawBackgroundAdditional(guiContext);
     }
 
+    @Override
+    public void loadXml(Element element) {
+        // text
+        if (element.hasAttribute("text")) {
+            setText(element.getAttribute("text"));
+        }
+        super.loadXml(element);
+    }
 }

@@ -32,6 +32,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.architectury.hooks.fluid.forge.FluidStackHooksForge;
 import dev.emi.emi.api.stack.*;
 import lombok.Getter;
@@ -52,6 +53,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -429,6 +431,25 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         if (!editorFluidDisplay.isEmpty()) {
             setValue(editorFluidDisplay, false);
         }
+    }
+
+    @Override
+    public void loadXml(Element element) {
+        // capacity
+        if (element.hasAttribute("capacity")) {
+            setCapacity(XmlUtils.getAsInt(element, "capacity", capacity));
+        }
+        // allow xei lookup
+        if (element.hasAttribute("allow-xei-Lookup")) {
+            setAllowXEILookup(XmlUtils.getAsBoolean(element, "allow-xei-Lookup", allowXEILookup));
+        }
+        // fluid display
+        var fluid = XmlUtils.getFluidStack(element);
+        if (fluid != FluidStack.EMPTY) {
+            setEditorFluidDisplay(fluid);
+        }
+
+        super.loadXml(element);
     }
 
     // region XEI Support

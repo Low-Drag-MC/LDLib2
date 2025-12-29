@@ -47,6 +47,7 @@ public class ToggleGroupElement extends UIElement {
         return false;
     }
 
+    /// Editor + Xml
     @Override
     public boolean canAddEditorChild(AutoRegistry.Holder<LDLRegister, UIElement, Supplier<UIElement>> holder) {
         return Toggle.class.isAssignableFrom(holder.clazz());

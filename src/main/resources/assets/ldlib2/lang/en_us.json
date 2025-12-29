@@ -124,6 +124,7 @@
   "editor.invalid_file_path": "Invalid File Path",
   "editor.ui.hierarchy": "UI Hierarchy",
   "editor.view.ui_editor": "UI Editor",
+  "editor.view.ui_xml_editor": "UI Xml Editor",
   "editor.camera.mode": "Camera Mode",
   "editor.camera.prospective": "Pros",
   "editor.camera.ortho": "Ortho",
@@ -455,7 +456,7 @@
   "UIEditor.simulation": "Simulation",
   "builtin_styles": "Builtin Styles",
   "UIElement.class": "Class",
-  "project.lss": "LSS Project",
+  "project.xml": "UI XML Project",
   "editor.loadProject.info": "Do you want to open the project in a new window?",
   "ButtonStyle": "Button Style",
   "MenuStyle": "Menu Style",
@@ -505,5 +506,6 @@
   "auto": "Auto",
   "animation.duration": "duration",
   "animation.delay": "delay",
-  "animation.ease": "ease"
+  "animation.ease": "ease",
+  "TabView.selected": "Selected Tab"
 }

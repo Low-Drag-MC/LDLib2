@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
@@ -31,6 +32,7 @@ import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -325,4 +327,21 @@ public class Toggle extends BindableUIElement<Boolean> {
         return this;
     }
 
+    /// Editor + Xml
+    @Override
+    public void loadXml(Element element) {
+        if (element.hasAttribute("text")) {
+            var text = element.getAttribute("text");
+            if (text.isEmpty()) {
+                noText();
+            } else {
+                setText(text);
+            }
+        }
+        super.loadXml(element);
+        // is on
+        if (element.hasAttribute("is-on")) {
+            setOn(XmlUtils.getAsBoolean(element, "is-on", isOn));
+        }
+    }
 }

@@ -18,6 +18,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.appliedenergistics.yoga.YogaPositionType;
+import org.w3c.dom.Element;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
@@ -297,6 +298,11 @@ public class GraphView extends UIElement {
         guiContext.drawTexture(graphViewStyle.gridTexture(), drawX, drawY, drawW, drawH);
 
         guiContext.pose.popPose();
+    }
 
+    /// Editor
+    @Override
+    public void addEditorChild(UIElement child, int index) {
+        contentRoot.addChildAt(child, index);
     }
 }

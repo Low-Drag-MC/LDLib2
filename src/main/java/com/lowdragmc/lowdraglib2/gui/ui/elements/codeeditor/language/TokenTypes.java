@@ -34,4 +34,13 @@ public class TokenTypes {
     public static TokenType CSS_UNIT = new TokenType("CSSUnit").setPattern("\\b\\d+\\.?\\d*(px|em|rem|%|vh|vw|pt|cm|mm|in|pc|ex|ch|vmin|vmax|deg|rad|turn|s|ms)(?!\\w)");
     public static TokenType CSS_COLOR = new TokenType("CSSColor").setPattern("(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\b|rgba?\\(\\s*(?:\\d{1,3}%?\\s*,\\s*){2}\\d{1,3}%?(?:\\s*,\\s*(?:\\d*\\.\\d+|\\d+)%?)?\\s*\\))");
     public static TokenType CSS_IMPORTANT = new TokenType("CSSImportant").setPattern("!important");
+    // XML
+    public static TokenType XML_COMMENT = new TokenType("XMLComment").setPattern("<!--(.|\\R)*?-->");
+    public static TokenType XML_CDATA = new TokenType("XMLCData").setPattern("<!\\[CDATA\\[(.|\\R)*?\\]\\]>");
+    public static TokenType XML_ATTRIBUTE_VALUE = new TokenType("XMLAttributeValue").setPattern("\"[^\"]*\"|'[^']*'");
+    public static TokenType XML_ATTRIBUTE_NAME = new TokenType("XMLAttributeName").setPattern("[a-zA-Z_:][a-zA-Z0-9_:.-]*(?=\\s*=)");
+    public static TokenType XML_ENTITY_REF = new TokenType("XMLEntityRef").setPattern("&[a-zA-Z0-9#]+;");
+    public static TokenType XML_TAG_NAME = new TokenType("XMLTagName").setPattern("</?[a-zA-Z_:][a-zA-Z0-9_:.-]*");
+    public static TokenType XML_TAG_END = new TokenType("XMLTagEnd").setPattern("/?>");
+    public static TokenType XML_EQ = new TokenType("XMLEqual").setPattern("=");
 }

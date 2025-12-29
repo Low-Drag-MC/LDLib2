@@ -1,7 +1,8 @@
-package com.lowdragmc.lowdraglib2.editor.ui;
+package com.lowdragmc.lowdraglib2.gui.editor;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
+import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.YogaDisplay;
 
@@ -9,6 +10,7 @@ import javax.annotation.Nonnull;
 
 public class UIEditor extends Editor {
     public final static ResourceLocation WINDOW_ID = LDLib2.id("ui_editor");
+
 
     public UIEditor() {
         this.leftWindow.setDisplay(YogaDisplay.NONE);
@@ -33,6 +35,7 @@ public class UIEditor extends Editor {
     @Override
     protected void initMenus() {
         super.initMenus();
+        fileMenu.addProjectProvider(UIXmlProjectType.TYPE);
     }
 
     @Override

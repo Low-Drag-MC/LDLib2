@@ -19,15 +19,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaPositionType;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -352,5 +356,27 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 }
             }
         }
+    }
+
+    /// Editor + Xml
+    @Override
+    public void loadXml(Element element) {
+        // min value
+        if (element.hasAttribute("min-value")) {
+            setMinValue(XmlUtils.getAsFloat(element, "min-value", minValue));
+        }
+        // max value
+        if (element.hasAttribute("max-value")) {
+            setMaxValue(XmlUtils.getAsFloat(element, "max-value", maxValue));
+        }
+        // value
+        if (element.hasAttribute("value")) {
+            setValue(XmlUtils.getAsFloat(element, "value", value));
+        }
+        // text
+        if (element.hasAttribute("text")) {
+            label.setText(element.getAttribute("text"));
+        }
+        super.loadXml(element);
     }
 }

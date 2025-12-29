@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -11,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,6 +22,7 @@ import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -61,9 +64,12 @@ public abstract class Scroller extends BindableUIElement<Float> {
     @Getter
     private final ScrollerStyle scrollerStyle = new ScrollerStyle();
     @Getter
+    @Configurable(name = "minValue")
     protected float minValue = 0;
     @Getter
+    @Configurable(name = "maxValue")
     protected float maxValue = 1;
+    @Configurable(name = "value")
     protected float value = 0;
     @Getter
     protected float scrollBarSize = 20; // in percent
@@ -136,6 +142,16 @@ public abstract class Scroller extends BindableUIElement<Float> {
         setNormalizedValue(getNormalizedValue() + clampNormalizedValue.apply(normalizedValue));
     }
 
+    @ConfigSetter(field = "minValue")
+    public Scroller setMinValue(float minValue) {
+        return setRange(minValue, maxValue);
+    }
+
+    @ConfigSetter(field = "maxValue")
+    public Scroller setMaxValue(float maxValue) {
+        return setRange(minValue, maxValue);
+    }
+
     /**
      * Set the range of the scroller.
      */
@@ -143,6 +159,11 @@ public abstract class Scroller extends BindableUIElement<Float> {
         this.minValue = minValue;
         this.maxValue = maxValue;
         return setValue(value);
+    }
+
+    @ConfigSetter(field = "value")
+    private void setValueEditor(float value) {
+        setValue(value);
     }
 
     /**
@@ -368,5 +389,23 @@ public abstract class Scroller extends BindableUIElement<Float> {
             if (event.deltaX != 0) scrollValue(event.deltaX > 0 ? -delta : delta);
             else if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -delta : delta);
         }
+    }
+
+    /// Editor + Xml
+    @Override
+    public void loadXml(Element element) {
+        // min value
+        if (element.hasAttribute("min-value")) {
+            setMinValue(XmlUtils.getAsFloat(element, "min-value", minValue));
+        }
+        // max value
+        if (element.hasAttribute("max-value")) {
+            setMaxValue(XmlUtils.getAsFloat(element, "max-value", maxValue));
+        }
+        // value
+        if (element.hasAttribute("value")) {
+            setValue(XmlUtils.getAsFloat(element, "value", value));
+        }
+        super.loadXml(element);
     }
 }

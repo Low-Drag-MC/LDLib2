@@ -1,5 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -8,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +19,8 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaUnit;
+import org.w3c.dom.Element;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -50,6 +56,8 @@ public abstract class SplitView extends UIElement {
     protected abstract void onDragSourceUpdate(UIEvent event);
 
     public abstract SplitView setPercentage(float percentage);
+
+    public abstract float getPercentage();
 
     public SplitView first(UIElement first) {
         this.first.clearAllChildren();
@@ -87,6 +95,34 @@ public abstract class SplitView extends UIElement {
                         width,
                         height);
             });
+        }
+    }
+
+    /// Editor + Xml
+    @Override
+    protected void additionalConfigurators(ConfiguratorGroup father) {
+        father.addConfigurator(new NumberConfigurator("percentage",
+                this::getPercentage, number -> setPercentage(number.floatValue()),
+                50, true)
+                .setRange(0f, 100f)
+                .setType(ConfigNumber.Type.FLOAT));
+    }
+
+    @Override
+    public void loadXml(Element element) {
+        // percentage
+        if (element.hasAttribute("percentage")) {
+            setPercentage(Mth.clamp(XmlUtils.getAsFloat(element, "percentage", 50), 0f, 100f));
+        }
+        super.loadXml(element);
+    }
+
+    @Override
+    protected void parseXmlChildElement(Element childElement) {
+        if (childElement.getTagName().equals("first")) {
+            first.loadXml(childElement);
+        } else if (childElement.getTagName().equals("second")) {
+            second.loadXml(childElement);
         }
     }
 
@@ -141,6 +177,12 @@ public abstract class SplitView extends UIElement {
             return this;
         }
 
+        @Override
+        public float getPercentage() {
+            var width = first.getLayout().getWidth();
+            if (width.unit == YogaUnit.PERCENT) return width.value;
+            return 0;
+        }
     }
 
     @KJSBindings("SplitViewVertical")
@@ -192,5 +234,11 @@ public abstract class SplitView extends UIElement {
             return this;
         }
 
+        @Override
+        public float getPercentage() {
+            var height = first.getLayout().getHeight();
+            if (height.unit == YogaUnit.PERCENT) return height.value;
+            return 0;
+        }
     }
 }

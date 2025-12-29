@@ -1,14 +1,9 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
-import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
-import com.lowdragmc.lowdraglib2.editor.ui.EditorWindow;
-import com.lowdragmc.lowdraglib2.editor.ui.UIEditor;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;

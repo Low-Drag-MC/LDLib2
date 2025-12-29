@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
@@ -22,12 +23,14 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -335,4 +338,17 @@ public class TextElement extends UIElement {
         RenderSystem.depthMask(true);
     }
 
+    @Override
+    public void loadXml(Element element) {
+        super.loadXml(element);
+        XmlUtils.getComponents(element, net.minecraft.network.chat.Style.EMPTY)
+                .stream()
+                .reduce(MutableComponent::append)
+                .ifPresent(this::setText);
+    }
+
+    @Override
+    protected void parseXmlChildElement(Element childElement) {
+        // not able to add children for text
+    }
 }

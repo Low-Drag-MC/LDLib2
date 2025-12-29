@@ -30,6 +30,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
@@ -51,6 +52,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -1047,7 +1049,7 @@ public class TextField extends BindableUIElement<String> {
         }
     }
 
-    /// Editor Supports
+    /// Editor + Xml
     @Override
     public void beforeDeserialize() {
         super.beforeDeserialize();
@@ -1136,5 +1138,23 @@ public class TextField extends BindableUIElement<String> {
             }
             group.addConfigurators(configurator);
         }
+    }
+
+    @Override
+    public void loadXml(Element element) {
+        // mode
+        if (element.hasAttribute("mode")) {
+            editorMode = XmlUtils.getAsEnum(element, "mode", Mode.class, editorMode);
+        }
+        // regex validator
+        if (element.hasAttribute("regex-validator")) {
+            editorRegexValidator = element.getAttribute("regex-validator");
+        }
+        // value
+        if (element.hasAttribute("value")) {
+            setText(element.getAttribute("value"));
+        }
+        super.loadXml(element);
+        afterDeserialize();
     }
 }

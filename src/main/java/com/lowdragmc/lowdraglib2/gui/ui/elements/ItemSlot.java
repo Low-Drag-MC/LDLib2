@@ -25,6 +25,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.integration.xei.rei.LDLibREIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.stack.EmiStackInteraction;
 import dev.emi.emi.api.stack.ItemEmiStack;
@@ -40,9 +41,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -384,7 +387,21 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
     }
 
-    /// XEI Support
+    @Override
+    public void loadXml(Element element) {
+        // allow xei lookup
+        if (element.hasAttribute("allow-xei-Lookup")) {
+            setAllowXEILookup(XmlUtils.getAsBoolean(element, "allow-xei-Lookup", allowXEILookup));
+        }
+        // item display
+        var item = XmlUtils.getItemStack(element);
+        if (item != ItemStack.EMPTY) {
+            setEditorItemDisplay(item);
+        }
+        super.loadXml(element);
+    }
+
+    // region XEI Supports
     public static class JEISupport {
         public static void clickableIngredient(ItemSlot itemSlot) {
             LDLibJEIPlugin.clickableIngredient(itemSlot, () -> {
@@ -416,7 +433,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
     }
 
-    // region XEI Supports
     public static class REISupport {
         public static void focusedStack(ItemSlot itemSlot) {
             LDLibREIPlugin.focusedStack(itemSlot, () -> {

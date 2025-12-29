@@ -24,6 +24,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,6 +35,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
@@ -44,6 +46,8 @@ import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
@@ -1202,6 +1206,9 @@ public class TextArea extends BindableUIElement<String[]> {
                     int from = (line == start.line()) ? start.col() : 0;
                     int to = (line == end.line()) ? end.col() : text.length();
 
+                    from = Mth.clamp(from, 0, text.length());
+                    to = Mth.clamp(to, 0, text.length());
+
                     float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - scrollX;
                     float maxX;
                     if (line == end.line()) {
@@ -1241,5 +1248,20 @@ public class TextArea extends BindableUIElement<String[]> {
                     textAreaStyle.cursorColor()
             );
         }
+    }
+
+    /// Editor + Xml
+    @Override
+    public void loadXml(Element element) {
+        var lines = XmlUtils.getContent(element, true);
+        if (!lines.isEmpty()) {
+            setValue(lines.split("\n"));
+        }
+        super.loadXml(element);
+    }
+
+    @Override
+    protected void parseXmlChildElement(Element childElement) {
+        // not able to add children for text
     }
 }

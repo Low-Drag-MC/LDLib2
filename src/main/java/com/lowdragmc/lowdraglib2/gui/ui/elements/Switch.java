@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
@@ -21,6 +22,7 @@ import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaDirection;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -185,4 +187,13 @@ public class Switch extends BindableUIElement<Boolean> {
         return this;
     }
 
+    /// Editor + Xml
+    @Override
+    public void loadXml(Element element) {
+        super.loadXml(element);
+        // is on
+        if (element.hasAttribute("is-on")) {
+            setOn(XmlUtils.getAsBoolean(element, "is-on", isOn));
+        }
+    }
 }

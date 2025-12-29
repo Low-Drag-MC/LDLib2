@@ -397,11 +397,15 @@ public abstract class Editor extends UIElement {
         }
     }
 
+    public void saveProject(@Nullable Runnable onFinish) {
+        saveProject(onFinish, true);
+    }
+
     /**
      * Save the current project to its file if it exists, or prompt to save as if it does not.
      * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
      */
-    public void saveProject(@Nullable Runnable onFinish) {
+    public void saveProject(@Nullable Runnable onFinish, boolean showNotification) {
         if (currentProject != null) {
             if (currentProjectFile == null) {
                 saveAsProject(onFinish);
@@ -409,8 +413,10 @@ public abstract class Editor extends UIElement {
                 try {
                     currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
                 } catch (Exception ignored) {}
-                Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
-                        .show(this.getModularUI());
+                if (showNotification) {
+                    Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
+                            .show(this.getModularUI());
+                }
             }
         }
     }

@@ -18,13 +18,15 @@ import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.fluids.FluidStack;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -389,8 +391,7 @@ public class Selector<T> extends BindableUIElement<T> {
         super.drawBackgroundOverlay(guiContext);
     }
 
-    /// Editor Support
-
+    /// Editor + Xml
     @Override
     public void beforeDeserialize() {
         super.beforeDeserialize();
@@ -423,5 +424,27 @@ public class Selector<T> extends BindableUIElement<T> {
     private void setDefaultValue(String defaultValue) {
         this.defaultValue = defaultValue;
         setValue((T) defaultValue, false);
+    }
+
+    @Override
+    public void loadXml(Element element) {
+        super.loadXml(element);
+        // candidates
+        var nodes = element.getChildNodes();
+        var candidates = new ArrayList<String>();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            var node = nodes.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE && node instanceof Element childElement &&
+                    childElement.getTagName().equals("candidate")) {
+                candidates.add(XmlUtils.getContent(childElement, true));
+            }
+        }
+        if (!candidates.isEmpty()) {
+            setCandidates((List)candidates);
+        }
+        // default value
+        if (element.hasAttribute("default-value")) {
+            setDefaultValue(element.getAttribute("default-value"));
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.utils;
 import com.google.gson.JsonParser;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.data.EntityInfo;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -36,11 +37,15 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXParseException;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -53,9 +58,39 @@ public class XmlUtils {
     public final static DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 
     @Nullable
+    public static Document loadXml(ResourceLocation location) {
+        var resourceManager = ResourceHelper.getResourceManager();
+        return resourceManager.getResource(location).map(resource -> {
+            try(var inputStream = resource.open()) {
+                return XmlUtils.loadXml(inputStream);
+            } catch (Exception e) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    @Nullable
+    public static Document loadXml(String xml) {
+        try(var inputStream = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+            return XmlUtils.loadXml(inputStream);
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    @Nullable
     public static Document loadXml(InputStream inputstream) {
         try {
             DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            documentBuilder.setErrorHandler(new ErrorHandler() {
+                @Override
+                public void warning(SAXParseException exception) { }
+
+                @Override
+                public void error(SAXParseException exception) { }
+
+                @Override
+                public void fatalError(SAXParseException exception) { }
+            });
             return documentBuilder.parse(inputstream);
         } catch (Exception e) {
             return null;
@@ -146,7 +181,7 @@ public class XmlUtils {
                 String data = element.getAttribute(name);
                 Enum<T>[] values = enumClass.getEnumConstants();
                 for (Enum<T> value : values) {
-                    if (value.name().equals(data)) {
+                    if (value.name().equalsIgnoreCase(data)) {
                         return (T)value;
                     }
                 }
@@ -260,10 +295,6 @@ public class XmlUtils {
                 }
                 ingredient = new SizedIngredient(Ingredient.of(itemStack), count);
             }
-        } else if (Platform.isForge() && element.hasAttribute("forge-tag")){
-            ingredient = new SizedIngredient(Ingredient.of(TagKey.create(Registries.ITEM, ResourceLocation.parse(element.getAttribute("forge-tag")))), count);
-        } else if (!Platform.isForge() && element.hasAttribute("fabric-tag")) {
-            ingredient = new SizedIngredient(Ingredient.of(TagKey.create(Registries.ITEM, ResourceLocation.parse(element.getAttribute("fabric-tag")))), count);
         } else if (element.hasAttribute("tag")) {
             ingredient = new SizedIngredient(Ingredient.of(TagKey.create(Registries.ITEM, ResourceLocation.parse(element.getAttribute("tag")))), count);
         }
@@ -277,18 +308,12 @@ public class XmlUtils {
             var fluid = BuiltInRegistries.FLUID.get(ResourceLocation.parse(element.getAttribute("fluid")));
             if (fluid != Fluids.EMPTY) {
                 fluidStack = new FluidStack(fluid, amount);
-                NodeList nodeList = element.getChildNodes();
-                StringBuilder builder = new StringBuilder();
+                var nodeList = element.getChildNodes();
                 for (int i = 0; i < nodeList.getLength(); i++) {
-                    Node node = nodeList.item(i);
-                    String text = node.getTextContent().replaceAll("\\h*\\R+\\h*", " ");
-                    if (!text.isEmpty() && text.charAt(0) == ' ') {
-                        text = text.substring(1);
+                    if (nodeList.item(i) instanceof Element subElement && subElement.getNodeName().equals("components")) {
+                        fluidStack.applyComponents(getComponents(subElement));
+                        break;
                     }
-                    builder.append(text);
-                }
-                if (!builder.isEmpty()) {
-                    fluidStack.applyComponents(DataComponentMap.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(builder.toString())).result().orElse(DataComponentMap.EMPTY));
                 }
             }
         }

@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified">
+
+    <!-- ========== root ========== -->
+    <xs:element name="ldlib2-ui" type="Ldlib2Ui"/>
+
+    <xs:complexType name="Ldlib2Ui">
+        <xs:sequence>
+            <xs:element name="stylesheet" type="Stylesheet" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="style" type="StyleBlock" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="root" type="Element"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ========== stylesheet / lss ========== -->
+    <xs:complexType name="Stylesheet">
+        <xs:attribute name="location" type="ResourceLocation" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ResourceLocation">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="([a-z0-9_.-]+:)?[a-z0-9_./-]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- lss -->
+    <xs:simpleType name="StyleBlock">
+        <xs:restriction base="xs:string">
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ========== general element attributes ========== -->
+    <xs:attributeGroup name="CommonAttrs">
+        <xs:attribute name="id" type="xs:string"/>
+        <xs:attribute name="class" type="xs:string"/>
+        <xs:attribute name="style" type="xs:string"/>
+        <xs:attribute name="visible" type="xs:boolean"/>
+        <xs:attribute name="focusable" type="xs:boolean"/>
+        <xs:attribute name="active" type="xs:boolean"/>
+    </xs:attributeGroup>
+
+    <!-- ========== element ========== -->
+    <xs:element name="ui-node" abstract="true"/>
+    <xs:element name="element" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="internal" type="Internal" substitutionGroup="ui-node"/>
+    <xs:element name="button" type="Button" substitutionGroup="ui-node"/>
+    <xs:element name="label" type="Label" substitutionGroup="ui-node"/>
+    <xs:element name="text" type="Text" substitutionGroup="ui-node"/>
+    <xs:element name="text-area" type="TextArea" substitutionGroup="ui-node"/>
+    <xs:element name="item-slot" type="ItemSlot" substitutionGroup="ui-node"/>
+    <xs:element name="fluid-slot" type="FluidSlot" substitutionGroup="ui-node"/>
+    <xs:element name="progress-bar" type="ProgressBar" substitutionGroup="ui-node"/>
+    <xs:element name="toggle-group" type="ToggleGroup" substitutionGroup="ui-node"/>
+    <xs:element name="toggle" type="Toggle" substitutionGroup="ui-node"/>
+    <xs:element name="tab-view" type="TabView" substitutionGroup="ui-node"/>
+    <xs:element name="scroller-view" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="color-selector" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="code-editor" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="bindable-value" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="graph-view" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="inspector" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="scene" type="Element" substitutionGroup="ui-node"/> <!--Todo scene-->
+    <xs:element name="scroller-vertical" type="Scroller" substitutionGroup="ui-node"/>
+    <xs:element name="scroller-horizontal" type="Scroller" substitutionGroup="ui-node"/>
+    <xs:element name="search-component" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="selector" type="Selector" substitutionGroup="ui-node"/>
+    <xs:element name="split-view-vertical" type="SplitView" substitutionGroup="ui-node"/>
+    <xs:element name="split-view-horizontal" type="SplitView" substitutionGroup="ui-node"/>
+    <xs:element name="switch" type="Switch" substitutionGroup="ui-node"/>
+    <xs:element name="tag-field" type="Element" substitutionGroup="ui-node"/> <!--Todo tag-->
+    <xs:element name="text-field" type="TextField" substitutionGroup="ui-node"/>
+    <xs:element name="tree-list" type="Element" substitutionGroup="ui-node"/>
+    <xs:element name="template" type="Template" substitutionGroup="ui-node"/>
+
+    <xs:complexType name="Element">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:choice>
+                <xs:element ref="ui-node"/>
+                <!-- support unknown tags -->
+                <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attributeGroup ref="CommonAttrs"/>
+    </xs:complexType>
+
+    <xs:complexType name="Internal">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="index" type="xs:nonNegativeInteger"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="Template">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="path" type="xs:string"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== button ========== -->
+    <xs:complexType name="Button">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="text" type="xs:string"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== toggle ========== -->
+    <xs:complexType name="ToggleGroup">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="toggle" type="Toggle"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="CommonAttrs"/>
+    </xs:complexType>
+
+    <xs:complexType name="Toggle">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="text" type="xs:string"/>
+                <xs:attribute name="is-on" type="xs:boolean"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== switch ========== -->
+    <xs:complexType name="Switch">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="is-on" type="xs:boolean"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== label / text ========== -->
+    <!-- support：text + (lang|br|style)* -->
+    <xs:complexType name="InlineContent" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="lang" type="LangInline"/>
+            <xs:element name="br" type="EmptyElement"/>
+            <xs:element name="style" type="StyleInline"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="EmptyElement">
+        <xs:sequence/>
+    </xs:complexType>
+
+    <xs:complexType name="LangInline">
+        <xs:attribute name="key" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- style component -->
+    <xs:complexType name="StyleInline">
+        <xs:complexContent>
+            <xs:extension base="InlineContent">
+                <xs:attribute name="color" type="xs:string"/>
+                <xs:attribute name="bold" type="xs:boolean"/>
+                <xs:attribute name="italic" type="xs:boolean"/>
+                <xs:attribute name="underlined" type="xs:boolean"/>
+                <xs:attribute name="strikethrough" type="xs:boolean"/>
+                <xs:attribute name="obfuscated" type="xs:boolean"/>
+                <xs:attribute name="font" type="xs:string"/>
+                <xs:attribute name="hover-info" type="xs:string"/>
+                <xs:attribute name="link" type="xs:string"/>
+                <xs:attribute name="url-link" type="xs:string"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="Label" mixed="true">
+        <xs:complexContent>
+            <xs:extension base="InlineContent">
+                <xs:attributeGroup ref="CommonAttrs"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="Text" mixed="true">
+        <xs:complexContent>
+            <xs:extension base="InlineContent">
+                <xs:attributeGroup ref="CommonAttrs"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== text-area ========== -->
+    <xs:complexType name="TextArea" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="lang" type="LangInline"/>
+            <xs:element name="br" type="EmptyElement"/>
+        </xs:choice>
+        <xs:attributeGroup ref="CommonAttrs"/>
+    </xs:complexType>
+
+    <!-- ========== text-field ========== -->
+    <xs:complexType name="TextField" mixed="true">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="mode">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="internal"/>
+                            <xs:enumeration value="string"/>
+                            <xs:enumeration value="nbt"/>
+                            <xs:enumeration value="resource-location"/>
+                            <xs:enumeration value="number-long"/>
+                            <xs:enumeration value="number-int"/>
+                            <xs:enumeration value="number-float"/>
+                            <xs:enumeration value="number-double"/>
+                            <xs:enumeration value="number-short"/>
+                            <xs:enumeration value="number-byte"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:attribute>
+                <xs:attribute name="value" type="xs:string"/>
+                <xs:attribute name="regex-validator" type="xs:string"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== item-slot / fluid-slot ========== -->
+    <xs:complexType name="ItemSlot">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="item" type="xs:string"/>
+                <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="FluidSlot">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="fluid" type="xs:string"/>
+                <xs:attribute name="amount" type="xs:nonNegativeInteger"/>
+                <xs:attribute name="capacity" type="xs:nonNegativeInteger"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== progress-bar ========== -->
+    <xs:complexType name="ProgressBar">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="min-value" type="xs:decimal"/>
+                <xs:attribute name="max-value" type="xs:decimal"/>
+                <xs:attribute name="value" type="xs:decimal"/>
+                <xs:attribute name="text" type="xs:string"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== scroller ========== -->
+    <xs:complexType name="Scroller">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="min-value" type="xs:decimal"/>
+                <xs:attribute name="max-value" type="xs:decimal"/>
+                <xs:attribute name="value" type="xs:decimal"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== split-view ========== -->
+    <xs:complexType name="SplitView">
+        <xs:sequence>
+            <xs:element name="first" type="Element"/>
+            <xs:element name="second" type="Element"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="CommonAttrs"/>
+    </xs:complexType>
+
+    <!-- ========== selector ========== -->
+    <xs:complexType name="Candidate" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="lang" type="LangInline"/>
+            <xs:element name="br" type="EmptyElement"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="Selector">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:choice>
+                <xs:element name="candidate" type="Candidate"/>
+                <xs:element ref="ui-node"/>
+                <!-- support unknown tags -->
+                <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attribute name="default-value" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- ========== tab-view / tab / tab-content / toggle-group / toggle ========== -->
+    <xs:complexType name="TabView">
+        <xs:sequence>
+            <xs:element name="internal" type="Internal" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="tab" type="Tab" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="CommonAttrs"/>
+    </xs:complexType>
+
+    <xs:complexType name="Tab">
+        <xs:sequence>
+            <xs:element name="tab-content" type="Element"/>
+            <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                <xs:choice>
+                    <xs:element ref="ui-node"/>
+                    <!-- support unknown tags -->
+                    <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+                </xs:choice>
+            </xs:sequence>
+        </xs:sequence>
+        <xs:attributeGroup ref="CommonAttrs"/>
+        <xs:attribute name="text" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:schema>

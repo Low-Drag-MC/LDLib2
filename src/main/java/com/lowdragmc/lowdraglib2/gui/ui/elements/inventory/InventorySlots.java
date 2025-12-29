@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements.inventory;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -10,7 +9,6 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import net.minecraft.world.inventory.Slot;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 

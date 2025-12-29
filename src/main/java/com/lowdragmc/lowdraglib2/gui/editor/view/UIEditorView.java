@@ -1,23 +1,17 @@
-package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
+package com.lowdragmc.lowdraglib2.gui.editor.view;
 
 import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
-import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
@@ -27,7 +21,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
-import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
@@ -44,14 +37,10 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class UIEditorView extends View {
     public final UIElement header = new UIElement();
@@ -409,7 +398,7 @@ public class UIEditorView extends View {
         clear();
         this.template = template.copy();
         this.currentUI = this.template.createUI();
-        this.modularUIPreview.setModularUI(currentUI);
+        this.modularUIPreview.loadUI(currentUI);
         this.hierarchy.loadUI(currentUI);
         this.modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
         this.onTemplateSaved = onTemplateSaved;

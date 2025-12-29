@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.ui.EditorWindow;
-import com.lowdragmc.lowdraglib2.editor.ui.UIEditor;
+import com.lowdragmc.lowdraglib2.gui.editor.UIEditor;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;

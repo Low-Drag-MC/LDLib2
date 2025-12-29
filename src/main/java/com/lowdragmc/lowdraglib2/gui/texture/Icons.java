@@ -66,6 +66,7 @@ public class Icons {
     public static ResourceTexture IMAGE = icon("image");
     public static ResourceTexture JSON = icon("json");
     public static ResourceTexture LSS = icon("css");
+    public static ResourceTexture XML = icon("xml");
     public static ResourceTexture RADIOBOX_BLANK = icon("radiobox_blank");
     public static ResourceTexture RADIOBOX_MARKED = icon("radiobox_marked");
     public static ResourceTexture CHECKBOX_BLANK = icon("checkbox_blank");

@@ -29,6 +29,15 @@ public class StyleManager {
         styleMap.put(TokenTypes.CSS_PROPERTY.name, Style.EMPTY.withColor(ColorPattern.ORANGE.color));
         styleMap.put(TokenTypes.CSS_UNIT.name, Style.EMPTY.withColor(ColorPattern.CYAN.color));
         styleMap.put(TokenTypes.CSS_COLOR.name, Style.EMPTY.withColor(ColorPattern.MAGENTA.color));
+
+        styleMap.put(TokenTypes.XML_COMMENT.name, Style.EMPTY.withColor(ColorPattern.GRAY.color));
+        styleMap.put(TokenTypes.XML_CDATA.name, Style.EMPTY.withColor(ColorPattern.GREEN.color));
+        styleMap.put(TokenTypes.XML_ATTRIBUTE_VALUE.name, Style.EMPTY.withColor(ColorPattern.GREEN.color));
+        styleMap.put(TokenTypes.XML_ATTRIBUTE_NAME.name, Style.EMPTY.withColor(ColorPattern.ORANGE.color));
+        styleMap.put(TokenTypes.XML_ENTITY_REF.name, Style.EMPTY.withColor(ColorPattern.MAGENTA.color));
+        styleMap.put(TokenTypes.XML_TAG_NAME.name, Style.EMPTY.withColor(ColorPattern.YELLOW.color));
+        styleMap.put(TokenTypes.XML_TAG_END.name, Style.EMPTY.withColor(ColorPattern.YELLOW.color));
+        styleMap.put(TokenTypes.XML_EQ.name, Style.EMPTY.withColor(ColorPattern.WHITE.color));
     }
 
     public Style getStyleForTokenType(TokenType type) {

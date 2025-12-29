@@ -24,6 +24,7 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -220,4 +221,16 @@ public class Button extends UIElement {
         setButtonState(State.DEFAULT);
     }
 
+    @Override
+    public void loadXml(Element element) {
+        if (element.hasAttribute("text")) {
+            var text = element.getAttribute("text");
+            if (text.isEmpty()) {
+                noText();
+            } else {
+                setText(text);
+            }
+        }
+        super.loadXml(element);
+    }
 }

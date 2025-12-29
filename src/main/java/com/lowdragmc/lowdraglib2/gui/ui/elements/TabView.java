@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.SelectorConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -27,6 +28,8 @@ import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -175,6 +178,7 @@ public class TabView extends UIElement {
         return this;
     }
 
+    /// Editor + Xml
     @Override
     public boolean canAddEditorChild(AutoRegistry.Holder<LDLRegister, UIElement, Supplier<UIElement>> holder) {
         return Tab.class.isAssignableFrom(holder.clazz());
@@ -250,8 +254,7 @@ public class TabView extends UIElement {
     }
 
     @Override
-    public void buildConfigurator(ConfiguratorGroup father) {
-        super.buildConfigurator(father);
+    protected void additionalConfigurators(ConfiguratorGroup father) {
         var selectedSelector = new SelectorConfigurator<>(
                 "TabView.selected",
                 () -> selectedTab == null ? -1 : selectedTab.getSiblingIndex(),
@@ -281,5 +284,28 @@ public class TabView extends UIElement {
            }
         });
         father.addConfigurator(selectedSelector);
+    }
+
+    @Override
+    protected void parseXmlChildElement(Element childElement) {
+        if (childElement.getTagName().equals("tab")) {
+            var tab = new Tab();
+            tab.loadXml(childElement);
+            addEditorChild(tab, -1);
+            // also parse tab's container
+            var nodes = childElement.getChildNodes();
+            for (int i = 0; i < nodes.getLength(); i++) {
+                var node = nodes.item(i);
+                if (node.getNodeType() == Node.ELEMENT_NODE && node instanceof Element element) {
+                    if (element.getTagName().equals("tab-content")) {
+                        var content = getTabContents().get(tab);
+                        if (content != null) {
+                            content.loadXml(element);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 }

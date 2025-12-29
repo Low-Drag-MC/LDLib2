@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
+package com.lowdragmc.lowdraglib2.gui.editor.view;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;

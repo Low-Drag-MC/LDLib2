@@ -28,9 +28,7 @@ public class FileMenu extends MenuTab {
             for (var type : projectTypes) {
                 newMenu.leaf(type.icon, type.name, () -> {
                     // open a new project
-                    var newProject = type.projectCreator.get();
-                    newProject.initNewProject();
-                    editor.loadProject(newProject, null);
+                    editor.loadProject(type.newEmptyProject(), null);
                 });
             }
             newMenu.crossLine();

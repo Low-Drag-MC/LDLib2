@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.editor.ui.view.ui;
+package com.lowdragmc.lowdraglib2.gui.editor.view;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
@@ -23,6 +23,7 @@ import java.util.OptionalInt;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class ModularUIPreview extends UIElement {
+    @Nullable
     public final UIEditorView editorView;
     public final SelectionBox selectionBox = new SelectionBox();
     @Getter @Setter
@@ -34,12 +35,14 @@ public class ModularUIPreview extends UIElement {
     @Getter @Nullable
     private ModularUI previewModularUI;
 
-    public ModularUIPreview(UIEditorView editorView) {
+    public ModularUIPreview(@Nullable UIEditorView editorView) {
         this.editorView = editorView;
-        editorView.graphView.addChild(selectionBox);
+        if (editorView != null) {
+            editorView.graphView.addChild(selectionBox);
+        }
     }
 
-    public void setModularUI(UI ui) {
+    public void loadUI(UI ui) {
         this.previewModularUI = new ModularUI(ui);
         this.previewModularUI.setDrawTooltips(false);
         this.previewModularUI.setDrawDrag(false);
@@ -86,7 +89,7 @@ public class ModularUIPreview extends UIElement {
             if (hovered != null) {
                 previewModularUI.getWidget().renderUISpacing(hovered, guiContext.graphics);
             }
-        } else if (selectionBox.isDisplayed() && selectionBox.label.isChildHover()) {
+        } else if (editorView != null && selectionBox.isDisplayed() && selectionBox.label.isChildHover()) {
             var selectedOne = editorView.hierarchy.getSelectedOne();
             selectedOne.ifPresent(element -> previewModularUI.getWidget().renderUISpacing(element, guiContext.graphics));
         }
@@ -94,6 +97,7 @@ public class ModularUIPreview extends UIElement {
     }
 
     private void updateSelectionBox() {
+        if (editorView == null) return;
         var selectedOne = editorView.hierarchy.getSelectedOne();
         if (showSelectionBox && selectedOne.isPresent()) {
             var selected = selectedOne.get();

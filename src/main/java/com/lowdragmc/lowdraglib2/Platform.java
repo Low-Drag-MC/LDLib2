@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2;
 
+import com.lowdragmc.lowdraglib2.utils.ResourceHelper;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
@@ -7,6 +8,8 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceProvider;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLEnvironment;
@@ -66,6 +69,10 @@ public class Platform {
 
     public static MinecraftServer getMinecraftServer() {
         return ServerLifecycleHooks.getCurrentServer();
+    }
+
+    public ResourceManager getResourceProvider() {
+        return ResourceHelper.getResourceManager();
     }
 
     public static Path getGamePath() {

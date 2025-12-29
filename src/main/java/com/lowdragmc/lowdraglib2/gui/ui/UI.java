@@ -2,12 +2,20 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Data;
+import net.minecraft.resources.ResourceLocation;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.ProcessingInstruction;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -53,6 +61,39 @@ public final class UI {
 
     public static UI of(UIElement rootElement, @Nullable DynamicSizeProvider dynamicSize) {
         return of(rootElement, Collections.emptyList(), dynamicSize);
+    }
+
+    public static UI of(Document xml) {
+        var rootElement = xml.getDocumentElement();
+        var nodes = rootElement.getChildNodes();
+        var root = new UIElement();
+        var stylesheets = new ArrayList<Stylesheet>();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            var node = nodes.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE && node instanceof Element element) {
+                var tagName = element.getTagName();
+                if (tagName.equals("root")) {
+                    root.loadXml(element);
+                } else if (tagName.equals("style")) {
+                    var content = element.getTextContent();
+                    if (content != null && !content.isBlank()) {
+                        stylesheets.add(Stylesheet.parse(content));
+                    }
+                } else if (tagName.equals("stylesheet")) {
+                    var location = XmlUtils.getAsString(element, "location", "");
+                    if (!location.isEmpty()) {
+                        var rs = ResourceLocation.tryParse(location);
+                        if (rs != null) {
+                            var stylesheet = StylesheetManager.INSTANCE.getStylesheet(rs);
+                            if (stylesheet != null) {
+                                stylesheets.add(stylesheet);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return of(root, stylesheets);
     }
 
     public static UI of() {

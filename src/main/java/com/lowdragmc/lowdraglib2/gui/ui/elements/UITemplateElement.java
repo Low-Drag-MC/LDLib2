@@ -22,6 +22,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -98,6 +99,7 @@ public class UITemplateElement extends UIElement {
         }
     }
 
+    /// Editor + Xml
     @Override
     public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
         if (path == null) return new CompoundTag();
@@ -135,5 +137,17 @@ public class UITemplateElement extends UIElement {
                         IResourcePath::getResourceName,
                         (path, group) -> super.buildConfigurator(group))
         );
+    }
+
+    @Override
+    public void loadXml(Element element) {
+        // template
+        if (element.hasAttribute("path")) {
+            var path = IResourcePath.parse(element.getAttribute("path"));
+            if (path != null) {
+                setTemplate(path);
+            }
+        }
+        super.loadXml(element);
     }
 }

@@ -39,4 +39,19 @@ public final class Languages {
             TokenTypes.WHITESPACE,
             TokenTypes.OTHER
     ), Set.of("{"));
+
+    public LanguageDefinition XML = new LanguageDefinition("XML", List.of(
+            TokenTypes.XML_COMMENT,
+            TokenTypes.XML_CDATA,
+            TokenTypes.XML_ATTRIBUTE_VALUE,
+            TokenTypes.XML_ATTRIBUTE_NAME,
+            TokenTypes.XML_ENTITY_REF,
+            TokenTypes.XML_TAG_NAME,
+            TokenTypes.XML_TAG_END,
+            TokenTypes.NUMBER,
+            TokenTypes.XML_EQ,
+            TokenTypes.OPERATOR,
+            TokenTypes.WHITESPACE,
+            TokenTypes.OTHER
+    ), Set.of("<"));
 }

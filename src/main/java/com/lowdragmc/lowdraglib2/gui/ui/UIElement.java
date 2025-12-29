@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
+import com.lowdragmc.lowdraglib2.gui.editor.view.UIHierarchy;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
@@ -30,6 +31,7 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
+import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -46,7 +48,6 @@ import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.config.MutableYogaConfig;
 import org.appliedenergistics.yoga.config.YogaConfig;
@@ -54,6 +55,9 @@ import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
@@ -603,7 +607,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * The removal is performed by calling the {@code removeChild} method on the parent.
      * If the object has no parent, no action is taken.
      * <br>
-     * It will be triggered while it was removed from {@link com.lowdragmc.lowdraglib2.editor.ui.view.ui.UIHierarchy} as well.
+     * It will be triggered while it was removed from {@link UIHierarchy} as well.
      *
      * @return {@code true} if the object was successfully removed from its parent;
      *         {@code false} if the object has no parent or the removal failed.
@@ -1341,6 +1345,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /// Editor + Serialization
+    // region Editor
     @Override
     public String toString() {
         return getElementName() + "{" + id + "}";
@@ -1428,6 +1433,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @OnlyIn(Dist.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
+        additionalConfigurators(father);
         // class selector
         final var classList = new ArrayList<>(classes);
         var classConfigurator = new ArrayConfiguratorGroup<>("UIElement.class", true, () -> {
@@ -1462,6 +1468,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
+    /**
+     * Append additional configurators after auto-detected ones and before th class configurator.
+     */
+    protected void additionalConfigurators(ConfiguratorGroup father) {}
+
+    // endregion
+
+    // region Serialization
     public UIElement copy() {
         return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
                 .result()
@@ -1562,11 +1576,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 var inlineTag = tag.getCompound("inline");
                 getStyles().forEach(style -> style.deserializeNBT(provider, inlineTag));
             }
-            // deserialize classes
-            if (tag.contains("classes")) {
-                for (var clazz : tag.getList("classes", Tag.TAG_STRING)) {
-                    classes.add(clazz.getAsString());
-                }
+        }
+        // deserialize classes
+        if (tag.contains("classes")) {
+            for (var clazz : tag.getList("classes", Tag.TAG_STRING)) {
+                classes.add(clazz.getAsString());
             }
         }
         // deserialize internal children
@@ -1593,4 +1607,86 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             }
         }
     }
+    // endregion
+
+    // region XML Support
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void loadXml(Element element) {
+        // id
+        if (element.hasAttribute("id")) {
+            setId(element.getAttribute("id"));
+        }
+        // visible
+        if (element.hasAttribute("visible")) {
+            setVisible(XmlUtils.getAsBoolean(element, "visible", true));
+        }
+        // focusable
+        if (element.hasAttribute("focusable")) {
+            setFocusable(XmlUtils.getAsBoolean(element, "focusable", false));
+        }
+        // active
+        if (element.hasAttribute("active")) {
+            setActive(XmlUtils.getAsBoolean(element, "active", true));
+        }
+
+        if (!LDLib2.isServer()) {
+            // load inline styles
+            if (element.hasAttribute("style")) {
+                for (var entry : Stylesheet.parseStyleValues(element.getAttribute("style")).entrySet()) {
+                    Property p = entry.getKey();
+                    StyleValue v = entry.getValue();
+                    getStyleBag().replaceOrPutCandidate(p, StyleSlot.of(p,
+                            StyleOrigin.INLINE,
+                            0, 0, v.compute()
+                    ));
+                }
+            }
+        }
+
+        // load classes
+        if (element.hasAttribute("class")) {
+            for (var clazz : element.getAttribute("class").split(" ")) {
+                addClass(clazz);
+            }
+        }
+        // deserialize external children
+        var nodes = element.getChildNodes();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            var node = nodes.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE && node instanceof Element child) {
+                var tagName = child.getTagName();
+                if (tagName.equals("internal")) {
+                    parseXmlInternalChild(child);
+                } else {
+                    parseXmlChildElement(child);
+                }
+            }
+        }
+    }
+
+    protected void parseXmlInternalChild(Element childElement) {
+        var index = XmlUtils.getAsInt(childElement, "index", 0);
+        var cur = 0;
+        for (var child : children) {
+            if (child.isInternalUI() && cur++ >= index) {
+                child.loadXml(childElement);
+                return;
+            }
+        }
+    }
+
+    protected void parseXmlChildElement(Element childElement) {
+        var tagName = childElement.getTagName();
+        var holder = LDLib2Registries.UI_ELEMENTS.get(tagName);
+        if (holder != null) {
+            var child = holder.value().get();
+            child.loadXml(childElement);
+            addEditorChild(child, -1);
+        }
+    }
+
+    public Element saveXml(Document document) {
+        throw new UnsupportedOperationException();
+    }
+    // endregion
 }

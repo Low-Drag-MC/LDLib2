@@ -59,19 +59,7 @@ public final class Stylesheet {
             var selectorText = m.group(1).trim();
             var block = m.group(2);
 
-            Map<Property<?>, StyleValue<?>> properties = new HashMap<>();
-            var m2 = DECL.matcher(block);
-            while (m2.find()) {
-                var name = m2.group(1).trim();
-                var rawValue = m2.group(2).trim();
-                var p = PropertyRegistry.byName(name);
-                if (p != null) {
-                    try {
-                        var value = p.valueParser.parse(rawValue);
-                        properties.put(p, value);
-                    } catch (Exception ignored) {}
-                }
-            }
+            var properties = parseStyleValues(block);
             var immutableProperties = Collections.unmodifiableMap(properties);
             for (var rawM : selectorText.split(",")) {
                 try {
@@ -80,5 +68,22 @@ public final class Stylesheet {
             }
         }
         return new Stylesheet(rules);
+    }
+
+    public static Map<Property<?>, StyleValue<?>> parseStyleValues(String block) {
+        Map<Property<?>, StyleValue<?>> properties = new HashMap<>();
+        var m2 = DECL.matcher(block);
+        while (m2.find()) {
+            var name = m2.group(1).trim();
+            var rawValue = m2.group(2).trim();
+            var p = PropertyRegistry.byName(name);
+            if (p != null) {
+                try {
+                    var value = p.valueParser.parse(rawValue);
+                    properties.put(p, value);
+                } catch (Exception ignored) {}
+            }
+        }
+        return properties;
     }
 }

@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.lowdragmc.lowdraglib2.editor.ui.UIEditor;
+import com.lowdragmc.lowdraglib2.gui.editor.UIEditor;
 import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
