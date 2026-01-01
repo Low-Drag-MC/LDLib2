@@ -46,7 +46,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 @LDLRegisterClient(name="component_examples", registry = "ldlib2:screen_test")

@@ -18,6 +18,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.RegistryOps;
+import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import java.lang.reflect.Field;
@@ -43,6 +45,10 @@ public final class PersistedParser {
             @Override
             public <T1> DataResult<Pair<T, T1>> decode(DynamicOps<T1> ops, T1 input) {
                 T instance = creator.get();
+                HolderLookup.Provider provider = Platform.getFrozenRegistry();
+                if (ops instanceof RegistryOps<T1> registryOps) {
+                    provider = CommonHooks.extractLookupProvider(registryOps);
+                }
                 if (instance instanceof IPersistedSerializable persistedSerializable) {
                     CompoundTag tag;
                     if (input instanceof CompoundTag compoundTag) {
@@ -50,18 +56,22 @@ public final class PersistedParser {
                     } else {
                         tag = (CompoundTag) ops.convertMap(NbtOps.INSTANCE, input);
                     }
-                    persistedSerializable.deserializeNBT(Platform.getFrozenRegistry(), tag);
+                    persistedSerializable.deserializeNBT(provider, tag);
                 } else {
-                    deserialize(ops, input, instance, Platform.getFrozenRegistry());
+                    deserialize(ops, input, instance, provider);
                 }
                 return DataResult.success(Pair.of(instance, ops.empty()));
             }
 
             @Override
             public <T1> DataResult<T1> encode(T input, DynamicOps<T1> ops, T1 prefix) {
+                HolderLookup.Provider provider = Platform.getFrozenRegistry();
+                if (ops instanceof RegistryOps<T1> registryOps) {
+                    provider = CommonHooks.extractLookupProvider(registryOps);
+                }
                 if (input instanceof IPersistedSerializable persistedSerializable) {
                     try {
-                        var tag = persistedSerializable.serializeNBT(Platform.getFrozenRegistry());
+                        var tag = persistedSerializable.serializeNBT(provider);
                         if (ops == NbtOps.INSTANCE || ops instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
                             return (DataResult<T1>) DataResult.success(tag);
                         }
@@ -70,7 +80,7 @@ public final class PersistedParser {
                         return DataResult.error(e::getMessage);
                     }
                 }
-                return serialize(ops, input, Platform.getFrozenRegistry());
+                return serialize(ops, input, provider);
             }
 
             @Override

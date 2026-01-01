@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
@@ -88,7 +89,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
     /**
      * This is called when the block entity is first created on the client, and prepare initial data at the server side.
      */
-    default CompoundTag serializeInitialData() {
+    default CompoundTag serializeInitialData(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
         var customTag = new CompoundTag();
         writeCustomSyncData(customTag);
@@ -98,7 +99,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
 
         var list = new ListTag();
         var syncedFields = getRootStorage().getSyncFields();
-        var ctx = Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
+        var ctx = provider.createSerializationContext(NbtOps.INSTANCE);
         for (IRef<?> syncedField : syncedFields) {
             list.add(TagBuilder.compound().add("d", syncedField.readInitialSync(ctx)).build());
         }
@@ -111,7 +112,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
     /**
      * This is called when the block entity is first created on the client, and deserialize initial data at client side.
      */
-    default void deserializeInitialData(CompoundTag tag) {
+    default void deserializeInitialData(HolderLookup.Provider provider, CompoundTag tag) {
         var customTag = tag.getCompound("custom");
         readCustomSyncData(customTag);
 
@@ -120,7 +121,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
         if (syncedFields.length != list.size()) {
             throw new IllegalStateException("Synced fields count mismatch");
         }
-        var ctx = Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
+        var ctx = provider.createSerializationContext(NbtOps.INSTANCE);
         for (int i = 0; i < list.size(); i++) {
             var data = list.getCompound(i).get("d");
             syncedFields[i].writeInitialSync(ctx, data);

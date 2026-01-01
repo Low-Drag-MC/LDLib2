@@ -103,7 +103,9 @@ public class Platform {
 
     public static RegistryAccess getFrozenRegistry() {
         RegistryAccess serverRegistryAccess = SERVER_REGISTRY_ACCESS;
-        if (LDLib2.isClient()) {
+        if (LDLib2.isServer()) {
+            return serverRegistryAccess == null ? getBLANK_REGISTRY_ACCESS() : serverRegistryAccess;
+        } else if (LDLib2.isRemote()) {
             if (Minecraft.getInstance().getConnection() != null) {
                 return getRegistryFromMultipleSources(Minecraft.getInstance().getConnection().registryAccess(), serverRegistryAccess);
             }

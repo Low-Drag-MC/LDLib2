@@ -34,23 +34,23 @@ public abstract class BlockEntityMixin {
     private void injectGetUpdateTag(HolderLookup.Provider provider, CallbackInfoReturnable<CompoundTag> cir) {
         if (this instanceof ISyncMangedHolder syncMangedHolder) {
             var tag = cir.getReturnValue();
-            tag.put(syncMangedHolder.getSyncTag(), syncMangedHolder.serializeInitialData());
+            tag.put(syncMangedHolder.getSyncTag(), syncMangedHolder.serializeInitialData(provider));
         }
     }
 
     @Inject(method = "saveAdditional", at = @At(value = "RETURN"))
     private void injectSaveAdditional(CompoundTag pTag, HolderLookup.Provider provider, CallbackInfo ci) {
         if (this instanceof IPersistManagedHolder persistManagedHolder) {
-            persistManagedHolder.saveManagedPersistentData(pTag, false);
+            persistManagedHolder.saveManagedPersistentData(provider, pTag, false);
         }
     }
 
     @Inject(method = "loadAdditional", at = @At(value = "RETURN"))
     private void injectLoad(CompoundTag pTag, HolderLookup.Provider provider, CallbackInfo ci) {
         if (this instanceof ISyncMangedHolder syncMangedHolder && pTag.get(syncMangedHolder.getSyncTag()) instanceof CompoundTag tag) {
-            syncMangedHolder.deserializeInitialData(tag);
+            syncMangedHolder.deserializeInitialData(provider, tag);
         } else if (this instanceof IPersistManagedHolder persistManagedHolder) {
-            persistManagedHolder.loadManagedPersistentData(pTag);
+            persistManagedHolder.loadManagedPersistentData(provider, pTag);
         }
     }
 

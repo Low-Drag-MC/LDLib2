@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.test;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
@@ -117,7 +118,7 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
         if (!level.isClientSide) {
             if (level.getBlockEntity(pos) instanceof IPersistManagedHolder persistManagedHolder) {
                 Optional.ofNullable(stack.get(DataComponents.CUSTOM_DATA)).ifPresent(customData -> {
-                    persistManagedHolder.loadManagedPersistentData(customData.copyTag());
+                    persistManagedHolder.loadManagedPersistentData(level.registryAccess(), customData.copyTag());
                 });
             }
         }
@@ -126,10 +127,10 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
     @Override
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
         var opt = Optional.ofNullable(params.getOptionalParameter(LootContextParams.BLOCK_ENTITY));
-        if (opt.isPresent() && opt.get() instanceof IPersistManagedHolder persistManagedHolder) {
+        if (opt.isPresent() && opt.get() instanceof IPersistManagedHolder persistManagedHolder && opt.get().getLevel() instanceof Level level) {
             var drop = new ItemStack(this);
             var tag = new CompoundTag();
-            persistManagedHolder.saveManagedPersistentData(tag, true);
+            persistManagedHolder.saveManagedPersistentData(level.registryAccess(), tag, true);
             drop.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             return List.of(drop);
         }
@@ -141,7 +142,7 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
         if (level.getBlockEntity(pos) instanceof IPersistManagedHolder persistManagedHolder) {
             var clone = new ItemStack(this);
             var tag = new CompoundTag();
-            persistManagedHolder.saveManagedPersistentData(tag, true);
+            persistManagedHolder.saveManagedPersistentData(level.registryAccess(), tag, true);
             clone.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             return clone;
         }
