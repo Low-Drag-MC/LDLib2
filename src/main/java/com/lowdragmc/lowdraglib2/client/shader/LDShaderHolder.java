@@ -99,6 +99,20 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
                         var shader = LDShaderInstance.create(baseInstance.shaderLocation, baseInstance.getVertexFormat(), defineWithUid);
                         if (shader == null) return baseInstance;
                         shader.setHolder(this);
+                        // copy uniforms from the base instance
+                        for (var entry : shader.getShaderInstanceAccessor().getUniformMap().entrySet()) {
+                            var name = entry.getKey();
+                            var uniform = entry.getValue();
+                            if (isBuiltinUniform(uniform, shader)) continue;
+                            var baseUniform = baseInstance.getShaderInstanceAccessor().getUniformMap().get(name);
+                            if (baseUniform != null && baseUniform.getType() == uniform.getType()) {
+                                if (baseUniform.getType() <= 3) {
+                                    writeInts(readInts(baseUniform), uniform);
+                                } else {
+                                    writeFloats(readFloats(baseUniform), uniform);
+                                }
+                            }
+                        }
                         return shader;
                     } catch (Throwable e) {
                         return baseInstance;
@@ -177,10 +191,10 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
             var uniform = entry.getValue();
             if (isBuiltinUniform(uniform, baseInstance)) continue;
             if (uniform.getType() <= 3) {
-                uniforms.put(name, new IntArrayTag(readInt(uniform)));
+                uniforms.put(name, new IntArrayTag(readInts(uniform)));
             } else {
                 var list = new ListTag();
-                for (var v : readFloat(uniform)) {
+                for (var v : readFloats(uniform)) {
                     list.add(FloatTag.valueOf(v));
                 }
                 uniforms.put(name, list);
@@ -215,23 +229,13 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
             var data = uniforms.get(name);
             if (data instanceof IntArrayTag intArrayTag) {
                 var intArray = intArrayTag.getAsIntArray();
-                if (intArray.length > uniform.getCount()) {
-                    LDLib2.LOGGER.warn("Uniform.set called with a too-large value array (expected {}, got {}). Ignoring.", uniform.getCount(), intArray.length);
-                } else if (intArray.length == 1) {
-                    allUniforms(name).forEach(u -> u.set(intArray[0]));
-                } else if (intArray.length == 2) {
-                    allUniforms(name).forEach(u -> u.set(intArray[0], intArray[1]));
-                } else if (intArray.length == 3) {
-                    allUniforms(name).forEach(u -> u.set(intArray[0], intArray[1], intArray[2]));
-                } else if (intArray.length == 4) {
-                    allUniforms(name).forEach(u -> u.set(intArray[0], intArray[1], intArray[2], intArray[3]));
-                }
+                allUniforms(name).forEach(u -> writeInts(intArray, u));
             } else if (data instanceof ListTag floatArrayTag) {
                 var floatArray = new float[floatArrayTag.size()];
                 for (int i = 0; i < floatArrayTag.size(); i++) {
                     floatArray[i] = floatArrayTag.getFloat(i);
                 }
-                allUniforms(name).forEach(u -> u.set(floatArray));
+                allUniforms(name).forEach(u -> writeFloats(floatArray, u));
             }
         }
 
@@ -243,7 +247,7 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
         }
     }
 
-    private int[] readInt(Uniform uniform) {
+    private int[] readInts(Uniform uniform) {
         if (uniform.getType() > 3) return new int[0];
         var buffer = uniform.getIntBuffer().duplicate();
         var count = uniform.getCount();
@@ -253,7 +257,7 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
         return result;
     }
 
-    private float[] readFloat(Uniform uniform) {
+    private float[] readFloats(Uniform uniform) {
         if (uniform.getType() <= 3) return new float[0];
         var buffer = uniform.getFloatBuffer().duplicate();
         var count = uniform.getCount();
@@ -261,6 +265,24 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
         buffer.position(0);
         buffer.get(result);
         return result;
+    }
+
+    private void writeInts(int[] intArray, AbstractUniform uniform) {
+        if (uniform instanceof Uniform u && intArray.length > u.getCount()) {
+            LDLib2.LOGGER.warn("Uniform.set called with a too-large value array (expected {}, got {}). Ignoring.", u.getCount(), intArray.length);
+        } else if (intArray.length == 1) {
+            uniform.set(intArray[0]);
+        } else if (intArray.length == 2) {
+            uniform.set(intArray[0], intArray[1]);
+        } else if (intArray.length == 3) {
+            uniform.set(intArray[0], intArray[1], intArray[2]);
+        } else if (intArray.length == 4) {
+            uniform.set(intArray[0], intArray[1], intArray[2], intArray[3]);
+        }
+    }
+
+    private void writeFloats(float[] floatArray, AbstractUniform uniform) {
+        uniform.set(floatArray);
     }
 
     public boolean isBuiltinSampler(String name) {
@@ -365,51 +387,51 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
             var uniform = entry.getValue();
             if (isBuiltinUniform(uniform, baseInstance)) continue;
             if (uniform.getType() <= 3) {
-                var current = readInt(uniform);
+                var current = readInts(uniform);
                 if (current.length == 1) {
-                    father.addConfigurator(new NumberConfigurator(name, () -> readInt(uniform)[0],
+                    father.addConfigurator(new NumberConfigurator(name, () -> readInts(uniform)[0],
                             v -> allUniforms(name).forEach(u -> u.set(v.intValue())),
                             current[0], true)
                             .setType(ConfigNumber.Type.INTEGER));
                 } else if (current.length == 2) {
                     father.addConfigurator(new Vector2iAccessor().create(name, () -> {
-                        var data = readInt(uniform);
+                        var data = readInts(uniform);
                         return new Vector2i(data[0], data[1]);
                     }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y)),
                             true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
                 } else if (current.length == 3) {
                     father.addConfigurator(new Vector3iAccessor().create(name, () -> {
-                        var data = readInt(uniform);
+                        var data = readInts(uniform);
                         return new Vector3i(data[0], data[1], data[2]);
                     }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z)), true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
                 } else if (current.length == 4) {
                     father.addConfigurator(new Vector4iAccessor().create(name, () -> {
-                        var data = readInt(uniform);
+                        var data = readInts(uniform);
                         return new Vector4i(data[0], data[1], data[2], data[3]);
                     }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z, v.w)), true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
                 }
             } else {
-                var current = readFloat(uniform);
+                var current = readFloats(uniform);
                 if (current.length == 1) {
-                    father.addConfigurator(new NumberConfigurator(name, () -> readFloat(uniform)[0],
+                    father.addConfigurator(new NumberConfigurator(name, () -> readFloats(uniform)[0],
                             v -> allUniforms(name).forEach(u -> u.set(v.floatValue())), current[0], true)
                             .setType(ConfigNumber.Type.FLOAT));
                 } else if (current.length == 2) {
                     father.addConfigurator(new Vector2fAccessor().create(name, () -> {
-                        var data = readFloat(uniform);
+                        var data = readFloats(uniform);
                         return new Vector2f(data[0], data[1]);
                     }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y)), true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
                 } else if (current.length == 3) {
                     var lowerName = name.toLowerCase();
                     if (lowerName.contains("color") || lowerName.contains("rgb")) {
                         father.addConfigurator(new ColorConfigurator(name, () -> {
-                            var data = readFloat(uniform);
+                            var data = readFloats(uniform);
                             return ColorUtils.color(1, data[0], data[1], data[2]);
                         }, v -> allUniforms(name).forEach(u -> u.set(ColorUtils.red(v), ColorUtils.green(v), ColorUtils.blue(v))),
                                 ColorUtils.color(1, current[0], current[1], current[2]), true));
                     } else {
                         father.addConfigurator(new Vector3fAccessor().create(name, () -> {
-                            var data = readFloat(uniform);
+                            var data = readFloats(uniform);
                             return new Vector3f(data[0], data[1], data[2]);
                         }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z)), true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
                     }
@@ -417,19 +439,19 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
                     var lowerName = name.toLowerCase();
                     if (lowerName.contains("hdr") || lowerName.contains("emission")) {
                         father.addConfigurator(new HDRColorConfigurator(name, () -> {
-                            var data = readFloat(uniform);
+                            var data = readFloats(uniform);
                             return new Vector4f(data[0], data[1], data[2], data[3]);
                         }, hdr -> allUniforms(name).forEach(u -> u.set(hdr.x, hdr.y, hdr.z, hdr.w)),
                                 new Vector4f(current[0], current[1], current[2], current[3]), true));
                     } else if (lowerName.contains("color") || lowerName.contains("rgba")) {
                         father.addConfigurator(new ColorConfigurator(name, () -> {
-                            var data = readFloat(uniform);
+                            var data = readFloats(uniform);
                             return ColorUtils.color(data[3], data[0], data[1], data[2]);
                         }, v -> allUniforms(name).forEach(u -> u.set(ColorUtils.red(v), ColorUtils.green(v), ColorUtils.blue(v), ColorUtils.alpha(v))),
                                 ColorUtils.color(current[3], current[0], current[1], current[2]), true));
                     } else {
                         father.addConfigurator(new Vector4fAccessor().create(name, () -> {
-                            var data = readFloat(uniform);
+                            var data = readFloats(uniform);
                             return new Vector4f(data[0], data[1], data[2], data[3]);
                         }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z, v.w)),
                                 true, ConfiguratorGroup.class.getDeclaredFields()[0], this));

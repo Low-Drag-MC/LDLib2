@@ -43,7 +43,7 @@ public abstract class ProgramMixin {
                                                 GlslPreprocessor preprocessor,
                                                 Operation<Program> original) {
         if (LDProgramDefineManager.hasProgramDefines()) {
-            sourceName = LDProgramDefineManager.createProgramNameWithDefines(sourceName);
+            name = LDProgramDefineManager.createProgramNameWithDefines(name);
         }
         return original.call(type, name, shaderData, sourceName, preprocessor);
     }

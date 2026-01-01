@@ -34,13 +34,17 @@ public final class LDProgramDefineManager {
     }
 
     public static String createProgramDefinesString() {
+        return createProgramDefinesString('\n');
+    }
+
+    public static String createProgramDefinesString(char separator) {
         StringBuilder sb = new StringBuilder();
-        PROGRAM_DEFINES.forEach(def -> sb.append("#define ").append(def).append("\n"));
+        PROGRAM_DEFINES.forEach(def -> sb.append("#define ").append(def).append(separator));
         return sb.toString();
     }
 
     public static String createProgramNameWithDefines(String name) {
-        return PROGRAM_DEFINES.isEmpty() ? name : name + "_" + createProgramDefinesString();
+        return PROGRAM_DEFINES.isEmpty() ? name : name + "_" + createProgramDefinesString('_');
     }
 
     public static Set<String> getProgramDefines() {
