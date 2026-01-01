@@ -275,13 +275,28 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public @Nonnull CompoundTag serializeNBT() {
         var data = new CompoundTag();
         data.putString("name", getName());
-        data.putString("location", resourceLocation.getPath());
+        var gamePath = Platform.getGamePath().toAbsolutePath().normalize();
+        var resultPath = resourceLocation.toPath().toAbsolutePath().normalize();
+        var realPath = resourceLocation.getPath();
+        if (resultPath.startsWith(gamePath)) {
+            realPath = gamePath.relativize(resultPath).toFile().getPath();
+            data.putInt("_version", 1);
+        }
+        data.putString("location", realPath.replace('\\', '/'));
         return data;
     }
 
     public static <T> FileResourceProvider<T> fromNBT(ResourceInstance<T> resourceInstance, @Nonnull CompoundTag nbt) {
-        var location = new File(nbt.getString("location").replace('\\', '/'));
+        var locationStr = nbt.getString("location").replace('\\', '/');
         var name = nbt.getString("name");
+
+        File location;
+        if (nbt.contains("_version") && nbt.getInt("_version") >= 1) {
+            location = Platform.getGamePath().resolve(locationStr).toFile();
+        } else {
+            location = new File(locationStr);
+        }
+
         var fileProvider = new FileResourceProvider<>(resourceInstance, location);
         fileProvider.setName(name);
         return fileProvider;
