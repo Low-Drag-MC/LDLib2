@@ -116,7 +116,7 @@ public class Scene extends UIElement {
     protected BlockPosFace lastSelectedPosFace;
 
     public Scene() {
-        setOverflowVisible(YogaOverflow.HIDDEN);
+        setOverflow(YogaOverflow.HIDDEN);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.MOUSE_UP, this::onMouseUp);
         addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);

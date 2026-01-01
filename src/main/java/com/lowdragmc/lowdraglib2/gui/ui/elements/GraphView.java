@@ -117,7 +117,7 @@ public class GraphView extends UIElement {
     private float scale = 1f;
 
     public GraphView() {
-        setOverflowVisible(YogaOverflow.HIDDEN);
+        setOverflow(YogaOverflow.HIDDEN);
 
         contentRoot.layout(l -> {
             l.setPositionType(YogaPositionType.ABSOLUTE);

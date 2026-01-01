@@ -31,7 +31,7 @@ public interface UIElementProvider<T> extends Function<T, UIElement> {
                         .textAlignHorizontal(Horizontal.LEFT)
                         .textAlignVertical(Vertical.CENTER))
                 .setText(textMapper.apply(candidate))
-                .setOverflowVisible(YogaOverflow.HIDDEN);
+                .setOverflow(YogaOverflow.HIDDEN);
     }
 
     static <T> UIElementProvider<T> iconText(
@@ -52,7 +52,7 @@ public interface UIElementProvider<T> extends Function<T, UIElement> {
                     .setText(textMapper.apply(node)).layout(layout -> {
                         layout.setHeightPercent(100);
                         layout.setFlex(1);
-                    }).setOverflowVisible(YogaOverflow.HIDDEN);
+                    }).setOverflow(YogaOverflow.HIDDEN);
             return container.addChildren(icon, label);
         };
     }

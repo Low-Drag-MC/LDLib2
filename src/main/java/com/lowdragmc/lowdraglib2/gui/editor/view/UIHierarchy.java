@@ -77,7 +77,7 @@ public class UIHierarchy extends UIElement {
                     }).setText(node.getKey().getEditorName()).layout((layout) -> {
                         layout.setHeightPercent(100.0F);
                         layout.setFlex(1.0F);
-                    }).setOverflowVisible(YogaOverflow.HIDDEN).addEventListener(UIEvents.TICK, e -> {
+                    }).setOverflow(YogaOverflow.HIDDEN).addEventListener(UIEvents.TICK, e -> {
                         label.setText(node.getKey().getEditorName());
                     });
                     return container.addChildren(icon, label);

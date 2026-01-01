@@ -318,7 +318,7 @@ public class EditorWindow extends UIElement {
                                     text.setText(currentTitle);
                                 }
                             }
-                        }).setOverflowVisible(YogaOverflow.HIDDEN),
+                        }).setOverflow(YogaOverflow.HIDDEN),
                 new Button().noText().buttonStyle(style -> {
                     style.baseTexture(Icons.REMOVE);
                     style.hoverTexture(Icons.REMOVE.copy().setColor(ColorPattern.GRAY.color));

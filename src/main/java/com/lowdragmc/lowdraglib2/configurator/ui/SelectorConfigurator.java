@@ -27,7 +27,7 @@ public class SelectorConfigurator<T> extends ValueConfigurator<T> {
                         .textAlignHorizontal(Horizontal.LEFT)
                         .textAlignVertical(Vertical.CENTER))
                 .setText(candidate == null ? "---" : mapping.apply(candidate))
-                .setOverflowVisible(YogaOverflow.HIDDEN));
+                .setOverflow(YogaOverflow.HIDDEN));
         selector.setSelected(value, false);
         selector.setOnValueChanged(this::updateValueActively);
     }

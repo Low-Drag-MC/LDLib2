@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.client.shader.LDShaderHolder;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.ShaderTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -14,7 +12,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import lombok.NoArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;

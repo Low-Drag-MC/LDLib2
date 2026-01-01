@@ -30,26 +30,21 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
     private boolean isSamplerCacheDirty = true;
 
     @Nullable
-    public static LDShaderInstance create(ResourceLocation location, VertexFormat format) {
+    public static LDShaderInstance create(ResourceLocation location, VertexFormat format) throws Throwable {
         return create(location, format, Collections.emptySet());
     }
 
     @Nullable
-    public static LDShaderInstance create(ResourceLocation location, VertexFormat format, Set<String> defines) {
-        try {
-            for (var define : defines) {
-                LDProgramDefineManager.addProgramDefine(define);
-            }
-            var resourceProvider = Minecraft.getInstance().getResourceManager();
-            var resourcelocation = ResourceLocation.fromNamespaceAndPath(location.getNamespace(), "shaders/core/" + location.getPath() + ".json");
-            if (resourceProvider.getResource(resourcelocation).isEmpty()) return null;
-            var shaderWithDefines = new LDShaderInstance(resourceProvider, location, format, defines);
-            LDProgramDefineManager.clearProgramDefines();
-            return shaderWithDefines;
-        } catch (Exception e) {
-            LDLib2.LOGGER.warn("Could not create LDLib shader instance", e);
-            return null;
+    public static LDShaderInstance create(ResourceLocation location, VertexFormat format, Set<String> defines) throws Throwable {
+        for (var define : defines) {
+            LDProgramDefineManager.addProgramDefine(define);
         }
+        var resourceProvider = Minecraft.getInstance().getResourceManager();
+        var resourcelocation = ResourceLocation.fromNamespaceAndPath(location.getNamespace(), "shaders/core/" + location.getPath() + ".json");
+        if (resourceProvider.getResource(resourcelocation).isEmpty()) return null;
+        var shaderWithDefines = new LDShaderInstance(resourceProvider, location, format, defines);
+        LDProgramDefineManager.clearProgramDefines();
+        return shaderWithDefines;
     }
 
     private LDShaderInstance(ResourceProvider resourceProvider, ResourceLocation shaderLocation, VertexFormat vertexFormat, Set<String> defines) throws IOException {

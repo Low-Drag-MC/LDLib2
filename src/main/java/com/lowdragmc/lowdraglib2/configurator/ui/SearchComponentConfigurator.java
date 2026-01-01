@@ -102,7 +102,7 @@ public class SearchComponentConfigurator<T> extends ValueConfigurator<T> impleme
                             .textAlignHorizontal(Horizontal.LEFT)
                             .textAlignVertical(Vertical.CENTER))
                     .setText(candidate == null ? Component.literal("---") : mapping(candidate))
-                    .setOverflowVisible(YogaOverflow.HIDDEN);
+                    .setOverflow(YogaOverflow.HIDDEN);
         }
     }
 }

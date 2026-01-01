@@ -42,7 +42,7 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
             e.stopPropagation();
         });
         this.resetButton.text.layout(layout -> layout.setWidthPercent(100));
-        this.resetButton.text.textStyle(textStyle -> textStyle.adaptiveWidth(false).textWrap(TextWrap.HOVER_ROLL)).setOverflowVisible(YogaOverflow.HIDDEN);
+        this.resetButton.text.textStyle(textStyle -> textStyle.adaptiveWidth(false).textWrap(TextWrap.HOVER_ROLL)).setOverflow(YogaOverflow.HIDDEN);
         this.inlineContainer.layout(layout -> layout.setDirection(YogaDirection.RTL));
         this.inlineContainer.addChild(resetButton);
     }

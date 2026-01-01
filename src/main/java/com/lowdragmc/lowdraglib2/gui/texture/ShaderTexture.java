@@ -63,11 +63,11 @@ public class ShaderTexture extends TransformTexture implements AutoCloseable {
             if (!RenderSystem.isOnRenderThread()) {
                 RenderSystem.recordRenderCall(() -> {
                     if (shaderHolder != null) shaderHolder.close();
-                    shaderHolder = LDShaderHolder.create(shaderLocation, DefaultVertexFormat.POSITION_TEX_COLOR);
+                    shaderHolder = LDShaderHolder.createSafe(shaderLocation, DefaultVertexFormat.POSITION_TEX_COLOR);
                 });
             } else {
                 if (shaderHolder != null) shaderHolder.close();
-                shaderHolder = LDShaderHolder.create(shaderLocation, DefaultVertexFormat.POSITION_TEX_COLOR);
+                shaderHolder = LDShaderHolder.createSafe(shaderLocation, DefaultVertexFormat.POSITION_TEX_COLOR);
             }
         }
         return this;

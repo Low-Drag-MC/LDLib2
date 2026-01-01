@@ -377,7 +377,7 @@ public abstract class Editor extends UIElement {
                             .textAlignHorizontal(Horizontal.CENTER)
                             .textWrap(TextWrap.HOVER_ROLL))
                     .setText(Component.literal("-").append(getTitle()))
-                    .setOverflowVisible(YogaOverflow.HIDDEN)
+                    .setOverflow(YogaOverflow.HIDDEN)
                     .layout(layout -> layout.flex(1)));
             dialog.show(this.getModularUI());
             if (dialog.buttonContainer.getChildren().getFirst() instanceof Button button) {

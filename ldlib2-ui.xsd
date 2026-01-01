@@ -49,6 +49,7 @@
     <xs:element name="text" type="Text" substitutionGroup="ui-node"/>
     <xs:element name="text-area" type="TextArea" substitutionGroup="ui-node"/>
     <xs:element name="item-slot" type="ItemSlot" substitutionGroup="ui-node"/>
+    <xs:element name="inventory-slots" type="Element" substitutionGroup="ui-node"/>
     <xs:element name="fluid-slot" type="FluidSlot" substitutionGroup="ui-node"/>
     <xs:element name="progress-bar" type="ProgressBar" substitutionGroup="ui-node"/>
     <xs:element name="toggle-group" type="ToggleGroup" substitutionGroup="ui-node"/>

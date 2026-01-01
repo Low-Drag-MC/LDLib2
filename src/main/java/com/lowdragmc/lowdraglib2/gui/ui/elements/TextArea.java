@@ -294,7 +294,7 @@ public class TextArea extends BindableUIElement<String[]> {
             layout.setHeightPercent(100);
         });
         this.contentView.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID));
-        this.contentView.setOverflowVisible(YogaOverflow.HIDDEN);
+        this.contentView.setOverflow(YogaOverflow.HIDDEN);
         this.contentView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
             updateScrollers();
             if (Float.isNaN(scrollX) || Float.isNaN(scrollY)) {

@@ -67,7 +67,15 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
     }
 
     @Nullable
-    public static LDShaderHolder create(ResourceLocation location, VertexFormat format) {
+    public static LDShaderHolder createSafe(ResourceLocation location, VertexFormat format) {
+        try {
+            return create(location, format);
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    public static LDShaderHolder create(ResourceLocation location, VertexFormat format) throws Throwable {
         var currentId = SHADER_ID.get();
         var id = SHADER_UID_DEFINE.formatted(currentId);
         var shaderInstance = LDShaderInstance.create(location, format, Set.of(id));
@@ -87,10 +95,14 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
                 definesKey -> {
                     var defineWithUid = new LinkedHashSet<>(definesKey);
                     defineWithUid.addFirst(shaderUid);
-                    var shader = LDShaderInstance.create(baseInstance.shaderLocation, baseInstance.getVertexFormat(), defineWithUid);
-                    if (shader == null) return baseInstance;
-                    shader.setHolder(this);
-                    return shader;
+                    try {
+                        var shader = LDShaderInstance.create(baseInstance.shaderLocation, baseInstance.getVertexFormat(), defineWithUid);
+                        if (shader == null) return baseInstance;
+                        shader.setHolder(this);
+                        return shader;
+                    } catch (Throwable e) {
+                        return baseInstance;
+                    }
                 });
     }
 

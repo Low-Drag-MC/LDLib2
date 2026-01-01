@@ -262,7 +262,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
-    public UIElement setOverflowVisible(YogaOverflow overflow) {
+    public UIElement setOverflow(YogaOverflow overflow) {
         layoutStyle.setOverflow(overflow);
         return this;
     }
