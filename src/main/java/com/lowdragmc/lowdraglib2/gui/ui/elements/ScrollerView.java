@@ -168,7 +168,7 @@ public class ScrollerView extends UIElement {
         viewPort.layout(layout -> {
             layout.setFlex(1);
             layout.setPadding(YogaEdge.ALL, 5);
-        }).setOverflow(YogaOverflow.HIDDEN).style(style -> style.backgroundTexture(Sprites.BORDER));
+        }).setOverflowVisible(YogaOverflow.HIDDEN).style(style -> style.backgroundTexture(Sprites.BORDER));
         viewPort.addEventListener(UIEvents.MOUSE_WHEEL, this::onScrollWheel);
         viewPort.addChild(new UIElement() // we wrap the view container in a new element
                         .layout(layout -> layout.setFlex(1))

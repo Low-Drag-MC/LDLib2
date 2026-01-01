@@ -137,7 +137,12 @@ public class Button extends UIElement {
     }
 
     public Button noText() {
-        text.setDisplay(YogaDisplay.NONE);
+        text.setDisplay(false);
+        return this;
+    }
+
+    public Button enableText() {
+        text.setDisplay(true);
         return this;
     }
 

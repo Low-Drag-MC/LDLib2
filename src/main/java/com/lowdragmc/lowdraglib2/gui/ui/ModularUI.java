@@ -482,7 +482,11 @@ public class ModularUI {
         }
 
         // we'd better align it to the integer position to avoid a floating point error
-        this.ui.rootElement._setModularUIInternal(this);
+        if (this.menu != null && this.ui.rootElement.getModularUI() == this) {
+            // have already set
+        } else {
+            this.ui.rootElement._setModularUIInternal(this);
+        }
         this.ui.rootElement.initScreen(screenWidth, screenHeight);
         this.ui.rootElement.getLayoutNode().markDirtyAndPropagate();
         calculateStyleAndLayout();
@@ -825,7 +829,7 @@ public class ModularUI {
                 if (dragHandler.dragSource != null) {
                     var event = UIEvent.create(UIEvents.DRAG_SOURCE_UPDATE);
                     event.hasBubblePhase = false;
-                    event.hasCapturePhase = false;
+                    event.hasCapturePhase = true;
                     dispatchDragEvent(mouseX, mouseY, dragX, dragY, dragHandler.dragSource, event);
                     hasHandler = event.hasHandler;
                 }

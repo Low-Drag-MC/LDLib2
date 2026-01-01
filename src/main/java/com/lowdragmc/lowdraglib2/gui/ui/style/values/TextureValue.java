@@ -1,21 +1,49 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style.values;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalNotification;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.texture.*;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4f;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class TextureValue extends StyleValue<IGuiTexture> {
-    private static final Pattern FUNCTION_PATTERN = Pattern.compile("(\\S+?)\\s*\\(([^)]*)\\)");
+    private static final LoadingCache<String, IGuiTexture> CACHE = CacheBuilder.newBuilder()
+            .expireAfterAccess(10, TimeUnit.SECONDS)
+            .removalListener((RemovalNotification<String, IGuiTexture> notification) -> {
+                var value = notification.getValue();
+                if (value instanceof AutoCloseable closeable) {
+                    try {
+                        closeable.close();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
+            .build(new CacheLoader<>() {
+                @Override
+                @Nonnull
+                public IGuiTexture load(@Nonnull String key) {
+                    try {
+                        return Optional.ofNullable(parseTexture(key)).orElse(IGuiTexture.MISSING_TEXTURE);
+                    } catch (Throwable e) {
+                        return IGuiTexture.MISSING_TEXTURE;
+                    }
+                }
+            });
 
     public TextureValue(String rawValue) {
         super(rawValue);
@@ -23,7 +51,9 @@ public class TextureValue extends StyleValue<IGuiTexture> {
 
     @Override
     protected @Nullable IGuiTexture doCompute(String rawValue) {
-        return parseTexture(rawValue);
+        var res = CACHE.getUnchecked(rawValue);
+        if (res == IGuiTexture.MISSING_TEXTURE) return null;
+        return res;
     }
 
     @Nullable
@@ -195,6 +225,11 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                         sdf.setBorderColor(ColorUtils.parseColor(args[3]));
                     }
                     return sdf;
+                }
+            }
+            case "shader" -> {
+                if (args.length > 0) {
+                    return new ShaderTexture(ResourceLocation.parse(args[0]));
                 }
             }
             default -> {

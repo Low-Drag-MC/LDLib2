@@ -142,6 +142,7 @@ public class Switch extends BindableUIElement<Boolean> {
     }
 
     protected void onSwitchClick(UIEvent event) {
+        if (!isActive()) return;
         setOn(!isOn, true);
     }
 

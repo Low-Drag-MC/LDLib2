@@ -46,7 +46,7 @@ public class InventorySlots extends UIElement {
 
     protected void onModularUIChanged(UIEvent event) {
         var mui = getModularUI();
-        if (mui != null) {
+        if (mui != null && event.customData != mui) {
             var menu = mui.getMenu();
             var player = mui.player;
             if (menu != null && player != null) {

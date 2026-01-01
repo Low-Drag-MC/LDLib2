@@ -142,7 +142,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                 style.textAlignHorizontal(Horizontal.CENTER).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
                 style.fontSize(5);
             }
-        }).setText(nameSupplier.apply(key)).setOverflow(YogaOverflow.HIDDEN).layout(layout -> {
+        }).setText(nameSupplier.apply(key)).setOverflowVisible(YogaOverflow.HIDDEN).layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.setFlex(1);
                 layout.setHeightPercent(100);

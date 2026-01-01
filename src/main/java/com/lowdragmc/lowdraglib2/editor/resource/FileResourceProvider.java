@@ -181,7 +181,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())
                         .layout(layout -> layout.setFlex(1))
-                        .setOverflow(YogaOverflow.HIDDEN),
+                        .setOverflowVisible(YogaOverflow.HIDDEN),
                 new Button().buttonStyle(style -> {
                     style.baseTexture(Icons.FOLDER);
                     style.hoverTexture(Icons.FOLDER.copy().setColor(ColorPattern.SLATE_PLUM.color));

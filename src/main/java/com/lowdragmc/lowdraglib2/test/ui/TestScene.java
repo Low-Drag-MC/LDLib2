@@ -36,13 +36,13 @@ public class TestScene implements IScreenTest {
         dummyWorld.setBlockAndUpdate(new BlockPos(0, 2, 0), Blocks.WATER.defaultBlockState());
         dummyWorld.setBlockAndUpdate(new BlockPos(1, 2, 0), Blocks.LAVA.defaultBlockState());
         dummyWorld.setBlockAndUpdate(new BlockPos(2, 2, 0), Blocks.BEDROCK.defaultBlockState());
-        dummyWorld.setBlockAndUpdate(new BlockPos(0, 0, 1), Blocks.GLASS.defaultBlockState());
-        dummyWorld.setBlockAndUpdate(new BlockPos(1, 0, 1), Blocks.GREEN_STAINED_GLASS.defaultBlockState());
-        dummyWorld.setBlockAndUpdate(new BlockPos(2, 0, 1), Blocks.REDSTONE_BLOCK.defaultBlockState());
-        dummyWorld.setBlockAndUpdate(new BlockPos(0, 1, 1), Blocks.CHEST.defaultBlockState());
+        dummyWorld.setBlockAndUpdate(new BlockPos(0, 0, -1), Blocks.GLASS.defaultBlockState());
+        dummyWorld.setBlockAndUpdate(new BlockPos(1, 0, -1), Blocks.GREEN_STAINED_GLASS.defaultBlockState());
+        dummyWorld.setBlockAndUpdate(new BlockPos(2, 0, -1), Blocks.REDSTONE_BLOCK.defaultBlockState());
+        dummyWorld.setBlockAndUpdate(new BlockPos(0, 1, -1), Blocks.CHEST.defaultBlockState());
 
         var entityPlayer = Minecraft.getInstance().player;
-        if (entityPlayer != null && dummyWorld.getBlockEntity(new BlockPos(0, 1, 1)) instanceof ChestBlockEntity chest) {
+        if (entityPlayer != null && dummyWorld.getBlockEntity(new BlockPos(0, 1, -1)) instanceof ChestBlockEntity chest) {
             // add some items to the chest
             chest.startOpen(entityPlayer);
         }
@@ -50,12 +50,12 @@ public class TestScene implements IScreenTest {
         // add some entities
         var sheep = EntityType.SHEEP.create(dummyWorld);
         if (sheep != null) {
-            sheep.setPos(0.5, 3, 1.5);
+            sheep.setPos(0.5, 3, -1.5);
             dummyWorld.addEntity(sheep);
         }
         var item = EntityType.ITEM.create(dummyWorld);
         if (item != null) {
-            item.setPos(1.5, 3, 1.5);
+            item.setPos(1.5, 3, -0.5);
             item.setItem(Items.DIAMOND.getDefaultInstance());
             dummyWorld.addEntity(item);
         }

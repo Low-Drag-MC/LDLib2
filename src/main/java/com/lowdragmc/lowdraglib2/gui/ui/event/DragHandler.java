@@ -91,9 +91,14 @@ public class DragHandler {
     public void stopDrag(@Nullable UIElement dropElement) {
         if (dragSource != null) {
             var event = UIEvent.create(UIEvents.DRAG_END);
+            var mui = dragSource.getModularUI();
+            if (mui != null) {
+                event.x = mui.getLastMouseX();
+                event.y = mui.getLastMouseY();
+            }
             event.target = dragSource;
             event.relatedTarget = dropElement;
-            event.hasCapturePhase = false;
+            event.hasCapturePhase = true;
             event.hasBubblePhase = false;
             UIEventDispatcher.dispatchEvent(event, true, true, false);
         }

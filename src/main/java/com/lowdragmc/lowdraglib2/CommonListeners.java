@@ -94,21 +94,53 @@ public class CommonListeners {
         event.addListener(PackResourceManager.INSTANCE);
     }
 
+    // TODO move example to somewhere else
 //    @SubscribeEvent
-//    public static void onContainerMenuCreateEvent(ContainerMenuEvent.Create event) {
-//        if (event.menu instanceof CraftingMenu craftingMenu && craftingMenu instanceof IModularUIHolderMenu uiHolderMenu) {
+//    public static void onContainerMenuCreateEvent(ContainerMenuEvent.Create event) throws Exception {
+//        // furnace screen
+//        if (event.menu instanceof AbstractFurnaceMenu furnaceMenu && furnaceMenu instanceof IModularUIHolderMenu uiHolderMenu) {
+//            var player = event.player;
+//            var field = AbstractFurnaceMenu.class.getDeclaredField("data");
+//            field.setAccessible(true);
+//            ContainerData data = (ContainerData) field.get(furnaceMenu);
+//            var mui = ModularUI.of(UI.of(
+//                    new UIElement().layout(l -> l.width(176).height(166)).addChildren(
+//                            new UIElement().addChildren(
+//                                    new Label().bind(DataBindingBuilder.componentS2C(() -> {
+//                                        return Component.literal("burn time: %.2f / %.2f s"
+//                                                .formatted(data.get(2) / 20f, data.get(3) / 20f));
+//                                    }).build())
+//                            ).layout(layout -> layout.positionType(YogaPositionType.ABSOLUTE)
+//                                            .widthPercent(100).paddingAll(5).top(-15))
+//                                    .style(style -> style.background(MCSprites.BORDER))
+//                    )), player);
+//            uiHolderMenu.setModularUI(mui);
+//        }
+//
+//        // ae drive
+//        if (event.menu instanceof DriveMenu driveMenu && driveMenu instanceof IModularUIHolderMenu uiHolderMenu) {
 //            var player = event.player;
 //            var mui = ModularUI.of(UI.of(
-//                    // root
-//                    new UIElement().layout(l -> l.width(176).height(166)).addChildren(
-//                            new ItemSlot().bind(new Slot(event.player.getInventory(), 10, 0, 0)),
-//                            new Label().bind(DataBindingBuilder.componentS2C(player::getDisplayName).build()),
-//                            new Toggle().bind(DataBindingBuilder.bool(player::isCreative, isCreative -> {
-//                                if (player instanceof ServerPlayer serverPlayer) {
-//                                    serverPlayer.setGameMode(isCreative ? GameType.CREATIVE : GameType.DEFAULT_MODE);
-//                                }
-//                            }).build())
-//                    )), player);
+//                    new UIElement().layout(l -> l.width(176).height(201)).addChildren(
+//                            new UIElement().addChildren(
+//                                    new TextField().setNumbersOnlyInt(Integer.MIN_VALUE, Integer.MAX_VALUE)
+//                                            .bind(DataBindingBuilder.string(() -> {
+//                                                if (driveMenu.getBlockEntity() instanceof DriveBlockEntity entity) {
+//                                                    return String.valueOf(entity.getPriority());
+//                                                }
+//                                                return String.valueOf(-1);
+//                                            }, priority -> {
+//                                                if (driveMenu.getBlockEntity() instanceof DriveBlockEntity entity) {
+//                                                    try {
+//                                                        entity.setPriority(Integer.parseInt(priority));
+//                                                    } catch (NumberFormatException ignored) {
+//                                                    }
+//                                                }
+//                                            }).build())
+//                                    ).layout(layout -> layout.positionType(YogaPositionType.ABSOLUTE)
+//                                            .width(50).paddingAll(5).left(173).top(-5))
+//                                    .style(style -> style.background(MCSprites.BORDER))
+//                    ), StylesheetManager.INSTANCE.getStylesheetSafe(StylesheetManager.MC)), player);
 //            uiHolderMenu.setModularUI(mui);
 //        }
 //    }

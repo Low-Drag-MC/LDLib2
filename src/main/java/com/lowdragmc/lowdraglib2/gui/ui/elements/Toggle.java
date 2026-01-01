@@ -212,6 +212,7 @@ public class Toggle extends BindableUIElement<Boolean> {
     }
 
     protected void onToggleClick(UIEvent event) {
+        if (!isActive()) return;
         if (toggleGroup != null) {
             if (isOn && !toggleGroup.allowEmpty) return;
         }
@@ -254,7 +255,12 @@ public class Toggle extends BindableUIElement<Boolean> {
     }
 
     public Toggle noText() {
-        toggleLabel.setDisplay(YogaDisplay.NONE);
+        toggleLabel.setDisplay(false);
+        return this;
+    }
+
+    public Toggle enableText() {
+        toggleLabel.setDisplay(true);
         return this;
     }
 

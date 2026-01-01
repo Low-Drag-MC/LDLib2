@@ -35,7 +35,6 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
@@ -47,7 +46,6 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nullable;
@@ -296,7 +294,7 @@ public class TextArea extends BindableUIElement<String[]> {
             layout.setHeightPercent(100);
         });
         this.contentView.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID));
-        this.contentView.setOverflow(YogaOverflow.HIDDEN);
+        this.contentView.setOverflowVisible(YogaOverflow.HIDDEN);
         this.contentView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
             updateScrollers();
             if (Float.isNaN(scrollX) || Float.isNaN(scrollY)) {
@@ -977,8 +975,12 @@ public class TextArea extends BindableUIElement<String[]> {
                 // multi-line selection
                 var startLine = lines.get(start.line());
                 var endLine = lines.get(end.line());
-                String before = startLine.substring(0, start.col());
-                String after = endLine.substring(end.col());
+
+                var from = Mth.clamp(start.col(), 0, startLine.length());
+                var to = Mth.clamp(end.col(), 0, endLine.length());
+
+                String before = startLine.substring(0, from);
+                String after = endLine.substring(to);
                 List<String> incoming = splitLines(text);
 
                 // remove lines between start+1 .. end

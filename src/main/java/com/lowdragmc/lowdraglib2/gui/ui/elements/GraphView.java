@@ -18,7 +18,6 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.appliedenergistics.yoga.YogaPositionType;
-import org.w3c.dom.Element;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
@@ -118,7 +117,7 @@ public class GraphView extends UIElement {
     private float scale = 1f;
 
     public GraphView() {
-        setOverflow(YogaOverflow.HIDDEN);
+        setOverflowVisible(YogaOverflow.HIDDEN);
 
         contentRoot.layout(l -> {
             l.setPositionType(YogaPositionType.ABSOLUTE);

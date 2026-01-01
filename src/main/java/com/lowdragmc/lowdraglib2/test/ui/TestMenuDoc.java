@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
-import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -29,8 +28,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class TestMenuDoc implements IMenuTest {
-    private final ItemStackHandler itemHandler = new ItemStackHandler(2);
-    private final FluidTank fluidTank = new FluidTank(2000);
     private boolean bool = true;
     private String string = "hello";
     private float number = 0.5f;
@@ -54,6 +51,8 @@ public class TestMenuDoc implements IMenuTest {
     }
 
     private ModularUI step2(Player player) {
+        ItemStackHandler itemHandler = new ItemStackHandler(2);
+        FluidTank fluidTank = new FluidTank(2000);
         // create a root element
         var root = new UIElement();
         root.addChildren(

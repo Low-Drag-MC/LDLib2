@@ -15,6 +15,7 @@
     import com.mojang.blaze3d.vertex.VertexFormat;
     import lombok.Getter;
     import lombok.Setter;
+    import lombok.experimental.Accessors;
     import net.minecraft.client.gui.GuiGraphics;
     import net.neoforged.api.distmarker.Dist;
     import net.neoforged.api.distmarker.OnlyIn;
@@ -24,6 +25,7 @@
 
     @KJSBindings
     @LDLRegisterClient(name = "sdf_rect_texture", registry = "ldlib2:gui_texture")
+    @Accessors(chain = true)
     public class SDFRectTexture extends TransformTexture {
         @Getter @Setter
         @Configurable
@@ -44,6 +46,10 @@
         // runtime
         private Vector4f colorVec4 = ColorUtils.toVector4f(color);
         private Vector4f borderColorVec4 = ColorUtils.toVector4f(borderColor);
+
+        public static SDFRectTexture of(int color) {
+            return new SDFRectTexture().setColor(color);
+        }
 
         @Override
         @ConfigSetter(field = "color")

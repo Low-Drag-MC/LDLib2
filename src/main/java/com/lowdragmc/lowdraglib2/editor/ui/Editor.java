@@ -47,6 +47,7 @@ public abstract class Editor extends UIElement {
     public final UIElement top;
     public final UIElement icon;
     public final UIElement menuContainer;
+    public final UIElement topPlaceholder;
     public final UIElement buttonContainer;
 
     public final Button closeButton;
@@ -89,6 +90,7 @@ public abstract class Editor extends UIElement {
         this.top = new UIElement();
         this.icon = new UIElement();
         this.menuContainer = new UIElement();
+        this.topPlaceholder = new UIElement();
         this.buttonContainer = new UIElement();
 
         this.closeButton = new Button();
@@ -142,16 +144,7 @@ public abstract class Editor extends UIElement {
                             layout.setFlexDirection(YogaFlexDirection.ROW);
                             layout.setGap(YogaGutter.ALL, 2);
                         }).addClass("__editor_top-menu-container__"),
-                        new UIElement().layout(layout -> layout.flex(1))
-                                .addEventListener(UIEvents.DOUBLE_CLICK, e -> {
-                                    if (window != null) {
-                                        if (window.isMaximized()) {
-                                            window.retoreWindow();
-                                        } else {
-                                            window.maximizeWindow();
-                                        }
-                                    }
-                                })
+                        topPlaceholder.layout(layout -> layout.flex(1))
                                 .addClass("__editor_top-placeholder__"), // placeholder
                         buttonContainer.layout(layout -> {
                             layout.flexDirection(YogaFlexDirection.ROW);
@@ -384,7 +377,7 @@ public abstract class Editor extends UIElement {
                             .textAlignHorizontal(Horizontal.CENTER)
                             .textWrap(TextWrap.HOVER_ROLL))
                     .setText(Component.literal("-").append(getTitle()))
-                    .setOverflow(YogaOverflow.HIDDEN)
+                    .setOverflowVisible(YogaOverflow.HIDDEN)
                     .layout(layout -> layout.flex(1)));
             dialog.show(this.getModularUI());
             if (dialog.buttonContainer.getChildren().getFirst() instanceof Button button) {

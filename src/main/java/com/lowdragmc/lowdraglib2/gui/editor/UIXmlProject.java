@@ -34,6 +34,25 @@ public class UIXmlProject implements IProject {
         return UIXmlProjectType.TYPE;
     }
 
+    @Override
+    public void initNewProject() {
+        xml = """
+                <?xml version="1.0" encoding="UTF-8" ?>
+                <ldlib2-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Low-Drag-MC/LDLib2/refs/heads/1.21/ldlib2-ui.xsd">
+                    <stylesheet location="ldlib2:lss/mc.lss"/>
+                    <style>
+                        .flex-1 {
+                            flex: 1;
+                        }
+                    </style>
+                    <root class="panel_bg" style="width: 150; height: 300">
+                        <button text="click me!"/>
+                    </root>
+                </ldlib2-ui>
+                """;
+    }
+
     public UIXmlProject setXml(String xml) {
         return setXml(xml, true);
     }

@@ -140,7 +140,7 @@ public class UIXmlView extends View {
             layout.setWidthPercent(100);
             layout.setFlex(1);
         });
-        canvas.setOverflow(false);
+        canvas.setOverflowVisible(false);
         canvas.setDisplay(YogaDisplay.NONE);
         canvas.addClass("__ui-editor-view_canvas__").moveInlineAsDefault();
 

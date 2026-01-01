@@ -57,6 +57,12 @@ public abstract class Style implements IConfigurable, IPersistedSerializable {
     }
 
     public <T> void set(StyleOrigin origin, Property<T> property, T value) {
+        if (value == null) {
+            styleBag.removeCandidates(property, slot -> slot.origin() == origin &&
+                    slot.specificity() == 0 &&
+                    slot.sourceOrder() == 0);
+            return;
+        }
         styleBag.replaceOrPutCandidate(property, StyleSlot.of(
                 property,
                 origin,

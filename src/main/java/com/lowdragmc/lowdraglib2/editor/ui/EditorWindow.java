@@ -161,13 +161,21 @@ public class EditorWindow extends UIElement {
                     .setOnClick(e -> minimizeWindow())
                     .layout(layout -> layout.height(12)), 0);
         }
-        newEditor.top.addEventListener(UIEvents.MOUSE_DOWN, e -> {
-            if (!isMaximized() && e.target.hasClass("__editor_top-placeholder__")) {
+        newEditor.topPlaceholder.addEventListener(UIEvents.DOUBLE_CLICK, e -> {
+            if (newEditor.getWindow() != this) return;
+            if (isMaximized()) {
+                retoreWindow();
+            } else {
+                maximizeWindow();
+            }
+        });
+        newEditor.topPlaceholder.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            if (newEditor.getWindow() == this && !isMaximized()) {
                 e.target.startDrag(new Vector2f(windowLeft, windowTop), null);
             }
         });
-        newEditor.top.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, e -> {
-            if (e.dragHandler.getDraggingObject() instanceof Vector2f pos) {
+        newEditor.topPlaceholder.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, e -> {
+            if (newEditor.getWindow() == this && e.dragHandler.getDraggingObject() instanceof Vector2f pos) {
                 windowLeft = pos.x + e.x - e.dragStartX;
                 windowTop = pos.y + e.y - e.dragStartY;
                 window.layout(layout -> layout
@@ -310,7 +318,7 @@ public class EditorWindow extends UIElement {
                                     text.setText(currentTitle);
                                 }
                             }
-                        }).setOverflow(YogaOverflow.HIDDEN),
+                        }).setOverflowVisible(YogaOverflow.HIDDEN),
                 new Button().noText().buttonStyle(style -> {
                     style.baseTexture(Icons.REMOVE);
                     style.hoverTexture(Icons.REMOVE.copy().setColor(ColorPattern.GRAY.color));

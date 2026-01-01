@@ -54,6 +54,7 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
     public final String shaderUid;
     public final LDShaderInstance baseInstance;
     // runtime
+    private boolean isClosed = false;
     private final Map<Set<String>, LDShaderInstance> shadersWithDefines = new HashMap<>();
     protected final Map<String, Object> samplerCache = new HashMap<>();
     protected final Map<String, Supplier<Object>> dynamicSampler = new HashMap<>();
@@ -95,8 +96,10 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
 
     @Override
     public void close() {
+        if (isClosed) return;
         baseInstance.close();
         shadersWithDefines.values().forEach(LDShaderInstance::close);
+        isClosed = true;
     }
 
     public void removeDynamicSampler(String name) {

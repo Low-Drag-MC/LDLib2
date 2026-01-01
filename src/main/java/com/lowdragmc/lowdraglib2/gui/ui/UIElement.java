@@ -158,6 +158,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * You should not call this method manually.
      */
     protected final void _setModularUIInternal(@Nullable ModularUI mui) {
+        var previous = modularUI;
         if (this.modularUI != mui) {
             if (this.modularUI != null) {
                 this.modularUI.unregisterElement(this);
@@ -181,6 +182,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             event.target = this;
             event.hasBubblePhase = false;
             event.hasCapturePhase = false;
+            event.customData = previous;
             UIEventDispatcher.dispatchEvent(event, false, false, false);
         }
         for (var child : children) {
@@ -260,12 +262,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
-    public UIElement setOverflow(YogaOverflow overflow) {
+    public UIElement setOverflowVisible(YogaOverflow overflow) {
         layoutStyle.setOverflow(overflow);
         return this;
     }
 
-    public UIElement setOverflow(boolean overflow) {
+    public UIElement setOverflowVisible(boolean overflow) {
         layoutStyle.setOverflow(overflow ? YogaOverflow.VISIBLE : YogaOverflow.HIDDEN);
         return this;
     }
@@ -685,24 +687,34 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /// Style
-    public boolean hasClass(String identifier) {
-        return classes.contains(identifier);
+    public boolean hasClass(String clazz) {
+        return classes.contains(clazz);
     }
 
-    public final UIElement removeClass(String identifier) {
-        if (!classes.contains(identifier)) {
+    public final UIElement removeClass(String clazz) {
+        if (!classes.contains(clazz)) {
             return this;
         }
-        classes.remove(identifier);
+        classes.remove(clazz);
         onClassIdChanged();
         return this;
     }
 
-    public final UIElement addClass(String identifier) {
-        if (classes.contains(identifier)) {
+    public final UIElement addClass(String clazz) {
+        if (classes.contains(clazz)) {
             return this;
         }
-        classes.add(identifier);
+        classes.add(clazz);
+        onClassIdChanged();
+        return this;
+    }
+
+    public final UIElement addClasses(String... classes) {
+        var list = Arrays.stream(classes).toList();
+        if (this.classes.containsAll(list)) {
+            return this;
+        }
+        this.classes.addAll(list);
         onClassIdChanged();
         return this;
     }
