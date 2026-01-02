@@ -122,7 +122,7 @@ public class CollectionAccessor<TYPE> implements
                 if (buffer.readBoolean()) {
                     value.add(null);
                 } else {
-                    directAccessor.readDirectVarToStream(buffer, holder);
+                    directAccessor.writeDirectVarFromStream(buffer, holder);
                     value.add(holder.value());
                 }
             }

@@ -1,6 +1,9 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
+import com.google.common.reflect.TypeToken;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -24,12 +27,17 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaWrap;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @LDLRegister(name="ui_sync", registry = "ldlib2:menu_test")
@@ -123,6 +131,39 @@ public class TestSync implements IMenuTest {
                 )).setSearchOnServer(Block[].class).bind(DataBindingBuilder
                         .create(() -> block, b -> block = b).syncType(Block.class).build())
         );
+
+        var serverCandidates1 = List.of("a", "b", "c", "d");
+        var selector1 = new Selector<String>();
+        selector1.addChild(
+                // a placeholder element value to sync candidates, it won't affect layout
+                new BindableValue<String[]>().bind(DataBindingBuilder.create(
+                        () -> serverCandidates1.toArray(String[]::new), Consumers.nop())
+                        .c2sStrategy(SyncStrategy.NONE) // only s -> c
+                        .remoteSetter(candidates -> {
+                            selector1.setCandidates(Arrays.stream(candidates).toList());
+                        })
+                        .build()
+                )
+        );
+
+        var serverCandidates2 = List.of("a", "b", "c", "d");
+        var clientCandidates = new ArrayList<String>();
+        var selector2 = new Selector<String>();
+        Type type = new TypeToken<List<String>>(){}.getType();
+        selector2.addChild(
+                // a placeholder element value to sync candidates, it won't affect layout
+                new BindableValue<List<String>>().bind(DataBindingBuilder.create(
+                                () -> LDLib2.isRemote() ? clientCandidates : serverCandidates2, Consumers.nop())
+                        .type(type)
+                        .initialValue(LDLib2.isRemote() ? clientCandidates : serverCandidates2)
+                        .c2sStrategy(SyncStrategy.NONE) // only s -> c
+                        .remoteSetter(selector2::setCandidates)
+                        .build()
+                )
+        );
+
+        root.addChildren(selector1, selector2);
+
         return new ModularUI(UI.of(root, List.of(StylesheetManager.INSTANCE.getStylesheetSafe(StylesheetManager.MC))), player);
     }
 }
