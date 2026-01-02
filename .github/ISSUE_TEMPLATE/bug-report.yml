@@ -1,0 +1,50 @@
+name: Bug Report
+description: 提交错误报告
+title: "Bug: "
+labels:
+  - bug
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: 请简明地表述 bug 是什么。Please briefly describe what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: 请描述如何重现这个行为。 Please describe how to reproduce the bug.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: 请描述期望的行为。 Please describe the expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Logs
+      description: |
+          请使用 Github Gist/Pastebin 等工具将完整日志上传后复制于此，请勿直接粘贴日志或截图。为了方便后人存档，请不要使用 PrivateBin 等有时效性的日志。请检查自己上传的日志中是否包含重要登录凭据(如Token等)
+          Please upload the complete logs using GitHub Gist, Pastebin, or a similar service, then paste the link here. Do not paste the logs directly or upload screenshots. For long-term reference, please avoid using time-limited services such as PrivateBin. Also, make sure to check that the uploaded logs do not contain sensitive credentials (such as tokens, etc.).
+      value: 再次强调，请注意 ** 不要上传自己的个人凭据 ** (如Token等) !! DO NOT UPLOAD YOUR SENSETIVE CREDENTIAL !!
+  - type: textarea
+    attributes:
+      label: Versions
+      description: 请填写相应的版本号。 Enter The versions.
+      value: |
+        - OS: 
+        - Java Version: 
+        - Minecraft Version: 
+        - LDLib Version:
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: 请尽量详细地提供相关截图。（如有） Please provide screenshots as more as possible.
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: 请描述其他想要补充的信息。 Describe other additional context.
