@@ -1,11 +1,13 @@
 # ChangeLogs
 
+## v2.1.5.a
+* fixed writing direct var of a CollectionAccessor
+
 ## v2.1.5
 * avoid using frozon registry if the provider is accessible
 * better binding strategy
 * better file resource parser
 * change license to LGPLv3
-
 
 ## v2.1.4
 * Added more ui examples
