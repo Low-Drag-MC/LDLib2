@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.sync.bindings;
 
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public interface IBinding<T> {
@@ -49,7 +50,17 @@ public interface IBinding<T> {
      * @param dataSource the {@link IDataSource} to set as the remote data source;
      *                   can be {@code null} to clear the current remote data source.
      */
-    void setRemoteDataSource(@Nullable IDataSource<T> dataSource);
+    void setRemoteDataSource(@Nonnull IDataSource<T> dataSource);
+
+    /**
+     * Retrieves the remote data source associated with this binding.
+     * The remote data source is used for managing and synchronizing data
+     * between the client and the server or other external systems.
+     *
+     * @return the {@link IDataSource} instance representing the remote data source.
+     *         The returned value is guaranteed to be non-null.
+     */
+    @Nonnull IDataSource<T> getRemoteDataSource();
 
     /**
      * Sets the server-side data source used for synchronization with this binding.
@@ -58,5 +69,15 @@ public interface IBinding<T> {
      * @param dataSource the {@link IDataSource} instance to set as the server-side data source;
      *                   can be {@code null} to unset or clear the current server-side data source.
      */
-    void setServerDataSource(@Nullable IDataSource<T> dataSource);
+    void setServerDataSource(@Nonnull IDataSource<T> dataSource);
+
+    /**
+     * Retrieves the server-side data source associated with this binding.
+     * The server data source is a mechanism used to manage, retrieve, or update
+     * data related to the server for synchronization purposes.
+     *
+     * @return the {@link IDataSource} instance representing the server-side data source.
+     *         The returned value is guaranteed to be non-null.
+     */
+    @Nonnull IDataSource<T> getServerDataSource();
 }

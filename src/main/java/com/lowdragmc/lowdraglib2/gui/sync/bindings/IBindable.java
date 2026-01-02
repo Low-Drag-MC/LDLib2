@@ -21,7 +21,9 @@ public interface IBindable<T> extends IDataSource<T> {
     default UIElement bind(@Nullable IBinding<T> binding) {
         var self = (UIElement) this;
         if (binding == null) return self;
-        binding.setRemoteDataSource(this);
+        if (binding.getRemoteDataSource() == IDataSource.empty()) {
+            binding.setRemoteDataSource(this);
+        }
         self.addSyncValue(binding.getSyncValue());
         return self;
     }
@@ -37,7 +39,9 @@ public interface IBindable<T> extends IDataSource<T> {
      */
     default UIElement unbind(@Nonnull IBinding<T> binding) {
         var self = (UIElement) this;
-        binding.setRemoteDataSource(IDataSource.empty());
+        if (binding.getRemoteDataSource() == this) {
+            binding.setRemoteDataSource(IDataSource.empty());
+        }
         self.removeSyncValue(binding.getSyncValue());
         return self;
     }

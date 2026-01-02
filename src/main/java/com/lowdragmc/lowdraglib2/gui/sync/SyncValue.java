@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.sync;
 
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.syncdata.SyncValueHolder;
 import lombok.Getter;
@@ -20,6 +21,10 @@ public class SyncValue<T> {
     public Supplier<T> valueProvider;
     @Getter @Setter
     public boolean acceptSync = true;
+    @Getter @Setter
+    public boolean toSync = true;
+    @Getter @Setter
+    public SyncStrategy syncStrategy = SyncStrategy.CHANGED_PERIODIC;
 
     public SyncValue(String name, Type type, @Nullable T value) {
         this.syncValueHolder = new SyncValueHolder<>(name, type, value);
@@ -39,6 +44,7 @@ public class SyncValue<T> {
     }
 
     public void update() {
+        if (!toSync) return;
         if (valueProvider != null) {
             var newValue = valueProvider.get();
             syncValueHolder.setValue(newValue);
@@ -47,10 +53,11 @@ public class SyncValue<T> {
     }
 
     public boolean hasChanged() {
-        return syncValueHolder.ref.isSyncDirty();
+        return toSync && (syncStrategy == SyncStrategy.ALWAYS || syncValueHolder.ref.isSyncDirty());
     }
 
     public void markAsChanged() {
+        if (!toSync) return;
         syncValueHolder.ref.markAsDirty();
     }
 

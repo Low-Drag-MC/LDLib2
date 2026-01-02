@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -66,6 +67,9 @@ public class TestMenuDoc implements IMenuTest {
                 ).layout(l -> l.gapAll(2).flexDirection(YogaFlexDirection.ROW)),
                 // bind value to the components
                 new UIElement().addChildren(
+                        new Label().bind(DataBindingBuilder.componentS2C(() -> Component.literal("s->c only: ")).build()),
+                        new Label().bind(DataBindingBuilder.component(() -> Component.literal("s->c only: "), c -> {})
+                                .c2sStrategy(SyncStrategy.NONE).build()),
                         new Switch().bind(DataBindingBuilder.bool(() -> bool, value -> bool = value).build()),
                         new TextField().bind(DataBindingBuilder.string(() -> string, value -> string = value).build()),
                         new Scroller.Horizontal().bind(DataBindingBuilder.floatVal(() -> number, value -> number = value).build()),

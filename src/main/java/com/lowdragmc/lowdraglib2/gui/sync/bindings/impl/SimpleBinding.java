@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IBinding;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,26 +22,32 @@ public class SimpleBinding<T> implements IBinding<T> {
     public final boolean isRemote;
     @Getter
     public final SyncValue<T> syncValue;
+    @Getter @Accessors(fluent = true)
+    public final SyncStrategy c2sStrategy;
+    @Getter @Accessors(fluent = true)
+    public final SyncStrategy s2cStrategy;
 
     // runtime
-    @Setter
+    @Setter @Getter
     private IDataSource<T> serverDataSource = IDataSource.empty();
-    @Setter
+    @Setter @Getter
     private IDataSource<T> remoteDataSource = IDataSource.empty();
-    @Setter @Getter @Accessors(fluent = true)
-    private SyncStrategy c2sStrategy = SyncStrategy.CHANGED_PERIODIC;
-    @Setter @Getter @Accessors(fluent = true)
-    private SyncStrategy s2cStrategy = SyncStrategy.CHANGED_PERIODIC;
 
-    public SimpleBinding(boolean isRemote, String name, Type type, @Nullable T initialValue) {
+    public SimpleBinding(boolean isRemote, String name, Type type, @Nullable T initialValue, SyncStrategy c2sStrategy, SyncStrategy s2cStrategy) {
         this.isRemote = isRemote;
+        this.c2sStrategy = c2sStrategy;
+        this.s2cStrategy = s2cStrategy;
         this.syncValue = new SyncValue<>(name, type, initialValue);
         if (isRemote) {
             syncValue.setAcceptSync(acceptS2C());
+            syncValue.setToSync(acceptC2S());
+            syncValue.setSyncStrategy(c2sStrategy);
             registerListener(this::setRemoteValue);
             setValueProvider(this::getRemoteValue);
         } else {
             syncValue.setAcceptSync(acceptC2S());
+            syncValue.setToSync(acceptS2C());
+            syncValue.setSyncStrategy(s2cStrategy);
             registerListener(this::setServerValue);
             setValueProvider(this::getServerValue);
         }

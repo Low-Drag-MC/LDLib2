@@ -10,6 +10,7 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.apache.commons.lang3.function.Consumers;
 import org.apache.commons.lang3.function.Suppliers;
@@ -43,11 +44,11 @@ public class DataBindingBuilder<T> {
     @Nonnull
     private Consumer<T> setter;
     @Setter
-    @Nonnull
-    private Supplier<T> remoteGetter = Suppliers.nul();
+    @Nullable
+    private Supplier<T> remoteGetter;
     @Setter
-    @Nonnull
-    private Consumer<T> remoteSetter = Consumers.nop();
+    @Nullable
+    private Consumer<T> remoteSetter;
     @Nullable
     private T initialValue;
 
@@ -96,12 +97,16 @@ public class DataBindingBuilder<T> {
             type = getter.get().getClass();
         }
 
-        var binding = new SimpleBinding<>(isRemote, name, type, initialValue);
-        binding.s2cStrategy(s2cStrategy);
-        binding.c2sStrategy(c2sStrategy);
+        var binding = new SimpleBinding<>(isRemote, name, type, initialValue, c2sStrategy, s2cStrategy);
 
         if (isRemote) {
-            binding.setRemoteDataSource(IDataSource.of(remoteSetter, remoteGetter));
+            if (remoteSetter != null || remoteGetter != null) {
+                binding.setRemoteDataSource(IDataSource.of(
+                        remoteSetter == null ? Consumers.nop() : remoteSetter,
+                        remoteGetter == null ? Suppliers.nul() : remoteGetter
+                        )
+                );
+            }
         } else {
             binding.setServerDataSource(IDataSource.of(setter, getter));
         }
@@ -136,6 +141,18 @@ public class DataBindingBuilder<T> {
 
     public static DataBindingBuilder<FluidStack> fluidStackC2S(Consumer<FluidStack> setter) {
         return fluidStack(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Block> block(Supplier<Block> getter, Consumer<Block> setter) {
+        return create(getter, setter).syncType(Block.class);
+    }
+
+    public static DataBindingBuilder<Block> blockS2C(Supplier<Block> getter) {
+        return block(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Block> blockC2S(Consumer<Block> setter) {
+        return block(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static DataBindingBuilder<Component> component(Supplier<Component> getter, Consumer<Component> setter) {
