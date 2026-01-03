@@ -2,12 +2,15 @@ package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.style.LayoutStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
 import lombok.experimental.UtilityClass;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import org.appliedenergistics.yoga.*;
 
 import java.util.Arrays;
@@ -42,9 +45,27 @@ public final class YogaNodeConfigParser {
                 // spacing
                 new ConfiguratorGroup("property.spacing.group").addConfigurators(
                         // move all to outer for convenient
-                        createConfigurator(YogaProperties.MARGINS[YogaProperties.MARGINS.length - 1], style).setLabel("margin-all"),
-                        createConfigurator(YogaProperties.PADDINGS[YogaProperties.PADDINGS.length - 1], style).setLabel("padding-all"),
-                        createConfigurator(YogaProperties.GAPS[YogaProperties.GAPS.length - 1], style).setLabel("gap-all"),
+                        createConfigurator(YogaProperties.MARGINS[YogaProperties.MARGINS.length - 1], style)
+                                .setLabel(
+                                        Component.literal("margin-all").withStyle(
+                                                style.valueGetter(YogaProperties.MARGINS[YogaProperties.MARGINS.length - 1]).get() == null ?
+                                                        Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
+                                        )
+                                ),
+                        createConfigurator(YogaProperties.PADDINGS[YogaProperties.PADDINGS.length - 1], style)
+                                .setLabel(
+                                        Component.literal("padding-all").withStyle(
+                                                style.valueGetter(YogaProperties.PADDINGS[YogaProperties.PADDINGS.length - 1]).get() == null ?
+                                                        Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
+                                        )
+                                ),
+                        createConfigurator(YogaProperties.GAPS[YogaProperties.GAPS.length - 1], style)
+                                .setLabel(
+                                        Component.literal("gap-all").withStyle(
+                                                style.valueGetter(YogaProperties.GAPS[YogaProperties.GAPS.length - 1]).get() == null ?
+                                                        Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
+                                        )
+                                ),
                         new ConfiguratorGroup("property.spacing.margin.group").addConfigurators(
                                 createConfigurators(YogaProperties.MARGINS, style)
                         ),

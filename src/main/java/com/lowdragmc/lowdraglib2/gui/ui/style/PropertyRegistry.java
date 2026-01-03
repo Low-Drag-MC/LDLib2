@@ -179,6 +179,7 @@ public final class PropertyRegistry {
     public static final Property<Float> INTERPOLATE_STEP = create("interpolate-step", 0.1f).setRange(0f, 1f);
 
     public static final Property<Float> SCROLL_DELTA = create("scroll-delta", 0.1f).setRange(0f, 1f);
+    public static final Property<Float> SCROLL_BAR_SIZE = create("scroll-bar-size", 20f).setRange(0f, 100f);
 
     public static final Property<Float> SCROLLER_VIEW_MARGIN = create("scroller-view-margin", 5f);
     public static final Property<ScrollerMode> SCROLLER_VIEW_MODE = create("scroller-view-mode", ScrollerMode.class, ScrollerMode.BOTH);
@@ -232,5 +233,6 @@ public final class PropertyRegistry {
         TextElement.TextStyle.init();
         Toggle.ToggleStyle.init();
         Switch.SwitchStyle.init();
+        Scroller.ScrollerStyle.init();
     }
 }

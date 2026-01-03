@@ -133,8 +133,8 @@ public class Property<VALUE> {
         );
         clearButton.setDisplay(inlineMark.get());
         configurator.label.setText(inlineMark.get() ?
-                Component.translatable(name).withStyle(Style.EMPTY.withBold(true)) :
-                Component.translatable(name));
+                configurator.label.getText().copy().withStyle(style -> style.withColor(ColorPattern.ORANGE.color)) :
+                configurator.label.getText().copy().withStyle(style -> style.withColor(-1)));
         configurator.lineContainer.addChildAt(clearButton, configurator.tip.getSiblingIndex());
         configurator.addEventListener(UIEvents.TICK, e -> {
             var hasInline = getter.get() != null;
@@ -142,8 +142,8 @@ public class Property<VALUE> {
             inlineMark.set(hasInline);
             clearButton.setDisplay(hasInline);
             configurator.label.setText(hasInline ?
-                    Component.translatable(name).withStyle(Style.EMPTY.withBold(true)) :
-                    Component.translatable(name));
+                    configurator.label.getText().copy().withStyle(style -> style.withColor(ColorPattern.ORANGE.color)) :
+                    configurator.label.getText().copy().withStyle(style -> style.withColor(-1)));
         });
         return configurator;
     }

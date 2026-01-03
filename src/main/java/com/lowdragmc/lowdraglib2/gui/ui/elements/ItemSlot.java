@@ -60,6 +60,7 @@ import java.util.function.Consumer;
 @LDLRegister(name = "item-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class ItemSlot extends BindableUIElement<ItemStack> {
     public final static IGuiTexture ITEM_SLOT_TEXTURE = Sprites.RECT_RD_T.copy().setColor(0xffbbbbbb);
+    public final static IGuiTexture DRAGGING_BG = new ColorRectTexture(0x80FFFFFF);
 
     @Configurable(name = "SlotStyle")
     public class SlotStyle extends Style {
@@ -309,10 +310,12 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         var value = getValue();
         var mui = guiContext.modularUI;
         var hovered = isHover() || isChildHover();
+        var drawDraggingBackground = false;
         if (mui.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
             var carried = containerScreen.getMenu().getCarried();
             if (slot == containerScreen.clickedSlot && !containerScreen.draggingItem.isEmpty() && containerScreen.isSplittingStack && !value.isEmpty()) {
                 value = value.copyWithCount(value.getCount() / 2);
+                drawDraggingBackground = true;
             } else if (containerScreen.isQuickCrafting && containerScreen.quickCraftSlots.contains(slot) && !carried.isEmpty()) {
                 if (containerScreen.quickCraftSlots.size() == 1) {
                     return;
@@ -327,6 +330,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                     }
 
                     value = carried.copyWithCount(i1);
+                    drawDraggingBackground = true;
                 } else {
                     containerScreen.quickCraftSlots.remove(slot);
                     containerScreen.recalculateQuickCraftRemaining();
@@ -343,6 +347,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         guiContext.pose.pushPose();
         guiContext.pose.scale(contentWidth / 16f, contentHeight / 16f, 1);
         guiContext.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight, -200);
+        if (drawDraggingBackground) {
+            guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
+        }
         if (!value.isEmpty()) {
             DrawerHelper.drawItemStack(guiContext.graphics, value, 0, 0, -1, null);
         }

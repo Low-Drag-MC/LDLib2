@@ -34,7 +34,6 @@ import org.appliedenergistics.yoga.YogaWrap;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -154,7 +153,7 @@ public class TestSync implements IMenuTest {
                 // a placeholder element value to sync candidates, it won't affect layout
                 new BindableValue<List<String>>().bind(DataBindingBuilder.create(
                                 () -> LDLib2.isRemote() ? clientCandidates : serverCandidates2, Consumers.nop())
-                        .type(type)
+                        .syncType(type)
                         .initialValue(LDLib2.isRemote() ? clientCandidates : serverCandidates2)
                         .c2sStrategy(SyncStrategy.NONE) // only s -> c
                         .remoteSetter(selector2::setCandidates)

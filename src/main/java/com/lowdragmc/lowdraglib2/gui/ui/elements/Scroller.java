@@ -36,10 +36,21 @@ public abstract class Scroller extends BindableUIElement<Float> {
     public class ScrollerStyle extends Style {
         private static final Property<?>[] PROPERTIES = new Property[] {
                 PropertyRegistry.SCROLL_DELTA,
+                PropertyRegistry.SCROLL_BAR_SIZE,
         };
 
         public ScrollerStyle() {
             super(Scroller.this);
+        }
+
+        public static void init() {
+            PropertyRegistry.SCROLL_BAR_SIZE.addListener(ScrollerStyle::onPropertyChanged);
+        }
+
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
+            if (element instanceof Scroller progressBar && property == PropertyRegistry.SCROLL_BAR_SIZE) {
+                progressBar.updateScrollBarPosition();
+            }
         }
 
         @Override
@@ -55,7 +66,18 @@ public abstract class Scroller extends BindableUIElement<Float> {
         public float scrollDelta() {
             return getValueSave(PropertyRegistry.SCROLL_DELTA);
         }
+
+        public ScrollerStyle scrollBarSize(float scrollBarSize) {
+            var newSize = Math.max(0, Math.min(100, scrollBarSize));
+            set(PropertyRegistry.SCROLL_BAR_SIZE, newSize);
+            return this;
+        }
+
+        public float scrollBarSize() {
+            return getValueSave(PropertyRegistry.SCROLL_BAR_SIZE);
+        }
     }
+
 
     public final Button headButton;
     public final Button tailButton;
@@ -71,8 +93,6 @@ public abstract class Scroller extends BindableUIElement<Float> {
     protected float maxValue = 1;
     @Configurable(name = "value")
     protected float value = 0;
-    @Getter
-    protected float scrollBarSize = 20; // in percent
     @Getter @Setter
     @Accessors(chain = true)
     protected Function<Float, Float> clampNormalizedValue = Function.identity();
@@ -208,11 +228,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
      * @param size the size of the scroll bar in percent (0-100)
      */
     public Scroller setScrollBarSize(float size) {
-        var newSize = Math.max(0, Math.min(100, size));
-        if (newSize != this.scrollBarSize) {
-            this.scrollBarSize = newSize;
-            updateScrollBarPosition();
-        }
+        this.scrollerStyle.scrollBarSize(size);
         return this;
     }
 
@@ -288,9 +304,10 @@ public abstract class Scroller extends BindableUIElement<Float> {
 
         @Override
         protected void updateScrollBarPosition()  {
+            var scrollBarSize = getScrollerStyle().scrollBarSize();
             float remainingSpace = 100 - scrollBarSize;
             float position = getNormalizedValue() * remainingSpace;
-            scrollBar.layout(layout -> {
+            Style.importantPipeline(scrollBar.getLayout(), layout -> {
                 layout.setHeightPercent(scrollBarSize);
                 layout.setPositionPercent(YogaEdge.TOP, position);
             });
@@ -353,10 +370,11 @@ public abstract class Scroller extends BindableUIElement<Float> {
 
         @Override
         protected void updateScrollBarPosition() {
+            var scrollBarSize = getScrollerStyle().scrollBarSize();
             float remainingSpace = 100 - scrollBarSize;
             float position = getNormalizedValue() * remainingSpace;
 
-            scrollBar.layout(layout -> {
+            Style.importantPipeline(scrollBar.getLayout(), layout -> {
                 layout.setWidthPercent(scrollBarSize);
                 layout.setPositionPercent(YogaEdge.LEFT, position);
             });
