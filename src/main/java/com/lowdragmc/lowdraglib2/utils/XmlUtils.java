@@ -4,6 +4,7 @@ import com.google.gson.JsonParser;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.data.EntityInfo;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -54,6 +55,7 @@ import java.util.*;
  * @implNote XmlUtils
  */
 @UtilityClass
+@KJSBindings
 public class XmlUtils {
     public final static DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 
