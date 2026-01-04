@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
 import java.util.regex.Pattern;
@@ -95,6 +96,8 @@ public interface IResourcePath {
             var resourceType = LDLib2Registries.RESOURCE_PROVIDER_TYPES.get(type);
             if (resourceType != null) {
                 return resourceType.createFullPath(resourcePath);
+            } else if (type.equals("pack")) {
+                return new FilePath(ResourceLocation.parse(resourcePath));
             }
         }
         return null;
