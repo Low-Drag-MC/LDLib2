@@ -1,14 +1,21 @@
 package com.lowdragmc.lowdraglib2.utils;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.datafixers.util.Either;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.PrimitiveCodec;
 import lombok.experimental.UtilityClass;
 import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.*;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
+import org.joml.Vector3f;
 import org.joml.Vector3i;
 
 import java.util.Arrays;
@@ -96,6 +103,34 @@ public final class LDLibExtraCodecs {
                     list -> Util.fixedSize(list, 2).map(l -> new Vector2i(l.get(0), l.get(1))),
                     vec2i -> List.of(vec2i.x, vec2i.y)
             );
+
+    public static final Codec<ItemStack> ITEM_STACK = new Codec<>() {
+        @Override
+        public <T> DataResult<Pair<ItemStack, T>> decode(DynamicOps<T> ops, T input) {
+            var result = ItemStack.OPTIONAL_CODEC.decode(ops, input);
+            if (result.isSuccess()) return result;
+
+            var realOp = Platform.getClientRegistryAccess().createSerializationContext(ops);
+            result = ItemStack.OPTIONAL_CODEC.decode(realOp, input);
+            if (result.isSuccess()) return result;
+
+            realOp = Platform.getServerRegistryAccess().createSerializationContext(ops);
+            return ItemStack.OPTIONAL_CODEC.decode(realOp, input);
+        }
+
+        @Override
+        public <T> DataResult<T> encode(ItemStack input, DynamicOps<T> ops, T prefix) {
+            var result = ItemStack.OPTIONAL_CODEC.encode(input, ops, prefix);
+            if (result.isSuccess()) return result;
+
+            var realOp = Platform.getClientRegistryAccess().createSerializationContext(ops);
+            result = ItemStack.OPTIONAL_CODEC.encode(input, realOp, prefix);
+            if (result.isSuccess()) return result;
+            
+            realOp = Platform.getServerRegistryAccess().createSerializationContext(ops);
+            return ItemStack.OPTIONAL_CODEC.encode(input, realOp, prefix);
+        }
+    };
 
 
     /**

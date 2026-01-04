@@ -326,7 +326,7 @@ public class AccessorRegistries {
                 .customMark(FluidStack::copy, FluidStack::matches)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ItemStack.class)
-                .codec(ItemStack.OPTIONAL_CODEC)
+                .codec(LDLibExtraCodecs.ITEM_STACK)
                 .streamCodec(ItemStack.OPTIONAL_STREAM_CODEC)
                 .customMark(ItemStack::copy, ItemStack::matches)
                 .build());

@@ -113,6 +113,19 @@ public class Platform {
         return serverRegistryAccess == null ? getBLANK_REGISTRY_ACCESS() : serverRegistryAccess;
     }
 
+    public static RegistryAccess getServerRegistryAccess() {
+        return SERVER_REGISTRY_ACCESS == null ? getBLANK_REGISTRY_ACCESS() : SERVER_REGISTRY_ACCESS;
+    }
+
+    public static RegistryAccess getClientRegistryAccess() {
+        if (LDLib2.isClient()) {
+            if (Minecraft.getInstance().getConnection() != null) {
+                return Minecraft.getInstance().getConnection().registryAccess();
+            }
+        }
+        return SERVER_REGISTRY_ACCESS == null ? getBLANK_REGISTRY_ACCESS() : SERVER_REGISTRY_ACCESS;
+    }
+
     private static RegistryAccess getRegistryFromMultipleSources(RegistryAccess... accesses) {
         return new RegistryAccess() {
             @Override
