@@ -41,7 +41,7 @@ public final class UIResourceTexture extends TransformTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         getInternalTexture().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
     }
 

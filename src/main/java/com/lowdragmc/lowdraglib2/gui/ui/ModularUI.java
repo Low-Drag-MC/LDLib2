@@ -1086,13 +1086,14 @@ public class ModularUI {
                 guiGraphics.pose().pushPose();
                 guiGraphics.pose().translate(0, 0, 200);
                 DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
-                guiGraphics.flush();
                 guiGraphics.pose().popPose();
             }
 
             if (debugMode) {
                 renderDebugInfo(guiGraphics, mouseX, mouseY, partialTick);
             }
+
+            guiGraphics.flush();
         }
 
         public void renderUISpacing(UIElement element, GuiGraphics graphics) {

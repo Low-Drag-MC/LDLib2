@@ -111,7 +111,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         }
     }
 
-    protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawColorPreview(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         int color = value == null ? defaultValue : value;
         graphics.drawManaged(() -> {
             DrawerHelper.drawSolidRect(graphics, x, y, width, height, color, false);

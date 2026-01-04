@@ -66,8 +66,20 @@ public class ColorBorderTexture extends TransformTexture{
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        if (width == 0 || height == 0) return;
-        DrawerHelper.drawBorder(graphics, x, y, width, height, color, border);
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+        if (width <= 0 || height <= 0) return;
+
+        if (border >= 0) {
+            DrawerHelper.drawSolidRect(graphics,x - border, y + height, width + 2 * border, border, color, false);
+            DrawerHelper.drawSolidRect(graphics,x - border, y, border, height, color, false);
+            DrawerHelper.drawSolidRect(graphics,x + width, y, border, height, color, false);
+            DrawerHelper.drawSolidRect(graphics,x - border, y - border, width + 2 * border, border, color, false);
+        } else {
+            float absBorder = Math.abs(border);
+            DrawerHelper.drawSolidRect(graphics, x, y, width - absBorder, absBorder, color, false);
+            DrawerHelper.drawSolidRect(graphics, x, y + absBorder, absBorder, height - absBorder, color, false);
+            DrawerHelper.drawSolidRect(graphics, x + absBorder, y + height - absBorder, width - absBorder, absBorder, color, false);
+            DrawerHelper.drawSolidRect(graphics, x + width - absBorder, y, absBorder, height - absBorder, color, false);
+        }
     }
 }

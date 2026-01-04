@@ -1330,11 +1330,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var hidden = (layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL)
                 && getStyle().overflowClip() == IGuiTexture.EMPTY ;
         if (hidden) {
+            guiContext.graphics.flush();
             guiContext.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
         }
         drawBackgroundAdditional(guiContext);
         children.forEach(child -> child.drawInBackground(guiContext));
         if (hidden) {
+            guiContext.graphics.flush();
             guiContext.disableScissor();
         }
     }

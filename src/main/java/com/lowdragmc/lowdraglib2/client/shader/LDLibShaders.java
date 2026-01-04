@@ -104,6 +104,8 @@ public class LDLibShaders {
     private static ShaderInstance visualLayerShader;
     @Getter
     private static ShaderInstance SDFRect;
+    @Getter
+    private static ShaderInstance GUI_TEXTURE;
 
 	/**
 	 * the vertex format for HSB color, three four of float
@@ -140,6 +142,9 @@ public class LDLibShaders {
             registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
                             LDLib2.id("sdf_rect"), DefaultVertexFormat.POSITION),
                     shaderInstance -> SDFRect = shaderInstance);
+            registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
+                            LDLib2.id("gui_texture"), DefaultVertexFormat.POSITION_TEX_COLOR),
+                    shaderInstance -> GUI_TEXTURE = shaderInstance);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

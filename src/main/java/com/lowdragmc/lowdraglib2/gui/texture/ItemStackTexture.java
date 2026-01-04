@@ -75,9 +75,13 @@ public class ItemStackTexture extends TransformTexture {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (items.length == 0) return;
         updateTick();
+
+        if (items[index].isEmpty()) return;
+        graphics.flush();
+
         graphics.pose().pushPose();
         graphics.pose().scale(width / 16f, height / 16f, 1);
         graphics.pose().translate(x * 16 / width, y * 16 / height, -200);

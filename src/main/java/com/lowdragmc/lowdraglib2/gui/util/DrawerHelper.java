@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.util;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderProgram;
 import com.lowdragmc.lowdraglib2.client.shader.uniform.UniformCache;
@@ -68,7 +69,7 @@ public class DrawerHelper {
                 -> program.attach(LDLibShaders.ROUND_LINE_F).attach(LDLibShaders.SCREEN_V));
     }
 
-    public static void drawFluidTexture(@Nonnull GuiGraphics graphics, float xCoord, float yCoord, TextureAtlasSprite textureSprite, float maskTop, float maskRight, float zLevel, int fluidColor) {
+    public static void drawFluidTexture(VertexConsumer buffer, PoseStack.Pose pose, float xCoord, float yCoord, TextureAtlasSprite textureSprite, float maskTop, float maskRight, float zLevel, int fluidColor) {
         float uMin = textureSprite.getU0();
         float uMax = textureSprite.getU1();
         float vMin = textureSprite.getV0();
@@ -76,19 +77,14 @@ public class DrawerHelper {
         uMax = uMax - maskRight / 16f * (uMax - uMin);
         vMax = vMax - maskTop / 16f * (vMax - vMin);
 
-        // TODO optimal rendertype?
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        var mat = graphics.pose().last().pose();
+        var mat = pose.pose();
         buffer.addVertex(mat, xCoord, yCoord + 16, zLevel).setUv(uMin, vMax).setColor(fluidColor);
         buffer.addVertex(mat, xCoord + 16 - maskRight, yCoord + 16, zLevel).setUv(uMax, vMax).setColor(fluidColor);
         buffer.addVertex(mat, xCoord + 16 - maskRight, yCoord + maskTop, zLevel).setUv(uMax, vMin).setColor(fluidColor);
         buffer.addVertex(mat, xCoord, yCoord + maskTop, zLevel).setUv(uMin, vMin).setColor(fluidColor);
-
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
-    public static void drawFluidForGui(@Nonnull GuiGraphics graphics, FluidStack contents, float startX, float startY, float widthT, float heightT) {
+    public static void drawFluidForGui(@Nonnull GuiGraphics graphics, FluidStack contents, float startX, float startY, float widthT, float heightT, int color) {
         ResourceLocation LOCATION_BLOCKS_TEXTURE = InventoryMenu.BLOCK_ATLAS;
         TextureAtlasSprite fluidStillSprite = FluidHelper.getStillTexture(contents);
         if (fluidStillSprite == null) {
@@ -97,9 +93,15 @@ public class DrawerHelper {
                 LDLib2.LOGGER.error("Missing fluid texture for fluid: " + contents.getHoverName().getString());
             }
         }
+
         int fluidColor = FluidHelper.getColor(contents) | 0xff000000;
+        if (color != -1) {
+            fluidColor = ColorUtils.mulColor(fluidColor, color);
+        }
+
         RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, LOCATION_BLOCKS_TEXTURE);
+
+        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(LOCATION_BLOCKS_TEXTURE));
 
         final int xTileCount = (int) (widthT / 16);
         final float xRemainder = widthT - xTileCount * 16;
@@ -117,7 +119,7 @@ public class DrawerHelper {
                 if (width > 0 && height > 0) {
                     float maskTop = 16 - height;
                     float maskRight = 16 - width;
-                    drawFluidTexture(graphics, x, y, fluidStillSprite, maskTop, maskRight, 0, fluidColor);
+                    drawFluidTexture(buffer, graphics.pose().last(), x, y, fluidStillSprite, maskTop, maskRight, 0, fluidColor);
                 }
             }
         }

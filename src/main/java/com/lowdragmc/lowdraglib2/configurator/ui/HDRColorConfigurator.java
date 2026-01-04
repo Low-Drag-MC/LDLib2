@@ -116,7 +116,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         }
     }
 
-    protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawColorPreview(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         var hdr = value == null ? defaultValue : value;
         var color = ColorUtils.color(1, hdr.x, hdr.y, hdr.z);
         graphics.drawManaged(() -> {

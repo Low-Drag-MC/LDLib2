@@ -77,15 +77,12 @@ public class FluidStackTexture extends TransformTexture {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (fluids.length == 0) return;
         updateTick();
-        var a = ColorUtils.alpha(color);
-        var r = ColorUtils.red(color);
-        var g = ColorUtils.green(color);
-        var b = ColorUtils.blue(color);
-        RenderSystem.setShaderColor(r, g, b, a);
-        DrawerHelper.drawFluidForGui(graphics, fluids[index], x, y, width, height);
-        RenderSystem.setShaderColor(1, 1, 1, 1);
+
+        if (fluids[index].isEmpty()) return;
+
+        DrawerHelper.drawFluidForGui(graphics, fluids[index], x, y, width, height, color);
     }
 }
