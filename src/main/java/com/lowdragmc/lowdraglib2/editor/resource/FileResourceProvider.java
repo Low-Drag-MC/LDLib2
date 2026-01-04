@@ -18,7 +18,6 @@ import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
@@ -46,14 +45,6 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
         @Override
         public IResourcePath createFullPath(String path) {
-            var separator = path.indexOf(':');
-            if (separator != -1) {
-                var namespace = path.substring(0, separator);
-                var p = path.substring(separator + 1);
-                if (ResourceLocation.isValidNamespace(namespace) && ResourceLocation.isValidPath(p)) {
-                    return new FilePath(ResourceLocation.fromNamespaceAndPath(namespace, p));
-                }
-            }
             return new FilePath(path);
         }
 
