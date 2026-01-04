@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -56,9 +57,14 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
         if (getMenu() instanceof IModularUIHolder holder) {
             var mui = holder.getModularUI();
             if (mui == null) return;
-            if (mui.isHoverSlot(slot)) {
-                cir.setReturnValue(true);
+            if (getMenu() instanceof IItemSlotHolderMenu menu) {
+                if (!menu.isItemSlot(slot)) return;
             }
+            if (mui.getLastHoveredElement() instanceof ItemSlot itemSlot && itemSlot.getSlot() == slot) {
+                cir.setReturnValue(true);
+                return;
+            }
+            cir.setReturnValue(false);
         }
     }
 

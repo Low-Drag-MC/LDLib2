@@ -166,10 +166,6 @@ public class ModularUI {
         return new ModularUI(ui, player);
     }
 
-    public boolean isHoverSlot(Slot slot) {
-        return getLastHoveredElement() instanceof ItemSlot itemSlot && itemSlot.getSlot() == slot;
-    }
-
     /**
      * Add an element to the registry for fast retrieval.
      * This method is automatically called when elements are added to the UI tree.
