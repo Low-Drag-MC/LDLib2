@@ -26,6 +26,9 @@ public final class PackResourceManager implements ResourceManagerReloadListener 
     @Override
     @ParametersAreNonnullByDefault
     public void onResourceManagerReload(ResourceManager resourceManager) {
-        for (var provider : providers) provider.contents.clear();
+        for (var provider : providers) {
+            provider.contents.clear();
+            provider.resourceInstance.clearCache();
+        }
     }
 }
