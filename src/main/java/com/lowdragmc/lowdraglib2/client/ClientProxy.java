@@ -64,7 +64,6 @@ public class ClientProxy {
     public void clientSetup(final FMLClientSetupEvent e) {
         e.enqueueWork(() -> {
             LDLibShaders.init();
-            DrawerHelper.init();
         });
     }
 

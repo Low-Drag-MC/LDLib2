@@ -220,9 +220,8 @@ public class SpriteTexture extends TransformTexture {
 
         // rendering
         var matrix = poseStack.last().pose();
-        RenderSystem.enableBlend();
-
         var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(imageLocation));
+        RenderSystem.enableBlend();
 
         // 1. corners
         if (borderLeft > 0 && borderTop > 0) {
@@ -369,30 +368,28 @@ public class SpriteTexture extends TransformTexture {
         new ColorBorderTexture(1,0xFFFF0000).draw(graphics, mouseX, mouseY,
                 spriteX, spriteY, spriteWidth, spriteHeight, partialTicks);
         // left
-        graphics.drawManaged(() -> {
-            DrawerHelper.drawSolidRect(graphics,
-                    spriteX + borderLT.getX() * width / imageSize.width,
-                    spriteY,
-                    1,
-                    spriteHeight, 0xFFFF0000, false);
-            // top
-            DrawerHelper.drawSolidRect(graphics,
-                    spriteX,
-                    spriteY + borderLT.getY() * height / imageSize.height,
-                    spriteWidth,
-                    1, 0xFFFF0000, false);
-            // right
-            DrawerHelper.drawSolidRect(graphics,
-                    spriteX + spriteWidth - borderRB.getX() * width / imageSize.width,
-                    spriteY,
-                    1,
-                    spriteHeight, 0xFFFF0000, false);
-            // bottom
-            DrawerHelper.drawSolidRect(graphics,
-                    spriteX,
-                    spriteY + spriteHeight - borderRB.getY() * height / imageSize.height,
-                    spriteWidth,
-                    1, 0xFFFF0000, false);
-        });
+        DrawerHelper.drawSolidRect(graphics,
+                spriteX + borderLT.getX() * width / imageSize.width,
+                spriteY,
+                1,
+                spriteHeight, 0xFFFF0000);
+        // top
+        DrawerHelper.drawSolidRect(graphics,
+                spriteX,
+                spriteY + borderLT.getY() * height / imageSize.height,
+                spriteWidth,
+                1, 0xFFFF0000);
+        // right
+        DrawerHelper.drawSolidRect(graphics,
+                spriteX + spriteWidth - borderRB.getX() * width / imageSize.width,
+                spriteY,
+                1,
+                spriteHeight, 0xFFFF0000);
+        // bottom
+        DrawerHelper.drawSolidRect(graphics,
+                spriteX,
+                spriteY + spriteHeight - borderRB.getY() * height / imageSize.height,
+                spriteWidth,
+                1, 0xFFFF0000);
     }
 }

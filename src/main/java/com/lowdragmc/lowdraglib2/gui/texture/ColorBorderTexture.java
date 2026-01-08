@@ -68,18 +68,17 @@ public class ColorBorderTexture extends TransformTexture{
     @Override
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (width <= 0 || height <= 0) return;
-
         if (border >= 0) {
-            DrawerHelper.drawSolidRect(graphics,x - border, y + height, width + 2 * border, border, color, false);
-            DrawerHelper.drawSolidRect(graphics,x - border, y, border, height, color, false);
-            DrawerHelper.drawSolidRect(graphics,x + width, y, border, height, color, false);
-            DrawerHelper.drawSolidRect(graphics,x - border, y - border, width + 2 * border, border, color, false);
+            DrawerHelper.drawSolidRect(graphics,x - border, y + height, width + 2 * border, border, color);
+            DrawerHelper.drawSolidRect(graphics,x - border, y, border, height, color);
+            DrawerHelper.drawSolidRect(graphics,x + width, y, border, height, color);
+            DrawerHelper.drawSolidRect(graphics,x - border, y - border, width + 2 * border, border, color);
         } else {
             float absBorder = Math.abs(border);
-            DrawerHelper.drawSolidRect(graphics, x, y, width - absBorder, absBorder, color, false);
-            DrawerHelper.drawSolidRect(graphics, x, y + absBorder, absBorder, height - absBorder, color, false);
-            DrawerHelper.drawSolidRect(graphics, x + absBorder, y + height - absBorder, width - absBorder, absBorder, color, false);
-            DrawerHelper.drawSolidRect(graphics, x + width - absBorder, y, absBorder, height - absBorder, color, false);
+            DrawerHelper.drawSolidRect(graphics, x, y, width - absBorder, absBorder, color);
+            DrawerHelper.drawSolidRect(graphics, x, y + absBorder, absBorder, height - absBorder, color);
+            DrawerHelper.drawSolidRect(graphics, x + absBorder, y + height - absBorder, width - absBorder, absBorder, color);
+            DrawerHelper.drawSolidRect(graphics, x + width - absBorder, y, absBorder, height - absBorder, color);
         }
     }
 }

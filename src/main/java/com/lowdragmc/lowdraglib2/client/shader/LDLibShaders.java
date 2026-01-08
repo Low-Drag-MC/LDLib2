@@ -70,7 +70,6 @@ public class LDLibShaders {
 		}
 		CACHE.clear();
 		init();
-		DrawerHelper.init();
 		reloadListeners.forEach(Runnable::run);
 	}
 

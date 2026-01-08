@@ -57,6 +57,6 @@ public class ColorRectTexture extends TransformTexture{
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (width <= 0 || height <= 0) return;
 
-        DrawerHelper.drawSolidRect(graphics, x, y, width, height, color, false);
+        DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
     }
 }

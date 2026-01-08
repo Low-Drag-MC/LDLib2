@@ -1097,29 +1097,27 @@ public class ModularUI {
         }
 
         public void renderUISpacing(UIElement element, GuiGraphics graphics) {
-            graphics.drawManaged(() -> {
-                var posX = element.getPositionX();
-                var posY = element.getPositionY();
-                var sizeX = element.getSizeWidth();
-                var sizeY = element.getSizeHeight();
-                var marginTop = element.getMarginTop();
-                var marginBottom = element.getMarginBottom();
-                var marginLeft = element.getMarginLeft();
-                var marginRight = element.getMarginRight();
-                DrawerHelper.drawSolidRect(graphics, posX - marginLeft, posY - marginTop,
-                        sizeX + marginLeft + marginRight, sizeY + marginTop + marginBottom, ColorPattern.T_ORANGE.color);
-                DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000, false);
-                var paddingX = element.getPaddingX();
-                var paddingY = element.getPaddingY();
-                var paddingWidth = element.getPaddingWidth();
-                var paddingHeight = element.getPaddingHeight();
-                DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00, false);
-                var contentX = element.getContentX();
-                var contentY = element.getContentY();
-                var contentWidth = element.getContentWidth();
-                var contentHeight = element.getContentHeight();
-                DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff, false);
-            });
+            var posX = element.getPositionX();
+            var posY = element.getPositionY();
+            var sizeX = element.getSizeWidth();
+            var sizeY = element.getSizeHeight();
+            var marginTop = element.getMarginTop();
+            var marginBottom = element.getMarginBottom();
+            var marginLeft = element.getMarginLeft();
+            var marginRight = element.getMarginRight();
+            DrawerHelper.drawSolidRect(graphics, posX - marginLeft, posY - marginTop,
+                    sizeX + marginLeft + marginRight, sizeY + marginTop + marginBottom, ColorPattern.T_ORANGE.color);
+            DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000);
+            var paddingX = element.getPaddingX();
+            var paddingY = element.getPaddingY();
+            var paddingWidth = element.getPaddingWidth();
+            var paddingHeight = element.getPaddingHeight();
+            DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00);
+            var contentX = element.getContentX();
+            var contentY = element.getContentY();
+            var contentWidth = element.getContentWidth();
+            var contentHeight = element.getContentHeight();
+            DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff);
         }
 
         public void renderDebugInfo(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
@@ -1199,10 +1197,8 @@ public class ModularUI {
             }
 
             // draw cursor
-            graphics.drawManaged(() -> {
-                DrawerHelper.drawSolidRect(graphics, 0, mouseY - 1, screenWidth, 1, 0xffff0000, false);
-                DrawerHelper.drawSolidRect(graphics, mouseX - 1, 0, 1, screenHeight, 0xffff0000, false);
-            });
+            DrawerHelper.drawSolidRect(graphics, 0, mouseY - 1, screenWidth, 1, 0xffff0000);
+            DrawerHelper.drawSolidRect(graphics, mouseX - 1, 0, 1, screenHeight, 0xffff0000);
             graphics.drawString(font, "pos(%d, %d)".formatted(mouseX, mouseY), mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
             graphics.pose().popPose();
         }

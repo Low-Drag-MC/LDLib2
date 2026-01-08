@@ -33,11 +33,13 @@ import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
 @KJSBindings
+@FunctionalInterface
 public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
     //region builtin textures
     @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", manual = true)
@@ -93,7 +95,6 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     static GuiTextureGroup group(IGuiTexture... textures) {
         return GuiTextureGroup.of(textures);
     }
-
 
     default IGuiTexture setColor(int color){
         return this;

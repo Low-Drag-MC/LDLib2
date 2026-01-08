@@ -63,7 +63,7 @@ public class LDLibRenderTypes extends RenderType {
     private static final RenderType HSB = create("hsb",
             LDLibShaders.HSB_VERTEX_FORMAT, VertexFormat.Mode.QUADS, 256, false, false,
             CompositeState.builder()
-                    .setShaderState(GUI_TEXTURE_SHADER)
+                    .setShaderState(HSB_SHADER)
                     .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                     .setDepthTestState(NO_DEPTH_TEST)
                     .setWriteMaskState(COLOR_WRITE)
