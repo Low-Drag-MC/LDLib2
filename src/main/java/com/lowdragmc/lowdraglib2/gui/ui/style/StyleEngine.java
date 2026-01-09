@@ -81,6 +81,7 @@ public final class StyleEngine {
         dirtyElements.forEach(this::updateElementStyle);
         dirtyElements.clear();
 
+        if (queue.isEmpty()) return;
         styleEpoch++;
         var bags = new ArrayList<>(queue);
         queue.clear();
@@ -119,6 +120,7 @@ public final class StyleEngine {
     }
 
     private void updateElementStyle(UIElement element) {
+        if (element.getModularUI() != modularUI) return;
         // 1. cache old for comparison
         List<StyleRule> oldRules = new ArrayList<>();
         var currentRulesMap = elementStyleRules.get(element);

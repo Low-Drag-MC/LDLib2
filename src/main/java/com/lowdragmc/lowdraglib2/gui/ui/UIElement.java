@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
@@ -40,6 +41,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
@@ -139,6 +141,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     private final Map<String, Pair<RPCEvent, List<UIEventListener>>> serverCaptureEventListeners = new HashMap<>();
     private final Map<String, Pair<RPCEvent, List<UIEventListener>>> serverBaubleEventListeners = new HashMap<>();
     // runtime
+    private final Supplier<String> elementName = Suppliers.memoize(() -> {
+        var name = name();
+        return name.isEmpty() ? "Unknown" : name;
+    });
     @Nullable
     private List<UIElement> sortedChildrenCache = null;
     private ImmutableList<UIElement> structurePathCache = null;
@@ -734,9 +740,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return LDLib2Registries.UI_ELEMENTS;
     }
 
-    public String getElementName() {
-        var name = name();
-        return name.isEmpty() ? "Unknown" : name();
+    public final String getElementName() {
+        return elementName.get();
     }
 
     protected final void _addStyleInternal(Style style) {
