@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
@@ -146,6 +147,7 @@ public class AnimationTexture extends TransformTexture {
         float imageV = Y * cell;
 
         var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(imageLocation));
+        RenderSystem.disableDepthTest();
 
         var matrix4f = graphics.pose().last().pose();
         buffer.addVertex(matrix4f, x, y + height, 0).setUv(imageU, imageV + cell).setColor(color);

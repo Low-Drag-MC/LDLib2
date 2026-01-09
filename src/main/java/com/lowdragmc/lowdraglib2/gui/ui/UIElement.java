@@ -746,7 +746,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     public void onClassIdChanged() {
         var mui = getModularUI();
         if (mui != null) {
-            mui.getStyleEngine().reloadElementStyles(this);
+            mui.getStyleEngine().scheduleReloadElementStyles(this);
         }
     }
 

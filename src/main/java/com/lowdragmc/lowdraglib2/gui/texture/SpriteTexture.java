@@ -221,7 +221,7 @@ public class SpriteTexture extends TransformTexture {
         // rendering
         var matrix = poseStack.last().pose();
         var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(imageLocation));
-        RenderSystem.enableBlend();
+        RenderSystem.disableDepthTest();
 
         // 1. corners
         if (borderLeft > 0 && borderTop > 0) {

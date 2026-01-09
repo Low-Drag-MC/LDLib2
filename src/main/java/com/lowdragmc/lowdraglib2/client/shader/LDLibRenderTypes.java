@@ -3,13 +3,11 @@ package com.lowdragmc.lowdraglib2.client.shader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.Util;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.client.ClientHooks;
 
 import java.util.OptionalDouble;
 import java.util.function.Function;
@@ -70,6 +68,17 @@ public class LDLibRenderTypes extends RenderType {
                     .createCompositeState(false)
     );
 
+    private static final RenderType RECT = create("rect",
+            DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLES,
+            1536, false, false,
+            CompositeState.builder()
+                    .setShaderState(RENDERTYPE_GUI_OVERLAY_SHADER)
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setDepthTestState(NO_DEPTH_TEST)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .createCompositeState(false)
+    );
+
     public LDLibRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize, boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState, Runnable clearState) {
         super(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, setupState, clearState);
     }
@@ -88,6 +97,10 @@ public class LDLibRenderTypes extends RenderType {
 
     public static RenderType hsb() {
         return HSB;
+    }
+
+    public static RenderType rect() {
+        return RECT;
     }
 
 }

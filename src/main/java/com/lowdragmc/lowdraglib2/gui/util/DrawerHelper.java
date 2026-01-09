@@ -79,7 +79,7 @@ public class DrawerHelper {
 
 
         var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(LOCATION_BLOCKS_TEXTURE));
-        RenderSystem.enableBlend();
+        RenderSystem.disableDepthTest();
 
         final int xTileCount = (int) (widthT / 16);
         final float xRemainder = widthT - xTileCount * 16;
@@ -195,6 +195,7 @@ public class DrawerHelper {
     public static void drawSolidRect(@Nonnull GuiGraphics graphics, RenderType type, float x, float y, float width, float height, int color) {
         Matrix4f matrix4f = graphics.pose().last().pose();
         VertexConsumer vertexconsumer = graphics.bufferSource().getBuffer(type);
+        RenderSystem.disableDepthTest();
         vertexconsumer.addVertex(matrix4f, x, y, 0).setColor(color);
         vertexconsumer.addVertex(matrix4f, x, y + height, 0).setColor(color);
         vertexconsumer.addVertex(matrix4f, x + width, y + height, 0).setColor(color);
@@ -207,7 +208,7 @@ public class DrawerHelper {
 
         float startAlpha = (float) (0x4f) / 255.0F;
         var buffer = graphics.bufferSource().getBuffer(RenderType.guiOverlay());
-        RenderSystem.enableBlend();
+        RenderSystem.disableDepthTest();
 
         RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
         x += width;
@@ -236,7 +237,8 @@ public class DrawerHelper {
         float endGreen   = (float)(endColor   >>  8 & 255) / 255.0F;
         float endBlue    = (float)(endColor         & 255) / 255.0F;
         var buffer = graphics.bufferSource().getBuffer(RenderType.guiOverlay());
-        RenderSystem.enableBlend();
+        RenderSystem.disableDepthTest();
+        // todo fis func?
         RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
         Matrix4f mat = graphics.pose().last().pose();
         if (horizontal) {

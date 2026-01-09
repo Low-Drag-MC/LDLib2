@@ -297,6 +297,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
     @OnlyIn(Dist.CLIENT)
     protected void drawHsbContext(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.hsb());
+        RenderSystem.disableDepthTest();
+
         var pose = graphics.pose().last().pose();
 
         float _h = 0, _s = 0, _b = 0f;
@@ -416,6 +418,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
     @OnlyIn(Dist.CLIENT)
     protected void drawColorSlider(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.hsb());
+        RenderSystem.disableDepthTest();
+
         var pose = graphics.pose().last().pose();
 
         float _h = 0f, _s = 0f, _b = 0f;

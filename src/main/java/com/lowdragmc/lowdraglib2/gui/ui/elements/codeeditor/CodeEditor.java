@@ -47,7 +47,7 @@ public class CodeEditor extends TextArea {
     private final List<StyledLine> styledLines = new ArrayList<>();
 
     public CodeEditor() {
-        getTextAreaStyle().setDefault(PropertyRegistry.FONT, LDLibFonts.JETBRAINS_MONO_BOLD);
+//        getTextAreaStyle().setDefault(PropertyRegistry.FONT, LDLibFonts.JETBRAINS_MONO_BOLD);
         internalSetup();
     }
 
