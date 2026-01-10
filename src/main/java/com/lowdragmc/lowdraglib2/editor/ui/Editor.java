@@ -407,8 +407,13 @@ public abstract class Editor extends UIElement {
                     currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
                 } catch (Exception ignored) {}
                 if (showNotification) {
-                    Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
-                            .show(this.getModularUI());
+                    if (onFinish != null) {
+                        Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
+                                .show(this.getModularUI());
+                    } else {
+                        Dialog.showNotification("ldlib.gui.compass.save_success", 2)
+                                .show(this.getModularUI());
+                    }
                 }
             }
         }

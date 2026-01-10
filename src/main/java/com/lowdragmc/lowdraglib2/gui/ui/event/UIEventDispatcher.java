@@ -59,6 +59,7 @@ public final class UIEventDispatcher {
                 var captures = elem.getCaptureListeners(event.type);
                 for (UIEventListener listener : captures) {
                     event.hasHandler = true;
+                    event.currentListener = listener;
                     listener.handleEvent(event);
                     if (event.laterPropagationStopped) {
                         break;  // skip to leftover bubble phase
@@ -83,12 +84,14 @@ public final class UIEventDispatcher {
         var targetCaptures = target.getCaptureListeners(event.type);
         for (UIEventListener listener : targetCaptures) {
             event.hasHandler = true;
+            event.currentListener = listener;
             listener.handleEvent(event);
             if (event.laterPropagationStopped) break;
         }
         var targetBubbles = target.getBubbleListeners(event.type);
         for (UIEventListener listener : targetBubbles) {
             event.hasHandler = true;
+            event.currentListener = listener;
             listener.handleEvent(event);
             if (event.laterPropagationStopped) break;
         }
@@ -115,6 +118,7 @@ public final class UIEventDispatcher {
                 var bubbles = elem.getBubbleListeners(event.type);
                 for (UIEventListener listener : bubbles) {
                     event.hasHandler = true;
+                    event.currentListener = listener;
                     listener.handleEvent(event);
                     if (event.laterPropagationStopped) break;
                 }
@@ -180,6 +184,7 @@ public final class UIEventDispatcher {
 
         for (var listener : currentElement.getCaptureListeners(event.type)) {
             event.hasHandler = true;
+            event.currentListener = listener;
             listener.handleEvent(event);
             if (event.laterPropagationStopped) break;
         }
@@ -198,6 +203,7 @@ public final class UIEventDispatcher {
         event.currentElement = currentElement;
         for (var listener : currentElement.getBubbleListeners(event.type)) {
             event.hasHandler = true;
+            event.currentListener = listener;
             listener.handleEvent(event);
             if (event.laterPropagationStopped) break;
         }

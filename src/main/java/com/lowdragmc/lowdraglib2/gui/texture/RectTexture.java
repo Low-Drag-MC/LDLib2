@@ -48,8 +48,6 @@ public class RectTexture extends TransformTexture {
     @ConfigNumber(range = {4, 32}, wheel = 1)
     private int cornerSegments = 8;
     
-    // 缓存单位圆弧的顶点 (cos, sin)，每个角一个列表
-    // 索引: 0=左上, 1=右上, 2=右下, 3=左下
     private List<Vector2f>[] cachedCornerArcs = null;
     private boolean cachedSegments = false;
 
@@ -121,9 +119,6 @@ public class RectTexture extends TransformTexture {
         return super.interpolate(other, lerp);
     }
     
-    /**
-     * 确保圆角弧线顶点缓存已生成
-     */
     @SuppressWarnings("unchecked")
     private void ensureCornerCache() {
         if (cachedCornerArcs != null && cachedSegments) {
@@ -132,12 +127,6 @@ public class RectTexture extends TransformTexture {
         
         cachedSegments = true;
         cachedCornerArcs = new List[4];
-        
-        // 为每个角生成单位圆弧顶点
-        // 角0: 左上 (圆心在右下方向偏移)，弧从 PI 到 PI*1.5
-        // 角1: 右上 (圆心在左下方向偏移)，弧从 PI*1.5 到 PI*2
-        // 角2: 右下 (圆心在左上方向偏移)，弧从 0 到 PI*0.5
-        // 角3: 左下 (圆心在右上方向偏移)，弧从 PI*0.5 到 PI
         
         double[][] angleRanges = {
             {Math.PI, Math.PI * 1.5},       // 左上
@@ -178,16 +167,12 @@ public class RectTexture extends TransformTexture {
         }
     }
     
-    /**
-     * 使用三角扇绘制填充区域
-     */
     private void drawFill(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
         int r = (color >> 16) & 0xFF;
         int g = (color >> 8) & 0xFF;
         int b = color & 0xFF;
         int a = (color >> 24) & 0xFF;
 
-        // 限制半径不超过宽高的一半
         float maxRadiusX = width / 2f;
         float maxRadiusY = height / 2f;
         float r0 = Math.min(radius.w, Math.min(maxRadiusX, maxRadiusY)); // 左上
@@ -195,42 +180,41 @@ public class RectTexture extends TransformTexture {
         float r2 = Math.min(radius.y, Math.min(maxRadiusX, maxRadiusY)); // 右下
         float r3 = Math.min(radius.x, Math.min(maxRadiusX, maxRadiusY)); // 左下
 
-        // 中心点
+        // center
         float centerX = x + width / 2f;
         float centerY = y + height / 2f;
 
-        // 收集所有轮廓顶点
+        // outline
         List<float[]> outlineVertices = new ArrayList<>();
 
-        // 左上角
+        // left top
         float cx0 = x + r0;
         float cy0 = y + r0;
         for (Vector2f v : cachedCornerArcs[0]) {
             outlineVertices.add(new float[]{cx0 + v.x * r0, cy0 + v.y * r0});
         }
 
-        // 右上角
+        // right top
         float cx1 = x + width - r1;
         float cy1 = y + r1;
         for (Vector2f v : cachedCornerArcs[1]) {
             outlineVertices.add(new float[]{cx1 + v.x * r1, cy1 + v.y * r1});
         }
 
-        // 右下角
+        // right bottom
         float cx2 = x + width - r2;
         float cy2 = y + height - r2;
         for (Vector2f v : cachedCornerArcs[2]) {
             outlineVertices.add(new float[]{cx2 + v.x * r2, cy2 + v.y * r2});
         }
 
-        // 左下角
+        // left bottom
         float cx3 = x + r3;
         float cy3 = y + height - r3;
         for (Vector2f v : cachedCornerArcs[3]) {
             outlineVertices.add(new float[]{cx3 + v.x * r3, cy3 + v.y * r3});
         }
 
-        // 使用三角形扇形方式绘制（手动实现）
         int vertexCount = outlineVertices.size();
         for (int i = 0; i < vertexCount; i++) {
             float[] v1 = outlineVertices.get(i);
@@ -243,7 +227,6 @@ public class RectTexture extends TransformTexture {
     }
     
     private void drawBorder(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
-
         int r = (borderColor >> 16) & 0xFF;
         int g = (borderColor >> 8) & 0xFF;
         int b = borderColor & 0xFF;
@@ -256,53 +239,48 @@ public class RectTexture extends TransformTexture {
         float r2 = Math.min(radius.y, Math.min(maxRadiusX, maxRadiusY));
         float r3 = Math.min(radius.x, Math.min(maxRadiusX, maxRadiusY));
 
-        // 内外圈半径
+        // inner radius
         float ir0 = Math.max(r0 - stroke, 0), or0 = r0;
         float ir1 = Math.max(r1 - stroke, 0), or1 = r1;
         float ir2 = Math.max(r2 - stroke, 0), or2 = r2;
         float ir3 = Math.max(r3 - stroke, 0), or3 = r3;
 
-        // 各角圆心
+        // corners
         float cx0 = x + r0, cy0 = y + r0;
         float cx1 = x + width - r1, cy1 = y + r1;
         float cx2 = x + width - r2, cy2 = y + height - r2;
         float cx3 = x + r3, cy3 = y + height - r3;
 
-        // 内圈圆心（考虑 stroke）
+        // stroke
         float icx0 = x + stroke + ir0, icy0 = y + stroke + ir0;
         float icx1 = x + width - stroke - ir1, icy1 = y + stroke + ir1;
         float icx2 = x + width - stroke - ir2, icy2 = y + height - stroke - ir2;
         float icx3 = x + stroke + ir3, icy3 = y + height - stroke - ir3;
 
-        // 收集所有外圈和内圈顶点
+        // vertices
         List<float[]> outerVertices = new ArrayList<>();
         List<float[]> innerVertices = new ArrayList<>();
 
-        // 左上角
         for (Vector2f v : cachedCornerArcs[0]) {
             outerVertices.add(new float[]{cx0 + v.x * or0, cy0 + v.y * or0});
             innerVertices.add(new float[]{icx0 + v.x * ir0, icy0 + v.y * ir0});
         }
 
-        // 右上角
         for (Vector2f v : cachedCornerArcs[1]) {
             outerVertices.add(new float[]{cx1 + v.x * or1, cy1 + v.y * or1});
             innerVertices.add(new float[]{icx1 + v.x * ir1, icy1 + v.y * ir1});
         }
 
-        // 右下角
         for (Vector2f v : cachedCornerArcs[2]) {
             outerVertices.add(new float[]{cx2 + v.x * or2, cy2 + v.y * or2});
             innerVertices.add(new float[]{icx2 + v.x * ir2, icy2 + v.y * ir2});
         }
 
-        // 左下角
         for (Vector2f v : cachedCornerArcs[3]) {
             outerVertices.add(new float[]{cx3 + v.x * or3, cy3 + v.y * or3});
             innerVertices.add(new float[]{icx3 + v.x * ir3, icy3 + v.y * ir3});
         }
 
-        // 使用 TRIANGLES 绘制边框（每个四边形拆成两个三角形）
         int vertexCount = outerVertices.size();
         for (int i = 0; i < vertexCount; i++) {
             int next = (i + 1) % vertexCount;
@@ -312,12 +290,10 @@ public class RectTexture extends TransformTexture {
             float[] o2 = outerVertices.get(next);
             float[] i2 = innerVertices.get(next);
 
-            // 第一个三角形: o1 -> i1 -> o2
             buffer.addVertex(mat, o1[0], o1[1], 0).setColor(r, g, b, a);
             buffer.addVertex(mat, i1[0], i1[1], 0).setColor(r, g, b, a);
             buffer.addVertex(mat, o2[0], o2[1], 0).setColor(r, g, b, a);
 
-            // 第二个三角形: o2 -> i1 -> i2
             buffer.addVertex(mat, o2[0], o2[1], 0).setColor(r, g, b, a);
             buffer.addVertex(mat, i1[0], i1[1], 0).setColor(r, g, b, a);
             buffer.addVertex(mat, i2[0], i2[1], 0).setColor(r, g, b, a);

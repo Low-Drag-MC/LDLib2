@@ -129,6 +129,10 @@ public class UIEvent {
      */
     public UIElement currentElement;
     /**
+     * The listener that is currently being processed.
+     */
+    public UIEventListener currentListener;
+    /**
      * Whether the propagation is canceled.
      */
     public boolean propagationStopped = false;

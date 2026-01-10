@@ -876,8 +876,29 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
+    /**
+     * Creates and returns a {@link StyleAnimation} object based on the current modular UI context.
+     * This method selects the current instance as the target for the returned animation.
+     * mui may not valid yet
+     *
+     * @return a {@link StyleAnimation} instance configured with the modular UI context and targeting this instance.
+     */
     public StyleAnimation animation() {
         return StyleAnimation.of(getModularUI()).select(this);
+    }
+
+    public UIElement animation(Consumer<StyleAnimation> animation) {
+        if (this.modularUI == null) {
+            addEventListener(UIEvents.MUI_CHANGED, e -> {
+                if (this.modularUI != null) {
+                    animation.accept(this.animation());
+                    removeEventListener(UIEvents.MUI_CHANGED, e.currentListener);
+                }
+            });
+        } else {
+            animation.accept(this.animation());
+        }
+        return this;
     }
 
     /// Focus

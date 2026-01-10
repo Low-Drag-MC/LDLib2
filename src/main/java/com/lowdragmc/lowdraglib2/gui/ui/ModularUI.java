@@ -517,8 +517,10 @@ public class ModularUI {
             }
 
             // calculate layout
-            ui.rootElement.calculateLayout(layoutWidth, layoutHeight);
-            extraAreas.clear();
+            if (ui.rootElement.getLayoutNode().isDirty()) {
+                ui.rootElement.calculateLayout(layoutWidth, layoutHeight);
+                extraAreas.clear();
+            }
             if (dirtyCount >= 10) {
                 if (isDebugMode() || Platform.isDevEnv()) {
                     LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");

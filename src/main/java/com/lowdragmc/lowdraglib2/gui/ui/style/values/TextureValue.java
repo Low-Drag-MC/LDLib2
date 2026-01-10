@@ -204,7 +204,7 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     return Icons.icon(args[0]);
                 }
             }
-            case "rect1" -> {
+            case "rect" -> {
                 // rect(#FF00FF, 0 0 0 0, 4, #FFFFFF)
                 if (args.length > 0) {
                     var rect = new RectTexture();
@@ -227,7 +227,7 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     return rect;
                 }
             }
-            case "rect", "sdf" -> {
+            case "sdf" -> {
                 // rect(#FF00FF, 0 0 0 0, 4, #FFFFFF)
                 if (args.length > 0) {
                     var sdf = new SDFRectTexture();
@@ -304,7 +304,7 @@ public class TextureValue extends StyleValue<IGuiTexture> {
             if (i >= n || s.charAt(i) != '(') {
                 // not a function call, backtrack, let outer handle (e.g., resource name)
                 // break;
-                return out; // 已有的先返回
+                return out;
             }
             i++; // skip '('
 

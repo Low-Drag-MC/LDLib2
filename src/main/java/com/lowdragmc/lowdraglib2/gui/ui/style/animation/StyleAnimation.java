@@ -14,6 +14,7 @@ import org.apache.commons.lang3.function.Consumers;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -38,7 +39,7 @@ public class StyleAnimation {
     private final Set<UIElement> targets = new HashSet<>();
     private final Map<Property<?>, List<FloatObjectPair<Object>>> properties = new HashMap<>();
     @Setter
-    private Consumer<UIElement> onInterpolate = Consumers.nop();
+    private BiConsumer<AnimationRuntime, UIElement> onInterpolate = (r, e) -> {};
     @Setter
     private Consumer<UIElement> onFinished = Consumers.nop();
 
@@ -87,7 +88,7 @@ public class StyleAnimation {
             for (var entry : properties.entrySet()) {
                 Property p = entry.getKey();
                 var slots = new ArrayList<>(entry.getValue());
-                var currentValue = target.getStyleBag().getComputed(p);
+                var currentValue = target.getStyleBag().computeCandidate(p);
                 if (currentValue == null) {
                     currentValue = p.initialValue;
                 }
@@ -107,7 +108,7 @@ public class StyleAnimation {
                                 999,
                                 0,
                                 o));
-                        onInterpolate.accept(target);
+                        onInterpolate.accept(runtime, target);
                     }
 
                     @Override

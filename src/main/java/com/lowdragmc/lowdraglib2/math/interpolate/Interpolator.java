@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.math.interpolate;
 
 import com.google.common.util.concurrent.Runnables;
+import lombok.Getter;
 
 import java.util.function.Consumer;
 
@@ -9,16 +10,22 @@ import java.util.function.Consumer;
  * Date: 2022/08/26
  */
 public class Interpolator {
-    private final float from;
-    private final float to;
-    private final float range;
-    private final float duration;
-    private final IEase ease;
-    private final Consumer<Number> interpolate;
-    private final Runnable onFinished;
+    public final float from;
+    public final float to;
+    public final float range;
+    public final float duration;
+    public final IEase ease;
+    public final Consumer<Number> interpolate;
+    public final Runnable onFinished;
 
+    // runtime
+    @Getter
+    private float normalizedTime = 0;
+    @Getter
     private float time = Float.NaN;
+    @Getter
     private float startTime = 0;
+    @Getter
     private boolean finished = false;
 
     public Interpolator(float from, float to, float duration, IEase ease, Consumer<Number> interpolate) {
@@ -40,10 +47,6 @@ public class Interpolator {
         finished = false;
     }
 
-    public boolean isFinished(){
-        return finished;
-    }
-
     public void update(float currentTime) {
         if (finished) {
             return;
@@ -58,6 +61,7 @@ public class Interpolator {
         if (elapsed >= duration) {
             this.time = startTime + duration;
             finished = true;
+            normalizedTime = 1;
             if (interpolate != null) {
                 interpolate.accept(to);
             }
@@ -66,8 +70,9 @@ public class Interpolator {
             }
         } else {
             this.time = currentTime;
+            normalizedTime = elapsed / duration;
             if (interpolate != null) {
-                interpolate.accept(ease.interpolate(elapsed / duration) * range + from);
+                interpolate.accept(ease.interpolate(normalizedTime) * range + from);
             }
         }
     }

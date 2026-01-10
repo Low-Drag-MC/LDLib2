@@ -3,13 +3,18 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -196,6 +201,22 @@ public class Dialog extends UIElement {
         return this;
     }
 
+    public Dialog top() {
+        this.getLayout().setJustifyContent(YogaJustify.FLEX_START);
+        this.overlay.layout(layout -> {
+            layout.top(10);
+        });
+        return this;
+    }
+
+    public Dialog bottom() {
+        this.getLayout().setJustifyContent(YogaJustify.FLEX_END);
+        this.overlay.layout(layout -> {
+            layout.bottom(10);
+        });
+        return this;
+    }
+
     /**
      * Sets the title of the dialog.
      */
@@ -256,6 +277,40 @@ public class Dialog extends UIElement {
         dialog.addButton(new Button()
                 .setOnClick(e -> dialog.close())
                 .setText("ldlib.gui.tips.cancel"));
+        return dialog;
+    }
+
+    /**
+     * Displays a notification dialog with a message and a progress bar that fills over a specified duration.
+     * The dialog will automatically close when the progress bar completes.
+     *
+     * @param info the information text or message to display in the notification dialog
+     * @param duration the duration (in seconds) for which the progress bar will fill before the dialog closes
+     * @return the {@code Dialog} instance representing the notification
+     */
+    public static Dialog showNotification(String info, float duration) {
+        var dialog = new Dialog();
+        dialog.titleBar.setDisplay(false);
+        dialog.addContent(new Label().textStyle(textStyle -> textStyle.textWrap(TextWrap.WRAP).adaptiveHeight(true))
+                .setText(info).layout(layout -> layout.setWidthPercent(100)));
+        dialog.buttonContainer.setDisplay(false);
+        dialog.top();
+        // add progress bar
+        dialog.overlay.addChildAt(new UIElement()
+                .layout(layout -> layout.height(2).widthPercent(100))
+                .addClass("__dialog_progress-bg__")
+                .addChild(
+                        new UIElement().layout(layout -> layout.heightPercent(100).widthPercent(0))
+                                .style(style -> Style.defaultPipeline(style,
+                                        s-> s.backgroundTexture(ColorPattern.WHITE.rectTexture())))
+                                .addClass("__dialog_progress-bar__")
+                                .animation(animation -> animation
+                                        .duration(duration)
+                                        .style(YogaProperties.WIDTH, StyleSizeLength.percent(100))
+                                        .onFinished(target -> dialog.close())
+                                        .start())
+                ), 0
+        );
         return dialog;
     }
 
