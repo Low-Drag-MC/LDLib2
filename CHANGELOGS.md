@@ -1,5 +1,15 @@
 # ChangeLogs
 
+## v2.1.7
+* Improved performance a lot:
+    * batch rendering
+    * batch style updates
+    * rendering cull
+* Improve animation API
+* Added QoL features
+* Refactor mouse events to respect the transform
+* Fixed some minor bugs
+
 ## v2.1.6
 * Fixed codec bug for enhancement
 * Fixed vanilla-like slot interaction conditions
