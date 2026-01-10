@@ -1025,7 +1025,7 @@ public class ModularUI {
             lastMouseX = guiContext.localMouseX;
             lastMouseY = guiContext.localMouseY;
 
-            var hoverElement = ui.rootElement.getHoverElement(lastMouseX, lastMouseY);
+            var hoverElement = ui.rootElement.hitTest(lastMouseX, lastMouseY);
             var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
             if (lastHoveredElements.isEmpty() ||
                     newHoveredElement != null && !newHoveredElement.getStructurePath().equals(lastHoveredElements)) {

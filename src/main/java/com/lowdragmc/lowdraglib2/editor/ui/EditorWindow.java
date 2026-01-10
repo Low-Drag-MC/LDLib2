@@ -335,7 +335,7 @@ public class EditorWindow extends UIElement {
         ).addEventListener(UIEvents.MOUSE_DOWN, e -> showEditor(editor));
     }
 
-    protected boolean isMouseOverWindowBorder(YogaEdge edge, double mx, double my) {
+    protected boolean isMouseOverWindowBorder(YogaEdge edge, float mx, float my) {
         if (window.isMouseOver(mx, my)) {
             var border = 4;
             var w = window.getSizeWidth();

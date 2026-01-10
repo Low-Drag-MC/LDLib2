@@ -652,8 +652,9 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (event.button == 0 && isMouseOver(event.x, event.y)) {
-            var pos = getCursorUnderMouse(event.x, event.y);
+        if (event.button == 0) {
+            var localMouse = getLocalMouse(event.x, event.y);
+            var pos = getCursorUnderMouse(localMouse.x, localMouse.y);
             setCursor(pos.line(), pos.col());
             if (isShiftDown()) {
                 // Extend selection
@@ -671,8 +672,9 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void onDoubleClick(UIEvent event) {
-        if (event.button == 0 && isMouseOver(event.x, event.y)) {
-            var pos = getCursorUnderMouse(event.x, event.y);
+        if (event.button == 0) {
+            var localMouse = getLocalMouse(event.x, event.y);
+            var pos = getCursorUnderMouse(localMouse.x, localMouse.y);
             // select string
             var selected = selectWord(pos);
             if (!selected.getA().equals(selected.getB())) {
@@ -706,7 +708,8 @@ public class TextArea extends BindableUIElement<String[]> {
 
     protected void onDragSource(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof CursorDragStart(Cursor anchor)) {
-            var pos = getCursorUnderMouse(event.x, event.y);
+            var localMouse = getLocalMouse(event.x, event.y);
+            var pos = getCursorUnderMouse(localMouse.x, localMouse.y);
             setCursor(pos.line(), pos.col());
             setSelection(anchor, cursorPos());
         }
@@ -1108,7 +1111,7 @@ public class TextArea extends BindableUIElement<String[]> {
     // Rendering
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
-        if (contentView.isChildHover() || isFocused()) {
+        if (contentView.isSelfOrChildHover() || isFocused()) {
             guiContext.drawTexture(textAreaStyle.focusOverlay(),
                     contentView.getPositionX(), contentView.getPositionY(),
                     contentView.getSizeWidth(), contentView.getSizeHeight());

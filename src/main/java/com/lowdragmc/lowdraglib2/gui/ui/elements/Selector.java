@@ -182,7 +182,7 @@ public class Selector<T> extends BindableUIElement<T> {
                 .addChildren(listView = new UIElement().layout(layout -> layout.setPadding(YogaEdge.ALL, 2)), scrollerView = new ScrollerView())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
                 .setEnforceFocus(e -> {
-                    if (e.target == this.dialog && this.isChildHover()) {
+                    if (e.target == this.dialog && this.isSelfOrChildHover()) {
                         this.dialog.focus();
                         return;
                     }
@@ -385,7 +385,7 @@ public class Selector<T> extends BindableUIElement<T> {
     /// rendering
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
-        if (isChildHover() || isFocused()) {
+        if (isSelfOrChildHover() || isFocused()) {
             guiContext.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);

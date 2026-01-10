@@ -28,7 +28,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -269,6 +268,8 @@ public class SpriteTexture extends TransformTexture {
                 drawQuad(buffer, matrix, x + borderLeft, y + borderTop, centerWidth, centerHeight,
                         uCenterStart, vCenterStart, uCenterEnd, vCenterEnd, color);
             } else {
+                graphics.flush();
+
                 // wrap mode
                 var centerSpriteWidth = spriteSize.getWidth() - borderLeft - borderRight;
                 var centerSpriteHeight = spriteSize.getHeight() - borderTop - borderBottom;

@@ -12,7 +12,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -84,7 +83,7 @@ public abstract class SplitView extends UIElement {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        if (isHoverDragging(guiContext.localMouseX, guiContext.localMouseY)) {
+        if (isHoverDragging(guiContext.mouseX, guiContext.mouseY)) {
             guiContext.postRendering(ctx -> {
                 var icon = getDraggingIcon();
                 var width = icon.spriteSize.width;
@@ -168,7 +167,8 @@ public abstract class SplitView extends UIElement {
             if (width <= 0) {
                 return; // prevent division by zero
             }
-            setPercentage((event.x - getPositionX()) / width * 100);
+            var localMouse = getLocalMouse(event.x, event.y);
+            setPercentage((localMouse.x - getPositionX()) / width * 100);
         }
 
         @Override
@@ -225,7 +225,8 @@ public abstract class SplitView extends UIElement {
             if (height <= 0) {
                 return; // prevent division by zero
             }
-            setPercentage((event.y - getPositionY()) / height * 100);
+            var localMouse = getLocalMouse(event.x, event.y);
+            setPercentage((localMouse.y - getPositionY()) / height * 100);
         }
 
         @Override

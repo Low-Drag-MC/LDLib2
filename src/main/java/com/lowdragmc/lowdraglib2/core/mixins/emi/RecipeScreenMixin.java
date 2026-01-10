@@ -42,7 +42,7 @@ public abstract class RecipeScreenMixin extends Screen {
                     var ox = mouseX - group.x();
                     var oy = mouseY - group.y();
                     if (modularUIWidget.getBounds().contains((int) ox, (int) oy)) {
-                        modularUIWidget.modularUI.getWidget().mouseMoved(ox, oy);
+                        modularUIWidget.modularUI.getWidget().mouseMoved(mouseX, mouseY);
                     }
                 }
             }
@@ -57,7 +57,7 @@ public abstract class RecipeScreenMixin extends Screen {
                     var ox = mouseX - group.x();
                     var oy = mouseY - group.y();
                     if (modularUIWidget.getBounds().contains((int) ox, (int) oy) &&
-                            modularUIWidget.modularUI.getWidget().mouseClicked(ox, oy, button)) {
+                            modularUIWidget.modularUI.getWidget().mouseClicked(mouseX, mouseY, button)) {
                         cir.setReturnValue(true);
                     }
                 }
@@ -73,7 +73,7 @@ public abstract class RecipeScreenMixin extends Screen {
                     var ox = mouseX - group.x();
                     var oy = mouseY - group.y();
                     if (modularUIWidget.getBounds().contains((int) ox, (int) oy) &&
-                            modularUIWidget.modularUI.getWidget().mouseReleased(ox, oy, button)) {
+                            modularUIWidget.modularUI.getWidget().mouseReleased(mouseX, mouseY, button)) {
                         cir.setReturnValue(true);
                     }
                 }
@@ -89,7 +89,7 @@ public abstract class RecipeScreenMixin extends Screen {
                     var ox = mouseX - group.x();
                     var oy = mouseY - group.y();
                     if (modularUIWidget.getBounds().contains((int) ox, (int) oy) &&
-                            modularUIWidget.modularUI.getWidget().mouseDragged(ox, oy, button, deltaX, deltaY)) {
+                            modularUIWidget.modularUI.getWidget().mouseDragged(mouseX, mouseY, button, deltaX, deltaY)) {
                         cir.setReturnValue(true);
                     }
                 }
@@ -105,7 +105,7 @@ public abstract class RecipeScreenMixin extends Screen {
                     var ox = mouseX - group.x();
                     var oy = mouseY - group.y();
                     if (modularUIWidget.getBounds().contains((int) ox, (int) oy) &&
-                            modularUIWidget.modularUI.getWidget().mouseScrolled(ox, oy, horizontal, vertical)) {
+                            modularUIWidget.modularUI.getWidget().mouseScrolled(mouseX, mouseY, horizontal, vertical)) {
                         cir.setReturnValue(true);
                     }
                 }

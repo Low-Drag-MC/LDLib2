@@ -111,7 +111,7 @@ public class Dialog extends UIElement {
         }
 
         if (event.target == this) { // lose focus
-            if (isChildHover() && event.relatedTarget == null) {
+            if (isSelfOrChildHover() && event.relatedTarget == null) {
                 focus();
             } else {
                 if(autoClose) {
@@ -119,7 +119,7 @@ public class Dialog extends UIElement {
                 }
             }
         } else { // child lose focus
-            if (event.relatedTarget == null && isChildHover()) {
+            if (event.relatedTarget == null && isSelfOrChildHover()) {
                 focus();
             } else {
                 if(autoClose) {

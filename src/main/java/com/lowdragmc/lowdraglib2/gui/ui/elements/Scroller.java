@@ -320,7 +320,9 @@ public abstract class Scroller extends BindableUIElement<Float> {
                 var maxY = scrollContainer.getContentY() + scrollContainer.getContentHeight();
 
                 var remainingSpace = maxY - minY - scrollBar.getSizeHeight();
-                var deltaY = event.y - event.dragStartY;
+                var localMouse = getLocalMouse(event.x, event.y);
+                var localStart = getLocalMouse(event.dragStartX, event.dragStartY);
+                var deltaY = localMouse.y - localStart.y;
                 var distValue = (deltaY / remainingSpace) * (maxValue - minValue);
                 var newValue = distValue + initialValue;
                 setValue(newValue);
@@ -330,7 +332,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         @Override
         protected void clickScrollContainer(UIEvent event) {
             if (event.button == 0) {
-                setValue(minValue + (maxValue - minValue) * (event.y - scrollContainer.getContentY()) / scrollContainer.getContentHeight());
+                setValue(minValue + (maxValue - minValue) * (getLocalMouse(event.x, event.y).y - scrollContainer.getContentY()) / scrollContainer.getContentHeight());
             }
         }
 
@@ -387,7 +389,9 @@ public abstract class Scroller extends BindableUIElement<Float> {
                 var maxX = scrollContainer.getContentX() + scrollContainer.getContentWidth();
 
                 var remainingSpace = maxX - minX - scrollBar.getSizeWidth();
-                var deltaX = event.x - event.dragStartX;
+                var localMouse = getLocalMouse(event.x, event.y);
+                var localStart = getLocalMouse(event.dragStartX, event.dragStartY);
+                var deltaX = localMouse.x - localStart.x;
                 var distValue = (deltaX / remainingSpace) * (maxValue - minValue);
                 var newValue = distValue + initialValue;
                 setValue(newValue);
@@ -397,7 +401,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         @Override
         protected void clickScrollContainer(UIEvent event) {
             if (event.button == 0) {
-                setValue(minValue + (maxValue - minValue) * (event.x - scrollContainer.getContentX()) / scrollContainer.getContentWidth());
+                setValue(minValue + (maxValue - minValue) * (getLocalMouse(event.x, event.y).x - scrollContainer.getContentX()) / scrollContainer.getContentWidth());
             }
         }
 

@@ -365,7 +365,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         var renderedFluid = getValue();
-        var hovered = isHover() || isChildHover();
+        var hovered = isHover() || isSelfOrChildHover();
         if (renderedFluid.isEmpty() && !hovered) return;
         var contentX = getContentX();
         var contentY = getContentY();

@@ -35,6 +35,7 @@ public class BasicStyle extends Style {
 
     public static void init() {
         PropertyRegistry.Z_INDEX.addListener(BasicStyle::onPropertyChanged);
+        PropertyRegistry.TRANSFORM_2D.addListener(BasicStyle::onPropertyChanged);
     }
 
     private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
@@ -42,6 +43,9 @@ public class BasicStyle extends Style {
             if (element.getParent() != null) {
                 element.getParent().clearSortedChildrenCache();
             }
+        }
+        if (property == PropertyRegistry.TRANSFORM_2D) {
+            element.clearPoseCache();
         }
     }
 

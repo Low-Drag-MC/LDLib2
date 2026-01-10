@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
@@ -29,7 +28,6 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -302,7 +300,7 @@ public class TextElement extends UIElement {
             }
 
             // render each line of text
-            var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && isChildHover());
+            var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && isSelfOrChildHover());
             for (int i = 0; i < displayLines.size(); i++) {
                 var tuple = displayLines.get(i);
                 var line = tuple.getA();

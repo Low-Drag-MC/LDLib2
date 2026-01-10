@@ -184,6 +184,7 @@ LDLibREIPlugin implements REIClientPlugin {
             if (event.customData instanceof REIRecipeWidgetHandler handler) {
                 var recipeSlot = new REIRecipeSlotWidget(
                         handler.containerBounds,
+                        handler.localToWorld,
                         element::isMouseOverElement,
                         () -> getRectangle(element),
                         displayedIngredient,

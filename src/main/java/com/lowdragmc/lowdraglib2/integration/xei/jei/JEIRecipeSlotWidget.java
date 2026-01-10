@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.integration.xei.jei;
 
+import com.google.common.base.Suppliers;
 import mezz.jei.api.gui.builder.IIngredientConsumer;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
@@ -21,11 +22,15 @@ import mezz.jei.library.gui.ingredients.TagContentTooltipComponent;
 import mezz.jei.library.ingredients.DisplayIngredientAcceptor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
@@ -41,7 +46,8 @@ import java.util.stream.Stream;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
-    public final BiPredicate<Double, Double> isMouseOver;
+    public final Supplier<Matrix4f> localToWorldSupplier;
+    public final BiPredicate<Float, Float> isMouseOver;
     public final Supplier<ITypedIngredient<?>> displayedIngredient;
     @Nullable
     public final Supplier<List<@Nullable ITypedIngredient<?>>> allIngredients;
@@ -61,19 +67,29 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
      * @param tooltipCallback A {@link IRecipeSlotRichTooltipCallback} that defines the behavior
      *                        for custom tooltips when interacting with this slot.
      */
-    public JEIRecipeSlotWidget(BiPredicate<Double, Double> isMouseOver,
+    public JEIRecipeSlotWidget(Supplier<Matrix4f> localToWorldSupplier,
+                               BiPredicate<Float, Float> isMouseOver,
                                Supplier<ITypedIngredient<?>> displayedIngredient,
                                @Nullable Supplier<List<@Nullable ITypedIngredient<?>>> allIngredients,
                                @Nullable IRecipeSlotRichTooltipCallback tooltipCallback) {
+        this.localToWorldSupplier = localToWorldSupplier;
         this.isMouseOver = isMouseOver;
         this.displayedIngredient = displayedIngredient;
         this.allIngredients = allIngredients;
         this.tooltipCallback = tooltipCallback;
     }
 
+    public Vector2f getWorldMouse(float mouseX, float mouseY) {
+        var realMouse = localToWorldSupplier.get().transformPosition(new Vector3f(0, 0, 0))
+                .mul(-1)
+                .add(mouseX, mouseY, 0);
+        return new Vector2f(realMouse.x, realMouse.y);
+    }
+
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
-        return isMouseOver.test(mouseX, mouseY);
+        var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
+        return isMouseOver.test(realMouse.x, realMouse.y);
     }
 
     @Override

@@ -194,7 +194,9 @@ public class LDLibJEIPlugin implements IModPlugin {
                                                         @Nullable Supplier<List<@org.jetbrains.annotations.Nullable ITypedIngredient<?>>> allIngredients) {
         element.addEventListener(JEIUIEvents.RECIPE_WIDGET, event -> {
             if (event.customData instanceof JEIRecipeWidgetHandler recipeSlot) {
-                recipeSlot.addSlot(new JEIRecipeSlotWidget(element::isMouseOverElement,
+                recipeSlot.addSlot(new JEIRecipeSlotWidget(
+                        recipeSlot.localToWorld,
+                        element::isMouseOverElement,
                         displayIngredient,
                         allIngredients,
                         ((view, tooltip) -> tooltip.addAll(element.getStyle().tooltips().asList()))));

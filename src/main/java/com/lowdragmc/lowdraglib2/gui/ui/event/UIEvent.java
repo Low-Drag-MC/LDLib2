@@ -135,7 +135,7 @@ public class UIEvent {
     /**
      * Whether the immediate propagation is canceled.
      */
-    public boolean immediatePropagationStopped = false;
+    public boolean laterPropagationStopped = false;
     /**
      * Indicates whether there is a handler associated with the event.
      * This variable helps determine if the event has at least one listener
@@ -174,7 +174,23 @@ public class UIEvent {
      */
     public void stopImmediatePropagation() {
         this.propagationStopped = true;
-        this.immediatePropagationStopped = true;
+        this.laterPropagationStopped = true;
+    }
+
+    /**
+     * Prevents the event from propagating to subsequent phases or handlers in the current event flow.
+     *
+     * By marking the {@code laterPropagationStopped} flag as {@code true}, this method ensures that
+     * after the current phase/process, no further handlers or operations related to this event are executed.
+     *
+     * This method is typically used to indicate that later stages (such as bubbling or additional listeners)
+     * should no longer process the event after the current context has handled it.
+     *
+     * Similar to {@link #stopPropagation()}, but specific to scenarios where subsequent processing based
+     * on dynamic event flow must be halted without immediately affecting current propagation behavior.
+     */
+    public void stopLaterPropagation() {
+        this.laterPropagationStopped = true;
     }
 
     public boolean isShiftDown() {

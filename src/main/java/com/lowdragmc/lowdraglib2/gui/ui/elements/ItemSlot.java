@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -42,7 +41,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
@@ -309,7 +307,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public void drawBackgroundAdditional(GUIContext guiContext) {
         var value = getValue();
         var mui = guiContext.modularUI;
-        var hovered = isHover() || isChildHover();
+        var hovered = isHover() || isSelfOrChildHover();
         var drawDraggingBackground = false;
         if (mui.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
             var carried = containerScreen.getMenu().getCarried();

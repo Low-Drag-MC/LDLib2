@@ -196,20 +196,20 @@ public class TextTexture extends TransformTexture {
                 graphics.drawString(fontRenderer, line, (int) (x + width - lineWidth), (int) _y, color, dropShadow);
             }
         } else if (type == TextType.HIDE) {
-            if (UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
+            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
                 drawTextLine(graphics, x, y, width, height, fontRenderer, textH, line);
             }
         } else if (type == TextType.ROLL || type == TextType.ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
+            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 drawTextLine(graphics, x, y, width, height, fontRenderer, textH, texts.get(0));
             }
         } else if (type == TextType.LEFT_HIDE) {
-            if (UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
+            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
@@ -217,7 +217,7 @@ public class TextTexture extends TransformTexture {
                 graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
             }
         } else if (type == TextType.LEFT_ROLL || type == TextType.LEFT_ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || UIElement.isMouseOver((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
+            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
                 drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
             } else {
                 float _y = y + (height - textH) / 2f;

@@ -439,7 +439,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     /// rendering
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
-        if (isChildHover() || textField.isFocused()) {
+        if (isSelfOrChildHover() || textField.isFocused()) {
             guiContext.drawTexture(getSearchStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);

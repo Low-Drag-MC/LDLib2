@@ -86,7 +86,7 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
         builder.addGuiEventListener(widget);
 
         // post event to append recipe slots
-        var recipeSlot = new JEIRecipeWidgetHandler();
+        var recipeSlot = new JEIRecipeWidgetHandler(widget::getLocalToWorld);
         var event = UIEvent.create(JEIUIEvents.RECIPE_WIDGET);
         event.target = widget.modularUI.ui.rootElement;
         event.customData = recipeSlot;

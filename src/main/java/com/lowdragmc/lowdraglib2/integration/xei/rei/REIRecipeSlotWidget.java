@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib2.integration.xei.rei;
 
-import dev.emi.emi.api.widget.Bounds;
-import me.shedaniel.math.Point;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.gui.widgets.Tooltip;
 import me.shedaniel.rei.api.client.gui.widgets.TooltipContext;
@@ -10,6 +8,9 @@ import me.shedaniel.rei.impl.client.gui.widget.EntryWidget;
 import me.shedaniel.rei.impl.client.util.OriginalRetainingCyclingList;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -17,7 +18,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class REIRecipeSlotWidget extends EntryWidget {
-    public final BiPredicate<Double, Double> isMouseOver;
+    public final Supplier<Matrix4f> localToWorldSupplier;
+    public final BiPredicate<Float, Float> isMouseOver;
     public Supplier<Rectangle> boundsProvider;
     public final Supplier<EntryStack<?>> displayedIngredient;
     @Nullable
@@ -26,12 +28,14 @@ public class REIRecipeSlotWidget extends EntryWidget {
     private final Consumer<Tooltip> tooltipCallback;
 
     public REIRecipeSlotWidget(Rectangle containerBounds,
-                               BiPredicate<Double, Double> isMouseOver,
+                               Supplier<Matrix4f> localToWorldSupplier,
+                               BiPredicate<Float, Float> isMouseOver,
                                Supplier<Rectangle> boundsProvider,
                                Supplier<EntryStack<?>> displayedIngredient,
                                @Nullable Supplier<List<EntryStack<?>>> allIngredients,
                                @Nullable Consumer<Tooltip> tooltipCallback) {
         super(containerBounds);
+        this.localToWorldSupplier = localToWorldSupplier;
         this.isMouseOver = isMouseOver;
         this.boundsProvider = boundsProvider;
         this.displayedIngredient = displayedIngredient;
@@ -88,9 +92,17 @@ public class REIRecipeSlotWidget extends EntryWidget {
         return tooltip;
     }
 
+    public Vector2f getWorldMouse(float mouseX, float mouseY) {
+        var realMouse = localToWorldSupplier.get().transformPosition(new Vector3f(0, 0, 0))
+                .mul(-1)
+                .add(mouseX, mouseY, 0);
+        return new Vector2f(realMouse.x, realMouse.y);
+    }
+
     @Override
     public boolean containsMouse(double mouseX, double mouseY) {
         var containerBounds = super.getBounds();
-        return isMouseOver.test(mouseX - containerBounds.x, mouseY - containerBounds.y);
+        var worldMouse = getWorldMouse((float) mouseX - containerBounds.x, (float) mouseY - containerBounds.y);
+        return isMouseOver.test(worldMouse.x, worldMouse.y);
     }
 }

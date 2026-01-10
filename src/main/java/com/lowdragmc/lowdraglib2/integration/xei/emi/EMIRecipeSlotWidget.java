@@ -6,23 +6,36 @@ import dev.emi.emi.api.widget.Bounds;
 import dev.emi.emi.api.widget.SlotWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public class EMIRecipeSlotWidget extends SlotWidget {
-    public Supplier<EmiIngredient> ingredientProvider;
-    public BiPredicate<Double, Double> isMouseOver;
-    public Supplier<Bounds> boundsProvider;
+    public final Supplier<EmiIngredient> ingredientProvider;
+    public final Supplier<Matrix4f> localToWorldSupplier;
+    public final BiPredicate<Float, Float> isMouseOver;
+    public final Supplier<Bounds> boundsProvider;
 
     public EMIRecipeSlotWidget(Supplier<EmiIngredient> ingredientProvider,
-                               BiPredicate<Double, Double> isMouseOver,
+                               Supplier<Matrix4f> localToWorldSupplier,
+                               BiPredicate<Float, Float> isMouseOver,
                                Supplier<Bounds> boundsProvider) {
         super(EmiStack.EMPTY, 0, 0);
+        this.localToWorldSupplier = localToWorldSupplier;
         this.isMouseOver = isMouseOver;
         this.ingredientProvider = ingredientProvider;
         this.boundsProvider = boundsProvider;
+    }
+
+    public Vector2f getWorldMouse(float mouseX, float mouseY) {
+        var realMouse = localToWorldSupplier.get().transformPosition(new Vector3f(0, 0, 0))
+                .mul(-1)
+                .add(mouseX, mouseY, 0);
+        return new Vector2f(realMouse.x, realMouse.y);
     }
 
     @Override
@@ -37,13 +50,15 @@ public class EMIRecipeSlotWidget extends SlotWidget {
 
     @Override
     public List<ClientTooltipComponent> getTooltip(int mouseX, int mouseY) {
-        if (!isMouseOver.test((double) mouseX, (double) mouseY)) return List.of();
+        var realMouse = getWorldMouse(mouseX, mouseY);
+        if (!isMouseOver.test(realMouse.x, realMouse.y)) return List.of();
         return super.getTooltip(mouseX, mouseY);
     }
 
     @Override
     public boolean mouseClicked(int mouseX, int mouseY, int button) {
-        if (!isMouseOver.test((double) mouseX, (double) mouseY)) return false;
+        var realMouse = getWorldMouse(mouseX, mouseY);
+        if (!isMouseOver.test(realMouse.x, realMouse.y)) return false;
         return super.mouseClicked(mouseX, mouseY, button);
     }
 

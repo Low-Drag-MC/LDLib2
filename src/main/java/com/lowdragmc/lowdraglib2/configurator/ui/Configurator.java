@@ -185,8 +185,9 @@ public class Configurator extends UIElement {
                             .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
                             .setOnNodeClicked(TreeBuilder.Menu::handle)
                             .layout(layout -> {
-                                layout.setPosition(YogaEdge.LEFT, event.x - root.getContentX());
-                                layout.setPosition(YogaEdge.TOP, event.y - root.getContentY());
+                                var localMouse = root.getLocalMouse(event.x, event.y);
+                                layout.setPosition(YogaEdge.LEFT, localMouse.x - root.getContentX());
+                                layout.setPosition(YogaEdge.TOP, localMouse.y - root.getContentY());
                             })
                     );
                 }

@@ -226,6 +226,42 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         p[1] += py;
     }
 
+    // Transform a point from the element's pre-transform space to screen space:
+    // order: pivot -> S -> R -> -pivot -> T
+    public void forwardPoint(UIElement e, double[] p /* [x,y] */) {
+        if (isIdentity()) return;
+
+        // Inverse translation
+        p[0] += translate.x;
+        p[1] += translate.y;
+
+        float px = e.getPositionX() + e.getSizeWidth()  * pivot.x;
+        float py = e.getPositionY() + e.getSizeHeight() * pivot.y;
+
+        // Translate to pivot
+        p[0] += px;
+        p[1] += py;
+
+        // rotation
+        if (rotationRad != 0f) {
+            double cos = Math.cos(rotationRad);
+            double sin = Math.sin(rotationRad);
+            double x = p[0] * cos - p[1] * sin;
+            double y = p[0] * sin + p[1] * cos;
+            p[0] = x; p[1] = y;
+        }
+
+        // scale
+        if (scale.x != 1f || scale.y != 1f) {
+            p[0] *= scale.x;
+            p[1] *= scale.y;
+        }
+
+        // return
+        p[0] -= px;
+        p[1] -= py;
+    }
+
     public Transform2D copy() {
         var copied = new Transform2D();
         copied.copyFrom(this);

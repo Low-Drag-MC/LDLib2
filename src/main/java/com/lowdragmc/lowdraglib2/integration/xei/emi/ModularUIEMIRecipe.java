@@ -88,11 +88,14 @@ public abstract class ModularUIEMIRecipe implements EmiRecipe {
     @Override
     public void addWidgets(WidgetHolder widgetHolder) {
         var mui = getModularUI();
-        var recipeSlot = new EMIRecipeWidgetHandler();
+        var widget = new ModularUIEMIWidget(mui);
+
+        var recipeSlot = new EMIRecipeWidgetHandler(widget::getLocalToWorld);
         var event = UIEvent.create(EMIUIEvents.RECIPE_WIDGET);
         event.target = mui.ui.rootElement;
         event.customData = recipeSlot;
         UIEventDispatcher.dispatchAllChildren(event);
+
         // append additional slots first, which should be handled first
         for (var slot : recipeSlot.slots) {
             widgetHolder.add(slot);
@@ -102,7 +105,6 @@ public abstract class ModularUIEMIRecipe implements EmiRecipe {
         }
 
         // add modular ui widget
-        var widget = new ModularUIEMIWidget(mui);
         widgetHolder.add(widget);
     }
 }

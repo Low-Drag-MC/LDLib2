@@ -219,9 +219,10 @@ public class GraphView extends UIElement {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (graphViewStyle.allowPan() &&
-                (event.target == this && event.button == 0 || event.button == 2) &&
-                isChildHover() && isMouseOverContent(event.x, event.y)) {
+        if (graphViewStyle.allowPan()
+                && (event.target == this && event.button == 0 || event.button == 2)
+                && isSelfOrChildHover()
+                && isMouseOverContent(event.x, event.y)) {
             startDrag(new DragOffset(offsetX, offsetY), null);
         }
     }
@@ -229,18 +230,23 @@ public class GraphView extends UIElement {
     protected void onDragSourceUpdate(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof DragOffset(float startOffsetX, float startOffsetY)) {
             float invS = 1f / Math.max(0.0001f, Mth.clamp(scale, graphViewStyle.minScale(), graphViewStyle.maxScale()));
-            offsetX = startOffsetX + (event.dragStartX - event.x) * invS;
-            offsetY = startOffsetY + (event.dragStartY - event.y) * invS;
+            var localMouse = getLocalMouse(event.x, event.y);
+            var localStart = getLocalMouse(event.dragStartX, event.dragStartY);
+            offsetX = startOffsetX + (localStart.x - localMouse.x) * invS;
+            offsetY = startOffsetY + (localStart.y - localMouse.y) * invS;
             refreshContentTransform();
         }
     }
 
     protected void onMouseWheel(UIEvent event) {
-        if (graphViewStyle.allowZoom() && event.target == this && isChildHover() && isMouseOverContent(event.x, event.y)) {
+        if (graphViewStyle.allowZoom() && event.target == this
+                && isSelfOrChildHover()
+                && isMouseOverContent(event.x, event.y)) {
             var newScale = Mth.clamp(scale + event.deltaY * 0.1f, graphViewStyle.minScale(), graphViewStyle.maxScale());
             if (newScale != scale) {
-                var rx = event.x - this.getPositionX();
-                var ry = event.y - this.getPositionY();
+                var localMouse = getLocalMouse(event.x, event.y);
+                var rx = localMouse.x - this.getPositionX();
+                var ry = localMouse.y - this.getPositionY();
                 offsetX += rx / scale - rx / newScale;
                 offsetY += ry / scale - ry / newScale;
                 scale = newScale;
@@ -302,6 +308,10 @@ public class GraphView extends UIElement {
     /// Editor
     @Override
     public void addEditorChild(UIElement child, int index) {
-        contentRoot.addChildAt(child, index);
+        if (index == -1) {
+            contentRoot.addChild(child);
+        } else {
+            contentRoot.addChildAt(child, index);
+        }
     }
 }
