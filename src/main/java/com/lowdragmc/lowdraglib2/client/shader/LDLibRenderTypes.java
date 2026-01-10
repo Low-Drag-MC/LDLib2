@@ -79,6 +79,17 @@ public class LDLibRenderTypes extends RenderType {
                     .createCompositeState(false)
     );
 
+    private static final RenderType STRIP_LINES = create("stripLines",
+            DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_STRIP,
+            1536, false, false,
+            CompositeState.builder()
+                    .setShaderState(RENDERTYPE_GUI_OVERLAY_SHADER)
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setDepthTestState(NO_DEPTH_TEST)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .createCompositeState(false)
+    );
+
     public LDLibRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize, boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState, Runnable clearState) {
         super(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, setupState, clearState);
     }
@@ -103,4 +114,7 @@ public class LDLibRenderTypes extends RenderType {
         return RECT;
     }
 
+   public static RenderType stripLines() {
+        return STRIP_LINES;
+    }
 }

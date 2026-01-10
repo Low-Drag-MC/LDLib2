@@ -104,6 +104,22 @@ public class Dialog extends UIElement {
         return "dialog";
     }
 
+    public Dialog allowInteraction() {
+        getLayout().widthAuto();
+        getLayout().heightAuto();
+        getLayout().alignSelf(YogaAlign.CENTER);
+
+        this.addEventListener(UIEvents.MOUSE_DOWN, UIEvent::stopLaterPropagation);
+        this.addEventListener(UIEvents.MOUSE_UP, UIEvent::stopLaterPropagation);
+        this.addEventListener(UIEvents.CLICK, UIEvent::stopLaterPropagation);
+        this.addEventListener(UIEvents.DOUBLE_CLICK, UIEvent::stopLaterPropagation);
+        this.addEventListener(UIEvents.MOUSE_MOVE, UIEvent::stopLaterPropagation);
+        this.addEventListener(UIEvents.MOUSE_WHEEL, UIEvent::stopLaterPropagation);
+        this.addEventListener(UIEvents.DRAG_UPDATE, UIEvent::stopLaterPropagation);
+        this.addEventListener(UIEvents.DRAG_PERFORM, UIEvent::stopLaterPropagation);
+        return this;
+    }
+
     protected void keyDown(UIEvent event) {
         if (autoClose && event.keyCode == GLFW.GLFW_KEY_ESCAPE) {
             close();
@@ -295,6 +311,9 @@ public class Dialog extends UIElement {
                 .setText(info).layout(layout -> layout.setWidthPercent(100)));
         dialog.buttonContainer.setDisplay(false);
         dialog.top();
+        dialog.allowInteraction();
+        dialog.setAutoClose(false);
+
         // add progress bar
         dialog.overlay.addChildAt(new UIElement()
                 .layout(layout -> layout.height(2).widthPercent(100))

@@ -8,12 +8,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import it.unimi.dsi.fastutil.floats.FloatObjectPair;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.joml.Vector2f;
+
+import java.util.List;
 
 @LDLRegisterClient(name="animation", registry = "ldlib2:screen_test")
 @NoArgsConstructor
@@ -30,6 +34,11 @@ public class TestAnimation implements IScreenTest {
         target.getLayout().width(100).height(100);
         target.getStyle().background(ColorPattern.PINK.rectTexture());
         root.addChildren(
+                new UIElement().layout(layout -> layout.setFlex(1))
+                        .style(style -> style.backgroundTexture((graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+                            DrawerHelper.drawLines(graphics, List.of(new Vector2f(x, y), new Vector2f(x + width / 3, y + height / 5), new Vector2f(x + width, y + height)),
+                                    -1, 0xff00ffff, 2);
+                        })),
                 target,
                 new Button().setText("anim 1").setOnClick(e -> {
                     target.animation()

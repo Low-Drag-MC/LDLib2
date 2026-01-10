@@ -36,6 +36,8 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.opengl.GL11;
 
@@ -254,17 +256,10 @@ public class DrawerHelper {
         }
     }
 
-    public static void drawLines(@Nonnull GuiGraphics graphics, List<Vec2> Vec2s, int startColor, int endColor, float width) {
-        Tesselator tesselator = Tesselator.getInstance();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        BufferBuilder bufferbuilder = tesselator.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-
-        RenderBufferUtils.drawColorLines(graphics.pose(), bufferbuilder, Vec2s, startColor, endColor, width);
-
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
-        RenderSystem.defaultBlendFunc();
+    public static void drawLines(@Nonnull GuiGraphics graphics, List<Vector2f> points, int startColor, int endColor, float width) {
+        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.stripLines());
+        RenderSystem.disableDepthTest();
+        RenderBufferUtils.drawColorLines(graphics.pose(), buffer, points, startColor, endColor, width);
     }
 
     public static void drawTooltip(GuiGraphics graphics, int mouseX, int mouseY, List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable TooltipComponent tooltipComponent, Font tooltipFont) {

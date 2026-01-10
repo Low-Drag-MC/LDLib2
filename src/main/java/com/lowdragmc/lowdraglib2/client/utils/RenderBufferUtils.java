@@ -7,6 +7,7 @@ import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -301,11 +302,15 @@ public class RenderBufferUtils {
         }
     }
 
-    public static void drawColorLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vec2> points, int colorStart, int colorEnd, float width) {
+    public static void drawColorLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vector2f> points, int colorStart, int colorEnd, float width) {
+        drawColorLines(poseStack, builder, points, colorStart, colorEnd, width, true);
+    }
+
+    public static void drawColorLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vector2f> points, int colorStart, int colorEnd, float width, boolean stripSide) {
         if (points.size() < 2) return;
         Matrix4f mat = poseStack.last().pose();
-        Vec2 lastPoint = points.get(0);
-        Vec2 point = points.get(1);
+        var lastPoint = points.get(0);
+        var point = points.get(1);
         Vector3f vec = null;
         int sa = (colorStart >> 24) & 0xff, sr = (colorStart >> 16) & 0xff, sg = (colorStart >> 8) & 0xff, sb = colorStart & 0xff;
         int ea = (colorEnd >> 24) & 0xff, er = (colorEnd >> 16) & 0xff, eg = (colorEnd >> 8) & 0xff, eb = colorEnd & 0xff;
@@ -316,25 +321,33 @@ public class RenderBufferUtils {
         for (int i = 1; i < points.size(); i++) {
             float s = (i - 1f) / points.size();
             float e = i * 1f / points.size();
+            var r = (sr + er * s) / 255;
+            var g = (sg + eg * s) / 255;
+            var b = (sb + eb * s) / 255;
+            var a = (sa + ea * s) / 255;
             point = points.get(i);
-            vec = new Vector3f(point.x - lastPoint.x, point.y - lastPoint.y, 0).rotateZ(Mth.HALF_PI).normalize().mul(-width);
+            vec = new Vector3f(point.x - lastPoint.x, point.y - lastPoint.y, 0).rotateZ(Mth.HALF_PI).normalize().mul(width);
             builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0)
-                    .setColor((sr + er * s) / 255, (sg + eg * s) / 255, (sb + eb * s) / 255, (sa + ea * s) / 255)
-                    ;
+                    .setColor(r, g, b, a);
+            if (stripSide && i == 1) {
+                builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0)
+                        .setColor(r, g, b, a);
+            }
             vec.mul(-1);
             builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0)
-                    .setColor((sr + er * e) / 255, (sg + eg * e) / 255, (sb + eb * e) / 255, (sa + ea * e) / 255)
-                    ;
+                    .setColor(r, g, b, a);
             lastPoint = point;
         }
         vec.mul(-1);
         builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0)
-                .setColor(sr + er, sg + eg, sb + eb, sa + ea)
-                ;
+                .setColor(sr + er, sg + eg, sb + eb, sa + ea);
         vec.mul(-1);
         builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0)
-                .setColor(sr + er, sg + eg, sb + eb, sa + ea)
-                ;
+                .setColor(sr + er, sg + eg, sb + eb, sa + ea);
+        if (stripSide) {
+            builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0)
+                    .setColor(sr + er, sg + eg, sb + eb, sa + ea);
+        }
     }
 
     public static void drawColorTexLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vec2> points, int colorStart, int colorEnd, float width) {

@@ -108,6 +108,7 @@ public class ShaderTexture extends TransformTexture implements AutoCloseable {
             RenderSystem.setShader(shaderHolder::getShaderInstance);
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
+            RenderSystem.disableDepthTest();
             var mat = graphics.pose().last().pose();
             BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
             buffer.addVertex(mat, x, y + height, 0).setUv(0, 0).setColor(color);
