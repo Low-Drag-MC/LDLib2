@@ -14,7 +14,7 @@ public class AnimationRuntime {
         this.initialTime = initialTime;
         this.animation = animation;
         this.interpolator = new Interpolator(0, 1, animation.animation().duration(), animation.animation().ease(),
-                this::onInterplate, this::onFinished);
+                this::onInterpolate, this::onFinished);
     }
 
     private void onFinished() {
@@ -23,7 +23,7 @@ public class AnimationRuntime {
         }
     }
 
-    private void onInterplate(Number number) {
+    private void onInterpolate(Number number) {
         var lerp = number.floatValue();
         for (var executor : animation.kfExecutors()) {
             executor.apply(this, lerp);

@@ -38,7 +38,7 @@ public class StyleAnimation {
     private final Set<UIElement> targets = new HashSet<>();
     private final Map<Property<?>, List<FloatObjectPair<Object>>> properties = new HashMap<>();
     @Setter
-    private Consumer<UIElement> onInterplate = Consumers.nop();
+    private Consumer<UIElement> onInterpolate = Consumers.nop();
     @Setter
     private Consumer<UIElement> onFinished = Consumers.nop();
 
@@ -107,7 +107,7 @@ public class StyleAnimation {
                                 999,
                                 0,
                                 o));
-                        onInterplate.accept(target);
+                        onInterpolate.accept(target);
                     }
 
                     @Override
