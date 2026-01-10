@@ -89,7 +89,7 @@ public class ModularUIPreview extends UIElement {
             if (hovered != null) {
                 previewModularUI.getWidget().renderUISpacing(hovered, guiContext.graphics);
             }
-        } else if (editorView != null && selectionBox.isDisplayed() && selectionBox.label.isChildHover()) {
+        } else if (editorView != null && selectionBox.isDisplayed() && selectionBox.label.isSelfOrChildHover()) {
             var selectedOne = editorView.hierarchy.getSelectedOne();
             selectedOne.ifPresent(element -> previewModularUI.getWidget().renderUISpacing(element, guiContext.graphics));
         }
@@ -118,7 +118,7 @@ public class ModularUIPreview extends UIElement {
             var x = (posX - marginLeft - offsetX) * scale;
             var y = (posY - marginTop - offsetY) * scale;
 
-            selectionBox.layout(layout -> {
+            this.selectionBox.layout(layout -> {
                 layout.setPosition(YogaEdge.LEFT, x);
                 layout.setPosition(YogaEdge.TOP, y);
                 layout.setWidth(width);
@@ -127,6 +127,11 @@ public class ModularUIPreview extends UIElement {
         } else {
             selectionBox.setDisplay(YogaDisplay.NONE);
         }
+    }
+
+    @Override
+    protected boolean isInsideTheScissorView(GUIContext context) {
+        return true;
     }
 
     public class SelectionBox extends UIElement {

@@ -81,7 +81,7 @@ public abstract class ModularUIDisplayCategory<T extends ModularUIDisplay> imple
         var widget = new ModularUIREIWidget(mui, bounds);
 
         // additional widgets
-        var widgetHandler = new REIRecipeWidgetHandler(bounds);
+        var widgetHandler = new REIRecipeWidgetHandler(bounds, widget::getLocalToWorld);
         var event = UIEvent.create(REIUIEvents.RECIPE_WIDGET);
         event.target = mui.ui.rootElement;
         event.customData = widgetHandler;

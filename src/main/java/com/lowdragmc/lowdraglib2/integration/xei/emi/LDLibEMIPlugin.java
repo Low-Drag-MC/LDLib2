@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.integration.xei.emi;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIDragDropHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIRecipeIngredientHandler;
@@ -140,6 +141,7 @@ public class LDLibEMIPlugin implements EmiPlugin {
         element.addEventListener(EMIUIEvents.RECIPE_WIDGET, event -> {
             if (event.customData instanceof EMIRecipeWidgetHandler recipeSlot) {
                 var slot = new EMIRecipeSlotWidget(displayIngredient,
+                        recipeSlot.localToWorld,
                         element::isMouseOverElement,
                         () -> getBounds(element));
                 for (var component : element.getStyle().tooltips().asList()) {
@@ -147,6 +149,11 @@ public class LDLibEMIPlugin implements EmiPlugin {
                 }
                 recipeSlot.addWidget(slot);
             }
+        });
+        // we block all mouse down events to prevent skipping emi event
+        element.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            e.hasHandler = false;
+            e.stopImmediatePropagation();
         });
     }
 }

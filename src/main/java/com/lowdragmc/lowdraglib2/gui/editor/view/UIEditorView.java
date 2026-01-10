@@ -343,11 +343,11 @@ public class UIEditorView extends View {
         }
 
         if (event.target == this) { // lose focus
-            if (isChildHover() && event.relatedTarget == null) {
+            if (isSelfOrChildHover() && event.relatedTarget == null) {
                 focus();
             }
         } else { // child lose focus
-            if (event.relatedTarget == null && isChildHover()) {
+            if (event.relatedTarget == null && isSelfOrChildHover()) {
                 focus();
             }
         }

@@ -2,17 +2,18 @@ package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.math.Rect;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.util.Tuple;
+import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
-import org.lwjgl.opengl.GL46;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -38,7 +39,9 @@ public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     public float localMouseX, localMouseY;
     @OnlyIn(Dist.CLIENT)
-    public Stack<UIVisualLayer> UIVisualLayers = new Stack<>();
+    public Stack<UIVisualLayer> visualLayers = new Stack<>();
+    @OnlyIn(Dist.CLIENT)
+    public final Stack<Rect> scissorStack = new Stack<>();
     @OnlyIn(Dist.CLIENT)
     private final List<PostCall> postRenderingCalls = new ArrayList<>();
     private record PostCall(Consumer<GUIContext> call, PoseStack.Pose pose) {}
@@ -71,12 +74,16 @@ public class GUIContext {
     public void enableScissor(float x, float y, float width, float height, Matrix4f trans) {
         var realPos = trans.transform(new Vector4f(x, y, 0, 1));
         var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
-        graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+        var rect = Rect.of(Mth.floor(realPos.x), Mth.floor(realPos.y), Mth.ceil(realPos2.x), Mth.ceil(realPos2.y));
+        var peek = scissorStack.isEmpty() ? null : scissorStack.peek();
+        scissorStack.push(peek == null ? rect : peek.intersects(rect));
+        graphics.enableScissor(rect.left, rect.up, rect.right, rect.down);
     }
 
     @OnlyIn(Dist.CLIENT)
     public void disableScissor() {
         graphics.disableScissor();
+        scissorStack.pop();
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -89,21 +96,21 @@ public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     public void pushVisualLayer(UIVisualLayer layer) {
         graphics.flush();
-        UIVisualLayers.push(layer);
+        visualLayers.push(layer);
         layer.bind(this);
         layer.clear();
     }
 
     @OnlyIn(Dist.CLIENT)
     public void popVisualLayer() {
-        var popped = UIVisualLayers.pop();
+        var popped = visualLayers.pop();
         if (popped != null) {
             graphics.flush();
             var mainTarget = Minecraft.getInstance().getMainRenderTarget();
-            if (UIVisualLayers.isEmpty()) {
+            if (visualLayers.isEmpty()) {
                 mainTarget.bindWrite(false);
             } else {
-                UIVisualLayers.peek().bind(this);
+                visualLayers.peek().bind(this);
             }
             popped.draw(this);
             popped.release();

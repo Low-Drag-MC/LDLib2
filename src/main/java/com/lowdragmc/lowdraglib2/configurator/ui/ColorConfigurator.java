@@ -58,7 +58,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             style.setPipelineState(StyleOrigin.DEFAULT);
             style.backgroundTexture(Sprites.RECT_RD_SOLID);
             style.setPipelineState(StyleOrigin.IMPORTANT);
-            style.overlayTexture(DynamicTexture.of(() -> colorPreview.isChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY));
+            style.overlayTexture(DynamicTexture.of(() -> colorPreview.isSelfOrChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY));
             style.setPipelineState(StyleOrigin.INLINE);
         }).addClass("configurator_preview_bg").addChildren(new UIElement()
                 .layout(layout -> layout.setHeightPercent(100))

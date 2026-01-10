@@ -201,7 +201,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     protected void onAdjustAlphaSlider(UIEvent event) {
-        float normalizedX = (event.x - event.target.getPositionX()) / event.target.getSizeWidth();
+        var localMouse = getLocalMouse(event.x, event.y);
+        float normalizedX = (localMouse.x - event.target.getPositionX()) / event.target.getSizeWidth();
         if (normalizedX < 0) normalizedX = 0;
         if (normalizedX > 1) normalizedX = 1;
         this.alpha = normalizedX;
@@ -213,8 +214,9 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     private void onAdjustHsbContext(UIEvent event) {
-        float normalizedX = (event.x - event.target.getPositionX()) / event.target.getSizeWidth();
-        float normalizedY = (event.y - event.target.getPositionY()) / event.target.getSizeHeight();
+        var localMouse = getLocalMouse(event.x, event.y);
+        float normalizedX = (localMouse.x - event.target.getPositionX()) / event.target.getSizeWidth();
+        float normalizedY = (localMouse.y - event.target.getPositionY()) / event.target.getSizeHeight();
         if (normalizedX < 0) normalizedX = 0;
         if (normalizedX > 1) normalizedX = 1;
         if (normalizedY < 0) normalizedY = 0;

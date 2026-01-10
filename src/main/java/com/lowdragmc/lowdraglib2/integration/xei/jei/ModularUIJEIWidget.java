@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.integration.xei.jei;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import lombok.Getter;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.inputs.IJeiGuiEventListener;
 import mezz.jei.api.gui.widgets.IRecipeWidget;
@@ -10,7 +11,9 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.navigation.ScreenPosition;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -19,6 +22,9 @@ import javax.annotation.ParametersAreNonnullByDefault;
 public class ModularUIJEIWidget implements IRecipeWidget, IJeiGuiEventListener {
     public static final ScreenPosition ZERO = new ScreenPosition(0, 0);
     public final ModularUI modularUI;
+    // runtime
+    @Getter
+    private Matrix4f localToWorld = new Matrix4f();
 
     public ModularUIJEIWidget(ModularUI modularUI) {
         this.modularUI = modularUI;
@@ -35,8 +41,16 @@ public class ModularUIJEIWidget implements IRecipeWidget, IJeiGuiEventListener {
         guiGraphics.flush();
         var partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
         // get real mouse
-        var realMouse = guiGraphics.pose().last().pose().invert(new Matrix4f()).transformPosition(new Vector3f(0, 0, 0));
-        modularUI.getWidget().render(guiGraphics, (int) (mouseX - realMouse.x), (int) (mouseY - realMouse.y), partialTick);
+        localToWorld = guiGraphics.pose().last().pose().invert(new Matrix4f());
+        var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
+        modularUI.getWidget().render(guiGraphics, (int) realMouse.x, (int) realMouse.y, partialTick);
+    }
+
+    public Vector2f getWorldMouse(float mouseX, float mouseY) {
+        var realMouse = localToWorld.transformPosition(new Vector3f(0, 0, 0))
+                .mul(-1)
+                .add(mouseX, mouseY, 0);
+        return new Vector2f(realMouse.x, realMouse.y);
     }
 
     @Override
@@ -60,27 +74,33 @@ public class ModularUIJEIWidget implements IRecipeWidget, IJeiGuiEventListener {
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
-        modularUI.getWidget().mouseMoved(mouseX, mouseY);
+        var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
+        modularUI.getWidget().mouseMoved(realMouse.x, realMouse.y);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return modularUI.getWidget().mouseClicked(mouseX, mouseY, button);
+        var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
+        return modularUI.getWidget().mouseClicked(realMouse.x, realMouse.y, button);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return modularUI.getWidget().mouseReleased(mouseX, mouseY, button);
+        var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
+        return modularUI.getWidget().mouseReleased(realMouse.x, realMouse.y, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        return modularUI.getWidget().mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
+        var realDrag = getWorldMouse((float) dragX, (float) dragY);
+        return modularUI.getWidget().mouseDragged(realMouse.x, realMouse.y, button, realDrag.x, realDrag.y);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        return modularUI.getWidget().mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
+        return modularUI.getWidget().mouseScrolled(realMouse.x, realMouse.y, scrollX, scrollY);
     }
 
     @Override

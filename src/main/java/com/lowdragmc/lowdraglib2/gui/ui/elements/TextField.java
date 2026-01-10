@@ -292,16 +292,18 @@ public class TextField extends BindableUIElement<String> {
     protected void onDragSource(UIEvent event) {
         if (isNumberField()) {
             if (event.dragHandler.draggingObject instanceof NumberStart(double numberStart)) {
-                if (Mth.abs(event.x - event.dragStartX) < 4) {
+                var localMouse = getLocalMouse(event.x, event.y);
+                var localStart = getLocalMouse(event.dragStartX, event.dragStartY);
+                if (Mth.abs(localMouse.x - localStart.x) < 4) {
                     handleNumber(numberStart, false);
                 } else {
-                    var value = ((int)((event.x - event.dragStartX) / 4))
+                    var value = ((int)((localMouse.x - localStart.x) / 4))
                             * (isShiftDown() ? wheelDur * 10 : wheelDur) + numberStart;
                     handleNumber(value, false);
                 }
             }
         } else if (event.dragHandler.draggingObject instanceof CursorStart(int cursorStart)) {
-            var cursor = getCursorUnderMouseX(event.x);
+            var cursor = getCursorUnderMouseX(getLocalMouse(event.x, event.y).x);
             if (cursor != -1) {
                 setCursor(cursor);
                 setSelection(cursorStart, cursorPos);
@@ -412,8 +414,8 @@ public class TextField extends BindableUIElement<String> {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (event.button == 0 && isMouseOver(event.x, event.y)) {
-            var cursor = getCursorUnderMouseX(event.x);
+        if (event.button == 0) {
+            var cursor = getCursorUnderMouseX(getLocalMouse(event.x, event.y).x);
             if (cursor != -1) {
                 setCursor(cursor);
                 if (isShiftDown()) {
@@ -992,7 +994,7 @@ public class TextField extends BindableUIElement<String> {
 
     @Override
     public void drawBackgroundOverlay(GUIContext guiContext) {
-        if (isChildHover() || isFocused()) {
+        if (isSelfOrChildHover() || isFocused()) {
             guiContext.drawTexture(getTextFieldStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
         super.drawBackgroundOverlay(guiContext);

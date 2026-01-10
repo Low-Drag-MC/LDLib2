@@ -25,6 +25,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.math.Rect;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -41,13 +42,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
@@ -56,6 +57,9 @@ import org.appliedenergistics.yoga.config.YogaConfig;
 import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -150,6 +154,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     private ImmutableList<UIElement> structurePathCache = null;
     private FloatOptional positionXCache = FloatOptional.of();
     private FloatOptional positionYCache = FloatOptional.of();
+    @Nullable
+    private Matrix4f localToWorldCache = null;
+    @Nullable
+    private Matrix4f worldToLocalCache = null;
     @Getter
     private boolean isInternalUI = false;
     private final UIVisualLayer UIVisualLayer = new UIVisualLayer(this);
@@ -334,12 +342,48 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * Clear the layout cache of the element and its children.
      */
     public final void clearLayoutCache() {
+        clearPoseCache();
         if (!positionXCache.isDefined() && !positionYCache.isDefined()) return;
         positionXCache = FloatOptional.of();
         positionYCache = FloatOptional.of();
         for (var child : children) {
             child.clearLayoutCache();
         }
+    }
+
+    /**
+     * Clear the pose cache of the element and its children.
+     */
+    public final void clearPoseCache() {
+        if (localToWorldCache == null && worldToLocalCache == null) return;
+        localToWorldCache = null;
+        worldToLocalCache = null;
+        for (var child : children) {
+            child.clearPoseCache();
+        }
+    }
+
+    /**
+     * Retrieves the current pose matrix. The pose can transfer points from the local coordinate system to the world coordinate system.
+     *
+     * @return The current pose matrix as a {@link Matrix4f}.
+     */
+    public final Matrix4f getLocalToWorldPose() {
+        if (localToWorldCache == null) return new Matrix4f();
+        return localToWorldCache;
+    }
+
+    /**
+     * Retrieves the current pose matrix. The pose can transfer points from the world coordinate system to the local coordinate system.
+     *
+     * @return The current pose matrix as a {@link Matrix4f}.
+     */
+    public final Matrix4f getWorldToLocalPose() {
+        if (worldToLocalCache == null) {
+            if (localToWorldCache == null) return new Matrix4f();
+            worldToLocalCache = localToWorldCache.invert(new Matrix4f());
+        }
+        return worldToLocalCache;
     }
 
     /**
@@ -494,13 +538,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             }
 
             if (event.target == this) { // lose focus
-                if (this.isChildHover()) {
+                if (this.isSelfOrChildHover()) {
                     this.focus();
                 } else {
                     lostFocusHandler.accept(event);
                 }
             } else { // child lose focus
-                if (event.relatedTarget == null && isChildHover()) {
+                if (event.relatedTarget == null && isSelfOrChildHover()) {
                     this.focus();
                 } else {
                     lostFocusHandler.accept(event);
@@ -864,10 +908,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /// Interaction
-    public boolean isMouseOverElement(double mouseX, double mouseY) {
+    public boolean isMouseOverElement(float mouseX, float mouseY) {
         return isDisplayed() &&
-                isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY) &&
-                isChildHover();
+                isSelfOrChildHover() &&
+                isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
     }
 
     /**
@@ -880,7 +924,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Return true if the child element is hovered by the mouse.
      */
-    public boolean isChildHover() {
+    public boolean isSelfOrChildHover() {
         var hovered = getModularUI() != null ? getModularUI().getLastHoveredElement() : null;
         while (hovered != null) {
             if (hovered == this) {
@@ -954,12 +998,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     /**
      * Do hit-testing here. Get the element which is hovered by the mouse.
+     * The mouse here is already transformed.
+     *
      * @return the element that is hovered and its z-index, or null if no element is hovered
      */
     @Nullable
-    public Pair<UIElement, Integer> getHoverElement(double mouseX, double mouseY) {
+    protected final Pair<UIElement, Integer> hitTest(double mouseX, double mouseY) {
         // TODO do hit tree in the future?
-        if (!isDisplayed() || !isVisible()) return null;
+        if (!isDisplayed() || !isVisible() || getStyle().opacity() <= 0) return null;
 
         var transform2D = style.transform2D();
         double[] pt = new double[]{mouseX, mouseY};
@@ -972,31 +1018,42 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         Pair<UIElement, Integer> hover = null;
         var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
 
-        if (!hidden || isMouseOverContent(localMouseX, localMouseY)) {
+        if (!hidden || isMouseOverRect(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
             for (var child : getSortedChildren()) {
-                var result = child.getHoverElement(localMouseX, localMouseY);
+                var result = child.hitTest(localMouseX, localMouseY);
                 if (result != null && (hover == null || hover.getB() < result.getB())) {
                     hover = result;
                 }
             }
         }
 
-        if (isMouseOver(localMouseX, localMouseY) && hover == null) {
+        if (isMouseOverRect(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), localMouseX, localMouseY) && hover == null) {
             return new Pair<>(this, style.zIndex());
         }
         if (hover == null) return null;
         return new Pair<>(hover.getA(), hover.getB() + style.zIndex());
     }
 
-    public boolean isMouseOver(double mouseX, double mouseY) {
-        return isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), mouseX, mouseY);
+    public final Vector2f getLocalMouse(float worldX, float worldY) {
+        var worldToLocal = getWorldToLocalPose();
+        var localMouse = worldToLocal.transform(new Vector4f(worldX, worldY, 0, 1));
+        return new Vector2f(localMouse.x / localMouse.w, localMouse.y / localMouse.w);
     }
 
-    public boolean isMouseOverContent(double mouseX, double mouseY) {
-        return isMouseOver(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY);
+    public final boolean isMouseOver(float worldX, float worldY) {
+        return isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), worldX, worldY);
     }
 
-    public static boolean isMouseOver(float x, float y, float width, float height, double mouseX, double mouseY) {
+    public final boolean isMouseOverContent(float worldX, float worldY) {
+        return isMouseOver(getContentX(), getContentY(), getContentWidth(), getContentHeight(), worldX, worldY);
+    }
+
+    public final boolean isMouseOver(float x, float y, float width, float height, float worldX, float worldY) {
+        var localMouse = getLocalMouse(worldX, worldY);
+        return localMouse.x >= x && localMouse.y >= y && localMouse.x < x + width && localMouse.y < y + height;
+    }
+
+    public static boolean isMouseOverRect(float x, float y, float width, float height, double mouseX, double mouseY) {
         return mouseX >= x && mouseY >= y && x + width > mouseX && y + height > mouseY;
     }
 
@@ -1028,11 +1085,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             var tickEvent = UIEvent.create(UIEvents.TICK);
             for (var uiEventListener : serverCaptureEventListeners.get(UIEvents.TICK).getB()) {
                 uiEventListener.handleEvent(tickEvent);
-                if (tickEvent.immediatePropagationStopped) break;
+                if (tickEvent.laterPropagationStopped) break;
             }
             for (var uiEventListener : serverBaubleEventListeners.get(UIEvents.TICK).getB()) {
                 uiEventListener.handleEvent(tickEvent);
-                if (tickEvent.immediatePropagationStopped) break;
+                if (tickEvent.laterPropagationStopped) break;
             }
         }
     }
@@ -1271,6 +1328,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if (display == YogaDisplay.NONE || !isVisible() || opacity == 0) {
             return;
         }
+
         var zIndex = style.zIndex();
         if (zIndex != 0) {
             guiContext.pose.pushPose();
@@ -1281,6 +1339,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var pushedTransform = !transform2D.isIdentity();
         if (pushedTransform) {
             transform2D.pushPose(guiContext, this);
+        }
+
+        if (localToWorldCache == null) {
+            localToWorldCache = new Matrix4f(guiContext.pose.last().pose());
         }
 
         var hasOverlayClip = (
@@ -1308,13 +1370,45 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public final void drawInBackgroundInternal(GUIContext guiContext) {
-        if (layoutNode.getDisplay() == YogaDisplay.FLEX) {
+        var insideView = isInsideTheScissorView(guiContext);
+        if (insideView && layoutNode.getDisplay() == YogaDisplay.FLEX) {
             drawBackgroundTexture(guiContext);
-            drawContents(guiContext);
+            drawContents(true, guiContext);
             drawBackgroundOverlay(guiContext);
         } else { // draw contents only
-            drawContents(guiContext);
+            drawContents(insideView, guiContext);
         }
+    }
+
+    protected boolean isInsideTheScissorView(GUIContext context) {
+        if (!context.scissorStack.isEmpty()) {
+            var trans = context.pose.last().pose();
+            var x = getPositionX();
+            var y = getPositionY();
+            var width = getSizeWidth();
+            var height = getSizeHeight();
+
+            var corners = new Vector4f[]{
+                    new Vector4f(x, y, 0, 1),
+                    new Vector4f(x + width, y, 0, 1),
+                    new Vector4f(x, y + height, 0, 1),
+                    new Vector4f(x + width, y + height, 0, 1)
+            };
+            float minX = Float.POSITIVE_INFINITY;
+            float minY = Float.POSITIVE_INFINITY;
+            float maxX = Float.NEGATIVE_INFINITY;
+            float maxY = Float.NEGATIVE_INFINITY;
+            for (var corner : corners) {
+                trans.transform(corner);
+                minX = Math.min(minX, corner.x / corner.w);
+                minY = Math.min(minY, corner.y / corner.w);
+                maxX = Math.max(maxX, corner.x / corner.w);
+                maxY = Math.max(maxY, corner.y / corner.w);
+            }
+            var aabb = Rect.of(Mth.floor(minX), Mth.floor(minY), Mth.ceil(maxX), Mth.ceil(maxY));
+            return aabb.isCollide(context.scissorStack.peek());
+        }
+        return true;
     }
 
     /**
@@ -1330,15 +1424,18 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Renders the contents of the GUI element. includes additional background and children
      */
-    public void drawContents(GUIContext guiContext) {
+    public void drawContents(boolean insideView, GUIContext guiContext) {
         // not need to use scissoring if overflow cip defined
         var hidden = (layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL)
                 && getStyle().overflowClip() == IGuiTexture.EMPTY ;
         if (hidden) {
+            if (!insideView) return;
             guiContext.graphics.flush();
             guiContext.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
         }
-        drawBackgroundAdditional(guiContext);
+        if(insideView) {
+            drawBackgroundAdditional(guiContext);
+        }
         children.forEach(child -> child.drawInBackground(guiContext));
         if (hidden) {
             guiContext.graphics.flush();

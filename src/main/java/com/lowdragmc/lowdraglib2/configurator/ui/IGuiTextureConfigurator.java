@@ -57,7 +57,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
                     style.setPipelineState(StyleOrigin.DEFAULT);
                     style.backgroundTexture(Sprites.RECT_RD_SOLID);
                     style.setPipelineState(StyleOrigin.IMPORTANT);
-                    style.overlayTexture(DynamicTexture.of(() -> preview.isChildHover() ?
+                    style.overlayTexture(DynamicTexture.of(() -> preview.isSelfOrChildHover() ?
                             Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY));
                     style.setPipelineState(StyleOrigin.INLINE);
                 }).addClass("configurator_preview_bg").addChild(new Label().bindDataSource(SupplierDataSource.of(() -> {

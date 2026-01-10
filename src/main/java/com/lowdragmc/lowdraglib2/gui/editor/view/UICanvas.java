@@ -58,17 +58,13 @@ public class UICanvas extends UIElement {
 
     protected void onMouseMove(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        var posX = getContentX();
-        var posY = getContentY();
-        this.canvasModularUI.getWidget().mouseMoved(event.x - posX, event.y - posY);
+        this.canvasModularUI.getWidget().mouseMoved(event.x, event.y);
         event.stopPropagation();
     }
 
     protected void onMouseDown(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        var posX = getContentX();
-        var posY = getContentY();
-        this.canvasModularUI.getWidget().mouseClicked(event.x - posX, event.y - posY, event.button);
+        this.canvasModularUI.getWidget().mouseClicked(event.x, event.y, event.button);
         // trigger dragging event as well
         startDrag(null, null);
         event.stopPropagation();
@@ -76,25 +72,19 @@ public class UICanvas extends UIElement {
 
     protected void onMouseUp(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        var posX = getContentX();
-        var posY = getContentY();
-        this.canvasModularUI.getWidget().mouseReleased(event.x - posX, event.y - posY, event.button);
+        this.canvasModularUI.getWidget().mouseReleased(event.x, event.y, event.button);
         event.stopPropagation();
     }
 
     protected void onMouseDrag(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        var posX = getContentX();
-        var posY = getContentY();
-        this.canvasModularUI.getWidget().mouseDragged(event.x - posX, event.y - posY, event.button, event.deltaX, event.deltaY);
+        this.canvasModularUI.getWidget().mouseDragged(event.x, event.y, event.button, event.deltaX, event.deltaY);
         event.stopPropagation();
     }
 
     protected void onMouseWheel(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        var posX = getContentX();
-        var posY = getContentY();
-        this.canvasModularUI.getWidget().mouseScrolled(event.x - posX, event.y - posY, event.deltaX, event.deltaY);
+        this.canvasModularUI.getWidget().mouseScrolled(event.x, event.y, event.deltaX, event.deltaY);
         event.stopPropagation();
     }
 

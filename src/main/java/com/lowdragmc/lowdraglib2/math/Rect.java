@@ -9,20 +9,20 @@ import lombok.Data;
 public final class Rect {
 	public static final Rect ZERO = new Rect(0, 0, 0, 0);
 	public final int left;
-	public final int right;
 	public final int up;
+    public final int right;
 	public final int down;
 
-	public static Rect ofAbsolute(int left, int right, int up, int down) {
-		return new Rect(left, right, up, down);
+	public static Rect ofAbsolute(int left, int up, int right, int down) {
+		return new Rect(left, up, right, down);
 	}
 
-	public static Rect ofRelative(int left, int width, int up, int height) {
-		return new Rect(left, left + width, up, up + height);
+	public static Rect ofRelative(int left, int up, int width, int height) {
+		return new Rect(left, up, left + width, up + height);
 	}
 
 	public static Rect of(Position position, Size size) {
-		return new Rect(position.x, position.x + size.width, position.y, position.y + size.height);
+		return new Rect(position.x, position.y, position.x + size.width, position.y + size.height);
 	}
 
 	public Position toLeftUp() {
@@ -184,4 +184,12 @@ public final class Rect {
 	public boolean isCollide(Rect rect) {
 		return left < rect.right && right > rect.left && up < rect.down && down > rect.up;
 	}
+
+    public Rect unions(Rect rect) {
+        return new Rect(Math.min(left, rect.left), Math.min(up, rect.up), Math.max(right, rect.right), Math.max(down, rect.down));
+    }
+
+    public Rect intersects(Rect rect) {
+        return new Rect(Math.max(left, rect.left), Math.max(up, rect.up), Math.min(right, rect.right), Math.min(down, rect.down));
+    }
 }
