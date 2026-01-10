@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -27,17 +28,18 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.texture.TextureManager;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
 @KJSBindings
+@FunctionalInterface
 public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
     //region builtin textures
     @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", manual = true)
@@ -47,7 +49,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
 
         @OnlyIn(Dist.CLIENT)
         @Override
-        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {}
+        public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {}
     }
 
     @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", manual = true)
@@ -57,7 +59,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
 
         @OnlyIn(Dist.CLIENT)
         @Override
-        public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
             Tesselator tessellator = Tesselator.getInstance();
             BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX);
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
@@ -71,6 +73,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         }
     }
     //endregion
+
     EmptyTexture EMPTY = new EmptyTexture();
     MissingTexture MISSING_TEXTURE = new MissingTexture();
 
@@ -83,6 +86,14 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         } else {
             return Codec.unit(MISSING_TEXTURE);
         }
+    }
+
+    static DynamicTexture dynamic(Supplier<IGuiTexture> textureSupplier) {
+        return DynamicTexture.of(textureSupplier);
+    }
+
+    static GuiTextureGroup group(IGuiTexture... textures) {
+        return GuiTextureGroup.of(textures);
     }
 
     default IGuiTexture setColor(int color){
@@ -101,10 +112,19 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         return this;
     }
 
+    /**
+     * Retrieves the raw underlying {@code IGuiTexture} instance without any modifications
+     * or transformations applied.
+     *
+     * @return the raw {@code IGuiTexture} instance, typically itself.
+     */
     default IGuiTexture getRawTexture() {
         return this;
     }
 
+    /**
+     * Creates a copy of this texture.
+     */
     default IGuiTexture copy() {
         try {
             return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
@@ -117,11 +137,20 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         }
     }
 
+    /**
+     * Creates a new interpolated {@code IGuiTexture} by merging this texture with another texture.
+     * The interpolation is controlled by the {@code lerp} parameter.
+     *
+     * @param other the {@code IGuiTexture} to interpolate with; represents the target texture.
+     * @param lerp  the interpolation factor between 0.0 and 1.0, where 0.0 represents this texture
+     *              and 1.0 represents the {@code other} texture.
+     * @return a new {@code IGuiTexture} that represents the interpolated texture.
+     */
     default IGuiTexture interpolate(IGuiTexture other, float lerp) {
         return new IGuiTexture() {
             @Override
             @OnlyIn(Dist.CLIENT)
-            public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+            public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
                 IGuiTexture.this.getRawTexture().copy().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
                 other.getRawTexture().copy().setColor(ColorUtils.color(lerp, lerp, lerp, lerp))
                         .draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
@@ -130,13 +159,12 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     }
 
     @OnlyIn(Dist.CLIENT)
-    @Deprecated
-    default void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height) {
-        draw(graphics, mouseX, mouseY, x, y, width, height, 0);
-    }
+    void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks);
 
     @OnlyIn(Dist.CLIENT)
-    void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
+    default void draw(GUIContext context, float x, float y, float width, float height) {
+        draw(context.graphics, context.localMouseX, context.localMouseY, x, y, width, height, context.partialTick);
+    }
 
     // ***************** EDITOR  ***************** //
     @OnlyIn(Dist.CLIENT)
@@ -162,14 +190,6 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     default void buildConfigurator(ConfiguratorGroup father) {
         createPreview(father);
         IConfigurable.super.buildConfigurator(father);
-    }
-
-    static DynamicTexture dynamic(Supplier<IGuiTexture> textureSupplier) {
-        return DynamicTexture.of(textureSupplier);
-    }
-
-    static GuiTextureGroup group(IGuiTexture... textures) {
-        return GuiTextureGroup.of(textures);
     }
 
     @Nullable

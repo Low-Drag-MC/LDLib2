@@ -522,6 +522,7 @@ public class Scene extends UIElement {
             interpolator.update(getModularUI().getTickCounter() + guiContext.partialTick);
         }
         if (renderer != null) {
+            guiContext.graphics.flush();
             renderer.render(guiContext.pose.pose, x, y, width, height, (int) guiContext.localMouseX, (int) guiContext.localMouseY);
             if (renderer.isCompiling()) {
                 double progress = renderer.getCompileProgress();

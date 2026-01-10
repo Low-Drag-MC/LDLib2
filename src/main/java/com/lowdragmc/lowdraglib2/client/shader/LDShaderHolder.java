@@ -309,7 +309,7 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
     }
 
     private IGuiTexture createSamplerPreview(String name) {
-        return (GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) -> {
+        return (GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) -> {
             RenderSystem.enableBlend();
             float imageU = 0;
             float imageV = 0;

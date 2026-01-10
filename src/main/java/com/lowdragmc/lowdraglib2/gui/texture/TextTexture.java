@@ -164,7 +164,7 @@ public class TextTexture extends TransformTexture {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         updateTick();
         if (backgroundColor != 0) {
             DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, backgroundColor);

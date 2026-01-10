@@ -116,16 +116,14 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         }
     }
 
-    protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawColorPreview(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         var hdr = value == null ? defaultValue : value;
         var color = ColorUtils.color(1, hdr.x, hdr.y, hdr.z);
-        graphics.drawManaged(() -> {
-            DrawerHelper.drawSolidRect(graphics, x, y, width, height, color, false);
-            DrawerHelper.drawSolidRect(graphics, x - 1, y, 1, height, color, false);
-            DrawerHelper.drawSolidRect(graphics, x + width, y, 1, height, color, false);
-            DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, color, false);
-            DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, color, false);
-        });
+        DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
+        DrawerHelper.drawSolidRect(graphics, x - 1, y, 1, height, color);
+        DrawerHelper.drawSolidRect(graphics, x + width, y, 1, height, color);
+        DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, color);
+        DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, color);
         var textTexture = new TextTexture("HDR: %.1f".formatted(intensityConfigurator.value.floatValue()));
         textTexture.setType(TextTexture.TextType.ROLL);
         textTexture.setWidth((int) width);

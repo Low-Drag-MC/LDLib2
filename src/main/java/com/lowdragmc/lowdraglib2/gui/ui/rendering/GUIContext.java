@@ -59,7 +59,7 @@ public class GUIContext {
 
     @OnlyIn(Dist.CLIENT)
     public void drawTexture(IGuiTexture texture, float x, float y, float width, float height) {
-        texture.draw(graphics, (int) localMouseX, (int) localMouseY, x, y, width, height, partialTick);
+        texture.draw(this, x, y, width, height);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -88,6 +88,7 @@ public class GUIContext {
 
     @OnlyIn(Dist.CLIENT)
     public void pushVisualLayer(UIVisualLayer layer) {
+        graphics.flush();
         UIVisualLayers.push(layer);
         layer.bind(this);
         layer.clear();
@@ -97,6 +98,7 @@ public class GUIContext {
     public void popVisualLayer() {
         var popped = UIVisualLayers.pop();
         if (popped != null) {
+            graphics.flush();
             var mainTarget = Minecraft.getInstance().getMainRenderTarget();
             if (UIVisualLayers.isEmpty()) {
                 mainTarget.bindWrite(false);

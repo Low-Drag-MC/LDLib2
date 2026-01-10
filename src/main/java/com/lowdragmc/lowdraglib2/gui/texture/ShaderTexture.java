@@ -95,11 +95,15 @@ public class ShaderTexture extends TransformTexture implements AutoCloseable {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY,
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY,
                                 float x, float y, float width, float height, float partialTicks) {
+
         if (shaderHolder != null) {
+            // TODO use rendertype instead?
+            graphics.flush();
+
             shaderHolder.addDynamicUniform("U_GuiRect", uniform -> uniform.set(new Vector4f(x, y, width, height)));
-            shaderHolder.addDynamicUniform("U_GuiMouse", uniform -> uniform.set((float) mouseX, (float) mouseY));
+            shaderHolder.addDynamicUniform("U_GuiMouse", uniform -> uniform.set(mouseX, mouseY));
 
             RenderSystem.setShader(shaderHolder::getShaderInstance);
             RenderSystem.enableBlend();

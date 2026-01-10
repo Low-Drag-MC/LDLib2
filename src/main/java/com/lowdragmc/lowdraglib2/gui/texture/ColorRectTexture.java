@@ -7,11 +7,14 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.client.renderer.RenderType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
+import org.joml.Matrix4f;
 
 @LDLRegisterClient(name = "color_rect_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
@@ -51,8 +54,9 @@ public class ColorRectTexture extends TransformTexture{
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        if (width == 0 || height == 0) return;
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+        if (width <= 0 || height <= 0) return;
+
         DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
     }
 }

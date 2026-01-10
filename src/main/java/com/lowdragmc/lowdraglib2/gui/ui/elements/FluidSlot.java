@@ -383,7 +383,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
                     contentX + drawnU * contentWidth,
                     contentY + drawnV * contentHeight,
                     contentWidth * drawnWidth,
-                    contentHeight * drawnHeight);
+                    contentHeight * drawnHeight, -1);
         }
 
         if (hovered) {

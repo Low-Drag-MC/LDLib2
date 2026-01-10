@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -19,14 +20,11 @@ import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
-
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
 /**
  * @author KilaBash
@@ -139,7 +137,7 @@ public class AnimationTexture extends TransformTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         updateTick();
         float cell = 1f / this.cellSize;
         int X = currentFrame % cellSize;
@@ -148,16 +146,14 @@ public class AnimationTexture extends TransformTexture {
         float imageU = X * cell;
         float imageV = Y * cell;
 
-        Tesselator tessellator = Tesselator.getInstance();
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-        RenderSystem.setShaderTexture(0, imageLocation);
+        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(imageLocation));
+        RenderSystem.disableDepthTest();
+
         var matrix4f = graphics.pose().last().pose();
-        BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);
-        bufferbuilder.addVertex(matrix4f, x, y + height, 0).setUv(imageU, imageV + cell).setColor(color);
-        bufferbuilder.addVertex(matrix4f, x + width, y + height, 0).setUv(imageU + cell, imageV + cell).setColor(color);
-        bufferbuilder.addVertex(matrix4f, x + width, y, 0).setUv(imageU + cell, imageV).setColor(color);
-        bufferbuilder.addVertex(matrix4f, x, y, 0).setUv(imageU, imageV).setColor(color);
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        buffer.addVertex(matrix4f, x, y + height, 0).setUv(imageU, imageV + cell).setColor(color);
+        buffer.addVertex(matrix4f, x + width, y + height, 0).setUv(imageU + cell, imageV + cell).setColor(color);
+        buffer.addVertex(matrix4f, x + width, y, 0).setUv(imageU + cell, imageV).setColor(color);
+        buffer.addVertex(matrix4f, x, y, 0).setUv(imageU, imageV).setColor(color);
     }
 
     @Override
@@ -196,7 +192,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawRawTextureGuides(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawRawTextureGuides(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         SpriteTexture.of(imageLocation.toString()).draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         float cell = 1f / this.cellSize;
         int X = from % cellSize;

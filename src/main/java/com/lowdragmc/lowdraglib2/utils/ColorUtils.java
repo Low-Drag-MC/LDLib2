@@ -294,13 +294,22 @@ public final class ColorUtils {
         );
     }
 
-    public static int subtractColor(int color0, int color1) {
+    public static int subColor(int color0, int color1) {
         return ColorUtils.color(
                 alpha(color0) - alpha(color1),
                 red(color0) - red(color1),
                 green(color0) - green(color1),
                 blue(color0) - blue(color1)
         );
+    }
+
+    public static int mulColor(int color0, int color1) {
+        return ColorUtils.color(
+                alpha(color0) * alpha(color1),
+                red(color0) * red(color1),
+                green(color0) * green(color1),
+                blue(color0) * blue(color1)
+        )                                         ;
     }
 
     public static Integer parseColor(String value) {

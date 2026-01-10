@@ -265,6 +265,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
         if (targetTransform == null) return;
         var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        RenderSystem.disableDepthTest();
 
         var isHoverXPlane = isHoverPlane(Direction.Axis.X);
         var isHoverYPlane = !isHoverXPlane && isHoverPlane(Direction.Axis.Y);
@@ -335,6 +336,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             if (mode == Mode.TRANSLATE) {
                 // draw arrow
                 buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+                RenderSystem.disableDepthTest();
+
                 // draw x arrow
                 RenderBufferUtils.shapeCone(poseStack, buffer, 1, 0, 0, 0.05f, 0.15f, 10,
                         xR, xG, xB, xA, Direction.Axis.X);
@@ -389,6 +392,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             if (mode == Mode.SCALE) {
                 // draw box
                 buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+                RenderSystem.disableDepthTest();
+
                 // draw x box
                 RenderBufferUtils.drawCubeFace(poseStack, buffer, scale.x - 0.05f, -0.05f, -0.05f, scale.x + 0.05f, 0.05f, 0.05f,
                         xR, xG, xB, xA, true);
@@ -434,6 +439,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
             // draw box
             buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+            RenderSystem.disableDepthTest();
+
             // draw x box
             RenderBufferUtils.drawCubeFace(poseStack, buffer, 0.95f, -0.05f, -0.05f, 1.05f, 0.05f, 0.05f,
                     zR, zG, zB, zA, true);

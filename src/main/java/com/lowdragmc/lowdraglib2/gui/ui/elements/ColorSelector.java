@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
@@ -289,14 +290,15 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawColorPreview(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawColorPreview(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         DrawerHelper.drawSolidRect(graphics, x, y, width, height, argb);
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawHsbContext(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
-        RenderSystem.setShader(LDLibShaders::getHsbShader);
+    protected void drawHsbContext(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.hsb());
+        RenderSystem.disableDepthTest();
+
         var pose = graphics.pose().last().pose();
 
         float _h = 0, _s = 0, _b = 0f;
@@ -319,8 +321,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
                     _b = b;
                 }
             }
-            builder.addVertex(pose, x, y, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x, y, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
         }
 
         {
@@ -342,8 +344,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
                     _b = b;
                 }
             }
-            builder.addVertex(pose, x, y + height, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x, y + height, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
         }
 
         {
@@ -365,8 +367,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
                     _b = b;
                 }
             }
-            builder.addVertex(pose, x + width, y + height, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x + width, y + height, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
         }
 
         {
@@ -389,11 +391,9 @@ public class ColorSelector extends BindableUIElement<Integer> {
                 }
             }
 
-            builder.addVertex(pose, x + width, y, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x + width, y, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
         }
-
-        BufferUploader.drawWithShader(builder.buildOrThrow());
 
         // draw indicator
         float mainX = 0, mainY = 0;
@@ -416,9 +416,10 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawColorSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
-        var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, LDLibShaders.HSB_VERTEX_FORMAT);
-        RenderSystem.setShader(LDLibShaders::getHsbShader);
+    protected void drawColorSlider(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.hsb());
+        RenderSystem.disableDepthTest();
+
         var pose = graphics.pose().last().pose();
 
         float _h = 0f, _s = 0f, _b = 0f;
@@ -441,11 +442,11 @@ public class ColorSelector extends BindableUIElement<Integer> {
                     _b = 0f;
                 }
             }
-            builder.addVertex(pose, x, y + height, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x, y + height, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
 
-            builder.addVertex(pose, x + width, y + height, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x + width, y + height, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
         }
 
         {
@@ -467,13 +468,12 @@ public class ColorSelector extends BindableUIElement<Integer> {
                     _b = 1f;
                 }
             }
-            builder.addVertex(pose, x + width, y, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x + width, y, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
 
-            builder.addVertex(pose, x, y, 0.0f);
-            putColor(builder, _h, _s, _b, 1);
+            buffer.addVertex(pose, x, y, 0.0f);
+            putColor(buffer, _h, _s, _b, 1);
         }
-        BufferUploader.drawWithShader(builder.buildOrThrow());
 
         // draw indicator
         float color = 0;
@@ -493,7 +493,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawAlphaSlider(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawAlphaSlider(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         DrawerHelper.drawGradientRect(graphics, x, y, width, height, argb & 0x00ffffff, argb | 0xff000000, true);
 
         // draw indicator
@@ -504,8 +504,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
      * put hsb color into BufferBuilder
      */
     @OnlyIn(Dist.CLIENT)
-    private BufferBuilder putColor(BufferBuilder builder, float h, float s, float b, float a) {
-        if (builder instanceof BufferBuilderAccessor accessor) {
+    private void putColor(VertexConsumer buffer, float h, float s, float b, float a) {
+        if (buffer instanceof BufferBuilderAccessor accessor) {
             var i = accessor.invokeBeginElement(LDLibShaders.HSB_Alpha);
             if (i != -1L) {
                 MemoryUtil.memPutFloat(i, h);
@@ -514,7 +514,6 @@ public class ColorSelector extends BindableUIElement<Integer> {
                 MemoryUtil.memPutFloat(i + 12L, a);
             }
         }
-        return builder;
     }
 
 }

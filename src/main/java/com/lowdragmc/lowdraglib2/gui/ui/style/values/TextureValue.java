@@ -204,6 +204,29 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     return Icons.icon(args[0]);
                 }
             }
+            case "rect1" -> {
+                // rect(#FF00FF, 0 0 0 0, 4, #FFFFFF)
+                if (args.length > 0) {
+                    var rect = new RectTexture();
+                    rect.setColor(ColorUtils.parseColor(args[0]));
+                    if (args.length > 1) {
+                        var par = args[1].split(" ");
+                        if (par.length == 1) {
+                            rect.setRadius(new Vector4f(Float.parseFloat(par[0])));
+                        } else if (par.length == 4) {
+                            rect.setRadius(new Vector4f(Float.parseFloat(par[0]), Float.parseFloat(par[1]),
+                                    Float.parseFloat(par[2]), Float.parseFloat(par[3])));
+                        }
+                    }
+                    if (args.length > 2) {
+                        rect.setStroke(Float.parseFloat(args[2]));
+                    }
+                    if (args.length > 3) {
+                        rect.setBorderColor(ColorUtils.parseColor(args[3]));
+                    }
+                    return rect;
+                }
+            }
             case "rect", "sdf" -> {
                 // rect(#FF00FF, 0 0 0 0, 4, #FFFFFF)
                 if (args.length > 0) {

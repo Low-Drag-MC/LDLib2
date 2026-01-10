@@ -1228,8 +1228,7 @@ public class TextArea extends BindableUIElement<String[]> {
                             lineY,
                             maxX - minX,
                             textAreaStyle.fontSize(),
-                            highlightColor
-                    );
+                            highlightColor);
                 }
             });
         }

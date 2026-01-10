@@ -12,6 +12,7 @@ public final class StyleEngine {
     public final List<Stylesheet> globalSheets = new ArrayList<>();
 
     // runtime
+    private final Set<UIElement> dirtyElements = ConcurrentHashMap.newKeySet();
     private final HashSet<StyleBag> queue = new HashSet<>();
     private int styleEpoch = 0;
     @Getter
@@ -69,7 +70,7 @@ public final class StyleEngine {
     }
 
     public boolean requireCalculate() {
-        return !queue.isEmpty();
+        return !queue.isEmpty() || !dirtyElements.isEmpty();
     }
 
     public void remove(StyleBag bag) {
@@ -77,6 +78,10 @@ public final class StyleEngine {
     }
 
     public void calculateStyle() {
+        dirtyElements.forEach(this::updateElementStyle);
+        dirtyElements.clear();
+
+        if (queue.isEmpty()) return;
         styleEpoch++;
         var bags = new ArrayList<>(queue);
         queue.clear();
@@ -104,11 +109,18 @@ public final class StyleEngine {
         }
     }
 
-    public void reloadElementStyles(UIElement element) {
-        updateElementStyleRecursive(element);
+    public void scheduleReloadElementStyles(UIElement element) {
+        if (dirtyElements.contains(element)) return;
+        dirtyElements.add(element);
+
+        // 4. update children
+        for (var child : element.getSafeChildren()) {
+            scheduleReloadElementStyles(child);
+        }
     }
 
-    private void updateElementStyleRecursive(UIElement element) {
+    private void updateElementStyle(UIElement element) {
+        if (element.getModularUI() != modularUI) return;
         // 1. cache old for comparison
         List<StyleRule> oldRules = new ArrayList<>();
         var currentRulesMap = elementStyleRules.get(element);
@@ -153,11 +165,6 @@ public final class StyleEngine {
             }
         } else {
             // ok, nothing changes
-        }
-
-        // 4. update children
-        for (var child : element.getSafeChildren()) {
-            updateElementStyleRecursive(child);
         }
     }
 }

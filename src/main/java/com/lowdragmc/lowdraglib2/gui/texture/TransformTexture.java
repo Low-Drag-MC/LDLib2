@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -68,13 +69,25 @@ public abstract class TransformTexture implements IGuiTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public final void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    public final void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         preDraw(graphics, x, y, width, height);
         drawInternal(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         postDraw(graphics, x, y, width, height);
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected abstract void drawInternal(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks);
+    protected abstract void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks);
 
+    @OnlyIn(Dist.CLIENT)
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
+        drawInternal(context.graphics, context.localMouseX, context.localMouseY, x, y, width, height, context.partialTick);
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void draw(GUIContext context, float x, float y, float width, float height) {
+        preDraw(context.graphics, x, y, width, height);
+        drawInternal(context, x, y, width, height);
+        postDraw(context.graphics, x, y, width, height);
+    }
 }

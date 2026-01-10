@@ -124,6 +124,7 @@ public class UIVisualLayer {
             var width = element.getSizeWidth();
             var height = element.getSizeHeight();
             guiContext.drawTexture(maskTexture, x, y, width, height);
+            guiContext.graphics.flush();
         }
     }
 

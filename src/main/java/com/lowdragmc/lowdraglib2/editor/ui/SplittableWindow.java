@@ -410,7 +410,7 @@ public class SplittableWindow extends UIElement {
         getEmptyOrSplitContainer(edge).addView(view);
     }
 
-    private void drawOverlay(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+    private void drawOverlay(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         var isWindowEmpty = viewContainer == null || viewContainer.isEmptyWindow();
         var mui = getModularUI();
         if (mui != null) {
