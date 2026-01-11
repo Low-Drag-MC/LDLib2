@@ -1148,7 +1148,8 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawLines(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
+    protected void drawLines(GUIContext guiContext, Font font, ResourceLocation textFont,
+                             float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
         for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.size(); i++) {
             float lineY = y + i * lineHeight() - scrollY;
             var text = lines.get(i);
@@ -1203,37 +1204,35 @@ public class TextArea extends BindableUIElement<String[]> {
             var highlightColor = -16776961; // same as TextField
             var maxWidth = getContentWidth();
 
-            guiContext.graphics.drawManaged(() -> {
-                for (int line = start.line(); line <= end.line(); line++) {
-                    if (line < firstVisibleLine || line > lastVisibleLine) continue;
+            for (int line = start.line(); line <= end.line(); line++) {
+                if (line < firstVisibleLine || line > lastVisibleLine) continue;
 
-                    String text = lines.get(line);
-                    int from = (line == start.line()) ? start.col() : 0;
-                    int to = (line == end.line()) ? end.col() : text.length();
+                String text = lines.get(line);
+                int from = (line == start.line()) ? start.col() : 0;
+                int to = (line == end.line()) ? end.col() : text.length();
 
-                    from = Mth.clamp(from, 0, text.length());
-                    to = Mth.clamp(to, 0, text.length());
+                from = Mth.clamp(from, 0, text.length());
+                to = Mth.clamp(to, 0, text.length());
 
-                    float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - scrollX;
-                    float maxX;
-                    if (line == end.line()) {
-                        if (from == to) continue;
-                        maxX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, to), textFont)) * scale - scrollX;
-                    } else {
-                        maxX = maxWidth;
-                    }
-                    float lineY = y + line * lineHeight() - scrollY;
-
-                    DrawerHelper.drawSolidRect(
-                            guiContext.graphics,
-                            RenderType.guiTextHighlight(),
-                            x + minX,
-                            lineY,
-                            maxX - minX,
-                            textAreaStyle.fontSize(),
-                            highlightColor);
+                float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - scrollX;
+                float maxX;
+                if (line == end.line()) {
+                    if (from == to) continue;
+                    maxX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, to), textFont)) * scale - scrollX;
+                } else {
+                    maxX = maxWidth;
                 }
-            });
+                float lineY = y + line * lineHeight() - scrollY;
+
+                DrawerHelper.drawSolidRect(
+                        guiContext.graphics,
+                        RenderType.guiTextHighlight(),
+                        x + minX,
+                        lineY,
+                        maxX - minX,
+                        textAreaStyle.fontSize(),
+                        highlightColor);
+            };
         }
     }
 

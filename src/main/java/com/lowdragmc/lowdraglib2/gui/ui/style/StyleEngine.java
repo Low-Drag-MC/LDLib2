@@ -13,7 +13,7 @@ public final class StyleEngine {
 
     // runtime
     private final Set<UIElement> dirtyElements = ConcurrentHashMap.newKeySet();
-    private final HashSet<StyleBag> queue = new HashSet<>();
+    private final Set<StyleBag> queue = ConcurrentHashMap.newKeySet();
     private int styleEpoch = 0;
     @Getter
     private final Map<UIElement, Map<Stylesheet, List<StyleRule>>> elementStyleRules = new ConcurrentHashMap<>();
@@ -78,7 +78,7 @@ public final class StyleEngine {
     }
 
     public void calculateStyle() {
-        dirtyElements.forEach(this::updateElementStyle);
+        dirtyElements.parallelStream().forEach(this::updateElementStyle);
         dirtyElements.clear();
 
         if (queue.isEmpty()) return;
