@@ -1,5 +1,9 @@
 # ChangeLogs
 
+## v2.1.7.a
+* Added parallel style updates
+* Fixed id deserialization
+
 ## v2.1.7
 * Improved performance a lot:
     * batch rendering
