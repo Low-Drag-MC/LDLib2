@@ -93,25 +93,23 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
 
         // forge
 
-        public static final ModelProperty<IRenderer> IRENDERER = new ModelProperty<>();
+        public static final ModelProperty<IRenderer> RENDERER = new ModelProperty<>();
         public static final ModelProperty<BlockAndTintGetter> WORLD = new ModelProperty<>();
         public static final ModelProperty<BlockPos> POS = new ModelProperty<>();
         public static final ModelProperty<ModelData> MODEL_DATA = new ModelProperty<>();
 
 
         @Override
-        public @NotNull List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, @NotNull RandomSource rand, @NotNull ModelData data, @Nullable RenderType renderType) {
-            var renderer = data.get(IRENDERER);
+        public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
+            var renderer = data.get(RENDERER);
             var world = data.get(WORLD);
             var pos = data.get(POS);
             var modelData = data.get(MODEL_DATA);
+            if (renderer == null && state != null && state.getBlock() instanceof IBlockRendererProvider rendererProvider) {
+                renderer = rendererProvider.getRenderer(state);
+            }
             if (renderer != null) {
-                var quads = renderer.renderModel(world, pos, state, side, rand, modelData, renderType);
-                // TODO does it necessary?
-//                if (renderer.reBakeCustomQuads() && state != null && world != null && pos != null) {
-//                    return CustomBakedModel.reBakeCustomQuads(quads, world, pos, state, side, renderer.reBakeCustomQuadsOffset());
-//                }
-                return quads;
+                return renderer.renderModel(world, pos, state, side, rand, modelData, renderType);
             }
             return Collections.emptyList();
         }
@@ -134,7 +132,7 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
                 IRenderer renderer = rendererProvider.getRenderer(state);
                 if (renderer != null) {
                     modelData = ModelData.builder()
-                            .with(IRENDERER, renderer)
+                            .with(RENDERER, renderer)
                             .with(WORLD, level)
                             .with(POS, pos)
                             .with(MODEL_DATA, modelData)
@@ -146,7 +144,7 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
 
         @Override
         public TextureAtlasSprite getParticleIcon(@NotNull ModelData data) {
-            var renderer = data.get(IRENDERER);
+            var renderer = data.get(RENDERER);
             var world = data.get(WORLD);
             var pos = data.get(POS);
             var modelData = data.get(MODEL_DATA);
@@ -158,7 +156,7 @@ public class LDLRendererModel implements IUnbakedGeometry<LDLRendererModel> {
 
         @Override
         public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
-            var renderer = data.get(IRENDERER);
+            var renderer = data.get(RENDERER);
             var world = data.get(WORLD);
             var pos = data.get(POS);
             var modelData = data.get(MODEL_DATA);

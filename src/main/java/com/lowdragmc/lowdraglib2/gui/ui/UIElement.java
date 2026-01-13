@@ -1705,9 +1705,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     @Override
     public void deserializeNBT(HolderLookup.@NotNull Provider provider, CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         if (!LDLib2.isServer()) {
             // only for client side
-            IPersistedSerializable.super.deserializeNBT(provider, tag);
             // deserialize inline styles
             if (tag.contains("inline")) {
                 var inlineTag = tag.getCompound("inline");

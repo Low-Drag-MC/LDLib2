@@ -348,6 +348,10 @@ public class AccessorRegistries {
                 ).apply(instance, RecipeHolder::new)))
                 .streamCodec((StreamCodec<RegistryFriendlyByteBuf, RecipeHolder>) (Object)RecipeHolder.STREAM_CODEC)
                 .build());
+        registerAccessor(CustomDirectAccessor.builder(Recipe.class)
+                .codec((Codec<Recipe>) (Object) Recipe.CODEC)
+                .streamCodec((StreamCodec<RegistryFriendlyByteBuf, Recipe>) (Object)Recipe.STREAM_CODEC)
+                .build());
         registerAccessor(CustomDirectAccessor.builder(IResourcePath.class)
                 .codec(IResourcePath.CODEC)
                 .streamCodec(ByteBufCodecs.fromCodec(IResourcePath.CODEC))
