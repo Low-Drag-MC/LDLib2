@@ -55,9 +55,9 @@ public class ModularUIREIWidget extends Widget {
 
         // tick ui
         if (Minecraft.getInstance() instanceof MinecraftAccessor accessor) {
-            if (accessor.getClientTickCount() != lastTick) {
+            if (accessor.ldlib2$getClientTickCount() != lastTick) {
                 modularUI.tick();
-                lastTick = accessor.getClientTickCount();
+                lastTick = accessor.ldlib2$getClientTickCount();
             }
         }
 

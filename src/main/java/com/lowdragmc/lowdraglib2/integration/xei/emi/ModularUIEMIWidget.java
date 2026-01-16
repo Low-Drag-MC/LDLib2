@@ -1,9 +1,11 @@
 package com.lowdragmc.lowdraglib2.integration.xei.emi;
 
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import dev.emi.emi.api.widget.Bounds;
 import dev.emi.emi.api.widget.Widget;
 import lombok.Getter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.network.chat.Component;
@@ -19,6 +21,8 @@ public class ModularUIEMIWidget extends Widget {
     // runtime
     @Getter
     private Matrix4f localToWorld = new Matrix4f();
+    private long lastTick;
+    private Vector2f lastMouse = new Vector2f(0);
 
     public ModularUIEMIWidget(ModularUI modularUI) {
         this.modularUI = modularUI;
@@ -42,6 +46,21 @@ public class ModularUIEMIWidget extends Widget {
         guiGraphics.flush();
         localToWorld = guiGraphics.pose().last().pose().invert(new Matrix4f());
         var realMouse = getWorldMouse(mouseX, mouseY);
+
+        if (Minecraft.getInstance() instanceof MinecraftAccessor accessor) {
+            if (accessor.ldlib2$getClientTickCount() != lastTick) {
+                modularUI.tick();
+                lastTick = accessor.ldlib2$getClientTickCount();
+            }
+        }
+
+        if (!lastMouse.equals(realMouse)) {
+            lastMouse = realMouse;
+            if (getBounds().contains(mouseX, mouseY)) {
+                modularUI.getWidget().mouseMoved(realMouse.x, realMouse.y);
+            }
+        }
+
         modularUI.getWidget().render(guiGraphics, (int) realMouse.x, (int) realMouse.y, partialTick);
     }
 

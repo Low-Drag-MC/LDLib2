@@ -14,7 +14,7 @@ import java.util.function.Function;
 public class ItemStackTransfer extends ItemStackHandler implements IContentChangeAware {
     @Getter
     @Setter
-    private Runnable OnContentsChanged = Runnables.doNothing();
+    private Runnable onContentsChanged = Runnables.doNothing();
 
     @Setter
     private Function<ItemStack, Boolean> filter;
@@ -50,7 +50,7 @@ public class ItemStackTransfer extends ItemStackHandler implements IContentChang
 
     @Override
     protected void onContentsChanged(int slot) {
-        OnContentsChanged.run();
+        onContentsChanged.run();
     }
 
     public ItemStackTransfer copy() {
