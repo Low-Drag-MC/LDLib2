@@ -1,5 +1,8 @@
 # ChangeLogs
 
+## v2.1.7.b
+* Fixed EMI compat issue
+
 ## v2.1.7.a
 * Added parallel style updates
 * Fixed id deserialization
