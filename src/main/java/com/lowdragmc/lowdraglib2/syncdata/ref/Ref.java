@@ -6,6 +6,9 @@ import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.annotation.Nullable;
+import java.util.function.Predicate;
+
 public abstract class Ref<TYPE> implements IRef<TYPE> {
     @Getter
     protected final ManagedKey key;
@@ -20,6 +23,9 @@ public abstract class Ref<TYPE> implements IRef<TYPE> {
     protected BooleanConsumer onSyncListener = changed -> {};
     @Setter
     protected BooleanConsumer onPersistedListener = changed -> {};
+    @Setter
+    @Nullable
+    protected Predicate<TYPE> conditionalSynced;
 
     protected Ref(ManagedKey key, IAccessor<TYPE> accessor) {
         this.key = key;
@@ -53,4 +59,12 @@ public abstract class Ref<TYPE> implements IRef<TYPE> {
             onPersistedListener.accept(true);
         }
     }
+
+    @Override
+    public final void update() {
+        if (conditionalSynced != null && !conditionalSynced.test(readRaw())) return;
+        updateSync();
+    }
+
+    protected abstract void updateSync();
 }

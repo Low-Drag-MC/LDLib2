@@ -19,7 +19,7 @@ public class UniqueDirectRef<TYPE> extends DirectRef<TYPE> {
     }
 
     @Override
-    public void update() {
+    protected void updateSync() {
         TYPE newValue = readRaw();
         if (!Objects.equals(oldValue, newValue)) {
             oldValue = newValue;

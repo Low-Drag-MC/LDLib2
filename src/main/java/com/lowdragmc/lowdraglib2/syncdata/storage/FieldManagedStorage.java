@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.syncdata.storage;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.syncdata.*;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.RequireRerender;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
@@ -108,6 +109,7 @@ public class FieldManagedStorage implements IManagedStorage {
                 initUpdateListeners();
                 initBlockEntityManagedFeature();
             }
+            initConditionalSynced();
         } finally {
             lock.unlock();
         }
@@ -152,7 +154,7 @@ public class FieldManagedStorage implements IManagedStorage {
         return nonLazyFields;
     }
 
-    final static BiFunction<Field, Class<?>, Method> METHOD_CACHES = Util.memoize((rawField, clazz) -> {
+    final static BiFunction<Field, Class<?>, Method> UPDATE_LISTENER_METHOD_CACHES = Util.memoize((rawField, clazz) -> {
         var methodName = rawField.getAnnotation(UpdateListener.class).methodName();
         Method method = null;
         while (clazz != null && method == null) {
@@ -175,7 +177,7 @@ public class FieldManagedStorage implements IManagedStorage {
         for (IRef<?> syncField : getSyncFields()) {
             var rawField = syncField.getKey().getRawField();
             if (rawField.isAnnotationPresent(UpdateListener.class)) {
-                final var method = METHOD_CACHES.apply(rawField, owner.getClass());
+                final var method = UPDATE_LISTENER_METHOD_CACHES.apply(rawField, owner.getClass());
                 if (method != null) {
                     addSyncUpdateListener(syncField.getKey(), (key, currentValue) -> (Consumer) (newValue) -> {
                         try {
@@ -189,7 +191,45 @@ public class FieldManagedStorage implements IManagedStorage {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    final static BiFunction<Field, Class<?>, Method> CONDITIONAL_SYNCED_METHOD_CACHES = Util.memoize((rawField, clazz) -> {
+        var methodName = rawField.getAnnotation(ConditionalSynced.class).methodName();
+        Method method = null;
+        while (clazz != null && method == null) {
+            try {
+                // make sure the method types
+                var foundMethod = clazz.getDeclaredMethod(methodName, rawField.getType());
+                if (foundMethod.getReturnType().equals(boolean.class) || foundMethod.getReturnType().equals(Boolean.class)) {
+                    method = foundMethod;
+                    method.setAccessible(true);
+                }
+            } catch (NoSuchMethodException ignored) {
+            }
+            clazz = clazz.getSuperclass();
+        }
+        if (method == null) {
+            LDLib2.LOGGER.error("couldn't find the conditional synced method {} for synced field {}", methodName, rawField.getName());
+        }
+        return method;
+    });
+
+    private void initConditionalSynced() {
+        for (IRef<?> syncField : getSyncFields()) {
+            var rawField = syncField.getKey().getRawField();
+            if (rawField.isAnnotationPresent(ConditionalSynced.class)) {
+                final var method = CONDITIONAL_SYNCED_METHOD_CACHES.apply(rawField, owner.getClass());
+                if (method != null) {
+                    syncField.setConditionalSynced(value -> {
+                        try {
+                            return (boolean) method.invoke(owner, value);
+                        } catch (IllegalAccessException | InvocationTargetException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
     private void initBlockEntityManagedFeature() {
         if (owner instanceof IBlockEntityManaged managed) {
             for (IRef<?> syncField : getSyncFields()) {

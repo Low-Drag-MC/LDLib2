@@ -37,7 +37,7 @@ public final class MutableDirectRef<TYPE> extends DirectRef<TYPE> {
     }
 
     @Override
-    public void update() {
+    protected void updateSync() {
         TYPE newValue = getField().value();
         if (newValue == null) {
             if (oldValueMark != null) {

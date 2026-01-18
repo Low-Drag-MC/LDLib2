@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.syncdata.holder;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.async.AsyncThreadData;
 import com.lowdragmc.lowdraglib2.async.IAsyncLogic;

@@ -52,7 +52,7 @@ public final class DirectArrayRef<TYPE, TYPE_ARRAY> extends UniqueDirectRef<TYPE
     }
 
     @Override
-    public void update() {
+    protected void updateSync() {
         var newValue = readRaw();
         if (!Objects.equals(oldValue, newValue)) {
             oldValue = newValue;

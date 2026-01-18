@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import javax.annotation.Nullable;
+import java.util.function.Predicate;
 
 /**
  * Ref is a reference to a field instance, it's used to detect / manage the field's dirty status.
@@ -89,6 +90,8 @@ public interface IRef<TYPE> {
      * set persisted prefix name
      */
     void setPersistedPrefixName(String name);
+
+    void setConditionalSynced(Predicate<TYPE> conditionalSynced);
 
     default String getPersistedKey() {
         var fieldKey = getKey();

@@ -41,7 +41,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
     }
 
     @Override
-    public final void update() {
+    protected final void updateSync() {
         if (isReadOnlyManaged()) {
             readOnlyManagedUpdate();
         } else {
