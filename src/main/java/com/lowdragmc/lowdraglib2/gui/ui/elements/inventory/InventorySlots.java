@@ -22,9 +22,13 @@ public class InventorySlots extends UIElement {
         rows[0] = new Row();
         rows[1] = new Row();
         rows[2] = new Row();
-        for (Row row : rows) {
-            addChild(row);
+
+        var inventory = new UIElement().addClass("__inventory_main__");
+        for (var row : rows) {
+            inventory.addChild(row);
         }
+
+        addChild(inventory);
         hotbar.getLayout().setMargin(YogaEdge.TOP, 5);
         addChild(hotbar);
         hotbar.addClass("__inventory_hotbar__");
