@@ -3,6 +3,7 @@
 ## v2.1.8
 * Added Stream (also StreamCodec) support for PersistedParser
 * Added flatten parameter for PersistedParser
+* Added @ConditionalSynced
 
 ## v2.1.7.b
 * Fixed EMI compat issue
