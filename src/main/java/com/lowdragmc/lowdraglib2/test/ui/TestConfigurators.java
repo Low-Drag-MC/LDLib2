@@ -26,6 +26,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -103,6 +105,11 @@ public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSe
     private ItemStack item = new ItemStack(Items.STONE);
     @Configurable
     private FluidStack fluid = new FluidStack(Fluids.WATER, 1000);
+    @Configurable
+    @ConfigRL(ConfigRL.Type.ITEM_TAG_KEY)
+    private ResourceLocation itemTagKey = ItemTags.AXES.location();
+    @Configurable
+    private EntityType<?> entityType = EntityType.PIG;
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
