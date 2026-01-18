@@ -53,6 +53,13 @@ public class ModularUIJEIWidget implements IRecipeWidget, IJeiGuiEventListener {
         return new Vector2f(realMouse.x, realMouse.y);
     }
 
+    public Vector2f getWorldMouseNormal(float mouseX, float mouseY) {
+        var realMouse = localToWorld.transformDirection(new Vector3f(0, 0, 0))
+                .mul(-1)
+                .add(mouseX, mouseY, 0);
+        return new Vector2f(realMouse.x, realMouse.y);
+    }
+
     @Override
     public void getTooltip(ITooltipBuilder tooltipBuilder, double mouseX, double mouseY) {
         if (!modularUI.getDragHandler().isDragging() && modularUI.getTooltipTexts() != null && !modularUI.getTooltipTexts().isEmpty()) {
@@ -93,7 +100,7 @@ public class ModularUIJEIWidget implements IRecipeWidget, IJeiGuiEventListener {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         var realMouse = getWorldMouse((float) mouseX, (float) mouseY);
-        var realDrag = getWorldMouse((float) dragX, (float) dragY);
+        var realDrag = getWorldMouseNormal((float) dragX, (float) dragY);
         return modularUI.getWidget().mouseDragged(realMouse.x, realMouse.y, button, realDrag.x, realDrag.y);
     }
 
