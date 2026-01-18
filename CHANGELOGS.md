@@ -1,5 +1,8 @@
 # ChangeLogs
 
+## v2.1.8
+* Added Stream (also StreamCodec) support for PersistedParser
+
 ## v2.1.7.b
 * Fixed EMI compat issue
 
