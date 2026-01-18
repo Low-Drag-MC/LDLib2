@@ -1,5 +1,8 @@
 # ChangeLogs
 
+## v2.1.8.a
+* Fixed xei drag mouse normal transform
+
 ## v2.1.8
 * Added Stream (also StreamCodec) support for PersistedParser
 * Added flatten parameter for PersistedParser
