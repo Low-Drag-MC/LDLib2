@@ -66,5 +66,12 @@ public @interface Persisted {
      */
     boolean subPersisted() default false;
 
-    boolean subFlatten() default false;
+    /**
+     * Determines whether the persisted internal structure should be flattened in serialization.
+     * If set to {@code true}, nested data structures will be flattened into the parent structure.
+     * For example, inner object fields may no longer be encapsulated within a nested map or tag.
+     *
+     * @return {@code true} if the persisted structure should be flattened; {@code false} otherwise.
+     */
+    boolean subFlattenPersisted() default false;
 }

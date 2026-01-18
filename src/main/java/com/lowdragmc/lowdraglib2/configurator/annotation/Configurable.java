@@ -83,15 +83,23 @@ public @interface Configurable {
     boolean subConfigurable() default false;
 
     /**
-     * Indicates whether a nested sub-configurable should be flattened into the parent configuration context.
-     * When set to {@code true}, the nested fields of the sub-configurable will be treated
-     * as if they belong directly to the parent configuration group, effectively flattening
-     * the hierarchy. This enables simplified organization and direct access to the nested configurations.
+     * Indicates whether a nested sub-configurable field or type should be flattened into the parent configuration context.
+     * When set to {@code true}, the fields of the nested sub-configurable are treated as if they are directly part of
+     * the parent configuration group. This simplifies the structure and provides direct access to the nested configurations.
      *
      * @return {@code true} if the nested sub-configurable is to be flattened into the parent context,
-     *         {@code false} otherwise
+     *         {@code false} otherwise.
      */
-    boolean subFlatten() default false;
+    boolean subFlattenConfigurable() default false;
+
+    /**
+     * Determines whether the persisted internal structure should be flattened in serialization.
+     * If set to {@code true}, nested data structures will be flattened into the parent structure.
+     * For example, inner object fields may no longer be encapsulated within a nested map or tag.
+     *
+     * @return {@code true} if the persisted structure should be flattened; {@code false} otherwise.
+     */
+    boolean subFlattenPersisted() default false;
 
     /**
      * Indicates whether the annotated field or type should be persisted during {@link com.lowdragmc.lowdraglib2.utils.PersistedParser}

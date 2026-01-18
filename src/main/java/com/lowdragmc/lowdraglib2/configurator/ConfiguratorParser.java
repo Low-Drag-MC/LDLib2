@@ -91,7 +91,7 @@ public final class ConfiguratorParser {
             // sub configurable
             if (configurable.subConfigurable()) {
                 var rawClass = ReflectionUtils.getRawType(field.getGenericType());
-                var flatten = configurable.subFlatten();
+                var flatten = configurable.subFlattenConfigurable();
                 try {
                     field.setAccessible(true);
                     var value = field.get(object);

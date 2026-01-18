@@ -250,7 +250,7 @@ public final class PersistedParser {
 
             T data = null;
             if (persistent.map(Configurable::subConfigurable, Persisted::subPersisted)) {
-                var subFlatten = persistent.map(Configurable::subFlatten, Persisted::subFlatten);
+                var subFlatten = persistent.map(Configurable::subFlattenPersisted, Persisted::subFlattenPersisted);
                 // sub configurable
                 try {
                     field.setAccessible(true);
@@ -350,7 +350,7 @@ public final class PersistedParser {
 
             T data = map.get(key);
             if (persistent.map(Configurable::subConfigurable, Persisted::subPersisted)) {
-                var subFlatten = persistent.map(Configurable::subFlatten, Persisted::subFlatten);
+                var subFlatten = persistent.map(Configurable::subFlattenPersisted, Persisted::subFlattenPersisted);
                 // sub configurable
                 try {
                     field.setAccessible(true);

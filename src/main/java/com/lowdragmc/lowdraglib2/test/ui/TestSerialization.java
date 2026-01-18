@@ -74,6 +74,8 @@ public class TestSerialization implements IScreenTest {
         private Component componentValue = Component.translatable("ldlib.author");
         @Configurable(subConfigurable = true)
         private final TestToggleGroup toggleGroup = new TestToggleGroup();
+        @Configurable(subConfigurable = true, subFlattenPersisted = true)
+        private final TestFlattenGroup flattenGroup = new TestFlattenGroup();
         @Configurable
         @ConfigList(configuratorMethod = "buildTestGroupConfigurator", addDefaultMethod = "addDefaultTestGroup")
         @ReadOnlyManaged(serializeMethod = "testGroupSerialize", deserializeMethod = "testGroupDeserialize")
@@ -135,6 +137,14 @@ public class TestSerialization implements IScreenTest {
             private Direction enumValue = Direction.NORTH;
         }
 
+        public static class TestFlattenGroup implements IPersistedSerializable, IConfigurable {
+            @Configurable
+            private Direction flattenEnum = Direction.NORTH;
+            @Configurable
+            @ConfigNumber(range = {0, 100}, type = ConfigNumber.Type.INTEGER)
+            private Range flattenRange = Range.of(0, 1);
+        }
+
         public static class TestGroup implements IConfigurable, IPersistedSerializable {
             @Configurable
             @ConfigNumber(range = {0, 1}, type = ConfigNumber.Type.FLOAT)
@@ -177,16 +187,16 @@ public class TestSerialization implements IScreenTest {
                                 new Button().setText("S nbt").setOnClick(e -> {
                                     serializedNbt = data.serializeNBT(Platform.getFrozenRegistry());
                                     text.setText(NbtUtils.toPrettyComponent(serializedNbt));
-                                }),
+                                }).layout(layout -> layout.flex(1)),
                                 new Button().setText("D nbt").setOnClick(e -> {
                                     data.deserializeNBT(Platform.getFrozenRegistry(), serializedNbt);
-                                })
+                                }).layout(layout -> layout.flex(1))
                         ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)),
                         new UIElement().addChildren(
                                 new Button().setText("S buf").setOnClick(e -> {
                                     serializedBuf = ByteBufUtil.writeCustomData(buf -> data.writeToBuff(buf), Platform.getFrozenRegistry());
                                     text.setText(serializedBuf.length + " bytes");
-                                }),
+                                }).layout(layout -> layout.flex(1)),
                                 new Button().setText("D buf").setOnClick(e -> {
                                     try {
                                         ByteBufUtil.readCustomData(serializedBuf,
@@ -194,7 +204,7 @@ public class TestSerialization implements IScreenTest {
                                                 Platform.getFrozenRegistry());
                                     } catch (Exception ignored) {
                                     }
-                                })
+                                }).layout(layout -> layout.flex(1))
                         ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)),
                         new ScrollerView().addScrollViewChild(text.textStyle(style -> {
                             style.adaptiveHeight(true);
