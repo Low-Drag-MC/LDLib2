@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * make sure the class with this annotation has implemented the interface {@link com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient}
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ElementType.TYPE, ElementType.FIELD})
 public @interface LDLRegisterClient {
 
     /**

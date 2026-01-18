@@ -6,12 +6,9 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
-import com.lowdragmc.lowdraglib2.gui.ui.style.IValueInterpolator;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.Transform2DValue;
 import lombok.experimental.Accessors;
-import org.appliedenergistics.yoga.YogaValue;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;

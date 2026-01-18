@@ -83,6 +83,17 @@ public @interface Configurable {
     boolean subConfigurable() default false;
 
     /**
+     * Indicates whether a nested sub-configurable should be flattened into the parent configuration context.
+     * When set to {@code true}, the nested fields of the sub-configurable will be treated
+     * as if they belong directly to the parent configuration group, effectively flattening
+     * the hierarchy. This enables simplified organization and direct access to the nested configurations.
+     *
+     * @return {@code true} if the nested sub-configurable is to be flattened into the parent context,
+     *         {@code false} otherwise
+     */
+    boolean subFlatten() default false;
+
+    /**
      * Indicates whether the annotated field or type should be persisted during {@link com.lowdragmc.lowdraglib2.utils.PersistedParser}
      *
      * @return true if the field or type should be persisted, false otherwise

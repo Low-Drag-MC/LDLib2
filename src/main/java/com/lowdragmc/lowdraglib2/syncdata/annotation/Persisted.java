@@ -65,4 +65,6 @@ public @interface Persisted {
      * }</pre>
      */
     boolean subPersisted() default false;
+
+    boolean subFlatten() default false;
 }

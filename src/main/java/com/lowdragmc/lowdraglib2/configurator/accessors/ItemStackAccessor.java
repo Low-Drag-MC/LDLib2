@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -36,7 +37,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
         var group = new ConfiguratorGroup(name);
         var slot = new ItemSlot();
         slot.layout(layout -> layout.setWidth(14).setHeight(14));
-        slot.setItem(supplier.get());
+        slot.bindDataSource(SupplierDataSource.of(supplier));
         Consumer<ItemStack> updater = itemStack -> {
             slot.setItem(itemStack);
             consumer.accept(itemStack);

@@ -91,20 +91,32 @@ public final class ConfiguratorParser {
             // sub configurable
             if (configurable.subConfigurable()) {
                 var rawClass = ReflectionUtils.getRawType(field.getGenericType());
+                var flatten = configurable.subFlatten();
                 try {
                     field.setAccessible(true);
                     var value = field.get(object);
                     if (value != null) {
-                        String name = configurable.showName() ? (configurable.name().isEmpty() ? field.getName() : configurable.name()) : "";
-                        ConfiguratorGroup newGroup = new ConfiguratorGroup(name, configurable.collapse());
-                        newGroup.setCanCollapse(configurable.canCollapse());
-                        newGroup.setTips(configurable.tips());
-                        if (value instanceof IConfigurable subConfigurable) {
-                            subConfigurable.buildConfigurator(newGroup);
+                        ConfiguratorGroup group;
+
+                        if (flatten) {
+                            group = father;
                         } else {
-                            createConfigurators(newGroup, new HashMap<>(), rawClass, value);
+                            String name = configurable.showName() ? (configurable.name().isEmpty() ? field.getName() : configurable.name()) : "";
+                            ConfiguratorGroup newGroup = new ConfiguratorGroup(name, configurable.collapse());
+                            newGroup.setCanCollapse(configurable.canCollapse());
+                            newGroup.setTips(configurable.tips());
+                            group = newGroup;
                         }
-                        father.addConfigurators(newGroup);
+
+                        if (value instanceof IConfigurable subConfigurable) {
+                            subConfigurable.buildConfigurator(group);
+                        } else {
+                            createConfigurators(group, new HashMap<>(), rawClass, value);
+                        }
+
+                        if (!flatten) {
+                            father.addConfigurators(group);
+                        }
                     }
                 } catch (IllegalAccessException ignored) {}
             } else {

@@ -20,6 +20,7 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
+import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -147,7 +148,8 @@ public class TestSerialization implements IScreenTest {
     }
 
     TestData data = new TestData();
-    CompoundTag serialized = new CompoundTag();
+    CompoundTag serializedNbt = new CompoundTag();
+    byte[] serializedBuf = new byte[0];
 
     @Override
     public ModularUI createUI(Player entityPlayer) {
@@ -171,13 +173,29 @@ public class TestSerialization implements IScreenTest {
                     layout.setFlex(1);
                     layout.setHeightPercent(100);
                 }).addChildren(
-                        new Button().setText("serialize").setOnClick(e -> {
-                            serialized = data.serializeNBT(Platform.getFrozenRegistry());
-                            text.setText(NbtUtils.toPrettyComponent(serialized));
-                        }),
-                        new Button().setText("deserialize").setOnClick(e -> {
-                            data.deserializeNBT(Platform.getFrozenRegistry(), serialized);
-                        }),
+                        new UIElement().addChildren(
+                                new Button().setText("S nbt").setOnClick(e -> {
+                                    serializedNbt = data.serializeNBT(Platform.getFrozenRegistry());
+                                    text.setText(NbtUtils.toPrettyComponent(serializedNbt));
+                                }),
+                                new Button().setText("D nbt").setOnClick(e -> {
+                                    data.deserializeNBT(Platform.getFrozenRegistry(), serializedNbt);
+                                })
+                        ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)),
+                        new UIElement().addChildren(
+                                new Button().setText("S buf").setOnClick(e -> {
+                                    serializedBuf = ByteBufUtil.writeCustomData(buf -> data.writeToBuff(buf), Platform.getFrozenRegistry());
+                                    text.setText(serializedBuf.length + " bytes");
+                                }),
+                                new Button().setText("D buf").setOnClick(e -> {
+                                    try {
+                                        ByteBufUtil.readCustomData(serializedBuf,
+                                                buf -> data.readFromBuff(buf),
+                                                Platform.getFrozenRegistry());
+                                    } catch (Exception ignored) {
+                                    }
+                                })
+                        ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)),
                         new ScrollerView().addScrollViewChild(text.textStyle(style -> {
                             style.adaptiveHeight(true);
                             style.textWrap(TextWrap.WRAP);
