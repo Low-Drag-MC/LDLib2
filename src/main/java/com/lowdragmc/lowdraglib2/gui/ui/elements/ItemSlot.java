@@ -30,6 +30,7 @@ import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.stack.EmiStackInteraction;
 import dev.emi.emi.api.stack.ItemEmiStack;
 import lombok.Getter;
+import lombok.Setter;
 import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
 import me.shedaniel.rei.api.common.util.EntryIngredients;
 import me.shedaniel.rei.api.common.util.EntryStacks;
@@ -51,6 +52,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -64,6 +66,8 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public class SlotStyle extends Style {
         private static final Property<?>[] PROPERTIES = new Property[] {
                 PropertyRegistry.HOVER_OVERLAY,
+                PropertyRegistry.SLOT_OVERLAY,
+                PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY,
                 PropertyRegistry.SHOW_ITEM_TOOLTIPS,
                 PropertyRegistry.IS_PLAYER_SLOT,
                 PropertyRegistry.ACCEPT_QUICK_MOVE,
@@ -86,6 +90,24 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
         public SlotStyle hoverOverlay(IGuiTexture texture) {
             set(PropertyRegistry.HOVER_OVERLAY, texture);
+            return this;
+        }
+
+        public IGuiTexture slotOverlay() {
+            return getValueSave(PropertyRegistry.SLOT_OVERLAY);
+        }
+
+        public SlotStyle slotOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.SLOT_OVERLAY, texture);
+            return this;
+        }
+
+        public boolean showSlotOverlayOnlyEmpty() {
+            return getValueSave(PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY);
+        }
+
+        public SlotStyle showSlotOverlayOnlyEmpty(boolean value) {
+            set(PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY, value);
             return this;
         }
 
@@ -137,6 +159,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     // runtime
     @Getter
     private Slot slot;
+    @Getter
+    @Setter
+    private Function<ItemStack, ItemStack> itemDisplayHook = Function.identity();
 
     public ItemSlot() {
         this(new LocalSlot());
@@ -335,8 +360,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                 }
             }
         }
-
-        if (value.isEmpty() && !hovered) return;
         var contentX = getContentX();
         var contentY = getContentY();
         var contentWidth = getContentWidth();
@@ -348,8 +371,11 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         if (drawDraggingBackground) {
             guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
         }
+        if (value.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty()) {
+            guiContext.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
+        }
         if (!value.isEmpty()) {
-            DrawerHelper.drawItemStack(guiContext.graphics, value, 0, 0, -1, null);
+            DrawerHelper.drawItemStack(guiContext.graphics, itemDisplayHook.apply(value), 0, 0, -1, null);
         }
         if (hovered) {
             guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
