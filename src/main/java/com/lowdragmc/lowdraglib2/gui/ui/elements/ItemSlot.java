@@ -329,6 +329,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         var mui = guiContext.modularUI;
         var hovered = isHover() || isSelfOrChildHover();
         var drawDraggingBackground = false;
+        // splitting
         if (mui.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
             var carried = containerScreen.getMenu().getCarried();
             if (slot == containerScreen.clickedSlot && !containerScreen.draggingItem.isEmpty() && containerScreen.isSplittingStack && !value.isEmpty()) {
@@ -355,6 +356,11 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                 }
             }
         }
+
+        var drawSlotOverlay = value.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty();
+
+        if (value.isEmpty() && !hovered && !drawDraggingBackground && !drawSlotOverlay) return;
+
         var contentX = getContentX();
         var contentY = getContentY();
         var contentWidth = getContentWidth();
@@ -363,10 +369,12 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         guiContext.pose.pushPose();
         guiContext.pose.scale(contentWidth / 16f, contentHeight / 16f, 1);
         guiContext.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight, -200);
+
         if (drawDraggingBackground) {
-            drawDragging(guiContext);
+            drawDraggingBackground(guiContext);
         }
-        if (value.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty()) {
+
+        if (drawSlotOverlay) {
             drawSlotOverlay(guiContext);
         }
         if (!value.isEmpty()) {
@@ -378,19 +386,19 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         guiContext.pose.popPose();
     }
 
-    public void drawDragging(GUIContext guiContext) {
+    protected void drawDraggingBackground(GUIContext guiContext) {
         guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
     }
 
-    public void drawSlotOverlay(GUIContext guiContext) {
+    protected void drawSlotOverlay(GUIContext guiContext) {
         guiContext.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
     }
 
-    public void drawItemStack(GUIContext guiContext, ItemStack itemStack) {
+    protected void drawItemStack(GUIContext guiContext, ItemStack itemStack) {
         DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, -1, null);
     }
 
-    public void drawHover(GUIContext guiContext) {
+    protected void drawHover(GUIContext guiContext) {
         guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
     }
 
