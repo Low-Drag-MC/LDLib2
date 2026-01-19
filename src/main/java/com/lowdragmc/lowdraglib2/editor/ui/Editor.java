@@ -222,7 +222,7 @@ public abstract class Editor extends UIElement {
         if (currentProject == null) {
             return Component.translatable("editor.empty_editor");
         } else {
-            var title = Component.translatable("editor.open_project", currentProject.getName());
+            var title = Component.translatable("editor.open_project", Component.translatable(currentProject.getName()));
             if (currentProjectFile != null) {
                 title.append(" - ").append(currentProjectFile.getPath());
             }
