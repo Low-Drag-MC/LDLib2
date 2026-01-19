@@ -364,18 +364,34 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         guiContext.pose.scale(contentWidth / 16f, contentHeight / 16f, 1);
         guiContext.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight, -200);
         if (drawDraggingBackground) {
-            guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
+            drawDragging(guiContext);
         }
         if (value.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty()) {
-            guiContext.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
+            drawSlotOverlay(guiContext);
         }
         if (!value.isEmpty()) {
-            DrawerHelper.drawItemStack(guiContext.graphics, value, 0, 0, -1, null);
+            drawItemStack(guiContext, value);
         }
         if (hovered) {
-            guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
+            drawHover(guiContext);
         }
         guiContext.pose.popPose();
+    }
+
+    public void drawDragging(GUIContext guiContext) {
+        guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
+    }
+
+    public void drawSlotOverlay(GUIContext guiContext) {
+        guiContext.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
+    }
+
+    public void drawItemStack(GUIContext guiContext, ItemStack itemStack) {
+        DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, -1, null);
+    }
+
+    public void drawHover(GUIContext guiContext) {
+        guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
     }
 
     /// Editor Support
