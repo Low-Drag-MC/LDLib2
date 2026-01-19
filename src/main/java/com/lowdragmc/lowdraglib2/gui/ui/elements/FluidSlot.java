@@ -71,6 +71,8 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public class SlotStyle extends Style {
         private static final Property<?>[] PROPERTIES = new Property[] {
                 PropertyRegistry.HOVER_OVERLAY,
+                PropertyRegistry.SLOT_OVERLAY,
+                PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY,
                 PropertyRegistry.FILL_DIRECTION,
                 PropertyRegistry.SHOW_FLUID_TOOLTIPS,
         };
@@ -90,6 +92,24 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
         public SlotStyle hoverOverlay(IGuiTexture texture) {
             set(PropertyRegistry.HOVER_OVERLAY, texture);
+            return this;
+        }
+
+        public IGuiTexture slotOverlay() {
+            return getValueSave(PropertyRegistry.SLOT_OVERLAY);
+        }
+
+        public SlotStyle slotOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.SLOT_OVERLAY, texture);
+            return this;
+        }
+
+        public boolean showSlotOverlayOnlyEmpty() {
+            return getValueSave(PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY);
+        }
+
+        public SlotStyle showSlotOverlayOnlyEmpty(boolean value) {
+            set(PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY, value);
             return this;
         }
 
@@ -366,30 +386,50 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public void drawBackgroundAdditional(GUIContext guiContext) {
         var renderedFluid = getValue();
         var hovered = isHover() || isSelfOrChildHover();
-        if (renderedFluid.isEmpty() && !hovered) return;
+        var drawSlotOverlay = slotStyle.showSlotOverlayOnlyEmpty() || !renderedFluid.isEmpty();
+
+        if (renderedFluid.isEmpty() && !hovered && !drawSlotOverlay) return;
+
         var contentX = getContentX();
         var contentY = getContentY();
         var contentWidth = getContentWidth();
         var contentHeight = getContentHeight();
 
+        if (renderedFluid.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty()) {
+            drawSlotOverlay(guiContext, contentX, contentY, contentWidth, contentHeight);
+        }
+
         if (!renderedFluid.isEmpty()) {
-            var fillDirection = slotStyle.fillDirection();
-            double progress = renderedFluid.getAmount() * 1.0 / Math.max(Math.max(renderedFluid.getAmount(), capacity), 1);
-            float drawnU = (float) fillDirection.getDrawnU(progress);
-            float drawnV = (float) fillDirection.getDrawnV(progress);
-            float drawnWidth = (float) fillDirection.getDrawnWidth(progress);
-            float drawnHeight = (float) fillDirection.getDrawnHeight(progress);
-            DrawerHelper.drawFluidForGui(guiContext.graphics, renderedFluid,
-                    contentX + drawnU * contentWidth,
-                    contentY + drawnV * contentHeight,
-                    contentWidth * drawnWidth,
-                    contentHeight * drawnHeight, -1);
+            drawFluid(guiContext, renderedFluid, contentX, contentY, contentWidth, contentHeight);
         }
 
         if (hovered) {
-            guiContext.drawTexture(slotStyle.hoverOverlay(), contentX, contentY, contentWidth, contentHeight);
+            drawHover(guiContext, contentX, contentY, contentWidth, contentHeight);
         }
     }
+
+    protected void drawSlotOverlay(GUIContext guiContext, float contentX, float contentY, float contentWidth, float contentHeight) {
+        guiContext.drawTexture(slotStyle.slotOverlay(), contentX, contentY, contentWidth, contentHeight);
+    }
+
+    protected void drawFluid(GUIContext guiContext, FluidStack renderedFluid, float contentX, float contentY, float contentWidth, float contentHeight) {
+        var fillDirection = slotStyle.fillDirection();
+        double progress = renderedFluid.getAmount() * 1.0 / Math.max(Math.max(renderedFluid.getAmount(), capacity), 1);
+        float drawnU = (float) fillDirection.getDrawnU(progress);
+        float drawnV = (float) fillDirection.getDrawnV(progress);
+        float drawnWidth = (float) fillDirection.getDrawnWidth(progress);
+        float drawnHeight = (float) fillDirection.getDrawnHeight(progress);
+        DrawerHelper.drawFluidForGui(guiContext.graphics, renderedFluid,
+                contentX + drawnU * contentWidth,
+                contentY + drawnV * contentHeight,
+                contentWidth * drawnWidth,
+                contentHeight * drawnHeight, -1);
+    }
+
+    protected void drawHover(GUIContext guiContext, float contentX, float contentY, float contentWidth, float contentHeight) {
+        guiContext.drawTexture(slotStyle.hoverOverlay(), contentX, contentY, contentWidth, contentHeight);
+    }
+
 
     /// Editor Support
     @ConfigSetter(field = "editorFluidDisplay")

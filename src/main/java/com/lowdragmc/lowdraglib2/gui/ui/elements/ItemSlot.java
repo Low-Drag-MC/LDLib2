@@ -64,6 +64,8 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public class SlotStyle extends Style {
         private static final Property<?>[] PROPERTIES = new Property[] {
                 PropertyRegistry.HOVER_OVERLAY,
+                PropertyRegistry.SLOT_OVERLAY,
+                PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY,
                 PropertyRegistry.SHOW_ITEM_TOOLTIPS,
                 PropertyRegistry.IS_PLAYER_SLOT,
                 PropertyRegistry.ACCEPT_QUICK_MOVE,
@@ -86,6 +88,24 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
         public SlotStyle hoverOverlay(IGuiTexture texture) {
             set(PropertyRegistry.HOVER_OVERLAY, texture);
+            return this;
+        }
+
+        public IGuiTexture slotOverlay() {
+            return getValueSave(PropertyRegistry.SLOT_OVERLAY);
+        }
+
+        public SlotStyle slotOverlay(IGuiTexture texture) {
+            set(PropertyRegistry.SLOT_OVERLAY, texture);
+            return this;
+        }
+
+        public boolean showSlotOverlayOnlyEmpty() {
+            return getValueSave(PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY);
+        }
+
+        public SlotStyle showSlotOverlayOnlyEmpty(boolean value) {
+            set(PropertyRegistry.SHOW_SLOT_OVERLAY_ONLY_EMPTY, value);
             return this;
         }
 
@@ -309,6 +329,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         var mui = guiContext.modularUI;
         var hovered = isHover() || isSelfOrChildHover();
         var drawDraggingBackground = false;
+        // splitting
         if (mui.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
             var carried = containerScreen.getMenu().getCarried();
             if (slot == containerScreen.clickedSlot && !containerScreen.draggingItem.isEmpty() && containerScreen.isSplittingStack && !value.isEmpty()) {
@@ -336,7 +357,10 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             }
         }
 
-        if (value.isEmpty() && !hovered) return;
+        var drawSlotOverlay = value.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty();
+
+        if (value.isEmpty() && !hovered && !drawDraggingBackground && !drawSlotOverlay) return;
+
         var contentX = getContentX();
         var contentY = getContentY();
         var contentWidth = getContentWidth();
@@ -345,16 +369,37 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         guiContext.pose.pushPose();
         guiContext.pose.scale(contentWidth / 16f, contentHeight / 16f, 1);
         guiContext.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight, -200);
+
         if (drawDraggingBackground) {
-            guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
+            drawDraggingBackground(guiContext);
+        }
+
+        if (drawSlotOverlay) {
+            drawSlotOverlay(guiContext);
         }
         if (!value.isEmpty()) {
-            DrawerHelper.drawItemStack(guiContext.graphics, value, 0, 0, -1, null);
+            drawItemStack(guiContext, value);
         }
         if (hovered) {
-            guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
+            drawHover(guiContext);
         }
         guiContext.pose.popPose();
+    }
+
+    protected void drawDraggingBackground(GUIContext guiContext) {
+        guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
+    }
+
+    protected void drawSlotOverlay(GUIContext guiContext) {
+        guiContext.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
+    }
+
+    protected void drawItemStack(GUIContext guiContext, ItemStack itemStack) {
+        DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, -1, null);
+    }
+
+    protected void drawHover(GUIContext guiContext) {
+        guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
     }
 
     /// Editor Support
