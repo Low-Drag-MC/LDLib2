@@ -30,7 +30,6 @@ import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.stack.EmiStackInteraction;
 import dev.emi.emi.api.stack.ItemEmiStack;
 import lombok.Getter;
-import lombok.Setter;
 import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
 import me.shedaniel.rei.api.common.util.EntryIngredients;
 import me.shedaniel.rei.api.common.util.EntryStacks;
@@ -52,7 +51,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -159,9 +157,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     // runtime
     @Getter
     private Slot slot;
-    @Getter
-    @Setter
-    private Function<ItemStack, ItemStack> itemDisplayHook = Function.identity();
 
     public ItemSlot() {
         this(new LocalSlot());
@@ -375,7 +370,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             guiContext.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
         }
         if (!value.isEmpty()) {
-            DrawerHelper.drawItemStack(guiContext.graphics, itemDisplayHook.apply(value), 0, 0, -1, null);
+            DrawerHelper.drawItemStack(guiContext.graphics, value, 0, 0, -1, null);
         }
         if (hovered) {
             guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
