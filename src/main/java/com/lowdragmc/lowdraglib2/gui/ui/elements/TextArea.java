@@ -26,6 +26,7 @@ import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -442,7 +443,7 @@ public class TextArea extends BindableUIElement<String[]> {
             horizontalScroller.setDisplay(YogaDisplay.NONE);
         }
 
-        if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
+        if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {
             horizontalScroller.layout(layout -> {
                 Style.importantPipeline(layout, l ->
                         l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));

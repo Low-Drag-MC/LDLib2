@@ -11,94 +11,101 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
 import lombok.experimental.UtilityClass;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import org.appliedenergistics.yoga.*;
 
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 
 @UtilityClass
-public final class YogaNodeConfigParser {
+public final class LayoutConfigParser {
 
     public static void buildConfigurator(LayoutStyle style, ConfiguratorGroup father) {
-        var uiElement = style.holder;
-        var yogaNode = uiElement.getLayoutNode();
-
         father.addConfigurators(
-                createConfigurator(YogaProperties.DISPLAY, style),
-                createConfigurator(YogaProperties.LAYOUT_DIRECTION, style),
+                createConfigurator(LayoutProperties.DISPLAY, style),
+                createConfigurator(LayoutProperties.LAYOUT_DIRECTION, style),
                 // flex
                 new ConfiguratorGroup("property.flex.group").addConfigurators(
-                        createConfigurator(YogaProperties.FLEX, style),
-                        createConfigurator(YogaProperties.FLEX_BASIS, style),
-                        createConfigurator(YogaProperties.FLEX_GROW, style),
-                        createConfigurator(YogaProperties.FLEX_SHRINK, style),
-                        createConfigurator(YogaProperties.FLEX_DIRECTION, style),
-                        createConfigurator(YogaProperties.FLEX_WRAP, style)
+                        createConfigurator(LayoutProperties.FLEX, style),
+                        createConfigurator(LayoutProperties.FLEX_BASIS, style),
+                        createConfigurator(LayoutProperties.FLEX_GROW, style),
+                        createConfigurator(LayoutProperties.FLEX_SHRINK, style),
+                        createConfigurator(LayoutProperties.FLEX_DIRECTION, style),
+                        createConfigurator(LayoutProperties.FLEX_WRAP, style)
+                ),
+                // grid
+                new ConfiguratorGroup("property.grid.group").addConfigurators(
+                        createConfigurator(LayoutProperties.GRID_TEMPLATE_ROWS, style),
+                        createConfigurator(LayoutProperties.GRID_TEMPLATE_COLUMNS, style),
+                        createConfigurator(LayoutProperties.GRID_TEMPLATE_AREAS, style),
+                        createConfigurator(LayoutProperties.GRID_AUTO_ROWS, style),
+                        createConfigurator(LayoutProperties.GRID_AUTO_COLUMNS, style),
+                        createConfigurator(LayoutProperties.GRID_AUTO_FLOW, style),
+                        createConfigurator(LayoutProperties.GRID_ROW, style),
+                        createConfigurator(LayoutProperties.GRID_COLUMN, style)
                 ),
                 // position
                 new ConfiguratorGroup("property.position.group").addConfigurators(
-                        createConfigurator(YogaProperties.POSITION, style)
+                        createConfigurator(LayoutProperties.POSITION, style)
                 ).addConfigurators(
-                        createConfigurators(YogaProperties.POSITIONS, style)
+                        createConfigurators(LayoutProperties.POSITIONS, style)
                 ),
                 // spacing
                 new ConfiguratorGroup("property.spacing.group").addConfigurators(
                         // move all to outer for convenient
-                        createConfigurator(YogaProperties.MARGINS[YogaProperties.MARGINS.length - 1], style)
+                        createConfigurator(LayoutProperties.MARGINS[LayoutProperties.MARGINS.length - 1], style)
                                 .setLabel(
                                         Component.literal("margin-all").withStyle(
-                                                style.valueGetter(YogaProperties.MARGINS[YogaProperties.MARGINS.length - 1]).get() == null ?
+                                                style.valueGetter(LayoutProperties.MARGINS[LayoutProperties.MARGINS.length - 1]).get() == null ?
                                                         Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
                                         )
                                 ),
-                        createConfigurator(YogaProperties.PADDINGS[YogaProperties.PADDINGS.length - 1], style)
+                        createConfigurator(LayoutProperties.PADDINGS[LayoutProperties.PADDINGS.length - 1], style)
                                 .setLabel(
                                         Component.literal("padding-all").withStyle(
-                                                style.valueGetter(YogaProperties.PADDINGS[YogaProperties.PADDINGS.length - 1]).get() == null ?
+                                                style.valueGetter(LayoutProperties.PADDINGS[LayoutProperties.PADDINGS.length - 1]).get() == null ?
                                                         Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
                                         )
                                 ),
-                        createConfigurator(YogaProperties.GAPS[YogaProperties.GAPS.length - 1], style)
+                        createConfigurator(LayoutProperties.GAPS[LayoutProperties.GAPS.length - 1], style)
                                 .setLabel(
                                         Component.literal("gap-all").withStyle(
-                                                style.valueGetter(YogaProperties.GAPS[YogaProperties.GAPS.length - 1]).get() == null ?
+                                                style.valueGetter(LayoutProperties.GAPS[LayoutProperties.GAPS.length - 1]).get() == null ?
                                                         Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
                                         )
                                 ),
                         new ConfiguratorGroup("property.spacing.margin.group").addConfigurators(
-                                createConfigurators(YogaProperties.MARGINS, style)
+                                createConfigurators(LayoutProperties.MARGINS, style)
                         ),
                         new ConfiguratorGroup("property.spacing.padding.group").addConfigurators(
-                                createConfigurators(YogaProperties.PADDINGS, style)
+                                createConfigurators(LayoutProperties.PADDINGS, style)
                         ),
                         new ConfiguratorGroup("property.spacing.gap.group").addConfigurators(
-                                createConfigurators(YogaProperties.GAPS, style)
+                                createConfigurators(LayoutProperties.GAPS, style)
                         )
                 ),
                 // size
                 new ConfiguratorGroup("property.size.group").addConfigurators(
-                        createConfigurator(YogaProperties.WIDTH, style),
-                        createConfigurator(YogaProperties.HEIGHT, style),
+                        createConfigurator(LayoutProperties.WIDTH, style),
+                        createConfigurator(LayoutProperties.HEIGHT, style),
                         new ConfiguratorGroup("property.size.min.group").addConfigurators(
-                                createConfigurators(YogaProperties.MIN, style)
+                                createConfigurators(LayoutProperties.MIN, style)
                         ),
                         new ConfiguratorGroup("property.size.max.group").addConfigurators(
-                                createConfigurators(YogaProperties.MAX, style)
+                                createConfigurators(LayoutProperties.MAX, style)
                         ),
-                        createConfigurator(YogaProperties.ASPECT_RATE, style),
-                        createConfigurator(YogaProperties.OVERFLOW, style)
+                        createConfigurator(LayoutProperties.ASPECT_RATE, style),
+                        createConfigurator(LayoutProperties.OVERFLOW, style)
                 ),
                 // align
                 new ConfiguratorGroup("property.align.group").addConfigurators(
-                        createToggleConfigurator(YogaProperties.ALIGN_ITEMS, style, EnumAccessor::getEnumName,
-                                v -> DynamicTexture.of(() -> FlexIcons.getAlignItemIcon(yogaNode.getFlexDirection(), v))),
-                        createToggleConfigurator(YogaProperties.JUSTIFY_CONTENT, style, EnumAccessor::getEnumName,
-                                v -> DynamicTexture.of(() -> FlexIcons.getJustifyContentIcon(yogaNode.getFlexDirection(), v))),
-                        createToggleConfigurator(YogaProperties.ALIGN_SELF, style, EnumAccessor::getEnumName,
-                                v -> DynamicTexture.of(() -> FlexIcons.getAlignSelfIcon(yogaNode.getFlexDirection(), v))),
-                        createToggleConfigurator(YogaProperties.ALIGN_CONTENT, style, EnumAccessor::getEnumName,
-                                v -> DynamicTexture.of(() -> FlexIcons.getAlignContentIcon(yogaNode.getFlexDirection(), v)))
+                        createToggleConfigurator(LayoutProperties.ALIGN_ITEMS, style, EnumAccessor::getEnumName,
+                                v -> DynamicTexture.of(() -> FlexIcons.getAlignItemIcon(style.getFlexDirection(), v))),
+                        createToggleConfigurator(LayoutProperties.JUSTIFY_CONTENT, style, EnumAccessor::getEnumName,
+                                v -> DynamicTexture.of(() -> FlexIcons.getJustifyContentIcon(style.getFlexDirection(), v))),
+                        createToggleConfigurator(LayoutProperties.ALIGN_SELF, style, EnumAccessor::getEnumName,
+                                v -> DynamicTexture.of(() -> FlexIcons.getAlignSelfIcon(style.getFlexDirection(), v))),
+                        createToggleConfigurator(LayoutProperties.ALIGN_CONTENT, style, EnumAccessor::getEnumName,
+                                v -> DynamicTexture.of(() -> FlexIcons.getAlignContentIcon(style.getFlexDirection(), v)))
                 )
         );
     }

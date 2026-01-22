@@ -20,6 +20,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
@@ -38,6 +39,10 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.*;
+import dev.vfyjxf.taffy.tree.Layout;
+import dev.vfyjxf.taffy.tree.NodeId;
+import dev.vfyjxf.taffy.tree.TaffyTree;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -52,9 +57,6 @@ import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.*;
-import org.appliedenergistics.yoga.config.MutableYogaConfig;
-import org.appliedenergistics.yoga.config.YogaConfig;
-import org.appliedenergistics.yoga.config.YogaLogger;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
@@ -94,16 +96,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                             ))
                     .orElseGet(() -> MapCodec.unit(UIElement::new)));
 
-    public static final YogaConfig DEFAULT_YOGA_CONFIG;
-    static {
-        MutableYogaConfig config = YogaConfig.create(YogaLogger.getDefaultLogger());
-        config.setPointScaleFactor(0);
-        DEFAULT_YOGA_CONFIG = config;
-    }
+    public static final Layout EMPTY_LAYOUT = new Layout();
 
     // core ui
     @Getter
-    protected final YogaNode layoutNode;
+    protected final TaffyLayoutStyle taffyStyle;
+    @Getter
+    @Nullable
+    protected NodeId nodeId;
     @Getter
     @Nullable
     private ModularUI modularUI;
@@ -163,8 +163,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     private final UIVisualLayer UIVisualLayer = new UIVisualLayer(this);
 
     public UIElement() {
-        layoutNode = new YogaNode(DEFAULT_YOGA_CONFIG);
-        layoutNode.setContext(this);
+        taffyStyle = new TaffyLayoutStyle(this);
     }
 
     /**
@@ -260,10 +259,24 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
-    public UIElement node(Consumer<YogaNode> node) {
-        if (LDLib2.isServer()) return this;
-        node.accept(layoutNode);
-        return this;
+    @Nullable
+    public TaffyTree getTaffyTree() {
+        return modularUI == null ? null : modularUI.getTaffyTree();
+    }
+
+    public Layout getTaffyLayout() {
+        var taffyTree = getTaffyTree();
+        if (taffyTree != null) {
+            return taffyTree.getLayout(nodeId);
+        }
+        return EMPTY_LAYOUT;
+    }
+
+    public void markTaffyStyleDirty() {
+        var taffyTree = getTaffyTree();
+        if (taffyTree != null) {
+            taffyTree.markDirty(nodeId);
+        }
     }
 
     public UIElement setDisplay(YogaDisplay display) {
@@ -287,29 +300,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /**
-     * Calculate the layout of the element and its children.
-     */
-    protected final void calculateLayout(float width, float height) {
-        layoutNode.calculateLayout(width, height);
-        applyLayout();
-    }
-
-    protected void applyLayout() {
-        if (!layoutNode.hasNewLayout()) {
-            return;
-        }
-        // Reset the flag
-        layoutNode.markLayoutSeen();
-
-        // Do the real work
-        onLayoutChanged();
-
-        for (var child : children) {
-            child.applyLayout();
-        }
-    }
-
-    /**
      * This method is called when the layout of the element has changed.
      * You can override this method to do something when the layout changes.
      */
@@ -322,20 +312,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             event.hasCapturePhase = false;
             UIEventDispatcher.dispatchEvent(event, false, false, false);
         }
-    }
-
-    /**
-     * The X offset relative to the border box of the node's parent, along with dimensions, and the resolved values for margin, border, and padding for each physical edge.
-     */
-    public final float getLayoutX() {
-        return parent == null ? modularUI == null ? 0 : modularUI.getLeftPos() : layoutNode.getLayoutX();
-    }
-
-    /**
-     * The Y offset relative to the border box of the node's parent, along with dimensions, and the resolved values for margin, border, and padding for each physical edge.
-     */
-    public final float getLayoutY() {
-        return parent == null ? modularUI == null ? 0 : modularUI.getTopPos() : layoutNode.getLayoutY();
     }
 
     /**
@@ -387,6 +363,20 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /**
+     * The X offset relative to the border box of the node's parent, along with dimensions, and the resolved values for margin, border, and padding for each physical edge.
+     */
+    public final float getLayoutX() {
+        return (parent == null ? modularUI == null ? 0 : modularUI.getLeftPos() : getTaffyLayout().location().x);
+    }
+
+    /**
+     * The Y offset relative to the border box of the node's parent, along with dimensions, and the resolved values for margin, border, and padding for each physical edge.
+     */
+    public final float getLayoutY() {
+        return (parent == null ? modularUI == null ? 0 : modularUI.getTopPos() : getTaffyLayout().location().y);
+    }
+
+    /**
      * The absolute X offset relative to the screen.
      */
     public final float getPositionX() {
@@ -407,71 +397,71 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public final float getSizeWidth() {
-        return layoutNode.getLayoutWidth();
+        return getTaffyLayout().size().width;
     }
 
     public final float getSizeHeight() {
-        return layoutNode.getLayoutHeight();
+        return getTaffyLayout().size().height;
     }
 
     public final float getMarginTop() {
-        return layoutNode.getLayoutMargin(YogaEdge.TOP);
+        return getTaffyLayout().margin().top;
     }
 
     public final float getMarginBottom() {
-        return layoutNode.getLayoutMargin(YogaEdge.BOTTOM);
+        return getTaffyLayout().margin().bottom;
     }
 
     public final float getMarginLeft() {
-        return layoutNode.getLayoutMargin(YogaEdge.LEFT);
+        return getTaffyLayout().margin().left;
     }
 
     public final float getMarginRight() {
-        return layoutNode.getLayoutMargin(YogaEdge.RIGHT);
+        return getTaffyLayout().margin().right;
     }
 
     /**
      * Get the x position of the element excluding the border.
      */
     public final float getPaddingX() {
-        return getPositionX() + layoutNode.getLayoutBorder(YogaEdge.LEFT);
+        return (getPositionX() + getTaffyLayout().border().left);
     }
 
     /**
      * Get the X position of the content area in the element.
      */
     public final float getContentX() {
-        return getPaddingX() + layoutNode.getLayoutPadding(YogaEdge.LEFT);
+        return (getPaddingX() + getTaffyLayout().padding().left);
     }
 
     /**
      * Get the y position of the element excluding the border.
      */
     public final float getPaddingY() {
-        return getPositionY() + layoutNode.getLayoutBorder(YogaEdge.TOP);
+        return (getPositionY() + getTaffyLayout().border().top);
     }
 
     /**
      * Get the Y position of the content area in the element.
      */
     public final float getContentY() {
-        return getPaddingY() + layoutNode.getLayoutPadding(YogaEdge.TOP);
+        return (getPaddingY() + getTaffyLayout().padding().top);
     }
 
     public final float getPaddingWidth() {
-        return getSizeWidth() - layoutNode.getLayoutBorder(YogaEdge.LEFT) - layoutNode.getLayoutBorder(YogaEdge.RIGHT);
+        return (getSizeWidth() - getTaffyLayout().border().left - getTaffyLayout().border().right);
     }
 
     public final float getContentWidth() {
-        return getPaddingWidth() - layoutNode.getLayoutPadding(YogaEdge.LEFT) - layoutNode.getLayoutPadding(YogaEdge.RIGHT);
+        return getTaffyLayout().contentBoxWidth();
     }
 
     public final float getPaddingHeight() {
-        return getSizeHeight() - layoutNode.getLayoutBorder(YogaEdge.TOP) - layoutNode.getLayoutBorder(YogaEdge.BOTTOM);
+        return (getSizeHeight() - getTaffyLayout().border().top - getTaffyLayout().border().bottom);
     }
 
     public final float getContentHeight() {
-        return getPaddingHeight() - layoutNode.getLayoutPadding(YogaEdge.TOP) - layoutNode.getLayoutPadding(YogaEdge.BOTTOM);
+        return getTaffyLayout().contentBoxHeight();
     }
 
     /**
@@ -636,9 +626,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             child.getParent().removeChild(child);
         }
         child.parent = this;
-        child._setModularUIInternal(this.modularUI);
         children.add(index, child);
-        layoutNode.addChildAt(child.layoutNode, index);
+        child._setModularUIInternal(this.modularUI);
         clearSortedChildrenCache();
         child.clearStructurePathCache();
         child.onAdded();
@@ -681,7 +670,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         children.remove(child);
         child.onRemoved();
         child._setModularUIInternal(null);
-        layoutNode.removeChildAndInvalidate(child.layoutNode);
         child.parent = null;
         clearSortedChildrenCache();
         child.clearStructurePathCache();
@@ -1037,7 +1025,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         double localMouseY = pt[1];
 
         Pair<UIElement, Integer> hover = null;
-        var hidden = layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL;
+        var overflow = layoutStyle.getOverflow();
+        var hidden = overflow == YogaOverflow.HIDDEN || overflow == YogaOverflow.SCROLL;
 
         if (!hidden || isMouseOverRect(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
             for (var child : getSortedChildren()) {
@@ -1332,7 +1321,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     /// Rendering
     public boolean isDisplayed() {
-        return layoutNode.getDisplay() != YogaDisplay.NONE;
+        return taffyStyle.style.display != TaffyDisplay.NONE;
     }
 
     /**
@@ -1344,9 +1333,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * <li> 4. Children
      */
     public final void drawInBackground(GUIContext guiContext) {
-        var display = layoutNode.getDisplay();
+        var display = taffyStyle.style.display;
         var opacity = style.opacity();
-        if (display == YogaDisplay.NONE || !isVisible() || opacity == 0) {
+        if (display == TaffyDisplay.NONE || !isVisible() || opacity == 0) {
             return;
         }
 
@@ -1366,9 +1355,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             localToWorldCache = new Matrix4f(guiContext.pose.last().pose());
         }
 
+        var overflow = layoutStyle.getOverflow();
         var hasOverlayClip = (
-                layoutNode.getOverflow() == YogaOverflow.HIDDEN ||
-                layoutNode.getOverflow() == YogaOverflow.SCROLL
+                overflow == YogaOverflow.HIDDEN || overflow == YogaOverflow.SCROLL
         ) && getStyle().overflowClip() != IGuiTexture.EMPTY;
         var hasVisualLayer = hasOverlayClip || opacity < 1;
         if (hasVisualLayer) {
@@ -1392,7 +1381,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public final void drawInBackgroundInternal(GUIContext guiContext) {
         var insideView = isInsideTheScissorView(guiContext);
-        if (insideView && layoutNode.getDisplay() == YogaDisplay.FLEX) {
+        if (insideView && taffyStyle.style.display == TaffyDisplay.FLEX) {
             drawBackgroundTexture(guiContext);
             drawContents(true, guiContext);
             drawBackgroundOverlay(guiContext);
@@ -1447,7 +1436,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     public void drawContents(boolean insideView, GUIContext guiContext) {
         // not need to use scissoring if overflow cip defined
-        var hidden = (layoutNode.getOverflow() == YogaOverflow.HIDDEN || layoutNode.getOverflow() == YogaOverflow.SCROLL)
+        var overflow = layoutStyle.getOverflow();
+        var hidden = (overflow == YogaOverflow.HIDDEN || overflow == YogaOverflow.SCROLL)
                 && getStyle().overflowClip() == IGuiTexture.EMPTY ;
         if (hidden) {
             if (!insideView) return;
@@ -1500,7 +1490,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             for (int i1 = 0; i1 < i; i1++) {
                 data = data.append(Component.literal("  "));
             }
-            data = data.append("└").append(element.toString());
+            var style =  element.getTaffyStyle().style;
+            data = data.append("└").append(element.toString()).append(
+                    Component.literal("[flex: %s, inset: (%s, %s, %s, %s), size: (%s, %s)]".formatted(
+                            style.flex,
+                            style.inset.left, style.inset.right,
+                            style.inset.top, style.inset.bottom,
+                            style.size.width, style.size.height
+                            )).withColor(0xFFFF00FF));
             info.add(data.withColor(0xFF00FF00));
         }
         return info;

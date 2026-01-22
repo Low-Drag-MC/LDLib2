@@ -81,8 +81,8 @@ public abstract class Editor extends UIElement {
     protected File currentProjectFile;
 
     public Editor() {
-        getLayout().setWidthPercent(100);
-        getLayout().setHeightPercent(100);
+        getLayout().widthPercent(100);
+        getLayout().heightPercent(100);
 
         addClass("__editor__");
 

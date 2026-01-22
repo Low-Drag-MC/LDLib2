@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -234,7 +235,7 @@ public class ScrollerView extends UIElement {
         var width = viewContainer.getSizeWidth();
         for (UIElement child : viewContainer.getChildren()) {
             if (child.isDisplayed()) {
-                width = Math.max(width, child.getSizeWidth() + child.getLayoutNode().getLayoutX());
+                width = Math.max(width, child.getSizeWidth() + child.getTaffyLayout().location().x);
             }
         }
         return width;
@@ -244,7 +245,7 @@ public class ScrollerView extends UIElement {
         var height = viewContainer.getSizeHeight();
         for (UIElement child : viewContainer.getChildren()) {
             if (child.isDisplayed()) {
-                height = Math.max(height, child.getSizeHeight() + child.getLayoutNode().getLayoutY());
+                height = Math.max(height, child.getSizeHeight() + child.getTaffyLayout().location().y);
             }
         }
         return height;
@@ -281,7 +282,7 @@ public class ScrollerView extends UIElement {
             verticalScroller.setDisplay(YogaDisplay.NONE);
         }
 
-        if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
+        if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {
             horizontalScroller.layout(layout -> Style.importantPipeline(layout, l ->
                     l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? scrollerViewStyle.scrollerViewMargin() : 0)));
         }

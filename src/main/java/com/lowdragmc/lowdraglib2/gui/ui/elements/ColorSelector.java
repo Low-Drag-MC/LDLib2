@@ -116,6 +116,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         });
 
         pickerContainer.layout(layout -> {
+            layout.widthPercent(100);
             layout.setAspectRatio(1);
         }).addChildren(
                 new UIElement().layout(layout -> {

@@ -260,7 +260,7 @@ public class TextField extends BindableUIElement<String> {
         getLayout().setHeight(14);
         getLayout().setPadding(YogaEdge.ALL, 2);
         getStyle().backgroundTexture(Sprites.RECT_RD_SOLID);
-        getLayoutNode().setOverflow(YogaOverflow.HIDDEN);
+        setOverflowVisible(false);
         setFocusable(true);
         addEventListener(UIEvents.CHAR_TYPED, this::onCharTyped);
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);

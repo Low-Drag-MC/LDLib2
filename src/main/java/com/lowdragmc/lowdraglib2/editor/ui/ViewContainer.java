@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
@@ -18,7 +18,6 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaJustify;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -46,6 +45,7 @@ public class ViewContainer extends UIElement {
         this.tabView = new TabView();
         this.collapseButton = new Button().noText();
         this.addClass("__view-container__");
+        this.getLayout().flex(1);
 
         this.tabView.layout(layout -> {
             layout.setWidthPercent(100);
@@ -73,7 +73,7 @@ public class ViewContainer extends UIElement {
         });
 
 
-        tabView.tabScroller.layout(layout -> layout.setFlex(1));
+        tabView.tabScroller.getLayout().flex(1);
         tabView.tabHeaderContainer.addChildren(collapseButton);
 
         addChild(tabView);
@@ -163,16 +163,16 @@ public class ViewContainer extends UIElement {
                 layout.setHeight(14);
             }
         });
-        this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(YogaProperties.PADDINGS[YogaEdge.HORIZONTAL.ordinal()], slot -> slot.origin() == StyleOrigin.IMPORTANT);
+        this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.PADDINGS[YogaEdge.HORIZONTAL.ordinal()], slot -> slot.origin() == StyleOrigin.IMPORTANT);
         if (!isVertical) {
-            this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(YogaProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         }
         if (isFirst) {
-            splitView.first.getStyleBag().removeCandidates(isVertical ? YogaProperties.HEIGHT : YogaProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.first.getStyleBag().removeCandidates(isVertical ? LayoutProperties.HEIGHT : LayoutProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         } else {
-            splitView.first.getStyleBag().removeCandidates(YogaProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
-            splitView.second.getStyleBag().removeCandidates(YogaProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
-            splitView.second.getStyleBag().removeCandidates(isVertical ? YogaProperties.HEIGHT : YogaProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.first.getStyleBag().removeCandidates(LayoutProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.second.getStyleBag().removeCandidates(LayoutProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.second.getStyleBag().removeCandidates(isVertical ? LayoutProperties.HEIGHT : LayoutProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         }
         buttonIcon.style(style -> style.backgroundTexture(isVertical ?
                 Icons.COLLAPSE_VERTICAL :

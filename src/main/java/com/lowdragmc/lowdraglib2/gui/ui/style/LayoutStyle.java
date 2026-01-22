@@ -3,8 +3,20 @@ package com.lowdragmc.lowdraglib2.gui.ui.style;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaNodeConfigParser;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Grid;
+import com.lowdragmc.lowdraglib2.gui.ui.data.GridAuto;
+import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplate;
+import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplateAreas;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutConfigParser;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridAutoValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateAreasValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridValue;
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.GridAutoFlow;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.appliedenergistics.yoga.style.StyleLength;
@@ -13,33 +25,34 @@ import org.appliedenergistics.yoga.style.YogaStyle;
 
 import java.util.*;
 
+@RemapPrefixForJS("kjs$")
 public final class LayoutStyle extends Style {
     private static final Property<?>[] PROPERTIES;
     static {
         var properties = new ArrayList<Property<?>>();
-        properties.add(YogaProperties.DISPLAY);
-        properties.add(YogaProperties.LAYOUT_DIRECTION);
-        properties.add(YogaProperties.FLEX_BASIS);
-        properties.add(YogaProperties.FLEX);
-        properties.add(YogaProperties.FLEX_GROW);
-        properties.add(YogaProperties.FLEX_SHRINK);
-        properties.add(YogaProperties.FLEX_DIRECTION);
-        properties.add(YogaProperties.FLEX_WRAP);
-        properties.add(YogaProperties.POSITION);
-        properties.addAll(Arrays.stream(YogaProperties.POSITIONS).toList());
-        properties.addAll(Arrays.stream(YogaProperties.MARGINS).toList());
-        properties.addAll(Arrays.stream(YogaProperties.PADDINGS).toList());
-        properties.addAll(Arrays.stream(YogaProperties.GAPS).toList());
-        properties.add(YogaProperties.WIDTH);
-        properties.add(YogaProperties.HEIGHT);
-        properties.addAll(Arrays.stream(YogaProperties.MIN).toList());
-        properties.addAll(Arrays.stream(YogaProperties.MAX).toList());
-        properties.add(YogaProperties.ASPECT_RATE);
-        properties.add(YogaProperties.OVERFLOW);
-        properties.add(YogaProperties.ALIGN_ITEMS);
-        properties.add(YogaProperties.JUSTIFY_CONTENT);
-        properties.add(YogaProperties.ALIGN_SELF);
-        properties.add(YogaProperties.ALIGN_CONTENT);
+        properties.add(LayoutProperties.DISPLAY);
+        properties.add(LayoutProperties.LAYOUT_DIRECTION);
+        properties.add(LayoutProperties.FLEX_BASIS);
+        properties.add(LayoutProperties.FLEX);
+        properties.add(LayoutProperties.FLEX_GROW);
+        properties.add(LayoutProperties.FLEX_SHRINK);
+        properties.add(LayoutProperties.FLEX_DIRECTION);
+        properties.add(LayoutProperties.FLEX_WRAP);
+        properties.add(LayoutProperties.POSITION);
+        properties.addAll(Arrays.stream(LayoutProperties.POSITIONS).toList());
+        properties.addAll(Arrays.stream(LayoutProperties.MARGINS).toList());
+        properties.addAll(Arrays.stream(LayoutProperties.PADDINGS).toList());
+        properties.addAll(Arrays.stream(LayoutProperties.GAPS).toList());
+        properties.add(LayoutProperties.WIDTH);
+        properties.add(LayoutProperties.HEIGHT);
+        properties.addAll(Arrays.stream(LayoutProperties.MIN).toList());
+        properties.addAll(Arrays.stream(LayoutProperties.MAX).toList());
+        properties.add(LayoutProperties.ASPECT_RATE);
+        properties.add(LayoutProperties.OVERFLOW);
+        properties.add(LayoutProperties.ALIGN_ITEMS);
+        properties.add(LayoutProperties.JUSTIFY_CONTENT);
+        properties.add(LayoutProperties.ALIGN_SELF);
+        properties.add(LayoutProperties.ALIGN_CONTENT);
         PROPERTIES = properties.toArray(new Property[0]);
     }
 
@@ -54,11 +67,11 @@ public final class LayoutStyle extends Style {
 
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
-        YogaNodeConfigParser.buildConfigurator(this, father);
+        LayoutConfigParser.buildConfigurator(this, father);
     }
 
     public LayoutStyle setWidth(StyleSizeLength length) {
-        set(YogaProperties.WIDTH, length);
+        set(LayoutProperties.WIDTH, length);
         return this;
     }
 
@@ -115,7 +128,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setMinWidth(StyleSizeLength length) {
-        set(YogaProperties.MIN[YogaDimension.WIDTH.ordinal()], length);
+        set(LayoutProperties.MIN[YogaDimension.WIDTH.ordinal()], length);
         return this;
     }
 
@@ -164,7 +177,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setMaxWidth(StyleSizeLength length) {
-        set(YogaProperties.MAX[YogaDimension.WIDTH.ordinal()], length);
+        set(LayoutProperties.MAX[YogaDimension.WIDTH.ordinal()], length);
         return this;
     }
 
@@ -214,7 +227,7 @@ public final class LayoutStyle extends Style {
 
     /* Height properties */
     public LayoutStyle setHeight(StyleSizeLength length) {
-        set(YogaProperties.HEIGHT, length);
+        set(LayoutProperties.HEIGHT, length);
         return this;
     }
 
@@ -271,7 +284,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setMinHeight(StyleSizeLength length) {
-        set(YogaProperties.MIN[YogaDimension.HEIGHT.ordinal()], length);
+        set(LayoutProperties.MIN[YogaDimension.HEIGHT.ordinal()], length);
         return this;
     }
 
@@ -320,7 +333,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setMaxHeight(StyleSizeLength length) {
-        set(YogaProperties.MAX[YogaDimension.HEIGHT.ordinal()], length);
+        set(LayoutProperties.MAX[YogaDimension.HEIGHT.ordinal()], length);
         return this;
     }
 
@@ -370,7 +383,7 @@ public final class LayoutStyle extends Style {
 
     /* Margin properties */
     public LayoutStyle setMargin(YogaEdge edge, StyleLength length) {
-        set(YogaProperties.MARGINS[edge.ordinal()], length);
+        set(LayoutProperties.MARGINS[edge.ordinal()], length);
         return this;
     }
 
@@ -532,7 +545,7 @@ public final class LayoutStyle extends Style {
     /* Padding properties */
 
     public LayoutStyle setPadding(YogaEdge edge, StyleLength length) {
-        set(YogaProperties.PADDINGS[edge.ordinal()], length);
+        set(LayoutProperties.PADDINGS[edge.ordinal()], length);
         return this;
     }
 
@@ -694,7 +707,7 @@ public final class LayoutStyle extends Style {
 
     /* Position properties */
     public LayoutStyle setPositionType(YogaPositionType positionType) {
-        set(YogaProperties.POSITION, positionType);
+        set(LayoutProperties.POSITION, positionType);
         return this;
     }
 
@@ -703,7 +716,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setPosition(YogaEdge edge, StyleLength length) {
-        set(YogaProperties.POSITIONS[edge.ordinal()], length);
+        set(LayoutProperties.POSITIONS[edge.ordinal()], length);
         return this;
     }
 
@@ -865,7 +878,7 @@ public final class LayoutStyle extends Style {
 
     /* Alignment properties */
     public LayoutStyle setAlignContent(YogaAlign alignContent) {
-        set(YogaProperties.ALIGN_CONTENT, alignContent);
+        set(LayoutProperties.ALIGN_CONTENT, alignContent);
         return this;
     }
 
@@ -874,7 +887,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setAlignItems(YogaAlign alignItems) {
-        set(YogaProperties.ALIGN_ITEMS, alignItems);
+        set(LayoutProperties.ALIGN_ITEMS, alignItems);
         return this;
     }
 
@@ -883,7 +896,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setAlignSelf(YogaAlign alignSelf) {
-        set(YogaProperties.ALIGN_SELF, alignSelf);
+        set(LayoutProperties.ALIGN_SELF, alignSelf);
         return this;
     }
 
@@ -893,7 +906,7 @@ public final class LayoutStyle extends Style {
 
     /* Flex properties */
     public LayoutStyle setFlex(float flex) {
-        set(YogaProperties.FLEX, FloatOptional.of(flex));
+        set(LayoutProperties.FLEX, FloatOptional.of(flex));
         return this;
     }
 
@@ -902,7 +915,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexAuto() {
-        set(YogaProperties.FLEX, FloatOptional.of());
+        set(LayoutProperties.FLEX, FloatOptional.of());
         return this;
     }
 
@@ -911,7 +924,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexBasisAuto() {
-        set(YogaProperties.FLEX_BASIS, StyleSizeLength.ofAuto());
+        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofAuto());
         return this;
     }
 
@@ -920,7 +933,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexBasisPercent(float percent) {
-        set(YogaProperties.FLEX_BASIS, StyleSizeLength.percent(percent));
+        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.percent(percent));
         return this;
     }
 
@@ -929,7 +942,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexBasis(float flexBasis) {
-        set(YogaProperties.FLEX_BASIS, StyleSizeLength.points(flexBasis));
+        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.points(flexBasis));
         return this;
     }
 
@@ -938,7 +951,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexBasisMaxContent() {
-        set(YogaProperties.FLEX_BASIS, StyleSizeLength.ofMaxContent());
+        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofMaxContent());
         return this;
     }
 
@@ -947,7 +960,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexBasisFitContent() {
-        set(YogaProperties.FLEX_BASIS, StyleSizeLength.ofFitContent());
+        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofFitContent());
         return this;
     }
 
@@ -956,7 +969,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexBasisStretch() {
-        set(YogaProperties.FLEX_BASIS, StyleSizeLength.ofStretch());
+        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofStretch());
         return this;
     }
 
@@ -965,7 +978,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexDirection(YogaFlexDirection direction) {
-        set(YogaProperties.FLEX_DIRECTION, direction);
+        set(LayoutProperties.FLEX_DIRECTION, direction);
         return this;
     }
 
@@ -974,7 +987,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexGrow(float flexGrow) {
-        set(YogaProperties.FLEX_GROW, FloatOptional.of(flexGrow));
+        set(LayoutProperties.FLEX_GROW, FloatOptional.of(flexGrow));
         return this;
     }
 
@@ -983,7 +996,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexGrowAuto() {
-        set(YogaProperties.FLEX_GROW, FloatOptional.of());
+        set(LayoutProperties.FLEX_GROW, FloatOptional.of());
         return this;
     }
 
@@ -992,7 +1005,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexShrink(float flexShrink) {
-        set(YogaProperties.FLEX_SHRINK, FloatOptional.of(flexShrink));
+        set(LayoutProperties.FLEX_SHRINK, FloatOptional.of(flexShrink));
         return this;
     }
 
@@ -1001,7 +1014,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setFlexShrinkAuto() {
-        set(YogaProperties.FLEX_SHRINK, FloatOptional.of());
+        set(LayoutProperties.FLEX_SHRINK, FloatOptional.of());
         return this;
     }
 
@@ -1011,7 +1024,7 @@ public final class LayoutStyle extends Style {
 
     /* Other properties */
     public LayoutStyle setJustifyContent(YogaJustify justifyContent) {
-        set(YogaProperties.JUSTIFY_CONTENT, justifyContent);
+        set(LayoutProperties.JUSTIFY_CONTENT, justifyContent);
         return this;
     }
 
@@ -1020,7 +1033,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setDirection(YogaDirection direction) {
-        set(YogaProperties.LAYOUT_DIRECTION, direction);
+        set(LayoutProperties.LAYOUT_DIRECTION, direction);
         return this;
     }
 
@@ -1029,7 +1042,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setWrap(YogaWrap wrap) {
-        set(YogaProperties.FLEX_WRAP, wrap);
+        set(LayoutProperties.FLEX_WRAP, wrap);
         return this;
     }
 
@@ -1038,7 +1051,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setAspectRatio(float aspectRatio) {
-        set(YogaProperties.ASPECT_RATE, FloatOptional.of(aspectRatio));
+        set(LayoutProperties.ASPECT_RATE, FloatOptional.of(aspectRatio));
         return this;
     }
 
@@ -1047,7 +1060,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setAspectRatioAuto() {
-        set(YogaProperties.ASPECT_RATE, FloatOptional.of());
+        set(LayoutProperties.ASPECT_RATE, FloatOptional.of());
         return this;
     }
 
@@ -1056,7 +1069,7 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setGap(YogaGutter gutter, StyleLength value) {
-        set(YogaProperties.GAPS[gutter.ordinal()], value);
+        set(LayoutProperties.GAPS[gutter.ordinal()], value);
         return this;
     }
 
@@ -1105,16 +1118,34 @@ public final class LayoutStyle extends Style {
     }
 
     public LayoutStyle setDisplay(YogaDisplay display) {
-        set(YogaProperties.DISPLAY, display);
+        set(LayoutProperties.DISPLAY, switch (display) {
+            case FLEX, CONTENTS -> TaffyDisplay.FLEX;
+            case NONE -> TaffyDisplay.NONE;
+        });
         return this;
     }
 
+    public LayoutStyle setDisplay(TaffyDisplay display) {
+        set(LayoutProperties.DISPLAY, display);
+        return this;
+    }
+
+    @HideFromJS
     public LayoutStyle display(YogaDisplay display) {
         return setDisplay(display);
     }
 
+    @HideFromJS
+    public LayoutStyle display(TaffyDisplay display) {
+        return setDisplay(display);
+    }
+
+    public LayoutStyle kjs$display(TaffyDisplay display) {
+        return setDisplay(display);
+    }
+
     public LayoutStyle setOverflow(YogaOverflow overflow) {
-        set(YogaProperties.OVERFLOW, overflow);
+        set(LayoutProperties.OVERFLOW, overflow);
         return this;
     }
 
@@ -1122,88 +1153,168 @@ public final class LayoutStyle extends Style {
         return setOverflow(overflow);
     }
 
+    // grid
+    public LayoutStyle girdTemplateRows(String gridTemplateRows) {
+        set(LayoutProperties.GRID_TEMPLATE_ROWS, GridTemplateValue.parse(gridTemplateRows));
+        return this;
+    }
+
+    public LayoutStyle gridTemplateRows(GridTemplate gridTemplateRows) {
+        set(LayoutProperties.GRID_TEMPLATE_ROWS, gridTemplateRows);
+        return this;
+    }
+
+    public LayoutStyle girdTemplateColumns(String girdTemplateColumns) {
+        set(LayoutProperties.GRID_TEMPLATE_COLUMNS, GridTemplateValue.parse(girdTemplateColumns));
+        return this;
+    }
+
+    public LayoutStyle gridTemplateColumns(GridTemplate girdTemplateColumns) {
+        set(LayoutProperties.GRID_TEMPLATE_COLUMNS, girdTemplateColumns);
+        return this;
+    }
+
+    public LayoutStyle girdTemplateAreas(String girdTemplateAreas) {
+        set(LayoutProperties.GRID_TEMPLATE_AREAS, GridTemplateAreasValue.parse(girdTemplateAreas));
+        return this;
+    }
+
+    public LayoutStyle girdTemplateAreas(GridTemplateAreas templateAreas) {
+        set(LayoutProperties.GRID_TEMPLATE_AREAS, templateAreas);
+        return this;
+    }
+
+    public LayoutStyle girdAutoRows(String gridAutoRows) {
+        set(LayoutProperties.GRID_AUTO_ROWS, GridAutoValue.parse(gridAutoRows));
+        return this;
+    }
+
+    public LayoutStyle gridAutoRows(GridAuto gridAutoRows) {
+        set(LayoutProperties.GRID_AUTO_ROWS, gridAutoRows);
+        return this;
+    }
+
+    public LayoutStyle girdAutoColumns(String girdAutoColumns) {
+        set(LayoutProperties.GRID_AUTO_COLUMNS, GridAutoValue.parse(girdAutoColumns));
+        return this;
+    }
+
+    public LayoutStyle girdAutoColumns(GridAuto girdAutoColumns) {
+        set(LayoutProperties.GRID_AUTO_COLUMNS, girdAutoColumns);
+        return this;
+    }
+
+    public LayoutStyle gridAutoFlow(GridAutoFlow gridAutoFlow) {
+        set(LayoutProperties.GRID_AUTO_FLOW, gridAutoFlow);
+        return this;
+    }
+
+    public LayoutStyle girdRow(String gridRow) {
+        set(LayoutProperties.GRID_ROW, GridValue.parse(gridRow));
+        return this;
+    }
+
+    public LayoutStyle gridRow(Grid gridRow) {
+        set(LayoutProperties.GRID_ROW, gridRow);
+        return this;
+    }
+
+    public LayoutStyle girdColumn(String girdColumn) {
+        set(LayoutProperties.GRID_COLUMN, GridValue.parse(girdColumn));
+        return this;
+    }
+
+    public LayoutStyle girdColumn(Grid girdColumn) {
+        set(LayoutProperties.GRID_COLUMN, girdColumn);
+        return this;
+    }
+
     /* Getters */
     public YogaValue getWidth() {
-        return getValueSave(YogaProperties.WIDTH).asYogaValue();
+        return getValueSave(LayoutProperties.WIDTH).asYogaValue();
     }
 
     public YogaValue getMinWidth() {
-        return getValueSave(YogaProperties.MIN[YogaDimension.WIDTH.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.MIN[YogaDimension.WIDTH.ordinal()]).asYogaValue();
     }
 
     public YogaValue getMaxWidth() {
-        return getValueSave(YogaProperties.MAX[YogaDimension.WIDTH.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.MAX[YogaDimension.WIDTH.ordinal()]).asYogaValue();
     }
 
     public YogaValue getHeight() {
-        return getValueSave(YogaProperties.HEIGHT).asYogaValue();
+        return getValueSave(LayoutProperties.HEIGHT).asYogaValue();
     }
 
     public YogaValue getMinHeight() {
-        return getValueSave(YogaProperties.MIN[YogaDimension.HEIGHT.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.MIN[YogaDimension.HEIGHT.ordinal()]).asYogaValue();
     }
 
     public YogaValue getMaxHeight() {
-        return getValueSave(YogaProperties.MAX[YogaDimension.HEIGHT.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.MAX[YogaDimension.HEIGHT.ordinal()]).asYogaValue();
     }
 
     public YogaDirection getStyleDirection() {
-        return getValueSave(YogaProperties.LAYOUT_DIRECTION);
+        return getValueSave(LayoutProperties.LAYOUT_DIRECTION);
     }
 
     public YogaFlexDirection getFlexDirection() {
-        return getValueSave(YogaProperties.FLEX_DIRECTION);
+        return getValueSave(LayoutProperties.FLEX_DIRECTION);
     }
 
     public YogaJustify getJustifyContent() {
-        return getValueSave(YogaProperties.JUSTIFY_CONTENT);
+        return getValueSave(LayoutProperties.JUSTIFY_CONTENT);
     }
 
     public YogaAlign getAlignItems() {
-        return getValueSave(YogaProperties.ALIGN_ITEMS);
+        return getValueSave(LayoutProperties.ALIGN_ITEMS);
     }
 
     public YogaAlign getAlignSelf() {
-        return getValueSave(YogaProperties.ALIGN_SELF);
+        return getValueSave(LayoutProperties.ALIGN_SELF);
     }
 
     public YogaAlign getAlignContent() {
-        return getValueSave(YogaProperties.ALIGN_CONTENT);
+        return getValueSave(LayoutProperties.ALIGN_CONTENT);
     }
 
     public YogaPositionType getPositionType() {
-        return getValueSave(YogaProperties.POSITION);
+        return getValueSave(LayoutProperties.POSITION);
     }
 
     public float getFlexGrow() {
-        return getValueSave(YogaProperties.FLEX_GROW).unwrapOrDefault(YogaStyle.DEFAULT_FLEX_GROW);
+        return getValueSave(LayoutProperties.FLEX_GROW).unwrapOrDefault(YogaStyle.DEFAULT_FLEX_GROW);
     }
 
     public float getFlexShrink() {
-        return getValueSave(YogaProperties.FLEX_SHRINK).unwrapOrDefault(YogaStyle.DEFAULT_FLEX_SHRINK);
+        return getValueSave(LayoutProperties.FLEX_SHRINK).unwrapOrDefault(YogaStyle.DEFAULT_FLEX_SHRINK);
     }
 
     public YogaValue getFlexBasis() {
-        return getValueSave(YogaProperties.FLEX_BASIS).asYogaValue();
+        return getValueSave(LayoutProperties.FLEX_BASIS).asYogaValue();
     }
 
     public float getAspectRatio() {
-        return getValueSave(YogaProperties.ASPECT_RATE).unwrapOrDefault(YogaConstants.UNDEFINED);
+        return getValueSave(LayoutProperties.ASPECT_RATE).unwrapOrDefault(YogaConstants.UNDEFINED);
     }
 
     public YogaValue getMargin(YogaEdge edge) {
-        return getValueSave(YogaProperties.MARGINS[edge.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.MARGINS[edge.ordinal()]).asYogaValue();
     }
 
     public YogaValue getPadding(YogaEdge edge) {
-        return getValueSave(YogaProperties.PADDINGS[edge.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.PADDINGS[edge.ordinal()]).asYogaValue();
     }
 
     public YogaValue getPosition(YogaEdge edge) {
-        return getValueSave(YogaProperties.POSITIONS[edge.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.POSITIONS[edge.ordinal()]).asYogaValue();
     }
 
     public YogaValue getGap(YogaGutter gutter) {
-        return getValueSave(YogaProperties.GAPS[gutter.ordinal()]).asYogaValue();
+        return getValueSave(LayoutProperties.GAPS[gutter.ordinal()]).asYogaValue();
+    }
+
+    public YogaOverflow getOverflow() {
+        return getValueSave(LayoutProperties.OVERFLOW);
     }
 }

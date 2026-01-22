@@ -99,6 +99,7 @@ public class EditorWindow extends UIElement {
         }).setDisplay(YogaDisplay.NONE).style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
         this.editorButtonContainer.addClass("__editor-window_editor-button-container__").moveInlineAsDefault();
 
+        this.editorContainer.getLayout().widthPercent(100).flex(1);
         this.editorContainer.addClass("__editor-window_editor-container__").moveInlineAsDefault();
         this.window.layout(layout -> layout.widthPercent(100).heightPercent(100))
                 .addChildren(this.editorContainer, this.editorButtonContainer);

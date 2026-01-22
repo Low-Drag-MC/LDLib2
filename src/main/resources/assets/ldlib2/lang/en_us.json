@@ -343,6 +343,7 @@
   "property.transition": "Transition",
   "property.layout-direction": "Layout Direction",
   "property.flex.group": "Flex",
+  "property.grid.group": "Grid",
   "property.flex-basis": "Flex Basis",
   "property.flex": "Flex",
   "property.flex-grow": "Flex Grow",

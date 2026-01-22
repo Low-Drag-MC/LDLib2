@@ -8,13 +8,17 @@ import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.vfyjxf.taffy.geometry.TaffySize;
+import dev.vfyjxf.taffy.style.AvailableSpace;
+import dev.vfyjxf.taffy.tree.NodeId;
+import dev.vfyjxf.taffy.tree.TaffyTree;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -33,7 +37,6 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
@@ -75,6 +78,8 @@ public class ModularUI {
     @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
     private Screen screen;
     @Getter
+    private TaffyTree taffyTree;
+    @Getter
     private final StyleEngine styleEngine = new StyleEngine(this);
     @Getter
     private final AnimationEngine animationEngine = new AnimationEngine();
@@ -95,6 +100,8 @@ public class ModularUI {
     private final List<UIElement> elements = new ArrayList<>();
     private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
     private final Map<Class<?>, List<UIElement>> elementsByType = new ConcurrentHashMap<>();
+    private final Map<NodeId, UIElement> elementByNode = new HashMap<>();
+    private final Set<NodeId> nodesWithNewLayout = new HashSet<>();
 
     // UI state
     @Getter @Setter
@@ -152,6 +159,9 @@ public class ModularUI {
     public ModularUI(UI ui, @Nullable Player player) {
         this.ui = ui;
         this.player = player;
+        this.taffyTree = new TaffyTree();
+        this.taffyTree.disableRounding();
+        this.taffyTree.setLayoutChangeListener((nodeId, layout) -> nodesWithNewLayout.add(nodeId));
         this.syncManager = new UISyncManager(this);
         this.styleEngine.addStylesheets(this.ui.getStylesheets());
         this.ui.rootElement.addClass("__root__");
@@ -173,6 +183,13 @@ public class ModularUI {
     public void registerElement(@Nullable UIElement element) {
         if (element == null) return;
         elements.add(element);
+
+        // Add Layout Node
+        element.nodeId = taffyTree.newLeaf(element.getTaffyStyle().style);
+        elementByNode.put(element.nodeId, element);
+        if (element.getParent() != null) {
+            taffyTree.insertChildAtIndex(element.getParent().nodeId, element.getSiblingIndex(), element.nodeId);
+        }
 
         // Register by ID if present and not empty
         String id = element.getId();
@@ -221,6 +238,13 @@ public class ModularUI {
             if (typeList.isEmpty()) {
                 elementsByType.remove(elementType);
             }
+        }
+
+        // Remove Layout Node
+        elementByNode.remove(element.nodeId);
+        if (element.nodeId != null) {
+            taffyTree.remove(element.nodeId);
+            element.nodeId = null;
         }
 
         elements.remove(element);
@@ -446,12 +470,12 @@ public class ModularUI {
                 layout.setHeight(size.getHeight());
             });
         }
-        var isRelative = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.POSITION))
+        var isRelative = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.POSITION))
                 .orElse(YogaPositionType.RELATIVE) != YogaPositionType.ABSOLUTE;
-        var width = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.WIDTH))
+        var width = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.WIDTH))
                 .orElseGet(StyleSizeLength::ofAuto)
                 .asYogaValue();
-        var height = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(YogaProperties.HEIGHT))
+        var height = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.HEIGHT))
                 .orElseGet(StyleSizeLength::ofAuto)
                 .asYogaValue();
         this.width = switch (width.unit) {
@@ -483,21 +507,21 @@ public class ModularUI {
             this.ui.rootElement._setModularUIInternal(this);
         }
         this.ui.rootElement.initScreen(screenWidth, screenHeight);
-        this.ui.rootElement.getLayoutNode().markDirtyAndPropagate();
+        this.ui.rootElement.markTaffyStyleDirty();
         calculateStyleAndLayout();
 
         // if dimension is auto, update real sizes after layout calculation
         if (width.unit == YogaUnit.AUTO) {
-            this.width = ui.rootElement.getLayoutNode().getLayoutWidth();
-            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.layoutNode.getLayoutX();
+            this.width = ui.rootElement.getTaffyLayout().size().width;
+            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.getTaffyLayout().location().x;
         } else {
-            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.layoutNode.getLayoutX();
+            this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.getTaffyLayout().location().x;
         }
         if (height.unit == YogaUnit.AUTO) {
             this.height = ui.rootElement.getSizeHeight();
-            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.layoutNode.getLayoutY();
+            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.getTaffyLayout().location().y;
         } else {
-            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.layoutNode.getLayoutY();
+            this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.getTaffyLayout().location().y;
         }
 
         this.leftPos = Math.round(this.leftPos);
@@ -507,7 +531,7 @@ public class ModularUI {
 
     private void calculateStyleAndLayout() {
         int dirtyCount = 0;
-        while (styleEngine.requireCalculate() || ui.rootElement.getLayoutNode().isDirty()) {
+        while (styleEngine.requireCalculate() || taffyTree.isDirty(ui.rootElement.nodeId)) {
             dirtyCount++;
 
             // calculate style
@@ -515,11 +539,23 @@ public class ModularUI {
                 styleEngine.calculateStyle();
             }
 
-            // calculate layout
-            if (ui.rootElement.getLayoutNode().isDirty()) {
-                ui.rootElement.calculateLayout(layoutWidth, layoutHeight);
+            if (taffyTree.isDirty(ui.rootElement.nodeId)) {
+                taffyTree.computeLayout(ui.rootElement.nodeId, new TaffySize<>(
+                        layoutWidth == YogaConstants.UNDEFINED ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutWidth),
+                        layoutHeight == YogaConstants.UNDEFINED ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutHeight)
+                ));
+
+                for (var nodeId : nodesWithNewLayout) {
+                    var element = elementByNode.get(nodeId);
+                    if (element != null) {
+                        element.onLayoutChanged();
+                    }
+                }
+                nodesWithNewLayout.clear();
+
                 extraAreas.clear();
             }
+
             if (dirtyCount >= 10) {
                 if (isDebugMode() || Platform.isDevEnv()) {
                     LDLib2.LOGGER.warn("UI layout is dirty for more than 10 times per frame, please check your style / layout code.");
@@ -1132,19 +1168,12 @@ public class ModularUI {
                 var sizeY = focusedElement.getSizeHeight();
                 DrawerHelper.drawBorder(graphics, posX, posY, sizeX, sizeY, ColorPattern.PURPLE.color, -1);
             }
+
+            graphics.flush();
+
             // hover element
             var hovered = getLastHoveredElement();
             if (hovered != null) {
-
-                graphics.drawString(font, "hovered element:", x, y, 0xffff0000, true);
-                x += 10;
-                y += 10;
-                for (var info : hovered.getDebugInfo()) {
-                    graphics.drawString(font, info, x, y, -1, true);
-                    y += 10;
-                }
-                x -= 10;
-
                 renderUISpacing(hovered, graphics);
 
                 ///  draw layout box
@@ -1155,11 +1184,12 @@ public class ModularUI {
                 var sy = 12;
                 var dist = 30;
 
+                var layout = hovered.getTaffyLayout();
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "margin", 0x80646669, new String[]{
-                        String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.TOP)),
-                        String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.BOTTOM)),
-                        String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.LEFT)),
-                        String.valueOf(hovered.layoutNode.getLayoutMargin(YogaEdge.RIGHT))
+                        String.valueOf(layout.margin().top),
+                        String.valueOf(layout.margin().bottom),
+                        String.valueOf(layout.margin().left),
+                        String.valueOf(layout.margin().right)
                 });
 
                 sx += dist;
@@ -1167,10 +1197,10 @@ public class ModularUI {
                 sw -= dist * 2;
                 sh -= dist * 2;
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "border", 0x80ff0000, new String[]{
-                        String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.TOP)),
-                        String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.BOTTOM)),
-                        String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.LEFT)),
-                        String.valueOf(hovered.layoutNode.getLayoutBorder(YogaEdge.RIGHT))
+                        String.valueOf(layout.border().top),
+                        String.valueOf(layout.border().bottom),
+                        String.valueOf(layout.border().left),
+                        String.valueOf(layout.border().right)
                 });
 
                 sx += dist;
@@ -1178,10 +1208,10 @@ public class ModularUI {
                 sw -= dist * 2;
                 sh -= dist * 2;
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "padding", 0x8000ff00, new String[]{
-                        String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.TOP)),
-                        String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.BOTTOM)),
-                        String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.LEFT)),
-                        String.valueOf(hovered.layoutNode.getLayoutPadding(YogaEdge.RIGHT)),
+                        String.valueOf(layout.padding().top),
+                        String.valueOf(layout.padding().bottom),
+                        String.valueOf(layout.padding().left),
+                        String.valueOf(layout.padding().right)
                 });
 
                 sx += dist;
@@ -1191,6 +1221,17 @@ public class ModularUI {
                 drawLayoutBox(graphics, font, sx, sy, sw, sh, "content", 0x800000ff, new String[]{
                         hovered.getContentWidth() + " x " + hovered.getContentHeight()
                 });
+
+                graphics.flush();
+
+                graphics.drawString(font, "hovered element:", x, y, 0xffff0000, true);
+                x += 10;
+                y += 10;
+                for (var info : hovered.getDebugInfo()) {
+                    graphics.drawString(font, info, x, y, -1, true);
+                    y += 10;
+                }
+                x -= 10;
             }
 
             // draw cursor

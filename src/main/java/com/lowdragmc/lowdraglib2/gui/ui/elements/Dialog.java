@@ -6,15 +6,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
-import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -325,7 +322,7 @@ public class Dialog extends UIElement {
                                 .addClass("__dialog_progress-bar__")
                                 .animation(animation -> animation
                                         .duration(duration)
-                                        .style(YogaProperties.WIDTH, StyleSizeLength.percent(100))
+                                        .style(LayoutProperties.WIDTH, StyleSizeLength.percent(100))
                                         .onFinished(target -> dialog.close())
                                         .start())
                 ), 0

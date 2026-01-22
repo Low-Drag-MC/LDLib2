@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.data.*;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
 import com.lowdragmc.lowdraglib2.gui.ui.style.properties.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.*;
@@ -221,7 +221,7 @@ public final class PropertyRegistry {
     public static final Property<TextWrap> TEXT_WRAP = create("text-wrap", TextWrap.class, TextWrap.NONE);
 
     public static void init() {
-        YogaProperties.init();
+        LayoutProperties.init();
         BasicStyle.init();
         ProgressBar.ProgressBarStyle.init();
         ScrollerView.ScrollerViewStyle.init();
