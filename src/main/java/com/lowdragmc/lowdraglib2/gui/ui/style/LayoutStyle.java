@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridValue;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import dev.vfyjxf.taffy.style.GridAutoFlow;
 import dev.vfyjxf.taffy.style.TaffyDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
@@ -1055,13 +1056,24 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setWrap(YogaWrap wrap) {
-        set(LayoutProperties.FLEX_WRAP, wrap);
-        return this;
+        return wrap(wrap);
     }
 
+    @HideFromJS
     public LayoutStyle wrap(YogaWrap wrap) {
-        return setWrap(wrap);
+        return wrap(switch (wrap) {
+            case NO_WRAP -> FlexWrap.NO_WRAP;
+            case WRAP -> FlexWrap.WRAP;
+            case WRAP_REVERSE -> FlexWrap.WRAP_REVERSE;
+        });
+    }
+
+    @HideFromJS
+    public LayoutStyle wrap(FlexWrap wrap) {
+        set(LayoutProperties.FLEX_WRAP, wrap);
+        return this;
     }
 
     public LayoutStyle setAspectRatio(float aspectRatio) {

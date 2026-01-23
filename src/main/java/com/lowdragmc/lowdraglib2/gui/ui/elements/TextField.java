@@ -32,6 +32,7 @@ import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -1122,7 +1123,7 @@ public class TextField extends BindableUIElement<String> {
                 layout.setGap(YogaGutter.ALL, 2);
                 layout.setMargin(YogaEdge.LEFT, 2);
                 layout.setFlexDirection(YogaFlexDirection.ROW);
-                layout.setWrap(YogaWrap.WRAP);
+                layout.wrap(FlexWrap.WRAP);
             });
             min.layout(layout -> {
                 layout.setFlex(1);

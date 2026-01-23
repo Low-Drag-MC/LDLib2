@@ -5,11 +5,10 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaWrap;
-import org.joml.Quaternionf;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -54,7 +53,7 @@ public class RangeAccessor extends TypesAccessor<Range> {
             layout.setGap(YogaGutter.ALL, 2);
             layout.setMargin(YogaEdge.LEFT, 2);
             layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWrap(YogaWrap.WRAP);
+            layout.wrap(FlexWrap.WRAP);
         });
         min.layout(layout -> {
             layout.setFlex(1);

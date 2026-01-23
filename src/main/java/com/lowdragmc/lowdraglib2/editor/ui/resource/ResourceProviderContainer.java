@@ -23,6 +23,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -100,7 +101,7 @@ public class ResourceProviderContainer<T> extends UIElement {
         });
         this.scrollerView.viewContainer.layout(layout -> {
            layout.setFlexDirection(YogaFlexDirection.ROW);
-           layout.setWrap(YogaWrap.WRAP);
+           layout.wrap(FlexWrap.WRAP);
         });
         addChild(scrollerView);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);

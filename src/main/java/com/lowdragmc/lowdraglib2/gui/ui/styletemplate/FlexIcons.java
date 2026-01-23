@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.experimental.UtilityClass;
 import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.YogaAlign;
@@ -95,11 +96,11 @@ public final class FlexIcons {
     public static SpriteTexture ALIGN_SELF_FLEX_END_COLUMN = create(2, 8);
     public static SpriteTexture ALIGN_SELF_STRETCH_COLUMN = create(3, 8);
 
-    public static IGuiTexture getFlexWrapIcon(YogaWrap wrap) {
+    public static IGuiTexture getFlexWrapIcon(FlexWrap wrap) {
         return switch (wrap) {
-            case YogaWrap.NO_WRAP -> Icons.NOWRAP;
-            case YogaWrap.WRAP -> Icons.WRAP;
-            case YogaWrap.WRAP_REVERSE -> Icons.WRAP_REVERSE;
+            case FlexWrap.NO_WRAP -> Icons.NOWRAP;
+            case FlexWrap.WRAP -> Icons.WRAP;
+            case FlexWrap.WRAP_REVERSE -> Icons.WRAP_REVERSE;
         };
     }
 

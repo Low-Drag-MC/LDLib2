@@ -136,12 +136,7 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public void setFlexWrap(YogaWrap value) {
-        var flexWrap = switch (value) {
-            case NO_WRAP -> FlexWrap.NO_WRAP;
-            case WRAP -> FlexWrap.WRAP;
-            case WRAP_REVERSE -> FlexWrap.WRAP_REVERSE;
-        };
+    public void setFlexWrap(FlexWrap flexWrap) {
         if (style.flexWrap != flexWrap) {
             style.flexWrap = flexWrap;
             element.markTaffyStyleDirty();

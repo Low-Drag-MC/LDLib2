@@ -6,11 +6,10 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.math.Position;
-import net.minecraft.core.Vec3i;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaWrap;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -46,7 +45,7 @@ public class PositionAccessor extends TypesAccessor<Position> {
             layout.setGap(YogaGutter.ALL, 2);
             layout.setMargin(YogaEdge.LEFT, 2);
             layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWrap(YogaWrap.WRAP);
+            layout.wrap(FlexWrap.WRAP);
         });
         x.layout(layout -> {
             layout.setFlex(1);
