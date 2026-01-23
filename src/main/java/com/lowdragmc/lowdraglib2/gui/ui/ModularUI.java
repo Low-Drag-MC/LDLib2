@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.AvailableSpace;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import dev.vfyjxf.taffy.tree.NodeId;
 import dev.vfyjxf.taffy.tree.TaffyTree;
 import lombok.Getter;
@@ -471,7 +472,7 @@ public class ModularUI {
             });
         }
         var isRelative = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.POSITION))
-                .orElse(YogaPositionType.RELATIVE) != YogaPositionType.ABSOLUTE;
+                .orElse(TaffyPosition.RELATIVE) != TaffyPosition.ABSOLUTE;
         var width = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.WIDTH))
                 .orElseGet(StyleSizeLength::ofAuto)
                 .asYogaValue();

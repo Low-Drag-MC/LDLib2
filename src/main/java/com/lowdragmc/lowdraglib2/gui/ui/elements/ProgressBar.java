@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -28,7 +29,6 @@ import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaPositionType;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -138,7 +138,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 .layout(layout -> {
                     layout.setHeightPercent(100);
                     layout.setWidthPercent(100);
-                    layout.setPositionType(YogaPositionType.ABSOLUTE);
+                    layout.positionType(TaffyPosition.ABSOLUTE);
                 });
 
         this.barContainer.addChildren(new UIElement()

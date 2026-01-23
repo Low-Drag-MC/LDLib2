@@ -14,9 +14,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaPositionType;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector4f;
 
@@ -78,7 +78,7 @@ public class TestUIEvent implements IScreenTest {
                 var parent = target.getParent();
                 assert parent != null;
                 target.startDrag(null, null);
-                target.getLayout().positionType(YogaPositionType.ABSOLUTE)
+                target.getLayout().positionType(TaffyPosition.ABSOLUTE)
                         .left(e.x - parent.getContentX() - target.getSizeWidth() / 2)
                         .top(e.y - parent.getContentY() - target.getSizeHeight() / 2);
                 mouseDown.set(false);
@@ -99,7 +99,7 @@ public class TestUIEvent implements IScreenTest {
             target.setText("dragging");
             var parent = target.getParent();
             assert parent != null;
-            target.getLayout().positionType(YogaPositionType.ABSOLUTE)
+            target.getLayout().positionType(TaffyPosition.ABSOLUTE)
                     .left(e.x - parent.getContentX() - target.getSizeWidth() / 2)
                     .top(e.y - parent.getContentY() - target.getSizeHeight() / 2);
             if (left.isMouseOver(e.x, e.y)) {
@@ -118,7 +118,7 @@ public class TestUIEvent implements IScreenTest {
             }
         });
         target.addEventListener(UIEvents.DRAG_END, e -> {
-            target.getLayout().positionType(YogaPositionType.RELATIVE).left(0).top(0);
+            target.getLayout().positionType(TaffyPosition.RELATIVE).left(0).top(0);
             if (left != target.getParent() && left.isMouseOver(e.x, e.y)) {
                 left.addChildren(target);
             } else if (right != target.getParent() && right.isMouseOver(e.x, e.y)) {

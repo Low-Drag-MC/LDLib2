@@ -24,6 +24,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -37,7 +38,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
-import org.appliedenergistics.yoga.YogaPositionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -411,23 +411,23 @@ public class TestComponentExamples implements IScreenTest {
         return new UIElement().layout(layout -> layout.gapAll(2).widthPercent(100).heightPercent(100)).addChildren(
                 new GraphView()
                         .addContentChild(new Button().layout(layout -> layout
-                                .setPositionType(YogaPositionType.ABSOLUTE)
+                                .positionType(TaffyPosition.ABSOLUTE)
                                 .left(0)
                                 .top(0)
                         ).transform(transform2D -> transform2D.rotation(-45)))
                         .addContentChild(new Button().layout(layout -> layout
-                                .setPositionType(YogaPositionType.ABSOLUTE)
+                                .positionType(TaffyPosition.ABSOLUTE)
                                 .left(15)
                                 .top(50)
                         ))
                         .addContentChild(new TextField().layout(layout -> layout
-                                .setPositionType(YogaPositionType.ABSOLUTE)
+                                .positionType(TaffyPosition.ABSOLUTE)
                                 .width(150)
                                 .left(30)
                                 .top(20)
                         ))
                         .addContentChild(new UIElement().layout(layout -> layout
-                                .setPositionType(YogaPositionType.ABSOLUTE)
+                                .positionType(TaffyPosition.ABSOLUTE)
                                 .width(100)
                                 .height(100)
                                 .left(100)

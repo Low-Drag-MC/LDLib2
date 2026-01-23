@@ -110,7 +110,7 @@ public class CommonListeners {
 //                                        return Component.literal("burn time: %.2f / %.2f s"
 //                                                .formatted(data.get(2) / 20f, data.get(3) / 20f));
 //                                    }).build())
-//                            ).layout(layout -> layout.positionType(YogaPositionType.ABSOLUTE)
+//                            ).layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
 //                                            .widthPercent(100).paddingAll(5).top(-15))
 //                                    .style(style -> style.background(MCSprites.BORDER))
 //                    )), player);
@@ -137,7 +137,7 @@ public class CommonListeners {
 //                                                    }
 //                                                }
 //                                            }).build())
-//                                    ).layout(layout -> layout.positionType(YogaPositionType.ABSOLUTE)
+//                                    ).layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
 //                                            .width(50).paddingAll(5).left(173).top(-5))
 //                                    .style(style -> style.background(MCSprites.BORDER))
 //                    ), StylesheetManager.INSTANCE.getStylesheetSafe(StylesheetManager.MC)), player);

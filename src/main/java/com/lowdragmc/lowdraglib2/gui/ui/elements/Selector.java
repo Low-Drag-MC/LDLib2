@@ -20,6 +20,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -178,7 +179,7 @@ public class Selector<T> extends BindableUIElement<T> {
         this.dialog
                 .layout(layout -> {
                     layout.setHeight(StyleSizeLength.AUTO);
-                    layout.setPositionType(YogaPositionType.ABSOLUTE);
+                    layout.positionType(TaffyPosition.ABSOLUTE);
                 })
                 .addChildren(listView = new UIElement().layout(layout -> layout.setPadding(YogaEdge.ALL, 2)), scrollerView = new ScrollerView())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
@@ -275,7 +276,7 @@ public class Selector<T> extends BindableUIElement<T> {
                 })
                 .noText()
                 .layout(layout -> {
-                    layout.setPositionType(YogaPositionType.ABSOLUTE);
+                    layout.positionType(TaffyPosition.ABSOLUTE);
                     layout.setHeightPercent(100);
                     layout.setWidthPercent(100);
                 })

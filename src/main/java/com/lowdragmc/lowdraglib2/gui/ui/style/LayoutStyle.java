@@ -705,13 +705,24 @@ public final class LayoutStyle extends Style {
     }
 
     /* Position properties */
+    @Deprecated(since = "26.1")
     public LayoutStyle setPositionType(YogaPositionType positionType) {
-        set(LayoutProperties.POSITION, positionType);
-        return this;
+        return positionType(positionType);
     }
 
+    @Deprecated(since = "26.1")
+    @HideFromJS
     public LayoutStyle positionType(YogaPositionType positionType) {
-        return setPositionType(positionType);
+        return positionType(switch (positionType) {
+            case STATIC, RELATIVE -> TaffyPosition.RELATIVE;
+            case ABSOLUTE -> TaffyPosition.ABSOLUTE;
+        });
+    }
+
+    @HideFromJS
+    public LayoutStyle positionType(TaffyPosition positionType) {
+        set(LayoutProperties.POSITION, positionType);
+        return this;
     }
 
     public LayoutStyle setPosition(YogaEdge edge, StyleLength length) {
@@ -1308,7 +1319,7 @@ public final class LayoutStyle extends Style {
         return getValueSave(LayoutProperties.ALIGN_CONTENT);
     }
 
-    public YogaPositionType getPositionType() {
+    public TaffyPosition getPositionType() {
         return getValueSave(LayoutProperties.POSITION);
     }
 

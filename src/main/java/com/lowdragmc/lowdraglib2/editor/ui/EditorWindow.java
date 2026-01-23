@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -92,7 +93,7 @@ public class EditorWindow extends UIElement {
 
         this.editorButtonContainer.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
+            layout.positionType(TaffyPosition.ABSOLUTE);
             layout.setPosition(YogaEdge.TOP, 15);
             layout.setWidthPercent(100);
             layout.setGap(YogaGutter.ALL, 1);
@@ -257,7 +258,7 @@ public class EditorWindow extends UIElement {
         if (maximized) return;
         layout(layout -> layout.widthPercent(100).heightPercent(100));
         window.layout(layout -> layout
-                .positionType(YogaPositionType.RELATIVE)
+                .positionType(TaffyPosition.RELATIVE)
                 .paddingAll(0)
                 .left(0)
                 .top(0)
@@ -278,7 +279,7 @@ public class EditorWindow extends UIElement {
         // at least 1px to display xei.
         layout(layout -> layout.width(1).height(1));
         window.layout(layout -> layout
-                .positionType(YogaPositionType.ABSOLUTE)
+                .positionType(TaffyPosition.ABSOLUTE)
                 .paddingAll(3)
                 .left(windowLeft)
                 .top(windowTop)

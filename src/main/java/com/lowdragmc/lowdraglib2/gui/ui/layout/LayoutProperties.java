@@ -36,7 +36,7 @@ public final class LayoutProperties {
     public static final Property<FloatOptional> FLEX_SHRINK = create("flex-shrink", FloatOptional.of());
     public static final Property<FlexDirection> FLEX_DIRECTION = PropertyRegistry.create("flex-direction", FlexDirection.class, FlexDirection.COLUMN).setIconProvider(FlexIcons::getFlexDirectionIcon);
     public static final Property<FlexWrap> FLEX_WRAP = PropertyRegistry.create("flex-wrap", FlexWrap.class, FlexWrap.NO_WRAP).setIconProvider(FlexIcons::getFlexWrapIcon);
-    public static final Property<YogaPositionType> POSITION = PropertyRegistry.create("position", YogaPositionType.class, YogaPositionType.RELATIVE);
+    public static final Property<TaffyPosition> POSITION = PropertyRegistry.create("position", TaffyPosition.class, TaffyPosition.RELATIVE);
     public static final Property<StyleLength>[] POSITIONS = createEdge("");
     public static final Property<StyleLength>[] MARGINS = createEdge("margin");
     public static final Property<StyleLength>[] PADDINGS = createEdge("padding");

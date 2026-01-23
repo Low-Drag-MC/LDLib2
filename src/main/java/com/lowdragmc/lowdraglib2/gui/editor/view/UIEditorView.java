@@ -29,6 +29,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -271,7 +272,7 @@ public class UIEditorView extends View {
                         .toggleButton(button -> button.text
                                 .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.LEFT))
                                 .setDisplay(true)
-                                .layout(layout -> layout.setPositionType(YogaPositionType.ABSOLUTE)))
+                                .layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)))
                         .bindDataSource(SupplierDataSource.of(this::isEditingBuiltinStyles), false)
                         .selfCall(toggle -> ((Toggle) toggle).setOnToggleChanged(isOn -> {
                             if (isOn) {

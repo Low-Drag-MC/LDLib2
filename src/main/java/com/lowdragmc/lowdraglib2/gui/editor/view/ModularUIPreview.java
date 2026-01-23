@@ -8,12 +8,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaPositionType;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -138,7 +138,7 @@ public class ModularUIPreview extends UIElement {
         public final Label label;
 
         public SelectionBox() {
-            getLayout().setPositionType(YogaPositionType.ABSOLUTE);
+            getLayout().positionType(TaffyPosition.ABSOLUTE);
             getLayout().setWidth(0);
             getLayout().setHeight(0);
             setDisplay(false);
@@ -148,7 +148,7 @@ public class ModularUIPreview extends UIElement {
             label = new Label();
             widgetsGroup.layout(layout -> {
                 layout.flexDirection(FlexDirection.ROW);
-                layout.setPositionType(YogaPositionType.ABSOLUTE);
+                layout.positionType(TaffyPosition.ABSOLUTE);
                 layout.setPosition(YogaEdge.TOP, -15);
                 layout.setPadding(YogaEdge.ALL, 2);
                 layout.setHeight(14);

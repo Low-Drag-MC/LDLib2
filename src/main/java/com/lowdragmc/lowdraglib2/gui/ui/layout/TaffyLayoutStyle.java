@@ -137,12 +137,7 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public void setPosition(YogaPositionType value) {
-        var position = switch (value) {
-            case STATIC -> TaffyPosition.RELATIVE;
-            case RELATIVE -> TaffyPosition.RELATIVE;
-            case ABSOLUTE -> TaffyPosition.ABSOLUTE;
-        };
+    public void setPosition(TaffyPosition position) {
         if (style.position != position) {
             style.position = position;
             element.markTaffyStyleDirty();

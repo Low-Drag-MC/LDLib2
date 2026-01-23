@@ -12,12 +12,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaOverflow;
-import org.appliedenergistics.yoga.YogaPositionType;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
@@ -120,7 +120,7 @@ public class GraphView extends UIElement {
         setOverflow(YogaOverflow.HIDDEN);
 
         contentRoot.layout(l -> {
-            l.setPositionType(YogaPositionType.ABSOLUTE);
+            l.positionType(TaffyPosition.ABSOLUTE);
             l.setWidth(0);
             l.setHeight(0);
         }).addClass("__graph-view_content-root__");

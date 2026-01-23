@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRenderi
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
@@ -93,7 +94,7 @@ public class SceneEditor extends UIElement implements IScene {
 
         this.gizmoBar = new UIElement();
         gizmoBar.layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
+            layout.positionType(TaffyPosition.ABSOLUTE);
             layout.setPosition(YogaEdge.TOP, 18);
             layout.setWidth(20);
             layout.setPadding(YogaEdge.ALL, 3);
@@ -105,7 +106,7 @@ public class SceneEditor extends UIElement implements IScene {
             style.textAlignHorizontal(Horizontal.CENTER);
             style.textAlignVertical(Vertical.CENTER);
         }).layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
+            layout.positionType(TaffyPosition.ABSOLUTE);
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);
         });

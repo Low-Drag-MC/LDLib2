@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -133,7 +134,7 @@ public class Menu<K, T> extends UIElement {
 
         getLayout().setPadding(YogaEdge.ALL, 2);
         getLayout().setGap(YogaGutter.ALL, 2);
-        getLayout().setPositionType(YogaPositionType.ABSOLUTE);
+        getLayout().positionType(TaffyPosition.ABSOLUTE);
         getLayout().setMinWidth(120);
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
         getStyle().zIndex(100);

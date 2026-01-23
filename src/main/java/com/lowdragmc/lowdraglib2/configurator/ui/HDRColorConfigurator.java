@@ -9,9 +9,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.client.gui.GuiGraphics;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaPositionType;
 import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
@@ -60,7 +60,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
 
         this.dialog.style(style -> style.zIndex(1).backgroundTexture(Sprites.BORDER));
         this.dialog.layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
+            layout.positionType(TaffyPosition.ABSOLUTE);
             layout.setWidthPercent(100);
             layout.setMaxWidth(150);
             layout.setMinWidth(100);

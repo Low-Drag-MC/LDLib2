@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -46,7 +47,7 @@ public class Dialog extends UIElement {
         this.contentContainer = new UIElement().addClass("__dialog_content-container__");
         this.buttonContainer = new UIElement().addClass("__dialog_button-container__");
         this.setFocusable(true);
-        this.getLayout().setPositionType(YogaPositionType.ABSOLUTE);
+        this.getLayout().positionType(TaffyPosition.ABSOLUTE);
         this.getLayout().setWidthPercent(100);
         this.getLayout().setHeightPercent(100);
         this.getLayout().setJustifyContent(YogaJustify.CENTER);

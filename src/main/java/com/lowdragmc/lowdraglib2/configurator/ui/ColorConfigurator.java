@@ -9,9 +9,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.client.gui.GuiGraphics;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaPositionType;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
@@ -37,7 +37,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         });
         this.colorSelector.addClass("panel_bg");
         this.colorSelector.layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
+            layout.positionType(TaffyPosition.ABSOLUTE);
             layout.setWidthPercent(100);
             layout.setMaxWidth(150);
             layout.setMinWidth(100);
