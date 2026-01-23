@@ -260,26 +260,17 @@ public class ScrollerView extends UIElement {
             // so we need to calculate the width ourselves
             var vp = Math.min(1, viewPort.getContentWidth() / lastContainerWidth);
             horizontalScroller.setScrollBarSize(vp * 100);
-            if ((scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                horizontalScroller.setDisplay(YogaDisplay.FLEX);
-
-            } else {
-                horizontalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            horizontalScroller.setDisplay((scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            horizontalScroller.setDisplay(YogaDisplay.NONE);
+            horizontalScroller.setDisplay(false);
         }
 
         if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
             var hp = Math.min(1, viewPort.getContentHeight() / lastContainerHeight);
             verticalScroller.setScrollBarSize(hp * 100);
-            if ((scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                verticalScroller.setDisplay(YogaDisplay.FLEX);
-            } else {
-                verticalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            verticalScroller.setDisplay((scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            verticalScroller.setDisplay(YogaDisplay.NONE);
+            verticalScroller.setDisplay(false);
         }
 
         if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {

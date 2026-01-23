@@ -177,7 +177,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         });
         textField.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         textField.textFieldStyle(textFieldStyle -> textFieldStyle.focusOverlay(IGuiTexture.EMPTY));
-        textField.setDisplay(YogaDisplay.NONE);
+        textField.setDisplay(false);
         textField.addEventListener(UIEvents.FOCUS, event -> show());
         textField.addEventListener(UIEvents.BLUR, event -> {
             var mui = getModularUI();
@@ -213,14 +213,14 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         listView.addClass("__search-component_list-view__");
         scrollerView.addClass("__search-component_scroller-view__");
 
-        scrollerView.verticalScroller.headButton.setDisplay(YogaDisplay.NONE);
-        scrollerView.verticalScroller.tailButton.setDisplay(YogaDisplay.NONE);
-        scrollerView.horizontalScroller.headButton.setDisplay(YogaDisplay.NONE);
-        scrollerView.horizontalScroller.tailButton.setDisplay(YogaDisplay.NONE);
+        scrollerView.verticalScroller.headButton.setDisplay(false);
+        scrollerView.verticalScroller.tailButton.setDisplay(false);
+        scrollerView.horizontalScroller.headButton.setDisplay(false);
+        scrollerView.horizontalScroller.tailButton.setDisplay(false);
         scrollerView.viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         scrollerView.viewPort.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
         scrollerView.layout(layout -> layout.setFlexGrow(1));
-        scrollerView.setDisplay(YogaDisplay.NONE);
+        scrollerView.setDisplay(false);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
         addChildren(preview, textField);
 
@@ -299,15 +299,15 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         scrollerView.clearAllScrollViewChildren();
         if (candidates.size() <= searchStyle.maxItemCount()) {
             // list view
-            scrollerView.setDisplay(YogaDisplay.NONE);
-            listView.setDisplay(YogaDisplay.FLEX);
+            scrollerView.setDisplay(false);
+            listView.setDisplay(true);
             for (T candidate : candidates) {
                 listView.addChild(createItemUI(candidate));
             }
         } else {
             // scroller view
-            listView.setDisplay(YogaDisplay.NONE);
-            scrollerView.setDisplay(YogaDisplay.FLEX);
+            listView.setDisplay(false);
+            scrollerView.setDisplay(true);
             scrollerView.layout(layout -> layout.setHeight(searchStyle.scrollerViewHeight()));
             for (T candidate : candidates) {
                 scrollerView.addScrollViewChild(createItemUI(candidate));
@@ -421,8 +421,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                 layout.setWidth(this.getSizeWidth());
             }));
         }
-        preview.setDisplay(YogaDisplay.NONE);
-        textField.setDisplay(YogaDisplay.FLEX);
+        preview.setDisplay(false);
+        textField.setDisplay(true);
     }
 
     public void hide() {
@@ -432,8 +432,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             parent.removeChild(this.dialog);
         }
         textField.setText(value == null ? "" : searchUI.resultText(value));
-        preview.setDisplay(YogaDisplay.FLEX);
-        textField.setDisplay(YogaDisplay.NONE);
+        preview.setDisplay(true);
+        textField.setDisplay(false);
     }
 
     /// rendering

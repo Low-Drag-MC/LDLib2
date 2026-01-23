@@ -32,7 +32,7 @@ public class StyleSizeLengthConfigurator extends ValueConfigurator<StyleSizeLeng
         });
         inlineContainer.addChildren(textField = new TextField(), unitSelector = new Selector<>());
 
-        unitSelector.buttonIcon.setDisplay(YogaDisplay.NONE);
+        unitSelector.buttonIcon.setDisplay(false);
         unitSelector.layout(layout -> {
             layout.setFlex(1);
         });
@@ -75,9 +75,9 @@ public class StyleSizeLengthConfigurator extends ValueConfigurator<StyleSizeLeng
         assert value != null;
         if (value.isPercent() || value.isPoints()) {
             textField.setText(String.valueOf(value.asYogaValue().value), false);
-            textField.setDisplay(YogaDisplay.FLEX);
+            textField.setDisplay(true);
         } else {
-            textField.setDisplay(YogaDisplay.NONE);
+            textField.setDisplay(false);
         }
     }
 

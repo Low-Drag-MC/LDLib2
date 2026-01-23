@@ -33,7 +33,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
         });
         inlineContainer.addChildren(textField = new TextField(), definedSelector = new Selector<>());
 
-        definedSelector.buttonIcon.setDisplay(YogaDisplay.NONE);
+        definedSelector.buttonIcon.setDisplay(false);
         definedSelector.layout(layout -> {
             layout.setFlex(1);
         });
@@ -53,7 +53,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
 
         textField.layout(layout -> {
             layout.setFlex(2);
-        }).setDisplay(value.isDefined() ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        }).setDisplay(value.isDefined());
         textField.setTextResponder(this::onNumberUpdate);
         updateTextField();
     }
@@ -97,7 +97,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
 
     protected void updateTextFieldValue() {
         assert value != null;
-        textField.setDisplay(value.isDefined() ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        textField.setDisplay(value.isDefined());
         textField.setText(String.valueOf(value.getValue()), false);
     }
 

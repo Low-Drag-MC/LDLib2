@@ -74,9 +74,9 @@ public class Configurator extends UIElement {
                     layout.setHeight(14);
                 }).style(style -> style.backgroundTexture(Icons.HELP))));
         if (name.isEmpty()) {
-            this.label.setDisplay(YogaDisplay.NONE);
+            this.label.setDisplay(false);
         }
-        this.tip.setDisplay(YogaDisplay.NONE);
+        this.tip.setDisplay(false);
 
         this.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
 
@@ -88,13 +88,13 @@ public class Configurator extends UIElement {
 
     public Configurator setLabel(String name) {
         this.label.setText(name);
-        this.label.setDisplay(name.isEmpty() ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        this.label.setDisplay(!name.isEmpty());
         return this;
     }
 
     public Configurator setLabel(Component name) {
         this.label.setText(name);
-        this.label.setDisplay(name.getString().isEmpty() ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        this.label.setDisplay(!name.getString().isEmpty());
         return this;
     }
 
@@ -108,13 +108,13 @@ public class Configurator extends UIElement {
 
     public Configurator setTips(String... tips) {
         this.tip.style(style -> style.appendTooltipsString(tips));
-        this.tip.setDisplay(tips.length > 0 ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        this.tip.setDisplay(tips.length > 0);
         return this;
     }
 
     public Configurator setTips(Component... tips) {
         this.tip.style(style -> style.appendTooltips(tips));
-        this.tip.setDisplay(tips.length > 0 ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        this.tip.setDisplay(tips.length > 0);
         return this;
     }
 

@@ -125,12 +125,12 @@ public class View extends UIElement {
                 var h = tab.getSizeHeight();
                 tab.startDrag(this, new GuiTextureGroup(ColorPattern.T_WHITE.rectTexture(), new TextTexture(name).setWidth((int) w)))
                         .setDragTexture(- w / 2, -h / 2, w, h);
-                tab.setDisplay(YogaDisplay.NONE);
+                tab.setDisplay(false);
             }
             lastClickTime = 0;
         }, true);
         tab.addEventListener(UIEvents.DRAG_END, e -> {
-            tab.setDisplay(YogaDisplay.FLEX);
+            tab.setDisplay(true);
         });
         return tab;
     }

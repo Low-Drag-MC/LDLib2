@@ -94,7 +94,7 @@ public class TestSerialization implements IScreenTest {
             var instance = getter.get();
             if (instance != null && instance.createDirectConfigurator() instanceof ConfiguratorGroup group) {
                 group.setCollapse(false);
-                group.lineContainer.setDisplay(YogaDisplay.NONE);
+                group.lineContainer.setDisplay(false);
                 return group;
             }
             return new Configurator();

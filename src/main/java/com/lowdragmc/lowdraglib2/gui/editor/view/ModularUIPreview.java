@@ -101,7 +101,7 @@ public class ModularUIPreview extends UIElement {
         var selectedOne = editorView.hierarchy.getSelectedOne();
         if (showSelectionBox && selectedOne.isPresent()) {
             var selected = selectedOne.get();
-            selectionBox.setDisplay(YogaDisplay.FLEX);
+            selectionBox.setDisplay(true);
             var posX = selected.getPositionX();
             var posY = selected.getPositionY();
             var sizeX = selected.getSizeWidth();
@@ -125,7 +125,7 @@ public class ModularUIPreview extends UIElement {
                 layout.setHeight(height);
             });
         } else {
-            selectionBox.setDisplay(YogaDisplay.NONE);
+            selectionBox.setDisplay(false);
         }
     }
 
@@ -142,7 +142,7 @@ public class ModularUIPreview extends UIElement {
             getLayout().setPositionType(YogaPositionType.ABSOLUTE);
             getLayout().setWidth(0);
             getLayout().setHeight(0);
-            setDisplay(YogaDisplay.NONE);
+            setDisplay(false);
 
             getStyle().backgroundTexture(ColorPattern.BLUE.borderTexture(1));
             widgetsGroup = new UIElement();

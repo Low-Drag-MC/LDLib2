@@ -279,13 +279,19 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
+    @Deprecated(since = "26.1")
     public UIElement setDisplay(YogaDisplay display) {
-        layoutStyle.setDisplay(display);
+        layoutStyle.display(display);
+        return this;
+    }
+
+    public UIElement setDisplay(TaffyDisplay display) {
+        layoutStyle.display(display);
         return this;
     }
 
     public UIElement setDisplay(boolean display) {
-        layoutStyle.setDisplay(display ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        layoutStyle.display(display ? TaffyDisplay.FLEX : TaffyDisplay.NONE);
         return this;
     }
 

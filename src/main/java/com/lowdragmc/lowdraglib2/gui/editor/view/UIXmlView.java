@@ -141,7 +141,7 @@ public class UIXmlView extends View {
             layout.setFlex(1);
         });
         canvas.setOverflowVisible(false);
-        canvas.setDisplay(YogaDisplay.NONE);
+        canvas.setDisplay(false);
         canvas.addClass("__ui-editor-view_canvas__").moveInlineAsDefault();
 
         // editor initial
@@ -236,16 +236,16 @@ public class UIXmlView extends View {
     public void startSimulation() {
         if (this.document == null) return;
         canvas.startSimulation(UI.of(this.document));
-        canvas.setDisplay(YogaDisplay.FLEX);
-        editor.setDisplay(YogaDisplay.NONE);
+        canvas.setDisplay(true);
+        editor.setDisplay(false);
     }
 
     /**
      * Stops the simulation mode for the user interface and transitions the editor UI back to its editing state.
      */
     public void stopSimulation() {
-        canvas.setDisplay(YogaDisplay.NONE);
-        editor.setDisplay(YogaDisplay.FLEX);
+        canvas.setDisplay(false);
+        editor.setDisplay(true);
         canvas.stopSimulation();
     }
 

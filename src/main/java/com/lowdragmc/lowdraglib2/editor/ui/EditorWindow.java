@@ -96,7 +96,7 @@ public class EditorWindow extends UIElement {
             layout.setWidthPercent(100);
             layout.setGap(YogaGutter.ALL, 1);
             layout.setHeight(14);
-        }).setDisplay(YogaDisplay.NONE).style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
+        }).setDisplay(false).style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
         this.editorButtonContainer.addClass("__editor-window_editor-button-container__").moveInlineAsDefault();
 
         this.editorContainer.getLayout().widthPercent(100).flex(1);
@@ -123,14 +123,14 @@ public class EditorWindow extends UIElement {
     public void showEditor(Editor editor) {
         if (currentEditor == editor) return;
         if (currentEditor != null) {
-            currentEditor.setDisplay(YogaDisplay.NONE);
+            currentEditor.setDisplay(false);
         }
         currentEditor = editor;
-        editor.setDisplay(YogaDisplay.FLEX);
+        editor.setDisplay(true);
         editor.mainView.layout(layout -> {
             layout.setMargin(YogaEdge.TOP, hasMultipleEditors() ? 14 : 0);
         });
-        editorButtonContainer.setDisplay(hasMultipleEditors() ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        editorButtonContainer.setDisplay(hasMultipleEditors());
         for (var entry : editors.entrySet()) {
             var isCurrent = entry.getKey() == currentEditor;
             entry.getValue().style(style -> {

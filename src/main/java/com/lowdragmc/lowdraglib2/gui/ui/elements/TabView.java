@@ -101,7 +101,7 @@ public class TabView extends UIElement {
                 selectTab(tab);
             }
         });
-        content.setDisplay(YogaDisplay.NONE);
+        content.setDisplay(false);
         tabScroller.addScrollViewChildAt(tab, index);
         tabContentContainer.addChildAt(content, index);
         tabContents.put(tab, content);
@@ -148,7 +148,7 @@ public class TabView extends UIElement {
             selectedTab.setSelected(false);
             var content = tabContents.get(selectedTab);
             if (content != null) {
-                content.setDisplay(YogaDisplay.NONE);
+                content.setDisplay(false);
                 content.removeClass("_tab_content_selected_");
             }
         }
@@ -156,7 +156,7 @@ public class TabView extends UIElement {
         selectedTab.setSelected(true);
         var content = tabContents.get(selectedTab);
         if (content != null) {
-            content.setDisplay(YogaDisplay.FLEX);
+            content.setDisplay(true);
             content.addClass("__tab_content_selected__");
         }
         onTabSelected.accept(selectedTab);
@@ -243,7 +243,7 @@ public class TabView extends UIElement {
                                 selectTab(tabElement);
                             }
                         });
-                        content.setDisplay(YogaDisplay.NONE);
+                        content.setDisplay(false);
                         if (selectedIndex == i) {
                             selectTab(tabElement);
                         }

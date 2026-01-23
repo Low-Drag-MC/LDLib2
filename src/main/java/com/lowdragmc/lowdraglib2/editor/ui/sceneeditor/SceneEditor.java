@@ -124,11 +124,11 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     public void disableTransformGizmo() {
-        gizmoBar.setDisplay(YogaDisplay.NONE);
+        gizmoBar.setDisplay(false);
     }
 
     public void enableTransformGizmo() {
-        gizmoBar.setDisplay(YogaDisplay.FLEX);
+        gizmoBar.setDisplay(true);
     }
 
     public void setTransformGizmoTarget(@Nullable Transform transform) {

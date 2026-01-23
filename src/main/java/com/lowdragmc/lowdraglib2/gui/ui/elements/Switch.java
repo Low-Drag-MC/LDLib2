@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.TaffyDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -122,7 +123,7 @@ public class Switch extends BindableUIElement<Boolean> {
         getLayout().setHeight(14);
         getLayout().setWidth(26);
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(Sprites.RECT_RD_DARK));
-        Style.importantPipeline(getLayout(), layout -> layout.setDirection(YogaDirection.LTR));
+        Style.importantPipeline(getLayout(), layout -> layout.direction(TaffyDirection.LTR));
         addEventListener(UIEvents.MOUSE_DOWN, this::onSwitchClick);
 
         this.markIcon = new UIElement();
@@ -179,7 +180,7 @@ public class Switch extends BindableUIElement<Boolean> {
 
     protected void updateSwitchStyle() {
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(isOn ? switchStyle.pressedTexture() : switchStyle.baseTexture()));
-        Style.importantPipeline(getLayout(), layout -> layout.setDirection(isOn ? YogaDirection.RTL : YogaDirection.LTR));
+        Style.importantPipeline(getLayout(), layout -> layout.direction(isOn ? TaffyDirection.RTL : TaffyDirection.LTR));
         Style.importantPipeline(markIcon.getStyle(), style -> style.backgroundTexture(isOn ? switchStyle.markTexture() : switchStyle.unmarkTexture()));
     }
 

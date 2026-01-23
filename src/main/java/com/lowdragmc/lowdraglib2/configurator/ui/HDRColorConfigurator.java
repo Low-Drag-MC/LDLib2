@@ -10,12 +10,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import net.minecraft.client.gui.GuiGraphics;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaPositionType;
 import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -43,8 +43,8 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         this.intensityConfigurator.setType(ConfigNumber.Type.FLOAT);
         this.colorSelector.setOnColorChangeListener(color -> updateValueActively(new Vector4f(
                 ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color),
-                this.intensityConfigurator.getValue().floatValue())));
-        this.colorSelector.alphaSlider.setDisplay(YogaDisplay.NONE);
+                Optional.ofNullable(this.intensityConfigurator.getValue()).map(Number::floatValue).orElse(1f))));
+        this.colorSelector.alphaSlider.setDisplay(false);
 
 
         inlineContainer.addChildren(colorPreview = new UIElement().layout(layout -> {

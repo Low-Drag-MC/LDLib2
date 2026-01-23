@@ -71,7 +71,7 @@ public class ConfiguratorGroup extends Configurator {
     }
 
     public ConfiguratorGroup hideTitle() {
-        this.lineContainer.setDisplay(YogaDisplay.NONE);
+        this.lineContainer.setDisplay(false);
         return this;
     }
 
@@ -84,7 +84,7 @@ public class ConfiguratorGroup extends Configurator {
 
     public ConfiguratorGroup setCollapse(boolean collapse) {
         isCollapse = collapse;
-        configuratorContainer.setDisplay(collapse ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        configuratorContainer.setDisplay(!collapse);
         folderIcon.style(style -> style.backgroundTexture(collapse ? Icons.RIGHT_ARROW_NO_BAR_S_LIGHT : Icons.DOWN_ARROW_NO_BAR_S_LIGHT));
         return this;
     }

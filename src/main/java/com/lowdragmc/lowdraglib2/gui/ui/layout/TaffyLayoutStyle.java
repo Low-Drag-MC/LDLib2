@@ -73,12 +73,7 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public void setDirection(YogaDirection value) {
-        var direction = switch (value) {
-            case INHERIT -> TaffyDirection.INHERIT;
-            case LTR -> TaffyDirection.LTR;
-            case RTL -> TaffyDirection.RTL;
-        };
+    public void setDirection(TaffyDirection direction) {
         if (style.direction != direction) {
             style.direction = direction;
             element.markTaffyStyleDirty();

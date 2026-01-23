@@ -433,14 +433,9 @@ public class TextArea extends BindableUIElement<String[]> {
             // so we need to calculate the width ourselves
             var vp = Math.min(1, contentView.getContentWidth() / maxWidth);
             horizontalScroller.setScrollBarSize(vp * 100);
-            if ((textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                horizontalScroller.setDisplay(YogaDisplay.FLEX);
-
-            } else {
-                horizontalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            horizontalScroller.setDisplay((textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            horizontalScroller.setDisplay(YogaDisplay.NONE);
+            horizontalScroller.setDisplay(false);
         }
 
         if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {
@@ -453,13 +448,9 @@ public class TextArea extends BindableUIElement<String[]> {
         if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
             var hp = Math.min(1, contentView.getContentHeight() / maxHeight);
             verticalScroller.setScrollBarSize(hp * 100);
-            if ((textAreaStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || textAreaStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                verticalScroller.setDisplay(YogaDisplay.FLEX);
-            } else {
-                verticalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            verticalScroller.setDisplay((textAreaStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || textAreaStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            verticalScroller.setDisplay(YogaDisplay.NONE);
+            verticalScroller.setDisplay(false);
         }
     }
 

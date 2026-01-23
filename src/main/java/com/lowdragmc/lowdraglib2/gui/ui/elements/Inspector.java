@@ -127,7 +127,7 @@ public class Inspector extends UIElement {
 
     private <T extends IConfigurable> ConfiguratorGroup inspectInternal(T configurable) {
         var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
-        group.lineContainer.setDisplay(YogaDisplay.NONE);
+        group.lineContainer.setDisplay(false);
         group.configuratorContainer.layout(layout -> {
             layout.setMargin(YogaEdge.LEFT, 0);
             layout.setPadding(YogaEdge.ALL, 0);

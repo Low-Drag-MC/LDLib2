@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridValue;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import dev.vfyjxf.taffy.style.GridAutoFlow;
+import dev.vfyjxf.taffy.style.TaffyDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
@@ -1032,13 +1033,26 @@ public final class LayoutStyle extends Style {
         return setJustifyContent(justifyContent);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setDirection(YogaDirection direction) {
-        set(LayoutProperties.LAYOUT_DIRECTION, direction);
+        set(LayoutProperties.LAYOUT_DIRECTION, switch (direction) {
+            case INHERIT -> TaffyDirection.INHERIT;
+            case LTR -> TaffyDirection.LTR;
+            case RTL -> TaffyDirection.RTL;
+        });
         return this;
     }
 
+    @Deprecated(since = "26.1")
+    @HideFromJS
     public LayoutStyle direction(YogaDirection direction) {
         return setDirection(direction);
+    }
+
+    @HideFromJS
+    public LayoutStyle direction(TaffyDirection direction) {
+        set(LayoutProperties.LAYOUT_DIRECTION, direction);
+        return this;
     }
 
     public LayoutStyle setWrap(YogaWrap wrap) {
@@ -1117,6 +1131,7 @@ public final class LayoutStyle extends Style {
         return setGapPercent(YogaGutter.ALL, percent);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setDisplay(YogaDisplay display) {
         set(LayoutProperties.DISPLAY, switch (display) {
             case FLEX, CONTENTS -> TaffyDisplay.FLEX;
@@ -1125,23 +1140,16 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
-    public LayoutStyle setDisplay(TaffyDisplay display) {
-        set(LayoutProperties.DISPLAY, display);
-        return this;
-    }
-
     @HideFromJS
+    @Deprecated(since = "26.1")
     public LayoutStyle display(YogaDisplay display) {
         return setDisplay(display);
     }
 
     @HideFromJS
     public LayoutStyle display(TaffyDisplay display) {
-        return setDisplay(display);
-    }
-
-    public LayoutStyle kjs$display(TaffyDisplay display) {
-        return setDisplay(display);
+        set(LayoutProperties.DISPLAY, display);
+        return this;
     }
 
     public LayoutStyle setOverflow(YogaOverflow overflow) {
@@ -1254,7 +1262,7 @@ public final class LayoutStyle extends Style {
         return getValueSave(LayoutProperties.MAX[YogaDimension.HEIGHT.ordinal()]).asYogaValue();
     }
 
-    public YogaDirection getStyleDirection() {
+    public TaffyDirection getStyleDirection() {
         return getValueSave(LayoutProperties.LAYOUT_DIRECTION);
     }
 

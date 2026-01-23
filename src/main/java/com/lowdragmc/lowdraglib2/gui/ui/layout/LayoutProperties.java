@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.style.properties.*;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
 import dev.vfyjxf.taffy.style.GridAutoFlow;
+import dev.vfyjxf.taffy.style.TaffyDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.experimental.UtilityClass;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -30,7 +31,7 @@ public final class LayoutProperties {
             YogaAlign.FLEX_END,
             YogaAlign.STRETCH);
     // yoga
-    public static final Property<YogaDirection> LAYOUT_DIRECTION = PropertyRegistry.create("layout-direction", YogaDirection.class, YogaDirection.INHERIT);
+    public static final Property<TaffyDirection> LAYOUT_DIRECTION = PropertyRegistry.create("layout-direction", TaffyDirection.class, TaffyDirection.INHERIT);
     public static final Property<StyleSizeLength> FLEX_BASIS = create("flex-basis", StyleSizeLength.AUTO);
     public static final Property<FloatOptional> FLEX = create("flex", FloatOptional.of());
     public static final Property<FloatOptional> FLEX_GROW = create("flex-grow", FloatOptional.of());

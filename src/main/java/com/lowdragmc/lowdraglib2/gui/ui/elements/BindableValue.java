@@ -1,11 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaDisplay;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -25,7 +23,6 @@ public class BindableValue<T> extends BindableUIElement<T> {
 
     public BindableValue(@Nullable T value) {
         this.value = value;
-        Style.defaultPipeline(this.getLayout(), l -> l.display(YogaDisplay.CONTENTS));
     }
 
     @Override
