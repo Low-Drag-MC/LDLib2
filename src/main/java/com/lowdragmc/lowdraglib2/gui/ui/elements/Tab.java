@@ -16,13 +16,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -99,7 +99,7 @@ public class Tab extends UIElement {
     public Tab() {
         getLayout().setHeight(16);
         getLayout().setPadding(YogaEdge.ALL, 3);
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
+        getLayout().flexDirection(FlexDirection.ROW);
 
         text.setText(Component.empty());
         text.layout(layout -> layout.setHeightPercent(100));

@@ -4,13 +4,12 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.experimental.UtilityClass;
 import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaJustify;
-import org.appliedenergistics.yoga.YogaWrap;
 
 @UtilityClass
 public final class FlexIcons {
@@ -104,7 +103,7 @@ public final class FlexIcons {
         };
     }
 
-    public static SpriteTexture getFlexDirectionIcon(YogaFlexDirection flexDirection) {
+    public static SpriteTexture getFlexDirectionIcon(FlexDirection flexDirection) {
         return switch (flexDirection) {
             case ROW -> FLEX_DIRECTION_ROW;
             case COLUMN -> FLEX_DIRECTION_COLUMN;
@@ -113,8 +112,8 @@ public final class FlexIcons {
         };
     }
 
-    public static SpriteTexture getAlignContentIcon(YogaFlexDirection flexDirection, YogaAlign yogaAlign) {
-        var isRow = flexDirection == YogaFlexDirection.ROW || flexDirection == YogaFlexDirection.ROW_REVERSE;
+    public static SpriteTexture getAlignContentIcon(FlexDirection flexDirection, YogaAlign yogaAlign) {
+        var isRow = flexDirection == FlexDirection.ROW || flexDirection == FlexDirection.ROW_REVERSE;
         return isRow ? switch (yogaAlign) {
             case YogaAlign.FLEX_START -> ALIGN_CONTENTS_FLEX_START_ROW;
             case YogaAlign.FLEX_END -> ALIGN_CONTENTS_FLEX_END_ROW;
@@ -130,7 +129,7 @@ public final class FlexIcons {
         };
     }
 
-    public static SpriteTexture getJustifyContentIcon(YogaFlexDirection flexDirection, YogaJustify yogaJustify) {
+    public static SpriteTexture getJustifyContentIcon(FlexDirection flexDirection, YogaJustify yogaJustify) {
         return switch (flexDirection) {
             case COLUMN -> switch (yogaJustify) {
                 case FLEX_START   -> JUSTIFY_CONTENTS_FLEX_START_COLUMN;
@@ -167,7 +166,7 @@ public final class FlexIcons {
         };
     }
 
-    public static SpriteTexture getAlignItemIcon(YogaFlexDirection flexDirection, YogaAlign yogaAlign) {
+    public static SpriteTexture getAlignItemIcon(FlexDirection flexDirection, YogaAlign yogaAlign) {
         return switch (flexDirection) {
             case COLUMN -> switch (yogaAlign) {
                 case YogaAlign.FLEX_START -> ALIGN_ITEMS_FLEX_START_COLUMN;
@@ -200,8 +199,8 @@ public final class FlexIcons {
         };
     }
 
-    public static SpriteTexture getAlignSelfIcon(YogaFlexDirection flexDirection, YogaAlign yogaAlign) {
-        var isRow = flexDirection == YogaFlexDirection.ROW || flexDirection == YogaFlexDirection.ROW_REVERSE;
+    public static SpriteTexture getAlignSelfIcon(FlexDirection flexDirection, YogaAlign yogaAlign) {
+        var isRow = flexDirection == FlexDirection.ROW || flexDirection == FlexDirection.ROW_REVERSE;
         return isRow ? switch (yogaAlign) {
             case YogaAlign.FLEX_START -> ALIGN_SELF_FLEX_START_ROW;
             case YogaAlign.FLEX_END -> ALIGN_SELF_FLEX_END_ROW;

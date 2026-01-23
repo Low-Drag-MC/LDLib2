@@ -9,17 +9,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import dev.vfyjxf.taffy.style.TaffyDisplay;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
@@ -87,7 +84,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         }
 
         buttonGroup.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setAlignSelf(YogaAlign.FLEX_END);
             layout.setPadding(YogaEdge.ALL, 3f);
         }).setDisplay(!isCollapse)

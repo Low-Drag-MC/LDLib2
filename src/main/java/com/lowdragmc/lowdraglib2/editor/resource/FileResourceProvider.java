@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.Util;
@@ -19,7 +20,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
@@ -171,7 +171,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         return new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(
                 new UIElement().layout(layout -> {

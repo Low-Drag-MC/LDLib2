@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -90,7 +91,7 @@ public class EditorWindow extends UIElement {
         getLayout().setHeightPercent(100);
 
         this.editorButtonContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setPositionType(YogaPositionType.ABSOLUTE);
             layout.setPosition(YogaEdge.TOP, 15);
             layout.setWidthPercent(100);
@@ -295,7 +296,7 @@ public class EditorWindow extends UIElement {
 
     protected UIElement createEditorButton(Editor editor) {
         return new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setHeightPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setFlex(1);

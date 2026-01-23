@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -164,7 +165,7 @@ public class Selector<T> extends BindableUIElement<T> {
                 .style(style -> style.backgroundTexture(Icons.DOWN_ARROW_NO_BAR));
         this.display = new UIElement()
                 .layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setAlignItems(YogaAlign.CENTER);
                     layout.setPadding(YogaEdge.ALL, 2);
                     layout.setPadding(YogaEdge.LEFT, 4);

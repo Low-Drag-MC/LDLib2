@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -59,7 +60,7 @@ public class Configurator extends UIElement {
         getLayout().setGap(YogaGutter.ALL, 1);
 
         addChild(this.lineContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(
                 this.label.textStyle(textStyle -> {

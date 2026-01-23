@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.SelectorConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -16,6 +15,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -24,9 +24,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import org.apache.commons.lang3.function.Consumers;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -56,7 +54,7 @@ public class TabView extends UIElement {
     private Tab selectedTab = null;
 
     public TabView() {
-        getLayout().setFlexDirection(YogaFlexDirection.COLUMN_REVERSE);
+        getLayout().flexDirection(FlexDirection.COLUMN_REVERSE);
 
         this.tabHeaderContainer = new UIElement().setId("tab_header");
         this.tabHeaderContainer.addClass("__tab-view_tab_header_container__");
@@ -66,13 +64,13 @@ public class TabView extends UIElement {
         this.tabContentContainer.addClass("__tab-view_tab_content_container__");
 
         this.tabHeaderContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setPadding(YogaEdge.HORIZONTAL, 3);
             layout.setWidthPercent(100);
         }).addChild(tabScroller);
 
         this.tabScroller.viewPort(viewPort -> viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).layout(layout -> layout.setPadding(YogaEdge.ALL, 0)))
-                .viewContainer(viewContainer -> viewContainer.layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)))
+                .viewContainer(viewContainer -> viewContainer.layout(layout -> layout.flexDirection(FlexDirection.ROW)))
                 .scrollerStyle(style -> style.mode(ScrollerMode.HORIZONTAL).horizontalScrollDisplay(ScrollDisplay.NEVER).adaptiveHeight(true))
                 .layout(layout -> {
                     layout.setWidthPercent(100);

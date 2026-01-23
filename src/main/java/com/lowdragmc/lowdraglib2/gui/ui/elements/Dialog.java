@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -59,7 +60,7 @@ public class Dialog extends UIElement {
         }).addClass("__dialog_overlay__");
 
         this.titleBar.layout(layout -> {
-            layout.flexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.gapAll(2);
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setWidthPercent(100);
@@ -80,7 +81,7 @@ public class Dialog extends UIElement {
             layout.setWidthPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);
             layout.setJustifyContent(YogaJustify.CENTER);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setPadding(YogaEdge.ALL, 4);
             layout.setGap(YogaGutter.ALL, 2);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
@@ -419,7 +420,7 @@ public class Dialog extends UIElement {
         dialog.setTitle(title);
         dialog.addContent(new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(textField.layout(layout -> layout.setFlex(1)), new Button().setOnClick(e -> {
             Util.getPlatform().openFile(dir.isDirectory() ? dir : dir.getParentFile());

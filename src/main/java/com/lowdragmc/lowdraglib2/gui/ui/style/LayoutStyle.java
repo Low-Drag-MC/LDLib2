@@ -15,10 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridValue;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
-import dev.vfyjxf.taffy.style.FlexWrap;
-import dev.vfyjxf.taffy.style.GridAutoFlow;
-import dev.vfyjxf.taffy.style.TaffyDirection;
-import dev.vfyjxf.taffy.style.TaffyDisplay;
+import dev.vfyjxf.taffy.style.*;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.appliedenergistics.yoga.style.StyleLength;
@@ -979,13 +976,26 @@ public final class LayoutStyle extends Style {
         return setFlexBasisStretch();
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexDirection(YogaFlexDirection direction) {
-        set(LayoutProperties.FLEX_DIRECTION, direction);
-        return this;
+        return flexDirection(direction);
     }
 
+    @Deprecated(since = "26.1")
+    @HideFromJS
     public LayoutStyle flexDirection(YogaFlexDirection direction) {
-        return setFlexDirection(direction);
+        return flexDirection(switch (direction) {
+            case COLUMN -> FlexDirection.COLUMN;
+            case COLUMN_REVERSE -> FlexDirection.COLUMN_REVERSE;
+            case ROW -> FlexDirection.ROW;
+            case ROW_REVERSE -> FlexDirection.ROW_REVERSE;
+        });
+    }
+
+    @HideFromJS
+    public LayoutStyle flexDirection(FlexDirection flexDirection) {
+        set(LayoutProperties.FLEX_DIRECTION, flexDirection);
+        return this;
     }
 
     public LayoutStyle setFlexGrow(float flexGrow) {
@@ -1278,7 +1288,7 @@ public final class LayoutStyle extends Style {
         return getValueSave(LayoutProperties.LAYOUT_DIRECTION);
     }
 
-    public YogaFlexDirection getFlexDirection() {
+    public FlexDirection getFlexDirection() {
         return getValueSave(LayoutProperties.FLEX_DIRECTION);
     }
 

@@ -3,10 +3,9 @@ package com.lowdragmc.lowdraglib2.configurator.ui;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaDisplay;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 
 import javax.annotation.Nonnull;
@@ -29,7 +28,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
             value = defaultValue;
         }
         inlineContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
         });
         inlineContainer.addChildren(textField = new TextField(), definedSelector = new Selector<>());
 

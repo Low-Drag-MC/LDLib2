@@ -12,11 +12,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 @LDLRegisterClient(name="ld_shader_instance", registry = "ldlib2:screen_test")
 @NoArgsConstructor
@@ -27,7 +27,7 @@ public class TestLDShaderInstance implements IScreenTest {
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setWidth(350);
             layout.setHeight(300);
         }).setId("root");

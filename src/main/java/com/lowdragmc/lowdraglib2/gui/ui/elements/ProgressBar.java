@@ -19,17 +19,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.ItemStack;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaPositionType;
 import org.w3c.dom.Element;
 
@@ -176,7 +174,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         switch (progressBarStyle.fillDirection()) {
             case LEFT_TO_RIGHT -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.COLUMN);
+                    layout.flexDirection(FlexDirection.COLUMN);
                     layout.setAlignItems(YogaAlign.FLEX_START);
                 });
                 this.bar.layout(layout -> {
@@ -186,7 +184,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             }
             case RIGHT_TO_LEFT -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.COLUMN);
+                    layout.flexDirection(FlexDirection.COLUMN);
                     layout.setAlignItems(YogaAlign.FLEX_END);
                 });
                 this.bar.layout(layout -> {
@@ -196,7 +194,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             }
             case UP_TO_DOWN -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setAlignItems(YogaAlign.FLEX_START);
                 });
                 this.bar.layout(layout -> {
@@ -206,7 +204,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             }
             case DOWN_TO_UP -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setAlignItems(YogaAlign.FLEX_END);
                 });
                 this.bar.layout(layout -> {

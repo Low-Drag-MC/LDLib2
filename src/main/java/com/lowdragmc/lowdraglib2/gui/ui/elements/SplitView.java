@@ -12,12 +12,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaUnit;
 import org.w3c.dom.Element;
 
@@ -129,7 +129,7 @@ public abstract class SplitView extends UIElement {
     @LDLRegister(name = "split-view-horizontal", group = "container", registry = "ldlib2:ui_element")
     public static class Horizontal extends SplitView {
         public Horizontal() {
-            getLayout().setFlexDirection(YogaFlexDirection.ROW);
+            getLayout().flexDirection(FlexDirection.ROW);
             first.getLayout().setWidthPercent(50);
             first.getLayout().setHeightPercent(100);
             second.getLayout().setFlex(1);

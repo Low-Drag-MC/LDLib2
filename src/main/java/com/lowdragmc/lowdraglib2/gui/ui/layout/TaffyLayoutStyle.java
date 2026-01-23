@@ -123,13 +123,7 @@ public class TaffyLayoutStyle {
         };
     }
 
-    public void setFlexDirection(YogaFlexDirection value) {
-        var flexDirection = switch (value) {
-            case COLUMN -> FlexDirection.COLUMN;
-            case COLUMN_REVERSE -> FlexDirection.COLUMN_REVERSE;
-            case ROW -> FlexDirection.ROW;
-            case ROW_REVERSE -> FlexDirection.ROW_REVERSE;
-        };
+    public void setFlexDirection(FlexDirection flexDirection) {
         if (style.flexDirection != flexDirection) {
             style.flexDirection = flexDirection;
             element.markTaffyStyleDirty();

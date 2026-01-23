@@ -12,12 +12,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaPositionType;
-import org.appliedenergistics.yoga.YogaWrap;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector4f;
 
@@ -32,11 +31,11 @@ public class TestUIEvent implements IScreenTest {
 
         var left = new UIElement().layout(layout -> layout.flex(1).heightPercent(100))
                 .setOverflowVisible(false)
-                .layout(layout -> layout.gapAll(2).wrap(FlexWrap.WRAP).flexDirection(YogaFlexDirection.ROW))
+                .layout(layout -> layout.gapAll(2).wrap(FlexWrap.WRAP).flexDirection(FlexDirection.ROW))
                 .addClass("preview_bg");
         var right = new UIElement().layout(layout -> layout.flex(1).heightPercent(100))
                 .setOverflowVisible(false)
-                .layout(layout -> layout.gapAll(2).wrap(FlexWrap.WRAP).flexDirection(YogaFlexDirection.ROW))
+                .layout(layout -> layout.gapAll(2).wrap(FlexWrap.WRAP).flexDirection(FlexDirection.ROW))
                 .addClass("preview_bg");
 
         var target1 = createTarget(ColorPattern.T_RED.color, left, right);
@@ -47,7 +46,7 @@ public class TestUIEvent implements IScreenTest {
         left.addChildren(target1, target2);
         right.addChildren(target3, target4);
 
-        root.getLayout().width(300).height(150).flexDirection(YogaFlexDirection.ROW);
+        root.getLayout().width(300).height(150).flexDirection(FlexDirection.ROW);
         root.addChildren(
                 new SplitView.Horizontal().left(left).right(right)
         );

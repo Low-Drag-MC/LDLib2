@@ -7,10 +7,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
@@ -28,7 +28,7 @@ public class TestSlots implements IMenuTest {
         var scrollerView = new ScrollerView();
         var root = new UIElement().layout(layout -> layout.gapAll(3).width(200));
         for (int i = 0; i < z; i++) {
-            var row = new UIElement().layout(layout -> layout.width(144).flexDirection(YogaFlexDirection.ROW));
+            var row = new UIElement().layout(layout -> layout.width(144).flexDirection(FlexDirection.ROW));
             for (int j = 0; j < 9; j++) {
                 row.addChildren(new ItemSlot().bind(itemHandler, i * 9 + j));
             }

@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.*;
 
@@ -35,7 +36,7 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
         this.group = new Toggle.ToggleGroup();
         if (value == null) value = defaultValue;
         inlineContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
         });
         initToggles(nameMapping, iconProvider);

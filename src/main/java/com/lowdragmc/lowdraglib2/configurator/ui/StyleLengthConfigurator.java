@@ -3,9 +3,8 @@ package com.lowdragmc.lowdraglib2.configurator.ui;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaDisplay;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaUnit;
 import org.appliedenergistics.yoga.YogaValue;
 import org.appliedenergistics.yoga.style.StyleLength;
@@ -28,7 +27,7 @@ public class StyleLengthConfigurator extends ValueConfigurator<StyleLength> {
         }
 
         inlineContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
         });
         inlineContainer.addChildren(textField = new TextField(), unitSelector = new Selector<>());
 

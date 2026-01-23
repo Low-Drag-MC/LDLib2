@@ -7,8 +7,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
@@ -39,7 +39,7 @@ public interface UIElementProvider<T> extends Function<T, UIElement> {
             Function<T, Component> textMapper) {
         return node -> {
             var container = new UIElement().layout(layout -> {
-                layout.setFlexDirection(YogaFlexDirection.ROW);
+                layout.flexDirection(FlexDirection.ROW);
                 layout.setGap(YogaGutter.ALL, 2);
                 layout.setHeight(10);
             }).addChildren();

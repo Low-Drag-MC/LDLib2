@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -30,7 +31,6 @@ import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -67,7 +67,7 @@ public class TestSync implements IMenuTest {
         root.getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.wrap(FlexWrap.WRAP);
                 }).addChildren(
                         new ItemSlot(),
@@ -81,7 +81,7 @@ public class TestSync implements IMenuTest {
                 new ItemSlot().bind(itemHandler, 0),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 2).setCanPlace(itemStack -> itemStack.is(Items.STONE))),
-                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)).addChildren(
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         new ItemSlot().xeiPhantom().bind(DataBindingBuilder.itemStack(
                                 () -> itemHandler.getStackInSlot(3),
                                 itemStack -> itemHandler.setStackInSlot(3, itemStack)
@@ -92,7 +92,7 @@ public class TestSync implements IMenuTest {
                         ).build())
                 ),
                 new FluidSlot().bind(fluidTank, 0),
-                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)).addChildren(
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank::getFluid, phantomTank::setFluid).build()),
                         new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank2::getFluid, phantomTank2::setFluid).build())
                 ),

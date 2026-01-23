@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
@@ -54,13 +55,13 @@ public class UIXmlView extends View {
             layout.setWidthPercent(100);
             layout.setHeight(16);
             layout.setPadding(YogaEdge.ALL, 1);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
         });
         header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         header.addChildren(
                 // left
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(),
@@ -82,7 +83,7 @@ public class UIXmlView extends View {
                                 .style(style -> style.tooltips("UIEditor.simulation"))),
                 // right
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setJustifyContent(YogaJustify.FLEX_END);
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
@@ -146,7 +147,7 @@ public class UIXmlView extends View {
 
         // editor initial
         editor.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setWidthPercent(100);
             layout.setFlex(1);
         });

@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.*;
@@ -41,7 +42,7 @@ public class ResourceContainer<T> extends UIElement {
     public ResourceContainer(ResourceInstance<T> resourceInstance, Editor editor) {
         getLayout().setFlex(1);
         getLayout().setHeightPercent(100);
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
+        getLayout().flexDirection(FlexDirection.ROW);
 
         this.resourceInstance = resourceInstance;
         this.editor = editor;
@@ -125,7 +126,7 @@ public class ResourceContainer<T> extends UIElement {
             var toggle = new UIElement().layout(layout -> {
                 layout.setHeight(12);
                 layout.setWidthPercent(100);
-                layout.setFlexDirection(YogaFlexDirection.ROW);
+                layout.flexDirection(FlexDirection.ROW);
                 layout.setAlignItems(YogaAlign.CENTER);
                 layout.setPadding(YogaEdge.RIGHT, 2);
             }).addChildren(provider.createProviderToggle()).addEventListener(UIEvents.MOUSE_DOWN, event -> {

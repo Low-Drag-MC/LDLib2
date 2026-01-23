@@ -18,6 +18,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -103,7 +104,7 @@ public class Button extends UIElement {
 
     public Button() {
         super();
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
+        getLayout().flexDirection(FlexDirection.ROW);
         getLayout().setHeight(14);
         getLayout().setPadding(YogaEdge.ALL, 2);
         getLayout().setJustifyContent(YogaJustify.CENTER);

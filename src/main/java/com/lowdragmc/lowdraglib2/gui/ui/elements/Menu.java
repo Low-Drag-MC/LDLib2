@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -236,7 +237,7 @@ public class Menu<K, T> extends UIElement {
         if (!root.isLeaf()) {
             for (var child : root.getChildren()) {
                 var container = new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setAlignItems(YogaAlign.CENTER);
                 }).style(style -> style.backgroundTexture(textureProvider.apply(child)))
                         .addChild(new UIElement().layout(layout -> {

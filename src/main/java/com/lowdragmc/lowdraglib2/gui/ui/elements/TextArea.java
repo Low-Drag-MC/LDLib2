@@ -26,6 +26,7 @@ import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,9 +42,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
@@ -320,7 +319,7 @@ public class TextArea extends BindableUIElement<String[]> {
         verticalScroller.setOnValueChanged(this::onVerticalScroll);
         horizontalScroller.setOnValueChanged(this::onHorizontalScroll);
         addChildren(new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setWidthPercent(100);
             layout.setFlex(1);
         }).addChildren(contentView, verticalScroller), horizontalScroller);

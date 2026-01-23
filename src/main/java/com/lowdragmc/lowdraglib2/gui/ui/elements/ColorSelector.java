@@ -16,13 +16,13 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.lwjgl.system.MemoryUtil;
 
@@ -121,7 +121,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         }).addChildren(
                 new UIElement().layout(layout -> {
                     layout.setFlex(1);
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                 }).addChildren(colorPreview.layout(layout -> {
                     layout.setFlex(1);
                     layout.setPadding(YogaEdge.ALL, 4);
@@ -132,7 +132,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                                 .addClass("__color-selector_color-preview_display__").style(style -> style.backgroundTexture(this::drawHsbContext))
                 ), colorSlider),
 
-                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW))
                         .addChildren(alphaSlider, hsbButton));
 
         this.textContainer = new UIElement().layout(layout -> {
@@ -141,7 +141,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         }).addClass("__color-selector_text-container__");
         this.textContainer.addChildren(
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setGap(YogaGutter.ALL, 2);
                     layout.setAlignItems(YogaAlign.CENTER);
                 }).addChildren(

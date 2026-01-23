@@ -29,6 +29,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -129,7 +130,7 @@ public abstract class Editor extends UIElement {
                     layout.setPadding(YogaEdge.ALL, 1);
                     layout.setWidthPercent(100);
                     layout.setHeight(15);
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setGap(YogaGutter.ALL, 2);
                 }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID))
                 .addChildren(
@@ -141,13 +142,13 @@ public abstract class Editor extends UIElement {
                         }).style(style -> style.backgroundTexture(new SpriteTexture())),
                         menuContainer.layout(layout -> {
                             layout.setHeightPercent(100);
-                            layout.setFlexDirection(YogaFlexDirection.ROW);
+                            layout.flexDirection(FlexDirection.ROW);
                             layout.setGap(YogaGutter.ALL, 2);
                         }).addClass("__editor_top-menu-container__"),
                         topPlaceholder.layout(layout -> layout.flex(1))
                                 .addClass("__editor_top-placeholder__"), // placeholder
                         buttonContainer.layout(layout -> {
-                            layout.flexDirection(YogaFlexDirection.ROW);
+                            layout.flexDirection(FlexDirection.ROW);
                             layout.alignItems(YogaAlign.CENTER);
                             layout.gapAll(2);
                             layout.marginRight(1);

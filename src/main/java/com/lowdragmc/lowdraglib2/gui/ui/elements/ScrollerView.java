@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -163,7 +164,7 @@ public class ScrollerView extends UIElement {
 
         verticalContainer.layout(layout -> {
             layout.setFlex(1);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
         }).addChildren(viewPort, verticalScroller);
 
         viewPort.layout(layout -> {

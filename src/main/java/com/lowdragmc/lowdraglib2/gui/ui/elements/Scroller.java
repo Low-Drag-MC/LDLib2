@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +21,6 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.w3c.dom.Element;
 
@@ -278,7 +278,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
     @LDLRegister(name = "scroller-vertical", group = "utils", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
-            getLayout().setFlexDirection(YogaFlexDirection.COLUMN);
+            getLayout().flexDirection(FlexDirection.COLUMN);
             getLayout().setGap(YogaGutter.ROW, 1);
             getLayout().setWidth(5);
 
@@ -346,7 +346,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
     @LDLRegister(name = "scroller-horizontal", group = "utils", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {
-            getLayout().setFlexDirection(YogaFlexDirection.ROW);
+            getLayout().flexDirection(FlexDirection.ROW);
             getLayout().setGap(YogaGutter.COLUMN, 1);
             getLayout().setHeight(5);
 

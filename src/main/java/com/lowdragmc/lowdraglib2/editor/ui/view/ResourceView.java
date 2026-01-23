@@ -15,9 +15,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
@@ -37,10 +37,10 @@ public class ResourceView extends View {
     public ResourceView(Editor editor) {
         super("editor.view.resources");
         this.editor = editor;
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
+        getLayout().flexDirection(FlexDirection.ROW);
 
         tabView.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW_REVERSE);
+            layout.flexDirection(FlexDirection.ROW_REVERSE);
             layout.setHeightPercent(100);
             layout.setFlex(1);
         }).moveInlineAsDefault();
@@ -49,7 +49,7 @@ public class ResourceView extends View {
             layout.setPadding(YogaEdge.ALL, 1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).moveInlineAsDefault();
         tabView.tabHeaderContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.COLUMN);
+            layout.flexDirection(FlexDirection.COLUMN);
             layout.setHeightPercent(100);
             layout.setWidth(StyleSizeLength.AUTO);
             layout.setPadding(YogaEdge.HORIZONTAL, 1);
@@ -57,7 +57,7 @@ public class ResourceView extends View {
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).moveInlineAsDefault();
         tabView.tabScroller
                 .viewContainer(viewContainer -> viewContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.COLUMN);
+                    layout.flexDirection(FlexDirection.COLUMN);
                 }))
                 .scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.NEVER))
                 .layout(layout -> {

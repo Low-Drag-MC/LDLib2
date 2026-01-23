@@ -19,10 +19,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
@@ -61,7 +61,7 @@ public class UIHierarchy extends UIElement {
                 .setSupportMultipleSelection(true)
                 .setNodeUISupplier((node) -> {
                     UIElement container = (new UIElement()).layout((layout) -> {
-                        layout.setFlexDirection(YogaFlexDirection.ROW);
+                        layout.flexDirection(FlexDirection.ROW);
                         layout.setGap(YogaGutter.ALL, 2.0F);
                         layout.setHeight(10.0F);
                         layout.setFlex(1.0F);

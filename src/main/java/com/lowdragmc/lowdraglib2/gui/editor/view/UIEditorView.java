@@ -28,6 +28,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -76,13 +77,13 @@ public class UIEditorView extends View {
             layout.setWidthPercent(100);
             layout.setHeight(16);
             layout.setPadding(YogaEdge.ALL, 1);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
         });
         header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         header.addChildren(
                 // left
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(
@@ -108,7 +109,7 @@ public class UIEditorView extends View {
                                 .style(style -> style.tooltips("UIEditor.simulation"))),
                 // right
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setJustifyContent(YogaJustify.FLEX_END);
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
@@ -174,7 +175,7 @@ public class UIEditorView extends View {
 
         // editor initial
         editor.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setWidthPercent(100);
             layout.setFlex(1);
         });

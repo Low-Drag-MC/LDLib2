@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.nbt.CompoundTag;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -117,7 +118,7 @@ v     */
         return new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setAlignItems(YogaAlign.CENTER);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(
                 new UIElement().layout(layout -> {

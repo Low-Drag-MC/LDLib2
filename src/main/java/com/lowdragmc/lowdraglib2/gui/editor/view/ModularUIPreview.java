@@ -7,13 +7,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaPositionType;
 
 import javax.annotation.Nullable;
@@ -148,7 +147,7 @@ public class ModularUIPreview extends UIElement {
             widgetsGroup = new UIElement();
             label = new Label();
             widgetsGroup.layout(layout -> {
-                layout.setFlexDirection(YogaFlexDirection.ROW);
+                layout.flexDirection(FlexDirection.ROW);
                 layout.setPositionType(YogaPositionType.ABSOLUTE);
                 layout.setPosition(YogaEdge.TOP, -15);
                 layout.setPadding(YogaEdge.ALL, 2);

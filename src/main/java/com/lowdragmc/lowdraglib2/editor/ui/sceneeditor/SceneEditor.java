@@ -20,6 +20,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneObject;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
@@ -70,7 +71,7 @@ public class SceneEditor extends UIElement implements IScene {
     public SceneEditor() {
         this.topBar = new UIElement();
         topBar.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.setWidthPercent(100);
             layout.setHeight(16);
             layout.setPadding(YogaEdge.ALL, 1);

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -59,7 +60,7 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
         ).layout(layout -> {
             layout.setGap(YogaGutter.ALL, 2);
             layout.setMargin(YogaEdge.LEFT, 2);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
         });
         x.layout(layout -> {

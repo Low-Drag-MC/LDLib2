@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -146,7 +147,7 @@ public class TestElements implements IScreenTest {
                                 new Button().transform(transform -> transform.scale(1.5f, 1)),
                                 new Button().transform(transform -> transform.rotation(30)),
                                 new Button().transform(transform -> transform.pivot(0, 0).rotation(30)),
-                                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
+                                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW))
                                         .addChildren(
                                                 new Button(),
                                                 new Button().transform(transform -> transform.translate(0, -5)),

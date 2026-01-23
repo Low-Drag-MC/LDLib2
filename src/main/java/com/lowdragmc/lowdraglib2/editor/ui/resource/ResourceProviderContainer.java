@@ -23,6 +23,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
@@ -100,7 +101,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             layout.setFlex(1);
         });
         this.scrollerView.viewContainer.layout(layout -> {
-           layout.setFlexDirection(YogaFlexDirection.ROW);
+           layout.flexDirection(FlexDirection.ROW);
            layout.wrap(FlexWrap.WRAP);
         });
         addChild(scrollerView);
@@ -117,11 +118,11 @@ public class ResourceProviderContainer<T> extends UIElement {
         return new UIElement().layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.setWidthPercent(100);
-                layout.setFlexDirection(YogaFlexDirection.ROW);
+                layout.flexDirection(FlexDirection.ROW);
                 layout.setMargin(YogaEdge.VERTICAL, 1);
             } else {
                 layout.setWidth(resourceProvider.getResourceInstance().getUiWidth());
-                layout.setFlexDirection(YogaFlexDirection.COLUMN);
+                layout.flexDirection(FlexDirection.COLUMN);
                 layout.setMargin(YogaEdge.ALL, 3);
             }
             layout.setGap(YogaGutter.ALL, 2);

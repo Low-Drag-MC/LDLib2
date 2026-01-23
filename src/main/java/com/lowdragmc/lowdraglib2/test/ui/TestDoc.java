@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -22,7 +23,6 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaJustify;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @LDLRegisterClient(name="doc", registry = "ldlib2:screen_test")
@@ -41,14 +41,14 @@ public class TestDoc implements IScreenTest{
         // many ways to set the layout
         // set the layout directly
         element.getLayout()
-                .flexDirection(YogaFlexDirection.ROW)
+                .flexDirection(FlexDirection.ROW)
                 .width(150)
                 .heightPercent(100)
                 .marginAll(10)
                 .paddingAll(10);
         // set the layout with chaining methods
         element.layout(layout -> layout
-                .flexDirection(YogaFlexDirection.ROW)
+                .flexDirection(FlexDirection.ROW)
                 .width(150)
                 .heightPercent(100)
                 .marginAll(10)
@@ -122,7 +122,7 @@ public class TestDoc implements IScreenTest{
                         .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.CENTER)),
                 image,
                 // add a container with the row flex direction
-                new UIElement().layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)).addChildren(
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         // a button to rotate the image -45°
                         new Button().setText("-45°")
                                 .setOnClick(e -> image.transform(transform ->
@@ -157,7 +157,7 @@ public class TestDoc implements IScreenTest{
                         .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.CENTER)),
                 image,
                 // add a container with the row flex direction
-                new UIElement().layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)).addChildren(
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         // implement the button by using ui events
                         new UIElement().addChild(new Label().setText("-45°").textStyle(textStyle -> textStyle.adaptiveWidth(true)))
                                 .layout(layout -> layout.justifyItems(YogaJustify.CENTER).paddingHorizontal(3))
@@ -246,7 +246,7 @@ public class TestDoc implements IScreenTest{
                 new ProgressBar().setProgress(0.5f).label(label -> label.setText("Progress")),
                 new Toggle().setText("Toggle"),
                 new TextField().setText("Text Field"),
-                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW)).addChildren(
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         new ItemSlot().setItem(Items.APPLE.getDefaultInstance()),
                         new FluidSlot().setFluid(new FluidStack(Fluids.WATER, 1000))
                 ),
@@ -277,7 +277,7 @@ public class TestDoc implements IScreenTest{
         root.addChildren(
                 new Label().setText("Data Bindings")
                         .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.CENTER)),
-                new UIElement().layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)).addChildren(
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         // button to decrease the value
                         new Button().setText("-")
                                 .setOnClick(e -> {

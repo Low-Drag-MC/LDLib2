@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -50,7 +51,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
                     layout.setPipelineState(StyleOrigin.DEFAULT);
                     layout.setHeight(14);
                     layout.setPadding(YogaEdge.ALL, 2);
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.setGap(YogaGutter.ALL, 2);
                     layout.setPipelineState(StyleOrigin.INLINE);
                 }).style(style -> {

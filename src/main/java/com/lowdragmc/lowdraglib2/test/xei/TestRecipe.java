@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.test.TestItem;
 import com.lowdragmc.lowdraglib2.test.ui.TestScene;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -45,7 +46,7 @@ public class TestRecipe {
                                                 new ItemSlot().setItem(new ItemStack(Items.CHEST, 2))
                                                         .xeiRecipeIngredient(IngredientIO.OUTPUT)
                                                         .xeiRecipeSlot()
-                                        ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW).wrap(FlexWrap.WRAP)),
+                                        ).layout(layout -> layout.flexDirection(FlexDirection.ROW).wrap(FlexWrap.WRAP)),
                                         // fluids
                                         new UIElement().addChildren(
                                                 new FluidSlot().setFluid(new FluidStack(Fluids.WATER, 1000))
@@ -59,7 +60,7 @@ public class TestRecipe {
                                                 new FluidSlot().setFluid(new FluidStack(Fluids.WATER, 30))
                                                         .xeiRecipeIngredient(IngredientIO.OUTPUT)
                                                         .xeiRecipeSlot(IngredientIO.OUTPUT, 0.7f)
-                                        ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW).wrap(FlexWrap.WRAP)),
+                                        ).layout(layout -> layout.flexDirection(FlexDirection.ROW).wrap(FlexWrap.WRAP)),
                                         new Button().setOnClick(event -> {
                                             for (int i = 0; i < 50; i++) {
                                                 var x = Math.random() * 2 - 1 + 2;

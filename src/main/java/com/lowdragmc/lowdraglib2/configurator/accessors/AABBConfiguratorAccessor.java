@@ -6,10 +6,10 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import net.minecraft.world.phys.AABB;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 
 import java.lang.reflect.Field;
@@ -53,7 +53,7 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
                                         supplier.get().maxX, supplier.get().maxY, supplier.get().maxZ)),
                                 defaultValue(field, field.getType()).minZ, forceUpdate)).layout(layout -> {
                     layout.setGap(YogaGutter.ALL, 2);
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.wrap(FlexWrap.WRAP);
                 }),
                 new UIElement().addChildren(
@@ -71,7 +71,7 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
                                 defaultValue(field, field.getType()).minZ, forceUpdate)).layout(layout -> {
                     layout.setGap(YogaGutter.ALL, 2);
                     layout.setMargin(YogaEdge.LEFT, 2);
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flexDirection(FlexDirection.ROW);
                     layout.wrap(FlexWrap.WRAP);
                 })
         ).layout(layout -> {

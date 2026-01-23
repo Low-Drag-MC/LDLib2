@@ -14,15 +14,14 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaDirection;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -117,7 +116,7 @@ public class Switch extends BindableUIElement<Boolean> {
     private boolean isOn = false;
 
     public Switch() {
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
+        getLayout().flexDirection(FlexDirection.ROW);
         getLayout().setAlignItems(YogaAlign.CENTER);
         getLayout().setPadding(YogaEdge.ALL, 2);
         getLayout().setHeight(14);
