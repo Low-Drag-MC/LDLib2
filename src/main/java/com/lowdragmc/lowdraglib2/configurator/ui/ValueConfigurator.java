@@ -6,9 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -19,16 +18,16 @@ public class ValueConfigurator<T> extends Configurator {
     protected boolean forceUpdate;
     @Nullable
     protected T value;
-    @Nonnull
+    @Nullable
     protected T defaultValue;
     @Setter
-    protected Consumer<T> onUpdate;
+    protected Consumer<@Nullable T> onUpdate;
     @Setter
-    protected Supplier<T> supplier;
+    protected Supplier<@Nullable T> supplier;
     @Setter
     protected Predicate<Object> canDropPredicate = t -> defaultValue.getClass().isAssignableFrom(t.getClass());
 
-    public ValueConfigurator(String name, Supplier<T> supplier, Consumer<T> onUpdate, @Nonnull T defaultValue, boolean forceUpdate) {
+    public ValueConfigurator(String name, Supplier<@Nullable T> supplier, Consumer<@Nullable T> onUpdate, @Nullable T defaultValue, boolean forceUpdate) {
         super(name);
         this.supplier = supplier;
         this.onUpdate = onUpdate;
@@ -40,11 +39,13 @@ public class ValueConfigurator<T> extends Configurator {
         inlineContainer.addEventListener(UIEvents.DRAG_ENTER, this::onDragEnter, true);
         inlineContainer.addEventListener(UIEvents.DRAG_LEAVE, this::onDragLeave, true);
 
-        setPastable(defaultValue.getClass(), pasted -> {
-            if (pasted != null) {
-                onPaste((T) pasted);
-            }
-        });
+        if (defaultValue != null) {
+            setPastable(defaultValue.getClass(), pasted -> {
+                if (pasted != null) {
+                    onPaste((T) pasted);
+                }
+            });
+        }
     }
 
     public ValueConfigurator<T> setCopiable(Function<T, T> copyFunction) {
@@ -78,14 +79,14 @@ public class ValueConfigurator<T> extends Configurator {
      * <br/>
      * to notify the value change, use {@link #updateValueActively} instead
      */
-    protected void onValueUpdatePassively(T newValue) {
+    protected void onValueUpdatePassively(@Nullable T newValue) {
         this.value = newValue;
     }
 
     /**
      * update value actively.
      */
-    protected void updateValueActively(T newValue) {
+    protected void updateValueActively(@Nullable T newValue) {
         this.value = newValue;
         updateValue();
     }
@@ -114,11 +115,11 @@ public class ValueConfigurator<T> extends Configurator {
     }
 
     /// Drag value handler
-    protected boolean canDropObject(@Nonnull Object object) {
+    protected boolean canDropObject(@Nullable Object object) {
         return canDropPredicate.test(object);
     }
 
-    protected void onDropObject(@Nonnull Object object) {
+    protected void onDropObject(@Nullable Object object) {
         if (canDropObject(object)) {
             onValueUpdatePassively((T) object);
             updateValue();

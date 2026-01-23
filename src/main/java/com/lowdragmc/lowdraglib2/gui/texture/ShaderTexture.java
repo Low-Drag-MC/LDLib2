@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -25,7 +26,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector4f;
 
@@ -147,13 +147,13 @@ public class ShaderTexture extends TransformTexture implements AutoCloseable {
                         configurator.notifyChanges();
                     }
                 }).show(e.currentElement.getModularUI());
-            }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER)))
+            }).layout(layout -> layout.alignSelf(AlignItems.CENTER)))
         );
 
         // button to reload shader
         father.addConfigurator(new Configurator().addInlineChild(new Button().setText("reload").setOnClick(e -> {
             setShader(this.shaderLocation);
-        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))));
+        }).layout(layout -> layout.alignSelf(AlignItems.CENTER))));
     }
 
     @Override

@@ -28,6 +28,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
@@ -111,7 +112,7 @@ public class UIEditorView extends View {
                 // right
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setJustifyContent(YogaJustify.FLEX_END);
+                    layout.justifyContent(AlignContent.FLEX_END);
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(

@@ -9,12 +9,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nullable;
@@ -85,7 +85,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
 
         buttonGroup.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setAlignSelf(YogaAlign.FLEX_END);
+            layout.alignSelf(AlignItems.FLEX_END);
             layout.setPadding(YogaEdge.ALL, 3f);
         }).setDisplay(!isCollapse)
                 .style(style -> style.backgroundTexture(Sprites.BORDER_RT1))
@@ -246,7 +246,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             super("=");
             label.layout(layout -> {
                 layout.setMargin(YogaEdge.LEFT, 1f);
-                layout.setAlignSelf(YogaAlign.CENTER);
+                layout.alignSelf(AlignItems.CENTER);
             }).style(style -> style.tooltips("ldlib.gui.editor.tips.drag_item"));
             getLayout().setPadding(YogaEdge.LEFT, 2f);
             this.object = object;

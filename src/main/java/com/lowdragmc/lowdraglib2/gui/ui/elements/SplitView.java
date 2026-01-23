@@ -38,7 +38,7 @@ public abstract class SplitView extends UIElement {
     private float maxPercentage = 95;
 
     public SplitView() {
-        getLayout().widthPercent(100).heightPercent(100);
+        getLayout().widthPercent(100).heightPercent(100).flex(1);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
 

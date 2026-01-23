@@ -17,13 +17,13 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 
 /**
@@ -169,7 +169,7 @@ public class AnimationTexture extends TransformTexture {
                                     layout.setAspectRatio(1.0f);
                                     layout.setWidthPercent(80);
                                     layout.setPadding(YogaEdge.ALL, 3);
-                                    layout.setAlignSelf(YogaAlign.CENTER);
+                                    layout.alignSelf(AlignItems.CENTER);
                                     layout.setPipelineState(StyleOrigin.INLINE);
                                 }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
                                 .addClass("preview_bg")
@@ -187,7 +187,7 @@ public class AnimationTexture extends TransformTexture {
                                     configurator.notifyChanges();
                                 }
                             }).show(e.currentElement.getModularUI());
-                        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
+                        }).layout(layout -> layout.alignSelf(AlignItems.CENTER))
                 ));
     }
 

@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import dev.vfyjxf.taffy.style.AlignItems;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -51,7 +52,6 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nonnull;
@@ -283,7 +283,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setAspectRatio(1.0f);
             layout.setWidthPercent(80);
-            layout.setAlignSelf(YogaAlign.CENTER);
+            layout.alignSelf(AlignItems.CENTER);
             layout.setPadding(YogaEdge.ALL, 3);
             layout.setPipelineState(StyleOrigin.INLINE);
         });

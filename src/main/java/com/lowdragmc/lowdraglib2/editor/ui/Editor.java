@@ -29,6 +29,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -149,7 +150,7 @@ public abstract class Editor extends UIElement {
                                 .addClass("__editor_top-placeholder__"), // placeholder
                         buttonContainer.layout(layout -> {
                             layout.flexDirection(FlexDirection.ROW);
-                            layout.alignItems(YogaAlign.CENTER);
+                            layout.alignItems(AlignItems.CENTER);
                             layout.gapAll(2);
                             layout.marginRight(1);
                         }).addChildren(

@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
@@ -84,7 +85,7 @@ public class UIXmlView extends View {
                 // right
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setJustifyContent(YogaJustify.FLEX_END);
+                    layout.justifyContent(AlignContent.FLEX_END);
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(

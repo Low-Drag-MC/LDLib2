@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.lowdraglib2.utils.search.ISearch;
 import com.lowdragmc.lowdraglib2.utils.search.SearchEngine;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -162,7 +163,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         this.textField = new TextField();
         this.dialog = new UIElement();
         this.preview = new UIElement().layout(layout -> {
-            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
             layout.setHeightPercent(100);
             layout.setFlex(1);
             layout.setPadding(YogaEdge.ALL, 2);

@@ -12,10 +12,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaJustify;
 
@@ -62,7 +63,7 @@ public class ViewContainer extends UIElement {
                 .layout(layout -> layout.setWidth(10).setHeight(10))
                 .style(style -> style.backgroundTexture(Icons.COLLAPSE_HORIZONTAL).tooltips("collapse_or_expand"))
         );
-        collapseButton.layout(layout -> layout.setWidth(14).setHeight(14).setAlignItems(YogaAlign.CENTER).setJustifyContent(YogaJustify.CENTER));
+        collapseButton.layout(layout -> layout.setWidth(14).setHeight(14).alignItems(AlignItems.CENTER).justifyContent(AlignContent.CENTER));
         collapseButton.setDisplay(false);
         collapseButton.setOnClick(e -> {
             if (isCollapse) {

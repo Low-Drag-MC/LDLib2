@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.network.chat.Component;
@@ -20,7 +21,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaJustify;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -160,7 +160,7 @@ public class TestDoc implements IScreenTest{
                 new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         // implement the button by using ui events
                         new UIElement().addChild(new Label().setText("-45°").textStyle(textStyle -> textStyle.adaptiveWidth(true)))
-                                .layout(layout -> layout.justifyItems(YogaJustify.CENTER).paddingHorizontal(3))
+                                .layout(layout -> layout.justifyContent(AlignContent.CENTER).paddingHorizontal(3))
                                 .style(style -> style.background(Sprites.BORDER1))
                                 .addEventListener(UIEvents.MOUSE_DOWN, e -> image.transform(transform ->
                                         transform.rotation(transform.rotation()-45)))

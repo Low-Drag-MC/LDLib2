@@ -445,7 +445,8 @@ public class TestComponentExamples implements IScreenTest {
                                 .addClass("panel_bg"))
                         .right(new UIElement().layout(layout -> layout.height(100))
                                 .addChildren(new Label().setText("right"))
-                                .addClass("panel_bg")),
+                                .addClass("panel_bg"))
+                        .layout(layout -> layout.flex(1)),
                 new SplitView.Vertical().setPercentage(50)
                         .top(new UIElement().layout(layout -> layout.widthPercent(100).heightPercent(100))
                                 .addChildren(new Label().setText("top"))
@@ -453,7 +454,7 @@ public class TestComponentExamples implements IScreenTest {
                         .bottom(new UIElement().layout(layout -> layout.widthPercent(100).heightPercent(100))
                                 .addChildren(new Label().setText("bottom"))
                                 .addClass("panel_bg"))
-                        .layout(layout -> layout.widthPercent(100).flex(1))
+                        .layout(layout -> layout.flex(1))
         );
     }
 }

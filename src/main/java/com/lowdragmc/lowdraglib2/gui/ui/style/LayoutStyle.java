@@ -887,31 +887,77 @@ public final class LayoutStyle extends Style {
     }
 
     /* Alignment properties */
+    @Deprecated(since = "26.1")
     public LayoutStyle setAlignContent(YogaAlign alignContent) {
+        return alignContent(alignContent);
+    }
+
+    @Deprecated(since = "26.1")
+    @HideFromJS
+    public LayoutStyle alignContent(YogaAlign alignContent) {
+        return alignContent(switch (alignContent) {
+            case AUTO, BASELINE -> null;
+            case FLEX_START -> AlignContent.FLEX_START;
+            case CENTER -> AlignContent.CENTER;
+            case FLEX_END -> AlignContent.FLEX_END;
+            case STRETCH -> AlignContent.STRETCH;
+            case SPACE_BETWEEN -> AlignContent.SPACE_BETWEEN;
+            case SPACE_AROUND -> AlignContent.SPACE_AROUND;
+            case SPACE_EVENLY -> AlignContent.SPACE_EVENLY;
+        });
+    }
+
+    @HideFromJS
+    public LayoutStyle alignContent(AlignContent alignContent) {
         set(LayoutProperties.ALIGN_CONTENT, alignContent);
         return this;
     }
 
-    public LayoutStyle alignContent(YogaAlign alignContent) {
-        return setAlignContent(alignContent);
+    @Deprecated(since = "26.1")
+    public LayoutStyle setAlignItems(YogaAlign alignItems) {
+        return alignItems(alignItems);
     }
 
-    public LayoutStyle setAlignItems(YogaAlign alignItems) {
+    @Deprecated(since = "26.1")
+    @HideFromJS
+    public LayoutStyle alignItems(YogaAlign alignItems) {
+        return alignItems(switch (alignItems) {
+            case AUTO, SPACE_BETWEEN, SPACE_AROUND, SPACE_EVENLY -> null;
+            case FLEX_START -> AlignItems.FLEX_START;
+            case CENTER -> AlignItems.CENTER;
+            case FLEX_END -> AlignItems.FLEX_END;
+            case STRETCH -> AlignItems.STRETCH;
+            case BASELINE -> AlignItems.BASELINE;
+        });
+    }
+
+    public LayoutStyle alignItems(AlignItems alignItems) {
         set(LayoutProperties.ALIGN_ITEMS, alignItems);
         return this;
     }
 
-    public LayoutStyle alignItems(YogaAlign alignItems) {
-        return setAlignItems(alignItems);
+    @Deprecated(since = "26.1")
+    public LayoutStyle setAlignSelf(YogaAlign alignSelf) {
+        return alignSelf(alignSelf);
     }
 
-    public LayoutStyle setAlignSelf(YogaAlign alignSelf) {
+    @Deprecated(since = "26.1")
+    @HideFromJS
+    public LayoutStyle alignSelf(YogaAlign alignSelf) {
+        return alignSelf(switch (alignSelf) {
+            case AUTO, SPACE_BETWEEN, SPACE_AROUND, SPACE_EVENLY -> null;
+            case FLEX_START -> AlignItems.FLEX_START;
+            case CENTER -> AlignItems.CENTER;
+            case FLEX_END -> AlignItems.FLEX_END;
+            case STRETCH -> AlignItems.STRETCH;
+            case BASELINE -> AlignItems.BASELINE;
+        });
+    }
+
+    @HideFromJS
+    public LayoutStyle alignSelf(AlignItems alignSelf) {
         set(LayoutProperties.ALIGN_SELF, alignSelf);
         return this;
-    }
-
-    public LayoutStyle alignSelf(YogaAlign alignSelf) {
-        return setAlignSelf(alignSelf);
     }
 
     /* Flex properties */
@@ -1046,13 +1092,38 @@ public final class LayoutStyle extends Style {
     }
 
     /* Other properties */
+    @Deprecated(since = "26.1")
     public LayoutStyle setJustifyContent(YogaJustify justifyContent) {
+        return justifyContent(justifyContent);
+    }
+
+    @Deprecated(since = "26.1")
+    @HideFromJS
+    public LayoutStyle justifyContent(YogaJustify justifyContent) {
+        return justifyContent(switch (justifyContent) {
+            case FLEX_START -> AlignContent.FLEX_START;
+            case CENTER -> AlignContent.CENTER;
+            case FLEX_END -> AlignContent.FLEX_END;
+            case SPACE_BETWEEN -> AlignContent.SPACE_BETWEEN;
+            case SPACE_AROUND -> AlignContent.SPACE_AROUND;
+            case SPACE_EVENLY -> AlignContent.SPACE_EVENLY;
+        });
+    }
+
+    @HideFromJS
+    public LayoutStyle justifyContent(AlignContent justifyContent) {
         set(LayoutProperties.JUSTIFY_CONTENT, justifyContent);
         return this;
     }
 
-    public LayoutStyle justifyItems(YogaJustify justifyContent) {
-        return setJustifyContent(justifyContent);
+    public LayoutStyle justifyItems(AlignItems justifyItems) {
+        set(LayoutProperties.JUSTIFY_ITEMS, justifyItems);
+        return this;
+    }
+
+    public LayoutStyle justifySelf(AlignItems justifySelf) {
+        set(LayoutProperties.JUSTIFY_SELF, justifySelf);
+        return this;
     }
 
     @Deprecated(since = "26.1")
@@ -1303,19 +1374,27 @@ public final class LayoutStyle extends Style {
         return getValueSave(LayoutProperties.FLEX_DIRECTION);
     }
 
-    public YogaJustify getJustifyContent() {
+    public AlignContent getJustifyContent() {
         return getValueSave(LayoutProperties.JUSTIFY_CONTENT);
     }
 
-    public YogaAlign getAlignItems() {
+    public AlignItems getJustifyItems() {
+        return getValueSave(LayoutProperties.JUSTIFY_ITEMS);
+    }
+
+    public AlignItems getJustifySelf() {
+        return getValueSave(LayoutProperties.JUSTIFY_SELF);
+    }
+
+    public AlignItems getAlignItems() {
         return getValueSave(LayoutProperties.ALIGN_ITEMS);
     }
 
-    public YogaAlign getAlignSelf() {
+    public AlignItems getAlignSelf() {
         return getValueSave(LayoutProperties.ALIGN_SELF);
     }
 
-    public YogaAlign getAlignContent() {
+    public AlignContent getAlignContent() {
         return getValueSave(LayoutProperties.ALIGN_CONTENT);
     }
 

@@ -19,6 +19,8 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
@@ -151,7 +153,7 @@ public class Selector<T> extends BindableUIElement<T> {
         getStyle().backgroundTexture(Sprites.RECT_RD_LIGHT);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         this.preview = new UIElement().layout(layout -> {
-            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
             layout.setHeightPercent(100);
             layout.setFlex(1);
         });
@@ -167,7 +169,7 @@ public class Selector<T> extends BindableUIElement<T> {
         this.display = new UIElement()
                 .layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.CENTER);
+                    layout.alignItems(AlignItems.CENTER);
                     layout.setPadding(YogaEdge.ALL, 2);
                     layout.setPadding(YogaEdge.LEFT, 4);
                     layout.setHeightPercent(100);

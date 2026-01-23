@@ -22,6 +22,7 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
@@ -29,7 +30,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.w3c.dom.Element;
 
@@ -169,7 +169,7 @@ public class Toggle extends BindableUIElement<Boolean> {
 
     public Toggle() {
         getLayout().flexDirection(FlexDirection.ROW);
-        getLayout().setAlignItems(YogaAlign.CENTER);
+        getLayout().alignItems(AlignItems.CENTER);
         getLayout().setPadding(YogaEdge.ALL, 1);
         getLayout().setHeight(14);
 

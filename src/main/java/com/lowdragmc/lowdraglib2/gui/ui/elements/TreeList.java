@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
@@ -320,7 +321,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     public UIElement createNodeUI(NODE node) {
         var container = new UIElement().layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setAlignItems(YogaAlign.CENTER);
+            layout.alignItems(AlignItems.CENTER);
             layout.setWidthPercent(100);
             layout.setGap(YogaGutter.ALL, 2);
         }).style(style -> {

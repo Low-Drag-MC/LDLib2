@@ -18,6 +18,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.*;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncPersistRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
 import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -64,7 +65,7 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
         var root = new UIElement().layout(layout -> layout
                 .setPadding(YogaEdge.ALL, 4)
                 .setGap(YogaGutter.ALL, 2)
-                .setJustifyContent(YogaJustify.CENTER)
+                .justifyContent(AlignContent.CENTER)
         ).addClass("panel_bg");
         root.addChild(new Label().setText("Test Block UI"));
         root.addChild(new TextField());

@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
@@ -101,7 +102,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
     protected boolean isDragging = false;
 
     public Scroller() {
-        getLayout().setAlignItems(YogaAlign.CENTER);
+        getLayout().alignItems(AlignItems.CENTER);
         this.headButton = new Button();
         this.tailButton = new Button();
         this.scrollContainer = new UIElement();
@@ -124,7 +125,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         this.tailButton.setOnClick(e -> moveTail());
 
         this.scrollContainer.layout(layout -> {
-            layout.setAlignSelf(YogaAlign.STRETCH);
+            layout.alignSelf(AlignItems.STRETCH);
             layout.setFlexGrow(1);
         }).addChild(new UIElement().layout(layout -> layout.setFlex(1)).addChild(scrollBar));
         scrollBar.noText().layout(layout -> {

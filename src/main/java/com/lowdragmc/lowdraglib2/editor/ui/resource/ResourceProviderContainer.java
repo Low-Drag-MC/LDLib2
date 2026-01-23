@@ -23,6 +23,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
@@ -133,8 +135,8 @@ public class ResourceProviderContainer<T> extends UIElement {
                 layout.setWidthPercent(100);
             }
             layout.setAspectRatio(1);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
             style.font(LDLibFonts.JETBRAINS_MONO_BOLD);
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
@@ -148,7 +150,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.setFlex(1);
                 layout.setHeightPercent(100);
-                layout.setJustifyContent(YogaJustify.CENTER);
+                layout.justifyContent(AlignContent.CENTER);
             } else {
                 layout.setHeight(14);
             }

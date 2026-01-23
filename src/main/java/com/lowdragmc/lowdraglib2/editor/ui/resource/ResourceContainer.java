@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -103,7 +104,7 @@ public class ResourceContainer<T> extends UIElement {
 
         // split
         providerList.addScrollViewChild(new UIElement().layout(layout -> {
-            layout.setAlignSelf(YogaAlign.CENTER);
+            layout.alignSelf(AlignItems.CENTER);
             layout.setWidthPercent(95);
             layout.setHeight(1);
             layout.setMargin(YogaEdge.VERTICAL, 1);
@@ -127,7 +128,7 @@ public class ResourceContainer<T> extends UIElement {
                 layout.setHeight(12);
                 layout.setWidthPercent(100);
                 layout.flexDirection(FlexDirection.ROW);
-                layout.setAlignItems(YogaAlign.CENTER);
+                layout.alignItems(AlignItems.CENTER);
                 layout.setPadding(YogaEdge.RIGHT, 2);
             }).addChildren(provider.createProviderToggle()).addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 if (event.button == 0) {

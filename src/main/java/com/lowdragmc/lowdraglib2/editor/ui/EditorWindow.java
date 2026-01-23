@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
@@ -299,7 +300,7 @@ public class EditorWindow extends UIElement {
         return new UIElement().layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.setHeightPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
+            layout.alignItems(AlignItems.CENTER);
             layout.setFlex(1);
         }).style(style -> {
             style.setPipelineState(StyleOrigin.DEFAULT);

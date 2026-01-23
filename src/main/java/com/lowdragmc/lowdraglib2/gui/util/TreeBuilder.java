@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
@@ -292,7 +293,7 @@ public class TreeBuilder<K, V> {
                 layout.setWidthPercent(100);
                 layout.setGap(YogaGutter.ALL, 2);
                 layout.flexDirection(FlexDirection.ROW);
-                layout.setAlignItems(YogaAlign.CENTER);
+                layout.alignItems(AlignItems.CENTER);
             }).addChild(new UIElement().layout(layout -> {
                 layout.setMargin(YogaEdge.LEFT, 2);
                 layout.setWidth(10);

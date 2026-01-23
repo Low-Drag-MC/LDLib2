@@ -7,13 +7,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.*;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -24,8 +27,8 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
     public final Toggle.ToggleGroup group;
 
     public ToggleSelectorConfigurator(String name,
-                                      Supplier<T> supplier, Consumer<T> onUpdate,
-                                      @Nonnull T defaultValue,
+                                      Supplier<@Nullable T> supplier, Consumer<@Nullable T> onUpdate,
+                                      @Nullable T defaultValue,
                                       boolean forceUpdate,
                                       List<T> candidates,
                                       Function<T, String> nameMapping,
@@ -52,7 +55,7 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
                 layout.setPadding(YogaEdge.ALL, 0);
             });
             toggle.setToggleGroup(this.group);
-            toggle.setOn(candidate.equals(value), false);
+            toggle.setOn(Objects.equals(candidate, value), false);
             toggle.setOnToggleChanged(isOn -> {
                 if (isOn) {
                     updateValueActively(candidate);
@@ -70,8 +73,8 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
             });
             toggle.markIcon.layout(layout -> {
                 layout.setPadding(YogaEdge.ALL, 1);
-                layout.setAlignItems(YogaAlign.CENTER);
-                layout.setJustifyContent(YogaJustify.CENTER);
+                layout.alignItems(AlignItems.CENTER);
+                layout.justifyContent(AlignContent.CENTER);
             });
             toggle.markIcon.addChild(new UIElement().layout(layout -> {
                 layout.setWidthPercent(100);
@@ -87,11 +90,11 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
     @Override
     protected void onValueUpdatePassively(T newValue) {
         if (newValue == null) newValue = defaultValue;
-        if (newValue.equals(value)) return;
+        if (Objects.equals(newValue, value)) return;
         super.onValueUpdatePassively(newValue);
         for (int i = 0; i < candidates.size(); i++) {
             var toggle = toggles.get(i);
-            toggle.setOn(candidates.get(i).equals(newValue), false);
+            toggle.setOn(Objects.equals(candidates.get(i), newValue), false);
         }
     }
 

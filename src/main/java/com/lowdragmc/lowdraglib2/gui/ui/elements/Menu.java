@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
@@ -239,7 +240,7 @@ public class Menu<K, T> extends UIElement {
             for (var child : root.getChildren()) {
                 var container = new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.CENTER);
+                    layout.alignItems(AlignItems.CENTER);
                 }).style(style -> style.backgroundTexture(textureProvider.apply(child)))
                         .addChild(new UIElement().layout(layout -> {
                             layout.setFlex(1);
@@ -270,7 +271,7 @@ public class Menu<K, T> extends UIElement {
                                 opened.setTextureProvider(textureProvider);
                                 opened.setHoverTextureProvider(hoverTextureProvider);
                                 opened.getStyle().copyFrom(this.getStyle());
-                                opened.getLayout().setAlignSelf(YogaAlign.FLEX_START);
+                                opened.getLayout().alignSelf(AlignItems.FLEX_START);
                                 opened.getLayout().setPosition(YogaEdge.LEFT, e.currentElement.getSizeWidth());
                                 opened.setOnNodeClicked(node -> {
                                     if (onNodeClicked != null) {

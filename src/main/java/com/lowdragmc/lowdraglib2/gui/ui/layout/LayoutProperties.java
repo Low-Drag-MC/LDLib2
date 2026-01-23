@@ -17,18 +17,34 @@ import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.appliedenergistics.yoga.style.StyleLength;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 
 @UtilityClass
 public final class LayoutProperties {
-    public static final List<YogaAlign> YOGA_ALIGNS = List.of(
-            YogaAlign.AUTO,
-            YogaAlign.FLEX_START,
-            YogaAlign.CENTER,
-            YogaAlign.FLEX_END,
-            YogaAlign.STRETCH);
-    // yoga
+    public static final List<AlignItems> DEFAULT_ALIGN_ITEMS = Arrays.asList(
+            null,
+            AlignItems.START,
+            AlignItems.END,
+            AlignItems.FLEX_START,
+            AlignItems.FLEX_END,
+            AlignItems.CENTER,
+            AlignItems.STRETCH
+    );
+    public static final List<AlignContent> DEFAULT_ALIGN_CONTENT = Arrays.asList(
+            null,
+            AlignContent.START,
+            AlignContent.END,
+            AlignContent.FLEX_START,
+            AlignContent.FLEX_END,
+            AlignContent.CENTER,
+            AlignContent.SPACE_BETWEEN,
+            AlignContent.SPACE_AROUND,
+            AlignContent.SPACE_EVENLY,
+            AlignContent.STRETCH
+    );
+    public static final Property<TaffyDisplay> DISPLAY = PropertyRegistry.create("display", TaffyDisplay.class, TaffyDisplay.FLEX);
     public static final Property<TaffyDirection> LAYOUT_DIRECTION = PropertyRegistry.create("layout-direction", TaffyDirection.class, TaffyDirection.INHERIT);
     public static final Property<StyleSizeLength> FLEX_BASIS = create("flex-basis", StyleSizeLength.AUTO);
     public static final Property<FloatOptional> FLEX = create("flex", FloatOptional.of());
@@ -47,13 +63,13 @@ public final class LayoutProperties {
     public static final Property<StyleSizeLength>[] MAX = createDimension("max", StyleSizeLength.undefined());
     public static final Property<FloatOptional> ASPECT_RATE = create("aspect-rate", FloatOptional.of());
     public static final Property<YogaOverflow> OVERFLOW = PropertyRegistry.create("overflow", YogaOverflow.class, YogaOverflow.VISIBLE, List.of(YogaOverflow.VISIBLE, YogaOverflow.HIDDEN));
-    public static final Property<YogaAlign> ALIGN_ITEMS = PropertyRegistry.create("align-items", YogaAlign.class, YogaAlign.STRETCH, YOGA_ALIGNS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<YogaJustify> JUSTIFY_CONTENT = PropertyRegistry.create("justify-content", YogaJustify.class, YogaJustify.FLEX_START).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<YogaAlign> ALIGN_SELF = PropertyRegistry.create("align-self", YogaAlign.class, YogaAlign.AUTO, YOGA_ALIGNS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<YogaAlign> ALIGN_CONTENT = PropertyRegistry.create("align-content", YogaAlign.class, YogaAlign.FLEX_START, YOGA_ALIGNS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> ALIGN_ITEMS = PropertyRegistry.create("align-items", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignContent> JUSTIFY_CONTENT = PropertyRegistry.create("justify-content", AlignContent.class, null ).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> JUSTIFY_ITEMS = PropertyRegistry.create("justify-items", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> JUSTIFY_SELF = PropertyRegistry.create("justify-self", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> ALIGN_SELF = PropertyRegistry.create("align-self", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignContent> ALIGN_CONTENT = PropertyRegistry.create("align-content", AlignContent.class, AlignContent.FLEX_START, DEFAULT_ALIGN_CONTENT).setIconProvider(v -> IGuiTexture.EMPTY);
 
-    // taffy
-    public static final Property<TaffyDisplay> DISPLAY = PropertyRegistry.create("display", TaffyDisplay.class, TaffyDisplay.FLEX);
     public static final Property<GridTemplate> GRID_TEMPLATE_ROWS = create("grid-template-rows", GridTemplate.EMPTY);
     public static final Property<GridTemplate> GRID_TEMPLATE_COLUMNS = create("grid-template-columns", GridTemplate.EMPTY);
     public static final Property<GridTemplateAreas> GRID_TEMPLATE_AREAS = create("grid-template-areas", GridTemplateAreas.EMPTY);
@@ -76,6 +92,8 @@ public final class LayoutProperties {
         createSetter(LayoutProperties.OVERFLOW, TaffyLayoutStyle::setOverFlow);
         createSetter(LayoutProperties.ALIGN_ITEMS, TaffyLayoutStyle::setAlignItems);
         createSetter(LayoutProperties.JUSTIFY_CONTENT, TaffyLayoutStyle::setJustifyContent);
+        createSetter(LayoutProperties.JUSTIFY_ITEMS, TaffyLayoutStyle::setJustifyItems);
+        createSetter(LayoutProperties.JUSTIFY_SELF, TaffyLayoutStyle::setJustifySelf);
         createSetter(LayoutProperties.ALIGN_SELF, TaffyLayoutStyle::setAlignSelf);
         createSetter(LayoutProperties.ALIGN_CONTENT, TaffyLayoutStyle::setAlignContent);
         createSetter(LayoutProperties.ASPECT_RATE, TaffyLayoutStyle::setAspectRate);

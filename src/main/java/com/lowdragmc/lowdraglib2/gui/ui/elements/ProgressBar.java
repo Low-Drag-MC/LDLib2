@@ -20,6 +20,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
@@ -27,7 +28,6 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.w3c.dom.Element;
 
@@ -175,7 +175,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             case LEFT_TO_RIGHT -> {
                 this.barContainer.layout(layout -> {
                     layout.flexDirection(FlexDirection.COLUMN);
-                    layout.setAlignItems(YogaAlign.FLEX_START);
+                    layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
                     layout.setHeightPercent(100);
@@ -185,7 +185,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             case RIGHT_TO_LEFT -> {
                 this.barContainer.layout(layout -> {
                     layout.flexDirection(FlexDirection.COLUMN);
-                    layout.setAlignItems(YogaAlign.FLEX_END);
+                    layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
                     layout.setHeightPercent(100);
@@ -195,7 +195,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             case UP_TO_DOWN -> {
                 this.barContainer.layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.FLEX_START);
+                    layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
                     layout.setHeightPercent(normalizedValue * 100);
@@ -205,7 +205,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             case DOWN_TO_UP -> {
                 this.barContainer.layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.FLEX_END);
+                    layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
                     layout.setHeightPercent(normalizedValue * 100);

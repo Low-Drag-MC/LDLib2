@@ -15,6 +15,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
@@ -50,13 +52,13 @@ public class Dialog extends UIElement {
         this.getLayout().positionType(TaffyPosition.ABSOLUTE);
         this.getLayout().setWidthPercent(100);
         this.getLayout().setHeightPercent(100);
-        this.getLayout().setJustifyContent(YogaJustify.CENTER);
-        this.getLayout().setAlignItems(YogaAlign.CENTER);
+        this.getLayout().justifyContent(AlignContent.CENTER);
+        this.getLayout().alignItems(AlignItems.CENTER);
         this.getStyle().zIndex(1);
 
         this.overlay = new UIElement().layout(layout -> {
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
             layout.setWidth(150);
         }).addClass("__dialog_overlay__");
 
@@ -65,23 +67,23 @@ public class Dialog extends UIElement {
             layout.gapAll(2);
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setWidthPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
+            layout.alignItems(AlignItems.CENTER);
             layout.setPadding(YogaEdge.ALL, 5);
             layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
 
         this.contentContainer.layout(layout -> {
             layout.setWidthPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
             layout.setPadding(YogaEdge.ALL, 4);
             layout.setGap(YogaGutter.ALL, 2);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
         this.buttonContainer.layout(layout -> {
             layout.setWidthPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
             layout.flexDirection(FlexDirection.ROW);
             layout.setPadding(YogaEdge.ALL, 4);
             layout.setGap(YogaGutter.ALL, 2);
@@ -106,7 +108,7 @@ public class Dialog extends UIElement {
     public Dialog allowInteraction() {
         getLayout().widthAuto();
         getLayout().heightAuto();
-        getLayout().alignSelf(YogaAlign.CENTER);
+        getLayout().alignSelf(AlignItems.CENTER);
 
         this.addEventListener(UIEvents.MOUSE_DOWN, UIEvent::stopLaterPropagation);
         this.addEventListener(UIEvents.MOUSE_UP, UIEvent::stopLaterPropagation);
@@ -217,7 +219,7 @@ public class Dialog extends UIElement {
     }
 
     public Dialog top() {
-        this.getLayout().setJustifyContent(YogaJustify.FLEX_START);
+        this.getLayout().justifyContent(AlignContent.FLEX_START);
         this.overlay.layout(layout -> {
             layout.top(10);
         });
@@ -225,7 +227,7 @@ public class Dialog extends UIElement {
     }
 
     public Dialog bottom() {
-        this.getLayout().setJustifyContent(YogaJustify.FLEX_END);
+        this.getLayout().justifyContent(AlignContent.FLEX_END);
         this.overlay.layout(layout -> {
             layout.bottom(10);
         });

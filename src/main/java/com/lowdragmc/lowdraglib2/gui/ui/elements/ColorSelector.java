@@ -16,12 +16,12 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.lwjgl.system.MemoryUtil;
@@ -143,7 +143,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.setGap(YogaGutter.ALL, 2);
-                    layout.setAlignItems(YogaAlign.CENTER);
+                    layout.alignItems(AlignItems.CENTER);
                 }).addChildren(
                         new UIElement().layout(layout -> {
                             layout.setWidth(10);

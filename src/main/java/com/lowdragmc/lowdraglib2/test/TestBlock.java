@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.syncdata.holder.IPersistManagedHolder;
+import dev.vfyjxf.taffy.style.AlignContent;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -106,7 +107,7 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
                 .setHeight(100)
                 .setPadding(YogaEdge.ALL, 4)
                 .setGap(YogaGutter.ALL, 2)
-                .setJustifyContent(YogaJustify.CENTER)
+                .justifyContent(AlignContent.CENTER)
         ).style(style -> style.backgroundTexture(Sprites.BORDER));
         root.addChild(new Label().setText("Test Block UI"));
         root.addChild(new TextField());

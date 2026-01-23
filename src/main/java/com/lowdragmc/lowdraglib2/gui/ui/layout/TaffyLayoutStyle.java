@@ -156,50 +156,42 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public void setAlignItems(YogaAlign value) {
-        var alignItems = parseAlignItems(value);
-        alignItems = alignItems == null ? DEFAULT_TAFFY_STYLE.alignItems : alignItems;
+    public void setAlignItems(AlignItems alignItems) {
         if (style.alignItems != alignItems) {
             style.alignItems = alignItems;
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setJustifyContent(YogaJustify value) {
-        var justifyContent = switch (value) {
-            case FLEX_START -> AlignContent.FLEX_START;
-            case CENTER -> AlignContent.CENTER;
-            case FLEX_END -> AlignContent.FLEX_END;
-            case SPACE_BETWEEN -> AlignContent.SPACE_BETWEEN;
-            case SPACE_AROUND -> AlignContent.SPACE_AROUND;
-            case SPACE_EVENLY -> AlignContent.SPACE_EVENLY;
-        };
+    public void setJustifyContent(AlignContent justifyContent) {
         if (style.justifyContent != justifyContent) {
             style.justifyContent = justifyContent;
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setAlignSelf(YogaAlign value) {
-        var alignSelf = parseAlignItems(value);
-        alignSelf = alignSelf == null ? DEFAULT_TAFFY_STYLE.alignSelf : alignSelf;
+    public void setJustifySelf(AlignItems justifySelf) {
+        if (style.justifySelf != justifySelf) {
+            style.justifySelf = justifySelf;
+            element.markTaffyStyleDirty();
+        }
+    }
+
+    public void setJustifyItems(AlignItems justifyItems) {
+        if (style.justifyItems != justifyItems) {
+            style.justifyItems = justifyItems;
+            element.markTaffyStyleDirty();
+        }
+    }
+
+    public void setAlignSelf(AlignItems alignSelf) {
         if (style.alignSelf != alignSelf) {
             style.alignSelf = alignSelf;
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setAlignContent(YogaAlign value) {
-        var alignContent = switch (value) {
-            case AUTO, BASELINE -> DEFAULT_TAFFY_STYLE.alignContent;
-            case FLEX_START -> AlignContent.FLEX_START;
-            case CENTER -> AlignContent.CENTER;
-            case FLEX_END -> AlignContent.FLEX_END;
-            case STRETCH -> AlignContent.STRETCH;
-            case SPACE_BETWEEN -> AlignContent.SPACE_BETWEEN;
-            case SPACE_AROUND -> AlignContent.SPACE_AROUND;
-            case SPACE_EVENLY -> AlignContent.SPACE_EVENLY;
-        };
+    public void setAlignContent(AlignContent alignContent) {
         if (style.alignContent != alignContent) {
             style.alignContent = alignContent;
             element.markTaffyStyleDirty();

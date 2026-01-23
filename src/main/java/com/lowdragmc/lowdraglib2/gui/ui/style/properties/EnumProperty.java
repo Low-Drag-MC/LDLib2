@@ -10,6 +10,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,7 +30,7 @@ public class EnumProperty<T extends Enum<T>> extends Property<T> {
 
     public EnumProperty(String name, Class<T> clazz, T initialValue, List<T> candidates) {
         super(name, clazz, LDLibExtraCodecs.enumCodec(clazz, initialValue), initialValue, EnumValue.of(clazz));
-        this.candidates = List.copyOf(candidates);
+        this.candidates = Collections.unmodifiableList(candidates);
     }
 
     @Override

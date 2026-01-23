@@ -8,6 +8,8 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.style.LayoutStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.experimental.UtilityClass;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -98,16 +100,48 @@ public final class LayoutConfigParser {
                 ),
                 // align
                 new ConfiguratorGroup("property.align.group").addConfigurators(
-                        createToggleConfigurator(LayoutProperties.ALIGN_ITEMS, style, EnumAccessor::getEnumName,
+                        createToggleConfigurator(LayoutProperties.ALIGN_ITEMS, style, LayoutConfigParser::alignItemsNameMapper,
                                 v -> DynamicTexture.of(() -> FlexIcons.getAlignItemIcon(style.getFlexDirection(), v))),
-                        createToggleConfigurator(LayoutProperties.JUSTIFY_CONTENT, style, EnumAccessor::getEnumName,
-                                v -> DynamicTexture.of(() -> FlexIcons.getJustifyContentIcon(style.getFlexDirection(), v))),
-                        createToggleConfigurator(LayoutProperties.ALIGN_SELF, style, EnumAccessor::getEnumName,
+                        createToggleConfigurator(LayoutProperties.ALIGN_SELF, style, LayoutConfigParser::alignItemsNameMapper,
                                 v -> DynamicTexture.of(() -> FlexIcons.getAlignSelfIcon(style.getFlexDirection(), v))),
-                        createToggleConfigurator(LayoutProperties.ALIGN_CONTENT, style, EnumAccessor::getEnumName,
-                                v -> DynamicTexture.of(() -> FlexIcons.getAlignContentIcon(style.getFlexDirection(), v)))
+                        createToggleConfigurator(LayoutProperties.ALIGN_CONTENT, style, LayoutConfigParser::alignContentNameMapper,
+                                v -> DynamicTexture.of(() -> FlexIcons.getAlignContentIcon(style.getFlexDirection(), v))),
+                        createToggleConfigurator(LayoutProperties.JUSTIFY_CONTENT, style, LayoutConfigParser::alignContentNameMapper,
+                                v -> DynamicTexture.of(() -> FlexIcons.getJustifyContentIcon(style.getFlexDirection(), v))),
+                        createToggleConfigurator(LayoutProperties.JUSTIFY_ITEMS, style, LayoutConfigParser::alignItemsNameMapper,
+                                v -> DynamicTexture.of(() -> FlexIcons.getAlignSelfIcon(style.getFlexDirection(), v))),
+                        createToggleConfigurator(LayoutProperties.JUSTIFY_SELF, style, LayoutConfigParser::alignItemsNameMapper,
+                                v -> DynamicTexture.of(() -> FlexIcons.getAlignItemIcon(style.getFlexDirection(), v)))
                 )
         );
+    }
+
+    public static String alignItemsNameMapper(AlignItems alignItems) {
+        return switch (alignItems) {
+            case START -> "start";
+            case FLEX_START -> "flex-start";
+            case CENTER -> "center";
+            case END -> "end";
+            case FLEX_END -> "flex-end";
+            case STRETCH -> "stretch";
+            case BASELINE -> "baseline";
+            case null -> "auto";
+        };
+    }
+
+    public static String alignContentNameMapper(AlignContent alignContent) {
+        return switch (alignContent) {
+            case START -> "start";
+            case FLEX_START -> "flex-start";
+            case CENTER -> "center";
+            case END -> "end";
+            case FLEX_END -> "flex-end";
+            case STRETCH -> "stretch";
+            case SPACE_BETWEEN -> "space-between";
+            case SPACE_EVENLY -> "space-evenly";
+            case SPACE_AROUND -> "space-around";
+            case null -> "auto";
+        };
     }
 
     private static <T> Configurator createConfigurator(Property<T> property, LayoutStyle style) {
