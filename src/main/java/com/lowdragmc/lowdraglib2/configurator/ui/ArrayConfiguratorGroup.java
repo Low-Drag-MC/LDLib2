@@ -86,7 +86,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         buttonGroup.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.alignSelf(AlignItems.FLEX_END);
-            layout.setPadding(YogaEdge.ALL, 3f);
+            layout.paddingAll(3f);
         }).setDisplay(!isCollapse)
                 .style(style -> style.backgroundTexture(Sprites.BORDER_RT1))
                 .moveInlineAsDefault()
@@ -245,10 +245,10 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         public ItemConfigurator(T object, BiFunction<Supplier<T>, Consumer<T>, Configurator> provider) {
             super("=");
             label.layout(layout -> {
-                layout.setMargin(YogaEdge.LEFT, 1f);
+                layout.marginLeft(1f);
                 layout.alignSelf(AlignItems.CENTER);
             }).style(style -> style.tooltips("ldlib.gui.editor.tips.drag_item"));
-            getLayout().setPadding(YogaEdge.LEFT, 2f);
+            getLayout().paddingLeft(2f);
             this.object = object;
             inner = provider.apply(this::getter, this::setter);
             inlineContainer.addChild(inner);

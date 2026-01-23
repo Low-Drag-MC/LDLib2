@@ -260,7 +260,7 @@ public class TextField extends BindableUIElement<String> {
 
     public TextField() {
         getLayout().setHeight(14);
-        getLayout().setPadding(YogaEdge.ALL, 2);
+        getLayout().paddingAll(2);
         getStyle().backgroundTexture(Sprites.RECT_RD_SOLID);
         setOverflowVisible(false);
         setFocusable(true);
@@ -1122,7 +1122,7 @@ public class TextField extends BindableUIElement<String> {
                             v -> editorRange = Range.of(editorRange.getMin(), v.floatValue()), 0, true)
             ).layout(layout -> {
                 layout.setGap(YogaGutter.ALL, 2);
-                layout.setMargin(YogaEdge.LEFT, 2);
+                layout.marginLeft(2);
                 layout.flexDirection(FlexDirection.ROW);
                 layout.wrap(FlexWrap.WRAP);
             });

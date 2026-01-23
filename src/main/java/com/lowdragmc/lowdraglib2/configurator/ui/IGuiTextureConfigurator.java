@@ -50,7 +50,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
         preview.layout(layout -> {
                     layout.setPipelineState(StyleOrigin.DEFAULT);
                     layout.setHeight(14);
-                    layout.setPadding(YogaEdge.ALL, 2);
+                    layout.paddingAll(2);
                     layout.flexDirection(FlexDirection.ROW);
                     layout.setGap(YogaGutter.ALL, 2);
                     layout.setPipelineState(StyleOrigin.INLINE);

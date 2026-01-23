@@ -93,7 +93,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
 
         colorSlider.layout(layout -> {
             layout.setWidth(12);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
                 .addChildren(new UIElement().layout(layout -> layout.setFlex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustColorSlider)
@@ -103,7 +103,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         alphaSlider.layout(layout -> {
             layout.setFlexGrow(1);
             layout.setHeight(12);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1)).addChildren(
                 new UIElement().layout(layout -> layout.setFlex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustAlphaSlider)
@@ -124,7 +124,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                     layout.flexDirection(FlexDirection.ROW);
                 }).addChildren(colorPreview.layout(layout -> {
                     layout.setFlex(1);
-                    layout.setPadding(YogaEdge.ALL, 4);
+                    layout.paddingAll(4);
                 }).style(style -> style.backgroundTexture(Sprites.BORDER1_THICK_RT1)).addChild(
                         new UIElement().layout(layout -> layout.setFlex(1))
                                 .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustHsbContext)
@@ -136,7 +136,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                         .addChildren(alphaSlider, hsbButton));
 
         this.textContainer = new UIElement().layout(layout -> {
-            layout.setMargin(YogaEdge.TOP, 2);
+            layout.marginTop(2);
             layout.setGap(YogaGutter.ALL, 1);
         }).addClass("__color-selector_text-container__");
         this.textContainer.addChildren(
@@ -156,7 +156,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                         new Button().setOnClick(this::onCopy).textStyle(textStyle -> textStyle.fontSize(6).adaptiveWidth(true))
                                 .setText("Copy").layout(layout -> {
                                     layout.setHeight(10);
-                                    layout.setPadding(YogaEdge.HORIZONTAL, 2);
+                                    layout.paddingHorizontal(2);
                                 })),
                 new NumberConfigurator("r", () -> ColorUtils.redI(argb), r -> setColor(ColorUtils.color(ColorUtils.alphaI(argb),
                         r.intValue(), ColorUtils.greenI(argb), ColorUtils.blueI(argb))), 255, true).setRange(0, 255)

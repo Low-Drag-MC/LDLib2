@@ -485,14 +485,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             var height = getSizeHeight();
             // check head out of screen
             if (y < 0) {
-                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() - y));
+                layout(layout -> layout.top(getLayoutY() - y));
             } else if (y + height > screenHeight) {
-                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() + screenHeight - (y + height)));
+                layout(layout -> layout.top(getLayoutY() + screenHeight - (y + height)));
             }
             if (x < 0) {
-                layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - x));
+                layout(layout -> layout.left(getLayoutX() - x));
             } else if (x + width > screenWidth) {
-                layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
+                layout(layout -> layout.left(getLayoutX() + screenWidth - (x + width)));
             }
         }
     }
@@ -559,14 +559,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var y = getPositionY();
         // check head out of parent
         if (y < elementY) {
-            layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() - (y - elementY)));
+            layout(layout -> layout.top(getLayoutY() - (y - elementY)));
         } else if (y + getSizeHeight() > elementY + elementHeight) {
-            layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() + (elementY + elementHeight - (y + getSizeHeight()))));
+            layout(layout -> layout.top(getLayoutY() + (elementY + elementHeight - (y + getSizeHeight()))));
         }
         if (x < elementX) {
-            layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - (x - elementX)));
+            layout(layout -> layout.left(getLayoutX() - (x - elementX)));
         } else if (x + getSizeWidth() > elementX + elementWidth) {
-            layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + (elementX + elementWidth - (x + getSizeWidth()))));
+            layout(layout -> layout.left(getLayoutX() + (elementX + elementWidth - (x + getSizeWidth()))));
         }
     }
 

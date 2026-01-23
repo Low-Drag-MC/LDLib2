@@ -289,7 +289,7 @@ public class TextArea extends BindableUIElement<String[]> {
         };
         this.contentView.addClass("__text-area_content-view__");
         this.contentView.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
             layout.setFlex(1);
             layout.setHeightPercent(100);
         });
@@ -440,7 +440,7 @@ public class TextArea extends BindableUIElement<String[]> {
         if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {
             horizontalScroller.layout(layout -> {
                 Style.importantPipeline(layout, l ->
-                        l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));
+                        l.marginRight(verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));
             });
         }
 

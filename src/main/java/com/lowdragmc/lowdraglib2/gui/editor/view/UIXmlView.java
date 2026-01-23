@@ -55,7 +55,7 @@ public class UIXmlView extends View {
         header.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeight(16);
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
             layout.flexDirection(FlexDirection.ROW);
         });
         header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
@@ -128,7 +128,7 @@ public class UIXmlView extends View {
                                 })
                                 .bindDataSource(SupplierDataSource.of(modularUIPreview::isShowSelectionBox))
                                 .layout(layout -> {
-                                    layout.setPadding(YogaEdge.ALL, 0);
+                                    layout.paddingAll(0);
                                     layout.setHeightPercent(100);
                                     layout.setAspectRatio(1f);
                                 })
@@ -165,11 +165,11 @@ public class UIXmlView extends View {
         graphView.addClass("__ui-editor-view_graph-view__").moveInlineAsDefault();
 
         xmlEditor.setLanguage(Languages.XML);
-        xmlEditor.contentView.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
+        xmlEditor.contentView.layout(layout -> layout.paddingAll(2));
         xmlEditor.contentView.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         xmlEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         xmlEditor.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 2);
+            layout.paddingAll(2);
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
         });

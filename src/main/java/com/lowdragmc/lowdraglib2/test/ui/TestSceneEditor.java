@@ -42,7 +42,7 @@ public class TestSceneEditor implements IScreenTest {
         root.layout(layout -> {
             layout.setWidth(300);
             layout.setHeight(300);
-            layout.setPadding(YogaEdge.ALL, 10);
+            layout.paddingAll(10);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(sceneEditor);
         var blockModel = new BlockModelObject();

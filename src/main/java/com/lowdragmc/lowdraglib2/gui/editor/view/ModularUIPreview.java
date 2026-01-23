@@ -118,8 +118,8 @@ public class ModularUIPreview extends UIElement {
             var y = (posY - marginTop - offsetY) * scale;
 
             this.selectionBox.layout(layout -> {
-                layout.setPosition(YogaEdge.LEFT, x);
-                layout.setPosition(YogaEdge.TOP, y);
+                layout.left(x);
+                layout.top(y);
                 layout.setWidth(width);
                 layout.setHeight(height);
             });
@@ -149,8 +149,8 @@ public class ModularUIPreview extends UIElement {
             widgetsGroup.layout(layout -> {
                 layout.flexDirection(FlexDirection.ROW);
                 layout.positionType(TaffyPosition.ABSOLUTE);
-                layout.setPosition(YogaEdge.TOP, -15);
-                layout.setPadding(YogaEdge.ALL, 2);
+                layout.top(-15);
+                layout.paddingAll(2);
                 layout.setHeight(14);
             });
             widgetsGroup.addChildren(

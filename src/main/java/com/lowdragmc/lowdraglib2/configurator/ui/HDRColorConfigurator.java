@@ -49,7 +49,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
 
         inlineContainer.addChildren(colorPreview = new UIElement().layout(layout -> {
             layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
                 .addChildren(new UIElement()
                         .layout(layout -> layout.setHeightPercent(100))
@@ -64,7 +64,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
             layout.setWidthPercent(100);
             layout.setMaxWidth(150);
             layout.setMinWidth(100);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.paddingAll(4);
         });
         this.dialog.setFocusable(true);
         this.dialog.setEnforceFocus(e -> hide());
@@ -92,8 +92,8 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
             root.addChild(dialog.layout(layout -> {
                 var x = colorPreview.getPositionX();
                 var y = colorPreview.getPositionY();
-                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY());
+                layout.left(x - root.getLayoutX());
+                layout.top(y - root.getLayoutY());
                 layout.setWidth(colorPreview.getSizeWidth());
             }));
             this.dialog.focus();

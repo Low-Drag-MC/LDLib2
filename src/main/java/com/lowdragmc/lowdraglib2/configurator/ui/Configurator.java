@@ -187,8 +187,8 @@ public class Configurator extends UIElement {
                             .setOnNodeClicked(TreeBuilder.Menu::handle)
                             .layout(layout -> {
                                 var localMouse = root.getLocalMouse(event.x, event.y);
-                                layout.setPosition(YogaEdge.LEFT, localMouse.x - root.getContentX());
-                                layout.setPosition(YogaEdge.TOP, localMouse.y - root.getContentY());
+                                layout.left(localMouse.x - root.getContentX());
+                                layout.top(localMouse.y - root.getContentY());
                             })
                     );
                 }

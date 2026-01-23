@@ -285,7 +285,7 @@ public class TreeBuilder<K, V> {
             if (node == CROSS_LINE) {
                 return new UIElement().layout(layout -> {
                     layout.setHeight(1);
-                    layout.setMargin(YogaEdge.HORIZONTAL, 3);
+                    layout.marginHorizontal(3);
                 }).style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
             }
             return new UIElement().layout(layout -> {
@@ -295,7 +295,7 @@ public class TreeBuilder<K, V> {
                 layout.flexDirection(FlexDirection.ROW);
                 layout.alignItems(AlignItems.CENTER);
             }).addChild(new UIElement().layout(layout -> {
-                layout.setMargin(YogaEdge.LEFT, 2);
+                layout.marginLeft(2);
                 layout.setWidth(10);
                 layout.setHeight(10);
             }).style(style -> style.backgroundTexture(node.getA())))

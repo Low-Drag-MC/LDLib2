@@ -44,7 +44,7 @@ public class TestElements implements IScreenTest {
         root.layout(layout -> {
             layout.setWidth(250);
             layout.setHeight(400);
-            layout.setPadding(YogaEdge.ALL, 10);
+            layout.paddingAll(10);
         }).setId("root");
         root.getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(new TabView().addTab(new Tab().setText("element1"), new UIElement().layout(layout -> {
@@ -61,9 +61,9 @@ public class TestElements implements IScreenTest {
                                         }).setId("header")
                                         .style(style -> style.backgroundTexture(Sprites.BORDER)),
                                 new UIElement().layout(layout -> {
-                                            layout.setMargin(YogaEdge.HORIZONTAL, 10);
-                                            layout.setMargin(YogaEdge.BOTTOM, 10);
-                                            layout.setPadding(YogaEdge.ALL, 5);
+                                            layout.marginHorizontal(10);
+                                            layout.marginBottom(10);
+                                            layout.paddingAll(5);
                                             layout.setGap(YogaGutter.ROW, 2);
                                         })
                                         .style(style -> style.backgroundTexture(Sprites.BORDER))
@@ -176,8 +176,8 @@ public class TestElements implements IScreenTest {
                         })
                         .build(), TreeBuilder.Menu::uiProvider)
                         .layout(layout -> {
-                            layout.setPosition(YogaEdge.LEFT, e.x - root.getPositionX());
-                            layout.setPosition(YogaEdge.TOP, e.y - root.getContentY());
+                            layout.left(e.x - root.getPositionX());
+                            layout.top(e.y - root.getContentY());
                         }));
             }
         });

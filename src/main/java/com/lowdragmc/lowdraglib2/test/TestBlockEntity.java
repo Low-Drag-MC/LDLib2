@@ -63,7 +63,7 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
 
     public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
         var root = new UIElement().layout(layout -> layout
-                .setPadding(YogaEdge.ALL, 4)
+                .paddingAll(4)
                 .setGap(YogaGutter.ALL, 2)
                 .justifyContent(AlignContent.CENTER)
         ).addClass("panel_bg");

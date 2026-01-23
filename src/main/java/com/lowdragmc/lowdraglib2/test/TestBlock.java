@@ -105,7 +105,7 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
         var root = new UIElement().layout(layout -> layout
                 .setWidth(100)
                 .setHeight(100)
-                .setPadding(YogaEdge.ALL, 4)
+                .paddingAll(4)
                 .setGap(YogaGutter.ALL, 2)
                 .justifyContent(AlignContent.CENTER)
         ).style(style -> style.backgroundTexture(Sprites.BORDER));

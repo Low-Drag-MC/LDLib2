@@ -118,7 +118,7 @@ public class Switch extends BindableUIElement<Boolean> {
     public Switch() {
         getLayout().flexDirection(FlexDirection.ROW);
         getLayout().alignItems(AlignItems.CENTER);
-        getLayout().setPadding(YogaEdge.ALL, 2);
+        getLayout().paddingAll(2);
         getLayout().setHeight(14);
         getLayout().setWidth(26);
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(Sprites.RECT_RD_DARK));

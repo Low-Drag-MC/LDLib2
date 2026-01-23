@@ -1,16 +1,18 @@
 package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridAuto;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplate;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplateAreas;
+import com.lowdragmc.lowdraglib2.gui.ui.data.*;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.vfyjxf.taffy.geometry.TaffyLine;
+import dev.vfyjxf.taffy.geometry.TaffyRect;
 import dev.vfyjxf.taffy.style.*;
 
 import java.util.ArrayList;
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.*;
+import org.appliedenergistics.yoga.YogaValue;
+import org.appliedenergistics.yoga.style.StyleLength;
 
 import java.util.List;
 
@@ -18,7 +20,6 @@ import java.util.List;
 public final class TaffyCodecs {
 
     // ==================== LengthPercentage Codec ====================
-
     public static final Codec<LengthPercentage> LENGTH_PERCENTAGE_CODEC = LDLibExtraCodecs.TAG.xmap(
             TaffyCodecs::decodeLengthPercentage,
             TaffyCodecs::encodeLengthPercentage
@@ -59,7 +60,6 @@ public final class TaffyCodecs {
     }
 
     // ==================== TrackSizingFunction Codec ====================
-
     public static final Codec<TrackSizingFunction> TRACK_SIZING_FUNCTION_CODEC = LDLibExtraCodecs.TAG.xmap(
             TaffyCodecs::decodeTrackSizingFunction,
             TaffyCodecs::encodeTrackSizingFunction
@@ -165,7 +165,7 @@ public final class TaffyCodecs {
         }
 
         ListTag tracksTag = compoundTag.getList("tracks", Tag.TAG_COMPOUND);
-        List<TrackSizingFunction> tracks = new java.util.ArrayList<>();
+        List<TrackSizingFunction> tracks = new ArrayList<>();
         for (int i = 0; i < tracksTag.size(); i++) {
             tracks.add(decodeTrackSizingFunction(tracksTag.get(i)));
         }
@@ -333,6 +333,109 @@ public final class TaffyCodecs {
         return new GridAuto(List.of(values));
     }
 
+    // ==================== LengthPercentageAuto Codec ====================
+    public static final Codec<LengthPercentageAuto> LENGTH_PERCENTAGE_AUTO_CODEC = LDLibExtraCodecs.TAG.xmap(
+            TaffyCodecs::decodeLengthPercentageAuto,
+            TaffyCodecs::encodeLengthPercentageAuto
+    );
+
+    public static final Codec<LengthPercentageAuto> LPA_CODEC = LDLibExtraCodecs.compat(LENGTH_PERCENTAGE_AUTO_CODEC, YogaCodecs.STYLE_LENGTH_CODEC.xmap(
+            styleLength -> {
+                if (styleLength.isPercent()) return LengthPercentageAuto.length(styleLength.value().getValue() / 100f);
+                if (styleLength.isPoints()) return LengthPercentageAuto.length(styleLength.value().getValue());
+                return LengthPercentageAuto.auto();
+            },
+            lpa -> switch (lpa.getType()) {
+                case LENGTH -> StyleLength.points(lpa.getValue());
+                case PERCENT -> StyleLength.percent(lpa.getValue() * 100f);
+                default -> StyleLength.ofAuto();
+            }
+    ));
+
+    public static Tag encodeLengthPercentageAuto(LengthPercentageAuto value) {
+        var tag = new CompoundTag();
+        tag.putString("type", value.getType().name());
+
+        switch (value.getType()) {
+            case LENGTH:
+                tag.putFloat("value", value.getValue());
+                break;
+            case PERCENT:
+                tag.putFloat("value", value.getValue());
+                break;
+            case AUTO:
+            case MIN_CONTENT:
+            case MAX_CONTENT:
+            case FIT_CONTENT:
+            case STRETCH:
+                // No additional data needed
+                break;
+            case CALC:
+                // CalcExpression cannot be easily serialized, use placeholder
+                tag.putString("value", "calc(...)");
+                break;
+        }
+
+        return tag;
+    }
+
+    public static LengthPercentageAuto decodeLengthPercentageAuto(Tag tag) {
+        if (!(tag instanceof CompoundTag compoundTag)) {
+            return LengthPercentageAuto.auto();
+        }
+
+        String typeName = compoundTag.getString("type");
+        LengthPercentageAuto.Type type;
+        try {
+            type = LengthPercentageAuto.Type.valueOf(typeName);
+        } catch (IllegalArgumentException e) {
+            return LengthPercentageAuto.auto();
+        }
+
+        return switch (type) {
+            case LENGTH -> LengthPercentageAuto.length(compoundTag.getFloat("value"));
+            case PERCENT -> LengthPercentageAuto.percent(compoundTag.getFloat("value"));
+            case AUTO -> LengthPercentageAuto.auto();
+            case MIN_CONTENT -> LengthPercentageAuto.minContent();
+            case MAX_CONTENT -> LengthPercentageAuto.maxContent();
+            case FIT_CONTENT -> LengthPercentageAuto.fitContent();
+            case STRETCH -> LengthPercentageAuto.stretch();
+            case CALC -> LengthPercentageAuto.length(0); // Cannot deserialize calc, default to 0
+        };
+    }
+
+    // ==================== LPARect Codec ====================
+    public static final Codec<LPARect> LPA_RECT_CODEC = LDLibExtraCodecs.TAG.xmap(
+            TaffyCodecs::decodeLPARect,
+            TaffyCodecs::encodeLPARect
+    );
+
+    public static Tag encodeLPARect(LPARect lpaRect) {
+        var tag = new CompoundTag();
+        tag.put("left", encodeLengthPercentageAuto(lpaRect.rect().left));
+        tag.put("right", encodeLengthPercentageAuto(lpaRect.rect().right));
+        tag.put("top", encodeLengthPercentageAuto(lpaRect.rect().top));
+        tag.put("bottom", encodeLengthPercentageAuto(lpaRect.rect().bottom));
+        return tag;
+    }
+
+    public static LPARect decodeLPARect(Tag tag) {
+        if (!(tag instanceof CompoundTag compoundTag)) {
+            return new LPARect(
+                    TaffyRect.all(LengthPercentageAuto.auto())
+            );
+        }
+
+        LengthPercentageAuto left = decodeLengthPercentageAuto(compoundTag.get("left"));
+        LengthPercentageAuto right = decodeLengthPercentageAuto(compoundTag.get("right"));
+        LengthPercentageAuto top = decodeLengthPercentageAuto(compoundTag.get("top"));
+        LengthPercentageAuto bottom = decodeLengthPercentageAuto(compoundTag.get("bottom"));
+
+        return new LPARect(
+                new TaffyRect<>(left, right, top, bottom)
+        );
+    }
+
     // ==================== GridPlacement Codec ====================
 
     public static final Codec<GridPlacement> GRID_PLACEMENT_CODEC = LDLibExtraCodecs.TAG.xmap(
@@ -384,40 +487,40 @@ public final class TaffyCodecs {
             case AUTO -> GridPlacement.auto();
             case LINE -> GridPlacement.line(compoundTag.getInt("value"));
             case NAMED_LINE -> GridPlacement.namedLine(
-                compoundTag.getString("lineName"),
-                compoundTag.getInt("nthIndex")
+                    compoundTag.getString("lineName"),
+                    compoundTag.getInt("nthIndex")
             );
             case SPAN -> GridPlacement.span(compoundTag.getInt("value"));
             case NAMED_SPAN -> GridPlacement.namedSpan(
-                compoundTag.getString("lineName"),
-                compoundTag.getInt("value")
+                    compoundTag.getString("lineName"),
+                    compoundTag.getInt("value")
             );
         };
     }
 
     // ==================== Grid Codec ====================
 
-    public static final Codec<com.lowdragmc.lowdraglib2.gui.ui.data.Grid> GRID_CODEC = LDLibExtraCodecs.TAG.xmap(
+    public static final Codec<Grid> GRID_CODEC = LDLibExtraCodecs.TAG.xmap(
             TaffyCodecs::decodeGrid,
             TaffyCodecs::encodeGrid
     );
 
-    public static Tag encodeGrid(com.lowdragmc.lowdraglib2.gui.ui.data.Grid grid) {
+    public static Tag encodeGrid(Grid grid) {
         var tag = new CompoundTag();
         tag.put("start", encodeGridPlacement(grid.grid().start));
         tag.put("end", encodeGridPlacement(grid.grid().end));
         return tag;
     }
 
-    public static com.lowdragmc.lowdraglib2.gui.ui.data.Grid decodeGrid(Tag tag) {
+    public static Grid decodeGrid(Tag tag) {
         if (!(tag instanceof CompoundTag compoundTag)) {
-            return com.lowdragmc.lowdraglib2.gui.ui.data.Grid.EMPTY;
+            return Grid.EMPTY;
         }
 
         GridPlacement start = decodeGridPlacement(compoundTag.get("start"));
         GridPlacement end = decodeGridPlacement(compoundTag.get("end"));
 
-        return new com.lowdragmc.lowdraglib2.gui.ui.data.Grid(new dev.vfyjxf.taffy.geometry.TaffyLine<>(start, end));
+        return new Grid(new TaffyLine<>(start, end));
     }
 
     // ==================== GridTemplateAreas Codec ====================

@@ -67,7 +67,7 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
             layout.setMaxWidth(100);
             layout.setMaxHeight(100);
             layout.alignSelf(AlignItems.CENTER);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
             layout.setPipelineState(StyleOrigin.INLINE);
         });
         preview.style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))

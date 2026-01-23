@@ -41,7 +41,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             layout.setWidthPercent(100);
             layout.setMaxWidth(150);
             layout.setMinWidth(100);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.paddingAll(4);
         });
         this.colorSelector.setOnColorChangeListener(this::updateValueActively);
         this.colorSelector.setFocusable(true);
@@ -52,7 +52,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         inlineContainer.addChildren(colorPreview.layout(layout -> {
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
             layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> {
             style.setPipelineState(StyleOrigin.DEFAULT);
@@ -87,8 +87,8 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             root.addChild(colorSelector.layout(layout -> {
                 var x = colorPreview.getPositionX();
                 var y = colorPreview.getPositionY();
-                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY());
+                layout.left(x - root.getLayoutX());
+                layout.top(y - root.getLayoutY());
                 layout.setWidth(colorPreview.getSizeWidth());
             }));
             this.colorSelector.focus();

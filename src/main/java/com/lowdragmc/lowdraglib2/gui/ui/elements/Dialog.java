@@ -68,7 +68,7 @@ public class Dialog extends UIElement {
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setWidthPercent(100);
             layout.alignItems(AlignItems.CENTER);
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.paddingAll(5);
             layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
 
@@ -76,7 +76,7 @@ public class Dialog extends UIElement {
             layout.setWidthPercent(100);
             layout.alignItems(AlignItems.CENTER);
             layout.justifyContent(AlignContent.CENTER);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.paddingAll(4);
             layout.setGap(YogaGutter.ALL, 2);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
@@ -85,7 +85,7 @@ public class Dialog extends UIElement {
             layout.alignItems(AlignItems.CENTER);
             layout.justifyContent(AlignContent.CENTER);
             layout.flexDirection(FlexDirection.ROW);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.paddingAll(4);
             layout.setGap(YogaGutter.ALL, 2);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
@@ -430,7 +430,7 @@ public class Dialog extends UIElement {
         }).noText().layout(layout -> {
             layout.setWidth(14);
             layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
         }).addChild(new UIElement().layout(layout -> layout.setWidthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
         dialog.addContent(new ScrollerView().addScrollViewChild(treeList.setOnSelectedChanged(selected -> {
                     if (selected.isEmpty()) return;

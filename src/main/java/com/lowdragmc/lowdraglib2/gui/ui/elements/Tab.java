@@ -98,7 +98,7 @@ public class Tab extends UIElement {
 
     public Tab() {
         getLayout().setHeight(16);
-        getLayout().setPadding(YogaEdge.ALL, 3);
+        getLayout().paddingAll(3);
         getLayout().flexDirection(FlexDirection.ROW);
 
         text.setText(Component.empty());

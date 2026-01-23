@@ -57,7 +57,7 @@ public abstract class MenuTab {
                 .setText(getComponent())
                 .layout(layout ->{
                     layout.setHeightPercent(100);
-                    layout.setPadding(YogaEdge.HORIZONTAL, 2);
+                    layout.paddingHorizontal(2);
                 })
                 .style(style -> style.backgroundTexture(IGuiTexture.EMPTY))
                 .addEventListener(UIEvents.MOUSE_ENTER, e -> e.currentElement.style(style -> style.backgroundTexture(ColorPattern.T_WHITE.rectTexture())), true)

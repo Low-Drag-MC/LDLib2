@@ -176,7 +176,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
                     layout.setAspectRatio(1.0f);
                     layout.setWidthPercent(80);
                     layout.alignSelf(AlignItems.CENTER);
-                    layout.setPadding(YogaEdge.ALL, 3);
+                    layout.paddingAll(3);
                     layout.setPipelineState(StyleOrigin.INLINE);
                 }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
                         .addClass("preview_bg")

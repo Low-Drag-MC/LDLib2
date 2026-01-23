@@ -38,9 +38,26 @@ public final class LayoutStyle extends Style {
         properties.add(LayoutProperties.FLEX_DIRECTION);
         properties.add(LayoutProperties.FLEX_WRAP);
         properties.add(LayoutProperties.POSITION);
-        properties.addAll(Arrays.stream(LayoutProperties.POSITIONS).toList());
-        properties.addAll(Arrays.stream(LayoutProperties.MARGINS).toList());
-        properties.addAll(Arrays.stream(LayoutProperties.PADDINGS).toList());
+        properties.add(LayoutProperties.LEFT);
+        properties.add(LayoutProperties.RIGHT);
+        properties.add(LayoutProperties.TOP);
+        properties.add(LayoutProperties.BOTTOM);
+        properties.add(LayoutProperties.MARGIN_LEFT);
+        properties.add(LayoutProperties.MARGIN_RIGHT);
+        properties.add(LayoutProperties.MARGIN_TOP);
+        properties.add(LayoutProperties.MARGIN_BOTTOM);
+        properties.add(LayoutProperties.MARGIN_VERTICAL);
+        properties.add(LayoutProperties.MARGIN_HORIZONTAL);
+        properties.add(LayoutProperties.MARGIN_ALL);
+        properties.add(LayoutProperties.MARGIN);
+        properties.add(LayoutProperties.PADDING_LEFT);
+        properties.add(LayoutProperties.PADDING_RIGHT);
+        properties.add(LayoutProperties.PADDING_TOP);
+        properties.add(LayoutProperties.PADDING_BOTTOM);
+        properties.add(LayoutProperties.PADDING_VERTICAL);
+        properties.add(LayoutProperties.PADDING_HORIZONTAL);
+        properties.add(LayoutProperties.PADDING_ALL);
+        properties.add(LayoutProperties.PADDING);
         properties.addAll(Arrays.stream(LayoutProperties.GAPS).toList());
         properties.add(LayoutProperties.WIDTH);
         properties.add(LayoutProperties.HEIGHT);
@@ -381,327 +398,310 @@ public final class LayoutStyle extends Style {
     }
 
     /* Margin properties */
+    @Deprecated(since = "26.1")
     public LayoutStyle setMargin(YogaEdge edge, StyleLength length) {
-        set(LayoutProperties.MARGINS[edge.ordinal()], length);
+        switch (edge) {
+            case LEFT -> set(LayoutProperties.MARGIN_LEFT, parseStyleLength(length));
+            case TOP -> set(LayoutProperties.MARGIN_TOP, parseStyleLength(length));
+            case RIGHT -> set(LayoutProperties.MARGIN_RIGHT, parseStyleLength(length));
+            case BOTTOM -> set(LayoutProperties.MARGIN_BOTTOM, parseStyleLength(length));
+            case HORIZONTAL -> set(LayoutProperties.MARGIN_HORIZONTAL, parseStyleLength(length));
+            case VERTICAL -> set(LayoutProperties.MARGIN_VERTICAL, parseStyleLength(length));
+            case ALL -> set(LayoutProperties.MARGIN_ALL, parseStyleLength(length));
+        }
         return this;
     }
 
+    private static LengthPercentageAuto parseStyleLength(StyleLength styleLength) {
+        if (styleLength.isAuto()) return LengthPercentageAuto.auto();
+        if (styleLength.isPercent()) return LengthPercentageAuto.percent(styleLength.value().getValue() / 100f);
+        if (styleLength.isPoints()) return LengthPercentageAuto.length(styleLength.value().getValue());
+        return LengthPercentageAuto.auto();
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle marginLeft(StyleLength length) {
         return setMargin(YogaEdge.LEFT, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle marginTop(StyleLength length) {
         return setMargin(YogaEdge.TOP, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle marginRight(StyleLength length) {
         return setMargin(YogaEdge.RIGHT, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle marginBottom(StyleLength length) {
         return setMargin(YogaEdge.BOTTOM, length);
     }
 
-    public LayoutStyle marginStart(StyleLength length) {
-        return setMargin(YogaEdge.START, length);
-    }
-
-    public LayoutStyle marginEnd(StyleLength length) {
-        return setMargin(YogaEdge.END, length);
-    }
-
+    @Deprecated(since = "26.1")
     public LayoutStyle marginHorizontal(StyleLength length) {
         return setMargin(YogaEdge.HORIZONTAL, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle marginVertical(StyleLength length) {
         return setMargin(YogaEdge.VERTICAL, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle marginAll(StyleLength length) {
         return setMargin(YogaEdge.ALL, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMargin(YogaEdge edge, float margin) {
         return setMargin(edge, StyleLength.points(margin));
     }
 
-    public LayoutStyle marginLeft(float margin) {
-        return setMargin(YogaEdge.LEFT, margin);
-    }
-
-    public LayoutStyle marginTop(float margin) {
-        return setMargin(YogaEdge.TOP, margin);
-    }
-
-    public LayoutStyle marginRight(float margin) {
-        return setMargin(YogaEdge.RIGHT, margin);
-    }
-
-    public LayoutStyle marginBottom(float margin) {
-        return setMargin(YogaEdge.BOTTOM, margin);
-    }
-
-    public LayoutStyle marginStart(float margin) {
-        return setMargin(YogaEdge.START, margin);
-    }
-
-    public LayoutStyle marginEnd(float margin) {
-        return setMargin(YogaEdge.END, margin);
-    }
-
-    public LayoutStyle marginHorizontal(float margin) {
-        return setMargin(YogaEdge.HORIZONTAL, margin);
-    }
-
-    public LayoutStyle marginVertical(float margin) {
-        return setMargin(YogaEdge.VERTICAL, margin);
-    }
-
-    public LayoutStyle marginAll(float margin) {
-        return setMargin(YogaEdge.ALL, margin);
-    }
-
+    @Deprecated(since = "26.1")
     public LayoutStyle setMarginPercent(YogaEdge edge, float percent) {
         return setMargin(edge, StyleLength.percent(percent));
     }
 
-    public LayoutStyle marginLeftPercent(float margin) {
-        return setMarginPercent(YogaEdge.LEFT, margin);
-    }
-
-    public LayoutStyle marginTopPercent(float margin) {
-        return setMarginPercent(YogaEdge.TOP, margin);
-    }
-
-    public LayoutStyle marginRightPercent(float margin) {
-        return setMarginPercent(YogaEdge.RIGHT, margin);
-    }
-
-    public LayoutStyle marginBottomPercent(float margin) {
-        return setMarginPercent(YogaEdge.BOTTOM, margin);
-    }
-
-    public LayoutStyle marginStartPercent(float margin) {
-        return setMarginPercent(YogaEdge.START, margin);
-    }
-
-    public LayoutStyle marginEndPercent(float margin) {
-        return setMarginPercent(YogaEdge.END, margin);
-    }
-
-    public LayoutStyle marginHorizontalPercent(float margin) {
-        return setMarginPercent(YogaEdge.HORIZONTAL, margin);
-    }
-
-    public LayoutStyle marginVerticalPercent(float margin) {
-        return setMarginPercent(YogaEdge.VERTICAL, margin);
-    }
-
-    public LayoutStyle marginAllPercent(float margin) {
-        return setMarginPercent(YogaEdge.ALL, margin);
-    }
-
+    @Deprecated(since = "26.1")
     public LayoutStyle setMarginAuto(YogaEdge edge) {
         return setMargin(edge, StyleLength.ofAuto());
     }
 
-    public LayoutStyle marginLeftAuto() {
-        return setMarginAuto(YogaEdge.LEFT);
-    }
-
-    public LayoutStyle marginTopAuto() {
-        return setMarginAuto(YogaEdge.TOP);
-    }
-
-    public LayoutStyle marginRightAuto() {
-        return setMarginAuto(YogaEdge.RIGHT);
-    }
-
-    public LayoutStyle marginBottomAuto() {
-        return setMarginAuto(YogaEdge.BOTTOM);
-    }
-
-    public LayoutStyle marginStartAuto() {
-        return setMarginAuto(YogaEdge.START);
-    }
-
-    public LayoutStyle marginEndAuto() {
-        return setMarginAuto(YogaEdge.END);
-    }
-
-    public LayoutStyle marginHorizontalAuto() {
-        return setMarginAuto(YogaEdge.HORIZONTAL);
-    }
-
-    public LayoutStyle marginVerticalAuto() {
-        return setMarginAuto(YogaEdge.VERTICAL);
-    }
-
-    public LayoutStyle marginAllAuto() {
-        return setMarginAuto(YogaEdge.ALL);
-    }
-    /* Padding properties */
-
-    public LayoutStyle setPadding(YogaEdge edge, StyleLength length) {
-        set(LayoutProperties.PADDINGS[edge.ordinal()], length);
+    public LayoutStyle marginLeft(float margin) {
+        set(LayoutProperties.MARGIN_LEFT, LengthPercentageAuto.length(margin));
         return this;
     }
 
+    public LayoutStyle marginTop(float margin) {
+        set(LayoutProperties.MARGIN_TOP, LengthPercentageAuto.length(margin));
+        return this;
+    }
+
+    public LayoutStyle marginRight(float margin) {
+        set(LayoutProperties.MARGIN_RIGHT, LengthPercentageAuto.length(margin));
+        return this;
+    }
+
+    public LayoutStyle marginBottom(float margin) {
+        set(LayoutProperties.MARGIN_BOTTOM, LengthPercentageAuto.length(margin));
+        return this;
+    }
+
+    public LayoutStyle marginHorizontal(float margin) {
+        set(LayoutProperties.MARGIN_HORIZONTAL, LengthPercentageAuto.length(margin));
+        return this;
+    }
+
+    public LayoutStyle marginVertical(float margin) {
+        set(LayoutProperties.MARGIN_VERTICAL, LengthPercentageAuto.length(margin));
+        return this;
+    }
+
+    public LayoutStyle marginAll(float margin) {
+        set(LayoutProperties.MARGIN_ALL, LengthPercentageAuto.length(margin));
+        return this;
+    }
+
+    public LayoutStyle marginLeftPercent(float margin) {
+        set(LayoutProperties.MARGIN_LEFT, LengthPercentageAuto.percent(margin / 100f));
+        return this;
+    }
+
+    public LayoutStyle marginTopPercent(float margin) {
+        set(LayoutProperties.MARGIN_TOP, LengthPercentageAuto.percent(margin / 100f));
+        return this;
+    }
+
+    public LayoutStyle marginRightPercent(float margin) {
+        set(LayoutProperties.MARGIN_RIGHT, LengthPercentageAuto.percent(margin / 100f));
+        return this;
+    }
+
+    public LayoutStyle marginBottomPercent(float margin) {
+        set(LayoutProperties.MARGIN_BOTTOM, LengthPercentageAuto.percent(margin / 100f));
+        return this;
+    }
+
+    public LayoutStyle marginHorizontalPercent(float margin) {
+        set(LayoutProperties.MARGIN_HORIZONTAL, LengthPercentageAuto.percent(margin / 100f));
+        return this;
+    }
+
+    public LayoutStyle marginVerticalPercent(float margin) {
+        set(LayoutProperties.MARGIN_VERTICAL, LengthPercentageAuto.percent(margin / 100f));
+        return this;
+    }
+
+    public LayoutStyle marginAllPercent(float margin) {
+        set(LayoutProperties.MARGIN_ALL, LengthPercentageAuto.percent(margin / 100f));
+        return this;
+    }
+
+    public LayoutStyle marginLeftAuto() {
+        set(LayoutProperties.MARGIN_LEFT, LengthPercentageAuto.auto());
+        return this;
+    }
+
+    public LayoutStyle marginTopAuto() {
+        set(LayoutProperties.MARGIN_TOP, LengthPercentageAuto.auto());
+        return this;
+    }
+
+    public LayoutStyle marginRightAuto() {
+        set(LayoutProperties.MARGIN_RIGHT, LengthPercentageAuto.auto());
+        return this;
+    }
+
+    public LayoutStyle marginBottomAuto() {
+        set(LayoutProperties.MARGIN_BOTTOM, LengthPercentageAuto.auto());
+        return this;
+    }
+
+    public LayoutStyle marginHorizontalAuto() {
+        set(LayoutProperties.MARGIN_HORIZONTAL, LengthPercentageAuto.auto());
+        return this;
+    }
+
+    public LayoutStyle marginVerticalAuto() {
+        set(LayoutProperties.MARGIN_VERTICAL, LengthPercentageAuto.auto());
+        return this;
+    }
+
+    public LayoutStyle marginAllAuto() {
+        set(LayoutProperties.MARGIN_ALL, LengthPercentageAuto.auto());
+        return this;
+    }
+
+    /* Padding properties */
+    @Deprecated(since = "26.1")
+    public LayoutStyle setPadding(YogaEdge edge, StyleLength length) {
+        switch (edge) {
+            case LEFT -> set(LayoutProperties.PADDING_LEFT, parseStyleLength(length));
+            case TOP -> set(LayoutProperties.PADDING_TOP, parseStyleLength(length));
+            case RIGHT -> set(LayoutProperties.PADDING_RIGHT, parseStyleLength(length));
+            case BOTTOM -> set(LayoutProperties.PADDING_BOTTOM, parseStyleLength(length));
+            case HORIZONTAL -> set(LayoutProperties.PADDING_HORIZONTAL, parseStyleLength(length));
+            case VERTICAL -> set(LayoutProperties.PADDING_VERTICAL, parseStyleLength(length));
+            case ALL -> set(LayoutProperties.PADDING_ALL, parseStyleLength(length));
+        }
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle paddingLeft(StyleLength length) {
         return setPadding(YogaEdge.LEFT, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle paddingTop(StyleLength length) {
         return setPadding(YogaEdge.TOP, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle paddingRight(StyleLength length) {
         return setPadding(YogaEdge.RIGHT, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle paddingBottom(StyleLength length) {
         return setPadding(YogaEdge.BOTTOM, length);
     }
 
-    public LayoutStyle paddingStart(StyleLength length) {
-        return setPadding(YogaEdge.START, length);
-    }
-
-    public LayoutStyle paddingEnd(StyleLength length) {
-        return setPadding(YogaEdge.END, length);
-    }
-
+    @Deprecated(since = "26.1")
     public LayoutStyle paddingHorizontal(StyleLength length) {
         return setPadding(YogaEdge.HORIZONTAL, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle paddingVertical(StyleLength length) {
         return setPadding(YogaEdge.VERTICAL, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle paddingAll(StyleLength length) {
         return setPadding(YogaEdge.ALL, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setPadding(YogaEdge edge, float padding) {
         return setPadding(edge, StyleLength.points(padding));
     }
 
+    @Deprecated(since = "26.1")
+    public LayoutStyle setPaddingPercent(YogaEdge edge, float padding) {
+        return setPadding(edge, StyleLength.percent(padding));
+    }
+
     public LayoutStyle paddingLeft(float padding) {
-        return setPadding(YogaEdge.LEFT, padding);
+        set(LayoutProperties.PADDING_LEFT, LengthPercentageAuto.length(padding));
+        return this;
     }
 
     public LayoutStyle paddingTop(float padding) {
-        return setPadding(YogaEdge.TOP, padding);
+        set(LayoutProperties.PADDING_TOP, LengthPercentageAuto.length(padding));
+        return this;
     }
 
     public LayoutStyle paddingRight(float padding) {
-        return setPadding(YogaEdge.RIGHT, padding);
+        set(LayoutProperties.PADDING_RIGHT, LengthPercentageAuto.length(padding));
+        return this;
     }
 
     public LayoutStyle paddingBottom(float padding) {
-        return setPadding(YogaEdge.BOTTOM, padding);
-    }
-
-    public LayoutStyle paddingStart(float padding) {
-        return setPadding(YogaEdge.START, padding);
-    }
-
-    public LayoutStyle paddingEnd(float padding) {
-        return setPadding(YogaEdge.END, padding);
+        set(LayoutProperties.PADDING_BOTTOM, LengthPercentageAuto.length(padding));
+        return this;
     }
 
     public LayoutStyle paddingHorizontal(float padding) {
-        return setPadding(YogaEdge.HORIZONTAL, padding);
+        set(LayoutProperties.PADDING_HORIZONTAL, LengthPercentageAuto.length(padding));
+        return this;
     }
 
     public LayoutStyle paddingVertical(float padding) {
-        return setPadding(YogaEdge.VERTICAL, padding);
+        set(LayoutProperties.PADDING_VERTICAL, LengthPercentageAuto.length(padding));
+        return this;
     }
 
     public LayoutStyle paddingAll(float padding) {
-        return setPadding(YogaEdge.ALL, padding);
-    }
-
-    public LayoutStyle setPaddingPercent(YogaEdge edge, float percent) {
-        return setPadding(edge, StyleLength.percent(percent));
+        set(LayoutProperties.PADDING_ALL, LengthPercentageAuto.length(padding));
+        return this;
     }
 
     public LayoutStyle paddingLeftPercent(float padding) {
-        return setPaddingPercent(YogaEdge.LEFT, padding);
+        set(LayoutProperties.PADDING_LEFT, LengthPercentageAuto.percent(padding / 100f));
+        return this;
     }
 
     public LayoutStyle paddingTopPercent(float padding) {
-        return setPaddingPercent(YogaEdge.TOP, padding);
+        set(LayoutProperties.PADDING_TOP, LengthPercentageAuto.percent(padding / 100f));
+        return this;
     }
 
     public LayoutStyle paddingRightPercent(float padding) {
-        return setPaddingPercent(YogaEdge.RIGHT, padding);
+        set(LayoutProperties.PADDING_RIGHT, LengthPercentageAuto.percent(padding / 100f));
+        return this;
     }
 
     public LayoutStyle paddingBottomPercent(float padding) {
-        return setPaddingPercent(YogaEdge.BOTTOM, padding);
-    }
-
-    public LayoutStyle paddingStartPercent(float padding) {
-        return setPaddingPercent(YogaEdge.START, padding);
-    }
-
-    public LayoutStyle paddingEndPercent(float padding) {
-        return setPaddingPercent(YogaEdge.END, padding);
+        set(LayoutProperties.PADDING_BOTTOM, LengthPercentageAuto.percent(padding / 100f));
+        return this;
     }
 
     public LayoutStyle paddingHorizontalPercent(float padding) {
-        return setPaddingPercent(YogaEdge.HORIZONTAL, padding);
+        set(LayoutProperties.PADDING_HORIZONTAL, LengthPercentageAuto.percent(padding / 100f));
+        return this;
     }
 
     public LayoutStyle paddingVerticalPercent(float padding) {
-        return setPaddingPercent(YogaEdge.VERTICAL, padding);
+        set(LayoutProperties.PADDING_VERTICAL, LengthPercentageAuto.percent(padding / 100f));
+        return this;
     }
 
     public LayoutStyle paddingAllPercent(float padding) {
-        return setPaddingPercent(YogaEdge.ALL, padding);
-    }
-
-    public LayoutStyle setPaddingAuto(YogaEdge edge) {
-        return setPadding(edge, StyleLength.ofAuto());
-    }
-
-    public LayoutStyle paddingLeftAuto() {
-        return setPaddingAuto(YogaEdge.LEFT);
-    }
-
-    public LayoutStyle paddingTopAuto() {
-        return setPaddingAuto(YogaEdge.TOP);
-    }
-
-    public LayoutStyle paddingRightAuto() {
-        return setPaddingAuto(YogaEdge.RIGHT);
-    }
-
-    public LayoutStyle paddingBottomAuto() {
-        return setPaddingAuto(YogaEdge.BOTTOM);
-    }
-
-    public LayoutStyle paddingStartAuto() {
-        return setPaddingAuto(YogaEdge.START);
-    }
-
-    public LayoutStyle paddingEndAuto() {
-        return setPaddingAuto(YogaEdge.END);
-    }
-
-    public LayoutStyle paddingHorizontalAuto() {
-        return setPaddingAuto(YogaEdge.HORIZONTAL);
-    }
-
-    public LayoutStyle paddingVerticalAuto() {
-        return setPaddingAuto(YogaEdge.VERTICAL);
-    }
-
-    public LayoutStyle paddingAllAuto() {
-        return setPaddingAuto(YogaEdge.ALL);
+        set(LayoutProperties.PADDING_ALL, LengthPercentageAuto.percent(padding / 100f));
+        return this;
     }
 
     /* Position properties */
@@ -725,165 +725,110 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setPosition(YogaEdge edge, StyleLength length) {
-        set(LayoutProperties.POSITIONS[edge.ordinal()], length);
+        switch (edge) {
+            case LEFT -> set(LayoutProperties.LEFT, parseStyleLength(length));
+            case TOP -> set(LayoutProperties.TOP, parseStyleLength(length));
+            case RIGHT -> set(LayoutProperties.RIGHT, parseStyleLength(length));
+            case BOTTOM -> set(LayoutProperties.BOTTOM, parseStyleLength(length));
+        }
         return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle left(StyleLength length) {
         return setPosition(YogaEdge.LEFT, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle top(StyleLength length) {
         return setPosition(YogaEdge.TOP, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle right(StyleLength length) {
         return setPosition(YogaEdge.RIGHT, length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle bottom(StyleLength length) {
         return setPosition(YogaEdge.BOTTOM, length);
     }
 
-    public LayoutStyle start(StyleLength length) {
-        return setPosition(YogaEdge.START, length);
-    }
-
-    public LayoutStyle end(StyleLength length) {
-        return setPosition(YogaEdge.END, length);
-    }
-
-    public LayoutStyle horizontal(StyleLength length) {
-        return setPosition(YogaEdge.HORIZONTAL, length);
-    }
-
-    public LayoutStyle vertical(StyleLength length) {
-        return setPosition(YogaEdge.VERTICAL, length);
-    }
-
-    public LayoutStyle all(StyleLength length) {
-        return setPosition(YogaEdge.ALL, length);
-    }
-
+    @Deprecated(since = "26.1")
     public LayoutStyle setPosition(YogaEdge edge, float position) {
         return setPosition(edge, StyleLength.points(position));
     }
 
-    public LayoutStyle left(float position) {
-        return setPosition(YogaEdge.LEFT, position);
-    }
-
-    public LayoutStyle top(float position) {
-        return setPosition(YogaEdge.TOP, position);
-    }
-
-    public LayoutStyle right(float position) {
-        return setPosition(YogaEdge.RIGHT, position);
-    }
-
-    public LayoutStyle bottom(float position) {
-        return setPosition(YogaEdge.BOTTOM, position);
-    }
-
-    public LayoutStyle start(float position) {
-        return setPosition(YogaEdge.START, position);
-    }
-
-    public LayoutStyle end(float position) {
-        return setPosition(YogaEdge.END, position);
-    }
-
-    public LayoutStyle horizontal(float position) {
-        return setPosition(YogaEdge.HORIZONTAL, position);
-    }
-
-    public LayoutStyle vertical(float position) {
-        return setPosition(YogaEdge.VERTICAL, position);
-    }
-
-    public LayoutStyle all(float position) {
-        return setPosition(YogaEdge.ALL, position);
-    }
-
+    @Deprecated(since = "26.1")
     public LayoutStyle setPositionPercent(YogaEdge edge, float percent) {
         return setPosition(edge, StyleLength.percent(percent));
     }
 
-    public LayoutStyle leftPercent(float percent) {
-        return setPositionPercent(YogaEdge.LEFT, percent);
-    }
-
-    public LayoutStyle topPercent(float percent) {
-        return setPositionPercent(YogaEdge.TOP, percent);
-    }
-
-    public LayoutStyle rightPercent(float percent) {
-        return setPositionPercent(YogaEdge.RIGHT, percent);
-    }
-
-    public LayoutStyle bottomPercent(float percent) {
-        return setPositionPercent(YogaEdge.BOTTOM, percent);
-    }
-
-    public LayoutStyle startPercent(float percent) {
-        return setPositionPercent(YogaEdge.START, percent);
-    }
-
-    public LayoutStyle endPercent(float percent) {
-        return setPositionPercent(YogaEdge.END, percent);
-    }
-
-    public LayoutStyle horizontalPercent(float percent) {
-        return setPositionPercent(YogaEdge.HORIZONTAL, percent);
-    }
-
-    public LayoutStyle verticalPercent(float percent) {
-        return setPositionPercent(YogaEdge.VERTICAL, percent);
-    }
-
-    public LayoutStyle allPercent(float percent) {
-        return setPositionPercent(YogaEdge.ALL, percent);
-    }
-
+    @Deprecated(since = "26.1")
     public LayoutStyle setPositionAuto(YogaEdge edge) {
         return setPosition(edge, StyleLength.ofAuto());
     }
 
+    public LayoutStyle left(float position) {
+        set(LayoutProperties.LEFT, LengthPercentageAuto.length(position));
+        return this;
+    }
+
+    public LayoutStyle top(float position) {
+        set(LayoutProperties.TOP, LengthPercentageAuto.length(position));
+        return this;
+    }
+
+    public LayoutStyle right(float position) {
+        set(LayoutProperties.RIGHT, LengthPercentageAuto.length(position));
+        return this;
+    }
+
+    public LayoutStyle bottom(float position) {
+        set(LayoutProperties.BOTTOM, LengthPercentageAuto.length(position));
+        return this;
+    }
+
+    public LayoutStyle leftPercent(float percent) {
+        set(LayoutProperties.LEFT, LengthPercentageAuto.percent(percent / 100f));
+        return this;
+    }
+
+    public LayoutStyle topPercent(float percent) {
+        set(LayoutProperties.TOP, LengthPercentageAuto.percent(percent / 100f));
+        return this;
+    }
+
+    public LayoutStyle rightPercent(float percent) {
+        set(LayoutProperties.RIGHT, LengthPercentageAuto.percent(percent / 100f));
+        return this;
+    }
+
+    public LayoutStyle bottomPercent(float percent) {
+        set(LayoutProperties.BOTTOM, LengthPercentageAuto.percent(percent / 100f));
+        return this;
+    }
+
     public LayoutStyle leftAuto() {
-        return setPositionAuto(YogaEdge.LEFT);
+        set(LayoutProperties.LEFT, LengthPercentageAuto.auto());
+        return this;
     }
 
     public LayoutStyle topAuto() {
-        return setPositionAuto(YogaEdge.TOP);
+        set(LayoutProperties.TOP, LengthPercentageAuto.auto());
+        return this;
     }
 
     public LayoutStyle rightAuto() {
-        return setPositionAuto(YogaEdge.RIGHT);
+        set(LayoutProperties.RIGHT, LengthPercentageAuto.auto());
+        return this;
     }
 
     public LayoutStyle bottomAuto() {
-        return setPositionAuto(YogaEdge.BOTTOM);
-    }
-
-    public LayoutStyle startAuto() {
-        return setPositionAuto(YogaEdge.START);
-    }
-
-    public LayoutStyle endAuto() {
-        return setPositionAuto(YogaEdge.END);
-    }
-
-    public LayoutStyle horizontalAuto() {
-        return setPositionAuto(YogaEdge.HORIZONTAL);
-    }
-
-    public LayoutStyle verticalAuto() {
-        return setPositionAuto(YogaEdge.VERTICAL);
-    }
-
-    public LayoutStyle allAuto() {
-        return setPositionAuto(YogaEdge.ALL);
+        set(LayoutProperties.BOTTOM, LengthPercentageAuto.auto());
+        return this;
     }
 
     /* Alignment properties */
@@ -1418,21 +1363,21 @@ public final class LayoutStyle extends Style {
         return getValueSave(LayoutProperties.ASPECT_RATE).unwrapOrDefault(YogaConstants.UNDEFINED);
     }
 
-    public YogaValue getMargin(YogaEdge edge) {
-        return getValueSave(LayoutProperties.MARGINS[edge.ordinal()]).asYogaValue();
-    }
-
-    public YogaValue getPadding(YogaEdge edge) {
-        return getValueSave(LayoutProperties.PADDINGS[edge.ordinal()]).asYogaValue();
-    }
-
-    public YogaValue getPosition(YogaEdge edge) {
-        return getValueSave(LayoutProperties.POSITIONS[edge.ordinal()]).asYogaValue();
-    }
-
-    public YogaValue getGap(YogaGutter gutter) {
-        return getValueSave(LayoutProperties.GAPS[gutter.ordinal()]).asYogaValue();
-    }
+//    public YogaValue getMargin(YogaEdge edge) {
+//        return getValueSave(LayoutProperties.MARGINS[edge.ordinal()]).asYogaValue();
+//    }
+//
+//    public YogaValue getPadding(YogaEdge edge) {
+//        return getValueSave(LayoutProperties.PADDINGS[edge.ordinal()]).asYogaValue();
+//    }
+//
+//    public YogaValue getPosition(YogaEdge edge) {
+//        return getValueSave(LayoutProperties.POSITIONS[edge.ordinal()]).asYogaValue();
+//    }
+//
+//    public YogaValue getGap(YogaGutter gutter) {
+//        return getValueSave(LayoutProperties.GAPS[gutter.ordinal()]).asYogaValue();
+//    }
 
     public YogaOverflow getOverflow() {
         return getValueSave(LayoutProperties.OVERFLOW);

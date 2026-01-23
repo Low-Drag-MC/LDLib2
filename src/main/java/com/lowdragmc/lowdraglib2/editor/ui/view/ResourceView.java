@@ -46,14 +46,14 @@ public class ResourceView extends View {
         }).moveInlineAsDefault();
         tabView.tabContentContainer.layout(layout -> {
             layout.setFlex(1);
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).moveInlineAsDefault();
         tabView.tabHeaderContainer.layout(layout -> {
             layout.flexDirection(FlexDirection.COLUMN);
             layout.setHeightPercent(100);
             layout.setWidth(StyleSizeLength.AUTO);
-            layout.setPadding(YogaEdge.HORIZONTAL, 1);
-            layout.setPadding(YogaEdge.VERTICAL, 1);
+            layout.paddingHorizontal(1);
+            layout.paddingVertical(1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).moveInlineAsDefault();
         tabView.tabScroller
                 .viewContainer(viewContainer -> viewContainer.layout(layout -> {
@@ -63,7 +63,7 @@ public class ResourceView extends View {
                 .layout(layout -> {
                     layout.setWidth(16);
                     layout.setFlex(1);
-                    layout.setMargin(YogaEdge.BOTTOM, 0);
+                    layout.marginBottom(0);
                 }).moveInlineAsDefault();
         tabView.setOnTabSelected(this::onResourceSelected);
 
@@ -86,8 +86,8 @@ public class ResourceView extends View {
         tab.textStyle(style -> style.adaptiveWidth(false)).layout(layout -> {
             layout.setWidth(14);
             layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 1);
-            layout.setMargin(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
+            layout.marginAll(1);
         }).style(style -> style.tooltips(resourceInstance.resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeightPercent(100);

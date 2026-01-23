@@ -328,7 +328,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.hoverTexture() : treeListStyle.nodeTexture()));
         });
         var arrow = new UIElement().layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 5 * node.getDimension());
+            layout.marginLeft(5 * node.getDimension());
             layout.setWidth(7);
             layout.setHeight(7);
         }).style(style -> style.backgroundTexture(DynamicTexture.of(() -> node.isBranch() ?

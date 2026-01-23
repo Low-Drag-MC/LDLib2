@@ -54,7 +54,7 @@ public class HistoryView extends View implements IHistoryStack {
             layout.setFlex(1);
         });
         scrollerView.viewPort.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
         scrollerView.viewContainer.layout(layout -> {
             layout.setGap(YogaGutter.ALL, 1);

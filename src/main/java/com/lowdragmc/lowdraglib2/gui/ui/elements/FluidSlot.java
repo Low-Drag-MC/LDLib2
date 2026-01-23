@@ -142,7 +142,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public FluidSlot() {
         getLayout().setWidth(18);
         getLayout().setHeight(18);
-        getLayout().setPadding(YogaEdge.ALL, 1);
+        getLayout().paddingAll(1);
         getStyle().backgroundTexture(Sprites.RECT_DARK);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);

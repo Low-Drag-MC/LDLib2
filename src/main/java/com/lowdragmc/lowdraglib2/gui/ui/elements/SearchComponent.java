@@ -166,7 +166,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             layout.justifyContent(AlignContent.CENTER);
             layout.setHeightPercent(100);
             layout.setFlex(1);
-            layout.setPadding(YogaEdge.ALL, 2);
+            layout.paddingAll(2);
         });
 
         this.textField.addClass("__search-component_text-field__");
@@ -194,7 +194,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                     layout.setHeight(StyleSizeLength.AUTO);
                     layout.positionType(TaffyPosition.ABSOLUTE);
                 })
-                .addChildren(listView = new UIElement().layout(layout -> layout.setPadding(YogaEdge.ALL, 2)), scrollerView = new ScrollerView())
+                .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new ScrollerView())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
                 .addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
                     var mui = getModularUI();
@@ -203,8 +203,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                         e.currentElement.layout(layout -> {
                             var x = this.getPositionX();
                             var y = this.getPositionY();
-                            layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                            layout.setPosition(YogaEdge.TOP, y - root.getLayoutY() + this.getSizeHeight());
+                            layout.left(x - root.getLayoutX());
+                            layout.top(y - root.getLayoutY() + this.getSizeHeight());
                             layout.setWidth(this.getSizeWidth());
                         });
                     }
@@ -220,7 +220,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         scrollerView.horizontalScroller.headButton.setDisplay(false);
         scrollerView.horizontalScroller.tailButton.setDisplay(false);
         scrollerView.viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
-        scrollerView.viewPort.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
+        scrollerView.viewPort.layout(layout -> layout.paddingAll(2));
         scrollerView.layout(layout -> layout.setFlexGrow(1));
         scrollerView.setDisplay(false);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
@@ -418,8 +418,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             root.addChild(dialog.layout(layout -> {
                 var x = this.getPositionX();
                 var y = this.getPositionY();
-                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY() + this.getSizeHeight());
+                layout.left(x - root.getLayoutX());
+                layout.top(y - root.getLayoutY() + this.getSizeHeight());
                 layout.setWidth(this.getSizeWidth());
             }));
         }

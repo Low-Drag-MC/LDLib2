@@ -169,7 +169,7 @@ public class ScrollerView extends UIElement {
 
         viewPort.layout(layout -> {
             layout.setFlex(1);
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.paddingAll(5);
         }).setOverflow(YogaOverflow.HIDDEN).style(style -> style.backgroundTexture(Sprites.BORDER));
         viewPort.addEventListener(UIEvents.MOUSE_WHEEL, this::onScrollWheel);
         viewPort.addChild(new UIElement() // we wrap the view container in a new element
@@ -188,13 +188,13 @@ public class ScrollerView extends UIElement {
     /// events
     protected void onHorizontalScroll(float value) {
         viewContainer.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, -value * Math.max(0, getContainerWidth() - viewPort.getContentWidth()));
+            layout.left(-value * Math.max(0, getContainerWidth() - viewPort.getContentWidth()));
         });
     }
 
     protected void onVerticalScroll(float value) {
         viewContainer.layout(layout -> {
-            layout.setPosition(YogaEdge.TOP, -value * Math.max(0, getContainerHeight() - viewPort.getContentHeight()));
+            layout.top(-value * Math.max(0, getContainerHeight() - viewPort.getContentHeight()));
         });
     }
 
@@ -276,7 +276,7 @@ public class ScrollerView extends UIElement {
 
         if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {
             horizontalScroller.layout(layout -> Style.importantPipeline(layout, l ->
-                    l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? scrollerViewStyle.scrollerViewMargin() : 0)));
+                    l.marginRight(verticalScroller.isDisplayed() ? scrollerViewStyle.scrollerViewMargin() : 0)));
         }
 
         var reloadValue = false;

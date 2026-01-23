@@ -95,7 +95,7 @@ public class EditorWindow extends UIElement {
         this.editorButtonContainer.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.setPosition(YogaEdge.TOP, 15);
+            layout.top(15);
             layout.setWidthPercent(100);
             layout.setGap(YogaGutter.ALL, 1);
             layout.setHeight(14);
@@ -131,7 +131,7 @@ public class EditorWindow extends UIElement {
         currentEditor = editor;
         editor.setDisplay(true);
         editor.mainView.layout(layout -> {
-            layout.setMargin(YogaEdge.TOP, hasMultipleEditors() ? 14 : 0);
+            layout.marginTop(hasMultipleEditors() ? 14 : 0);
         });
         editorButtonContainer.setDisplay(hasMultipleEditors());
         for (var entry : editors.entrySet()) {
@@ -334,7 +334,7 @@ public class EditorWindow extends UIElement {
                 }).layout(layout -> {
                     layout.setHeight(9);
                     layout.setAspectRatio(1);
-                    layout.setMargin(YogaEdge.RIGHT, 2);
+                    layout.marginRight(2);
                 })
         ).addEventListener(UIEvents.MOUSE_DOWN, e -> showEditor(editor));
     }

@@ -47,16 +47,16 @@ public class ConfiguratorGroup extends Configurator {
         addClass("__configurator-group__");
 
         configuratorContainer = new UIElement().layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 2);
+            layout.marginLeft(2);
             layout.setGap(YogaGutter.ALL, 1);
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.paddingAll(5);
         }).style(style -> style.backgroundTexture(Sprites.BORDER)).addClass("__configurator-group_container__").moveInlineAsDefault();
 
         lineContainer.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
-                .layout(layout -> layout.setPadding(YogaEdge.ALL, 2))
+                .layout(layout -> layout.paddingAll(2))
                 .addEventListener(UIEvents.MOUSE_DOWN, this::onLineContainerClick)
                 .addChildAt(folderIcon = new UIElement().layout(layout -> {
-                    layout.setMargin(YogaEdge.ALL, 3f);
+                    layout.marginAll(3f);
                     layout.setWidth(8);
                     layout.setHeight(8);
                 }).style(style -> style.backgroundTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT))

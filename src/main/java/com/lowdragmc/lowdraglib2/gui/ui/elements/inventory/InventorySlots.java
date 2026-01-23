@@ -29,7 +29,7 @@ public class InventorySlots extends UIElement {
         }
 
         addChild(inventory);
-        hotbar.getLayout().setMargin(YogaEdge.TOP, 5);
+        hotbar.getLayout().marginTop(5);
         addChild(hotbar);
         hotbar.addClass("__inventory_hotbar__");
 

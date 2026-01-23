@@ -310,7 +310,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
             float position = getNormalizedValue() * remainingSpace;
             Style.importantPipeline(scrollBar.getLayout(), layout -> {
                 layout.setHeightPercent(scrollBarSize);
-                layout.setPositionPercent(YogaEdge.TOP, position);
+                layout.topPercent(position);
             });
         }
 
@@ -379,7 +379,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
 
             Style.importantPipeline(scrollBar.getLayout(), layout -> {
                 layout.setWidthPercent(scrollBarSize);
-                layout.setPositionPercent(YogaEdge.LEFT, position);
+                layout.leftPercent(position);
             });
         }
 

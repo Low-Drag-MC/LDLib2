@@ -121,11 +121,11 @@ public class ResourceProviderContainer<T> extends UIElement {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.setWidthPercent(100);
                 layout.flexDirection(FlexDirection.ROW);
-                layout.setMargin(YogaEdge.VERTICAL, 1);
+                layout.marginVertical(1);
             } else {
                 layout.setWidth(resourceProvider.getResourceInstance().getUiWidth());
                 layout.flexDirection(FlexDirection.COLUMN);
-                layout.setMargin(YogaEdge.ALL, 3);
+                layout.marginAll(3);
             }
             layout.setGap(YogaGutter.ALL, 2);
         }).addChildren(new UIElement().layout(layout -> {

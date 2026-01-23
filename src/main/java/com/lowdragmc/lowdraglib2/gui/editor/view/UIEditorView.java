@@ -78,7 +78,7 @@ public class UIEditorView extends View {
         header.layout(layout -> {
             layout.setWidthPercent(100);
             layout.setHeight(16);
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
             layout.flexDirection(FlexDirection.ROW);
         });
         header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
@@ -155,7 +155,7 @@ public class UIEditorView extends View {
                                 })
                                 .bindDataSource(SupplierDataSource.of(modularUIPreview::isShowSelectionBox))
                                 .layout(layout -> {
-                                    layout.setPadding(YogaEdge.ALL, 0);
+                                    layout.paddingAll(0);
                                     layout.setHeightPercent(100);
                                     layout.setAspectRatio(1f);
                                 })
@@ -253,9 +253,9 @@ public class UIEditorView extends View {
                     }
                 })
                 .setCanCollapse(false)
-                .configuratorContainer(container -> container.layout(layout -> layout.setMargin(YogaEdge.LEFT, 0)))
+                .configuratorContainer(container -> container.layout(layout -> layout.marginLeft(0)))
                 .hideTitle();
-        styleView.layout(layout -> layout.setHeightPercent(100).setPadding(YogaEdge.ALL, 4));
+        styleView.layout(layout -> layout.setHeightPercent(100).paddingAll(4));
         styleView.style(style -> style.backgroundTexture(Sprites.BORDER));
         styleView.addChildren(
                 new Toggle()
@@ -292,11 +292,11 @@ public class UIEditorView extends View {
 
         stylesheetEditor.setLanguage(Languages.LSS);
         stylesheetEditor.setActive(false);
-        stylesheetEditor.contentView.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
+        stylesheetEditor.contentView.layout(layout -> layout.paddingAll(2));
         stylesheetEditor.contentView.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         stylesheetEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         stylesheetEditor.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 2);
+            layout.paddingAll(2);
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
         });
@@ -311,7 +311,7 @@ public class UIEditorView extends View {
             layout.setWidthPercent(100);
         });
         inspector.scrollerView.viewPort.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.paddingAll(5);
         }).style(style -> style.backgroundTexture(Sprites.BORDER)).moveInlineAsDefault();
         inspector.addClass("__ui-editor-view_inspector__").moveInlineAsDefault();
 
@@ -483,8 +483,8 @@ public class UIEditorView extends View {
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
         menu.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, posX - getContentX());
-            layout.setPosition(YogaEdge.TOP, posY - getContentY());
+            layout.left(posX - getContentX());
+            layout.top(posY - getContentY());
         });
         addChildren(menu);
         return menu;

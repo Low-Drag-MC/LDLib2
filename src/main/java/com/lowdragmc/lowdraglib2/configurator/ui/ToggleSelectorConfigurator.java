@@ -52,7 +52,7 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
         for (T candidate : this.candidates) {
             var toggle = new Toggle().noText();
             toggle.layout(layout -> {
-                layout.setPadding(YogaEdge.ALL, 0);
+                layout.paddingAll(0);
             });
             toggle.setToggleGroup(this.group);
             toggle.setOn(Objects.equals(candidate, value), false);
@@ -69,10 +69,10 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
                 toggleStyle.setPipelineState(StyleOrigin.INLINE);
             });
             toggle.toggleButton.layout(layout -> {
-                layout.setPadding(YogaEdge.ALL, 1);
+                layout.paddingAll(1);
             });
             toggle.markIcon.layout(layout -> {
-                layout.setPadding(YogaEdge.ALL, 1);
+                layout.paddingAll(1);
                 layout.alignItems(AlignItems.CENTER);
                 layout.justifyContent(AlignContent.CENTER);
             });

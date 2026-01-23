@@ -59,7 +59,7 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
                         defaultValue(field, field.getType()).getZ(), forceUpdate)
         ).layout(layout -> {
             layout.setGap(YogaGutter.ALL, 2);
-            layout.setMargin(YogaEdge.LEFT, 2);
+            layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
         });

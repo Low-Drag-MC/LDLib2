@@ -62,7 +62,7 @@ public class TestSync implements IMenuTest {
         root.layout(layout -> {
             layout.setWidth(250);
             layout.setHeight(400);
-            layout.setPadding(YogaEdge.ALL, 10);
+            layout.paddingAll(10);
         }).setId("root");
         root.getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(

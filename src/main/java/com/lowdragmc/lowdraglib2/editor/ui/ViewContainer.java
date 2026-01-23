@@ -53,7 +53,7 @@ public class ViewContainer extends UIElement {
             layout.setHeightPercent(100);
         }).addClass("__view-container_tab-view__");
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
-        getLayout().setPadding(YogaEdge.ALL, 1);
+        getLayout().paddingAll(1);
 
         tabView.tabContentContainer.layout(layout -> {
             layout.setFlex(1);
@@ -118,7 +118,7 @@ public class ViewContainer extends UIElement {
             }
         });
         this.tabView.tabHeaderContainer.layout(layout -> Style.importantPipeline(layout,
-                s -> s.setPadding(YogaEdge.HORIZONTAL, 0)));
+                s -> s.paddingHorizontal(0)));
         if (!isVertical) {
             this.tabView.tabHeaderContainer.layout(layout -> Style.importantPipeline(layout,
                     s -> s.setHeightPercent(100)));
@@ -164,7 +164,7 @@ public class ViewContainer extends UIElement {
                 layout.setHeight(14);
             }
         });
-        this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.PADDINGS[YogaEdge.HORIZONTAL.ordinal()], slot -> slot.origin() == StyleOrigin.IMPORTANT);
+        this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.PADDING_HORIZONTAL, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         if (!isVertical) {
             this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         }

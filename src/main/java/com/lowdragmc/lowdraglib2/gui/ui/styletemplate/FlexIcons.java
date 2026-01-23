@@ -10,8 +10,6 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.experimental.UtilityClass;
 import net.minecraft.resources.ResourceLocation;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaJustify;
 
 @UtilityClass
 public final class FlexIcons {
@@ -124,7 +122,7 @@ public final class FlexIcons {
             case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_COLUMN;
             case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_COLUMN;
             case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_COLUMN;
-            case null -> AUTO_ROW;
+            case AUTO -> AUTO_ROW;
         } : switch (alignContent) {
             case FLEX_START, START -> ALIGN_CONTENTS_FLEX_START_COLUMN;
             case FLEX_END, END -> ALIGN_CONTENTS_FLEX_END_COLUMN;
@@ -133,7 +131,7 @@ public final class FlexIcons {
             case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_ROW;
             case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_ROW;
             case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_ROW;
-            case null -> AUTO_COLUMN;
+            case AUTO -> AUTO_COLUMN;
         };
     }
 
@@ -147,7 +145,7 @@ public final class FlexIcons {
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_COLUMN;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_COLUMN;
                 case STRETCH -> ALIGN_CONTENTS_STRETCH_COLUMN;
-                case null -> AUTO_COLUMN;
+                case AUTO -> AUTO_COLUMN;
             };
             case COLUMN_REVERSE -> switch (alignContent) {
                 case FLEX_START, START   -> JUSTIFY_CONTENTS_FLEX_START_COLUMN_REVERSE;
@@ -157,7 +155,7 @@ public final class FlexIcons {
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_COLUMN_REVERSE;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_COLUMN_REVERSE;
                 case STRETCH -> ALIGN_CONTENTS_STRETCH_COLUMN;
-                case null -> AUTO_COLUMN;
+                case AUTO -> AUTO_COLUMN;
             };
             case ROW -> switch (alignContent) {
                 case FLEX_START, START   -> JUSTIFY_CONTENTS_FLEX_START_ROW;
@@ -167,7 +165,7 @@ public final class FlexIcons {
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_ROW;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_ROW;
                 case STRETCH -> ALIGN_CONTENTS_STRETCH_ROW;
-                case null -> AUTO_ROW;
+                case AUTO -> AUTO_ROW;
             };
             case ROW_REVERSE -> switch (alignContent) {
                 case FLEX_START, START   -> JUSTIFY_CONTENTS_FLEX_START_ROW_REVERSE;
@@ -177,11 +175,12 @@ public final class FlexIcons {
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_ROW_REVERSE;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_ROW_REVERSE;
                 case STRETCH -> ALIGN_CONTENTS_STRETCH_ROW;
-                case null -> AUTO_ROW;
+                case AUTO -> AUTO_ROW;
             };
         };
     }
 
+    // TODO Baseline icon?
     public static SpriteTexture getAlignItemIcon(FlexDirection flexDirection, AlignItems alignItems) {
         return switch (flexDirection) {
             case COLUMN -> switch (alignItems) {
@@ -189,28 +188,28 @@ public final class FlexIcons {
                 case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_COLUMN;
                 case CENTER -> ALIGN_ITEMS_CENTER_COLUMN;
                 case STRETCH -> ALIGN_ITEMS_STRETCH_COLUMN;
-                case null, default -> AUTO_COLUMN;
+                case AUTO, BASELINE -> AUTO_COLUMN;
             };
             case COLUMN_REVERSE -> switch (alignItems) {
                 case FLEX_START, START -> ALIGN_ITEMS_FLEX_START_COLUMN_REVERSE;
                 case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_COLUMN_REVERSE;
                 case CENTER -> ALIGN_ITEMS_CENTER_COLUMN_REVERSE;
                 case STRETCH -> ALIGN_ITEMS_STRETCH_COLUMN_REVERSE;
-                case null, default -> AUTO_COLUMN;
+                case AUTO, BASELINE -> AUTO_COLUMN;
             };
             case ROW -> switch (alignItems) {
                 case FLEX_START, START -> ALIGN_ITEMS_FLEX_START_ROW;
                 case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_ROW;
                 case CENTER -> ALIGN_ITEMS_CENTER_ROW;
                 case STRETCH -> ALIGN_ITEMS_STRETCH_ROW;
-                case null, default -> AUTO_ROW;
+                case AUTO, BASELINE -> AUTO_ROW;
             };
             case ROW_REVERSE -> switch (alignItems) {
                 case FLEX_START, START -> ALIGN_ITEMS_FLEX_START_ROW_REVERSE;
                 case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_ROW_REVERSE;
                 case CENTER -> ALIGN_ITEMS_CENTER_ROW_REVERSE;
                 case STRETCH -> ALIGN_ITEMS_STRETCH_ROW_REVERSE;
-                case null, default -> AUTO_ROW;
+                case AUTO, BASELINE -> AUTO_ROW;
             };
         };
     }
@@ -228,7 +227,7 @@ public final class FlexIcons {
             case FLEX_END, END -> ALIGN_SELF_FLEX_END_COLUMN;
             case CENTER -> ALIGN_SELF_CENTER_COLUMN;
             case STRETCH -> ALIGN_SELF_STRETCH_COLUMN;
-            case null, default -> AUTO_COLUMN;
+            case AUTO, BASELINE -> AUTO_COLUMN;
         };
     }
 }

@@ -107,7 +107,7 @@ public class ResourceContainer<T> extends UIElement {
             layout.alignSelf(AlignItems.CENTER);
             layout.setWidthPercent(95);
             layout.setHeight(1);
-            layout.setMargin(YogaEdge.VERTICAL, 1);
+            layout.marginVertical(1);
         }).style(style -> style.backgroundTexture(ColorPattern.T_WHITE.rectTexture())));
 
         // custom
@@ -129,7 +129,7 @@ public class ResourceContainer<T> extends UIElement {
                 layout.setWidthPercent(100);
                 layout.flexDirection(FlexDirection.ROW);
                 layout.alignItems(AlignItems.CENTER);
-                layout.setPadding(YogaEdge.RIGHT, 2);
+                layout.paddingRight(2);
             }).addChildren(provider.createProviderToggle()).addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 if (event.button == 0) {
                     selectProvider(provider);

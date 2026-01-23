@@ -128,7 +128,7 @@ public abstract class Editor extends UIElement {
 
         addChildren(
                 top.layout(layout -> {
-                    layout.setPadding(YogaEdge.ALL, 1);
+                    layout.paddingAll(1);
                     layout.setWidthPercent(100);
                     layout.setHeight(15);
                     layout.flexDirection(FlexDirection.ROW);
@@ -138,8 +138,8 @@ public abstract class Editor extends UIElement {
                         icon.layout(layout -> {
                             layout.setWidth(11);
                             layout.setHeight(11);
-                            layout.setMargin(YogaEdge.ALL, 1);
-                            layout.setMargin(YogaEdge.HORIZONTAL, 5);
+                            layout.marginAll(1);
+                            layout.marginHorizontal(5);
                         }).style(style -> style.backgroundTexture(new SpriteTexture())),
                         menuContainer.layout(layout -> {
                             layout.setHeightPercent(100);
@@ -241,14 +241,14 @@ public abstract class Editor extends UIElement {
         var mui = getModularUI();
         if (mui == null) {
             menu.layout(layout -> {
-                layout.setPosition(YogaEdge.LEFT, posX - getContentX());
-                layout.setPosition(YogaEdge.TOP, posY - getContentY());
+                layout.left(posX - getContentX());
+                layout.top(posY - getContentY());
             });
             addChildren(menu);
         } else {
             menu.layout(layout -> {
-                layout.setPosition(YogaEdge.LEFT, posX - mui.ui.rootElement.getContentX());
-                layout.setPosition(YogaEdge.TOP, posY - mui.ui.rootElement.getContentY());
+                layout.left(posX - mui.ui.rootElement.getContentX());
+                layout.top(posY - mui.ui.rootElement.getContentY());
             });
             mui.ui.rootElement.addChildren(menu);
         }

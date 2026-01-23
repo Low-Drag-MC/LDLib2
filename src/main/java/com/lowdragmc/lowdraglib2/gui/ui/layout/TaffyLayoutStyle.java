@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.GridAuto;
 import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplateAreas;
+import com.lowdragmc.lowdraglib2.gui.ui.data.LPARect;
 import dev.vfyjxf.taffy.geometry.TaffyPoint;
 import dev.vfyjxf.taffy.geometry.TaffyRect;
 import dev.vfyjxf.taffy.geometry.TaffySize;
@@ -14,6 +15,8 @@ import org.appliedenergistics.yoga.style.StyleLength;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class TaffyLayoutStyle {
     public static final TaffyStyle DEFAULT_TAFFY_STYLE = new TaffyStyle();
@@ -26,10 +29,22 @@ public class TaffyLayoutStyle {
 
     public final UIElement element;
     public final TaffyStyle style;
+    // runtime
+    public final LPARectData margin;
+    public final LPRectData padding;
+
 
     public TaffyLayoutStyle(UIElement element) {
         this.element = element;
         this.style = DEFAULT_TAFFY_STYLE.copy();
+        this.margin = new LPARectData(() -> style.margin, margin -> {
+            style.margin = margin;
+            element.markTaffyStyleDirty();
+        });
+        this.padding = new LPRectData(() -> style.padding, padding -> {
+            style.padding = padding;
+            element.markTaffyStyleDirty();
+        });
     }
 
     public static TaffyDimension parseDimension(StyleSizeLength value) {
@@ -395,6 +410,261 @@ public class TaffyLayoutStyle {
         if (!Objects.equals(style.gridColumn, value.grid())) {
             style.gridColumn = value.grid();
             element.markTaffyStyleDirty();
+        }
+    }
+
+    public void setLeft(LengthPercentageAuto left) {
+        if (!Objects.equals(style.inset.left, left)) {
+            style.inset = new TaffyRect<>(left, style.inset.right, style.inset.top, style.inset.bottom);
+            element.markTaffyStyleDirty();
+        }
+    }
+
+    public void setTop(LengthPercentageAuto top) {
+        if (!Objects.equals(style.inset.top, top)) {
+            style.inset = new TaffyRect<>(style.inset.left, style.inset.right, top, style.inset.bottom);
+        }
+    }
+
+    public void setRight(LengthPercentageAuto right) {
+        if (!Objects.equals(style.inset.right, right)) {
+            style.inset = new TaffyRect<>(style.inset.left, right, style.inset.top, style.inset.bottom);
+        }
+    }
+
+    public void setBottom(LengthPercentageAuto bottom) {
+        if (!Objects.equals(style.inset.bottom, bottom)) {
+            style.inset = new TaffyRect<>(style.inset.left, style.inset.right, style.inset.top, bottom);
+        }
+    }
+
+    public class LPARectData {
+        private LengthPercentageAuto left = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto top = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto right = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto bottom = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto vertical = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto horizontal = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto all = LengthPercentageAuto.AUTO;
+        private LPARect rect = LPARect.ZERO;
+
+        private final Supplier<TaffyRect<LengthPercentageAuto>> getter;
+        private final Consumer<TaffyRect<LengthPercentageAuto>> setter;
+
+        public LPARectData(Supplier<TaffyRect<LengthPercentageAuto>> getter, Consumer<TaffyRect<LengthPercentageAuto>> setter) {
+            this.setter = setter;
+            this.getter = getter;
+        }
+
+        public void setLeft(LengthPercentageAuto left) {
+            if (!Objects.equals(this.left, left)) {
+                this.left = left;
+                onChanged();
+            }
+        }
+
+        public void setTop(LengthPercentageAuto top) {
+            if (!Objects.equals(this.top, top)) {
+                this.top = top;
+                onChanged();
+            }
+        }
+
+        public void setRight(LengthPercentageAuto right) {
+            if (!Objects.equals(this.right, right)) {
+                this.right = right;
+                onChanged();
+            }
+        }
+
+        public void setBottom(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.bottom, bottom)) {
+                this.bottom = bottom;
+                onChanged();
+            }
+        }
+
+        public void setVertical(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.vertical, bottom)) {
+                this.vertical = bottom;
+                onChanged();
+            }
+        }
+
+        public void setHorizontal(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.horizontal, bottom)) {
+                this.horizontal = bottom;
+                onChanged();
+            }
+        }
+
+        public void setAll(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.all, bottom)) {
+                this.all = bottom;
+                onChanged();
+            }
+        }
+
+        public void setRect(LPARect rect) {
+            if (Objects.equals(this.rect, rect)) {
+                this.rect = rect;
+                onChanged();
+            }
+        }
+
+        public void onChanged() {
+            var current = getter.get();
+            var left = this.left.isAuto() ?
+                    (this.horizontal.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().left :
+                                    this.all) :
+                            this.horizontal) :
+                    this.left;
+            var top = this.top.isAuto() ?
+                    (this.vertical.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().top :
+                                    this.all) :
+                            this.vertical) :
+                    this.top;
+            var right = this.right.isAuto() ?
+                    (this.horizontal.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().right :
+                                    this.all) :
+                            this.horizontal) :
+                    this.right;
+            var bottom = this.bottom.isAuto() ?
+                    (this.vertical.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().bottom :
+                                    this.all) :
+                            this.vertical) :
+                    this.bottom;
+            if (!current.left.equals(left) ||
+                    !current.top.equals(top) ||
+                    !current.right.equals(right) ||
+                    !current.bottom.equals(bottom)) {
+                setter.accept(TaffyRect.of(left, right, top, bottom));
+            }
+        }
+    }
+
+    public class LPRectData {
+        private LengthPercentageAuto left = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto top = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto right = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto bottom = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto vertical = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto horizontal = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto all = LengthPercentageAuto.AUTO;
+        private LPARect rect = LPARect.ZERO;
+
+        private final Supplier<TaffyRect<LengthPercentage>> getter;
+        private final Consumer<TaffyRect<LengthPercentage>> setter;
+
+        public LPRectData(Supplier<TaffyRect<LengthPercentage>> getter, Consumer<TaffyRect<LengthPercentage>> setter) {
+            this.setter = setter;
+            this.getter = getter;
+        }
+
+        public void setLeft(LengthPercentageAuto left) {
+            if (!Objects.equals(this.left, left)) {
+                this.left = left;
+                onChanged();
+            }
+        }
+
+        public void setTop(LengthPercentageAuto top) {
+            if (!Objects.equals(this.top, top)) {
+                this.top = top;
+                onChanged();
+            }
+        }
+
+        public void setRight(LengthPercentageAuto right) {
+            if (!Objects.equals(this.right, right)) {
+                this.right = right;
+                onChanged();
+            }
+        }
+
+        public void setBottom(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.bottom, bottom)) {
+                this.bottom = bottom;
+                onChanged();
+            }
+        }
+
+        public void setVertical(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.vertical, bottom)) {
+                this.vertical = bottom;
+                onChanged();
+            }
+        }
+
+        public void setHorizontal(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.horizontal, bottom)) {
+                this.horizontal = bottom;
+                onChanged();
+            }
+        }
+
+        public void setAll(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.all, bottom)) {
+                this.all = bottom;
+                onChanged();
+            }
+        }
+
+        public void setRect(LPARect rect) {
+            if (Objects.equals(this.rect, rect)) {
+                this.rect = rect;
+                onChanged();
+            }
+        }
+
+        public void onChanged() {
+            var current = getter.get();
+            var left = this.left.isAuto() ?
+                    (this.horizontal.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().left :
+                                    this.all) :
+                            this.horizontal) :
+                    this.left;
+            var top = this.top.isAuto() ?
+                    (this.vertical.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().top :
+                                    this.all) :
+                            this.vertical) :
+                    this.top;
+            var right = this.right.isAuto() ?
+                    (this.horizontal.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().right :
+                                    this.all) :
+                            this.horizontal) :
+                    this.right;
+            var bottom = this.bottom.isAuto() ?
+                    (this.vertical.isAuto() ?
+                            (this.all.isAuto() ? this.rect.rect().bottom :
+                                    this.all) :
+                            this.vertical) :
+                    this.bottom;
+            if (!lpaEquals(left, current.left) ||
+                    !lpaEquals(top, current.top) ||
+                    !lpaEquals(right, current.right) ||
+                    !lpaEquals(bottom, current.bottom)) {
+                setter.accept(TaffyRect.of(toLP(left), toLP(right), toLP(top), toLP(bottom)));
+            }
+        }
+
+        public static boolean lpaEquals(LengthPercentageAuto lpa, LengthPercentage lp) {
+            if (lpa.isLength() && lp.isLength()) return lpa.getValue() == lp.getValue();
+            if (lpa.isPercent() && lp.isPercent()) return lpa.getValue() == lp.getValue();
+            return false;
+        }
+
+        public static LengthPercentage toLP(LengthPercentageAuto lpa) {
+            if (lpa.isPercent()) return LengthPercentage.percent(lpa.getValue());
+            if (lpa.isLength()) return LengthPercentage.length(lpa.getValue());
+            return LengthPercentage.ZERO;
         }
     }
 }

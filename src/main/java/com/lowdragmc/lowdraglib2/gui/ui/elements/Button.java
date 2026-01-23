@@ -107,12 +107,12 @@ public class Button extends UIElement {
         super();
         getLayout().flexDirection(FlexDirection.ROW);
         getLayout().setHeight(14);
-        getLayout().setPadding(YogaEdge.ALL, 2);
+        getLayout().paddingAll(2);
         getLayout().justifyContent(AlignContent.CENTER);
 
         text.addClass("__button_text__");
         text.getLayout().setHeightPercent(100);
-        text.getLayout().setMargin(YogaEdge.HORIZONTAL, 2);
+        text.getLayout().marginHorizontal(2);
         text.getTextStyle()
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER)

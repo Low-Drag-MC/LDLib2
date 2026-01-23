@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
-import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
@@ -10,16 +9,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.LengthPercentageAuto;
 import lombok.experimental.UtilityClass;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
 @UtilityClass
 public final class LayoutConfigParser {
+    private final static List<LPAConfigurator.Unit> LPA_VALUES = List.of(LPAConfigurator.Unit.AUTO, LPAConfigurator.Unit.LENGTH, LPAConfigurator.Unit.PERCENT);
 
     public static void buildConfigurator(LayoutStyle style, ConfiguratorGroup father) {
         father.addConfigurators(
@@ -47,27 +49,17 @@ public final class LayoutConfigParser {
                 ),
                 // position
                 new ConfiguratorGroup("property.position.group").addConfigurators(
-                        createConfigurator(LayoutProperties.POSITION, style)
-                ).addConfigurators(
-                        createConfigurators(LayoutProperties.POSITIONS, style)
+                        createConfigurator(LayoutProperties.POSITION, style),
+                        createLPAConfigurator(LayoutProperties.LEFT, style, LPA_VALUES),
+                        createLPAConfigurator(LayoutProperties.RIGHT, style, LPA_VALUES),
+                        createLPAConfigurator(LayoutProperties.TOP, style, LPA_VALUES),
+                        createLPAConfigurator(LayoutProperties.BOTTOM, style, LPA_VALUES)
                 ),
                 // spacing
                 new ConfiguratorGroup("property.spacing.group").addConfigurators(
                         // move all to outer for convenient
-                        createConfigurator(LayoutProperties.MARGINS[LayoutProperties.MARGINS.length - 1], style)
-                                .setLabel(
-                                        Component.literal("margin-all").withStyle(
-                                                style.valueGetter(LayoutProperties.MARGINS[LayoutProperties.MARGINS.length - 1]).get() == null ?
-                                                        Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
-                                        )
-                                ),
-                        createConfigurator(LayoutProperties.PADDINGS[LayoutProperties.PADDINGS.length - 1], style)
-                                .setLabel(
-                                        Component.literal("padding-all").withStyle(
-                                                style.valueGetter(LayoutProperties.PADDINGS[LayoutProperties.PADDINGS.length - 1]).get() == null ?
-                                                        Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
-                                        )
-                                ),
+                        createConfigurator(LayoutProperties.MARGIN, style),
+                        createConfigurator(LayoutProperties.PADDING, style),
                         createConfigurator(LayoutProperties.GAPS[LayoutProperties.GAPS.length - 1], style)
                                 .setLabel(
                                         Component.literal("gap-all").withStyle(
@@ -76,10 +68,22 @@ public final class LayoutConfigParser {
                                         )
                                 ),
                         new ConfiguratorGroup("property.spacing.margin.group").addConfigurators(
-                                createConfigurators(LayoutProperties.MARGINS, style)
+                                createLPAConfigurator(LayoutProperties.MARGIN_LEFT, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.MARGIN_RIGHT, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.MARGIN_TOP, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.MARGIN_BOTTOM, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.MARGIN_VERTICAL, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.MARGIN_HORIZONTAL, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.MARGIN_ALL, style, LPA_VALUES)
                         ),
                         new ConfiguratorGroup("property.spacing.padding.group").addConfigurators(
-                                createConfigurators(LayoutProperties.PADDINGS, style)
+                                createLPAConfigurator(LayoutProperties.PADDING_LEFT, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.PADDING_RIGHT, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.PADDING_TOP, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.PADDING_BOTTOM, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.PADDING_VERTICAL, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.PADDING_HORIZONTAL, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.PADDING_ALL, style, LPA_VALUES)
                         ),
                         new ConfiguratorGroup("property.spacing.gap.group").addConfigurators(
                                 createConfigurators(LayoutProperties.GAPS, style)
@@ -125,7 +129,7 @@ public final class LayoutConfigParser {
             case FLEX_END -> "flex-end";
             case STRETCH -> "stretch";
             case BASELINE -> "baseline";
-            case null -> "auto";
+            case AUTO -> "auto";
         };
     }
 
@@ -140,7 +144,7 @@ public final class LayoutConfigParser {
             case SPACE_BETWEEN -> "space-between";
             case SPACE_EVENLY -> "space-evenly";
             case SPACE_AROUND -> "space-around";
-            case null -> "auto";
+            case AUTO -> "auto";
         };
     }
 
@@ -150,6 +154,14 @@ public final class LayoutConfigParser {
                 style.valueSetter(property),
                 Optional.ofNullable(style.getDefault(property)).orElse(property.initialValue)
         );
+    }
+
+    private static Configurator createLPAConfigurator(Property<LengthPercentageAuto> property, LayoutStyle style, List<LPAConfigurator.Unit> candidates) {
+        var configurator = createConfigurator(property, style);
+        if (configurator instanceof LPAConfigurator lpaConfigurator) {
+            lpaConfigurator.setCandidates(candidates);
+        }
+        return configurator;
     }
 
     private static <T> Configurator[] createConfigurators(Property<T>[] properties, LayoutStyle style) {

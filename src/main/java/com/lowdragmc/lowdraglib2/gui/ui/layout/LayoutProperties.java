@@ -1,14 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Grid;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridAuto;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplate;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplateAreas;
+import com.lowdragmc.lowdraglib2.gui.ui.data.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.style.properties.*;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
+import dev.vfyjxf.taffy.geometry.TaffyRect;
 import dev.vfyjxf.taffy.style.*;
 import lombok.experimental.UtilityClass;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -24,7 +22,7 @@ import java.util.function.BiConsumer;
 @UtilityClass
 public final class LayoutProperties {
     public static final List<AlignItems> DEFAULT_ALIGN_ITEMS = Arrays.asList(
-            null,
+            AlignItems.AUTO,
             AlignItems.START,
             AlignItems.END,
             AlignItems.FLEX_START,
@@ -32,18 +30,7 @@ public final class LayoutProperties {
             AlignItems.CENTER,
             AlignItems.STRETCH
     );
-    public static final List<AlignContent> DEFAULT_ALIGN_CONTENT = Arrays.asList(
-            null,
-            AlignContent.START,
-            AlignContent.END,
-            AlignContent.FLEX_START,
-            AlignContent.FLEX_END,
-            AlignContent.CENTER,
-            AlignContent.SPACE_BETWEEN,
-            AlignContent.SPACE_AROUND,
-            AlignContent.SPACE_EVENLY,
-            AlignContent.STRETCH
-    );
+
     public static final Property<TaffyDisplay> DISPLAY = PropertyRegistry.create("display", TaffyDisplay.class, TaffyDisplay.FLEX);
     public static final Property<TaffyDirection> LAYOUT_DIRECTION = PropertyRegistry.create("layout-direction", TaffyDirection.class, TaffyDirection.INHERIT);
     public static final Property<StyleSizeLength> FLEX_BASIS = create("flex-basis", StyleSizeLength.AUTO);
@@ -53,9 +40,30 @@ public final class LayoutProperties {
     public static final Property<FlexDirection> FLEX_DIRECTION = PropertyRegistry.create("flex-direction", FlexDirection.class, FlexDirection.COLUMN).setIconProvider(FlexIcons::getFlexDirectionIcon);
     public static final Property<FlexWrap> FLEX_WRAP = PropertyRegistry.create("flex-wrap", FlexWrap.class, FlexWrap.NO_WRAP).setIconProvider(FlexIcons::getFlexWrapIcon);
     public static final Property<TaffyPosition> POSITION = PropertyRegistry.create("position", TaffyPosition.class, TaffyPosition.RELATIVE);
-    public static final Property<StyleLength>[] POSITIONS = createEdge("");
-    public static final Property<StyleLength>[] MARGINS = createEdge("margin");
-    public static final Property<StyleLength>[] PADDINGS = createEdge("padding");
+
+    public static final Property<LengthPercentageAuto> LEFT = create("left", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> TOP = create("top", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> RIGHT = create("right", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> BOTTOM = create("bottom", LengthPercentageAuto.AUTO);
+
+    public static final Property<LengthPercentageAuto> MARGIN_LEFT = create("margin-left", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> MARGIN_TOP = create("margin-top", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> MARGIN_RIGHT = create("margin-right", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> MARGIN_BOTTOM = create("margin-bottom", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> MARGIN_VERTICAL = create("margin-vertical", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> MARGIN_HORIZONTAL = create("margin-horizontal", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> MARGIN_ALL = create("margin-all", LengthPercentageAuto.AUTO);
+    public static final Property<LPARect> MARGIN = create("margin", LPARect.ZERO);
+
+    public static final Property<LengthPercentageAuto> PADDING_LEFT = create("padding-left", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> PADDING_TOP = create("padding-top", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> PADDING_RIGHT = create("padding-right", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> PADDING_BOTTOM = create("padding-bottom", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> PADDING_VERTICAL = create("padding-vertical", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> PADDING_HORIZONTAL = create("padding-horizontal", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> PADDING_ALL = create("padding-all", LengthPercentageAuto.AUTO);
+    public static final Property<LPARect> PADDING = create("padding", LPARect.ZERO);
+
     public static final Property<StyleLength>[] GAPS = createGutter("gap");
     public static final Property<StyleSizeLength> WIDTH = create("width", StyleSizeLength.ofAuto());
     public static final Property<StyleSizeLength> HEIGHT = create("height", StyleSizeLength.ofAuto());
@@ -63,12 +71,12 @@ public final class LayoutProperties {
     public static final Property<StyleSizeLength>[] MAX = createDimension("max", StyleSizeLength.undefined());
     public static final Property<FloatOptional> ASPECT_RATE = create("aspect-rate", FloatOptional.of());
     public static final Property<YogaOverflow> OVERFLOW = PropertyRegistry.create("overflow", YogaOverflow.class, YogaOverflow.VISIBLE, List.of(YogaOverflow.VISIBLE, YogaOverflow.HIDDEN));
-    public static final Property<AlignItems> ALIGN_ITEMS = PropertyRegistry.create("align-items", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignContent> JUSTIFY_CONTENT = PropertyRegistry.create("justify-content", AlignContent.class, null ).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignItems> JUSTIFY_ITEMS = PropertyRegistry.create("justify-items", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignItems> JUSTIFY_SELF = PropertyRegistry.create("justify-self", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignItems> ALIGN_SELF = PropertyRegistry.create("align-self", AlignItems.class, null, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignContent> ALIGN_CONTENT = PropertyRegistry.create("align-content", AlignContent.class, AlignContent.FLEX_START, DEFAULT_ALIGN_CONTENT).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> ALIGN_ITEMS = PropertyRegistry.create("align-items", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignContent> JUSTIFY_CONTENT = PropertyRegistry.create("justify-content", AlignContent.class, AlignContent.AUTO).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> JUSTIFY_ITEMS = PropertyRegistry.create("justify-items", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> JUSTIFY_SELF = PropertyRegistry.create("justify-self", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> ALIGN_SELF = PropertyRegistry.create("align-self", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignContent> ALIGN_CONTENT = PropertyRegistry.create("align-content", AlignContent.class, AlignContent.FLEX_START).setIconProvider(v -> IGuiTexture.EMPTY);
 
     public static final Property<GridTemplate> GRID_TEMPLATE_ROWS = create("grid-template-rows", GridTemplate.EMPTY);
     public static final Property<GridTemplate> GRID_TEMPLATE_COLUMNS = create("grid-template-columns", GridTemplate.EMPTY);
@@ -97,11 +105,33 @@ public final class LayoutProperties {
         createSetter(LayoutProperties.ALIGN_SELF, TaffyLayoutStyle::setAlignSelf);
         createSetter(LayoutProperties.ALIGN_CONTENT, TaffyLayoutStyle::setAlignContent);
         createSetter(LayoutProperties.ASPECT_RATE, TaffyLayoutStyle::setAspectRate);
+
         createSetter(LayoutProperties.WIDTH, TaffyLayoutStyle::setWidth);
         createSetter(LayoutProperties.HEIGHT, TaffyLayoutStyle::setHeight);
-        createEdgeSetter(LayoutProperties.POSITIONS, TaffyLayoutStyle::setInset);
-        createEdgeSetter(LayoutProperties.MARGINS, TaffyLayoutStyle::setMargin);
-        createEdgeSetter(LayoutProperties.PADDINGS, TaffyLayoutStyle::setPadding);
+
+        createSetter(LayoutProperties.LEFT, TaffyLayoutStyle::setLeft);
+        createSetter(LayoutProperties.TOP, TaffyLayoutStyle::setTop);
+        createSetter(LayoutProperties.RIGHT, TaffyLayoutStyle::setRight);
+        createSetter(LayoutProperties.BOTTOM, TaffyLayoutStyle::setBottom);
+
+        createSetter(LayoutProperties.MARGIN_LEFT, (style, value) -> style.margin.setLeft(value));
+        createSetter(LayoutProperties.MARGIN_TOP, (style, value) -> style.margin.setTop(value));
+        createSetter(LayoutProperties.MARGIN_RIGHT, (style, value) -> style.margin.setRight(value));
+        createSetter(LayoutProperties.MARGIN_BOTTOM, (style, value) -> style.margin.setBottom(value));
+        createSetter(LayoutProperties.MARGIN_VERTICAL, (style, value) -> style.margin.setVertical(value));
+        createSetter(LayoutProperties.MARGIN_HORIZONTAL, (style, value) -> style.margin.setHorizontal(value));
+        createSetter(LayoutProperties.MARGIN_ALL, (style, value) -> style.margin.setAll(value));
+        createSetter(LayoutProperties.MARGIN, (style, value) -> style.margin.setRect(value));
+
+        createSetter(LayoutProperties.PADDING_LEFT, (style, value) -> style.padding.setLeft(value));
+        createSetter(LayoutProperties.PADDING_TOP, (style, value) -> style.padding.setTop(value));
+        createSetter(LayoutProperties.PADDING_RIGHT, (style, value) -> style.padding.setRight(value));
+        createSetter(LayoutProperties.PADDING_BOTTOM, (style, value) -> style.padding.setBottom(value));
+        createSetter(LayoutProperties.PADDING_VERTICAL, (style, value) -> style.padding.setVertical(value));
+        createSetter(LayoutProperties.PADDING_HORIZONTAL, (style, value) -> style.padding.setHorizontal(value));
+        createSetter(LayoutProperties.PADDING_ALL, (style, value) -> style.padding.setAll(value));
+        createSetter(LayoutProperties.PADDING, (style, value) -> style.padding.setRect(value));
+
         createGutterSetter(LayoutProperties.GAPS, TaffyLayoutStyle::setGap);
         createDimensionSetter(LayoutProperties.MIN,TaffyLayoutStyle::setMinSize);
         createDimensionSetter(LayoutProperties.MAX, TaffyLayoutStyle::setMaxSize);
@@ -127,6 +157,14 @@ public final class LayoutProperties {
 
     public static Property<FloatOptional> create(String name, FloatOptional initialValue) {
         return PropertyRegistry.create(new FloatOptionalProperty(name, initialValue));
+    }
+
+    public static Property<LengthPercentageAuto> create(String name, LengthPercentageAuto initialValue) {
+        return PropertyRegistry.create(new LPAProperty(name, initialValue));
+    }
+
+    public static Property<LPARect> create(String name, LPARect initialValue) {
+        return PropertyRegistry.create(new LPARectProperty(name, initialValue));
     }
 
     public static Property<StyleLength>[] createEdge(String name) {

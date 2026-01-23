@@ -75,7 +75,7 @@ public class SceneEditor extends UIElement implements IScene {
             layout.flexDirection(FlexDirection.ROW);
             layout.setWidthPercent(100);
             layout.setHeight(16);
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
             layout.setGap(YogaGutter.ALL, 1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
@@ -95,9 +95,9 @@ public class SceneEditor extends UIElement implements IScene {
         this.gizmoBar = new UIElement();
         gizmoBar.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.setPosition(YogaEdge.TOP, 18);
+            layout.top(18);
             layout.setWidth(20);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.paddingAll(3);
             layout.setGap(YogaGutter.ALL, 1);
         }).style(style -> style.backgroundTexture(Sprites.BORDER_RT0));
 
@@ -203,7 +203,7 @@ public class SceneEditor extends UIElement implements IScene {
                     style.markTexture(new GuiTextureGroup(ColorPattern.T_BLUE.rectTexture(), icon));
                 })
                 .layout(layout -> {
-                    layout.setPadding(YogaEdge.ALL, 0);
+                    layout.paddingAll(0);
                     layout.setWidthPercent(100);
                     layout.setAspectRatio(1f);
                 }).addEventListener(UIEvents.TICK, event -> {

@@ -129,7 +129,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         this.barContainer.layout(layout -> {
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.paddingAll(4);
         }).style(style -> style.backgroundTexture(Sprites.PROGRESS_CONTAINER));
         this.bar.style(style -> style.backgroundTexture(Sprites.PROGRESS_BAR));
         this.label.textStyle(style -> style

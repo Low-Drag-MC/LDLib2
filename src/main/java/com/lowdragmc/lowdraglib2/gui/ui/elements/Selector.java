@@ -163,15 +163,15 @@ public class Selector<T> extends BindableUIElement<T> {
                 .layout(layout -> {
                     layout.setWidth(14);
                     layout.setHeight(14);
-                    layout.setMargin(YogaEdge.LEFT, 2);
+                    layout.marginLeft(2);
                 })
                 .style(style -> style.backgroundTexture(Icons.DOWN_ARROW_NO_BAR));
         this.display = new UIElement()
                 .layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.alignItems(AlignItems.CENTER);
-                    layout.setPadding(YogaEdge.ALL, 2);
-                    layout.setPadding(YogaEdge.LEFT, 4);
+                    layout.paddingAll(2);
+                    layout.paddingLeft(4);
                     layout.setHeightPercent(100);
                     layout.setWidthPercent(100);
                 })
@@ -183,7 +183,7 @@ public class Selector<T> extends BindableUIElement<T> {
                     layout.setHeight(StyleSizeLength.AUTO);
                     layout.positionType(TaffyPosition.ABSOLUTE);
                 })
-                .addChildren(listView = new UIElement().layout(layout -> layout.setPadding(YogaEdge.ALL, 2)), scrollerView = new ScrollerView())
+                .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new ScrollerView())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
                 .setEnforceFocus(e -> {
                     if (e.target == this.dialog && this.isSelfOrChildHover()) {
@@ -199,8 +199,8 @@ public class Selector<T> extends BindableUIElement<T> {
                         e.currentElement.layout(layout -> {
                             var x = this.getPositionX();
                             var y = this.getPositionY();
-                            layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                            layout.setPosition(YogaEdge.TOP, y - root.getLayoutY() + this.getSizeHeight());
+                            layout.left(x - root.getLayoutX());
+                            layout.top(y - root.getLayoutY() + this.getSizeHeight());
                             layout.setWidth(this.getSizeWidth());
                         });
                     }
@@ -213,7 +213,7 @@ public class Selector<T> extends BindableUIElement<T> {
         scrollerView.horizontalScroller.headButton.setDisplay(false);
         scrollerView.horizontalScroller.tailButton.setDisplay(false);
         scrollerView.viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
-        scrollerView.viewPort.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
+        scrollerView.viewPort.layout(layout -> layout.paddingAll(2));
         scrollerView.layout(layout -> layout.setFlexGrow(1));
         scrollerView.setDisplay(false);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
@@ -370,8 +370,8 @@ public class Selector<T> extends BindableUIElement<T> {
             root.addChild(dialog.layout(layout -> {
                 var x = this.getPositionX();
                 var y = this.getPositionY();
-                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY() + this.getSizeHeight());
+                layout.left(x - root.getLayoutX());
+                layout.top(y - root.getLayoutY() + this.getSizeHeight());
                 layout.setWidth(this.getSizeWidth());
             }));
             this.dialog.focus();

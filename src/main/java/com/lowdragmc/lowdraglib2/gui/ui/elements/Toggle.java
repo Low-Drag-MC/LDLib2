@@ -170,14 +170,14 @@ public class Toggle extends BindableUIElement<Boolean> {
     public Toggle() {
         getLayout().flexDirection(FlexDirection.ROW);
         getLayout().alignItems(AlignItems.CENTER);
-        getLayout().setPadding(YogaEdge.ALL, 1);
+        getLayout().paddingAll(1);
         getLayout().setHeight(14);
 
         this.toggleButton
                 .setOnClick(this::onToggleClick)
                 .noText()
                 .layout(layout -> {
-                    layout.setPadding(YogaEdge.ALL, 0);
+                    layout.paddingAll(0);
                     layout.setHeightPercent(100);
                     layout.setAspectRatio(1);
                 })
@@ -198,7 +198,7 @@ public class Toggle extends BindableUIElement<Boolean> {
                 .layout(layout -> {
                     layout.setHeightPercent(100);
                     layout.setFlex(1);
-                    layout.setMargin(YogaEdge.LEFT, 2);
+                    layout.marginLeft(2);
                 });
         this.toggleLabel.setText("Toggle");
         addChildren(toggleButton, toggleLabel);

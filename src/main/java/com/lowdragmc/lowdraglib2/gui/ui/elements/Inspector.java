@@ -43,7 +43,7 @@ public class Inspector extends UIElement {
             layout.setFlex(1);
         });
         scrollerView.viewPort.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
         scrollerView.viewContainer.layout(layout -> {
             layout.setGap(YogaGutter.ALL, 1);
@@ -129,8 +129,8 @@ public class Inspector extends UIElement {
         var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
         group.lineContainer.setDisplay(false);
         group.configuratorContainer.layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 0);
-            layout.setPadding(YogaEdge.ALL, 0);
+            layout.marginLeft(0);
+            layout.paddingAll(0);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         configurable.buildConfigurator(group);
         scrollerView.addScrollViewChild(group);

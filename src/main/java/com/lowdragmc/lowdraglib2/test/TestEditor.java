@@ -23,11 +23,11 @@ public class TestEditor extends Editor {
 
     public TestEditor() {
         stylesheetEditor.setLanguage(Languages.LSS);
-        stylesheetEditor.contentView.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
+        stylesheetEditor.contentView.layout(layout -> layout.paddingAll(2));
         stylesheetEditor.contentView.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         stylesheetEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         stylesheetEditor.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 2);
+            layout.paddingAll(2);
             layout.setHeightPercent(100);
             layout.setWidthPercent(100);
         });

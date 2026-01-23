@@ -13,6 +13,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 @UtilityClass
+@Deprecated
 public final class YogaCodecs {
     public static final Codec<FloatOptional> FLOAT_OPTIONAL_CODEC = LDLibExtraCodecs.TAG.xmap(YogaCodecs::decodeFloatOptional, YogaCodecs::encodeFloatOptional);
     public static final Codec<StyleSizeLength> STYLE_SIZE_LENGTH_CODEC = LDLibExtraCodecs.TAG.xmap(YogaCodecs::decodeStyleSizeLength, YogaCodecs::encodeStyleSizeLength);

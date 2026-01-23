@@ -51,7 +51,7 @@ public class RangeAccessor extends TypesAccessor<Range> {
                         defaultValue(field, field.getType()).getMax(), forceUpdate)
         ).layout(layout -> {
             layout.setGap(YogaGutter.ALL, 2);
-            layout.setMargin(YogaEdge.LEFT, 2);
+            layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
         });
