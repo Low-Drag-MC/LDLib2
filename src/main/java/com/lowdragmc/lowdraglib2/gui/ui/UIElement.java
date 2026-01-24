@@ -61,6 +61,7 @@ import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Document;
@@ -1054,6 +1055,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var worldToLocal = getWorldToLocalPose();
         var localMouse = worldToLocal.transform(new Vector4f(worldX, worldY, 0, 1));
         return new Vector2f(localMouse.x / localMouse.w, localMouse.y / localMouse.w);
+    }
+
+    public final Vector2f getLocalMouseNormal(float dirX, float dirY) {
+        var worldToLocal = getWorldToLocalPose();
+        var localMouse = worldToLocal.transformDirection(new Vector3f(dirX, dirY, 0));
+        return new Vector2f(localMouse.x, localMouse.y);
     }
 
     public final boolean isMouseOver(float worldX, float worldY) {

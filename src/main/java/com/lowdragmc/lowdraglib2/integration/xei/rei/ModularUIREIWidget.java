@@ -48,6 +48,12 @@ public class ModularUIREIWidget extends Widget {
                 .add(mouseX, mouseY, 0);
         return new Vector2f(realMouse.x, realMouse.y);
     }
+    public Vector2f getWorldMouseNormal(float mouseX, float mouseY) {
+        var realMouse = localToWorld.transformDirection(new Vector3f(0, 0, 0))
+                .mul(-1)
+                .add(mouseX, mouseY, 0);
+        return new Vector2f(realMouse.x, realMouse.y);
+    }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
@@ -98,7 +104,7 @@ public class ModularUIREIWidget extends Widget {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         var realMouse = getWorldMouse((float) (mouseX - bounds.x), (float) (mouseY - bounds.y));
-        var realDrag = getWorldMouse((float) (dragX - bounds.x), (float) (dragY - bounds.y));
+        var realDrag = getWorldMouseNormal((float) dragX, (float) dragY);
         return modularUI.getWidget().mouseDragged(realMouse.x, realMouse.y, button, realDrag.x, realDrag.y);
     }
 

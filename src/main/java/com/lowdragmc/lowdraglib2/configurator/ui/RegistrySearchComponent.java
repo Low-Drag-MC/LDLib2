@@ -24,14 +24,17 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Objects;
 import java.util.Optional;
@@ -150,6 +153,46 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
                 RegistrySearchComponent.EMISupport.ghostFluid(this, fluidStack -> filter.test(fluidStack.getFluid()),
                         fluidStack -> setValue(fluidStack.getFluid(), true));
             }
+        }
+    }
+
+    public static class EntityType extends RegistrySearchComponent<net.minecraft.world.entity.EntityType<?>> {
+        public EntityType(String name, Supplier<net.minecraft.world.entity.EntityType<?>> supplier, Consumer<net.minecraft.world.entity.EntityType<?>> onUpdate, net.minecraft.world.entity.EntityType<?> defaultValue, boolean forceUpdate) {
+            super(name, supplier, onUpdate, defaultValue, forceUpdate, BuiltInRegistries.ENTITY_TYPE, UIElementProvider.iconText(
+                    entityType -> {
+                        var egg = SpawnEggItem.byId(entityType);
+                        if (egg != null) return new ItemStackTexture(egg.asItem());
+                        return IGuiTexture.EMPTY;
+                    },
+                    net.minecraft.world.entity.EntityType::getDescription
+            ));
+
+            if (LDLib2.isJeiLoaded()) {
+                RegistrySearchComponent.JEISupport.ghostItem(this, itemStack ->
+                                Optional.ofNullable(getTypeFromEgg(itemStack)).map(filter::test).orElse(false),
+                        itemStack -> Optional.ofNullable(getTypeFromEgg(itemStack)).filter(filter)
+                                .ifPresent(entityType -> setValue(entityType, true)));
+            }
+            if (LDLib2.isReiLoaded()) {
+                RegistrySearchComponent.REISupport.ghostItem(this, itemStack ->
+                                Optional.ofNullable(getTypeFromEgg(itemStack)).map(filter::test).orElse(false),
+                        itemStack -> Optional.ofNullable(getTypeFromEgg(itemStack)).filter(filter)
+                                .ifPresent(entityType -> setValue(entityType, true)));
+            }
+            if (LDLib2.isEmiLoaded()) {
+                RegistrySearchComponent.EMISupport.ghostItem(this, itemStack ->
+                                Optional.ofNullable(getTypeFromEgg(itemStack)).map(filter::test).orElse(false),
+                        itemStack -> Optional.ofNullable(getTypeFromEgg(itemStack)).filter(filter)
+                                .ifPresent(entityType -> setValue(entityType, true)));
+            }
+        }
+
+        @Nullable
+        public net.minecraft.world.entity.EntityType<?> getTypeFromEgg(ItemStack itemStack) {
+            if (itemStack.getItem() instanceof SpawnEggItem eggItem) {
+                return eggItem.getType(itemStack);
+            }
+            return null;
         }
     }
 

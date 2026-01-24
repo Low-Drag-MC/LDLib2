@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -20,17 +21,21 @@ import java.util.List;
 @MethodsReturnNonnullByDefault
 public class TestSlots implements IMenuTest {
 
-
     @Override
     public ModularUI createUI(Player player) {
         var z = 15;
         var itemHandler = new ItemStackHandler(9 * z);
         var scrollerView = new ScrollerView();
-        var root = new UIElement().layout(layout -> layout.gapAll(3).width(200));
+        var root = new UIElement().layout(layout -> layout.gapAll(3));
         for (int i = 0; i < z; i++) {
-            var row = new UIElement().layout(layout -> layout.width(144).flexDirection(FlexDirection.ROW));
+            var row = new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW));
             for (int j = 0; j < 9; j++) {
-                row.addChildren(new ItemSlot().bind(itemHandler, i * 9 + j));
+                var slot = new ItemSlot();
+                slot.bind(itemHandler, i * 9 + j);
+                if (i == 0) {
+                    slot.getSlotStyle().slotOverlay(Icons.UP_ARROW_NO_BAR);
+                }
+                row.addChildren(slot);
             }
             scrollerView.addScrollViewChild(row);
         }

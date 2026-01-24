@@ -24,7 +24,7 @@ public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
     private final List<Consumer<T>> listeners = new ArrayList<>();
     private volatile T lastValue;
     @Setter @Getter @Accessors(chain = true, fluent = true)
-    private int frequency = 1;
+    private int frequency = 20;
     // runtime
     @Nullable
     private T current;
@@ -71,5 +71,9 @@ public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
             current = data.get(step % data.size());
         }
         checkUpdate();
+
+        if (counter > 1_000_000_000) { // 任意足够大的阈值
+            counter = 0;
+        }
     }
 }

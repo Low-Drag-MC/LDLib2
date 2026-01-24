@@ -197,6 +197,8 @@ public final class PropertyRegistry {
     public static final Property<Boolean> CLOSE_AFTER_SELECT = create("close-after-select", true);
 
     public static final Property<IGuiTexture> HOVER_OVERLAY = create("hover-overlay", IGuiTexture.EMPTY);
+    public static final Property<IGuiTexture> SLOT_OVERLAY = create("slot-overlay", IGuiTexture.EMPTY);
+    public static final Property<Boolean> SHOW_SLOT_OVERLAY_ONLY_EMPTY = create("show-slot-overlay-only-empty", true);
     public static final Property<Boolean> SHOW_FLUID_TOOLTIPS = create("show-fluid-tooltips", true);
     public static final Property<Boolean> SHOW_ITEM_TOOLTIPS = create("show-item-tooltips", true);
     public static final Property<Boolean> IS_PLAYER_SLOT = create("is-player-slot", false);

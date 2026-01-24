@@ -455,10 +455,12 @@ public class Scene extends UIElement {
 
     protected void onDragSourceUpdate(UIEvent event) {
         if (!intractable || event.target != this || !dragging) return;
+
         if (event.dragHandler.getDraggingObject() == ROTATION_DRAGGING) {
-            rotationYaw += event.deltaX + 360;
+            var realDelta = getLocalMouseNormal(event.deltaX, event.deltaY);
+            rotationYaw += realDelta.x + 360;
             rotationYaw = rotationYaw % 360;
-            rotationPitch = (float) Mth.clamp(rotationPitch + event.deltaY, -89.9, 89.9);
+            rotationPitch = (float) Mth.clamp(rotationPitch + realDelta.y, -89.9, 89.9);
             if (renderer != null) {
                 renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
             }
@@ -479,10 +481,11 @@ public class Scene extends UIElement {
             up.normalize();
             // Move center based on drag delta
             var moveSpeed = zoom * 0.005f;
+            var realDelta = getLocalMouseNormal(event.deltaX, event.deltaY);
             center.add(
-                    right.x * event.deltaX * moveSpeed + up.x * event.deltaY * moveSpeed,
-                    right.y * event.deltaX * moveSpeed + up.y * event.deltaY * moveSpeed,
-                    right.z * event.deltaX * moveSpeed + up.z * event.deltaY * moveSpeed
+                    right.x * realDelta.x * moveSpeed + up.x * realDelta.y * moveSpeed,
+                    right.y * realDelta.x * moveSpeed + up.y * realDelta.y * moveSpeed,
+                    right.z * realDelta.x * moveSpeed + up.z * realDelta.y * moveSpeed
             );
             if (renderer != null) {
                 renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));

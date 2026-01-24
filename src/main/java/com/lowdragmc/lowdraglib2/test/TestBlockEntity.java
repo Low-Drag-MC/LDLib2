@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
 import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacket;
 import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacketDistributor;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.*;
@@ -80,7 +81,7 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
                                 new Button().setText("-").setOnServerClick(e -> intValue--).layout(l -> l.flex(1))
                         )
         );
-        root.addChild(new ItemSlot().bindDataSource(SupplierDataSource.of(() -> itemStack)));
+        root.addChild(new ItemSlot().slotStyle(slotStyle -> slotStyle.slotOverlay(FlexIcons.ALIGN_CONTENTS_CENTER_ROW)).bindDataSource(SupplierDataSource.of(() -> itemStack)));
         root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> Component.literal(String.valueOf(intValue)))));
         root.addChild(new Button().setText("Test C2S RPC").setOnClick(e -> rpcToServer("rpcTest", "Hello from client!")));
         root.addChild(new Button().setText("Test C2S RPC").setOnServerClick(e -> rpcToTracking("rpcTest", "Hello from server!")));
