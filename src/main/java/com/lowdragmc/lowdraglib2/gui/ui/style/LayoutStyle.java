@@ -71,9 +71,19 @@ public final class LayoutStyle extends Style {
         properties.add(LayoutProperties.ASPECT_RATE);
         properties.add(LayoutProperties.OVERFLOW);
         properties.add(LayoutProperties.ALIGN_ITEMS);
-        properties.add(LayoutProperties.JUSTIFY_CONTENT);
-        properties.add(LayoutProperties.ALIGN_SELF);
         properties.add(LayoutProperties.ALIGN_CONTENT);
+        properties.add(LayoutProperties.ALIGN_SELF);
+        properties.add(LayoutProperties.JUSTIFY_CONTENT);
+        properties.add(LayoutProperties.JUSTIFY_ITEMS);
+        properties.add(LayoutProperties.JUSTIFY_SELF);
+        properties.add(LayoutProperties.GRID_TEMPLATE_ROWS);
+        properties.add(LayoutProperties.GRID_TEMPLATE_COLUMNS);
+        properties.add(LayoutProperties.GRID_TEMPLATE_AREAS);
+        properties.add(LayoutProperties.GRID_AUTO_ROWS);
+        properties.add(LayoutProperties.GRID_AUTO_COLUMNS);
+        properties.add(LayoutProperties.GRID_AUTO_FLOW);
+        properties.add(LayoutProperties.GRID_ROW);
+        properties.add(LayoutProperties.GRID_COLUMN);
         PROPERTIES = properties.toArray(new Property[0]);
     }
 

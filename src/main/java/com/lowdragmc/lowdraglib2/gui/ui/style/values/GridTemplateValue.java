@@ -39,6 +39,8 @@ public class GridTemplateValue extends StyleValue<GridTemplate> {
                     NamedGridLine namedLine = parseNamedLine(token, trackIndex);
                     if (namedLine != null) {
                         names.add(namedLine);
+                    } else {
+                        return null;
                     }
                 } else if (isRepeatFunction(token)) {
                     // Parse repeat function
@@ -46,6 +48,8 @@ public class GridTemplateValue extends StyleValue<GridTemplate> {
                     if (component != null) {
                         repeats.add(component);
                         trackIndex++;
+                    } else {
+                        return null;
                     }
                 } else {
                     // Parse single track
@@ -54,6 +58,8 @@ public class GridTemplateValue extends StyleValue<GridTemplate> {
                         simples.add(track);
                         repeats.add(GridTemplateComponent.single(track));
                         trackIndex++;
+                    } else {
+                        return null;
                     }
                 }
             }

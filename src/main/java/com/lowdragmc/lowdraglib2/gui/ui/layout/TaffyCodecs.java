@@ -12,7 +12,7 @@ import dev.vfyjxf.taffy.style.*;
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.*;
 
-import java.util.List;
+import java.util.Optional;
 
 @UtilityClass
 public final class TaffyCodecs {
@@ -101,7 +101,7 @@ public final class TaffyCodecs {
     public static final Codec<GridRepetition> GRID_REPETITION_CODEC = RecordCodecBuilder.create(instance -> instance.group(
             LDLibExtraCodecs.enumCodec(GridRepetition.RepetitionType.class, GridRepetition.RepetitionType.COUNT)
                     .fieldOf("type").forGetter(GridRepetition::getType),
-            Codec.INT.fieldOf("count").forGetter(GridRepetition::getCount),
+            Codec.INT.optionalFieldOf("count", 0).forGetter(GridRepetition::getCount),
             TRACK_SIZING_FUNCTION_CODEC.listOf().fieldOf("tracks").forGetter(GridRepetition::getTracks)
     ).apply(instance, (type, count, tracks) -> switch (type) {
         case COUNT -> GridRepetition.count(count, tracks);
@@ -113,11 +113,11 @@ public final class TaffyCodecs {
     public static final Codec<GridTemplateComponent> GRID_TEMPLATE_COMPONENT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
             LDLibExtraCodecs.enumCodec(GridTemplateComponent.Type.class, GridTemplateComponent.Type.SINGLE)
                     .fieldOf("type").forGetter(GridTemplateComponent::getType),
-            TRACK_SIZING_FUNCTION_CODEC.optionalFieldOf("single", TrackSizingFunction.auto()).forGetter(GridTemplateComponent::getSingle),
-            GRID_REPETITION_CODEC.optionalFieldOf("repeat", GridRepetition.autoFill(List.of())).forGetter(GridTemplateComponent::getRepeat)
+            TRACK_SIZING_FUNCTION_CODEC.optionalFieldOf("single").forGetter(component -> Optional.ofNullable(component.getSingle())),
+            GRID_REPETITION_CODEC.optionalFieldOf("repeat").forGetter(component -> Optional.ofNullable(component.getRepeat()))
     ).apply(instance, (type, single, repeat) -> switch (type) {
-        case SINGLE -> GridTemplateComponent.single(single);
-        case REPEAT -> GridTemplateComponent.repeat(repeat);
+        case SINGLE -> GridTemplateComponent.single(single.orElseThrow());
+        case REPEAT -> GridTemplateComponent.repeat(repeat.orElseThrow());
     }));
 
     // ==================== NamedGridLine Codec ====================
@@ -144,7 +144,7 @@ public final class TaffyCodecs {
     public static final Codec<LengthPercentageAuto> LPA_CODEC = RecordCodecBuilder.create(instance -> instance.group(
             LDLibExtraCodecs.enumCodec(LengthPercentageAuto.Type.class, LengthPercentageAuto.Type.AUTO)
                     .fieldOf("type").forGetter(LengthPercentageAuto::getType),
-            Codec.FLOAT.fieldOf("value").forGetter(LengthPercentageAuto::getValue)
+            Codec.FLOAT.optionalFieldOf("value", 0f).forGetter(LengthPercentageAuto::getValue)
     ).apply(instance, (type, value) -> switch (type) {
         case LENGTH -> LengthPercentageAuto.length(value);
         case PERCENT -> LengthPercentageAuto.percent(value);
@@ -180,21 +180,21 @@ public final class TaffyCodecs {
     public static final Codec<GridPlacement> GRID_PLACEMENT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
             LDLibExtraCodecs.enumCodec(GridPlacement.Type.class, GridPlacement.Type.AUTO)
                     .fieldOf("type").forGetter(GridPlacement::getType),
-            Codec.INT.fieldOf("value").forGetter(GridPlacement::getValue),
-            Codec.STRING.optionalFieldOf("lineName", "").forGetter(GridPlacement::getLineName),
-            Codec.INT.fieldOf("nthIndex").forGetter(GridPlacement::getNthIndex)
+            Codec.INT.optionalFieldOf("value", 0).forGetter(GridPlacement::getValue),
+            Codec.STRING.optionalFieldOf("lineName").forGetter(placement -> Optional.ofNullable(placement.getLineName())),
+            Codec.INT.optionalFieldOf("nthIndex", 0).forGetter(GridPlacement::getNthIndex)
     ).apply(instance, (type, value, lineName, nthIndex) -> switch (type) {
         case AUTO -> GridPlacement.auto();
         case LINE -> GridPlacement.line(value);
-        case NAMED_LINE -> GridPlacement.namedLine(lineName, nthIndex);
+        case NAMED_LINE -> GridPlacement.namedLine(lineName.orElseThrow(), nthIndex);
         case SPAN -> GridPlacement.span(value);
-        case NAMED_SPAN -> GridPlacement.namedSpan(lineName, value);
+        case NAMED_SPAN -> GridPlacement.namedSpan(lineName.orElseThrow(), value);
     }));
 
     // ==================== Grid Codec ====================
     public static final Codec<Grid> GRID_CODEC = RecordCodecBuilder.create(instance -> instance.group(
             GRID_PLACEMENT_CODEC.fieldOf("start").forGetter(grid -> grid.grid().start),
-            GRID_PLACEMENT_CODEC.fieldOf("start").forGetter(grid -> grid.grid().end)
+            GRID_PLACEMENT_CODEC.fieldOf("end").forGetter(grid -> grid.grid().end)
     ).apply(instance, (start, end) -> new Grid(new TaffyLine<>(start, end))));
 
 

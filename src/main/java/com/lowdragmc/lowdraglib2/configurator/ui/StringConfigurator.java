@@ -6,6 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class StringConfigurator extends ValueConfigurator<String> {
@@ -26,6 +27,11 @@ public class StringConfigurator extends ValueConfigurator<String> {
     public StringConfigurator setResourceLocation(boolean resourceLocation) {
         isResourceLocation = resourceLocation;
         textField.setResourceLocationOnly();
+        return this;
+    }
+
+    public StringConfigurator setTextValidator(Predicate<String> validator) {
+        textField.setTextValidator(validator);
         return this;
     }
 

@@ -9,9 +9,6 @@ import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.appliedenergistics.yoga.style.StyleLength;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-
 @UtilityClass
 @Deprecated
 public final class YogaCodecs {

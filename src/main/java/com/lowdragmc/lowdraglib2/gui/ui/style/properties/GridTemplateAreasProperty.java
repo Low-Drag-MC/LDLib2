@@ -6,8 +6,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplateAreas;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyCodecs;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateAreasValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateValue;
 import lombok.experimental.Accessors;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -21,7 +23,7 @@ public class GridTemplateAreasProperty extends Property<GridTemplateAreas> {
 
     @Override
     public Configurator createConfiguratorInternal(String name, Supplier<GridTemplateAreas> getter, Consumer<GridTemplateAreas> setter) {
-        return new StringConfigurator(
+        var configurator = new StringConfigurator(
                 name,
                 () -> GridTemplateAreasValue.toString(getter.get()),
                 str -> {
@@ -32,7 +34,15 @@ public class GridTemplateAreasProperty extends Property<GridTemplateAreas> {
                 },
                 "",
                 true
-        );
+        ).setTextValidator(str -> GridTemplateAreasValue.parse(str) != null);
+        configurator.setSupplier(() -> {
+            var current = configurator.getValue();
+            var latest = GridTemplateAreasValue.toString(getter.get());
+            if (Objects.equals(current, latest) ||
+                    Objects.equals(GridTemplateAreasValue.parse(latest), GridTemplateAreasValue.parse(current))) return current;
+            return latest;
+        });
+        return configurator;
     }
 
     private GridTemplateAreas interpolate(GridTemplateAreas from, GridTemplateAreas to, float interpolation) {

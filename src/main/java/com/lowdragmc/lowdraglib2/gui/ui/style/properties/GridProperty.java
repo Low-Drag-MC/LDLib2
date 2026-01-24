@@ -5,9 +5,12 @@ import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Grid;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyCodecs;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateAreasValue;
+import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridValue;
 import lombok.experimental.Accessors;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -25,7 +28,7 @@ public class GridProperty extends Property<Grid> {
 
     @Override
     public Configurator createConfiguratorInternal(String name, Supplier<Grid> getter, Consumer<Grid> setter) {
-        return new StringConfigurator(
+        var configurator = new StringConfigurator(
                 name,
                 () -> GridValue.toString(getter.get()),
                 str -> {
@@ -36,7 +39,15 @@ public class GridProperty extends Property<Grid> {
                 },
                 "auto",
                 true
-        );
+        ).setTextValidator(str -> GridValue.parse(str) != null);
+        configurator.setSupplier(() -> {
+            var current = configurator.getValue();
+            var latest = GridValue.toString(getter.get());
+            if (Objects.equals(current, latest) ||
+                    Objects.equals(GridValue.parse(latest), GridValue.parse(current))) return current;
+            return latest;
+        });
+        return configurator;
     }
 
     private Grid interpolate(Grid from, Grid to, float interpolation) {

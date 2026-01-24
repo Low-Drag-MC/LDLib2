@@ -243,7 +243,8 @@ public class ModularUI {
         if (element.nodeId != null) {
             if (element.getParent() != null) {
                 var parentID = element.getParent().nodeId;
-                if (parentID != null) {
+                // parent may already belong to other tree.
+                if (parentID != null && taffyTree.containsNode(parentID)) {
                     taffyTree.removeChild(parentID, element.nodeId);
                 }
             }

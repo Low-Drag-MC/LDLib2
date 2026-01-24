@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridAutoValue;
 import lombok.experimental.Accessors;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -21,7 +22,7 @@ public class GridAutoProperty extends Property<GridAuto> {
 
     @Override
     public Configurator createConfiguratorInternal(String name, Supplier<GridAuto> getter, Consumer<GridAuto> setter) {
-        return new StringConfigurator(
+        var configurator = new StringConfigurator(
                 name,
                 () -> GridAutoValue.toString(getter.get()),
                 str -> {
@@ -32,7 +33,15 @@ public class GridAutoProperty extends Property<GridAuto> {
                 },
                 "",
                 true
-        );
+        ).setTextValidator(str -> GridAutoValue.parse(str) != null);
+        configurator.setSupplier(() -> {
+            var current = configurator.getValue();
+            var latest = GridAutoValue.toString(getter.get());
+            if (Objects.equals(current, latest) ||
+                    Objects.equals(GridAutoValue.parse(latest), GridAutoValue.parse(current))) return current;
+            return latest;
+        });
+        return configurator;
     }
 
     private GridAuto interpolate(GridAuto from, GridAuto to, float interpolation) {
