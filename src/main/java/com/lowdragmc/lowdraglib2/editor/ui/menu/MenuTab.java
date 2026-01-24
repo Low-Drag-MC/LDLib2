@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaEdge;
 
 import java.util.*;
 import java.util.function.BiConsumer;

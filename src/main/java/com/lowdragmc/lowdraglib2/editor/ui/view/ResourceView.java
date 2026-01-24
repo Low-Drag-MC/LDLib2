@@ -17,8 +17,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

@@ -76,8 +76,7 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public void setFlexBasis(StyleSizeLength value) {
-        var flexBasis = parseDimension(value);
+    public void setFlexBasis(TaffyDimension flexBasis) {
         if (!style.flexBasis.equals(flexBasis)) {
             style.flexBasis = flexBasis;
             element.markTaffyStyleDirty();

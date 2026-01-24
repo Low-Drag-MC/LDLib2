@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib2.utils.animation.*;
 import lombok.Getter;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 
 public class TransitionAnimation<T> implements IFrameValueHandler<T> {
     public final StyleBag styleBag;

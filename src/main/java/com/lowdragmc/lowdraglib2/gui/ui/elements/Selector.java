@@ -28,7 +28,6 @@ import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 

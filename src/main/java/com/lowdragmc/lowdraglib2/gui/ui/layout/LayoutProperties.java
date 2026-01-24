@@ -8,11 +8,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.properties.*;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
 import dev.vfyjxf.taffy.style.*;
 import lombok.experimental.UtilityClass;
-import org.apache.logging.log4j.util.TriConsumer;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
-import org.appliedenergistics.yoga.style.StyleLength;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,7 +29,7 @@ public final class LayoutProperties {
 
     public static final Property<TaffyDisplay> DISPLAY = PropertyRegistry.create("display", TaffyDisplay.class, TaffyDisplay.FLEX);
     public static final Property<TaffyDirection> LAYOUT_DIRECTION = PropertyRegistry.create("layout-direction", TaffyDirection.class, TaffyDirection.INHERIT);
-    public static final Property<StyleSizeLength> FLEX_BASIS = create("flex-basis", StyleSizeLength.AUTO);
+    public static final Property<TaffyDimension> FLEX_BASIS = create("flex-basis", TaffyDimension.auto());
     public static final Property<FloatOptional> FLEX = create("flex", FloatOptional.of());
     public static final Property<FloatOptional> FLEX_GROW = create("flex-grow", FloatOptional.of());
     public static final Property<FloatOptional> FLEX_SHRINK = create("flex-shrink", FloatOptional.of(0));
@@ -160,14 +157,6 @@ public final class LayoutProperties {
         createSetter(LayoutProperties.GRID_COLUMN, TaffyLayoutStyle::setGridColumn);
     }
 
-    public static Property<StyleSizeLength> create(String name, StyleSizeLength initialValue) {
-        return PropertyRegistry.create(new StyleSizeLengthProperty(name, initialValue));
-    }
-
-    public static Property<StyleLength> create(String name, StyleLength initialValue) {
-        return PropertyRegistry.create(new StyleLengthProperty(name, initialValue));
-    }
-
     public static Property<FloatOptional> create(String name, FloatOptional initialValue) {
         return PropertyRegistry.create(new FloatOptionalProperty(name, initialValue));
     }
@@ -186,14 +175,6 @@ public final class LayoutProperties {
 
     public static Property<TaffyDimension> create(String name, TaffyDimension initialValue) {
         return PropertyRegistry.create(new DimensionProperty(name, initialValue));
-    }
-
-     public static Property<StyleSizeLength>[] createDimension(String name, StyleSizeLength defaultValue) {
-        var handlers = new Property[YogaDimension.values().length];
-        for (int i = 0; i < YogaDimension.values().length; i++) {
-            handlers[i] = create(name + "-" + YogaDimension.values()[i].toString(), defaultValue);
-        }
-        return handlers;
     }
 
     public static Property<GridTemplate> create(String name, GridTemplate initialValue) {
@@ -216,35 +197,5 @@ public final class LayoutProperties {
                                          BiConsumer<TaffyLayoutStyle, T> taffySetter) {
         property.addListener((el, p, oldValue, newValue) ->
                 taffySetter.accept(el.getTaffyStyle(), newValue == null ? property.initialValue : newValue));
-    }
-
-    private static <T> void createEdgeSetter(Property<T>[] properties,
-                                             TriConsumer<TaffyLayoutStyle, YogaEdge, T> taffySetter) {
-        var edges = YogaEdge.values();
-        for (int i = 0; i < edges.length; i++) {
-            var edge = edges[i];
-            createSetter(properties[i],
-                    (s, v) -> taffySetter.accept(s, edge, v));
-        }
-    }
-
-    private static <T> void createGutterSetter(Property<T>[] properties,
-                                               TriConsumer<TaffyLayoutStyle, YogaGutter, T> taffySetter) {
-        var gutters = YogaGutter.values();
-        for (int i = 0; i < gutters.length; i++) {
-            var gutter = gutters[i];
-            createSetter(properties[i],
-                    (s, v) -> taffySetter.accept(s, gutter, v));
-        }
-    }
-
-    private static <T> void createDimensionSetter(Property<T>[] properties,
-                                                  TriConsumer<TaffyLayoutStyle, YogaDimension, T> taffySetter) {
-        var dimensions = YogaDimension.values();
-        for (int i = 0; i < dimensions.length; i++) {
-            var dimension = dimensions[i];
-            createSetter(properties[i],
-                    (s, v) -> taffySetter.accept(s, dimension, v));
-        }
     }
 }

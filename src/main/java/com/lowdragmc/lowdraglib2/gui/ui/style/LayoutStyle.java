@@ -1133,76 +1133,97 @@ public final class LayoutStyle extends Style {
     }
 
     /* Flex properties */
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlex(float flex) {
         set(LayoutProperties.FLEX, FloatOptional.of(flex));
         return this;
     }
 
     public LayoutStyle flex(float flex) {
-        return setFlex(flex);
+        set(LayoutProperties.FLEX, FloatOptional.of(flex));
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexAuto() {
         set(LayoutProperties.FLEX, FloatOptional.of());
         return this;
     }
 
     public LayoutStyle flexAuto() {
-        return setFlexAuto();
+        set(LayoutProperties.FLEX, FloatOptional.of());
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexBasisAuto() {
-        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofAuto());
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.auto());
         return this;
     }
 
     public LayoutStyle flexBasisAuto() {
-        return setFlexBasisAuto();
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.auto());
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexBasisPercent(float percent) {
-        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.percent(percent));
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.percent(percent / 100f));
         return this;
     }
 
     public LayoutStyle flexBasisPercent(float percent) {
-        return setFlexBasisPercent(percent);
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.percent(percent / 100f));
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexBasis(float flexBasis) {
-        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.points(flexBasis));
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.length(flexBasis));
         return this;
     }
 
     public LayoutStyle flexBasis(float flexBasis) {
-        return setFlexBasis(flexBasis);
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.length(flexBasis));
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexBasisMaxContent() {
-        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofMaxContent());
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.maxContent());
         return this;
     }
 
     public LayoutStyle flexBasisMaxContent() {
-        return setFlexBasisMaxContent();
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.maxContent());
+        return this;
     }
 
+    public LayoutStyle flexBasisMinContent() {
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.minContent());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexBasisFitContent() {
-        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofFitContent());
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.fitContent());
         return this;
     }
 
     public LayoutStyle flexBasisFitContent() {
-        return setFlexBasisFitContent();
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.fitContent());
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setFlexBasisStretch() {
-        set(LayoutProperties.FLEX_BASIS, StyleSizeLength.ofStretch());
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.stretch());
         return this;
     }
 
     public LayoutStyle flexBasisStretch() {
-        return setFlexBasisStretch();
+        set(LayoutProperties.FLEX_BASIS, TaffyDimension.stretch());
+        return this;
     }
 
     @Deprecated(since = "26.1")
@@ -1554,6 +1575,10 @@ public final class LayoutStyle extends Style {
         return getValueSave(LayoutProperties.MAX_HEIGHT);
     }
 
+    public TaffyDimension getFlexBasis() {
+        return getValueSave(LayoutProperties.FLEX_BASIS);
+    }
+
     public TaffyDirection getStyleDirection() {
         return getValueSave(LayoutProperties.LAYOUT_DIRECTION);
     }
@@ -1596,10 +1621,6 @@ public final class LayoutStyle extends Style {
 
     public float getFlexShrink() {
         return getValueSave(LayoutProperties.FLEX_SHRINK).unwrapOrDefault(YogaStyle.DEFAULT_FLEX_SHRINK);
-    }
-
-    public YogaValue getFlexBasis() {
-        return getValueSave(LayoutProperties.FLEX_BASIS).asYogaValue();
     }
 
     public float getAspectRatio() {

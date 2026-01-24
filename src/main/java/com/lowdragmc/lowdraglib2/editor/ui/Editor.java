@@ -36,7 +36,6 @@ import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;

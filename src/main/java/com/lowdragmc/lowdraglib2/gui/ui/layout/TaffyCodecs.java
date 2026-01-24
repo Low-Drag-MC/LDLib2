@@ -11,8 +11,6 @@ import dev.vfyjxf.taffy.style.*;
 
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.*;
-import org.appliedenergistics.yoga.style.StyleLength;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import java.util.List;
 

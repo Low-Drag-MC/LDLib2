@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.TaffyDimension;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Optional;
