@@ -245,6 +245,12 @@ public class ModularUI {
         // Remove Layout Node
         elementByNode.remove(element.nodeId);
         if (element.nodeId != null) {
+            if (element.getParent() != null) {
+                var parentID = element.getParent().nodeId;
+                if (parentID != null) {
+                    taffyTree.removeChild(parentID, element.nodeId);
+                }
+            }
             taffyTree.remove(element.nodeId);
             element.nodeId = null;
         }
