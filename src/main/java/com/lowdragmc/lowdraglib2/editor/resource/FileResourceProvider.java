@@ -169,14 +169,14 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     @Override
     public UIElement createProviderToggle() {
         return new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.alignItems(AlignItems.CENTER);
             layout.flexDirection(FlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
         }).addChildren(
                 new UIElement().layout(layout -> {
-                    layout.setWidth(9);
-                    layout.setHeight(9);
+                    layout.width(9);
+                    layout.height(9);
                 }).style(style -> style.backgroundTexture(getType().getIcon())),
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())
@@ -194,8 +194,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                     }
                     Util.getPlatform().openFile(resourceLocation);
                 }).noText().layout(layout -> {
-                    layout.setWidth(7);
-                    layout.setHeight(7);
+                    layout.width(7);
+                    layout.height(7);
                 }).style(style -> style.tooltips("ldlib.gui.tips.open_folder"))
         );
     }

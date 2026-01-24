@@ -73,17 +73,17 @@ public class SceneEditor extends UIElement implements IScene {
         this.topBar = new UIElement();
         topBar.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setWidthPercent(100);
-            layout.setHeight(16);
+            layout.widthPercent(100);
+            layout.height(16);
             layout.paddingAll(1);
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.gapAll(1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
         this.scene = new Scene();
         this.scene.setRenderFacing(false);
         this.scene.setRenderSelect(false);
         this.scene.layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         });
         this.scene.setAfterWorldRender(scene -> {
@@ -96,9 +96,9 @@ public class SceneEditor extends UIElement implements IScene {
         gizmoBar.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.top(18);
-            layout.setWidth(20);
+            layout.width(20);
             layout.paddingAll(3);
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.gapAll(1);
         }).style(style -> style.backgroundTexture(Sprites.BORDER_RT0));
 
         this.screenTips = new TextElement();
@@ -107,8 +107,8 @@ public class SceneEditor extends UIElement implements IScene {
             style.textAlignVertical(Vertical.CENTER);
         }).layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         });
 //        this.scene.addChild(screenTips);
 
@@ -168,7 +168,7 @@ public class SceneEditor extends UIElement implements IScene {
                                 .textAlignHorizontal(Horizontal.LEFT)
                                 .textAlignVertical(Vertical.CENTER))
                         .setText(candidate == null ? "---" : candidate ? "editor.camera.ortho" : "editor.camera.prospective"))
-                .layout(layout -> layout.setWidth(50))
+                .layout(layout -> layout.width(50))
                 .style(style -> style.tooltips("editor.camera.mode")));
 
     }
@@ -190,8 +190,8 @@ public class SceneEditor extends UIElement implements IScene {
                 .setText("")
                 .setOn(transformGizmoMode == mode, false)
                 .toggleButton(button -> button.layout(layout -> {
-                    layout.setWidthPercent(100);
-                    layout.setHeightPercent(100);
+                    layout.widthPercent(100);
+                    layout.heightPercent(100);
                 }))
                 .setOnToggleChanged(isOn -> {
                     setTransformGizmoMode(isOn ? mode : TransformGizmoMode.NONE);
@@ -204,7 +204,7 @@ public class SceneEditor extends UIElement implements IScene {
                 })
                 .layout(layout -> {
                     layout.paddingAll(0);
-                    layout.setWidthPercent(100);
+                    layout.widthPercent(100);
                     layout.setAspectRatio(1f);
                 }).addEventListener(UIEvents.TICK, event -> {
                     if (event.currentElement instanceof Toggle toggle) {

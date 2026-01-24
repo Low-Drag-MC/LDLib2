@@ -48,12 +48,12 @@ public class UIHierarchy extends UIElement {
 
     public UIHierarchy(UIEditorView editorView) {
         this.editorView = editorView;
-        this.getLayout().setWidthPercent(100.0F);
-        this.getLayout().setHeightPercent(100.0F);
+        this.getLayout().widthPercent(100.0F);
+        this.getLayout().heightPercent(100.0F);
 
         this.scrollerView.layout((layout) -> {
-            layout.setWidthPercent(100.0F);
-            layout.setHeightPercent(100.0F);
+            layout.widthPercent(100.0F);
+            layout.heightPercent(100.0F);
         });
         this.addChild(this.scrollerView);
         scrollerView.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown, true);
@@ -62,20 +62,20 @@ public class UIHierarchy extends UIElement {
                 .setNodeUISupplier((node) -> {
                     UIElement container = (new UIElement()).layout((layout) -> {
                         layout.flexDirection(FlexDirection.ROW);
-                        layout.setGap(YogaGutter.ALL, 2.0F);
-                        layout.setHeight(10.0F);
+                        layout.gapAll(2.0F);
+                        layout.height(10.0F);
                         layout.setFlex(1.0F);
                     }).addChildren();
                     UIElement icon = (new UIElement()).layout((layout) -> {
                         layout.setAspectRatio(1.0F);
-                        layout.setHeightPercent(100.0F);
+                        layout.heightPercent(100.0F);
                     }).style((style) -> style.backgroundTexture(node.getKey().getEditorIcon()));
                     TextElement label = new TextElement();
                     label.textStyle((style) -> {
                         style.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER);
                         style.textColor(node.getKey().isInternalUI() ? ColorPattern.LIGHT_GRAY.color : ColorPattern.WHITE.color);
                     }).setText(node.getKey().getEditorName()).layout((layout) -> {
-                        layout.setHeightPercent(100.0F);
+                        layout.heightPercent(100.0F);
                         layout.setFlex(1.0F);
                     }).setOverflow(YogaOverflow.HIDDEN).addEventListener(UIEvents.TICK, e -> {
                         label.setText(node.getKey().getEditorName());

@@ -50,14 +50,14 @@ public class HistoryView extends View implements IHistoryStack {
         super("editor.view.history", Icons.HISTORY);
         this.editor = editor;
         scrollerView.layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         });
         scrollerView.viewPort.layout(layout -> {
             layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
         scrollerView.viewContainer.layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.gapAll(1);
         });
         addChild(scrollerView);
 
@@ -172,7 +172,7 @@ public class HistoryView extends View implements IHistoryStack {
             style.textAlignVertical(Vertical.CENTER);
             style.textWrap(TextWrap.HOVER_ROLL);
         }).layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
         }).style(style -> {
             style.overlayTexture(ColorPattern.T_BLUE.rectTexture());
         }).addEventListener(UIEvents.MOUSE_DOWN, e -> {

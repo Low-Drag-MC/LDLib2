@@ -92,7 +92,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
         this.hsbButton.addClass("__color-selector_hsb-button__");
 
         colorSlider.layout(layout -> {
-            layout.setWidth(12);
+            layout.width(12);
             layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
                 .addChildren(new UIElement().layout(layout -> layout.setFlex(1))
@@ -102,7 +102,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
 
         alphaSlider.layout(layout -> {
             layout.setFlexGrow(1);
-            layout.setHeight(12);
+            layout.height(12);
             layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1)).addChildren(
                 new UIElement().layout(layout -> layout.setFlex(1))
@@ -111,8 +111,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
                         .addClass("__color-selector_alpha-slider_bar__").style(style -> style.backgroundTexture(this::drawAlphaSlider)));
 
         hsbButton.setOnClick(this::onSwitchHSB).textStyle(textStyle -> textStyle.fontSize(6)).setText("H").layout(layout -> {
-            layout.setWidth(12);
-            layout.setHeight(12);
+            layout.width(12);
+            layout.height(12);
         });
 
         pickerContainer.layout(layout -> {
@@ -137,17 +137,17 @@ public class ColorSelector extends BindableUIElement<Integer> {
 
         this.textContainer = new UIElement().layout(layout -> {
             layout.marginTop(2);
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.gapAll(1);
         }).addClass("__color-selector_text-container__");
         this.textContainer.addChildren(
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setGap(YogaGutter.ALL, 2);
+                    layout.gapAll(2);
                     layout.alignItems(AlignItems.CENTER);
                 }).addChildren(
                         new UIElement().layout(layout -> {
-                            layout.setWidth(10);
-                            layout.setHeight(10);
+                            layout.width(10);
+                            layout.height(10);
                         }).style(style -> style.backgroundTexture(this::drawColorPreview)),
                         hexConfigurator = new StringConfigurator("", () -> String.format("#%08x", argb), s -> {
                             try {
@@ -155,7 +155,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                             } catch (Exception ignored) {}}, "#FFFFFFFF", false),
                         new Button().setOnClick(this::onCopy).textStyle(textStyle -> textStyle.fontSize(6).adaptiveWidth(true))
                                 .setText("Copy").layout(layout -> {
-                                    layout.setHeight(10);
+                                    layout.height(10);
                                     layout.paddingHorizontal(2);
                                 })),
                 new NumberConfigurator("r", () -> ColorUtils.redI(argb), r -> setColor(ColorUtils.color(ColorUtils.alphaI(argb),

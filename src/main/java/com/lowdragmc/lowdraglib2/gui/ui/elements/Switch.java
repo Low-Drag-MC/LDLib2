@@ -119,15 +119,15 @@ public class Switch extends BindableUIElement<Boolean> {
         getLayout().flexDirection(FlexDirection.ROW);
         getLayout().alignItems(AlignItems.CENTER);
         getLayout().paddingAll(2);
-        getLayout().setHeight(14);
-        getLayout().setWidth(26);
+        getLayout().height(14);
+        getLayout().width(26);
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(Sprites.RECT_RD_DARK));
         Style.importantPipeline(getLayout(), layout -> layout.direction(TaffyDirection.LTR));
         addEventListener(UIEvents.MOUSE_DOWN, this::onSwitchClick);
 
         this.markIcon = new UIElement();
         this.markIcon.layout(layout -> {
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setAspectRatio(1);
                 })
                 .addClass("__switch_mark-icon__");

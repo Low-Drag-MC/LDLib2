@@ -39,14 +39,14 @@ public class Inspector extends UIElement {
         this.scrollerView = new ScrollerView();
         this.scrollerView.setId("_inspector_scroller-view_");
         scrollerView.layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         });
         scrollerView.viewPort.layout(layout -> {
             layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
         scrollerView.viewContainer.layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.gapAll(1);
         });
         addChild(scrollerView);
         internalSetup();

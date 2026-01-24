@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.style.properties.*;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.FlexIcons;
-import dev.vfyjxf.taffy.geometry.TaffyRect;
 import dev.vfyjxf.taffy.style.*;
 import lombok.experimental.UtilityClass;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -64,11 +63,16 @@ public final class LayoutProperties {
     public static final Property<LengthPercentageAuto> PADDING_ALL = create("padding-all", LengthPercentageAuto.AUTO);
     public static final Property<LPARect> PADDING = create("padding", LPARect.ZERO);
 
-    public static final Property<StyleLength>[] GAPS = createGutter("gap");
-    public static final Property<StyleSizeLength> WIDTH = create("width", StyleSizeLength.ofAuto());
-    public static final Property<StyleSizeLength> HEIGHT = create("height", StyleSizeLength.ofAuto());
+    public static final Property<LengthPercentageAuto> GAP_ROW = create("gap-row", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> GAP_COLUMN = create("gap-column", LengthPercentageAuto.AUTO);
+    public static final Property<LengthPercentageAuto> GAP_ALL = create("gap-all", LengthPercentageAuto.AUTO);
+    public static final Property<LPSize> GAP = create("gap", LPSize.ZERO);
+
+    public static final Property<TaffyDimension> WIDTH = create("width", TaffyDimension.auto());
+    public static final Property<TaffyDimension> HEIGHT = create("height", TaffyDimension.auto());
     public static final Property<StyleSizeLength>[] MIN = createDimension("min", StyleSizeLength.points(0));
     public static final Property<StyleSizeLength>[] MAX = createDimension("max", StyleSizeLength.undefined());
+
     public static final Property<FloatOptional> ASPECT_RATE = create("aspect-rate", FloatOptional.of());
     public static final Property<YogaOverflow> OVERFLOW = PropertyRegistry.create("overflow", YogaOverflow.class, YogaOverflow.VISIBLE, List.of(YogaOverflow.VISIBLE, YogaOverflow.HIDDEN));
     public static final Property<AlignItems> ALIGN_ITEMS = PropertyRegistry.create("align-items", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
@@ -132,7 +136,11 @@ public final class LayoutProperties {
         createSetter(LayoutProperties.PADDING_ALL, (style, value) -> style.padding.setAll(value));
         createSetter(LayoutProperties.PADDING, (style, value) -> style.padding.setRect(value));
 
-        createGutterSetter(LayoutProperties.GAPS, TaffyLayoutStyle::setGap);
+        createSetter(LayoutProperties.GAP_ROW, (style, value) -> style.gap.setVertical(value));
+        createSetter(LayoutProperties.GAP_COLUMN, (style, value) -> style.gap.setHorizontal(value));
+        createSetter(LayoutProperties.GAP_ALL, (style, value) -> style.gap.setAll(value));
+        createSetter(LayoutProperties.GAP, (style, value) -> style.gap.setSize(value));
+
         createDimensionSetter(LayoutProperties.MIN,TaffyLayoutStyle::setMinSize);
         createDimensionSetter(LayoutProperties.MAX, TaffyLayoutStyle::setMaxSize);
 
@@ -167,25 +175,15 @@ public final class LayoutProperties {
         return PropertyRegistry.create(new LPARectProperty(name, initialValue));
     }
 
-    public static Property<StyleLength>[] createEdge(String name) {
-        var handlers = new Property[YogaEdge.values().length];
-        for (int i = 0; i < YogaEdge.values().length; i++) {
-            handlers[i] = create((name.isEmpty() ? "" : (name + "-")) + YogaEdge.values()[i].toString(), StyleLength.undefined())
-                    .setConfigName(YogaEdge.values()[i].toString());
-        }
-        return handlers;
+    public static Property<LPSize> create(String name, LPSize initialValue) {
+        return PropertyRegistry.create(new LPSizeProperty(name, initialValue));
     }
 
-    public static Property<StyleLength>[] createGutter(String name) {
-        var handlers = new Property[YogaGutter.values().length];
-        for (int i = 0; i < YogaGutter.values().length; i++) {
-            handlers[i] = create(name + "-" + YogaGutter.values()[i].toString(), StyleLength.undefined())
-                    .setConfigName(YogaGutter.values()[i].toString());
-        }
-        return handlers;
+    public static Property<TaffyDimension> create(String name, TaffyDimension initialValue) {
+        return PropertyRegistry.create(new DimensionProperty(name, initialValue));
     }
 
-    public static Property<StyleSizeLength>[] createDimension(String name, StyleSizeLength defaultValue) {
+     public static Property<StyleSizeLength>[] createDimension(String name, StyleSizeLength defaultValue) {
         var handlers = new Property[YogaDimension.values().length];
         for (int i = 0; i < YogaDimension.values().length; i++) {
             handlers[i] = create(name + "-" + YogaDimension.values()[i].toString(), defaultValue);

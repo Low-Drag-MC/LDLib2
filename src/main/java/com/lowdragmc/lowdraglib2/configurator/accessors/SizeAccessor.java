@@ -47,7 +47,7 @@ public class SizeAccessor extends TypesAccessor<Size> {
                         v -> consumer.accept(Size.of(supplier.get().width, v.intValue())),
                         defaultValue(field, field.getType()).height, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);

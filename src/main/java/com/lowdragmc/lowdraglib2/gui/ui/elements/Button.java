@@ -106,12 +106,12 @@ public class Button extends UIElement {
     public Button() {
         super();
         getLayout().flexDirection(FlexDirection.ROW);
-        getLayout().setHeight(14);
+        getLayout().height(14);
         getLayout().paddingAll(2);
         getLayout().justifyContent(AlignContent.CENTER);
 
         text.addClass("__button_text__");
-        text.getLayout().setHeightPercent(100);
+        text.getLayout().heightPercent(100);
         text.getLayout().marginHorizontal(2);
         text.getTextStyle()
                 .textAlignHorizontal(Horizontal.CENTER)
@@ -171,14 +171,14 @@ public class Button extends UIElement {
     }
 
     public Button addPreIcon(IGuiTexture icon) {
-        addChildAt(new UIElement().layout(layout -> layout.setHeightPercent(100).setAspectRatio(1f))
+        addChildAt(new UIElement().layout(layout -> layout.heightPercent(100).setAspectRatio(1f))
                 .style(style -> style.backgroundTexture(icon)),
                 0);
         return this;
     }
 
     public Button addPostIcon(IGuiTexture icon) {
-        addChild(new UIElement().layout(layout -> layout.setHeightPercent(100).setAspectRatio(1f))
+        addChild(new UIElement().layout(layout -> layout.heightPercent(100).setAspectRatio(1f))
                         .style(style -> style.backgroundTexture(icon)));
         return this;
     }

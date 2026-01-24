@@ -58,7 +58,7 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
                         v -> consumer.accept(new BlockPos(supplier.get().getX(), supplier.get().getY(), v.intValue())),
                         defaultValue(field, field.getType()).getZ(), forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);

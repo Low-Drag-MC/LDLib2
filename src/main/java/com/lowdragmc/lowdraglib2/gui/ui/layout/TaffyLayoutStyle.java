@@ -1,10 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridAuto;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplate;
-import com.lowdragmc.lowdraglib2.gui.ui.data.GridTemplateAreas;
-import com.lowdragmc.lowdraglib2.gui.ui.data.LPARect;
+import com.lowdragmc.lowdraglib2.gui.ui.data.*;
 import dev.vfyjxf.taffy.geometry.TaffyPoint;
 import dev.vfyjxf.taffy.geometry.TaffyRect;
 import dev.vfyjxf.taffy.geometry.TaffySize;
@@ -32,6 +29,7 @@ public class TaffyLayoutStyle {
     // runtime
     public final LPARectData margin;
     public final LPRectData padding;
+    public final LPSizeData gap;
 
 
     public TaffyLayoutStyle(UIElement element) {
@@ -43,6 +41,10 @@ public class TaffyLayoutStyle {
         });
         this.padding = new LPRectData(() -> style.padding, padding -> {
             style.padding = padding;
+            element.markTaffyStyleDirty();
+        });
+        this.gap = new LPSizeData(() -> style.gap, gap -> {
+            style.gap = gap;
             element.markTaffyStyleDirty();
         });
     }
@@ -214,23 +216,22 @@ public class TaffyLayoutStyle {
     }
 
     public void setAspectRate(FloatOptional value) {
-        Float aspectRatio = value.isUndefined() ? DEFAULT_TAFFY_STYLE.aspectRatio : (Float) value.getValue();
-        if (!Objects.equals(style.aspectRatio, aspectRatio)) {
+        var aspectRatio = value.isUndefined() ? DEFAULT_TAFFY_STYLE.aspectRatio : value.getValue();
+        if (Float.isNaN(style.aspectRatio) && Float.isNaN(aspectRatio)) return;
+        if (style.aspectRatio != aspectRatio) {
             style.aspectRatio = aspectRatio;
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setWidth(StyleSizeLength value) {
-        var width = parseDimension(value);
+    public void setWidth(TaffyDimension width) {
         if (!Objects.equals(style.size.width, width)) {
             style.size = new TaffySize<>(width, style.size.height);
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setHeight(StyleSizeLength value) {
-        var height = parseDimension(value);
+    public void setHeight(TaffyDimension height) {
         if (!Objects.equals(style.size.height, height)) {
             style.size = new TaffySize<>(style.size.width, height);
             element.markTaffyStyleDirty();
@@ -290,19 +291,6 @@ public class TaffyLayoutStyle {
         };
         if (!Objects.equals(style.padding, rect)) {
             style.padding = rect;
-            element.markTaffyStyleDirty();
-        }
-    }
-
-    public void setGap(YogaGutter gutter, StyleLength value) {
-        var length = parseLengthPercentage(value);
-        TaffySize<LengthPercentage> size = switch (gutter) {
-            case COLUMN -> new TaffySize<>(length, style.gap.height);
-            case ROW -> new TaffySize<>(style.gap.width, length);
-            case ALL -> new TaffySize<>(length, length);
-        };
-        if (!Objects.equals(style.gap, size)) {
-            style.gap = size;
             element.markTaffyStyleDirty();
         }
     }
@@ -423,18 +411,21 @@ public class TaffyLayoutStyle {
     public void setTop(LengthPercentageAuto top) {
         if (!Objects.equals(style.inset.top, top)) {
             style.inset = new TaffyRect<>(style.inset.left, style.inset.right, top, style.inset.bottom);
+            element.markTaffyStyleDirty();
         }
     }
 
     public void setRight(LengthPercentageAuto right) {
         if (!Objects.equals(style.inset.right, right)) {
             style.inset = new TaffyRect<>(style.inset.left, right, style.inset.top, style.inset.bottom);
+            element.markTaffyStyleDirty();
         }
     }
 
     public void setBottom(LengthPercentageAuto bottom) {
         if (!Objects.equals(style.inset.bottom, bottom)) {
             style.inset = new TaffyRect<>(style.inset.left, style.inset.right, style.inset.top, bottom);
+            element.markTaffyStyleDirty();
         }
     }
 
@@ -659,6 +650,71 @@ public class TaffyLayoutStyle {
             if (lpa.isLength() && lp.isLength()) return lpa.getValue() == lp.getValue();
             if (lpa.isPercent() && lp.isPercent()) return lpa.getValue() == lp.getValue();
             return false;
+        }
+
+        public static LengthPercentage toLP(LengthPercentageAuto lpa) {
+            if (lpa.isPercent()) return LengthPercentage.percent(lpa.getValue());
+            if (lpa.isLength()) return LengthPercentage.length(lpa.getValue());
+            return LengthPercentage.ZERO;
+        }
+    }
+
+    public class LPSizeData {
+        private LengthPercentageAuto vertical = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto horizontal = LengthPercentageAuto.AUTO;
+        private LengthPercentageAuto all = LengthPercentageAuto.AUTO;
+        private LPSize size = LPSize.ZERO;
+
+        private final Supplier<TaffySize<LengthPercentage>> getter;
+        private final Consumer<TaffySize<LengthPercentage>> setter;
+
+        public LPSizeData(Supplier<TaffySize<LengthPercentage>> getter, Consumer<TaffySize<LengthPercentage>> setter) {
+            this.setter = setter;
+            this.getter = getter;
+        }
+
+        public void setVertical(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.vertical, bottom)) {
+                this.vertical = bottom;
+                onChanged();
+            }
+        }
+
+        public void setHorizontal(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.horizontal, bottom)) {
+                this.horizontal = bottom;
+                onChanged();
+            }
+        }
+
+        public void setAll(LengthPercentageAuto bottom) {
+            if (!Objects.equals(this.all, bottom)) {
+                this.all = bottom;
+                onChanged();
+            }
+        }
+
+        public void setSize(LPSize size) {
+            if (Objects.equals(this.size, size)) {
+                this.size = size;
+                onChanged();
+            }
+        }
+
+        public void onChanged() {
+            var current = getter.get();
+            var width = (this.horizontal.isAuto() ?
+                    (this.all.isAuto() ? this.size.size().width :
+                            toLP(this.all)) :
+                    toLP(this.horizontal));
+            var height = (this.horizontal.isAuto() ?
+                    (this.all.isAuto() ? this.size.size().height :
+                            toLP(this.all)) :
+                    toLP(this.horizontal));
+            if (!Objects.equals(width, current.width) ||
+                    !Objects.equals(height, current.height)) {
+                setter.accept(TaffySize.of(width, height));
+            }
         }
 
         public static LengthPercentage toLP(LengthPercentageAuto lpa) {

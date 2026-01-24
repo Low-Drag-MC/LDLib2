@@ -140,8 +140,8 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     private ISubscription fluidTankSubscription;
 
     public FluidSlot() {
-        getLayout().setWidth(18);
-        getLayout().setHeight(18);
+        getLayout().width(18);
+        getLayout().height(18);
         getLayout().paddingAll(1);
         getStyle().backgroundTexture(Sprites.RECT_DARK);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
@@ -159,7 +159,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         addRPCEvent(clickEvent);
 
         amountLabel.addClass("__fluid-slot_amount-label__");
-        amountLabel.layout(layout -> layout.setWidthPercent(100).setHeightPercent(100));
+        amountLabel.layout(layout -> layout.widthPercent(100).heightPercent(100));
         amountLabel.textStyle(textStyle -> textStyle
                 .textAlignVertical(Vertical.BOTTOM)
                 .textAlignHorizontal(Horizontal.RIGHT)

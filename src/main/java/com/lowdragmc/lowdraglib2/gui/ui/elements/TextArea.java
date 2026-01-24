@@ -279,7 +279,7 @@ public class TextArea extends BindableUIElement<String[]> {
         this.verticalScroller.addClass("__text-area_vertical-scroller__");
 
         // Default layout and look
-        getLayout().setHeight(60);
+        getLayout().height(60);
 
         this.contentView = new UIElement() {
             @Override
@@ -291,7 +291,7 @@ public class TextArea extends BindableUIElement<String[]> {
         this.contentView.layout(layout -> {
             layout.paddingAll(3);
             layout.setFlex(1);
-            layout.setHeightPercent(100);
+            layout.heightPercent(100);
         });
         this.contentView.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID));
         this.contentView.setOverflow(YogaOverflow.HIDDEN);
@@ -320,7 +320,7 @@ public class TextArea extends BindableUIElement<String[]> {
         horizontalScroller.setOnValueChanged(this::onHorizontalScroll);
         addChildren(new UIElement().layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         }).addChildren(contentView, verticalScroller), horizontalScroller);
         internalSetup();

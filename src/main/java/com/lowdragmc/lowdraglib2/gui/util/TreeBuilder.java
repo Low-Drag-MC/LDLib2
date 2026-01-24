@@ -284,20 +284,20 @@ public class TreeBuilder<K, V> {
         public static UIElement uiProvider(Tuple<IGuiTexture, Component> node) {
             if (node == CROSS_LINE) {
                 return new UIElement().layout(layout -> {
-                    layout.setHeight(1);
+                    layout.height(1);
                     layout.marginHorizontal(3);
                 }).style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
             }
             return new UIElement().layout(layout -> {
-                layout.setHeight(12);
-                layout.setWidthPercent(100);
-                layout.setGap(YogaGutter.ALL, 2);
+                layout.height(12);
+                layout.widthPercent(100);
+                layout.gapAll(2);
                 layout.flexDirection(FlexDirection.ROW);
                 layout.alignItems(AlignItems.CENTER);
             }).addChild(new UIElement().layout(layout -> {
                 layout.marginLeft(2);
-                layout.setWidth(10);
-                layout.setHeight(10);
+                layout.width(10);
+                layout.height(10);
             }).style(style -> style.backgroundTexture(node.getA())))
                     .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                             .setText(node.getB()).layout(layout -> {

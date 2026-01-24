@@ -77,8 +77,8 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
                 layout.justifyContent(AlignContent.CENTER);
             });
             toggle.markIcon.addChild(new UIElement().layout(layout -> {
-                layout.setWidthPercent(100);
-                layout.setHeightPercent(100);
+                layout.widthPercent(100);
+                layout.heightPercent(100);
             }).style(style -> style.backgroundTexture(iconProvider.apply(candidate))));
             toggle.style(style -> style.tooltips(nameMapping.apply(candidate)));
             toggles.add(toggle);

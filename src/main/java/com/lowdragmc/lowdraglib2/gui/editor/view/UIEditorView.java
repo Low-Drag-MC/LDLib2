@@ -76,8 +76,8 @@ public class UIEditorView extends View {
         addClass("__ui-editor-view__");
         // header initial
         header.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeight(16);
+            layout.widthPercent(100);
+            layout.height(16);
             layout.paddingAll(1);
             layout.flexDirection(FlexDirection.ROW);
         });
@@ -86,7 +86,7 @@ public class UIEditorView extends View {
                 // left
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(
                         saveButton.setOnClick(e -> notifySaved())
@@ -94,7 +94,7 @@ public class UIEditorView extends View {
                                 .textStyle(style -> style.textColor(ColorPattern.GRAY.color))
                 ),
                 // center
-                new UIElement().layout(layout -> layout.setHeightPercent(100))
+                new UIElement().layout(layout -> layout.heightPercent(100))
                         .addChildren(new Toggle().noText()
                                 .setOnToggleChanged(isOn -> {
                                     if (isOn) {
@@ -113,7 +113,7 @@ public class UIEditorView extends View {
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.justifyContent(AlignContent.FLEX_END);
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(
                         // page fit button
@@ -130,10 +130,10 @@ public class UIEditorView extends View {
                                         0.1f);
                             }
                         }).layout(layout -> {
-                            layout.setWidth(14);
+                            layout.width(14);
                         }).style(style -> style.tooltips("GraphView.fit")).addChild(
                                 new UIElement().layout(layout -> {
-                                    layout.setHeightPercent(100);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1);
                                 }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
                         // selection box toggle
@@ -141,8 +141,8 @@ public class UIEditorView extends View {
                                 .setText("")
                                 .setOn(modularUIPreview.isShowSelectionBox(), false)
                                 .toggleButton(button -> button.layout(layout -> {
-                                    layout.setWidthPercent(100);
-                                    layout.setHeightPercent(100);
+                                    layout.widthPercent(100);
+                                    layout.heightPercent(100);
                                 }))
                                 .setOnToggleChanged(modularUIPreview::setShowSelectionBox)
                                 .toggleStyle(style -> {
@@ -156,7 +156,7 @@ public class UIEditorView extends View {
                                 .bindDataSource(SupplierDataSource.of(modularUIPreview::isShowSelectionBox))
                                 .layout(layout -> {
                                     layout.paddingAll(0);
-                                    layout.setHeightPercent(100);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1f);
                                 })
                                 .style(style -> style.tooltips("UIEditor.selection_box"))
@@ -168,7 +168,7 @@ public class UIEditorView extends View {
 
         // canvas initial
         canvas.layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         });
         canvas.setOverflowVisible(false);
@@ -178,21 +178,21 @@ public class UIEditorView extends View {
         // editor initial
         editor.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         });
         editor.addClass("__ui-editor-view_editor__").moveInlineAsDefault();
 
         hierarchy.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         hierarchy.addClass("__ui-editor-view_hierarchy__").moveInlineAsDefault();
 
 
         graphView.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         graphView.addContentChild(modularUIPreview);
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
@@ -255,7 +255,7 @@ public class UIEditorView extends View {
                 .setCanCollapse(false)
                 .configuratorContainer(container -> container.layout(layout -> layout.marginLeft(0)))
                 .hideTitle();
-        styleView.layout(layout -> layout.setHeightPercent(100).paddingAll(4));
+        styleView.layout(layout -> layout.heightPercent(100).paddingAll(4));
         styleView.style(style -> style.backgroundTexture(Sprites.BORDER));
         styleView.addChildren(
                 new Toggle()
@@ -269,7 +269,7 @@ public class UIEditorView extends View {
                             toggleStyle.setPipelineState(StyleOrigin.INLINE);
                         })
                         .toggleButton(button -> button.setText("builtin_styles")
-                                .layout(layout -> layout.setAspectRatioAuto().setWidthPercent(100)))
+                                .layout(layout -> layout.setAspectRatioAuto().widthPercent(100)))
                         .toggleButton(button -> button.text
                                 .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.LEFT))
                                 .setDisplay(true)
@@ -284,7 +284,7 @@ public class UIEditorView extends View {
                         }))
                         .addClass("__ui-editor-view_builtin-styles-toggle__"),
                 // style sheet selector
-                new ScrollerView().addScrollViewChildren(stylesheetSelector).layout(layout -> layout.setWidthPercent(100).setFlex(1))
+                new ScrollerView().addScrollViewChildren(stylesheetSelector).layout(layout -> layout.widthPercent(100).setFlex(1))
 
         );
         styleView.addClass("__ui-editor-view_style-view__").moveInlineAsDefault();
@@ -297,8 +297,8 @@ public class UIEditorView extends View {
         stylesheetEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         stylesheetEditor.layout(layout -> {
             layout.paddingAll(2);
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         stylesheetEditor.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         stylesheetEditor.setLinesResponder(this::onStylesheetChanged);
@@ -307,8 +307,8 @@ public class UIEditorView extends View {
 
         inspector.setHistoryStack(historyStack);
         inspector.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         inspector.scrollerView.viewPort.layout(layout -> {
             layout.paddingAll(5);

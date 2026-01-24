@@ -117,14 +117,14 @@ v     */
      */
     default UIElement createProviderToggle() {
         return new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.alignItems(AlignItems.CENTER);
             layout.flexDirection(FlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
         }).addChildren(
                 new UIElement().layout(layout -> {
-                    layout.setWidth(9);
-                    layout.setHeight(9);
+                    layout.width(9);
+                    layout.height(9);
                 }).style(style -> style.backgroundTexture(getType().getIcon())),
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())

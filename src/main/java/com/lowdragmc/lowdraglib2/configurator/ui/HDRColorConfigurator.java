@@ -48,11 +48,11 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
 
 
         inlineContainer.addChildren(colorPreview = new UIElement().layout(layout -> {
-            layout.setHeight(14);
+            layout.height(14);
             layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
                 .addChildren(new UIElement()
-                        .layout(layout -> layout.setHeightPercent(100))
+                        .layout(layout -> layout.heightPercent(100))
                         .style(style -> style.backgroundTexture(this::drawColorPreview))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
@@ -61,7 +61,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         this.dialog.style(style -> style.zIndex(1).backgroundTexture(Sprites.BORDER));
         this.dialog.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setMaxWidth(150);
             layout.setMinWidth(100);
             layout.paddingAll(4);
@@ -94,7 +94,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
                 var y = colorPreview.getPositionY();
                 layout.left(x - root.getLayoutX());
                 layout.top(y - root.getLayoutY());
-                layout.setWidth(colorPreview.getSizeWidth());
+                layout.width(colorPreview.getSizeWidth());
             }));
             this.dialog.focus();
         }

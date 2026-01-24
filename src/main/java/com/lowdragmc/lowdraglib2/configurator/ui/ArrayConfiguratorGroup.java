@@ -93,13 +93,13 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
                 .addClass("__array-configurator_button-group__");
 
         addButton.setOnClick(this::onAdd).setText("+").textStyle(textStyle -> textStyle.textShadow(false)).layout(layout -> {
-            layout.setWidth(12);
-            layout.setHeight(12);
+            layout.width(12);
+            layout.height(12);
         }).setDisplay(false);
         removeButton.setOnClick(this::onRemove).setText("-").textStyle(textStyle -> textStyle.textColor(ColorPattern.WHITE.color).textShadow(false)
         ).layout(layout -> {
-            layout.setWidth(12);
-            layout.setHeight(12);
+            layout.width(12);
+            layout.height(12);
         }).setActive(false);
         removeButton.setDisplay(false);
 

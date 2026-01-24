@@ -292,10 +292,10 @@ public class ScrollerView extends UIElement {
             this.lastContainerHeight = lastContainerHeight;
             reloadValue = true;
             if (scrollerViewStyle.adaptiveWidth()) {
-                Style.importantPipeline(getLayout(), layout -> layout.setWidth(lastContainerWidth + getSizeWidth() - viewPort.getContentWidth()));
+                Style.importantPipeline(getLayout(), layout -> layout.width(lastContainerWidth + getSizeWidth() - viewPort.getContentWidth()));
             }
             if (scrollerViewStyle.adaptiveHeight()) {
-                Style.importantPipeline(getLayout(), layout -> layout.setHeight(lastContainerHeight + getSizeHeight() - viewPort.getContentHeight()));
+                Style.importantPipeline(getLayout(), layout -> layout.height(lastContainerHeight + getSizeHeight() - viewPort.getContentHeight()));
             }
         }
         if (reloadValue) {

@@ -97,12 +97,12 @@ public class Tab extends UIElement {
     private TabView tabView;
 
     public Tab() {
-        getLayout().setHeight(16);
+        getLayout().height(16);
         getLayout().paddingAll(3);
         getLayout().flexDirection(FlexDirection.ROW);
 
         text.setText(Component.empty());
-        text.layout(layout -> layout.setHeightPercent(100));
+        text.layout(layout -> layout.heightPercent(100));
         text.textStyle(textStyle -> {
             textStyle.textAlignHorizontal(Horizontal.CENTER);
             textStyle.textAlignVertical(Vertical.CENTER);

@@ -31,6 +31,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDimension;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -129,22 +130,22 @@ public abstract class Editor extends UIElement {
         addChildren(
                 top.layout(layout -> {
                     layout.paddingAll(1);
-                    layout.setWidthPercent(100);
-                    layout.setHeight(15);
+                    layout.widthPercent(100);
+                    layout.height(15);
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setGap(YogaGutter.ALL, 2);
+                    layout.gapAll(2);
                 }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID))
                 .addChildren(
                         icon.layout(layout -> {
-                            layout.setWidth(11);
-                            layout.setHeight(11);
+                            layout.width(11);
+                            layout.height(11);
                             layout.marginAll(1);
                             layout.marginHorizontal(5);
                         }).style(style -> style.backgroundTexture(new SpriteTexture())),
                         menuContainer.layout(layout -> {
-                            layout.setHeightPercent(100);
+                            layout.heightPercent(100);
                             layout.flexDirection(FlexDirection.ROW);
-                            layout.setGap(YogaGutter.ALL, 2);
+                            layout.gapAll(2);
                         }).addClass("__editor_top-menu-container__"),
                         topPlaceholder.layout(layout -> layout.flex(1))
                                 .addClass("__editor_top-placeholder__"), // placeholder
@@ -158,7 +159,7 @@ public abstract class Editor extends UIElement {
                         ).addClass("__editor_top_button-container__")
                 ),
                 mainView.layout(layout -> {
-                    layout.setWidthPercent(100);
+                    layout.widthPercent(100);
                     layout.setFlex(1);
                 }).addChild(rootWindow)
         );
@@ -299,7 +300,7 @@ public abstract class Editor extends UIElement {
     public void openSettingsPanel() {
         var dialog = new Dialog();
         dialog.setAutoClose(false);
-        dialog.width(StyleSizeLength.points(350));
+        dialog.width(TaffyDimension.length(350));
         dialog.setTitle("editor.settings");
         dialog.addContent(editorSettings.createSettingsPanel());
 

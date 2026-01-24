@@ -121,8 +121,8 @@ public class GraphView extends UIElement {
 
         contentRoot.layout(l -> {
             l.positionType(TaffyPosition.ABSOLUTE);
-            l.setWidth(0);
-            l.setHeight(0);
+            l.width(0);
+            l.height(0);
         }).addClass("__graph-view_content-root__");
         contentRoot.transform(transform -> transform.pivot(0f, 0f));
 

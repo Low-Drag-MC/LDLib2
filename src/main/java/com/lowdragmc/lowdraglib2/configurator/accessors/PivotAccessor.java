@@ -43,7 +43,7 @@ public class PivotAccessor extends TypesAccessor<Pivot> {
                         v -> consumer.accept(Pivot.of(supplier.get().x, v.floatValue())),
                         defaultValue(field, field.getType()).y, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
@@ -51,12 +51,12 @@ public class PivotAccessor extends TypesAccessor<Pivot> {
         x.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         y.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

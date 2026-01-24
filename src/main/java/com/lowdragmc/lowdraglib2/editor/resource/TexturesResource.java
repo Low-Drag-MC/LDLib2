@@ -51,8 +51,8 @@ public class TexturesResource extends Resource<IGuiTexture> {
     public ResourceProviderContainer<IGuiTexture> createResourceProviderContainer(IResourceProvider<IGuiTexture> provider) {
         var container = super.createResourceProviderContainer(provider)
                 .setUiSupplier(path -> new UIElement().layout(layout -> {
-                    layout.setWidthPercent(100);
-                    layout.setHeightPercent(100);
+                    layout.widthPercent(100);
+                    layout.heightPercent(100);
                 }).style(style -> style.backgroundTexture(provider.getResource(path))));
         container.setOnEdit((c, path) -> {
             var texture = provider.getResource(path);

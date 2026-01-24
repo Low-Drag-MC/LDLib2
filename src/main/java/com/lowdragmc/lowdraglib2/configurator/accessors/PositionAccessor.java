@@ -42,7 +42,7 @@ public class PositionAccessor extends TypesAccessor<Position> {
                         v -> consumer.accept(Position.of(supplier.get().x, v.intValue())),
                         defaultValue(field, field.getType()).y, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);

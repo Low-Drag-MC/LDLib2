@@ -50,7 +50,7 @@ public class RangeAccessor extends TypesAccessor<Range> {
                         v -> consumer.accept(Range.of(supplier.get().getMin(), v.floatValue())),
                         defaultValue(field, field.getType()).getMax(), forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
@@ -58,12 +58,12 @@ public class RangeAccessor extends TypesAccessor<Range> {
         min.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         max.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

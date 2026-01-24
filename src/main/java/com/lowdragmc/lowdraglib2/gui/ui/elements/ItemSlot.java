@@ -143,8 +143,8 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     public ItemSlot(Slot slot) {
-        getLayout().setWidth(18);
-        getLayout().setHeight(18);
+        getLayout().width(18);
+        getLayout().height(18);
         getLayout().paddingAll(1);
         getStyle().backgroundTexture(ITEM_SLOT_TEXTURE);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);

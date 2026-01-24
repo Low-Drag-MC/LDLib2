@@ -103,10 +103,10 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
             return testBlockEntity.createUI(holder);
         }
         var root = new UIElement().layout(layout -> layout
-                .setWidth(100)
-                .setHeight(100)
+                .width(100)
+                .height(100)
                 .paddingAll(4)
-                .setGap(YogaGutter.ALL, 2)
+                .gapAll(2)
                 .justifyContent(AlignContent.CENTER)
         ).style(style -> style.backgroundTexture(Sprites.BORDER));
         root.addChild(new Label().setText("Test Block UI"));

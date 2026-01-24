@@ -64,7 +64,7 @@ public class HistoryStack implements IHistoryStack {
             style.textAlignVertical(Vertical.CENTER);
             style.textWrap(TextWrap.HOVER_ROLL);
         }).layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
         }).style(style -> {
             style.overlayTexture(ColorPattern.T_BLUE.rectTexture());
         }).addEventListener(UIEvents.MOUSE_DOWN, e -> {

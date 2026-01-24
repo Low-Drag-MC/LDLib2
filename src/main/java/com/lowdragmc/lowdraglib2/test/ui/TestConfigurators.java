@@ -108,8 +108,8 @@ public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSe
     public ModularUI createUI(Player entityPlayer) {
         var root = new ScrollerView();
         root.layout(layout -> {
-            layout.setWidth(250);
-            layout.setHeight(350);
+            layout.width(250);
+            layout.height(350);
         }).setId("root");
 
         var group = new ConfiguratorGroup("root");

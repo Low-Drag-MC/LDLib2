@@ -43,7 +43,7 @@ public class Vector2iAccessor extends TypesAccessor<Vector2i> {
                         v -> consumer.accept(new Vector2i(supplier.get().x, v.intValue())),
                         defaultValue(field, field.getType()).y, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
@@ -51,12 +51,12 @@ public class Vector2iAccessor extends TypesAccessor<Vector2i> {
         x.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         y.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

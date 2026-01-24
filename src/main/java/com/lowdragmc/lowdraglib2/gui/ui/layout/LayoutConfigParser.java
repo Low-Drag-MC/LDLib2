@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.layout;
 
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
-import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.style.LayoutStyle;
@@ -11,8 +10,6 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.LengthPercentageAuto;
 import lombok.experimental.UtilityClass;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
 
 import java.util.Arrays;
 import java.util.List;
@@ -58,15 +55,9 @@ public final class LayoutConfigParser {
                 // spacing
                 new ConfiguratorGroup("property.spacing.group").addConfigurators(
                         // move all to outer for convenient
-                        createConfigurator(LayoutProperties.MARGIN, style),
-                        createConfigurator(LayoutProperties.PADDING, style),
-                        createConfigurator(LayoutProperties.GAPS[LayoutProperties.GAPS.length - 1], style)
-                                .setLabel(
-                                        Component.literal("gap-all").withStyle(
-                                                style.valueGetter(LayoutProperties.GAPS[LayoutProperties.GAPS.length - 1]).get() == null ?
-                                                        Style.EMPTY : Style.EMPTY.withColor(ColorPattern.ORANGE.color)
-                                        )
-                                ),
+                        createLPAConfigurator(LayoutProperties.MARGIN_ALL, style, LPA_VALUES),
+                        createLPAConfigurator(LayoutProperties.PADDING_ALL, style, LPA_VALUES),
+                        createLPAConfigurator(LayoutProperties.GAP_ALL, style, LPA_VALUES),
                         new ConfiguratorGroup("property.spacing.margin.group").addConfigurators(
                                 createLPAConfigurator(LayoutProperties.MARGIN_LEFT, style, LPA_VALUES),
                                 createLPAConfigurator(LayoutProperties.MARGIN_RIGHT, style, LPA_VALUES),
@@ -86,7 +77,9 @@ public final class LayoutConfigParser {
                                 createLPAConfigurator(LayoutProperties.PADDING_ALL, style, LPA_VALUES)
                         ),
                         new ConfiguratorGroup("property.spacing.gap.group").addConfigurators(
-                                createConfigurators(LayoutProperties.GAPS, style)
+                                createLPAConfigurator(LayoutProperties.GAP_ROW, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.GAP_COLUMN, style, LPA_VALUES),
+                                createLPAConfigurator(LayoutProperties.GAP_ALL, style, LPA_VALUES)
                         )
                 ),
                 // size

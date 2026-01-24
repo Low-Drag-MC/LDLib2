@@ -171,21 +171,21 @@ public class Toggle extends BindableUIElement<Boolean> {
         getLayout().flexDirection(FlexDirection.ROW);
         getLayout().alignItems(AlignItems.CENTER);
         getLayout().paddingAll(1);
-        getLayout().setHeight(14);
+        getLayout().height(14);
 
         this.toggleButton
                 .setOnClick(this::onToggleClick)
                 .noText()
                 .layout(layout -> {
                     layout.paddingAll(0);
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setAspectRatio(1);
                 })
                 .addClass("__toggle_button__")
                 .addChild(this.markIcon = new UIElement()
                         .layout(layout -> {
-                            layout.setWidthPercent(100);
-                            layout.setHeightPercent(100);
+                            layout.widthPercent(100);
+                            layout.heightPercent(100);
                         })
                         .style(style -> Style.importantPipeline(style, s -> s.backgroundTexture(toggleStyle.unmarkTexture())))
                         .addClass("__toggle_mark-icon__"));
@@ -196,7 +196,7 @@ public class Toggle extends BindableUIElement<Boolean> {
                         .textAlignVertical(Vertical.CENTER))
                 .addClass("__toggle_label__")
                 .layout(layout -> {
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setFlex(1);
                     layout.marginLeft(2);
                 });

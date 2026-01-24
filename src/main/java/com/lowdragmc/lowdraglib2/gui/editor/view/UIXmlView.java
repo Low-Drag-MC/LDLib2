@@ -53,8 +53,8 @@ public class UIXmlView extends View {
         addClass("__ui-editor-view__");
         // header initial
         header.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeight(16);
+            layout.widthPercent(100);
+            layout.height(16);
             layout.paddingAll(1);
             layout.flexDirection(FlexDirection.ROW);
         });
@@ -63,11 +63,11 @@ public class UIXmlView extends View {
                 // left
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(),
                 // center
-                new UIElement().layout(layout -> layout.setHeightPercent(100))
+                new UIElement().layout(layout -> layout.heightPercent(100))
                         .addChildren(new Toggle().noText()
                                 .setOnToggleChanged(isOn -> {
                                     if (isOn) {
@@ -86,7 +86,7 @@ public class UIXmlView extends View {
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.justifyContent(AlignContent.FLEX_END);
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setFlex(1);
                 }).addChildren(
                         // page fit button
@@ -103,10 +103,10 @@ public class UIXmlView extends View {
                                         0.1f);
                             }
                         }).layout(layout -> {
-                            layout.setWidth(14);
+                            layout.width(14);
                         }).style(style -> style.tooltips("GraphView.fit")).addChild(
                                 new UIElement().layout(layout -> {
-                                    layout.setHeightPercent(100);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1);
                                 }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
                         // selection box toggle
@@ -114,8 +114,8 @@ public class UIXmlView extends View {
                                 .setText("")
                                 .setOn(modularUIPreview.isShowSelectionBox(), false)
                                 .toggleButton(button -> button.layout(layout -> {
-                                    layout.setWidthPercent(100);
-                                    layout.setHeightPercent(100);
+                                    layout.widthPercent(100);
+                                    layout.heightPercent(100);
                                 }))
                                 .setOnToggleChanged(modularUIPreview::setShowSelectionBox)
                                 .toggleStyle(style -> {
@@ -129,7 +129,7 @@ public class UIXmlView extends View {
                                 .bindDataSource(SupplierDataSource.of(modularUIPreview::isShowSelectionBox))
                                 .layout(layout -> {
                                     layout.paddingAll(0);
-                                    layout.setHeightPercent(100);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1f);
                                 })
                                 .style(style -> style.tooltips("UIEditor.selection_box"))
@@ -139,7 +139,7 @@ public class UIXmlView extends View {
 
         // canvas initial
         canvas.layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         });
         canvas.setOverflowVisible(false);
@@ -149,14 +149,14 @@ public class UIXmlView extends View {
         // editor initial
         editor.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         });
         editor.addClass("__ui-editor-view_editor__").moveInlineAsDefault();
 
         graphView.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         graphView.addContentChild(modularUIPreview);
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
@@ -170,8 +170,8 @@ public class UIXmlView extends View {
         xmlEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         xmlEditor.layout(layout -> {
             layout.paddingAll(2);
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         xmlEditor.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         xmlEditor.setLinesResponder(this::onXmlChanged);

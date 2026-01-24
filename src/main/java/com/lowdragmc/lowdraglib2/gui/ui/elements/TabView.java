@@ -66,14 +66,14 @@ public class TabView extends UIElement {
         this.tabHeaderContainer.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.paddingHorizontal(3);
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
         }).addChild(tabScroller);
 
         this.tabScroller.viewPort(viewPort -> viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).layout(layout -> layout.paddingAll(0)))
                 .viewContainer(viewContainer -> viewContainer.layout(layout -> layout.flexDirection(FlexDirection.ROW)))
                 .scrollerStyle(style -> style.mode(ScrollerMode.HORIZONTAL).horizontalScrollDisplay(ScrollDisplay.NEVER).adaptiveHeight(true))
                 .layout(layout -> {
-                    layout.setWidthPercent(100);
+                    layout.widthPercent(100);
                     layout.marginBottom(-2);
                 });
 

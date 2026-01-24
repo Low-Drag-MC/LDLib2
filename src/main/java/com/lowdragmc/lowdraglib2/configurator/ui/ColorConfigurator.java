@@ -38,7 +38,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         this.colorSelector.addClass("panel_bg");
         this.colorSelector.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setMaxWidth(150);
             layout.setMinWidth(100);
             layout.paddingAll(4);
@@ -51,7 +51,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         colorPreview = new UIElement();
         inlineContainer.addChildren(colorPreview.layout(layout -> {
             layout.setPipelineState(StyleOrigin.DEFAULT);
-            layout.setHeight(14);
+            layout.height(14);
             layout.paddingAll(3);
             layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> {
@@ -61,7 +61,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             style.overlayTexture(DynamicTexture.of(() -> colorPreview.isSelfOrChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY));
             style.setPipelineState(StyleOrigin.INLINE);
         }).addClass("configurator_preview_bg").addChildren(new UIElement()
-                .layout(layout -> layout.setHeightPercent(100))
+                .layout(layout -> layout.heightPercent(100))
                 .style(style -> style.backgroundTexture(this::drawColorPreview))
                 .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
@@ -89,7 +89,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
                 var y = colorPreview.getPositionY();
                 layout.left(x - root.getLayoutX());
                 layout.top(y - root.getLayoutY());
-                layout.setWidth(colorPreview.getSizeWidth());
+                layout.width(colorPreview.getSizeWidth());
             }));
             this.colorSelector.focus();
         }

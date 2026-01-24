@@ -56,7 +56,7 @@ public abstract class MenuTab {
                         .textAlignVertical(Vertical.CENTER))
                 .setText(getComponent())
                 .layout(layout ->{
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.paddingHorizontal(2);
                 })
                 .style(style -> style.backgroundTexture(IGuiTexture.EMPTY))

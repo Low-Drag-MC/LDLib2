@@ -149,20 +149,20 @@ public class Selector<T> extends BindableUIElement<T> {
     protected final Map<T, Button> candidateButtons = new HashMap<>();
 
     public Selector() {
-        getLayout().setHeight(14);
+        getLayout().height(14);
         getStyle().backgroundTexture(Sprites.RECT_RD_LIGHT);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         this.preview = new UIElement().layout(layout -> {
             layout.justifyContent(AlignContent.CENTER);
-            layout.setHeightPercent(100);
+            layout.heightPercent(100);
             layout.setFlex(1);
         });
 
         this.buttonIcon = new UIElement();
         this.buttonIcon
                 .layout(layout -> {
-                    layout.setWidth(14);
-                    layout.setHeight(14);
+                    layout.width(14);
+                    layout.height(14);
                     layout.marginLeft(2);
                 })
                 .style(style -> style.backgroundTexture(Icons.DOWN_ARROW_NO_BAR));
@@ -172,15 +172,15 @@ public class Selector<T> extends BindableUIElement<T> {
                     layout.alignItems(AlignItems.CENTER);
                     layout.paddingAll(2);
                     layout.paddingLeft(4);
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(100);
                 })
                 .addChildren(preview, buttonIcon);
 
         this.dialog = new UIElement();
         this.dialog
                 .layout(layout -> {
-                    layout.setHeight(StyleSizeLength.AUTO);
+                    layout.heightAuto();
                     layout.positionType(TaffyPosition.ABSOLUTE);
                 })
                 .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new ScrollerView())
@@ -201,7 +201,7 @@ public class Selector<T> extends BindableUIElement<T> {
                             var y = this.getPositionY();
                             layout.left(x - root.getLayoutX());
                             layout.top(y - root.getLayoutY() + this.getSizeHeight());
-                            layout.setWidth(this.getSizeWidth());
+                            layout.width(this.getSizeWidth());
                         });
                     }
                     e.currentElement.adaptPositionToScreen();
@@ -256,7 +256,7 @@ public class Selector<T> extends BindableUIElement<T> {
             // scroller view
             listView.setDisplay(false);
             scrollerView.setDisplay(true);
-            scrollerView.layout(layout -> layout.setHeight(selectorStyle.scrollerViewHeight()));
+            scrollerView.layout(layout -> layout.height(selectorStyle.scrollerViewHeight()));
             for (T candidate : candidates) {
                 scrollerView.addScrollViewChild(createItemUI(candidate));
             }
@@ -265,7 +265,7 @@ public class Selector<T> extends BindableUIElement<T> {
     }
 
     private UIElement createItemUI(T candidate) {
-        var candidateUI = new UIElement().layout(layout -> layout.setWidthPercent(100));
+        var candidateUI = new UIElement().layout(layout -> layout.widthPercent(100));
         var overlayButton = new Button();
         overlayButton.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY)
                         .hoverTexture(selectorStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
@@ -279,8 +279,8 @@ public class Selector<T> extends BindableUIElement<T> {
                 .noText()
                 .layout(layout -> {
                     layout.positionType(TaffyPosition.ABSOLUTE);
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(100);
                 })
                 .setId("selector#overlayButton");
         candidateUI.addChild(candidateUIProvider.apply(candidate).addChild(overlayButton));
@@ -372,7 +372,7 @@ public class Selector<T> extends BindableUIElement<T> {
                 var y = this.getPositionY();
                 layout.left(x - root.getLayoutX());
                 layout.top(y - root.getLayoutY() + this.getSizeHeight());
-                layout.setWidth(this.getSizeWidth());
+                layout.width(this.getSizeWidth());
             }));
             this.dialog.focus();
         }

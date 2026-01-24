@@ -134,7 +134,7 @@ public class Menu<K, T> extends UIElement {
         this.uiProvider = uiProvider;
 
         getLayout().paddingAll(2);
-        getLayout().setGap(YogaGutter.ALL, 2);
+        getLayout().gapAll(2);
         getLayout().positionType(TaffyPosition.ABSOLUTE);
         getLayout().setMinWidth(120);
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
@@ -298,8 +298,8 @@ public class Menu<K, T> extends UIElement {
                 } else {
                     container.addClass("__menu_branch-node__");
                     container.addChild(new UIElement().layout(layout -> {
-                        layout.setWidth(8);
-                        layout.setHeight(8);
+                        layout.width(8);
+                        layout.height(8);
                         layout.marginHorizontal(2);
                     }).style(style -> style.backgroundTexture(DynamicTexture.of(menuStyle::arrowIcon))));
                 }

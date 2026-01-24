@@ -25,7 +25,7 @@ public class Label extends TextElement implements IBindable<Component>, IDataCon
     protected final Map<IDataProvider<Component>, ISubscription> dataSources = new LinkedHashMap<>();
 
     public Label() {
-        getLayout().setHeight(9);
+        getLayout().height(9);
         this.setText("Label");
         internalSetup();
     }

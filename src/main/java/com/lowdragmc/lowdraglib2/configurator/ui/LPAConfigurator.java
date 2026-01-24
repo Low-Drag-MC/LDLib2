@@ -41,13 +41,13 @@ public class LPAConfigurator extends ValueConfigurator<LengthPercentageAuto> {
             layout.setFlex(1);
         });
         unitSelector.setCandidates(List.of(
-            Unit.AUTO,
-            Unit.LENGTH,
-            Unit.PERCENT,
-            Unit.MIN_CONTENT,
-            Unit.MAX_CONTENT,
-            Unit.FIT_CONTENT,
-            Unit.STRETCH
+                Unit.AUTO,
+                Unit.LENGTH,
+                Unit.PERCENT,
+                Unit.MIN_CONTENT,
+                Unit.MAX_CONTENT,
+                Unit.FIT_CONTENT,
+                Unit.STRETCH
         ));
         updateSelector();
 
@@ -65,13 +65,13 @@ public class LPAConfigurator extends ValueConfigurator<LengthPercentageAuto> {
         });
 
         unitSelector.setCandidateUIProvider(UIElementProvider.text(value -> switch (value) {
-            case AUTO -> Component.translatable("auto");
+            case AUTO -> Component.literal("auto");
             case LENGTH -> Component.literal("px");
             case PERCENT -> Component.literal("%");
             case MIN_CONTENT -> Component.literal("min-content");
-            case MAX_CONTENT -> Component.translatable("max-content");
-            case FIT_CONTENT -> Component.translatable("fit-content");
-            case STRETCH -> Component.translatable("stretch");
+            case MAX_CONTENT -> Component.literal("max-content");
+            case FIT_CONTENT -> Component.literal("fit-content");
+            case STRETCH -> Component.literal("stretch");
         }));
 
         textField.layout(layout -> {

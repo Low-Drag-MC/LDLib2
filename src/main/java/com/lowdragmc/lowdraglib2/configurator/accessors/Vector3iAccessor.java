@@ -50,7 +50,7 @@ public class Vector3iAccessor extends TypesAccessor<Vector3i> {
                         v -> consumer.accept(new Vector3i(supplier.get().x, supplier.get().y, v.intValue())),
                         defaultValue(field, field.getType()).z, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);

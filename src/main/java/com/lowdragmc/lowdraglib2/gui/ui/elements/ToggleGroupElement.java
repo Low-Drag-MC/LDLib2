@@ -21,7 +21,7 @@ public class ToggleGroupElement extends UIElement {
     public final Toggle.ToggleGroup toggleGroup = new Toggle.ToggleGroup();
 
     public ToggleGroupElement() {
-        getLayout().setGap(YogaGutter.ALL, 2);
+        getLayout().gapAll(2);
         internalSetup();
     }
 

@@ -63,9 +63,9 @@ public class EditorSettings implements IPersistedSerializable {
         var settingsTree = createSettingsTree().build();
         var treeList = new TreeList<>(settingsTree, true);
 
-        splitView.layout(layout -> layout.setFlexAuto().setHeight(200).setWidthPercent(100));
-        inspector.layout(layout -> layout.setWidthPercent(100).setHeightPercent(100).marginLeft(2));
-        treeList.layout(layout -> layout.setWidthPercent(100).setHeightPercent(100));
+        splitView.layout(layout -> layout.setFlexAuto().height(200).widthPercent(100));
+        inspector.layout(layout -> layout.widthPercent(100).heightPercent(100).marginLeft(2));
+        treeList.layout(layout -> layout.widthPercent(100).heightPercent(100));
         treeList.setOnSelectedChanged(selected -> {
             inspector.clear();
             if (selected.size() == 1) {
@@ -84,7 +84,7 @@ public class EditorSettings implements IPersistedSerializable {
         });
 
         splitView.setPercentage(30);
-        splitView.left(new ScrollerView().addScrollViewChild(treeList).layout(layout -> layout.setHeightPercent(100).setWidthPercent(100)));
+        splitView.left(new ScrollerView().addScrollViewChild(treeList).layout(layout -> layout.heightPercent(100).widthPercent(100)));
         splitView.right(inspector);
 
         return splitView;

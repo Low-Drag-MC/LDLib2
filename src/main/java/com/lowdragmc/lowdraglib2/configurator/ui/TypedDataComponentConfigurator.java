@@ -33,8 +33,8 @@ public class TypedDataComponentConfigurator extends ValueConfigurator<TypedDataC
         setCopiable(value -> value);
 
         if (value == null) value = defaultValue;
-        searchComponent.layout(layout -> layout.setWidthPercent(50));
-        tagField.layout(layout -> layout.setWidthPercent(50));
+        searchComponent.layout(layout -> layout.widthPercent(50));
+        tagField.layout(layout -> layout.widthPercent(50));
         tagField.setTagResponder(tag -> {
             var type = Optional.ofNullable(this.value).map(TypedDataComponent::type).orElse(null);
             TypedDataComponent result;

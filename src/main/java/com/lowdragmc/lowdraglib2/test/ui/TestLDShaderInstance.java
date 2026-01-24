@@ -28,8 +28,8 @@ public class TestLDShaderInstance implements IScreenTest {
         var root = new UIElement();
         root.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setWidth(350);
-            layout.setHeight(300);
+            layout.width(350);
+            layout.height(300);
         }).setId("root");
 
         var group = new ConfiguratorGroup("root");
@@ -40,11 +40,11 @@ public class TestLDShaderInstance implements IScreenTest {
         root.addChildren(
                 new ScrollerView().addScrollViewChild(group).layout(layout -> {
                     layout.setFlex(1);
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                 }),
                 new UIElement().layout(layout -> {
                     layout.setFlex(1);
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                 }).addChildren(
                         new Button().setText("serialize").setOnClick(e -> {
                             serialized = shaderTexture.serializeNBT(Platform.getFrozenRegistry());
@@ -57,10 +57,10 @@ public class TestLDShaderInstance implements IScreenTest {
                             style.adaptiveHeight(true);
                             style.textWrap(TextWrap.WRAP);
                         }).layout(layout -> {
-                            layout.setWidthPercent(100);
+                            layout.widthPercent(100);
                         })).layout(layout -> {
                             layout.setFlex(1);
-                            layout.setWidthPercent(100);
+                            layout.widthPercent(100);
                         })))
                 .addEventListener(UIEvents.REMOVED, e -> shaderTexture.close());
 

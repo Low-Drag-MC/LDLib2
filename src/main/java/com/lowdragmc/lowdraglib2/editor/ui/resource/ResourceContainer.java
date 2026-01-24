@@ -42,20 +42,20 @@ public class ResourceContainer<T> extends UIElement {
 
     public ResourceContainer(ResourceInstance<T> resourceInstance, Editor editor) {
         getLayout().setFlex(1);
-        getLayout().setHeightPercent(100);
+        getLayout().heightPercent(100);
         getLayout().flexDirection(FlexDirection.ROW);
 
         this.resourceInstance = resourceInstance;
         this.editor = editor;
         addChildren(new SplitView.Horizontal().left(new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         }).addChildren(providerList.layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         }))).right(providerContainer.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         })).setPercentage(13));
 
         this.providerList.addEventListener(UIEvents.MOUSE_DOWN, this::onProviderListMouseDown);
@@ -105,8 +105,8 @@ public class ResourceContainer<T> extends UIElement {
         // split
         providerList.addScrollViewChild(new UIElement().layout(layout -> {
             layout.alignSelf(AlignItems.CENTER);
-            layout.setWidthPercent(95);
-            layout.setHeight(1);
+            layout.widthPercent(95);
+            layout.height(1);
             layout.marginVertical(1);
         }).style(style -> style.backgroundTexture(ColorPattern.T_WHITE.rectTexture())));
 
@@ -125,8 +125,8 @@ public class ResourceContainer<T> extends UIElement {
     private void addProviderToggles(List<IResourceProvider<T>> providers) {
         for (var provider : providers) {
             var toggle = new UIElement().layout(layout -> {
-                layout.setHeight(12);
-                layout.setWidthPercent(100);
+                layout.height(12);
+                layout.widthPercent(100);
                 layout.flexDirection(FlexDirection.ROW);
                 layout.alignItems(AlignItems.CENTER);
                 layout.paddingRight(2);

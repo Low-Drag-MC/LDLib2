@@ -68,8 +68,8 @@ public class TestScene implements IScreenTest {
         var scene = new Scene();
         var dummyWorld = createTestScene();
         root.layout(layout -> {
-            layout.setWidth(300);
-            layout.setHeight(300);
+            layout.width(300);
+            layout.height(300);
             layout.paddingAll(10);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(scene
@@ -78,7 +78,7 @@ public class TestScene implements IScreenTest {
                 .setRenderedCore(dummyWorld.getFilledBlocks().longStream().mapToObj(BlockPos::of).toList())
                 .useCacheBuffer()
                 .layout(layout -> {
-            layout.setWidthPercent(100);
+            layout.widthPercent(100);
             layout.setFlex(1);
         }), new Button().setOnClick(event -> {
             for (int i = 0; i < 50; i++) {

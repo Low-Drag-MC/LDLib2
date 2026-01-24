@@ -117,7 +117,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     private float lastValue = 0;
 
     public ProgressBar() {
-        getLayout().setHeight(14);
+        getLayout().height(14);
 
         this.barContainer = new UIElement();
         this.label = new Label();
@@ -127,8 +127,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         this.bar.addClass("__progress-bar_bar__");
 
         this.barContainer.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
             layout.paddingAll(4);
         }).style(style -> style.backgroundTexture(Sprites.PROGRESS_CONTAINER));
         this.bar.style(style -> style.backgroundTexture(Sprites.PROGRESS_BAR));
@@ -136,15 +136,15 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER))
                 .layout(layout -> {
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(100);
                     layout.positionType(TaffyPosition.ABSOLUTE);
                 });
 
         this.barContainer.addChildren(new UIElement()
                         .layout(layout -> {
-                            layout.setHeightPercent(100);
-                            layout.setWidthPercent(100);
+                            layout.heightPercent(100);
+                            layout.widthPercent(100);
                         })
                 .addChildren(this.bar, this.label));
         this.addChildren(this.barContainer);
@@ -178,8 +178,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(normalizedValue * 100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(normalizedValue * 100);
                 });
             }
             case RIGHT_TO_LEFT -> {
@@ -188,8 +188,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(normalizedValue * 100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(normalizedValue * 100);
                 });
             }
             case UP_TO_DOWN -> {
@@ -198,8 +198,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(normalizedValue * 100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(normalizedValue * 100);
+                    layout.widthPercent(100);
                 });
             }
             case DOWN_TO_UP -> {
@@ -208,8 +208,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(normalizedValue * 100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(normalizedValue * 100);
+                    layout.widthPercent(100);
                 });
             }
         }

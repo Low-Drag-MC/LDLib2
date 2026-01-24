@@ -120,8 +120,8 @@ public class ModularUIPreview extends UIElement {
             this.selectionBox.layout(layout -> {
                 layout.left(x);
                 layout.top(y);
-                layout.setWidth(width);
-                layout.setHeight(height);
+                layout.width(width);
+                layout.height(height);
             });
         } else {
             selectionBox.setDisplay(false);
@@ -139,8 +139,8 @@ public class ModularUIPreview extends UIElement {
 
         public SelectionBox() {
             getLayout().positionType(TaffyPosition.ABSOLUTE);
-            getLayout().setWidth(0);
-            getLayout().setHeight(0);
+            getLayout().width(0);
+            getLayout().height(0);
             setDisplay(false);
 
             getStyle().backgroundTexture(ColorPattern.BLUE.borderTexture(1));
@@ -151,7 +151,7 @@ public class ModularUIPreview extends UIElement {
                 layout.positionType(TaffyPosition.ABSOLUTE);
                 layout.top(-15);
                 layout.paddingAll(2);
-                layout.setHeight(14);
+                layout.height(14);
             });
             widgetsGroup.addChildren(
                     label.bindDataSource(SupplierDataSource.of(() ->

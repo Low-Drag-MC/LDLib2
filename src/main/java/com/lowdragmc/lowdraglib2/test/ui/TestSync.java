@@ -60,8 +60,8 @@ public class TestSync implements IMenuTest {
     public ModularUI createUI(Player player) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setWidth(250);
-            layout.setHeight(400);
+            layout.width(250);
+            layout.height(400);
             layout.paddingAll(10);
         }).setId("root");
         root.getStyle().backgroundTexture(Sprites.BORDER);

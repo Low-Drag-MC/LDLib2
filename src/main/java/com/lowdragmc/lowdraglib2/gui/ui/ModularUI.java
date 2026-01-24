@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.AvailableSpace;
+import dev.vfyjxf.taffy.style.TaffyDimension;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import dev.vfyjxf.taffy.tree.NodeId;
 import dev.vfyjxf.taffy.tree.TaffyTree;
@@ -467,38 +468,36 @@ public class ModularUI {
         if (ui.dynamicSize != null) {
             var size = ui.dynamicSize.apply(Size.of(screenWidth, screenHeight));
             ui.rootElement.layout(layout -> {
-                layout.setWidth(size.getWidth());
-                layout.setHeight(size.getHeight());
+                layout.width(size.getWidth());
+                layout.height(size.getHeight());
             });
         }
         var isRelative = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.POSITION))
                 .orElse(TaffyPosition.RELATIVE) != TaffyPosition.ABSOLUTE;
         var width = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.WIDTH))
-                .orElseGet(StyleSizeLength::ofAuto)
-                .asYogaValue();
+                .orElseGet(TaffyDimension::auto);
         var height = Optional.ofNullable(ui.rootElement.getStyleBag().computeCandidate(LayoutProperties.HEIGHT))
-                .orElseGet(StyleSizeLength::ofAuto)
-                .asYogaValue();
-        this.width = switch (width.unit) {
-            case PERCENT -> width.value * screenWidth * 0.01f;
-            case POINT -> width.value;
+                .orElseGet(TaffyDimension::auto);
+        this.width = switch (width.getType()) {
+            case PERCENT -> width.getValue() * screenWidth;
+            case LENGTH -> width.getValue();
             default -> 0;
         };
-        this.height = switch (height.unit) {
-            case PERCENT -> height.value * screenHeight * 0.01f;
-            case POINT -> height.value;
+        this.height = switch (height.getType()) {
+            case PERCENT -> height.getValue() * screenHeight;
+            case LENGTH -> height.getValue();
             default -> 0;
         };
 
-        if (width.unit == YogaUnit.PERCENT) {
+        if (width.isPercent()) {
             this.layoutWidth = screenWidth;
         } else {
-            this.layoutWidth = YogaConstants.UNDEFINED;
+            this.layoutWidth = Float.NaN;
         }
-        if (height.unit == YogaUnit.PERCENT) {
+        if (height.isPercent()) {
             this.layoutHeight = screenHeight;
         } else {
-            this.layoutHeight = YogaConstants.UNDEFINED;
+            this.layoutHeight = Float.NaN;
         }
 
         // we'd better align it to the integer position to avoid a floating point error
@@ -512,13 +511,13 @@ public class ModularUI {
         calculateStyleAndLayout();
 
         // if dimension is auto, update real sizes after layout calculation
-        if (width.unit == YogaUnit.AUTO) {
+        if (width.isAuto()) {
             this.width = ui.rootElement.getTaffyLayout().size().width;
             this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.getTaffyLayout().location().x;
         } else {
             this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.getTaffyLayout().location().x;
         }
-        if (height.unit == YogaUnit.AUTO) {
+        if (height.isAuto()) {
             this.height = ui.rootElement.getSizeHeight();
             this.topPos = isRelative ? (screenHeight - this.height) / 2 : ui.rootElement.getTaffyLayout().location().y;
         } else {

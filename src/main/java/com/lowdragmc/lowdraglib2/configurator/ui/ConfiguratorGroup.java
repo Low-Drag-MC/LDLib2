@@ -43,12 +43,12 @@ public class ConfiguratorGroup extends Configurator {
 
     public ConfiguratorGroup(String name, boolean isCollapse) {
         super(name);
-        getLayout().setGap(YogaGutter.ALL, 0);
+        getLayout().gapAll(0);
         addClass("__configurator-group__");
 
         configuratorContainer = new UIElement().layout(layout -> {
             layout.marginLeft(2);
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.gapAll(1);
             layout.paddingAll(5);
         }).style(style -> style.backgroundTexture(Sprites.BORDER)).addClass("__configurator-group_container__").moveInlineAsDefault();
 
@@ -57,8 +57,8 @@ public class ConfiguratorGroup extends Configurator {
                 .addEventListener(UIEvents.MOUSE_DOWN, this::onLineContainerClick)
                 .addChildAt(folderIcon = new UIElement().layout(layout -> {
                     layout.marginAll(3f);
-                    layout.setWidth(8);
-                    layout.setHeight(8);
+                    layout.width(8);
+                    layout.height(8);
                 }).style(style -> style.backgroundTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT))
                         .addClass("__configurator-group_folder-icon__")
                         .moveInlineAsDefault(), 0)

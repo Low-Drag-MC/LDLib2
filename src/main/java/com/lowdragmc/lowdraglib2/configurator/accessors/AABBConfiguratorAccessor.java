@@ -52,7 +52,7 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
                                 v -> consumer.accept(new AABB(supplier.get().minX, supplier.get().minY, v.floatValue(),
                                         supplier.get().maxX, supplier.get().maxY, supplier.get().maxZ)),
                                 defaultValue(field, field.getType()).minZ, forceUpdate)).layout(layout -> {
-                    layout.setGap(YogaGutter.ALL, 2);
+                    layout.gapAll(2);
                     layout.flexDirection(FlexDirection.ROW);
                     layout.wrap(FlexWrap.WRAP);
                 }),
@@ -69,44 +69,44 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
                                 v -> consumer.accept(new AABB(supplier.get().minX, supplier.get().minY, supplier.get().minZ,
                                         supplier.get().maxX, supplier.get().maxY, v.floatValue())),
                                 defaultValue(field, field.getType()).minZ, forceUpdate)).layout(layout -> {
-                    layout.setGap(YogaGutter.ALL, 2);
+                    layout.gapAll(2);
                     layout.marginLeft(2);
                     layout.flexDirection(FlexDirection.ROW);
                     layout.wrap(FlexWrap.WRAP);
                 })
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
         });
         minX.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         minY.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         minZ.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         maxX.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         maxY.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         maxZ.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

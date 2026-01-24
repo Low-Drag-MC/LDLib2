@@ -18,17 +18,17 @@ public class TestGraphView implements IScreenTest {
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setWidth(300);
-            layout.setHeight(300);
+            layout.width(300);
+            layout.height(300);
             layout.paddingAll(10);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         var graph = new GraphView();
         root.addChildren(graph.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         }));
 
-        graph.addContentChild(new Button().layout(layout -> layout.setWidth(40)));
+        graph.addContentChild(new Button().layout(layout -> layout.width(40)));
         return new ModularUI(UI.of(root));
     }
 }

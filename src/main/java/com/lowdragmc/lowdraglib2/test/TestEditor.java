@@ -28,8 +28,8 @@ public class TestEditor extends Editor {
         stylesheetEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         stylesheetEditor.layout(layout -> {
             layout.paddingAll(2);
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         stylesheetEditor.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         stylesheetEditor.setLinesResponder(this::onStylesheetChanged);

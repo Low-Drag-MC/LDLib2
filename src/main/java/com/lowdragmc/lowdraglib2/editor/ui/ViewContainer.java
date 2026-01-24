@@ -49,8 +49,8 @@ public class ViewContainer extends UIElement {
         this.getLayout().flex(1);
 
         this.tabView.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         }).addClass("__view-container_tab-view__");
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
         getLayout().paddingAll(1);
@@ -60,10 +60,10 @@ public class ViewContainer extends UIElement {
         });
 
         collapseButton.addChild(buttonIcon = new UIElement()
-                .layout(layout -> layout.setWidth(10).setHeight(10))
+                .layout(layout -> layout.width(10).height(10))
                 .style(style -> style.backgroundTexture(Icons.COLLAPSE_HORIZONTAL).tooltips("collapse_or_expand"))
         );
-        collapseButton.layout(layout -> layout.setWidth(14).setHeight(14).alignItems(AlignItems.CENTER).justifyContent(AlignContent.CENTER));
+        collapseButton.layout(layout -> layout.width(14).height(14).alignItems(AlignItems.CENTER).justifyContent(AlignContent.CENTER));
         collapseButton.setDisplay(false);
         collapseButton.setOnClick(e -> {
             if (isCollapse) {
@@ -112,23 +112,23 @@ public class ViewContainer extends UIElement {
         var isVertical = splitView instanceof SplitView.Vertical;
         this.collapseButton.layout(layout -> {
             if (isVertical) {
-                layout.setWidthPercent(100);;
+                layout.widthPercent(100);;
             } else {
-                layout.setHeightPercent(100);
+                layout.heightPercent(100);
             }
         });
         this.tabView.tabHeaderContainer.layout(layout -> Style.importantPipeline(layout,
                 s -> s.paddingHorizontal(0)));
         if (!isVertical) {
             this.tabView.tabHeaderContainer.layout(layout -> Style.importantPipeline(layout,
-                    s -> s.setHeightPercent(100)));
+                    s -> s.heightPercent(100)));
         }
         if (isFirst) {
             splitView.first.layout(layout -> Style.importantPipeline(layout, s -> {
                 if (isVertical) {
-                    s.setHeight(16);
+                    s.height(16);
                 } else {
-                    s.setWidth(16);
+                    s.width(16);
                 }
             }));
         } else {
@@ -136,9 +136,9 @@ public class ViewContainer extends UIElement {
             splitView.second.layout(layout -> Style.importantPipeline(layout, s -> {
                 s.setFlexAuto();
                 if (isVertical) {
-                    s.setHeight(16);
+                    s.height(16);
                 } else {
-                    s.setWidth(16);
+                    s.width(16);
                 }
             }));
         }
@@ -159,9 +159,9 @@ public class ViewContainer extends UIElement {
         var isVertical = splitView instanceof SplitView.Vertical;
         this.collapseButton.layout(layout -> {
             if (isVertical) {
-                layout.setWidth(14);;
+                layout.width(14);;
             } else {
-                layout.setHeight(14);
+                layout.height(14);
             }
         });
         this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.PADDING_HORIZONTAL, slot -> slot.origin() == StyleOrigin.IMPORTANT);
@@ -185,8 +185,8 @@ public class ViewContainer extends UIElement {
         if (tabPlaceHolder != null) return;
         if (event.dragHandler.getDraggingObject() instanceof View) {
             tabPlaceHolder = new UIElement().layout(layout -> {
-                layout.setHeight(tabView.tabHeaderContainer.getContentHeight());
-                layout.setWidth(50);
+                layout.height(tabView.tabHeaderContainer.getContentHeight());
+                layout.width(50);
             }).style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
             var index = -1;
             for (var tab : tabView.tabScroller.viewContainer.getChildren()) {

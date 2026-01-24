@@ -126,8 +126,8 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     protected final Map<NODE, List<NODE>> displayedChildren = new HashMap<>();
 
     public TreeList() {
-        getLayout().setWidthPercent(100);
-        getLayout().setGap(YogaGutter.ALL, 1);
+        getLayout().widthPercent(100);
+        getLayout().gapAll(1);
         internalSetup();
     }
 
@@ -322,15 +322,15 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         var container = new UIElement().layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.alignItems(AlignItems.CENTER);
-            layout.setWidthPercent(100);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.widthPercent(100);
+            layout.gapAll(2);
         }).style(style -> {
             style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.hoverTexture() : treeListStyle.nodeTexture()));
         });
         var arrow = new UIElement().layout(layout -> {
             layout.marginLeft(5 * node.getDimension());
-            layout.setWidth(7);
-            layout.setHeight(7);
+            layout.width(7);
+            layout.height(7);
         }).style(style -> style.backgroundTexture(DynamicTexture.of(() -> node.isBranch() ?
                 (isNodeExpanded(node) ? treeListStyle.expandIcon() : treeListStyle.collapseIcon()) :
                 IGuiTexture.EMPTY

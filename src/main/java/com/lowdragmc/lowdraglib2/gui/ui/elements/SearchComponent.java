@@ -156,7 +156,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     }
 
     public SearchComponent() {
-        getLayout().setHeight(14);
+        getLayout().height(14);
         getStyle().backgroundTexture(Sprites.RECT_RD_SOLID);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
 
@@ -164,7 +164,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         this.dialog = new UIElement();
         this.preview = new UIElement().layout(layout -> {
             layout.justifyContent(AlignContent.CENTER);
-            layout.setHeightPercent(100);
+            layout.heightPercent(100);
             layout.setFlex(1);
             layout.paddingAll(2);
         });
@@ -174,7 +174,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         this.preview.addClass("__search-component_preview__");
 
         textField.layout(layout -> {
-            layout.setHeightPercent(100);
+            layout.heightPercent(100);
             layout.setFlex(1);
         });
         textField.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
@@ -191,7 +191,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         this.dialog
                 .setId("selector#dialog")
                 .layout(layout -> {
-                    layout.setHeight(StyleSizeLength.AUTO);
+                    layout.heightAuto();
                     layout.positionType(TaffyPosition.ABSOLUTE);
                 })
                 .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new ScrollerView())
@@ -205,7 +205,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                             var y = this.getPositionY();
                             layout.left(x - root.getLayoutX());
                             layout.top(y - root.getLayoutY() + this.getSizeHeight());
-                            layout.setWidth(this.getSizeWidth());
+                            layout.width(this.getSizeWidth());
                         });
                     }
                     e.currentElement.adaptPositionToScreen();
@@ -310,7 +310,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             // scroller view
             listView.setDisplay(false);
             scrollerView.setDisplay(true);
-            scrollerView.layout(layout -> layout.setHeight(searchStyle.scrollerViewHeight()));
+            scrollerView.layout(layout -> layout.height(searchStyle.scrollerViewHeight()));
             for (T candidate : candidates) {
                 scrollerView.addScrollViewChild(createItemUI(candidate));
             }
@@ -318,7 +318,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     }
 
     private UIElement createItemUI(T candidate) {
-        var candidateUI = new UIElement().layout(layout -> layout.setWidthPercent(100));
+        var candidateUI = new UIElement().layout(layout -> layout.widthPercent(100));
         var overlayButton = new Button();
         overlayButton.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY)
                         .hoverTexture(searchStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
@@ -332,8 +332,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                 .noText()
                 .layout(layout -> {
                     layout.positionType(TaffyPosition.ABSOLUTE);
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(100);
                 })
                 .setId("selector#overlayButton");
         candidateUI.addChild(candidateUIProvider.apply(candidate).addChild(overlayButton));
@@ -420,7 +420,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                 var y = this.getPositionY();
                 layout.left(x - root.getLayoutX());
                 layout.top(y - root.getLayoutY() + this.getSizeHeight());
-                layout.setWidth(this.getSizeWidth());
+                layout.width(this.getSizeWidth());
             }));
         }
         preview.setDisplay(false);

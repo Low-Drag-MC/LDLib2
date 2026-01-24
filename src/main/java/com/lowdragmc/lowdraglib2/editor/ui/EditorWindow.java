@@ -89,16 +89,16 @@ public class EditorWindow extends UIElement {
             initialScreenScale = minecraft.options.guiScale().get();
         }
 
-        getLayout().setWidthPercent(100);
-        getLayout().setHeightPercent(100);
+        getLayout().widthPercent(100);
+        getLayout().heightPercent(100);
 
         this.editorButtonContainer.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.top(15);
-            layout.setWidthPercent(100);
-            layout.setGap(YogaGutter.ALL, 1);
-            layout.setHeight(14);
+            layout.widthPercent(100);
+            layout.gapAll(1);
+            layout.height(14);
         }).setDisplay(false).style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
         this.editorButtonContainer.addClass("__editor-window_editor-button-container__").moveInlineAsDefault();
 
@@ -299,7 +299,7 @@ public class EditorWindow extends UIElement {
     protected UIElement createEditorButton(Editor editor) {
         return new UIElement().layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setHeightPercent(100);
+            layout.heightPercent(100);
             layout.alignItems(AlignItems.CENTER);
             layout.setFlex(1);
         }).style(style -> {
@@ -313,7 +313,7 @@ public class EditorWindow extends UIElement {
                                 .textWrap(TextWrap.HOVER_ROLL)
                         )
                         .layout(layout -> {
-                            layout.setHeightPercent(100);
+                            layout.heightPercent(100);
                             layout.setFlex(1);
                         }).addEventListener(UIEvents.TICK, e -> {
                             if (e.target.getModularUI().getTickCounter() % 20 ==0) {
@@ -332,7 +332,7 @@ public class EditorWindow extends UIElement {
                     editor.exit();
                     e.stopPropagation();
                 }).layout(layout -> {
-                    layout.setHeight(9);
+                    layout.height(9);
                     layout.setAspectRatio(1);
                     layout.marginRight(2);
                 })

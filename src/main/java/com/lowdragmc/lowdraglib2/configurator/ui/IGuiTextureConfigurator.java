@@ -49,10 +49,10 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
         var preview = new UIElement();
         preview.layout(layout -> {
                     layout.setPipelineState(StyleOrigin.DEFAULT);
-                    layout.setHeight(14);
+                    layout.height(14);
                     layout.paddingAll(2);
                     layout.flexDirection(FlexDirection.ROW);
-                    layout.setGap(YogaGutter.ALL, 2);
+                    layout.gapAll(2);
                     layout.setPipelineState(StyleOrigin.INLINE);
                 }).style(style -> {
                     style.setPipelineState(StyleOrigin.DEFAULT);
@@ -68,11 +68,11 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
                     }
                     return value == null ? Component.empty() : Component.literal(value.getConfigurableName());
                 })).textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL)).layout(layout -> {
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setFlex(1);
                 }).setOverflow(YogaOverflow.HIDDEN))
                 .addChild(new UIElement().layout(layout -> {
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setAspectRatio(1);
                 }).style(style -> style.backgroundTexture(DynamicTexture.of(this::getValue))))
                 .addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
@@ -91,8 +91,8 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
         if (getValue() == null || getValue() == IGuiTexture.EMPTY) return;
         if (hoverTooltips == null) {
             hoverTooltips = new ModularUITooltipComponent(new UIElement().layout(layout -> {
-                layout.setWidth(100);
-                layout.setHeight(100);
+                layout.width(100);
+                layout.height(100);
             }).style(style -> style.backgroundTexture(DynamicTexture.of(this::getValue))));
         }
         event.hoverTooltips = new HoverTooltips(List.of(Component.translatable("ldlib.gui.editor.group.preview")), hoverTooltips, null, null);

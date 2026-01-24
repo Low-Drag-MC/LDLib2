@@ -130,10 +130,10 @@ public abstract class SplitView extends UIElement {
     public static class Horizontal extends SplitView {
         public Horizontal() {
             getLayout().flexDirection(FlexDirection.ROW);
-            first.getLayout().setWidthPercent(50);
-            first.getLayout().setHeightPercent(100);
+            first.getLayout().widthPercent(50);
+            first.getLayout().heightPercent(100);
             second.getLayout().setFlex(1);
-            second.getLayout().setHeightPercent(100);
+            second.getLayout().heightPercent(100);
             internalSetup();
         }
 
@@ -173,14 +173,14 @@ public abstract class SplitView extends UIElement {
 
         @Override
         public Horizontal setPercentage(float percentage) {
-            first.layout(layout -> layout.setWidthPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage())));
+            first.layout(layout -> layout.widthPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage())));
             return this;
         }
 
         @Override
         public float getPercentage() {
             var width = first.getLayout().getWidth();
-            if (width.unit == YogaUnit.PERCENT) return width.value;
+            if (width.isPercent()) return width.getValue();
             return 0;
         }
     }
@@ -189,10 +189,10 @@ public abstract class SplitView extends UIElement {
     @LDLRegister(name = "split-view-vertical", group = "container", registry = "ldlib2:ui_element")
     public static class Vertical extends SplitView {
         public Vertical() {
-            first.getLayout().setWidthPercent(100);
-            first.getLayout().setHeightPercent(50);
+            first.getLayout().widthPercent(100);
+            first.getLayout().heightPercent(50);
             second.getLayout().setFlex(1);
-            second.getLayout().setWidthPercent(100);
+            second.getLayout().widthPercent(100);
             internalSetup();
         }
 
@@ -231,14 +231,14 @@ public abstract class SplitView extends UIElement {
 
         @Override
         public Vertical setPercentage(float percentage) {
-            first.layout(layout -> layout.setHeightPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage())));
+            first.layout(layout -> layout.heightPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage())));
             return this;
         }
 
         @Override
         public float getPercentage() {
             var height = first.getLayout().getHeight();
-            if (height.unit == YogaUnit.PERCENT) return height.value;
+            if (height.isPercent()) return height.getValue();
             return 0;
         }
     }

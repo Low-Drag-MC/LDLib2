@@ -57,22 +57,22 @@ public class Configurator extends UIElement {
         this.inlineContainer = new UIElement().addClass("__configurator_inline__");
         this.tip = new UIElement().addClass("__configurator_tip__");
 
-        getLayout().setGap(YogaGutter.ALL, 1);
+        getLayout().gapAll(1);
 
         addChild(this.lineContainer.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
         }).addChildren(
                 this.label.textStyle(textStyle -> {
                     textStyle.adaptiveWidth(true);
                     textStyle.textAlignVertical(Vertical.CENTER);
                 }).setText(name).layout(layout -> {
-                    layout.setHeight(14);
+                    layout.height(14);
                 }),
                 this.inlineContainer.layout(layout -> layout.setFlex(1)),
                 this.tip.layout(layout -> {
-                    layout.setWidth(14);
-                    layout.setHeight(14);
+                    layout.width(14);
+                    layout.height(14);
                 }).style(style -> style.backgroundTexture(Icons.HELP))));
         if (name.isEmpty()) {
             this.label.setDisplay(false);

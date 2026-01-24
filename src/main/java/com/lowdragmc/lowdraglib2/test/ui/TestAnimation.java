@@ -26,8 +26,8 @@ public class TestAnimation implements IScreenTest {
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setWidth(300);
-            layout.setHeight(300);
+            layout.width(300);
+            layout.height(300);
             layout.paddingAll(10);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         var target = new UIElement();

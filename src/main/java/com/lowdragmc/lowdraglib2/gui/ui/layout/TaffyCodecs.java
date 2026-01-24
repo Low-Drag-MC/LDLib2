@@ -6,58 +6,28 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.vfyjxf.taffy.geometry.TaffyLine;
 import dev.vfyjxf.taffy.geometry.TaffyRect;
+import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.*;
 
-import java.util.ArrayList;
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.*;
-import org.appliedenergistics.yoga.YogaValue;
 import org.appliedenergistics.yoga.style.StyleLength;
+import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import java.util.List;
 
 @UtilityClass
 public final class TaffyCodecs {
-
     // ==================== LengthPercentage Codec ====================
-    public static final Codec<LengthPercentage> LENGTH_PERCENTAGE_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeLengthPercentage,
-            TaffyCodecs::encodeLengthPercentage
-    );
-
-    public static Tag encodeLengthPercentage(LengthPercentage value) {
-        if (value.isLength()) {
-            return FloatTag.valueOf(value.getValue());
-        } else if (value.isPercent()) {
-            var tag = new CompoundTag();
-            tag.putString("type", "percent");
-            tag.putFloat("value", value.getValue());
-            return tag;
-        } else if (value.isCalc()) {
-            // CalcExpression is a functional interface and cannot be easily serialized
-            // For now, we'll encode it as a string placeholder
-            var tag = new CompoundTag();
-            tag.putString("type", "calc");
-            tag.putString("value", "calc(...)");
-            return tag;
-        }
-        return FloatTag.valueOf(0);
-    }
-
-    public static LengthPercentage decodeLengthPercentage(Tag tag) {
-        if (tag instanceof FloatTag floatTag) {
-            return LengthPercentage.length(floatTag.getAsFloat());
-        } else if (tag instanceof CompoundTag compoundTag) {
-            String type = compoundTag.getString("type");
-            if ("percent".equals(type)) {
-                return LengthPercentage.percent(compoundTag.getFloat("value"));
-            } else if ("calc".equals(type)) {
-                // Cannot deserialize CalcExpression, default to zero
-                return LengthPercentage.length(0);
-            }
-        }
-        return LengthPercentage.length(0);
-    }
+    public static final Codec<LengthPercentage> LP_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LDLibExtraCodecs.enumCodec(LengthPercentage.Type.class, LengthPercentage.Type.LENGTH)
+                    .fieldOf("type").forGetter(LengthPercentage::getType),
+            Codec.FLOAT.optionalFieldOf("value", 0f).forGetter(LengthPercentage::getValue)
+    ).apply(instance, (type, value) -> switch (type) {
+        case LENGTH -> LengthPercentage.length(value);
+        case PERCENT -> LengthPercentage.percent(value);
+        case CALC -> LengthPercentage.ZERO;
+    }));
 
     // ==================== TrackSizingFunction Codec ====================
     public static final Codec<TrackSizingFunction> TRACK_SIZING_FUNCTION_CODEC = LDLibExtraCodecs.TAG.xmap(
@@ -71,10 +41,12 @@ public final class TaffyCodecs {
 
         switch (func.getType()) {
             case FIXED:
-                tag.put("value", encodeLengthPercentage(func.getFixedValue()));
+                tag.put("value", LP_CODEC.encodeStart(NbtOps.INSTANCE, func.getFixedValue())
+                        .result().orElseGet(() -> IntTag.valueOf(0)));
                 break;
             case FIT_CONTENT:
-                tag.put("limit", encodeLengthPercentage(func.getFitContentArgument()));
+                tag.put("limit", LP_CODEC.encodeStart(NbtOps.INSTANCE, func.getFitContentArgument())
+                        .result().orElseGet(() -> IntTag.valueOf(0)));
                 break;
             case FLEX:
                 tag.putFloat("fr", func.getFlexValue());
@@ -108,13 +80,13 @@ public final class TaffyCodecs {
 
         return switch (type) {
             case FIXED -> {
-                LengthPercentage value = decodeLengthPercentage(compoundTag.get("value"));
+                var value = LP_CODEC.parse(NbtOps.INSTANCE, compoundTag.get("value")).result().orElse(LengthPercentage.ZERO);
                 yield TrackSizingFunction.fixed(value);
             }
             case MIN_CONTENT -> TrackSizingFunction.minContent();
             case MAX_CONTENT -> TrackSizingFunction.maxContent();
             case FIT_CONTENT -> {
-                LengthPercentage limit = decodeLengthPercentage(compoundTag.get("limit"));
+                var limit = LP_CODEC.parse(NbtOps.INSTANCE, compoundTag.get("limit")).result().orElse(LengthPercentage.ZERO);
                 yield TrackSizingFunction.fitContent(limit);
             }
             case AUTO -> TrackSizingFunction.auto();
@@ -128,102 +100,29 @@ public final class TaffyCodecs {
     }
 
     // ==================== GridRepetition Codec ====================
-
-    public static final Codec<GridRepetition> GRID_REPETITION_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeGridRepetition,
-            TaffyCodecs::encodeGridRepetition
-    );
-
-    public static Tag encodeGridRepetition(GridRepetition repetition) {
-        var tag = new CompoundTag();
-        tag.putString("type", repetition.getType().name());
-
-        if (repetition.getType() == GridRepetition.RepetitionType.COUNT) {
-            tag.putInt("count", repetition.getCount());
-        }
-
-        var tracksList = new ListTag();
-        for (TrackSizingFunction track : repetition.getTracks()) {
-            tracksList.add(encodeTrackSizingFunction(track));
-        }
-        tag.put("tracks", tracksList);
-
-        return tag;
-    }
-
-    public static GridRepetition decodeGridRepetition(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return GridRepetition.count(1, TrackSizingFunction.auto());
-        }
-
-        String typeName = compoundTag.getString("type");
-        GridRepetition.RepetitionType type;
-        try {
-            type = GridRepetition.RepetitionType.valueOf(typeName);
-        } catch (IllegalArgumentException e) {
-            return GridRepetition.count(1, TrackSizingFunction.auto());
-        }
-
-        ListTag tracksTag = compoundTag.getList("tracks", Tag.TAG_COMPOUND);
-        List<TrackSizingFunction> tracks = new ArrayList<>();
-        for (int i = 0; i < tracksTag.size(); i++) {
-            tracks.add(decodeTrackSizingFunction(tracksTag.get(i)));
-        }
-
-        return switch (type) {
-            case COUNT -> GridRepetition.count(compoundTag.getInt("count"), tracks);
-            case AUTO_FILL -> GridRepetition.autoFill(tracks);
-            case AUTO_FIT -> GridRepetition.autoFit(tracks);
-        };
-    }
+    public static final Codec<GridRepetition> GRID_REPETITION_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LDLibExtraCodecs.enumCodec(GridRepetition.RepetitionType.class, GridRepetition.RepetitionType.COUNT)
+                    .fieldOf("type").forGetter(GridRepetition::getType),
+            Codec.INT.fieldOf("count").forGetter(GridRepetition::getCount),
+            TRACK_SIZING_FUNCTION_CODEC.listOf().fieldOf("tracks").forGetter(GridRepetition::getTracks)
+    ).apply(instance, (type, count, tracks) -> switch (type) {
+        case COUNT -> GridRepetition.count(count, tracks);
+        case AUTO_FILL -> GridRepetition.autoFill(tracks);
+        case AUTO_FIT -> GridRepetition.autoFit(tracks);
+    }));
 
     // ==================== GridTemplateComponent Codec ====================
-
-    public static final Codec<GridTemplateComponent> GRID_TEMPLATE_COMPONENT_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeGridTemplateComponent,
-            TaffyCodecs::encodeGridTemplateComponent
-    );
-
-    public static Tag encodeGridTemplateComponent(GridTemplateComponent component) {
-        var tag = new CompoundTag();
-        tag.putString("type", component.getType().name());
-
-        if (component.isSingle()) {
-            tag.put("track", encodeTrackSizingFunction(component.getSingle()));
-        } else if (component.isRepeat()) {
-            tag.put("repeat", encodeGridRepetition(component.getRepeat()));
-        }
-
-        return tag;
-    }
-
-    public static GridTemplateComponent decodeGridTemplateComponent(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return GridTemplateComponent.single(TrackSizingFunction.auto());
-        }
-
-        String typeName = compoundTag.getString("type");
-        GridTemplateComponent.Type type;
-        try {
-            type = GridTemplateComponent.Type.valueOf(typeName);
-        } catch (IllegalArgumentException e) {
-            return GridTemplateComponent.single(TrackSizingFunction.auto());
-        }
-
-        return switch (type) {
-            case SINGLE -> {
-                TrackSizingFunction track = decodeTrackSizingFunction(compoundTag.get("track"));
-                yield GridTemplateComponent.single(track);
-            }
-            case REPEAT -> {
-                GridRepetition repeat = decodeGridRepetition(compoundTag.get("repeat"));
-                yield GridTemplateComponent.repeat(repeat);
-            }
-        };
-    }
+    public static final Codec<GridTemplateComponent> GRID_TEMPLATE_COMPONENT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LDLibExtraCodecs.enumCodec(GridTemplateComponent.Type.class, GridTemplateComponent.Type.SINGLE)
+                    .fieldOf("type").forGetter(GridTemplateComponent::getType),
+            TRACK_SIZING_FUNCTION_CODEC.optionalFieldOf("single", TrackSizingFunction.auto()).forGetter(GridTemplateComponent::getSingle),
+            GRID_REPETITION_CODEC.optionalFieldOf("repeat", GridRepetition.autoFill(List.of())).forGetter(GridTemplateComponent::getRepeat)
+    ).apply(instance, (type, single, repeat) -> switch (type) {
+        case SINGLE -> GridTemplateComponent.single(single);
+        case REPEAT -> GridTemplateComponent.repeat(repeat);
+    }));
 
     // ==================== NamedGridLine Codec ====================
-
     public static final Codec<NamedGridLine> NAMED_GRID_LINE_CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     Codec.STRING.fieldOf("name").forGetter(NamedGridLine::getName),
@@ -232,341 +131,129 @@ public final class TaffyCodecs {
     );
 
     // ==================== GridTemplate Codec ====================
-
-    public static final Codec<GridTemplate> GRID_TEMPLATE_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeGridTemplate,
-            TaffyCodecs::encodeGridTemplate
-    );
-
-    public static Tag encodeGridTemplate(GridTemplate template) {
-        var tag = new CompoundTag();
-
-        // Encode simples array
-        var simplesList = new ListTag();
-        for (TrackSizingFunction simple : template.simples()) {
-            simplesList.add(encodeTrackSizingFunction(simple));
-        }
-        tag.put("simples", simplesList);
-
-        // Encode repeats array
-        var repeatsList = new ListTag();
-        for (GridTemplateComponent repeat : template.repeats()) {
-            repeatsList.add(encodeGridTemplateComponent(repeat));
-        }
-        tag.put("repeats", repeatsList);
-
-        // Encode names array
-        var namesList = new ListTag();
-        for (NamedGridLine name : template.names()) {
-            var nameTag = new CompoundTag();
-            nameTag.putString("name", name.getName());
-            nameTag.putInt("index", name.getIndex());
-            namesList.add(nameTag);
-        }
-        tag.put("names", namesList);
-
-        return tag;
-    }
-
-    public static GridTemplate decodeGridTemplate(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return new GridTemplate(new TrackSizingFunction[0], new GridTemplateComponent[0], new NamedGridLine[0]);
-        }
-
-        // Decode simples array
-        ListTag simplesTag = compoundTag.getList("simples", Tag.TAG_COMPOUND);
-        TrackSizingFunction[] simples = new TrackSizingFunction[simplesTag.size()];
-        for (int i = 0; i < simplesTag.size(); i++) {
-            simples[i] = decodeTrackSizingFunction(simplesTag.get(i));
-        }
-
-        // Decode repeats array
-        ListTag repeatsTag = compoundTag.getList("repeats", Tag.TAG_COMPOUND);
-        GridTemplateComponent[] repeats = new GridTemplateComponent[repeatsTag.size()];
-        for (int i = 0; i < repeatsTag.size(); i++) {
-            repeats[i] = decodeGridTemplateComponent(repeatsTag.get(i));
-        }
-
-        // Decode names array
-        ListTag namesTag = compoundTag.getList("names", Tag.TAG_COMPOUND);
-        NamedGridLine[] names = new NamedGridLine[namesTag.size()];
-        for (int i = 0; i < namesTag.size(); i++) {
-            CompoundTag nameTag = namesTag.getCompound(i);
-            names[i] = new NamedGridLine(nameTag.getString("name"), nameTag.getInt("index"));
-        }
-
-        return new GridTemplate(simples, repeats, names);
-    }
+    public static final Codec<GridTemplate> GRID_TEMPLATE_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            TRACK_SIZING_FUNCTION_CODEC.listOf().fieldOf("simples").forGetter(GridTemplate::simples),
+            GRID_TEMPLATE_COMPONENT_CODEC.listOf().fieldOf("repeats").forGetter(GridTemplate::repeats),
+            NAMED_GRID_LINE_CODEC.listOf().fieldOf("names").forGetter(GridTemplate::names)
+    ).apply(instance, GridTemplate::new));
 
     // ==================== GridAuto Codec ====================
-
-    public static final Codec<GridAuto> GRID_AUTO_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeGridAuto,
-            TaffyCodecs::encodeGridAuto
-    );
-
-    public static Tag encodeGridAuto(GridAuto gridAuto) {
-        var tag = new CompoundTag();
-
-        // Encode values array
-        var valuesList = new ListTag();
-        for (TrackSizingFunction value : gridAuto.values()) {
-            valuesList.add(encodeTrackSizingFunction(value));
-        }
-        tag.put("values", valuesList);
-
-        return tag;
-    }
-
-    public static GridAuto decodeGridAuto(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return GridAuto.EMPTY;
-        }
-
-        // Decode values array
-        ListTag valuesTag = compoundTag.getList("values", Tag.TAG_COMPOUND);
-        TrackSizingFunction[] values = new TrackSizingFunction[valuesTag.size()];
-        for (int i = 0; i < valuesTag.size(); i++) {
-            values[i] = decodeTrackSizingFunction(valuesTag.get(i));
-        }
-
-        return new GridAuto(List.of(values));
-    }
+    public static final Codec<GridAuto> GRID_AUTO_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            TRACK_SIZING_FUNCTION_CODEC.listOf().fieldOf("values").forGetter(GridAuto::values)
+    ).apply(instance, GridAuto::new));
 
     // ==================== LengthPercentageAuto Codec ====================
-    public static final Codec<LengthPercentageAuto> LENGTH_PERCENTAGE_AUTO_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeLengthPercentageAuto,
-            TaffyCodecs::encodeLengthPercentageAuto
-    );
+    public static final Codec<LengthPercentageAuto> LPA_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LDLibExtraCodecs.enumCodec(LengthPercentageAuto.Type.class, LengthPercentageAuto.Type.AUTO)
+                    .fieldOf("type").forGetter(LengthPercentageAuto::getType),
+            Codec.FLOAT.fieldOf("value").forGetter(LengthPercentageAuto::getValue)
+    ).apply(instance, (type, value) -> switch (type) {
+        case LENGTH -> LengthPercentageAuto.length(value);
+        case PERCENT -> LengthPercentageAuto.percent(value);
+        case AUTO, CALC -> LengthPercentageAuto.auto();
+        case MIN_CONTENT -> LengthPercentageAuto.minContent();
+        case MAX_CONTENT -> LengthPercentageAuto.maxContent();
+        case FIT_CONTENT -> LengthPercentageAuto.fitContent();
+        case STRETCH -> LengthPercentageAuto.stretch();
+    }));
 
-    public static final Codec<LengthPercentageAuto> LPA_CODEC = LDLibExtraCodecs.compat(LENGTH_PERCENTAGE_AUTO_CODEC, YogaCodecs.STYLE_LENGTH_CODEC.xmap(
+    @Deprecated(since = "26.1")
+    public static final Codec<LengthPercentageAuto> LPA_STYLE_LENGTH_COMPAT_CODEC = LDLibExtraCodecs.compat(LPA_CODEC, YogaCodecs.STYLE_LENGTH_CODEC.xmap(
             styleLength -> {
                 if (styleLength.isPercent()) return LengthPercentageAuto.length(styleLength.value().getValue() / 100f);
                 if (styleLength.isPoints()) return LengthPercentageAuto.length(styleLength.value().getValue());
                 return LengthPercentageAuto.auto();
             },
-            lpa -> switch (lpa.getType()) {
-                case LENGTH -> StyleLength.points(lpa.getValue());
-                case PERCENT -> StyleLength.percent(lpa.getValue() * 100f);
-                default -> StyleLength.ofAuto();
+            lpa -> {
+                throw new IllegalArgumentException("Cannot convert TaffyDimension to StyleLength");
             }
     ));
 
-    public static Tag encodeLengthPercentageAuto(LengthPercentageAuto value) {
-        var tag = new CompoundTag();
-        tag.putString("type", value.getType().name());
-
-        switch (value.getType()) {
-            case LENGTH:
-                tag.putFloat("value", value.getValue());
-                break;
-            case PERCENT:
-                tag.putFloat("value", value.getValue());
-                break;
-            case AUTO:
-            case MIN_CONTENT:
-            case MAX_CONTENT:
-            case FIT_CONTENT:
-            case STRETCH:
-                // No additional data needed
-                break;
-            case CALC:
-                // CalcExpression cannot be easily serialized, use placeholder
-                tag.putString("value", "calc(...)");
-                break;
-        }
-
-        return tag;
-    }
-
-    public static LengthPercentageAuto decodeLengthPercentageAuto(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return LengthPercentageAuto.auto();
-        }
-
-        String typeName = compoundTag.getString("type");
-        LengthPercentageAuto.Type type;
-        try {
-            type = LengthPercentageAuto.Type.valueOf(typeName);
-        } catch (IllegalArgumentException e) {
-            return LengthPercentageAuto.auto();
-        }
-
-        return switch (type) {
-            case LENGTH -> LengthPercentageAuto.length(compoundTag.getFloat("value"));
-            case PERCENT -> LengthPercentageAuto.percent(compoundTag.getFloat("value"));
-            case AUTO -> LengthPercentageAuto.auto();
-            case MIN_CONTENT -> LengthPercentageAuto.minContent();
-            case MAX_CONTENT -> LengthPercentageAuto.maxContent();
-            case FIT_CONTENT -> LengthPercentageAuto.fitContent();
-            case STRETCH -> LengthPercentageAuto.stretch();
-            case CALC -> LengthPercentageAuto.length(0); // Cannot deserialize calc, default to 0
-        };
-    }
-
     // ==================== LPARect Codec ====================
-    public static final Codec<LPARect> LPA_RECT_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeLPARect,
-            TaffyCodecs::encodeLPARect
-    );
-
-    public static Tag encodeLPARect(LPARect lpaRect) {
-        var tag = new CompoundTag();
-        tag.put("left", encodeLengthPercentageAuto(lpaRect.rect().left));
-        tag.put("right", encodeLengthPercentageAuto(lpaRect.rect().right));
-        tag.put("top", encodeLengthPercentageAuto(lpaRect.rect().top));
-        tag.put("bottom", encodeLengthPercentageAuto(lpaRect.rect().bottom));
-        return tag;
-    }
-
-    public static LPARect decodeLPARect(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return new LPARect(
-                    TaffyRect.all(LengthPercentageAuto.auto())
-            );
-        }
-
-        LengthPercentageAuto left = decodeLengthPercentageAuto(compoundTag.get("left"));
-        LengthPercentageAuto right = decodeLengthPercentageAuto(compoundTag.get("right"));
-        LengthPercentageAuto top = decodeLengthPercentageAuto(compoundTag.get("top"));
-        LengthPercentageAuto bottom = decodeLengthPercentageAuto(compoundTag.get("bottom"));
-
-        return new LPARect(
-                new TaffyRect<>(left, right, top, bottom)
-        );
-    }
+    public static final Codec<LPARect> LPA_RECT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LPA_CODEC.fieldOf("left").forGetter(rect -> rect.rect().left),
+            LPA_CODEC.fieldOf("right").forGetter(rect -> rect.rect().right),
+            LPA_CODEC.fieldOf("top").forGetter(rect -> rect.rect().top),
+            LPA_CODEC.fieldOf("bottom").forGetter(rect -> rect.rect().bottom)
+    ).apply(instance, (left, right, top, bottom) ->
+            new LPARect(TaffyRect.of(left, right, top, bottom))));
 
     // ==================== GridPlacement Codec ====================
-
-    public static final Codec<GridPlacement> GRID_PLACEMENT_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeGridPlacement,
-            TaffyCodecs::encodeGridPlacement
-    );
-
-    public static Tag encodeGridPlacement(GridPlacement placement) {
-        var tag = new CompoundTag();
-        tag.putString("type", placement.getType().name());
-
-        switch (placement.getType()) {
-            case AUTO:
-                // No additional data needed
-                break;
-            case LINE:
-                tag.putInt("value", placement.getValue());
-                break;
-            case NAMED_LINE:
-                tag.putString("lineName", placement.getLineName());
-                tag.putInt("nthIndex", placement.getNthIndex());
-                break;
-            case SPAN:
-                tag.putInt("value", placement.getValue());
-                break;
-            case NAMED_SPAN:
-                tag.putString("lineName", placement.getLineName());
-                tag.putInt("value", placement.getValue());
-                break;
-        }
-
-        return tag;
-    }
-
-    public static GridPlacement decodeGridPlacement(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return GridPlacement.auto();
-        }
-
-        String typeName = compoundTag.getString("type");
-        GridPlacement.Type type;
-        try {
-            type = GridPlacement.Type.valueOf(typeName);
-        } catch (IllegalArgumentException e) {
-            return GridPlacement.auto();
-        }
-
-        return switch (type) {
-            case AUTO -> GridPlacement.auto();
-            case LINE -> GridPlacement.line(compoundTag.getInt("value"));
-            case NAMED_LINE -> GridPlacement.namedLine(
-                    compoundTag.getString("lineName"),
-                    compoundTag.getInt("nthIndex")
-            );
-            case SPAN -> GridPlacement.span(compoundTag.getInt("value"));
-            case NAMED_SPAN -> GridPlacement.namedSpan(
-                    compoundTag.getString("lineName"),
-                    compoundTag.getInt("value")
-            );
-        };
-    }
+    public static final Codec<GridPlacement> GRID_PLACEMENT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LDLibExtraCodecs.enumCodec(GridPlacement.Type.class, GridPlacement.Type.AUTO)
+                    .fieldOf("type").forGetter(GridPlacement::getType),
+            Codec.INT.fieldOf("value").forGetter(GridPlacement::getValue),
+            Codec.STRING.optionalFieldOf("lineName", "").forGetter(GridPlacement::getLineName),
+            Codec.INT.fieldOf("nthIndex").forGetter(GridPlacement::getNthIndex)
+    ).apply(instance, (type, value, lineName, nthIndex) -> switch (type) {
+        case AUTO -> GridPlacement.auto();
+        case LINE -> GridPlacement.line(value);
+        case NAMED_LINE -> GridPlacement.namedLine(lineName, nthIndex);
+        case SPAN -> GridPlacement.span(value);
+        case NAMED_SPAN -> GridPlacement.namedSpan(lineName, value);
+    }));
 
     // ==================== Grid Codec ====================
+    public static final Codec<Grid> GRID_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            GRID_PLACEMENT_CODEC.fieldOf("start").forGetter(grid -> grid.grid().start),
+            GRID_PLACEMENT_CODEC.fieldOf("start").forGetter(grid -> grid.grid().end)
+    ).apply(instance, (start, end) -> new Grid(new TaffyLine<>(start, end))));
 
-    public static final Codec<Grid> GRID_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeGrid,
-            TaffyCodecs::encodeGrid
-    );
-
-    public static Tag encodeGrid(Grid grid) {
-        var tag = new CompoundTag();
-        tag.put("start", encodeGridPlacement(grid.grid().start));
-        tag.put("end", encodeGridPlacement(grid.grid().end));
-        return tag;
-    }
-
-    public static Grid decodeGrid(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return Grid.EMPTY;
-        }
-
-        GridPlacement start = decodeGridPlacement(compoundTag.get("start"));
-        GridPlacement end = decodeGridPlacement(compoundTag.get("end"));
-
-        return new Grid(new TaffyLine<>(start, end));
-    }
 
     // ==================== GridTemplateAreas Codec ====================
+    public static final Codec<GridTemplateArea> GRID_TEMPLATE_AREA_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            Codec.STRING.fieldOf("name").forGetter(GridTemplateArea::getName),
+            Codec.INT.fieldOf("rowStart").forGetter(GridTemplateArea::getRowStart),
+            Codec.INT.fieldOf("rowEnd").forGetter(GridTemplateArea::getRowStart),
+            Codec.INT.fieldOf("columnStart").forGetter(GridTemplateArea::getRowStart),
+            Codec.INT.fieldOf("columnEnd").forGetter(GridTemplateArea::getRowStart)
+    ).apply(instance, GridTemplateArea::new));
 
-    public static final Codec<GridTemplateAreas> GRID_TEMPLATE_AREAS_CODEC = LDLibExtraCodecs.TAG.xmap(
-            TaffyCodecs::decodeGridTemplateAreas,
-            TaffyCodecs::encodeGridTemplateAreas
-    );
+    public static final Codec<GridTemplateAreas> GRID_TEMPLATE_AREAS_CODEC = GRID_TEMPLATE_AREA_CODEC.listOf().xmap(
+            GridTemplateAreas::new, GridTemplateAreas::areas);
 
-    public static Tag encodeGridTemplateAreas(GridTemplateAreas gridTemplateAreas) {
-        var tag = new CompoundTag();
+    // ==================== TaffyDimension Codec ====================
+    public static final Codec<TaffyDimension> DIMENSION_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LDLibExtraCodecs.enumCodec(TaffyDimension.Type.class, TaffyDimension.Type.AUTO)
+                    .fieldOf("type").forGetter(TaffyDimension::getType),
+            Codec.FLOAT.optionalFieldOf("value", 0f).forGetter(TaffyDimension::getValue)
+    ).apply(instance, (((type, value) -> switch (type) {
+        case LENGTH -> TaffyDimension.length(value);
+        case PERCENT -> TaffyDimension.percent(value);
+        case AUTO, CALC -> TaffyDimension.auto();
+        case MIN_CONTENT -> TaffyDimension.minContent();
+        case MAX_CONTENT -> TaffyDimension.maxContent();
+        case FIT_CONTENT -> TaffyDimension.fitContent();
+        case STRETCH -> TaffyDimension.stretch();
+    }))));
 
-        // Encode list of GridTemplateArea objects
-        var areasList = new ListTag();
-        for (GridTemplateArea area : gridTemplateAreas.areas()) {
-            var areaTag = new CompoundTag();
-            areaTag.putString("name", area.getName());
-            areaTag.putInt("rowStart", area.getRowStart());
-            areaTag.putInt("rowEnd", area.getRowEnd());
-            areaTag.putInt("columnStart", area.getColumnStart());
-            areaTag.putInt("columnEnd", area.getColumnEnd());
-            areasList.add(areaTag);
-        }
-        tag.put("areas", areasList);
+    @Deprecated(since = "26.1")
+    public static final Codec<TaffyDimension> DIMENSION_STYLE_SIZE_LENGTH_COMPAT_CODEC = LDLibExtraCodecs.compat(DIMENSION_CODEC, YogaCodecs.STYLE_SIZE_LENGTH_CODEC.xmap(
+            styleSizeLength -> {
+                if (styleSizeLength.isPercent()) return TaffyDimension.percent(styleSizeLength.value().getValue() / 100f);
+                if (styleSizeLength.isPoints()) return TaffyDimension.length(styleSizeLength.value().getValue());
+                if (styleSizeLength.isAuto()) return TaffyDimension.auto();
+                if (styleSizeLength.isFitContent()) return TaffyDimension.fitContent();
+                if (styleSizeLength.isMaxContent()) return TaffyDimension.maxContent();
+                if (styleSizeLength.isStretch()) return TaffyDimension.stretch();
+                return TaffyDimension.auto();
+            },
+            dimension -> {
+                throw new IllegalArgumentException("Cannot convert TaffyDimension to StyleSizeLength");
+            }
+    ));
 
-        return tag;
-    }
 
-    public static GridTemplateAreas decodeGridTemplateAreas(Tag tag) {
-        if (!(tag instanceof CompoundTag compoundTag)) {
-            return GridTemplateAreas.EMPTY;
-        }
+    // ==================== LPSize Codec ====================
+    public static final Codec<LPSize> LP_SIZE_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            LP_CODEC.fieldOf("width").forGetter(size -> size.size().width),
+            LP_CODEC.fieldOf("height").forGetter(size -> size.size().height)
+    ).apply(instance, (width, height) -> new LPSize(TaffySize.of(width, height))));
 
-        // Decode list of GridTemplateArea objects
-        ListTag areasTag = compoundTag.getList("areas", Tag.TAG_COMPOUND);
-        List<GridTemplateArea> areas = new ArrayList<>();
-        for (int i = 0; i < areasTag.size(); i++) {
-            CompoundTag areaTag = areasTag.getCompound(i);
-            String name = areaTag.getString("name");
-            int rowStart = areaTag.getInt("rowStart");
-            int rowEnd = areaTag.getInt("rowEnd");
-            int columnStart = areaTag.getInt("columnStart");
-            int columnEnd = areaTag.getInt("columnEnd");
-            areas.add(new GridTemplateArea(name, rowStart, rowEnd, columnStart, columnEnd));
-        }
 
-        return new GridTemplateAreas(areas);
-    }
+    // ==================== DimensionSize Codec ====================
+    public static final Codec<DimensionSize> DIMENSION_SIZE_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            DIMENSION_CODEC.fieldOf("width").forGetter(size -> size.size().width),
+            DIMENSION_CODEC.fieldOf("height").forGetter(size -> size.size().height)
+    ).apply(instance, (width, height) -> new DimensionSize(TaffySize.of(width, height))));
 }

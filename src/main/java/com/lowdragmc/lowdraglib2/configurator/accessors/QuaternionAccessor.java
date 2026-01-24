@@ -58,7 +58,7 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
                         v -> consumer2.accept(new Vector3f(supplier2.get().x, supplier2.get().y, v.floatValue())),
                         defaultValue(field, field.getType()).z, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
             layout.marginLeft(2);
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
@@ -66,17 +66,17 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
         x.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         y.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         z.layout(layout -> {
             layout.setFlex(1);
             layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.height(14);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

@@ -41,7 +41,7 @@ public class ResourceView extends View {
 
         tabView.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW_REVERSE);
-            layout.setHeightPercent(100);
+            layout.heightPercent(100);
             layout.setFlex(1);
         }).moveInlineAsDefault();
         tabView.tabContentContainer.layout(layout -> {
@@ -50,8 +50,8 @@ public class ResourceView extends View {
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).moveInlineAsDefault();
         tabView.tabHeaderContainer.layout(layout -> {
             layout.flexDirection(FlexDirection.COLUMN);
-            layout.setHeightPercent(100);
-            layout.setWidth(StyleSizeLength.AUTO);
+            layout.heightPercent(100);
+            layout.widthAuto();
             layout.paddingHorizontal(1);
             layout.paddingVertical(1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).moveInlineAsDefault();
@@ -61,7 +61,7 @@ public class ResourceView extends View {
                 }))
                 .scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.NEVER))
                 .layout(layout -> {
-                    layout.setWidth(16);
+                    layout.width(16);
                     layout.setFlex(1);
                     layout.marginBottom(0);
                 }).moveInlineAsDefault();
@@ -84,13 +84,13 @@ public class ResourceView extends View {
             style.selectedTexture(Sprites.RECT_RD_T);
         });
         tab.textStyle(style -> style.adaptiveWidth(false)).layout(layout -> {
-            layout.setWidth(14);
-            layout.setHeight(14);
+            layout.width(14);
+            layout.height(14);
             layout.paddingAll(1);
             layout.marginAll(1);
         }).style(style -> style.tooltips(resourceInstance.resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         }).style(style -> style.backgroundTexture(resourceInstance.resource.getIcon())));
         tab.moveInlineAsDefault();
         tabView.addTab(tab, new ResourceContainer<>(resourceInstance, editor));
