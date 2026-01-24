@@ -53,11 +53,11 @@ public class SizeAccessor extends TypesAccessor<Size> {
             layout.wrap(FlexWrap.WRAP);
         });
         width.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
         });
         height.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {

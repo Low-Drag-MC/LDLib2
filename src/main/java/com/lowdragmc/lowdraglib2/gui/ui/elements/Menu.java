@@ -243,7 +243,7 @@ public class Menu<K, T> extends UIElement {
                     layout.alignItems(AlignItems.CENTER);
                 }).style(style -> style.backgroundTexture(textureProvider.apply(child)))
                         .addChild(new UIElement().layout(layout -> {
-                            layout.setFlex(1);
+                            layout.flex(1);
                         }).addChild(uiProvider.apply(child.getKey())))
                         .addEventListener(UIEvents.MOUSE_DOWN, e -> {
                             if (e.button == 0) {

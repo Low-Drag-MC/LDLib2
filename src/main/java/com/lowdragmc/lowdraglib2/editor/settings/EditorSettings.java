@@ -63,7 +63,7 @@ public class EditorSettings implements IPersistedSerializable {
         var settingsTree = createSettingsTree().build();
         var treeList = new TreeList<>(settingsTree, true);
 
-        splitView.layout(layout -> layout.setFlexAuto().height(200).widthPercent(100));
+        splitView.layout(layout -> layout.flexAuto().height(200).widthPercent(100));
         inspector.layout(layout -> layout.widthPercent(100).heightPercent(100).marginLeft(2));
         treeList.layout(layout -> layout.widthPercent(100).heightPercent(100));
         treeList.setOnSelectedChanged(selected -> {

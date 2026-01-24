@@ -163,17 +163,17 @@ public class ScrollerView extends UIElement {
         this.addEventListener(UIEvents.MOUSE_WHEEL, UIEvent::stopPropagation);
 
         verticalContainer.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.flexDirection(FlexDirection.ROW);
         }).addChildren(viewPort, verticalScroller);
 
         viewPort.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.paddingAll(5);
         }).setOverflow(YogaOverflow.HIDDEN).style(style -> style.backgroundTexture(Sprites.BORDER));
         viewPort.addEventListener(UIEvents.MOUSE_WHEEL, this::onScrollWheel);
         viewPort.addChild(new UIElement() // we wrap the view container in a new element
-                        .layout(layout -> layout.setFlex(1))
+                        .layout(layout -> layout.flex(1))
                         .addChild(viewContainer));
 
         viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onContainerLayoutChanged);

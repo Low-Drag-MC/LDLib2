@@ -155,7 +155,7 @@ public class Selector<T> extends BindableUIElement<T> {
         this.preview = new UIElement().layout(layout -> {
             layout.justifyContent(AlignContent.CENTER);
             layout.heightPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
 
         this.buttonIcon = new UIElement();

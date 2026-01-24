@@ -405,12 +405,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             Function<NODE, IGuiTexture> iconMapper,
             Function<NODE, Component> textMapper) {
         var provider = UIElementProvider.iconText(iconMapper, textMapper);
-        return node -> provider.apply(node).layout(layout -> layout.setFlex(1));
+        return node -> provider.apply(node).layout(layout -> layout.flex(1));
     }
 
     public static <NODE extends ITreeNode<?, ?>> UIElementProvider<NODE> textTemplate(
             Function<NODE, Component> textMapper) {
         var provider = UIElementProvider.text(textMapper);
-        return node -> provider.apply(node).layout(layout -> layout.setFlex(1));
+        return node -> provider.apply(node).layout(layout -> layout.flex(1));
     }
 }

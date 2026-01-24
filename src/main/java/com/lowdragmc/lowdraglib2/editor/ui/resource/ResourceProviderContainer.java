@@ -86,7 +86,7 @@ public class ResourceProviderContainer<T> extends UIElement {
 
     public ResourceProviderContainer(IResourceProvider<T> resourceProvider) {
         getLayout().widthPercent(100);
-        getLayout().setFlex(1);
+        getLayout().flex(1);
         this.resourceProvider = resourceProvider;
         this.nameSupplier = resourceProvider::getResourceName;
         this.canRemove = resourceProvider::canRemove;
@@ -100,7 +100,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.ALWAYS);
         }).layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         this.scrollerView.viewContainer.layout(layout -> {
            layout.flexDirection(FlexDirection.ROW);
@@ -148,7 +148,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             }
         }).setText(nameSupplier.apply(key)).setOverflow(YogaOverflow.HIDDEN).layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
-                layout.setFlex(1);
+                layout.flex(1);
                 layout.heightPercent(100);
                 layout.justifyContent(AlignContent.CENTER);
             } else {

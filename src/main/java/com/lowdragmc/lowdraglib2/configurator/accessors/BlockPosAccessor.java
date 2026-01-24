@@ -64,15 +64,15 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
             layout.wrap(FlexWrap.WRAP);
         });
         x.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
         });
         y.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
         });
         z.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {

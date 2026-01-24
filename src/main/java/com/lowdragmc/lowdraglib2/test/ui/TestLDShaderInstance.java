@@ -39,11 +39,11 @@ public class TestLDShaderInstance implements IScreenTest {
         var text = new TextElement();
         root.addChildren(
                 new ScrollerView().addScrollViewChild(group).layout(layout -> {
-                    layout.setFlex(1);
+                    layout.flex(1);
                     layout.heightPercent(100);
                 }),
                 new UIElement().layout(layout -> {
-                    layout.setFlex(1);
+                    layout.flex(1);
                     layout.heightPercent(100);
                 }).addChildren(
                         new Button().setText("serialize").setOnClick(e -> {
@@ -59,7 +59,7 @@ public class TestLDShaderInstance implements IScreenTest {
                         }).layout(layout -> {
                             layout.widthPercent(100);
                         })).layout(layout -> {
-                            layout.setFlex(1);
+                            layout.flex(1);
                             layout.widthPercent(100);
                         })))
                 .addEventListener(UIEvents.REMOVED, e -> shaderTexture.close());

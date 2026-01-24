@@ -52,17 +52,17 @@ public class Vector3fAccessor extends TypesAccessor<Vector3f> {
             layout.wrap(FlexWrap.WRAP);
         });
         x.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
             layout.height(14);
         });
         y.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
             layout.height(14);
         });
         z.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
             layout.height(14);
         });

@@ -301,7 +301,7 @@ public class EditorWindow extends UIElement {
             layout.flexDirection(FlexDirection.ROW);
             layout.heightPercent(100);
             layout.alignItems(AlignItems.CENTER);
-            layout.setFlex(1);
+            layout.flex(1);
         }).style(style -> {
             style.setPipelineState(StyleOrigin.DEFAULT);
             style.backgroundTexture(currentEditor == editor ? ColorPattern.SLATE_PLUM.rectTexture() : ColorPattern.DARK_GRAY.rectTexture());
@@ -314,7 +314,7 @@ public class EditorWindow extends UIElement {
                         )
                         .layout(layout -> {
                             layout.heightPercent(100);
-                            layout.setFlex(1);
+                            layout.flex(1);
                         }).addEventListener(UIEvents.TICK, e -> {
                             if (e.target.getModularUI().getTickCounter() % 20 ==0) {
                                 var currentTitle = editor.getTitle();

@@ -41,7 +41,7 @@ public class ResourceContainer<T> extends UIElement {
     private IResourceProvider<T> selectedProvider = null;
 
     public ResourceContainer(ResourceInstance<T> resourceInstance, Editor editor) {
-        getLayout().setFlex(1);
+        getLayout().flex(1);
         getLayout().heightPercent(100);
         getLayout().flexDirection(FlexDirection.ROW);
 
@@ -49,10 +49,10 @@ public class ResourceContainer<T> extends UIElement {
         this.editor = editor;
         addChildren(new SplitView.Horizontal().left(new UIElement().layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         }).addChildren(providerList.layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         }))).right(providerContainer.layout(layout -> {
             layout.heightPercent(100);
             layout.widthPercent(100);

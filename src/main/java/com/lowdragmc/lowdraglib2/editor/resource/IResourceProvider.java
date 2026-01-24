@@ -128,7 +128,7 @@ v     */
                 }).style(style -> style.backgroundTexture(getType().getIcon())),
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())
-                        .layout(layout -> layout.setFlex(1))
+                        .layout(layout -> layout.flex(1))
                         .setOverflow(YogaOverflow.HIDDEN)
         );
     }

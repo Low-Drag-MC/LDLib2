@@ -51,7 +51,7 @@ public interface UIElementProvider<T> extends Function<T, UIElement> {
                     .textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER))
                     .setText(textMapper.apply(node)).layout(layout -> {
                         layout.heightPercent(100);
-                        layout.setFlex(1);
+                        layout.flex(1);
                     }).setOverflow(YogaOverflow.HIDDEN);
             return container.addChildren(icon, label);
         };

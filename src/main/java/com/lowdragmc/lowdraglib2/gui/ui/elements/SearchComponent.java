@@ -165,7 +165,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         this.preview = new UIElement().layout(layout -> {
             layout.justifyContent(AlignContent.CENTER);
             layout.heightPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
             layout.paddingAll(2);
         });
 
@@ -175,7 +175,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
         textField.layout(layout -> {
             layout.heightPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         textField.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         textField.textFieldStyle(textFieldStyle -> textFieldStyle.focusOverlay(IGuiTexture.EMPTY));

@@ -290,7 +290,7 @@ public class TextArea extends BindableUIElement<String[]> {
         this.contentView.addClass("__text-area_content-view__");
         this.contentView.layout(layout -> {
             layout.paddingAll(3);
-            layout.setFlex(1);
+            layout.flex(1);
             layout.heightPercent(100);
         });
         this.contentView.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID));
@@ -321,7 +321,7 @@ public class TextArea extends BindableUIElement<String[]> {
         addChildren(new UIElement().layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         }).addChildren(contentView, verticalScroller), horizontalScroller);
         internalSetup();
     }

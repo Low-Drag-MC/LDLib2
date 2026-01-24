@@ -84,7 +84,7 @@ public class SceneEditor extends UIElement implements IScene {
         this.scene.setRenderSelect(false);
         this.scene.layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         this.scene.setAfterWorldRender(scene -> {
             var mc = Minecraft.getInstance();

@@ -87,7 +87,7 @@ public class UIEditorView extends View {
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.heightPercent(100);
-                    layout.setFlex(1);
+                    layout.flex(1);
                 }).addChildren(
                         saveButton.setOnClick(e -> notifySaved())
                                 .setText("ldlib.gui.editor.menu.save")
@@ -114,7 +114,7 @@ public class UIEditorView extends View {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.justifyContent(AlignContent.FLEX_END);
                     layout.heightPercent(100);
-                    layout.setFlex(1);
+                    layout.flex(1);
                 }).addChildren(
                         // page fit button
                         new Button().noText().setOnClick(event -> {
@@ -169,7 +169,7 @@ public class UIEditorView extends View {
         // canvas initial
         canvas.layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         canvas.setOverflowVisible(false);
         canvas.setDisplay(false);
@@ -179,7 +179,7 @@ public class UIEditorView extends View {
         editor.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         editor.addClass("__ui-editor-view_editor__").moveInlineAsDefault();
 
@@ -284,7 +284,7 @@ public class UIEditorView extends View {
                         }))
                         .addClass("__ui-editor-view_builtin-styles-toggle__"),
                 // style sheet selector
-                new ScrollerView().addScrollViewChildren(stylesheetSelector).layout(layout -> layout.widthPercent(100).setFlex(1))
+                new ScrollerView().addScrollViewChildren(stylesheetSelector).layout(layout -> layout.widthPercent(100).flex(1))
 
         );
         styleView.addClass("__ui-editor-view_style-view__").moveInlineAsDefault();

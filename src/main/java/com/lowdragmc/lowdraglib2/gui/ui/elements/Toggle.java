@@ -197,7 +197,7 @@ public class Toggle extends BindableUIElement<Boolean> {
                 .addClass("__toggle_label__")
                 .layout(layout -> {
                     layout.heightPercent(100);
-                    layout.setFlex(1);
+                    layout.flex(1);
                     layout.marginLeft(2);
                 });
         this.toggleLabel.setText("Toggle");

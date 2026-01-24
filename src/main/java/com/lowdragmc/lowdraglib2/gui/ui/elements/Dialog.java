@@ -428,7 +428,7 @@ public class Dialog extends UIElement {
             layout.widthPercent(100);
             layout.flexDirection(FlexDirection.ROW);
             layout.gapAll(2);
-        }).addChildren(textField.layout(layout -> layout.setFlex(1)), new Button().setOnClick(e -> {
+        }).addChildren(textField.layout(layout -> layout.flex(1)), new Button().setOnClick(e -> {
             Util.getPlatform().openFile(dir.isDirectory() ? dir : dir.getParentFile());
         }).noText().layout(layout -> {
             layout.width(14);

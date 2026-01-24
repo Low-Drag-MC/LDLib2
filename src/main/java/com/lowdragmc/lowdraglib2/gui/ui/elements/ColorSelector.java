@@ -95,7 +95,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
             layout.width(12);
             layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
-                .addChildren(new UIElement().layout(layout -> layout.setFlex(1))
+                .addChildren(new UIElement().layout(layout -> layout.flex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustColorSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustColorSlider)
                         .addClass("__color-selector_color-slider_bar__").style(style -> style.backgroundTexture(this::drawColorSlider)));
@@ -105,7 +105,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
             layout.height(12);
             layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1)).addChildren(
-                new UIElement().layout(layout -> layout.setFlex(1))
+                new UIElement().layout(layout -> layout.flex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustAlphaSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustAlphaSlider)
                         .addClass("__color-selector_alpha-slider_bar__").style(style -> style.backgroundTexture(this::drawAlphaSlider)));
@@ -120,13 +120,13 @@ public class ColorSelector extends BindableUIElement<Integer> {
             layout.setAspectRatio(1);
         }).addChildren(
                 new UIElement().layout(layout -> {
-                    layout.setFlex(1);
+                    layout.flex(1);
                     layout.flexDirection(FlexDirection.ROW);
                 }).addChildren(colorPreview.layout(layout -> {
-                    layout.setFlex(1);
+                    layout.flex(1);
                     layout.paddingAll(4);
                 }).style(style -> style.backgroundTexture(Sprites.BORDER1_THICK_RT1)).addChild(
-                        new UIElement().layout(layout -> layout.setFlex(1))
+                        new UIElement().layout(layout -> layout.flex(1))
                                 .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustHsbContext)
                                 .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustHsbContext)
                                 .addClass("__color-selector_color-preview_display__").style(style -> style.backgroundTexture(this::drawHsbContext))

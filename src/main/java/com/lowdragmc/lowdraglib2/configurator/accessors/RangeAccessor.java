@@ -56,12 +56,12 @@ public class RangeAccessor extends TypesAccessor<Range> {
             layout.wrap(FlexWrap.WRAP);
         });
         min.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
             layout.height(14);
         });
         max.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
             layout.height(14);
         });

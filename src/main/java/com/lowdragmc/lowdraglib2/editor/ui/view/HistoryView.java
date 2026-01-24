@@ -51,7 +51,7 @@ public class HistoryView extends View implements IHistoryStack {
         this.editor = editor;
         scrollerView.layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         scrollerView.viewPort.layout(layout -> {
             layout.paddingAll(1);

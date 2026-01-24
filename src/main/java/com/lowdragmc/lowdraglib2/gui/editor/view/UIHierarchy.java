@@ -64,7 +64,7 @@ public class UIHierarchy extends UIElement {
                         layout.flexDirection(FlexDirection.ROW);
                         layout.gapAll(2.0F);
                         layout.height(10.0F);
-                        layout.setFlex(1.0F);
+                        layout.flex(1.0F);
                     }).addChildren();
                     UIElement icon = (new UIElement()).layout((layout) -> {
                         layout.setAspectRatio(1.0F);
@@ -76,7 +76,7 @@ public class UIHierarchy extends UIElement {
                         style.textColor(node.getKey().isInternalUI() ? ColorPattern.LIGHT_GRAY.color : ColorPattern.WHITE.color);
                     }).setText(node.getKey().getEditorName()).layout((layout) -> {
                         layout.heightPercent(100.0F);
-                        layout.setFlex(1.0F);
+                        layout.flex(1.0F);
                     }).setOverflow(YogaOverflow.HIDDEN).addEventListener(UIEvents.TICK, e -> {
                         label.setText(node.getKey().getEditorName());
                     });

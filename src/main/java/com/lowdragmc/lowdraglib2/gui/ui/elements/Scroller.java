@@ -124,7 +124,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         this.scrollContainer.layout(layout -> {
             layout.alignSelf(AlignItems.STRETCH);
             layout.setFlexGrow(1);
-        }).addChild(new UIElement().layout(layout -> layout.setFlex(1)).addChild(scrollBar));
+        }).addChild(new UIElement().layout(layout -> layout.flex(1)).addChild(scrollBar));
         scrollBar.noText().layout(layout -> {
             layout.widthPercent(100);
             layout.heightPercent(100);

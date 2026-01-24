@@ -69,7 +69,7 @@ public class Configurator extends UIElement {
                 }).setText(name).layout(layout -> {
                     layout.height(14);
                 }),
-                this.inlineContainer.layout(layout -> layout.setFlex(1)),
+                this.inlineContainer.layout(layout -> layout.flex(1)),
                 this.tip.layout(layout -> {
                     layout.width(14);
                     layout.height(14);

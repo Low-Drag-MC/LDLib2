@@ -64,7 +64,7 @@ public class UIXmlView extends View {
                 new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.heightPercent(100);
-                    layout.setFlex(1);
+                    layout.flex(1);
                 }).addChildren(),
                 // center
                 new UIElement().layout(layout -> layout.heightPercent(100))
@@ -87,7 +87,7 @@ public class UIXmlView extends View {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.justifyContent(AlignContent.FLEX_END);
                     layout.heightPercent(100);
-                    layout.setFlex(1);
+                    layout.flex(1);
                 }).addChildren(
                         // page fit button
                         new Button().noText().setOnClick(event -> {
@@ -140,7 +140,7 @@ public class UIXmlView extends View {
         // canvas initial
         canvas.layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         canvas.setOverflowVisible(false);
         canvas.setDisplay(false);
@@ -150,7 +150,7 @@ public class UIXmlView extends View {
         editor.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         editor.addClass("__ui-editor-view_editor__").moveInlineAsDefault();
 

@@ -56,7 +56,7 @@ public class ViewContainer extends UIElement {
         getLayout().paddingAll(1);
 
         tabView.tabContentContainer.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
         });
 
         collapseButton.addChild(buttonIcon = new UIElement()
@@ -132,9 +132,9 @@ public class ViewContainer extends UIElement {
                 }
             }));
         } else {
-            splitView.first.layout(layout -> Style.importantPipeline(layout, s -> s.setFlex(1)));
+            splitView.first.layout(layout -> Style.importantPipeline(layout, s -> s.flex(1)));
             splitView.second.layout(layout -> Style.importantPipeline(layout, s -> {
-                s.setFlexAuto();
+                s.flexAuto();
                 if (isVertical) {
                     s.height(16);
                 } else {

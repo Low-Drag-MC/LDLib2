@@ -22,7 +22,7 @@ public class TestSceneEditor implements IScreenTest {
         var sceneEditor = new SceneEditor();
         sceneEditor.layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         sceneEditor.scene
                 .createScene(entityPlayer.level())

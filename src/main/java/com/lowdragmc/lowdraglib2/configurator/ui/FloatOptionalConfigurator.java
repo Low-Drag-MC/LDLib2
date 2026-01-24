@@ -34,7 +34,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
 
         definedSelector.buttonIcon.setDisplay(false);
         definedSelector.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
         });
         definedSelector.setCandidates(List.of(false, true));
         updateSelector();
@@ -51,7 +51,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
                 Component.literal("-") : Component.translatable("initial")));
 
         textField.layout(layout -> {
-            layout.setFlex(2);
+            layout.flex(2);
         }).setDisplay(value.isDefined());
         textField.setTextResponder(this::onNumberUpdate);
         updateTextField();

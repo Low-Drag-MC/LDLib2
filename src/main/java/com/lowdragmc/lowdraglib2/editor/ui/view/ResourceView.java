@@ -42,10 +42,10 @@ public class ResourceView extends View {
         tabView.layout(layout -> {
             layout.flexDirection(FlexDirection.ROW_REVERSE);
             layout.heightPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         }).moveInlineAsDefault();
         tabView.tabContentContainer.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).moveInlineAsDefault();
         tabView.tabHeaderContainer.layout(layout -> {
@@ -62,7 +62,7 @@ public class ResourceView extends View {
                 .scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.NEVER))
                 .layout(layout -> {
                     layout.width(16);
-                    layout.setFlex(1);
+                    layout.flex(1);
                     layout.marginBottom(0);
                 }).moveInlineAsDefault();
         tabView.setOnTabSelected(this::onResourceSelected);

@@ -132,7 +132,7 @@ public abstract class SplitView extends UIElement {
             getLayout().flexDirection(FlexDirection.ROW);
             first.getLayout().widthPercent(50);
             first.getLayout().heightPercent(100);
-            second.getLayout().setFlex(1);
+            second.getLayout().flex(1);
             second.getLayout().heightPercent(100);
             internalSetup();
         }
@@ -191,7 +191,7 @@ public abstract class SplitView extends UIElement {
         public Vertical() {
             first.getLayout().widthPercent(100);
             first.getLayout().heightPercent(50);
-            second.getLayout().setFlex(1);
+            second.getLayout().flex(1);
             second.getLayout().widthPercent(100);
             internalSetup();
         }

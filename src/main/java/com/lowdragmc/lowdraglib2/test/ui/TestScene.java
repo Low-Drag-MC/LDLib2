@@ -79,7 +79,7 @@ public class TestScene implements IScreenTest {
                 .useCacheBuffer()
                 .layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         }), new Button().setOnClick(event -> {
             for (int i = 0; i < 50; i++) {
                 var x = Math.random() * 2 - 1 + 2;

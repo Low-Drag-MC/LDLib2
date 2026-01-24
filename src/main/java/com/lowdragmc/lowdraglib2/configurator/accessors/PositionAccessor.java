@@ -48,11 +48,11 @@ public class PositionAccessor extends TypesAccessor<Position> {
             layout.wrap(FlexWrap.WRAP);
         });
         x.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
         });
         y.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
             layout.minWidth(40);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {

@@ -40,7 +40,7 @@ public class Inspector extends UIElement {
         this.scrollerView.setId("_inspector_scroller-view_");
         scrollerView.layout(layout -> {
             layout.widthPercent(100);
-            layout.setFlex(1);
+            layout.flex(1);
         });
         scrollerView.viewPort.layout(layout -> {
             layout.paddingAll(1);

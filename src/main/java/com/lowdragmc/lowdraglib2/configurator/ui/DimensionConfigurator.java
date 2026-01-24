@@ -42,7 +42,7 @@ public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
 
         unitSelector.buttonIcon.setDisplay(false);
         unitSelector.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
         });
         unitSelector.setCandidates(List.of(
                 Unit.AUTO,
@@ -79,7 +79,7 @@ public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
         }));
 
         textField.layout(layout -> {
-            layout.setFlex(2);
+            layout.flex(2);
         });
         textField.setNumbersOnlyFloat(-Float.MAX_VALUE, Float.MAX_VALUE);
         textField.setWheelDur(1f);
