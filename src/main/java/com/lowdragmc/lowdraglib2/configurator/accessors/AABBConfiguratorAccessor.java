@@ -80,32 +80,32 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
         });
         minX.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
             layout.height(14);
         });
         minY.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
             layout.height(14);
         });
         minZ.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
             layout.height(14);
         });
         maxX.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
             layout.height(14);
         });
         maxY.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
             layout.height(14);
         });
         maxZ.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
             layout.height(14);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {

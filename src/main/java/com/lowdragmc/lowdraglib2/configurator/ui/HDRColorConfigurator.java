@@ -62,8 +62,8 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         this.dialog.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.widthPercent(100);
-            layout.setMaxWidth(150);
-            layout.setMinWidth(100);
+            layout.maxWidth(150);
+            layout.minWidth(100);
             layout.paddingAll(4);
         });
         this.dialog.setFocusable(true);

@@ -64,8 +64,8 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setAspectRatio(1.0f);
             layout.widthPercent(100);
-            layout.setMaxWidth(100);
-            layout.setMaxHeight(100);
+            layout.maxWidth(100);
+            layout.maxHeight(100);
             layout.alignSelf(AlignItems.CENTER);
             layout.paddingAll(3);
             layout.setPipelineState(StyleOrigin.INLINE);

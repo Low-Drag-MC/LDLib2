@@ -8,7 +8,6 @@ import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.*;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
-import org.appliedenergistics.yoga.style.StyleLength;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import java.util.Objects;
@@ -63,26 +62,6 @@ public class TaffyLayoutStyle {
         return dimension;
     }
 
-    public static LengthPercentageAuto parseLengthPercentageAuto(StyleLength styleLength) {
-        if (styleLength.isAuto()) {
-            return LengthPercentageAuto.AUTO;
-        } else if (styleLength.isPercent()) {
-            return LengthPercentageAuto.percent(styleLength.value().getValue() / 100f);
-        } else if (styleLength.isPoints()) {
-            return LengthPercentageAuto.length(styleLength.value().getValue());
-        }
-        return LengthPercentageAuto.AUTO;
-    }
-
-    public static LengthPercentage parseLengthPercentage(StyleLength styleLength) {
-        if (styleLength.isPercent()) {
-            return LengthPercentage.percent(styleLength.value().getValue() / 100f);
-        } else if (styleLength.isPoints()) {
-            return LengthPercentage.length(styleLength.value().getValue());
-        }
-        return LengthPercentage.ZERO;
-    }
-
     public void setDisplay(TaffyDisplay display) {
         if (style.display != display) {
             style.display = display;
@@ -127,17 +106,6 @@ public class TaffyLayoutStyle {
             style.flexShrink = flexShrink;
             element.markTaffyStyleDirty();
         }
-    }
-
-    private static AlignItems parseAlignItems(YogaAlign value) {
-        return switch (value) {
-            case AUTO, SPACE_BETWEEN, SPACE_AROUND, SPACE_EVENLY -> null;
-            case FLEX_START -> AlignItems.FLEX_START;
-            case CENTER -> AlignItems.CENTER;
-            case FLEX_END -> AlignItems.FLEX_END;
-            case STRETCH -> AlignItems.STRETCH;
-            case BASELINE -> AlignItems.BASELINE;
-        };
     }
 
     public void setFlexDirection(FlexDirection flexDirection) {
@@ -238,83 +206,30 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public void setInset(YogaEdge edge, StyleLength value) {
-        var length = parseLengthPercentageAuto(value);
-        TaffyRect<LengthPercentageAuto> rect = switch (edge) {
-            case LEFT -> TaffyRect.of(length, style.inset.right, style.inset.top, style.inset.bottom);
-            case TOP -> TaffyRect.of(style.inset.left, style.inset.right, length, style.inset.bottom);
-            case RIGHT -> TaffyRect.of(style.inset.left, length, style.inset.top, style.inset.bottom);
-            case BOTTOM -> TaffyRect.of(style.inset.left, style.inset.right, style.inset.top, length);
-            case START -> TaffyRect.of(length, style.inset.right, length, style.inset.bottom);
-            case END -> TaffyRect.of(style.inset.left, length, style.inset.top, length);
-            case VERTICAL -> TaffyRect.of(style.inset.left, style.inset.right, length, length);
-            case HORIZONTAL -> TaffyRect.of(length, length, style.inset.top, style.inset.bottom);
-            case ALL -> TaffyRect.all(length);
-        };
-        if (!Objects.equals(style.inset, rect)) {
-            style.inset = rect;
+    public void setMinWidth(TaffyDimension minWidth) {
+        if (!Objects.equals(style.minSize.width, minWidth)) {
+            style.minSize = new TaffySize<>(minWidth, style.minSize.height);
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setMargin(YogaEdge edge, StyleLength value) {
-        var length = parseLengthPercentageAuto(value);
-        TaffyRect<LengthPercentageAuto> rect = switch (edge) {
-            case LEFT -> TaffyRect.of(length, style.margin.right, style.margin.top, style.margin.bottom);
-            case TOP -> TaffyRect.of(style.margin.left, style.margin.right, length, style.margin.bottom);
-            case RIGHT -> TaffyRect.of(style.margin.left, length, style.margin.top, style.margin.bottom);
-            case BOTTOM -> TaffyRect.of(style.margin.left, style.margin.right, style.margin.top, length);
-            case START -> TaffyRect.of(length, style.margin.right, length, style.margin.bottom);
-            case END -> TaffyRect.of(style.margin.left, length, style.margin.top, length);
-            case VERTICAL -> TaffyRect.of(style.margin.left, style.margin.right, length, length);
-            case HORIZONTAL -> TaffyRect.of(length, length, style.margin.top, style.margin.bottom);
-            case ALL -> TaffyRect.all(length);
-        };
-        if (!Objects.equals(style.margin, rect)) {
-            style.margin = rect;
+    public void setMinHeight(TaffyDimension minHeight) {
+        if (!Objects.equals(style.minSize.height, minHeight)) {
+            style.minSize = new TaffySize<>(style.minSize.width, minHeight);
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setPadding(YogaEdge edge, StyleLength value) {
-        var length = parseLengthPercentage(value);
-        TaffyRect<LengthPercentage> rect = switch (edge) {
-            case LEFT -> TaffyRect.of(length, style.padding.right, style.padding.top, style.padding.bottom);
-            case TOP -> TaffyRect.of(style.padding.left, style.padding.right, length, style.padding.bottom);
-            case RIGHT -> TaffyRect.of(style.padding.left, length, style.padding.top, style.padding.bottom);
-            case BOTTOM -> TaffyRect.of(style.padding.left, style.padding.right, style.padding.top, length);
-            case START -> TaffyRect.of(length, style.padding.right, length, style.padding.bottom);
-            case END -> TaffyRect.of(style.padding.left, length, style.padding.top, length);
-            case VERTICAL -> TaffyRect.of(style.padding.left, style.padding.right, length, length);
-            case HORIZONTAL -> TaffyRect.of(length, length, style.padding.top, style.padding.bottom);
-            case ALL -> TaffyRect.all(length);
-        };
-        if (!Objects.equals(style.padding, rect)) {
-            style.padding = rect;
+    public void setMaxWidth(TaffyDimension maxWidth) {
+        if (!Objects.equals(style.maxSize.width, maxWidth)) {
+            style.maxSize = new TaffySize<>(maxWidth, style.maxSize.height);
             element.markTaffyStyleDirty();
         }
     }
 
-    public void setMinSize(YogaDimension dimension, StyleSizeLength value) {
-        var dim = parseDimension(value);
-        TaffySize<TaffyDimension> size = switch (dimension) {
-            case WIDTH -> new TaffySize<>(dim, style.minSize.height);
-            case HEIGHT -> new TaffySize<>(style.minSize.width, dim);
-        };
-        if (!Objects.equals(style.minSize, size)) {
-            style.minSize = size;
-            element.markTaffyStyleDirty();
-        }
-    }
-
-    public void setMaxSize(YogaDimension dimension, StyleSizeLength value) {
-        var dim = parseDimension(value);
-        TaffySize<TaffyDimension> size = switch (dimension) {
-            case WIDTH -> new TaffySize<>(dim, style.maxSize.height);
-            case HEIGHT -> new TaffySize<>(style.maxSize.width, dim);
-        };
-        if (!Objects.equals(style.maxSize, size)) {
-            style.maxSize = size;
+    public void setMaxHeight(TaffyDimension maxHeight) {
+        if (!Objects.equals(style.maxSize.height, maxHeight)) {
+            style.maxSize = new TaffySize<>(style.maxSize.width, maxHeight);
             element.markTaffyStyleDirty();
         }
     }
@@ -429,7 +344,7 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public class LPARectData {
+    public static class LPARectData {
         private LengthPercentageAuto left = LengthPercentageAuto.AUTO;
         private LengthPercentageAuto top = LengthPercentageAuto.AUTO;
         private LengthPercentageAuto right = LengthPercentageAuto.AUTO;
@@ -538,7 +453,7 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public class LPRectData {
+    public static class LPRectData {
         private LengthPercentageAuto left = LengthPercentageAuto.AUTO;
         private LengthPercentageAuto top = LengthPercentageAuto.AUTO;
         private LengthPercentageAuto right = LengthPercentageAuto.AUTO;
@@ -659,7 +574,7 @@ public class TaffyLayoutStyle {
         }
     }
 
-    public class LPSizeData {
+    public static class LPSizeData {
         private LengthPercentageAuto vertical = LengthPercentageAuto.AUTO;
         private LengthPercentageAuto horizontal = LengthPercentageAuto.AUTO;
         private LengthPercentageAuto all = LengthPercentageAuto.AUTO;

@@ -35,7 +35,7 @@ public final class LayoutProperties {
     public static final Property<StyleSizeLength> FLEX_BASIS = create("flex-basis", StyleSizeLength.AUTO);
     public static final Property<FloatOptional> FLEX = create("flex", FloatOptional.of());
     public static final Property<FloatOptional> FLEX_GROW = create("flex-grow", FloatOptional.of());
-    public static final Property<FloatOptional> FLEX_SHRINK = create("flex-shrink", FloatOptional.of());
+    public static final Property<FloatOptional> FLEX_SHRINK = create("flex-shrink", FloatOptional.of(0));
     public static final Property<FlexDirection> FLEX_DIRECTION = PropertyRegistry.create("flex-direction", FlexDirection.class, FlexDirection.COLUMN).setIconProvider(FlexIcons::getFlexDirectionIcon);
     public static final Property<FlexWrap> FLEX_WRAP = PropertyRegistry.create("flex-wrap", FlexWrap.class, FlexWrap.NO_WRAP).setIconProvider(FlexIcons::getFlexWrapIcon);
     public static final Property<TaffyPosition> POSITION = PropertyRegistry.create("position", TaffyPosition.class, TaffyPosition.RELATIVE);
@@ -70,8 +70,12 @@ public final class LayoutProperties {
 
     public static final Property<TaffyDimension> WIDTH = create("width", TaffyDimension.auto());
     public static final Property<TaffyDimension> HEIGHT = create("height", TaffyDimension.auto());
-    public static final Property<StyleSizeLength>[] MIN = createDimension("min", StyleSizeLength.points(0));
-    public static final Property<StyleSizeLength>[] MAX = createDimension("max", StyleSizeLength.undefined());
+
+    public static final Property<TaffyDimension> MIN_WIDTH = create("min-width", TaffyDimension.ZERO);
+    public static final Property<TaffyDimension> MIN_HEIGHT = create("min-height", TaffyDimension.ZERO);
+
+    public static final Property<TaffyDimension> MAX_WIDTH = create("max-width", TaffyDimension.auto());
+    public static final Property<TaffyDimension> MAX_HEIGHT = create("max-height", TaffyDimension.auto());
 
     public static final Property<FloatOptional> ASPECT_RATE = create("aspect-rate", FloatOptional.of());
     public static final Property<YogaOverflow> OVERFLOW = PropertyRegistry.create("overflow", YogaOverflow.class, YogaOverflow.VISIBLE, List.of(YogaOverflow.VISIBLE, YogaOverflow.HIDDEN));
@@ -110,13 +114,17 @@ public final class LayoutProperties {
         createSetter(LayoutProperties.ALIGN_CONTENT, TaffyLayoutStyle::setAlignContent);
         createSetter(LayoutProperties.ASPECT_RATE, TaffyLayoutStyle::setAspectRate);
 
-        createSetter(LayoutProperties.WIDTH, TaffyLayoutStyle::setWidth);
-        createSetter(LayoutProperties.HEIGHT, TaffyLayoutStyle::setHeight);
-
         createSetter(LayoutProperties.LEFT, TaffyLayoutStyle::setLeft);
         createSetter(LayoutProperties.TOP, TaffyLayoutStyle::setTop);
         createSetter(LayoutProperties.RIGHT, TaffyLayoutStyle::setRight);
         createSetter(LayoutProperties.BOTTOM, TaffyLayoutStyle::setBottom);
+
+        createSetter(LayoutProperties.WIDTH, TaffyLayoutStyle::setWidth);
+        createSetter(LayoutProperties.HEIGHT, TaffyLayoutStyle::setHeight);
+        createSetter(LayoutProperties.MIN_WIDTH, TaffyLayoutStyle::setMinWidth);
+        createSetter(LayoutProperties.MAX_WIDTH, TaffyLayoutStyle::setMaxWidth);
+        createSetter(LayoutProperties.MIN_HEIGHT, TaffyLayoutStyle::setMinHeight);
+        createSetter(LayoutProperties.MAX_HEIGHT, TaffyLayoutStyle::setMaxHeight);
 
         createSetter(LayoutProperties.MARGIN_LEFT, (style, value) -> style.margin.setLeft(value));
         createSetter(LayoutProperties.MARGIN_TOP, (style, value) -> style.margin.setTop(value));
@@ -140,9 +148,6 @@ public final class LayoutProperties {
         createSetter(LayoutProperties.GAP_COLUMN, (style, value) -> style.gap.setHorizontal(value));
         createSetter(LayoutProperties.GAP_ALL, (style, value) -> style.gap.setAll(value));
         createSetter(LayoutProperties.GAP, (style, value) -> style.gap.setSize(value));
-
-        createDimensionSetter(LayoutProperties.MIN,TaffyLayoutStyle::setMinSize);
-        createDimensionSetter(LayoutProperties.MAX, TaffyLayoutStyle::setMaxSize);
 
         // Grid properties (Taffy-specific, no Yoga equivalents)
         createSetter(LayoutProperties.GRID_TEMPLATE_ROWS, TaffyLayoutStyle::setGridTemplateRows);

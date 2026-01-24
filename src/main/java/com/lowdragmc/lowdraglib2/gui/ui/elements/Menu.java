@@ -136,7 +136,7 @@ public class Menu<K, T> extends UIElement {
         getLayout().paddingAll(2);
         getLayout().gapAll(2);
         getLayout().positionType(TaffyPosition.ABSOLUTE);
-        getLayout().setMinWidth(120);
+        getLayout().minWidth(120);
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
         getStyle().zIndex(100);
         setFocusable(true);

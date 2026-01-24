@@ -1128,12 +1128,12 @@ public class TextField extends BindableUIElement<String> {
             });
             min.layout(layout -> {
                 layout.setFlex(1);
-                layout.setMinWidth(40);
+                layout.minWidth(40);
                 layout.height(14);
             });
             max.layout(layout -> {
                 layout.setFlex(1);
-                layout.setMinWidth(40);
+                layout.minWidth(40);
                 layout.height(14);
             });
             if (type.min != null && type.max != null && type.wheel != null) {

@@ -49,11 +49,11 @@ public class PositionAccessor extends TypesAccessor<Position> {
         });
         x.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
         });
         y.layout(layout -> {
             layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.minWidth(40);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

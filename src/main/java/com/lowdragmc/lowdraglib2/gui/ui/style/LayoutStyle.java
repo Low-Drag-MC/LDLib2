@@ -64,8 +64,10 @@ public final class LayoutStyle extends Style {
         properties.add(LayoutProperties.GAP);
         properties.add(LayoutProperties.WIDTH);
         properties.add(LayoutProperties.HEIGHT);
-        properties.addAll(Arrays.stream(LayoutProperties.MIN).toList());
-        properties.addAll(Arrays.stream(LayoutProperties.MAX).toList());
+        properties.add(LayoutProperties.MIN_WIDTH);
+        properties.add(LayoutProperties.MIN_HEIGHT);
+        properties.add(LayoutProperties.MAX_WIDTH);
+        properties.add(LayoutProperties.MAX_HEIGHT);
         properties.add(LayoutProperties.ASPECT_RATE);
         properties.add(LayoutProperties.OVERFLOW);
         properties.add(LayoutProperties.ALIGN_ITEMS);
@@ -176,102 +178,178 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMinWidth(StyleSizeLength length) {
-        set(LayoutProperties.MIN[YogaDimension.WIDTH.ordinal()], length);
+        set(LayoutProperties.MIN_WIDTH, parseStyleSizeLength(length));
         return this;
     }
 
+    public LayoutStyle setMinWidth(TaffyDimension dimension) {
+        set(LayoutProperties.MIN_WIDTH, dimension);
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle minWidth(StyleSizeLength length) {
         return setMinWidth(length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMinWidth(float minWidth) {
-        return setMinWidth(StyleSizeLength.points(minWidth));
-    }
-
-    public LayoutStyle minWidth(float minWidth) {
-        return setMinWidth(minWidth);
-    }
-
-    public LayoutStyle setMinWidthPercent(float percent) {
-        return setMinWidth(StyleSizeLength.percent(percent));
-    }
-
-    public LayoutStyle minWidthPercent(float percent) {
-        return setMinWidthPercent(percent);
-    }
-
-    public LayoutStyle setMinWidthMaxContent() {
-        return setMinWidth(StyleSizeLength.ofMaxContent());
-    }
-
-    public LayoutStyle minWidthMaxContent() {
-        return setMinWidthMaxContent();
-    }
-
-    public LayoutStyle setMinWidthFitContent() {
-        return setMinWidth(StyleSizeLength.ofFitContent());
-    }
-
-    public LayoutStyle minWidthFitContent() {
-        return setMinWidthFitContent();
-    }
-
-    public LayoutStyle setMinWidthStretch() {
-        return setMinWidth(StyleSizeLength.ofStretch());
-    }
-
-    public LayoutStyle minWidthStretch() {
-        return setMinWidthStretch();
-    }
-
-    public LayoutStyle setMaxWidth(StyleSizeLength length) {
-        set(LayoutProperties.MAX[YogaDimension.WIDTH.ordinal()], length);
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.length(minWidth));
         return this;
     }
 
+    public LayoutStyle minWidth(float minWidth) {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.length(minWidth));
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinWidthPercent(float percent) {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.percent(percent / 100f));
+        return this;
+    }
+
+    public LayoutStyle minWidthPercent(float percent) {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.percent(percent / 100f));
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinWidthAuto() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.auto());
+        return this;
+    }
+
+    public LayoutStyle minWidthAuto() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.auto());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinWidthMaxContent() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.maxContent());
+        return this;
+    }
+
+    public LayoutStyle minWidthMaxContent() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.maxContent());
+        return this;
+    }
+
+    public LayoutStyle minWidthMinContent() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.minContent());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinWidthFitContent() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.fitContent());
+        return this;
+    }
+
+    public LayoutStyle minWidthFitContent() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.fitContent());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinWidthStretch() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.stretch());
+        return this;
+    }
+
+    public LayoutStyle minWidthStretch() {
+        set(LayoutProperties.MIN_WIDTH, TaffyDimension.stretch());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMaxWidth(StyleSizeLength length) {
+        set(LayoutProperties.MAX_WIDTH, parseStyleSizeLength(length));
+        return this;
+    }
+
+    public LayoutStyle setMaxWidth(TaffyDimension dimension) {
+        set(LayoutProperties.MAX_WIDTH, dimension);
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle maxWidth(StyleSizeLength length) {
         return setMaxWidth(length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxWidth(float maxWidth) {
-        return setMaxWidth(StyleSizeLength.points(maxWidth));
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.length(maxWidth));
+        return this;
     }
 
     public LayoutStyle maxWidth(float maxWidth) {
-        return setMaxWidth(maxWidth);
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.length(maxWidth));
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxWidthPercent(float percent) {
-        return setMaxWidth(StyleSizeLength.percent(percent));
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.percent(percent / 100f));
+        return this;
     }
 
     public LayoutStyle maxWidthPercent(float percent) {
-        return setMaxWidthPercent(percent);
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.percent(percent / 100f));
+        return this;
     }
 
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMaxWidthAuto() {
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.auto());
+        return this;
+    }
+
+    public LayoutStyle maxWidthAuto() {
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.auto());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxWidthMaxContent() {
-        return setMaxWidth(StyleSizeLength.ofMaxContent());
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.maxContent());
+        return this;
     }
 
     public LayoutStyle maxWidthMaxContent() {
-        return setMaxWidthMaxContent();
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.maxContent());
+        return this;
     }
 
+    public LayoutStyle maxWidthMinContent() {
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.minContent());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxWidthFitContent() {
-        return setMaxWidth(StyleSizeLength.ofFitContent());
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.fitContent());
+        return this;
     }
 
     public LayoutStyle maxWidthFitContent() {
-        return setMaxWidthFitContent();
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.fitContent());
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxWidthStretch() {
-        return setMaxWidth(StyleSizeLength.ofStretch());
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.stretch());
+        return this;
     }
 
     public LayoutStyle maxWidthStretch() {
-        return setMaxWidthStretch();
+        set(LayoutProperties.MAX_WIDTH, TaffyDimension.stretch());
+        return this;
     }
 
     /* Height properties */
@@ -362,102 +440,178 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMinHeight(StyleSizeLength length) {
-        set(LayoutProperties.MIN[YogaDimension.HEIGHT.ordinal()], length);
+        set(LayoutProperties.MIN_HEIGHT, parseStyleSizeLength(length));
         return this;
     }
 
+    public LayoutStyle setMinHeight(TaffyDimension dimension) {
+        set(LayoutProperties.MIN_HEIGHT, dimension);
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle minHeight(StyleSizeLength length) {
         return setMinHeight(length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMinHeight(float minHeight) {
-        return setMinHeight(StyleSizeLength.points(minHeight));
-    }
-
-    public LayoutStyle minHeight(float minHeight) {
-        return setMinHeight(minHeight);
-    }
-
-    public LayoutStyle setMinHeightPercent(float percent) {
-        return setMinHeight(StyleSizeLength.percent(percent));
-    }
-
-    public LayoutStyle minHeightPercent(float percent) {
-        return setMinHeightPercent(percent);
-    }
-
-    public LayoutStyle setMinHeightMaxContent() {
-        return setMinHeight(StyleSizeLength.ofMaxContent());
-    }
-
-    public LayoutStyle minHeightMaxContent() {
-        return setMinHeightMaxContent();
-    }
-
-    public LayoutStyle setMinHeightFitContent() {
-        return setMinHeight(StyleSizeLength.ofFitContent());
-    }
-
-    public LayoutStyle minHeightFitContent() {
-        return setMinHeightFitContent();
-    }
-
-    public LayoutStyle setMinHeightStretch() {
-        return setMinHeight(StyleSizeLength.ofStretch());
-    }
-
-    public LayoutStyle minHeightStretch() {
-        return setMinHeightStretch();
-    }
-
-    public LayoutStyle setMaxHeight(StyleSizeLength length) {
-        set(LayoutProperties.MAX[YogaDimension.HEIGHT.ordinal()], length);
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.length(minHeight));
         return this;
     }
 
+    public LayoutStyle minHeight(float minHeight) {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.length(minHeight));
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinHeightPercent(float percent) {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.percent(percent / 100f));
+        return this;
+    }
+
+    public LayoutStyle minHeightPercent(float percent) {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.percent(percent / 100f));
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinHeightAuto() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.auto());
+        return this;
+    }
+
+    public LayoutStyle minHeightAuto() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.auto());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinHeightMaxContent() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.maxContent());
+        return this;
+    }
+
+    public LayoutStyle minHeightMaxContent() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.maxContent());
+        return this;
+    }
+
+    public LayoutStyle minHeightMinContent() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.minContent());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinHeightFitContent() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.fitContent());
+        return this;
+    }
+
+    public LayoutStyle minHeightFitContent() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.fitContent());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMinHeightStretch() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.stretch());
+        return this;
+    }
+
+    public LayoutStyle minHeightStretch() {
+        set(LayoutProperties.MIN_HEIGHT, TaffyDimension.stretch());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMaxHeight(StyleSizeLength length) {
+        set(LayoutProperties.MAX_HEIGHT, parseStyleSizeLength(length));
+        return this;
+    }
+
+    public LayoutStyle setMaxHeight(TaffyDimension dimension) {
+        set(LayoutProperties.MAX_HEIGHT, dimension);
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle maxHeight(StyleSizeLength length) {
         return setMaxHeight(length);
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxHeight(float maxHeight) {
-        return setMaxHeight(StyleSizeLength.points(maxHeight));
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.length(maxHeight));
+        return this;
     }
 
     public LayoutStyle maxHeight(float maxHeight) {
-        return setMaxHeight(maxHeight);
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.length(maxHeight));
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxHeightPercent(float percent) {
-        return setMaxHeight(StyleSizeLength.percent(percent));
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.percent(percent / 100f));
+        return this;
     }
 
     public LayoutStyle maxHeightPercent(float percent) {
-        return setMaxHeightPercent(percent);
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.percent(percent / 100f));
+        return this;
     }
 
+    @Deprecated(since = "26.1")
+    public LayoutStyle setMaxHeightAuto() {
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.auto());
+        return this;
+    }
+
+    public LayoutStyle maxHeightAuto() {
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.auto());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxHeightMaxContent() {
-        return setMaxHeight(StyleSizeLength.ofMaxContent());
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.maxContent());
+        return this;
     }
 
     public LayoutStyle maxHeightMaxContent() {
-        return setMaxHeightMaxContent();
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.maxContent());
+        return this;
     }
 
+    public LayoutStyle maxHeightMinContent() {
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.minContent());
+        return this;
+    }
+
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxHeightFitContent() {
-        return setMaxHeight(StyleSizeLength.ofFitContent());
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.fitContent());
+        return this;
     }
 
     public LayoutStyle maxHeightFitContent() {
-        return setMaxHeightFitContent();
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.fitContent());
+        return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setMaxHeightStretch() {
-        return setMaxHeight(StyleSizeLength.ofStretch());
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.stretch());
+        return this;
     }
 
     public LayoutStyle maxHeightStretch() {
-        return setMaxHeightStretch();
+        set(LayoutProperties.MAX_HEIGHT, TaffyDimension.stretch());
+        return this;
     }
 
     /* Margin properties */
@@ -1380,24 +1534,24 @@ public final class LayoutStyle extends Style {
         return getValueSave(LayoutProperties.WIDTH);
     }
 
-    public YogaValue getMinWidth() {
-        return getValueSave(LayoutProperties.MIN[YogaDimension.WIDTH.ordinal()]).asYogaValue();
+    public TaffyDimension getMinWidth() {
+        return getValueSave(LayoutProperties.MIN_WIDTH);
     }
 
-    public YogaValue getMaxWidth() {
-        return getValueSave(LayoutProperties.MAX[YogaDimension.WIDTH.ordinal()]).asYogaValue();
+    public TaffyDimension getMaxWidth() {
+        return getValueSave(LayoutProperties.MAX_WIDTH);
     }
 
     public TaffyDimension getHeight() {
         return getValueSave(LayoutProperties.HEIGHT);
     }
 
-    public YogaValue getMinHeight() {
-        return getValueSave(LayoutProperties.MIN[YogaDimension.HEIGHT.ordinal()]).asYogaValue();
+    public TaffyDimension getMinHeight() {
+        return getValueSave(LayoutProperties.MIN_HEIGHT);
     }
 
-    public YogaValue getMaxHeight() {
-        return getValueSave(LayoutProperties.MAX[YogaDimension.HEIGHT.ordinal()]).asYogaValue();
+    public TaffyDimension getMaxHeight() {
+        return getValueSave(LayoutProperties.MAX_HEIGHT);
     }
 
     public TaffyDirection getStyleDirection() {

@@ -87,10 +87,12 @@ public final class LayoutConfigParser {
                         createConfigurator(LayoutProperties.WIDTH, style),
                         createConfigurator(LayoutProperties.HEIGHT, style),
                         new ConfiguratorGroup("property.size.min.group").addConfigurators(
-                                createConfigurators(LayoutProperties.MIN, style)
+                                createConfigurator(LayoutProperties.MIN_WIDTH, style),
+                                createConfigurator(LayoutProperties.MIN_HEIGHT, style)
                         ),
                         new ConfiguratorGroup("property.size.max.group").addConfigurators(
-                                createConfigurators(LayoutProperties.MAX, style)
+                                createConfigurator(LayoutProperties.MAX_WIDTH, style),
+                                createConfigurator(LayoutProperties.MAX_HEIGHT, style)
                         ),
                         createConfigurator(LayoutProperties.ASPECT_RATE, style),
                         createConfigurator(LayoutProperties.OVERFLOW, style)
