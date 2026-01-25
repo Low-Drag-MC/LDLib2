@@ -116,15 +116,15 @@ public class TaffyLayoutStyle {
     }
 
     public void setOverFlow(YogaOverflow value) {
-        TaffyPoint<Overflow> overflow = switch (value) {
-            case VISIBLE -> new TaffyPoint<>(Overflow.VISIBLE, Overflow.VISIBLE);
-            case HIDDEN -> new TaffyPoint<>(Overflow.HIDDEN, Overflow.HIDDEN);
-            case SCROLL -> new TaffyPoint<>(Overflow.CLIP, Overflow.CLIP);
-        };
-        if (!style.overflow.equals(overflow)) {
-            style.overflow = overflow;
-            element.markTaffyStyleDirty();
-        }
+//        TaffyPoint<Overflow> overflow = switch (value) {
+//            case VISIBLE -> new TaffyPoint<>(Overflow.VISIBLE, Overflow.VISIBLE);
+//            case HIDDEN -> new TaffyPoint<>(Overflow.HIDDEN, Overflow.HIDDEN);
+//            case SCROLL -> new TaffyPoint<>(Overflow.CLIP, Overflow.CLIP);
+//        };
+//        if (!style.overflow.equals(overflow)) {
+//            style.overflow = overflow;
+//            element.markTaffyStyleDirty();
+//        }
     }
 
     public void setAlignItems(AlignItems alignItems) {
