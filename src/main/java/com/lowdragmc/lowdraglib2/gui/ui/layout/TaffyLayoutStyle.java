@@ -48,20 +48,6 @@ public class TaffyLayoutStyle {
         });
     }
 
-    public static TaffyDimension parseDimension(StyleSizeLength value) {
-        TaffyDimension dimension;
-        if (value.isAuto()) {
-            dimension = TaffyDimension.AUTO;
-        } else if (value.isPercent()) {
-            dimension = TaffyDimension.percent(value.value().getValue() / 100f);
-        } else if (value.isPoints()) {
-            dimension = TaffyDimension.length(value.value().getValue());
-        } else {
-            dimension = TaffyDimension.AUTO;
-        }
-        return dimension;
-    }
-
     public void setDisplay(TaffyDisplay display) {
         if (style.display != display) {
             style.display = display;
@@ -85,6 +71,7 @@ public class TaffyLayoutStyle {
 
     public void setFlex(FloatOptional value) {
         var flex = value.isUndefined() ? Float.NaN : value.getValue();
+        if (Float.isNaN(flex) && Float.isNaN(style.flex)) return;
         if (style.flex != flex) {
             style.flex = flex;
             element.markTaffyStyleDirty();
@@ -132,7 +119,7 @@ public class TaffyLayoutStyle {
         TaffyPoint<Overflow> overflow = switch (value) {
             case VISIBLE -> new TaffyPoint<>(Overflow.VISIBLE, Overflow.VISIBLE);
             case HIDDEN -> new TaffyPoint<>(Overflow.HIDDEN, Overflow.HIDDEN);
-            case SCROLL -> new TaffyPoint<>(Overflow.SCROLL, Overflow.SCROLL);
+            case SCROLL -> new TaffyPoint<>(Overflow.CLIP, Overflow.CLIP);
         };
         if (!style.overflow.equals(overflow)) {
             style.overflow = overflow;
@@ -411,7 +398,7 @@ public class TaffyLayoutStyle {
         }
 
         public void setRect(LPARect rect) {
-            if (Objects.equals(this.rect, rect)) {
+            if (!Objects.equals(this.rect, rect)) {
                 this.rect = rect;
                 onChanged();
             }
@@ -520,7 +507,7 @@ public class TaffyLayoutStyle {
         }
 
         public void setRect(LPARect rect) {
-            if (Objects.equals(this.rect, rect)) {
+            if (!Objects.equals(this.rect, rect)) {
                 this.rect = rect;
                 onChanged();
             }
@@ -609,7 +596,7 @@ public class TaffyLayoutStyle {
         }
 
         public void setSize(LPSize size) {
-            if (Objects.equals(this.size, size)) {
+            if (!Objects.equals(this.size, size)) {
                 this.size = size;
                 onChanged();
             }

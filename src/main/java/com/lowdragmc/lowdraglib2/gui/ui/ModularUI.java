@@ -515,7 +515,7 @@ public class ModularUI {
 
         // if dimension is auto, update real sizes after layout calculation
         if (width.isAuto()) {
-            this.width = ui.rootElement.getTaffyLayout().size().width;
+            this.width = ui.rootElement.getSizeWidth();
             this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.getTaffyLayout().location().x;
         } else {
             this.leftPos = isRelative ? (screenWidth - this.width) / 2 : ui.rootElement.getTaffyLayout().location().x;
@@ -544,8 +544,8 @@ public class ModularUI {
 
             if (taffyTree.isDirty(ui.rootElement.nodeId)) {
                 taffyTree.computeLayout(ui.rootElement.nodeId, new TaffySize<>(
-                        layoutWidth == YogaConstants.UNDEFINED ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutWidth),
-                        layoutHeight == YogaConstants.UNDEFINED ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutHeight)
+                        Float.isNaN(layoutWidth) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutWidth),
+                        Float.isNaN(layoutWidth) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutHeight)
                 ));
 
                 for (var nodeId : nodesWithNewLayout) {

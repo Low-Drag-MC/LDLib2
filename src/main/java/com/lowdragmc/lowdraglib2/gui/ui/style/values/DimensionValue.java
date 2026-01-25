@@ -34,8 +34,22 @@ public class DimensionValue extends StyleValue<TaffyDimension> {
 
         try {
             // Check for auto keyword
-            if ("auto".equals(trimmed)) {
-                return TaffyDimension.AUTO;
+            switch (trimmed) {
+                case "auto" -> {
+                    return TaffyDimension.AUTO;
+                }
+                case "fit-content" -> {
+                    return TaffyDimension.FIT_CONTENT;
+                }
+                case "stretch" -> {
+                    return TaffyDimension.STRETCH;
+                }
+                case "max-content" -> {
+                    return TaffyDimension.MAX_CONTENT;
+                }
+                case "min-content" -> {
+                    return TaffyDimension.MIN_CONTENT;
+                }
             }
 
             // Check for percentage

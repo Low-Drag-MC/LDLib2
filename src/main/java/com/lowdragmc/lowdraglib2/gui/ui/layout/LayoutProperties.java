@@ -76,12 +76,12 @@ public final class LayoutProperties {
 
     public static final Property<FloatOptional> ASPECT_RATE = create("aspect-rate", FloatOptional.of());
     public static final Property<YogaOverflow> OVERFLOW = PropertyRegistry.create("overflow", YogaOverflow.class, YogaOverflow.VISIBLE, List.of(YogaOverflow.VISIBLE, YogaOverflow.HIDDEN));
-    public static final Property<AlignItems> ALIGN_ITEMS = PropertyRegistry.create("align-items", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignContent> JUSTIFY_CONTENT = PropertyRegistry.create("justify-content", AlignContent.class, AlignContent.AUTO).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignItems> JUSTIFY_ITEMS = PropertyRegistry.create("justify-items", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
-    public static final Property<AlignItems> JUSTIFY_SELF = PropertyRegistry.create("justify-self", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> ALIGN_ITEMS = PropertyRegistry.create("align-items", AlignItems.class, AlignItems.STRETCH, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
     public static final Property<AlignItems> ALIGN_SELF = PropertyRegistry.create("align-self", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
     public static final Property<AlignContent> ALIGN_CONTENT = PropertyRegistry.create("align-content", AlignContent.class, AlignContent.FLEX_START).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> JUSTIFY_ITEMS = PropertyRegistry.create("justify-items", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignItems> JUSTIFY_SELF = PropertyRegistry.create("justify-self", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
+    public static final Property<AlignContent> JUSTIFY_CONTENT = PropertyRegistry.create("justify-content", AlignContent.class, AlignContent.FLEX_START).setIconProvider(v -> IGuiTexture.EMPTY);
 
     public static final Property<GridTemplate> GRID_TEMPLATE_ROWS = create("grid-template-rows", GridTemplate.EMPTY);
     public static final Property<GridTemplate> GRID_TEMPLATE_COLUMNS = create("grid-template-columns", GridTemplate.EMPTY);
