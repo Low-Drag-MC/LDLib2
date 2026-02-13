@@ -8,6 +8,8 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackResources;
+import net.minecraft.server.packs.PackType;
 
 import javax.annotation.Nullable;
 import java.io.DataInputStream;
@@ -27,19 +29,22 @@ public final class PackFileResourceProvider<T>  {
 
     @Nullable
     private T getResourceByLocation(ResourceLocation location) {
-        return ResourceHelper.getResourceManager().getResource(location).map(resource -> {
-            try {
-                try (var stream = resource.open()) {
-                    try (var inputStream = new DataInputStream(stream)) {
-                        var tag = NbtIo.read(inputStream);
-                        return deserializeNBT(tag, Platform.getFrozenRegistry());
+        for (PackResources pack : ResourceHelper.getResourceManager().listPacks().toList()) {
+            var resource = pack.getResource(PackType.CLIENT_RESOURCES, location);
+            if (resource != null) {
+                try {
+                    try (var stream = resource.get()) {
+                        try (var inputStream = new DataInputStream(stream)) {
+                            var tag = NbtIo.read(inputStream);
+                            return deserializeNBT(tag, Platform.getFrozenRegistry());
+                        }
                     }
+                } catch (Exception e) {
+                    LDLib2.LOGGER.warn("Failed to read resource {} from {}: ", location, resource, e);
                 }
-            } catch (Exception e) {
-                LDLib2.LOGGER.warn("Failed to read resource {} from {}: ", location, resource, e);
             }
-            return null;
-        }).orElse(null);
+        }
+        return null;
     }
 
     @Nullable
