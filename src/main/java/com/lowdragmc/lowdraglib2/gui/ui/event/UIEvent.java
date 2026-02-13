@@ -3,11 +3,14 @@ package com.lowdragmc.lowdraglib2.gui.ui.event;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import it.unimi.dsi.fastutil.Pair;
 import lombok.ToString;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 @ToString
 public class UIEvent {
@@ -146,6 +149,8 @@ public class UIEvent {
      * registered that should process it.
      */
     public boolean hasHandler = false;
+    public List<Pair<UIElement, UIEventListener>> captureListeners = new ArrayList<>();
+    public List<Pair<UIElement, UIEventListener>> bubbleListeners = new ArrayList<>();
 
     private UIEvent(String type) {
         this.type = type;

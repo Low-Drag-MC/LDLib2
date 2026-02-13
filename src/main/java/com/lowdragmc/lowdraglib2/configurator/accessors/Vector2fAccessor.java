@@ -7,8 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaGutter;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
 import java.lang.reflect.Field;
@@ -23,25 +22,25 @@ public class Vector2fAccessor extends TypesAccessor<Vector2f> {
     }
 
     @Override
-    public Vector2f defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public Vector2f defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return new Vector2f((float) field.getAnnotation(DefaultValue.class).numberValue()[0], (float) field.getAnnotation(DefaultValue.class).numberValue()[1]);
         }
         return new Vector2f(0, 0);
     }
 
     @Override
-    public Configurator create(String name, Supplier<Vector2f> supplier, Consumer<Vector2f> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<Vector2f> supplier, Consumer<Vector2f> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator x, y;
 
         configurator.inlineContainer.addChildren(
                 x = new NumberConfigurator("x", () -> supplier.get().x,
                         v -> consumer.accept(new Vector2f(v.floatValue(), supplier.get().y)),
-                        defaultValue(field, field.getType()).x, forceUpdate),
+                        defaultValue(field).x, forceUpdate),
                 y = new NumberConfigurator("y", () -> supplier.get().y,
                         v -> consumer.accept(new Vector2f(supplier.get().x, v.floatValue())),
-                        defaultValue(field, field.getType()).y, forceUpdate)
+                        defaultValue(field).y, forceUpdate)
         ).layout(layout -> {
             layout.gapAll(2);
             layout.marginLeft(2);
@@ -58,7 +57,7 @@ public class Vector2fAccessor extends TypesAccessor<Vector2f> {
             layout.minWidth(40);
             layout.height(14);
         });
-        if (field.isAnnotationPresent(ConfigNumber.class)) {
+        if (field != null && field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);
             x.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());

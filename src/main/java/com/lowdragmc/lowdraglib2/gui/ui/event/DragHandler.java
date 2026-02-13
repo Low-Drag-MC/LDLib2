@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.event;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,7 @@ import javax.annotation.Nullable;
  * {@link UIEvents#DRAG_END} will be triggered when the drag target is existing.
  */
 public class DragHandler {
+    public final ModularUI modularUI;
     @Getter
     private boolean isDragging;
     @Nullable
@@ -29,6 +31,12 @@ public class DragHandler {
     public IGuiTexture dragTexture;
     @Setter
     public float offsetX = -20, offsetY = -20, width = 40, height = 40;
+    @Setter
+    public float startX, startY;
+
+    public DragHandler(ModularUI modularUI) {
+        this.modularUI = modularUI;
+    }
 
     public <T> T getDraggingObject() {
         return (T) draggingObject;
@@ -61,6 +69,8 @@ public class DragHandler {
         this.draggingObject = draggingObject;
         this.dragTexture = dragTexture;
         this.dragSource = dragSource;
+        this.startX = modularUI.getLastMouseX();
+        this.startY = modularUI.getLastMouseY();
         isDragging = true;
     }
 
@@ -91,15 +101,17 @@ public class DragHandler {
     public void stopDrag(@Nullable UIElement dropElement) {
         if (dragSource != null) {
             var event = UIEvent.create(UIEvents.DRAG_END);
-            var mui = dragSource.getModularUI();
-            if (mui != null) {
-                event.x = mui.getLastMouseX();
-                event.y = mui.getLastMouseY();
-            }
+            event.x = modularUI.getLastMouseX();
+            event.y = modularUI.getLastMouseY();
+            // TODO fix dragStartX and dragStartY
+            event.dragStartX = modularUI.getLastMouseDownX();
+            event.dragStartY = modularUI.getLastMouseDownY();
+
             event.target = dragSource;
             event.relatedTarget = dropElement;
             event.hasCapturePhase = true;
             event.hasBubblePhase = false;
+            event.dragHandler = this;
             UIEventDispatcher.dispatchEvent(event, true, true, false);
         }
         draggingObject = null;

@@ -136,4 +136,19 @@ public final class UI {
     public <T> Stream<T> selectRegex(String regex, Class<T> type) {
         return selectRegex(regex).filter(type::isInstance).map(type::cast);
     }
+
+    /**
+     * Selects and retrieves a stream of {@link UIElement} objects whose IDs match the specified string.
+     * The method analyzes the {@code rootElement} and all its children, filtering elements based on the given ID.
+     *
+     * @param id the ID used to match {@link UIElement} objects
+     * @return a {@link Stream} of {@link UIElement} objects that have the specified ID
+     */
+    public Stream<UIElement> selectId(String id) {
+        return rootElement.selfAndAllChildren().filter(element -> id.equals(element.getId()));
+    }
+
+    public <T> Stream<T> selectId(String id, Class<T> type) {
+        return selectId(id).filter(type::isInstance).map(type::cast);
+    }
 }

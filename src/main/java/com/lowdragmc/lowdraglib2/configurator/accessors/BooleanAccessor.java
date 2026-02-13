@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.BooleanConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -22,15 +23,15 @@ public class BooleanAccessor extends TypesAccessor<Boolean> {
     }
 
     @Override
-    public Boolean defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public Boolean defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return field.getAnnotation(DefaultValue.class).booleanValue()[0];
         }
         return false;
     }
 
     @Override
-    public Configurator create(String name, Supplier<Boolean> supplier, Consumer<Boolean> consumer, boolean forceUpdate, Field field, Object owner) {
-        return new BooleanConfigurator(name, supplier, consumer, defaultValue(field, boolean.class), forceUpdate);
+    public Configurator create(String name, Supplier<Boolean> supplier, Consumer<Boolean> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        return new BooleanConfigurator(name, supplier, consumer, defaultValue(field), forceUpdate);
     }
 }

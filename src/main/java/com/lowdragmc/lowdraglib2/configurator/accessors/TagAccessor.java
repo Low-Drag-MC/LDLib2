@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.nbt.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -20,8 +21,8 @@ public class TagAccessor extends TypesAccessor<Tag> {
     }
 
     @Override
-    public Tag defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public Tag defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             try {
                 return new TagParser(new StringReader(field.getAnnotation(DefaultValue.class).stringValue()[0])).readValue();
             } catch (CommandSyntaxException e) {
@@ -32,8 +33,8 @@ public class TagAccessor extends TypesAccessor<Tag> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Tag> supplier, Consumer<Tag> consumer, boolean forceUpdate, Field field, Object owner) {
-        var type = field.getType();
+    public Configurator create(String name, Supplier<Tag> supplier, Consumer<Tag> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        var type = field == null ? null : field.getType();
         TagConfigurator tagConfigurator;
         if (type == CompoundTag.class) {
             tagConfigurator = new TagConfigurator(name, supplier,
@@ -46,7 +47,7 @@ public class TagAccessor extends TypesAccessor<Tag> {
                     defaultValue(field, field.getType()), forceUpdate);
             tagConfigurator.tagField.setListOnly();
         } else {
-            tagConfigurator = new TagConfigurator(name, supplier, consumer, defaultValue(field, field.getType()), forceUpdate);
+            tagConfigurator = new TagConfigurator(name, supplier, consumer, defaultValue(field, type), forceUpdate);
         }
         return tagConfigurator;
     }

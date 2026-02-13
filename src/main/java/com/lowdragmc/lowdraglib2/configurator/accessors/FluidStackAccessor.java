@@ -13,6 +13,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -26,15 +27,15 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
     }
 
     @Override
-    public FluidStack defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public FluidStack defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return new FluidStack(BuiltInRegistries.FLUID.get(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])), 1000);
         }
         return new FluidStack(Fluids.WATER, 1000);
     }
 
     @Override
-    public Configurator create(String name, Supplier<FluidStack> supplier, Consumer<FluidStack> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<FluidStack> supplier, Consumer<FluidStack> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         var group = new ConfiguratorGroup(name);
         var slot = new FluidSlot();
         slot.layout(layout -> layout.width(14).height(14));
@@ -44,7 +45,7 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
             consumer.accept(fluidStack);
         };
         group.inlineContainer.addChild(slot);
-        var defaultValue = defaultValue(field, field.getType());
+        var defaultValue = defaultValue(field);
         var componentsConfigurator = new DataComponentConfigurator(DataComponentMap.EMPTY,
                 () -> supplier.get().getComponentsPatch(),
                 patch -> updater.accept(new FluidStack(supplier.get().getFluid().builtInRegistryHolder(), supplier.get().getAmount(), patch)), forceUpdate);

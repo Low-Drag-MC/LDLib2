@@ -3,10 +3,9 @@ package com.lowdragmc.lowdraglib2.configurator.accessors;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.TextAreaConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -21,15 +20,15 @@ public class StringArrayAccessor implements IConfiguratorAccessor<String[]> {
     }
 
     @Override
-    public String[] defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public String[] defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return field.getAnnotation(DefaultValue.class).stringValue();
         }
         return new String[0];
     }
 
     @Override
-    public Configurator create(String name, Supplier<String[]> supplier, Consumer<String[]> consumer, boolean forceUpdate, Field field, Object owner) {
-        return new TextAreaConfigurator(name, supplier, consumer, defaultValue(field, field.getType()), forceUpdate);
+    public Configurator create(String name, Supplier<String[]> supplier, Consumer<String[]> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        return new TextAreaConfigurator(name, supplier, consumer, defaultValue(field), forceUpdate);
     }
 }

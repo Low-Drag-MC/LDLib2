@@ -139,6 +139,12 @@ public class Icons {
     public static SpriteTexture EDITING = icon("editing");
     public static SpriteTexture NON_EDITING = icon("non_editing");
 
+    // graph view
+    public static SpriteTexture RESIZE_BOTTOM_RIGHT = icon("resize_bottom_right");
+    public static SpriteTexture NODE = icon("node");
+    public static SpriteTexture CIRCLE = icon("circle");
+    public static SpriteTexture CIRCLE_CHECK = icon("circle_check");
+
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");
         registerFileIcon(JSON, "json", "nbt");

@@ -7,9 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaGutter;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -25,15 +23,15 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
     }
 
     @Override
-    public Quaternionf defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public Quaternionf defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return new Quaternionf().rotateXYZ((float) field.getAnnotation(DefaultValue.class).numberValue()[0], (float) field.getAnnotation(DefaultValue.class).numberValue()[1], (float) field.getAnnotation(DefaultValue.class).numberValue()[2]);
         }
         return new Quaternionf();
     }
 
     @Override
-    public Configurator create(String name, Supplier<Quaternionf> supplier, Consumer<Quaternionf> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<Quaternionf> supplier, Consumer<Quaternionf> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         Supplier<Vector3f> supplier2 = () -> supplier.get().getEulerAnglesXYZ(new Vector3f()).mul(57.29577951308232f);
         Consumer<Vector3f> consumer2 = v -> {
             var q = new Quaternionf();
@@ -50,13 +48,13 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
         configurator.inlineContainer.addChildren(
                 x = new NumberConfigurator("x", () -> supplier2.get().x,
                         v -> consumer2.accept(new Vector3f(v.floatValue(), supplier2.get().y, supplier2.get().z)),
-                        defaultValue(field, field.getType()).x, forceUpdate),
+                        defaultValue(field).x, forceUpdate),
                 y = new NumberConfigurator("y", () -> supplier2.get().y,
                         v -> consumer2.accept(new Vector3f(supplier2.get().x, v.floatValue(), supplier2.get().z)),
-                        defaultValue(field, field.getType()).y, forceUpdate),
+                        defaultValue(field).y, forceUpdate),
                 z = new NumberConfigurator("z", () -> supplier2.get().z,
                         v -> consumer2.accept(new Vector3f(supplier2.get().x, supplier2.get().y, v.floatValue())),
-                        defaultValue(field, field.getType()).z, forceUpdate)
+                        defaultValue(field).z, forceUpdate)
         ).layout(layout -> {
             layout.gapAll(2);
             layout.marginLeft(2);
@@ -78,7 +76,7 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
             layout.minWidth(40);
             layout.height(14);
         });
-        if (field.isAnnotationPresent(ConfigNumber.class)) {
+        if (field != null && field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);
             x.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());

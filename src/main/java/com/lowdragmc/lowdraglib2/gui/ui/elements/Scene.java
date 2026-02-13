@@ -267,7 +267,7 @@ public class Scene extends UIElement {
      * @param renderHook an optional render hook that can be used to customize the rendering of the blocks.
      * @return
      */
-    public Scene setRenderedCore(Collection<BlockPos> blocks, ISceneBlockRenderHook renderHook, boolean autoCamera) {
+    public Scene setRenderedCore(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook, boolean autoCamera) {
         if (renderer == null) return this;
         renderer.removeRenderedBlocks(core);
         core.clear();
@@ -297,7 +297,7 @@ public class Scene extends UIElement {
         return this;
     }
 
-    public Scene setRenderedCore(Collection<BlockPos> blocks, ISceneBlockRenderHook renderHook) {
+    public Scene setRenderedCore(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook) {
         return setRenderedCore(blocks, renderHook, true);
     }
 

@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -34,8 +35,8 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
     }
 
     @Override
-    public BlockPos defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public BlockPos defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return new BlockPos((int) field.getAnnotation(DefaultValue.class).numberValue()[0],
                     (int) field.getAnnotation(DefaultValue.class).numberValue()[1],
                     (int) field.getAnnotation(DefaultValue.class).numberValue()[2]);
@@ -44,19 +45,19 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Vec3i> supplier, Consumer<Vec3i> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<Vec3i> supplier, Consumer<Vec3i> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator x, y, z;
         configurator.inlineContainer.addChildren(
                 x = new NumberConfigurator("x", () -> supplier.get().getX(),
                         v -> consumer.accept(new BlockPos(v.intValue(), supplier.get().getY(), supplier.get().getZ())),
-                        defaultValue(field, field.getType()).getX(), forceUpdate),
+                        defaultValue(field).getX(), forceUpdate),
                 y = new NumberConfigurator("y", () -> supplier.get().getY(),
                         v -> consumer.accept(new BlockPos(supplier.get().getX(), v.intValue(), supplier.get().getZ())),
-                        defaultValue(field, field.getType()).getY(), forceUpdate),
+                        defaultValue(field).getY(), forceUpdate),
                 z = new NumberConfigurator("z", () -> supplier.get().getZ(),
                         v -> consumer.accept(new BlockPos(supplier.get().getX(), supplier.get().getY(), v.intValue())),
-                        defaultValue(field, field.getType()).getZ(), forceUpdate)
+                        defaultValue(field).getZ(), forceUpdate)
         ).layout(layout -> {
             layout.gapAll(2);
             layout.marginLeft(2);
@@ -75,7 +76,7 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
             layout.flex(1);
             layout.minWidth(40);
         });
-        if (field.isAnnotationPresent(ConfigNumber.class)) {
+        if (field != null && field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);
             x.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());

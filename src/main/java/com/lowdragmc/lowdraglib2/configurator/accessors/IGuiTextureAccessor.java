@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.IGuiTextureConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -19,15 +20,15 @@ public class IGuiTextureAccessor extends TypesAccessor<IGuiTexture> {
     }
 
     @Override
-    public IGuiTexture defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public IGuiTexture defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return SpriteTexture.of(field.getAnnotation(DefaultValue.class).stringValue()[0]);
         }
         return IGuiTexture.EMPTY;
     }
 
     @Override
-    public Configurator create(String name, Supplier<IGuiTexture> supplier, Consumer<IGuiTexture> consumer, boolean forceUpdate, Field field, Object owner) {
-        return new IGuiTextureConfigurator(name, supplier, consumer, defaultValue(field, field.getType()), forceUpdate);
+    public Configurator create(String name, Supplier<IGuiTexture> supplier, Consumer<IGuiTexture> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        return new IGuiTextureConfigurator(name, supplier, consumer, defaultValue(field), forceUpdate);
     }
 }

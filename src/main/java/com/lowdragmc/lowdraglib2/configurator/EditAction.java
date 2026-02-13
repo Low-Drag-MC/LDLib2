@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib2.configurator;
 
-import net.neoforged.neoforge.common.util.INBTSerializable;
-
 public interface EditAction {
     static EditAction of(Runnable execute, Runnable undo) {
         return new EditAction() {

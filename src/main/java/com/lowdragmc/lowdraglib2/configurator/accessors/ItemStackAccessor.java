@@ -12,6 +12,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -25,15 +26,15 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
     }
 
     @Override
-    public ItemStack defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public ItemStack defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return BuiltInRegistries.ITEM.get(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])).getDefaultInstance();
         }
         return Items.AIR.getDefaultInstance();
     }
 
     @Override
-    public Configurator create(String name, Supplier<ItemStack> supplier, Consumer<ItemStack> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<ItemStack> supplier, Consumer<ItemStack> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         var group = new ConfiguratorGroup(name);
         var slot = new ItemSlot();
         slot.layout(layout -> layout.width(14).height(14));
@@ -43,7 +44,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
             consumer.accept(itemStack);
         };
         group.inlineContainer.addChild(slot);
-        var defaultValue = defaultValue(field, field.getType());
+        var defaultValue = defaultValue(field);
         var componentsConfigurator = new DataComponentConfigurator(supplier.get().getItem().components(),
                 () -> supplier.get().getComponentsPatch(),
                 patch -> updater.accept(new ItemStack(supplier.get().getItem().builtInRegistryHolder(), supplier.get().getCount(), patch)), forceUpdate);

@@ -9,8 +9,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import net.minecraft.world.phys.AABB;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaGutter;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -24,8 +23,8 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
     }
 
     @Override
-    public AABB defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public AABB defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             var annotation = field.getAnnotation(DefaultValue.class);
             return new AABB(annotation.numberValue()[0], annotation.numberValue()[1], annotation.numberValue()[2], annotation.numberValue()[3], annotation.numberValue()[4], annotation.numberValue()[5]);
         }
@@ -33,7 +32,7 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<AABB> supplier, Consumer<AABB> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<AABB> supplier, Consumer<AABB> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator minX, minY, minZ;
         NumberConfigurator maxX, maxY, maxZ;
@@ -43,15 +42,15 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
                         minX = new NumberConfigurator("minX", () -> supplier.get().minX,
                                 v -> consumer.accept(new AABB(v.floatValue(), supplier.get().minY, supplier.get().minZ,
                                         supplier.get().maxX, supplier.get().maxY, supplier.get().maxZ)),
-                                defaultValue(field, field.getType()).minX, forceUpdate),
+                                defaultValue(field).minX, forceUpdate),
                         minY = new NumberConfigurator("minY", () -> supplier.get().minY,
                                 v -> consumer.accept(new AABB(supplier.get().minX, v.floatValue(), supplier.get().minZ,
                                         supplier.get().maxX, supplier.get().maxY, supplier.get().maxZ)),
-                                defaultValue(field, field.getType()).minY, forceUpdate),
+                                defaultValue(field).minY, forceUpdate),
                         minZ = new NumberConfigurator("minZ", () -> supplier.get().minZ,
                                 v -> consumer.accept(new AABB(supplier.get().minX, supplier.get().minY, v.floatValue(),
                                         supplier.get().maxX, supplier.get().maxY, supplier.get().maxZ)),
-                                defaultValue(field, field.getType()).minZ, forceUpdate)).layout(layout -> {
+                                defaultValue(field).minZ, forceUpdate)).layout(layout -> {
                     layout.gapAll(2);
                     layout.flexDirection(FlexDirection.ROW);
                     layout.wrap(FlexWrap.WRAP);
@@ -60,15 +59,15 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
                         maxX = new NumberConfigurator("maxX", () -> supplier.get().maxX,
                                 v -> consumer.accept(new AABB(supplier.get().minX, supplier.get().minY, supplier.get().minZ,
                                         v.floatValue(), supplier.get().maxY, supplier.get().maxZ)),
-                                defaultValue(field, field.getType()).minX, forceUpdate),
+                                defaultValue(field).minX, forceUpdate),
                         maxY = new NumberConfigurator("maxY", () -> supplier.get().maxY,
                                 v -> consumer.accept(new AABB(supplier.get().minX, supplier.get().minY, supplier.get().minZ,
                                         supplier.get().maxX, v.floatValue(), supplier.get().maxZ)),
-                                defaultValue(field, field.getType()).minY, forceUpdate),
+                                defaultValue(field).minY, forceUpdate),
                         maxZ = new NumberConfigurator("maxZ", () -> supplier.get().maxZ,
                                 v -> consumer.accept(new AABB(supplier.get().minX, supplier.get().minY, supplier.get().minZ,
                                         supplier.get().maxX, supplier.get().maxY, v.floatValue())),
-                                defaultValue(field, field.getType()).minZ, forceUpdate)).layout(layout -> {
+                                defaultValue(field).minZ, forceUpdate)).layout(layout -> {
                     layout.gapAll(2);
                     layout.marginLeft(2);
                     layout.flexDirection(FlexDirection.ROW);
@@ -108,7 +107,7 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
             layout.minWidth(40);
             layout.height(14);
         });
-        if (field.isAnnotationPresent(ConfigNumber.class)) {
+        if (field != null && field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);
             minX.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             minY.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());

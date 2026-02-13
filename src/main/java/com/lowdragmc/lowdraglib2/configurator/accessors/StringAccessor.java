@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -24,17 +25,17 @@ public class StringAccessor extends TypesAccessor<String> {
     }
 
     @Override
-    public String defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public String defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return field.getAnnotation(DefaultValue.class).stringValue()[0];
         }
         return "";
     }
 
     @Override
-    public Configurator create(String name, Supplier<String> supplier, Consumer<String> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<String> supplier, Consumer<String> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         var defaultValue = defaultValue(field, String.class);
-        if (field.isAnnotationPresent(ConfigSelector.class)) {
+        if (field != null && field.isAnnotationPresent(ConfigSelector.class)) {
             var configSelector = field.getAnnotation(ConfigSelector.class);
             var maxItems = configSelector.max();
             SelectorConfigurator<String> selector;
