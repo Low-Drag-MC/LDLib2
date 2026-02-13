@@ -1,4 +1,4 @@
- package com.lowdragmc.lowdraglib2.gui.ui;
+package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
