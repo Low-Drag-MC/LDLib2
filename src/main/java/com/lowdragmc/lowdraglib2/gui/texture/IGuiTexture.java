@@ -21,6 +21,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import dev.vfyjxf.taffy.style.AlignItems;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
@@ -173,15 +174,15 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
                 .addChild(new UIElement().layout(layout -> {
                     layout.setPipelineState(StyleOrigin.DEFAULT);
                     layout.setAspectRatio(1.0f);
-                    layout.setWidthPercent(80);
-                    layout.setAlignSelf(YogaAlign.CENTER);
-                    layout.setPadding(YogaEdge.ALL, 3);
+                    layout.widthPercent(80);
+                    layout.alignSelf(AlignItems.CENTER);
+                    layout.paddingAll(3);
                     layout.setPipelineState(StyleOrigin.INLINE);
                 }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
                         .addClass("preview_bg")
                         .addChild(new UIElement().layout(layout -> {
-                            layout.setWidthPercent(100);
-                            layout.setHeightPercent(100);
+                            layout.widthPercent(100);
+                            layout.heightPercent(100);
                         }).style(style -> style.backgroundTexture(this)))));
     }
 

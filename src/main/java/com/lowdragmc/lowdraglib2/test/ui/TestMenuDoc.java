@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -19,7 +20,6 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -63,7 +63,7 @@ public class TestMenuDoc implements IMenuTest {
                         new ItemSlot().bind(itemHandler, 0),
                         new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
                         new FluidSlot().bind(fluidTank, 0)
-                ).layout(l -> l.gapAll(2).flexDirection(YogaFlexDirection.ROW)),
+                ).layout(l -> l.gapAll(2).flexDirection(FlexDirection.ROW)),
                 // bind value to the components
                 new UIElement().addChildren(
                         new Switch().bind(DataBindingBuilder.bool(() -> bool, value -> bool = value).build()),

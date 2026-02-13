@@ -61,13 +61,13 @@ public class ColorsResource extends Resource<Integer> {
         return super.createResourceProviderContainer(provider)
                 .setAddDefault(() -> -1)
                 .setUiSupplier(path -> new UIElement().layout(layout -> {
-                    layout.setWidthPercent(100);
-                    layout.setHeightPercent(100);
+                    layout.widthPercent(100);
+                    layout.heightPercent(100);
                 }).style(style -> style.backgroundTexture(new ColorRectTexture(provider.getResource(path)))))
                 .setOnEdit((container, path) -> {
                     var colorSelector = new ColorSelector().setColor(provider.getResource(path));
                     var dialog = new Dialog();
-                    dialog.addContent(colorSelector.layout(layout -> layout.setWidthPercent(100)))
+                    dialog.addContent(colorSelector.layout(layout -> layout.widthPercent(100)))
                             .addButton(new Button().setOnClick(e -> {
                                 var previousColor = provider.getResource(path);
                                 var newColor = colorSelector.getColor();

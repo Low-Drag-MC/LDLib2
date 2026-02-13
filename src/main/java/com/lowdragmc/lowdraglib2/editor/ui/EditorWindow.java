@@ -15,6 +15,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -86,19 +89,20 @@ public class EditorWindow extends UIElement {
             initialScreenScale = minecraft.options.guiScale().get();
         }
 
-        getLayout().setWidthPercent(100);
-        getLayout().setHeightPercent(100);
+        getLayout().widthPercent(100);
+        getLayout().heightPercent(100);
 
         this.editorButtonContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
-            layout.setPosition(YogaEdge.TOP, 15);
-            layout.setWidthPercent(100);
-            layout.setGap(YogaGutter.ALL, 1);
-            layout.setHeight(14);
-        }).setDisplay(YogaDisplay.NONE).style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
+            layout.flexDirection(FlexDirection.ROW);
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.top(15);
+            layout.widthPercent(100);
+            layout.gapAll(1);
+            layout.height(14);
+        }).setDisplay(false).style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
         this.editorButtonContainer.addClass("__editor-window_editor-button-container__").moveInlineAsDefault();
 
+        this.editorContainer.getLayout().widthPercent(100).flex(1);
         this.editorContainer.addClass("__editor-window_editor-container__").moveInlineAsDefault();
         this.window.layout(layout -> layout.widthPercent(100).heightPercent(100))
                 .addChildren(this.editorContainer, this.editorButtonContainer);
@@ -122,14 +126,14 @@ public class EditorWindow extends UIElement {
     public void showEditor(Editor editor) {
         if (currentEditor == editor) return;
         if (currentEditor != null) {
-            currentEditor.setDisplay(YogaDisplay.NONE);
+            currentEditor.setDisplay(false);
         }
         currentEditor = editor;
-        editor.setDisplay(YogaDisplay.FLEX);
+        editor.setDisplay(true);
         editor.mainView.layout(layout -> {
-            layout.setMargin(YogaEdge.TOP, hasMultipleEditors() ? 14 : 0);
+            layout.marginTop(hasMultipleEditors() ? 14 : 0);
         });
-        editorButtonContainer.setDisplay(hasMultipleEditors() ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        editorButtonContainer.setDisplay(hasMultipleEditors());
         for (var entry : editors.entrySet()) {
             var isCurrent = entry.getKey() == currentEditor;
             entry.getValue().style(style -> {
@@ -255,7 +259,7 @@ public class EditorWindow extends UIElement {
         if (maximized) return;
         layout(layout -> layout.widthPercent(100).heightPercent(100));
         window.layout(layout -> layout
-                .positionType(YogaPositionType.RELATIVE)
+                .positionType(TaffyPosition.RELATIVE)
                 .paddingAll(0)
                 .left(0)
                 .top(0)
@@ -276,7 +280,7 @@ public class EditorWindow extends UIElement {
         // at least 1px to display xei.
         layout(layout -> layout.width(1).height(1));
         window.layout(layout -> layout
-                .positionType(YogaPositionType.ABSOLUTE)
+                .positionType(TaffyPosition.ABSOLUTE)
                 .paddingAll(3)
                 .left(windowLeft)
                 .top(windowTop)
@@ -294,10 +298,10 @@ public class EditorWindow extends UIElement {
 
     protected UIElement createEditorButton(Editor editor) {
         return new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setHeightPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setFlex(1);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.heightPercent(100);
+            layout.alignItems(AlignItems.CENTER);
+            layout.flex(1);
         }).style(style -> {
             style.setPipelineState(StyleOrigin.DEFAULT);
             style.backgroundTexture(currentEditor == editor ? ColorPattern.SLATE_PLUM.rectTexture() : ColorPattern.DARK_GRAY.rectTexture());
@@ -309,8 +313,8 @@ public class EditorWindow extends UIElement {
                                 .textWrap(TextWrap.HOVER_ROLL)
                         )
                         .layout(layout -> {
-                            layout.setHeightPercent(100);
-                            layout.setFlex(1);
+                            layout.heightPercent(100);
+                            layout.flex(1);
                         }).addEventListener(UIEvents.TICK, e -> {
                             if (e.target.getModularUI().getTickCounter() % 20 ==0) {
                                 var currentTitle = editor.getTitle();
@@ -328,9 +332,9 @@ public class EditorWindow extends UIElement {
                     editor.exit();
                     e.stopPropagation();
                 }).layout(layout -> {
-                    layout.setHeight(9);
+                    layout.height(9);
                     layout.setAspectRatio(1);
-                    layout.setMargin(YogaEdge.RIGHT, 2);
+                    layout.marginRight(2);
                 })
         ).addEventListener(UIEvents.MOUSE_DOWN, e -> showEditor(editor));
     }

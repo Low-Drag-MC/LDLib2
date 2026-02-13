@@ -9,9 +9,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -57,11 +57,11 @@ public class TestOverflow implements IScreenTest {
         center.addChildren(clipImage);
 
         right.addChild(new UIElement().layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         }).setId("overflow-container").addChild(new ColorSelector().layout(layout -> layout.widthPercent(150))));
 
-        root.getLayout().width(300).height(150).flexDirection(YogaFlexDirection.ROW);
+        root.getLayout().width(300).height(150).flexDirection(FlexDirection.ROW);
         root.addChildren(
                 left,
                 center,

@@ -9,9 +9,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.client.gui.GuiGraphics;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaPositionType;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
@@ -37,11 +37,11 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         });
         this.colorSelector.addClass("panel_bg");
         this.colorSelector.layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
-            layout.setWidthPercent(100);
-            layout.setMaxWidth(150);
-            layout.setMinWidth(100);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.widthPercent(100);
+            layout.maxWidth(150);
+            layout.minWidth(100);
+            layout.paddingAll(4);
         });
         this.colorSelector.setOnColorChangeListener(this::updateValueActively);
         this.colorSelector.setFocusable(true);
@@ -51,8 +51,8 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         colorPreview = new UIElement();
         inlineContainer.addChildren(colorPreview.layout(layout -> {
             layout.setPipelineState(StyleOrigin.DEFAULT);
-            layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.height(14);
+            layout.paddingAll(3);
             layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> {
             style.setPipelineState(StyleOrigin.DEFAULT);
@@ -61,7 +61,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             style.overlayTexture(DynamicTexture.of(() -> colorPreview.isSelfOrChildHover() ? Sprites.RECT_RD_T_SOLID : IGuiTexture.EMPTY));
             style.setPipelineState(StyleOrigin.INLINE);
         }).addClass("configurator_preview_bg").addChildren(new UIElement()
-                .layout(layout -> layout.setHeightPercent(100))
+                .layout(layout -> layout.heightPercent(100))
                 .style(style -> style.backgroundTexture(this::drawColorPreview))
                 .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
@@ -87,9 +87,9 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             root.addChild(colorSelector.layout(layout -> {
                 var x = colorPreview.getPositionX();
                 var y = colorPreview.getPositionY();
-                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY());
-                layout.setWidth(colorPreview.getSizeWidth());
+                layout.left(x - root.getLayoutX());
+                layout.top(y - root.getLayoutY());
+                layout.width(colorPreview.getSizeWidth());
             }));
             this.colorSelector.focus();
         }

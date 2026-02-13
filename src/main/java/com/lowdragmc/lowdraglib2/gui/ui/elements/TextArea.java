@@ -26,6 +26,8 @@ import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -40,9 +42,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
@@ -279,7 +279,7 @@ public class TextArea extends BindableUIElement<String[]> {
         this.verticalScroller.addClass("__text-area_vertical-scroller__");
 
         // Default layout and look
-        getLayout().setHeight(60);
+        getLayout().height(60);
 
         this.contentView = new UIElement() {
             @Override
@@ -289,9 +289,9 @@ public class TextArea extends BindableUIElement<String[]> {
         };
         this.contentView.addClass("__text-area_content-view__");
         this.contentView.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 3);
-            layout.setFlex(1);
-            layout.setHeightPercent(100);
+            layout.paddingAll(3);
+            layout.flex(1);
+            layout.heightPercent(100);
         });
         this.contentView.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID));
         this.contentView.setOverflow(YogaOverflow.HIDDEN);
@@ -319,9 +319,9 @@ public class TextArea extends BindableUIElement<String[]> {
         verticalScroller.setOnValueChanged(this::onVerticalScroll);
         horizontalScroller.setOnValueChanged(this::onHorizontalScroll);
         addChildren(new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.widthPercent(100);
+            layout.flex(1);
         }).addChildren(contentView, verticalScroller), horizontalScroller);
         internalSetup();
     }
@@ -432,33 +432,24 @@ public class TextArea extends BindableUIElement<String[]> {
             // so we need to calculate the width ourselves
             var vp = Math.min(1, contentView.getContentWidth() / maxWidth);
             horizontalScroller.setScrollBarSize(vp * 100);
-            if ((textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                horizontalScroller.setDisplay(YogaDisplay.FLEX);
-
-            } else {
-                horizontalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            horizontalScroller.setDisplay((textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || textAreaStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            horizontalScroller.setDisplay(YogaDisplay.NONE);
+            horizontalScroller.setDisplay(false);
         }
 
-        if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
+        if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {
             horizontalScroller.layout(layout -> {
                 Style.importantPipeline(layout, l ->
-                        l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));
+                        l.marginRight(verticalScroller.isDisplayed() ? textAreaStyle.scrollerViewMargin() : 0));
             });
         }
 
         if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
             var hp = Math.min(1, contentView.getContentHeight() / maxHeight);
             verticalScroller.setScrollBarSize(hp * 100);
-            if ((textAreaStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || textAreaStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                verticalScroller.setDisplay(YogaDisplay.FLEX);
-            } else {
-                verticalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            verticalScroller.setDisplay((textAreaStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || textAreaStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            verticalScroller.setDisplay(YogaDisplay.NONE);
+            verticalScroller.setDisplay(false);
         }
     }
 

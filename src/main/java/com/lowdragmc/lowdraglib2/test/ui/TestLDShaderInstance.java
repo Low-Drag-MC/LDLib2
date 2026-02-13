@@ -12,11 +12,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 @LDLRegisterClient(name="ld_shader_instance", registry = "ldlib2:screen_test")
 @NoArgsConstructor
@@ -27,9 +27,9 @@ public class TestLDShaderInstance implements IScreenTest {
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWidth(350);
-            layout.setHeight(300);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.width(350);
+            layout.height(300);
         }).setId("root");
 
         var group = new ConfiguratorGroup("root");
@@ -39,12 +39,12 @@ public class TestLDShaderInstance implements IScreenTest {
         var text = new TextElement();
         root.addChildren(
                 new ScrollerView().addScrollViewChild(group).layout(layout -> {
-                    layout.setFlex(1);
-                    layout.setHeightPercent(100);
+                    layout.flex(1);
+                    layout.heightPercent(100);
                 }),
                 new UIElement().layout(layout -> {
-                    layout.setFlex(1);
-                    layout.setHeightPercent(100);
+                    layout.flex(1);
+                    layout.heightPercent(100);
                 }).addChildren(
                         new Button().setText("serialize").setOnClick(e -> {
                             serialized = shaderTexture.serializeNBT(Platform.getFrozenRegistry());
@@ -57,10 +57,10 @@ public class TestLDShaderInstance implements IScreenTest {
                             style.adaptiveHeight(true);
                             style.textWrap(TextWrap.WRAP);
                         }).layout(layout -> {
-                            layout.setWidthPercent(100);
+                            layout.widthPercent(100);
                         })).layout(layout -> {
-                            layout.setFlex(1);
-                            layout.setWidthPercent(100);
+                            layout.flex(1);
+                            layout.widthPercent(100);
                         })))
                 .addEventListener(UIEvents.REMOVED, e -> shaderTexture.close());
 

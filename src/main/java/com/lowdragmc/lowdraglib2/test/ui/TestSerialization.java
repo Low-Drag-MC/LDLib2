@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -37,7 +38,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -94,7 +94,7 @@ public class TestSerialization implements IScreenTest {
             var instance = getter.get();
             if (instance != null && instance.createDirectConfigurator() instanceof ConfiguratorGroup group) {
                 group.setCollapse(false);
-                group.lineContainer.setDisplay(YogaDisplay.NONE);
+                group.lineContainer.setDisplay(false);
                 return group;
             }
             return new Configurator();
@@ -165,9 +165,9 @@ public class TestSerialization implements IScreenTest {
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWidth(350);
-            layout.setHeight(300);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.width(350);
+            layout.height(300);
         }).setId("root");
 
         var group = new ConfiguratorGroup("root");
@@ -176,12 +176,12 @@ public class TestSerialization implements IScreenTest {
         var text = new TextElement();
         root.addChildren(
                 new ScrollerView().addScrollViewChild(group).layout(layout -> {
-                    layout.setFlex(1);
-                    layout.setHeightPercent(100);
+                    layout.flex(1);
+                    layout.heightPercent(100);
                 }),
                 new UIElement().layout(layout -> {
-                    layout.setFlex(1);
-                    layout.setHeightPercent(100);
+                    layout.flex(1);
+                    layout.heightPercent(100);
                 }).addChildren(
                         new UIElement().addChildren(
                                 new Button().setText("S nbt").setOnClick(e -> {
@@ -191,7 +191,7 @@ public class TestSerialization implements IScreenTest {
                                 new Button().setText("D nbt").setOnClick(e -> {
                                     data.deserializeNBT(Platform.getFrozenRegistry(), serializedNbt);
                                 }).layout(layout -> layout.flex(1))
-                        ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)),
+                        ).layout(layout -> layout.flexDirection(FlexDirection.ROW)),
                         new UIElement().addChildren(
                                 new Button().setText("S buf").setOnClick(e -> {
                                     serializedBuf = ByteBufUtil.writeCustomData(buf -> data.writeToBuff(buf), Platform.getFrozenRegistry());
@@ -205,15 +205,15 @@ public class TestSerialization implements IScreenTest {
                                     } catch (Exception ignored) {
                                     }
                                 }).layout(layout -> layout.flex(1))
-                        ).layout(layout -> layout.flexDirection(YogaFlexDirection.ROW)),
+                        ).layout(layout -> layout.flexDirection(FlexDirection.ROW)),
                         new ScrollerView().addScrollViewChild(text.textStyle(style -> {
                             style.adaptiveHeight(true);
                             style.textWrap(TextWrap.WRAP);
                         }).layout(layout -> {
-                            layout.setWidthPercent(100);
+                            layout.widthPercent(100);
                         })).layout(layout -> {
-                            layout.setFlex(1);
-                            layout.setWidthPercent(100);
+                            layout.flex(1);
+                            layout.widthPercent(100);
                         })));
 
         return new ModularUI(UI.of(root));

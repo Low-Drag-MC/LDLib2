@@ -212,10 +212,10 @@ public class TextElement extends UIElement {
                 maxWidth
         );
         if (getTextStyle().adaptiveWidth()) {
-            Style.importantPipeline(getLayout(), layout -> layout.setWidth(formattedLines.stream().findFirst().map(Tuple::getB).orElse(0f) + getSizeWidth() - getContentWidth()));
+            Style.importantPipeline(getLayout(), layout -> layout.width(formattedLines.stream().findFirst().map(Tuple::getB).orElse(0f) + getSizeWidth() - getContentWidth()));
         }
         if (getTextStyle().adaptiveHeight()) {
-            Style.importantPipeline(getLayout(), layout -> layout.setHeight(formattedLines.size() * (getTextStyle().fontSize() + getTextStyle().lineSpacing()) - getTextStyle().lineSpacing() + getSizeHeight() - getContentHeight()));
+            Style.importantPipeline(getLayout(), layout -> layout.height(formattedLines.size() * (getTextStyle().fontSize() + getTextStyle().lineSpacing()) - getTextStyle().lineSpacing() + getSizeHeight() - getContentHeight()));
         }
     }
 

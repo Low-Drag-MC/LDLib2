@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import net.minecraft.client.renderer.RenderType;
 import net.neoforged.api.distmarker.Dist;
@@ -33,7 +34,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.common.util.TriState;
-import org.appliedenergistics.yoga.YogaAlign;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -262,7 +262,7 @@ public class IModelRenderer implements IRenderer {
                     buttonConfigurator.notifyChanges();
                 }
             }).show(e.currentElement.getModularUI());
-        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))));
+        }).layout(layout -> layout.alignSelf(AlignItems.CENTER))));
     }
 
     @Nullable

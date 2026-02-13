@@ -6,7 +6,7 @@ import org.appliedenergistics.yoga.YogaEdge;
 
 public class HeaderConfigurator extends Configurator {
     public HeaderConfigurator(Component value, int topMargin) {
-        layout(layout -> layout.setMargin(YogaEdge.TOP, topMargin));
+        layout(layout -> layout.marginTop(topMargin));
         setLabel(value);
     }
 

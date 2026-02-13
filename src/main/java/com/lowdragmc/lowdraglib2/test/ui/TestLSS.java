@@ -8,9 +8,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -53,7 +53,7 @@ public class TestLSS implements IScreenTest {
 
         right.addChildren(target);
 
-        root.getLayout().width(300).height(150).flexDirection(YogaFlexDirection.ROW);
+        root.getLayout().width(300).height(150).flexDirection(FlexDirection.ROW);
         root.addChildren(
                 left,
                 right

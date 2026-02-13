@@ -98,8 +98,8 @@ public class IRendererResource extends Resource<IRenderer> {
             fboRenderer.addRenderedBlocks(List.of(BlockPos.ZERO), null);
             fboRenderer.setCameraLookAt(new Vector3f(0.5f), 2.5, Math.toRadians(-135), Math.toRadians(25));
             return new UIElement().layout(layout -> {
-                        layout.setWidthPercent(100);
-                        layout.setHeightPercent(100);
+                        layout.widthPercent(100);
+                        layout.heightPercent(100);
                     }).style(style -> style.backgroundTexture(fboRenderer.drawAsTexture()))
                     // release resources here
                     .addEventListener(UIEvents.REMOVED, e -> fboRenderer.releaseResource());

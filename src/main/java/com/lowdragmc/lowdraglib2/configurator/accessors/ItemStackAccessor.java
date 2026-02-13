@@ -36,7 +36,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
     public Configurator create(String name, Supplier<ItemStack> supplier, Consumer<ItemStack> consumer, boolean forceUpdate, Field field, Object owner) {
         var group = new ConfiguratorGroup(name);
         var slot = new ItemSlot();
-        slot.layout(layout -> layout.setWidth(14).setHeight(14));
+        slot.layout(layout -> layout.width(14).height(14));
         slot.bindDataSource(SupplierDataSource.of(supplier));
         Consumer<ItemStack> updater = itemStack -> {
             slot.setItem(itemStack);

@@ -19,10 +19,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
@@ -48,12 +48,12 @@ public class UIHierarchy extends UIElement {
 
     public UIHierarchy(UIEditorView editorView) {
         this.editorView = editorView;
-        this.getLayout().setWidthPercent(100.0F);
-        this.getLayout().setHeightPercent(100.0F);
+        this.getLayout().widthPercent(100.0F);
+        this.getLayout().heightPercent(100.0F);
 
         this.scrollerView.layout((layout) -> {
-            layout.setWidthPercent(100.0F);
-            layout.setHeightPercent(100.0F);
+            layout.widthPercent(100.0F);
+            layout.heightPercent(100.0F);
         });
         this.addChild(this.scrollerView);
         scrollerView.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown, true);
@@ -61,22 +61,22 @@ public class UIHierarchy extends UIElement {
                 .setSupportMultipleSelection(true)
                 .setNodeUISupplier((node) -> {
                     UIElement container = (new UIElement()).layout((layout) -> {
-                        layout.setFlexDirection(YogaFlexDirection.ROW);
-                        layout.setGap(YogaGutter.ALL, 2.0F);
-                        layout.setHeight(10.0F);
-                        layout.setFlex(1.0F);
+                        layout.flexDirection(FlexDirection.ROW);
+                        layout.gapAll(2.0F);
+                        layout.height(10.0F);
+                        layout.flex(1.0F);
                     }).addChildren();
                     UIElement icon = (new UIElement()).layout((layout) -> {
                         layout.setAspectRatio(1.0F);
-                        layout.setHeightPercent(100.0F);
+                        layout.heightPercent(100.0F);
                     }).style((style) -> style.backgroundTexture(node.getKey().getEditorIcon()));
                     TextElement label = new TextElement();
                     label.textStyle((style) -> {
                         style.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER);
                         style.textColor(node.getKey().isInternalUI() ? ColorPattern.LIGHT_GRAY.color : ColorPattern.WHITE.color);
                     }).setText(node.getKey().getEditorName()).layout((layout) -> {
-                        layout.setHeightPercent(100.0F);
-                        layout.setFlex(1.0F);
+                        layout.heightPercent(100.0F);
+                        layout.flex(1.0F);
                     }).setOverflow(YogaOverflow.HIDDEN).addEventListener(UIEvents.TICK, e -> {
                         label.setText(node.getKey().getEditorName());
                     });

@@ -3,10 +3,9 @@ package com.lowdragmc.lowdraglib2.configurator.ui;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaDisplay;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 
 import javax.annotation.Nonnull;
@@ -29,13 +28,13 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
             value = defaultValue;
         }
         inlineContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
         });
         inlineContainer.addChildren(textField = new TextField(), definedSelector = new Selector<>());
 
-        definedSelector.buttonIcon.setDisplay(YogaDisplay.NONE);
+        definedSelector.buttonIcon.setDisplay(false);
         definedSelector.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
         });
         definedSelector.setCandidates(List.of(false, true));
         updateSelector();
@@ -52,8 +51,8 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
                 Component.literal("-") : Component.translatable("initial")));
 
         textField.layout(layout -> {
-            layout.setFlex(2);
-        }).setDisplay(value.isDefined() ? YogaDisplay.FLEX : YogaDisplay.NONE);
+            layout.flex(2);
+        }).setDisplay(value.isDefined());
         textField.setTextResponder(this::onNumberUpdate);
         updateTextField();
     }
@@ -97,7 +96,7 @@ public class FloatOptionalConfigurator extends ValueConfigurator<FloatOptional> 
 
     protected void updateTextFieldValue() {
         assert value != null;
-        textField.setDisplay(value.isDefined() ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        textField.setDisplay(value.isDefined());
         textField.setText(String.valueOf(value.getValue()), false);
     }
 

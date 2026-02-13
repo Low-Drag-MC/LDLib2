@@ -7,14 +7,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaDisplay;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaPositionType;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -101,7 +99,7 @@ public class ModularUIPreview extends UIElement {
         var selectedOne = editorView.hierarchy.getSelectedOne();
         if (showSelectionBox && selectedOne.isPresent()) {
             var selected = selectedOne.get();
-            selectionBox.setDisplay(YogaDisplay.FLEX);
+            selectionBox.setDisplay(true);
             var posX = selected.getPositionX();
             var posY = selected.getPositionY();
             var sizeX = selected.getSizeWidth();
@@ -119,13 +117,13 @@ public class ModularUIPreview extends UIElement {
             var y = (posY - marginTop - offsetY) * scale;
 
             this.selectionBox.layout(layout -> {
-                layout.setPosition(YogaEdge.LEFT, x);
-                layout.setPosition(YogaEdge.TOP, y);
-                layout.setWidth(width);
-                layout.setHeight(height);
+                layout.left(x);
+                layout.top(y);
+                layout.width(width);
+                layout.height(height);
             });
         } else {
-            selectionBox.setDisplay(YogaDisplay.NONE);
+            selectionBox.setDisplay(false);
         }
     }
 
@@ -139,20 +137,20 @@ public class ModularUIPreview extends UIElement {
         public final Label label;
 
         public SelectionBox() {
-            getLayout().setPositionType(YogaPositionType.ABSOLUTE);
-            getLayout().setWidth(0);
-            getLayout().setHeight(0);
-            setDisplay(YogaDisplay.NONE);
+            getLayout().positionType(TaffyPosition.ABSOLUTE);
+            getLayout().width(0);
+            getLayout().height(0);
+            setDisplay(false);
 
             getStyle().backgroundTexture(ColorPattern.BLUE.borderTexture(1));
             widgetsGroup = new UIElement();
             label = new Label();
             widgetsGroup.layout(layout -> {
-                layout.setFlexDirection(YogaFlexDirection.ROW);
-                layout.setPositionType(YogaPositionType.ABSOLUTE);
-                layout.setPosition(YogaEdge.TOP, -15);
-                layout.setPadding(YogaEdge.ALL, 2);
-                layout.setHeight(14);
+                layout.flexDirection(FlexDirection.ROW);
+                layout.positionType(TaffyPosition.ABSOLUTE);
+                layout.top(-15);
+                layout.paddingAll(2);
+                layout.height(14);
             });
             widgetsGroup.addChildren(
                     label.bindDataSource(SupplierDataSource.of(() ->

@@ -16,13 +16,13 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.lwjgl.system.MemoryUtil;
 
@@ -92,61 +92,62 @@ public class ColorSelector extends BindableUIElement<Integer> {
         this.hsbButton.addClass("__color-selector_hsb-button__");
 
         colorSlider.layout(layout -> {
-            layout.setWidth(12);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.width(12);
+            layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1))
-                .addChildren(new UIElement().layout(layout -> layout.setFlex(1))
+                .addChildren(new UIElement().layout(layout -> layout.flex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustColorSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustColorSlider)
                         .addClass("__color-selector_color-slider_bar__").style(style -> style.backgroundTexture(this::drawColorSlider)));
 
         alphaSlider.layout(layout -> {
             layout.setFlexGrow(1);
-            layout.setHeight(12);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.height(12);
+            layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1)).addChildren(
-                new UIElement().layout(layout -> layout.setFlex(1))
+                new UIElement().layout(layout -> layout.flex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustAlphaSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustAlphaSlider)
                         .addClass("__color-selector_alpha-slider_bar__").style(style -> style.backgroundTexture(this::drawAlphaSlider)));
 
         hsbButton.setOnClick(this::onSwitchHSB).textStyle(textStyle -> textStyle.fontSize(6)).setText("H").layout(layout -> {
-            layout.setWidth(12);
-            layout.setHeight(12);
+            layout.width(12);
+            layout.height(12);
         });
 
         pickerContainer.layout(layout -> {
+            layout.widthPercent(100);
             layout.setAspectRatio(1);
         }).addChildren(
                 new UIElement().layout(layout -> {
-                    layout.setFlex(1);
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
+                    layout.flex(1);
+                    layout.flexDirection(FlexDirection.ROW);
                 }).addChildren(colorPreview.layout(layout -> {
-                    layout.setFlex(1);
-                    layout.setPadding(YogaEdge.ALL, 4);
+                    layout.flex(1);
+                    layout.paddingAll(4);
                 }).style(style -> style.backgroundTexture(Sprites.BORDER1_THICK_RT1)).addChild(
-                        new UIElement().layout(layout -> layout.setFlex(1))
+                        new UIElement().layout(layout -> layout.flex(1))
                                 .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustHsbContext)
                                 .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustHsbContext)
                                 .addClass("__color-selector_color-preview_display__").style(style -> style.backgroundTexture(this::drawHsbContext))
                 ), colorSlider),
 
-                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
+                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW))
                         .addChildren(alphaSlider, hsbButton));
 
         this.textContainer = new UIElement().layout(layout -> {
-            layout.setMargin(YogaEdge.TOP, 2);
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.marginTop(2);
+            layout.gapAll(1);
         }).addClass("__color-selector_text-container__");
         this.textContainer.addChildren(
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setGap(YogaGutter.ALL, 2);
-                    layout.setAlignItems(YogaAlign.CENTER);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.gapAll(2);
+                    layout.alignItems(AlignItems.CENTER);
                 }).addChildren(
                         new UIElement().layout(layout -> {
-                            layout.setWidth(10);
-                            layout.setHeight(10);
+                            layout.width(10);
+                            layout.height(10);
                         }).style(style -> style.backgroundTexture(this::drawColorPreview)),
                         hexConfigurator = new StringConfigurator("", () -> String.format("#%08x", argb), s -> {
                             try {
@@ -154,8 +155,8 @@ public class ColorSelector extends BindableUIElement<Integer> {
                             } catch (Exception ignored) {}}, "#FFFFFFFF", false),
                         new Button().setOnClick(this::onCopy).textStyle(textStyle -> textStyle.fontSize(6).adaptiveWidth(true))
                                 .setText("Copy").layout(layout -> {
-                                    layout.setHeight(10);
-                                    layout.setPadding(YogaEdge.HORIZONTAL, 2);
+                                    layout.height(10);
+                                    layout.paddingHorizontal(2);
                                 })),
                 new NumberConfigurator("r", () -> ColorUtils.redI(argb), r -> setColor(ColorUtils.color(ColorUtils.alphaI(argb),
                         r.intValue(), ColorUtils.greenI(argb), ColorUtils.blueI(argb))), 255, true).setRange(0, 255)

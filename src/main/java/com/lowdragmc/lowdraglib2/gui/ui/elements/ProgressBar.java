@@ -19,18 +19,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
-import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.ItemStack;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaPositionType;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -119,7 +117,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     private float lastValue = 0;
 
     public ProgressBar() {
-        getLayout().setHeight(14);
+        getLayout().height(14);
 
         this.barContainer = new UIElement();
         this.label = new Label();
@@ -129,24 +127,24 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         this.bar.addClass("__progress-bar_bar__");
 
         this.barContainer.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
+            layout.paddingAll(4);
         }).style(style -> style.backgroundTexture(Sprites.PROGRESS_CONTAINER));
         this.bar.style(style -> style.backgroundTexture(Sprites.PROGRESS_BAR));
         this.label.textStyle(style -> style
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER))
                 .layout(layout -> {
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(100);
-                    layout.setPositionType(YogaPositionType.ABSOLUTE);
+                    layout.heightPercent(100);
+                    layout.widthPercent(100);
+                    layout.positionType(TaffyPosition.ABSOLUTE);
                 });
 
         this.barContainer.addChildren(new UIElement()
                         .layout(layout -> {
-                            layout.setHeightPercent(100);
-                            layout.setWidthPercent(100);
+                            layout.heightPercent(100);
+                            layout.widthPercent(100);
                         })
                 .addChildren(this.bar, this.label));
         this.addChildren(this.barContainer);
@@ -176,42 +174,42 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         switch (progressBarStyle.fillDirection()) {
             case LEFT_TO_RIGHT -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.COLUMN);
-                    layout.setAlignItems(YogaAlign.FLEX_START);
+                    layout.flexDirection(FlexDirection.COLUMN);
+                    layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(normalizedValue * 100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(normalizedValue * 100);
                 });
             }
             case RIGHT_TO_LEFT -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.COLUMN);
-                    layout.setAlignItems(YogaAlign.FLEX_END);
+                    layout.flexDirection(FlexDirection.COLUMN);
+                    layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(100);
-                    layout.setWidthPercent(normalizedValue * 100);
+                    layout.heightPercent(100);
+                    layout.widthPercent(normalizedValue * 100);
                 });
             }
             case UP_TO_DOWN -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.FLEX_START);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(normalizedValue * 100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(normalizedValue * 100);
+                    layout.widthPercent(100);
                 });
             }
             case DOWN_TO_UP -> {
                 this.barContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.FLEX_END);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
-                    layout.setHeightPercent(normalizedValue * 100);
-                    layout.setWidthPercent(100);
+                    layout.heightPercent(normalizedValue * 100);
+                    layout.widthPercent(100);
                 });
             }
         }

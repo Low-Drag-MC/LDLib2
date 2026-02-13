@@ -6,18 +6,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
-import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
-import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.*;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -48,44 +46,44 @@ public class Dialog extends UIElement {
         this.contentContainer = new UIElement().addClass("__dialog_content-container__");
         this.buttonContainer = new UIElement().addClass("__dialog_button-container__");
         this.setFocusable(true);
-        this.getLayout().setPositionType(YogaPositionType.ABSOLUTE);
-        this.getLayout().setWidthPercent(100);
-        this.getLayout().setHeightPercent(100);
-        this.getLayout().setJustifyContent(YogaJustify.CENTER);
-        this.getLayout().setAlignItems(YogaAlign.CENTER);
+        this.getLayout().positionType(TaffyPosition.ABSOLUTE);
+        this.getLayout().widthPercent(100);
+        this.getLayout().heightPercent(100);
+        this.getLayout().justifyContent(AlignContent.CENTER);
+        this.getLayout().alignItems(AlignItems.CENTER);
         this.getStyle().zIndex(1);
 
         this.overlay = new UIElement().layout(layout -> {
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
-            layout.setWidth(150);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
+            layout.width(150);
         }).addClass("__dialog_overlay__");
 
         this.titleBar.layout(layout -> {
-            layout.flexDirection(YogaFlexDirection.ROW);
+            layout.flexDirection(FlexDirection.ROW);
             layout.gapAll(2);
             layout.setPipelineState(StyleOrigin.DEFAULT);
-            layout.setWidthPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.widthPercent(100);
+            layout.alignItems(AlignItems.CENTER);
+            layout.paddingAll(5);
             layout.setPipelineState(StyleOrigin.INLINE);
         }).style(style -> style.backgroundTexture(Sprites.BORDER1_RT1));
 
         this.contentContainer.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
-            layout.setPadding(YogaEdge.ALL, 4);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.widthPercent(100);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
+            layout.paddingAll(4);
+            layout.gapAll(2);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
         this.buttonContainer.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setPadding(YogaEdge.ALL, 4);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.widthPercent(100);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.paddingAll(4);
+            layout.gapAll(2);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
         overlay.addChildren(titleBar, contentContainer, buttonContainer);
@@ -107,7 +105,7 @@ public class Dialog extends UIElement {
     public Dialog allowInteraction() {
         getLayout().widthAuto();
         getLayout().heightAuto();
-        getLayout().alignSelf(YogaAlign.CENTER);
+        getLayout().alignSelf(AlignItems.CENTER);
 
         this.addEventListener(UIEvents.MOUSE_DOWN, UIEvent::stopLaterPropagation);
         this.addEventListener(UIEvents.MOUSE_UP, UIEvent::stopLaterPropagation);
@@ -204,7 +202,13 @@ public class Dialog extends UIElement {
     /**
      * Sets the width of the dialog. by default, it will be 150px.
      */
+    @Deprecated
     public Dialog width(StyleSizeLength width) {
+        overlay.layout(layout -> layout.width(width));
+        return this;
+    }
+
+    public Dialog width(TaffyDimension width) {
         overlay.layout(layout -> layout.setWidth(width));
         return this;
     }
@@ -218,7 +222,7 @@ public class Dialog extends UIElement {
     }
 
     public Dialog top() {
-        this.getLayout().setJustifyContent(YogaJustify.FLEX_START);
+        this.getLayout().justifyContent(AlignContent.FLEX_START);
         this.overlay.layout(layout -> {
             layout.top(10);
         });
@@ -226,7 +230,7 @@ public class Dialog extends UIElement {
     }
 
     public Dialog bottom() {
-        this.getLayout().setJustifyContent(YogaJustify.FLEX_END);
+        this.getLayout().justifyContent(AlignContent.FLEX_END);
         this.overlay.layout(layout -> {
             layout.bottom(10);
         });
@@ -283,7 +287,7 @@ public class Dialog extends UIElement {
         }
         var dialog = new Dialog();
         dialog.setTitle(title);
-        dialog.addContent(textField.layout(layout -> layout.setWidthPercent(100)));
+        dialog.addContent(textField.layout(layout -> layout.widthPercent(100)));
         dialog.addButton(new Button()
                 .setOnClick(e -> {
                     result.accept(textField.getText());
@@ -308,7 +312,7 @@ public class Dialog extends UIElement {
         var dialog = new Dialog();
         dialog.titleBar.setDisplay(false);
         dialog.addContent(new Label().textStyle(textStyle -> textStyle.textWrap(TextWrap.WRAP).adaptiveHeight(true))
-                .setText(info).layout(layout -> layout.setWidthPercent(100)));
+                .setText(info).layout(layout -> layout.widthPercent(100)));
         dialog.buttonContainer.setDisplay(false);
         dialog.top();
         dialog.allowInteraction();
@@ -325,7 +329,7 @@ public class Dialog extends UIElement {
                                 .addClass("__dialog_progress-bar__")
                                 .animation(animation -> animation
                                         .duration(duration)
-                                        .style(YogaProperties.WIDTH, StyleSizeLength.percent(100))
+                                        .style(LayoutProperties.WIDTH, TaffyDimension.percent(1))
                                         .onFinished(target -> dialog.close())
                                         .start())
                 ), 0
@@ -346,7 +350,7 @@ public class Dialog extends UIElement {
         dialog.setOnClose(onClosed);
         dialog.setTitle(title);
         dialog.addContent(new Label().textStyle(textStyle -> textStyle.textWrap(TextWrap.WRAP).adaptiveHeight(true))
-                .setText(info).layout(layout -> layout.setWidthPercent(100)));
+                .setText(info).layout(layout -> layout.widthPercent(100)));
         dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm"));
         return dialog;
     }
@@ -363,7 +367,7 @@ public class Dialog extends UIElement {
         var dialog = new Dialog();
         dialog.setTitle(title);
         dialog.addContent(new Label().textStyle(textStyle -> textStyle.textWrap(TextWrap.WRAP).adaptiveHeight(true))
-                .setText(info).layout(layout -> layout.setWidthPercent(100)));
+                .setText(info).layout(layout -> layout.widthPercent(100)));
         dialog.addButton(new Button()
                 .setOnClick(e -> {
                     if (onClosed != null) {
@@ -418,19 +422,19 @@ public class Dialog extends UIElement {
                 return dialog;
             }
         }
-        dialog.overlay.layout(layout -> layout.setWidth(200));
+        dialog.overlay.layout(layout -> layout.width(200));
         dialog.setTitle(title);
         dialog.addContent(new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
-        }).addChildren(textField.layout(layout -> layout.setFlex(1)), new Button().setOnClick(e -> {
+            layout.widthPercent(100);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.gapAll(2);
+        }).addChildren(textField.layout(layout -> layout.flex(1)), new Button().setOnClick(e -> {
             Util.getPlatform().openFile(dir.isDirectory() ? dir : dir.getParentFile());
         }).noText().layout(layout -> {
-            layout.setWidth(14);
-            layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 3);
-        }).addChild(new UIElement().layout(layout -> layout.setWidthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
+            layout.width(14);
+            layout.height(14);
+            layout.paddingAll(3);
+        }).addChild(new UIElement().layout(layout -> layout.widthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
         dialog.addContent(new ScrollerView().addScrollViewChild(treeList.setOnSelectedChanged(selected -> {
                     if (selected.isEmpty()) return;
                     var first = selected.stream().findFirst().get();
@@ -455,8 +459,8 @@ public class Dialog extends UIElement {
                         node -> Component.translatable(node.getKey().getName())))
                         .setRoot(new FileNode(dir).setValid(valid))
                 ).layout(layout -> {
-                            layout.setWidthPercent(100);
-                            layout.setHeight(180);
+                            layout.widthPercent(100);
+                            layout.height(180);
                         })
         );
         dialog.addButton(new Button()

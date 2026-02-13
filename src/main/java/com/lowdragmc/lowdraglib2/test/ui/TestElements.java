@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -41,13 +42,13 @@ public class TestElements implements IScreenTest {
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setWidth(250);
-            layout.setHeight(400);
-            layout.setPadding(YogaEdge.ALL, 10);
+            layout.width(250);
+            layout.height(400);
+            layout.paddingAll(10);
         }).setId("root");
         root.getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(new TabView().addTab(new Tab().setText("element1"), new UIElement().layout(layout -> {
-                            layout.setWidthPercent(100);
+                            layout.widthPercent(100);
                         }).addChildren(
                                 new Label()
                                         .setText("Hello World!!")
@@ -56,14 +57,14 @@ public class TestElements implements IScreenTest {
                                                 .textAlignHorizontal(Horizontal.CENTER)
                                                 .textAlignVertical(Vertical.CENTER))
                                         .layout(layout -> {
-                                            layout.setHeight(30);
+                                            layout.height(30);
                                         }).setId("header")
                                         .style(style -> style.backgroundTexture(Sprites.BORDER)),
                                 new UIElement().layout(layout -> {
-                                            layout.setMargin(YogaEdge.HORIZONTAL, 10);
-                                            layout.setMargin(YogaEdge.BOTTOM, 10);
-                                            layout.setPadding(YogaEdge.ALL, 5);
-                                            layout.setGap(YogaGutter.ROW, 2);
+                                            layout.marginHorizontal(10);
+                                            layout.marginBottom(10);
+                                            layout.paddingAll(5);
+                                            layout.gapRow(2);
                                         })
                                         .style(style -> style.backgroundTexture(Sprites.BORDER))
                                         .addChildren(
@@ -76,15 +77,15 @@ public class TestElements implements IScreenTest {
                                                 new TextField().setNumbersOnlyInt(23, 145),
                                                 new Scroller.Horizontal(),
                                                 new ScrollerView()
-                                                        .addScrollViewChildren(new Button(), new Button().layout(layout -> layout.setWidth(300)),
+                                                        .addScrollViewChildren(new Button(), new Button().layout(layout -> layout.width(300)),
                                                                 new TextField().setNumbersOnlyFloat(-3, 3),
                                                                 new ScrollerView().addScrollViewChildren(new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button(), new Button())
                                                                         .layout(layout -> {
-                                                                            layout.setWidth(120);
-                                                                            layout.setHeight(120);
+                                                                            layout.width(120);
+                                                                            layout.height(120);
                                                                         }),
                                                                 new Button(), new Button(), new Button(), new Button(), new Button())
-                                                        .layout(layout -> layout.setHeight(100)),
+                                                        .layout(layout -> layout.height(100)),
                                                 new ProgressBar().label(label -> label.setText("30%")).setProgress(0.3f).barContainer(barContainer ->
                                                         barContainer.addEventListener(UIEvents.MOUSE_DOWN, event -> {
                                                             if (barContainer.isMouseOverContent(event.x, event.y)) {
@@ -97,10 +98,10 @@ public class TestElements implements IScreenTest {
                                                             }
                                                         }))))
                 ).addTab(new Tab().setText("element2"), new UIElement().layout(layout -> {
-                            layout.setGap(YogaGutter.ROW, 2);
+                            layout.gapRow(2);
                         }).addChildren(
                                 new ColorSelector().layout(layout -> {
-                                    layout.setWidth(60);
+                                    layout.width(60);
                                 }),
                                 new TagField(),
                                 new SearchComponent<>(new SearchComponent.ISearchUI<Block>() {
@@ -139,14 +140,14 @@ public class TestElements implements IScreenTest {
                                 new CodeEditor().setLanguage(Languages.LSS)
                         )
                 ).addTab(new Tab().setText("transform"), new UIElement().layout(layout -> {
-                            layout.setGap(YogaGutter.ROW, 2);
+                            layout.gapRow(2);
                         }).addChildren(
                                 new Button().transform(transform -> transform.translate(10, 0)),
                                 new Button().transform(transform -> transform.translate(0, -5)),
                                 new Button().transform(transform -> transform.scale(1.5f, 1)),
                                 new Button().transform(transform -> transform.rotation(30)),
                                 new Button().transform(transform -> transform.pivot(0, 0).rotation(30)),
-                                new UIElement().layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW))
+                                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW))
                                         .addChildren(
                                                 new Button(),
                                                 new Button().transform(transform -> transform.translate(0, -5)),
@@ -175,8 +176,8 @@ public class TestElements implements IScreenTest {
                         })
                         .build(), TreeBuilder.Menu::uiProvider)
                         .layout(layout -> {
-                            layout.setPosition(YogaEdge.LEFT, e.x - root.getPositionX());
-                            layout.setPosition(YogaEdge.TOP, e.y - root.getContentY());
+                            layout.left(e.x - root.getPositionX());
+                            layout.top(e.y - root.getContentY());
                         }));
             }
         });

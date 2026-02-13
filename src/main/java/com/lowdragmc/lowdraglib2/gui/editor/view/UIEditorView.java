@@ -28,6 +28,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -73,25 +76,25 @@ public class UIEditorView extends View {
         addClass("__ui-editor-view__");
         // header initial
         header.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeight(16);
-            layout.setPadding(YogaEdge.ALL, 1);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.widthPercent(100);
+            layout.height(16);
+            layout.paddingAll(1);
+            layout.flexDirection(FlexDirection.ROW);
         });
         header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         header.addChildren(
                 // left
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setHeightPercent(100);
-                    layout.setFlex(1);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.heightPercent(100);
+                    layout.flex(1);
                 }).addChildren(
                         saveButton.setOnClick(e -> notifySaved())
                                 .setText("ldlib.gui.editor.menu.save")
                                 .textStyle(style -> style.textColor(ColorPattern.GRAY.color))
                 ),
                 // center
-                new UIElement().layout(layout -> layout.setHeightPercent(100))
+                new UIElement().layout(layout -> layout.heightPercent(100))
                         .addChildren(new Toggle().noText()
                                 .setOnToggleChanged(isOn -> {
                                     if (isOn) {
@@ -108,10 +111,10 @@ public class UIEditorView extends View {
                                 .style(style -> style.tooltips("UIEditor.simulation"))),
                 // right
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setJustifyContent(YogaJustify.FLEX_END);
-                    layout.setHeightPercent(100);
-                    layout.setFlex(1);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.justifyContent(AlignContent.FLEX_END);
+                    layout.heightPercent(100);
+                    layout.flex(1);
                 }).addChildren(
                         // page fit button
                         new Button().noText().setOnClick(event -> {
@@ -127,10 +130,10 @@ public class UIEditorView extends View {
                                         0.1f);
                             }
                         }).layout(layout -> {
-                            layout.setWidth(14);
+                            layout.width(14);
                         }).style(style -> style.tooltips("GraphView.fit")).addChild(
                                 new UIElement().layout(layout -> {
-                                    layout.setHeightPercent(100);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1);
                                 }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
                         // selection box toggle
@@ -138,8 +141,8 @@ public class UIEditorView extends View {
                                 .setText("")
                                 .setOn(modularUIPreview.isShowSelectionBox(), false)
                                 .toggleButton(button -> button.layout(layout -> {
-                                    layout.setWidthPercent(100);
-                                    layout.setHeightPercent(100);
+                                    layout.widthPercent(100);
+                                    layout.heightPercent(100);
                                 }))
                                 .setOnToggleChanged(modularUIPreview::setShowSelectionBox)
                                 .toggleStyle(style -> {
@@ -152,8 +155,8 @@ public class UIEditorView extends View {
                                 })
                                 .bindDataSource(SupplierDataSource.of(modularUIPreview::isShowSelectionBox))
                                 .layout(layout -> {
-                                    layout.setPadding(YogaEdge.ALL, 0);
-                                    layout.setHeightPercent(100);
+                                    layout.paddingAll(0);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1f);
                                 })
                                 .style(style -> style.tooltips("UIEditor.selection_box"))
@@ -165,31 +168,31 @@ public class UIEditorView extends View {
 
         // canvas initial
         canvas.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         canvas.setOverflowVisible(false);
-        canvas.setDisplay(YogaDisplay.NONE);
+        canvas.setDisplay(false);
         canvas.addClass("__ui-editor-view_canvas__").moveInlineAsDefault();
 
         // editor initial
         editor.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         editor.addClass("__ui-editor-view_editor__").moveInlineAsDefault();
 
         hierarchy.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         hierarchy.addClass("__ui-editor-view_hierarchy__").moveInlineAsDefault();
 
 
         graphView.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         graphView.addContentChild(modularUIPreview);
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
@@ -250,9 +253,9 @@ public class UIEditorView extends View {
                     }
                 })
                 .setCanCollapse(false)
-                .configuratorContainer(container -> container.layout(layout -> layout.setMargin(YogaEdge.LEFT, 0)))
+                .configuratorContainer(container -> container.layout(layout -> layout.marginLeft(0)))
                 .hideTitle();
-        styleView.layout(layout -> layout.setHeightPercent(100).setPadding(YogaEdge.ALL, 4));
+        styleView.layout(layout -> layout.heightPercent(100).paddingAll(4));
         styleView.style(style -> style.backgroundTexture(Sprites.BORDER));
         styleView.addChildren(
                 new Toggle()
@@ -266,11 +269,11 @@ public class UIEditorView extends View {
                             toggleStyle.setPipelineState(StyleOrigin.INLINE);
                         })
                         .toggleButton(button -> button.setText("builtin_styles")
-                                .layout(layout -> layout.setAspectRatioAuto().setWidthPercent(100)))
+                                .layout(layout -> layout.setAspectRatioAuto().widthPercent(100)))
                         .toggleButton(button -> button.text
                                 .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.LEFT))
                                 .setDisplay(true)
-                                .layout(layout -> layout.setPositionType(YogaPositionType.ABSOLUTE)))
+                                .layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)))
                         .bindDataSource(SupplierDataSource.of(this::isEditingBuiltinStyles), false)
                         .selfCall(toggle -> ((Toggle) toggle).setOnToggleChanged(isOn -> {
                             if (isOn) {
@@ -281,7 +284,7 @@ public class UIEditorView extends View {
                         }))
                         .addClass("__ui-editor-view_builtin-styles-toggle__"),
                 // style sheet selector
-                new ScrollerView().addScrollViewChildren(stylesheetSelector).layout(layout -> layout.setWidthPercent(100).setFlex(1))
+                new ScrollerView().addScrollViewChildren(stylesheetSelector).layout(layout -> layout.widthPercent(100).flex(1))
 
         );
         styleView.addClass("__ui-editor-view_style-view__").moveInlineAsDefault();
@@ -289,13 +292,13 @@ public class UIEditorView extends View {
 
         stylesheetEditor.setLanguage(Languages.LSS);
         stylesheetEditor.setActive(false);
-        stylesheetEditor.contentView.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
+        stylesheetEditor.contentView.layout(layout -> layout.paddingAll(2));
         stylesheetEditor.contentView.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         stylesheetEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         stylesheetEditor.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 2);
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.paddingAll(2);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         stylesheetEditor.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         stylesheetEditor.setLinesResponder(this::onStylesheetChanged);
@@ -304,11 +307,11 @@ public class UIEditorView extends View {
 
         inspector.setHistoryStack(historyStack);
         inspector.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         inspector.scrollerView.viewPort.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.paddingAll(5);
         }).style(style -> style.backgroundTexture(Sprites.BORDER)).moveInlineAsDefault();
         inspector.addClass("__ui-editor-view_inspector__").moveInlineAsDefault();
 
@@ -453,8 +456,8 @@ public class UIEditorView extends View {
      */
     public void startSimulation() {
         if (currentUI == null || this.template == null) return;
-        canvas.setDisplay(YogaDisplay.FLEX);
-        editor.setDisplay(YogaDisplay.NONE);
+        canvas.setDisplay(true);
+        editor.setDisplay(false);
 
         // convert to a real UI with styles applied
         var newTemplate = currentUI.toTemplate();
@@ -467,8 +470,8 @@ public class UIEditorView extends View {
      * Stops the simulation mode for the user interface and transitions the editor UI back to its editing state.
      */
     public void stopSimulation() {
-        canvas.setDisplay(YogaDisplay.NONE);
-        editor.setDisplay(YogaDisplay.FLEX);
+        canvas.setDisplay(false);
+        editor.setDisplay(true);
         canvas.stopSimulation();
     }
 
@@ -480,8 +483,8 @@ public class UIEditorView extends View {
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
         menu.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, posX - getContentX());
-            layout.setPosition(YogaEdge.TOP, posY - getContentY());
+            layout.left(posX - getContentX());
+            layout.top(posY - getContentY());
         });
         addChildren(menu);
         return menu;

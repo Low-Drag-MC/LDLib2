@@ -5,10 +5,10 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaWrap;
 import org.joml.Vector2f;
 
 import java.lang.reflect.Field;
@@ -43,20 +43,20 @@ public class Vector2fAccessor extends TypesAccessor<Vector2f> {
                         v -> consumer.accept(new Vector2f(supplier.get().x, v.floatValue())),
                         defaultValue(field, field.getType()).y, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
-            layout.setMargin(YogaEdge.LEFT, 2);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWrap(YogaWrap.WRAP);
+            layout.gapAll(2);
+            layout.marginLeft(2);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.wrap(FlexWrap.WRAP);
         });
         x.layout(layout -> {
-            layout.setFlex(1);
-            layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.flex(1);
+            layout.minWidth(40);
+            layout.height(14);
         });
         y.layout(layout -> {
-            layout.setFlex(1);
-            layout.setMinWidth(40);
-            layout.setHeight(14);
+            layout.flex(1);
+            layout.minWidth(40);
+            layout.height(14);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

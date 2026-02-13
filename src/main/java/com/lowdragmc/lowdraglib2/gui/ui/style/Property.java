@@ -127,8 +127,8 @@ public class Property<VALUE> {
         var tooltips = getConfigTooltips();
         configurator.setTips(tooltips);
         var clearButton = new Button().noText().setOnClick(e -> setter.accept(null));
-        clearButton.layout(layout -> layout.setHeight(14).setWidth(14)).addChild(new UIElement()
-                .layout(layout -> layout.setHeight(10).setWidth(10))
+        clearButton.layout(layout -> layout.height(14).width(14)).addChild(new UIElement()
+                .layout(layout -> layout.height(10).width(10))
                 .style(style -> style.backgroundTexture(Icons.REPLAY).tooltips("property.reset"))
         );
         clearButton.setDisplay(inlineMark.get());

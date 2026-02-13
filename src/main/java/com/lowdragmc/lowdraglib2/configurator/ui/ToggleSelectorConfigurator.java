@@ -7,11 +7,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.*;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -22,8 +27,8 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
     public final Toggle.ToggleGroup group;
 
     public ToggleSelectorConfigurator(String name,
-                                      Supplier<T> supplier, Consumer<T> onUpdate,
-                                      @Nonnull T defaultValue,
+                                      Supplier<@Nullable T> supplier, Consumer<@Nullable T> onUpdate,
+                                      @Nullable T defaultValue,
                                       boolean forceUpdate,
                                       List<T> candidates,
                                       Function<T, String> nameMapping,
@@ -34,8 +39,8 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
         this.group = new Toggle.ToggleGroup();
         if (value == null) value = defaultValue;
         inlineContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWrap(YogaWrap.WRAP);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.wrap(FlexWrap.WRAP);
         });
         initToggles(nameMapping, iconProvider);
     }
@@ -47,10 +52,10 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
         for (T candidate : this.candidates) {
             var toggle = new Toggle().noText();
             toggle.layout(layout -> {
-                layout.setPadding(YogaEdge.ALL, 0);
+                layout.paddingAll(0);
             });
             toggle.setToggleGroup(this.group);
-            toggle.setOn(candidate.equals(value), false);
+            toggle.setOn(Objects.equals(candidate, value), false);
             toggle.setOnToggleChanged(isOn -> {
                 if (isOn) {
                     updateValueActively(candidate);
@@ -64,16 +69,16 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
                 toggleStyle.setPipelineState(StyleOrigin.INLINE);
             });
             toggle.toggleButton.layout(layout -> {
-                layout.setPadding(YogaEdge.ALL, 1);
+                layout.paddingAll(1);
             });
             toggle.markIcon.layout(layout -> {
-                layout.setPadding(YogaEdge.ALL, 1);
-                layout.setAlignItems(YogaAlign.CENTER);
-                layout.setJustifyContent(YogaJustify.CENTER);
+                layout.paddingAll(1);
+                layout.alignItems(AlignItems.CENTER);
+                layout.justifyContent(AlignContent.CENTER);
             });
             toggle.markIcon.addChild(new UIElement().layout(layout -> {
-                layout.setWidthPercent(100);
-                layout.setHeightPercent(100);
+                layout.widthPercent(100);
+                layout.heightPercent(100);
             }).style(style -> style.backgroundTexture(iconProvider.apply(candidate))));
             toggle.style(style -> style.tooltips(nameMapping.apply(candidate)));
             toggles.add(toggle);
@@ -85,11 +90,11 @@ public class ToggleSelectorConfigurator<T> extends ValueConfigurator<T> {
     @Override
     protected void onValueUpdatePassively(T newValue) {
         if (newValue == null) newValue = defaultValue;
-        if (newValue.equals(value)) return;
+        if (Objects.equals(newValue, value)) return;
         super.onValueUpdatePassively(newValue);
         for (int i = 0; i < candidates.size(); i++) {
             var toggle = toggles.get(i);
-            toggle.setOn(candidates.get(i).equals(newValue), false);
+            toggle.setOn(Objects.equals(candidates.get(i), newValue), false);
         }
     }
 

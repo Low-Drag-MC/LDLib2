@@ -4,12 +4,12 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.experimental.UtilityClass;
 import net.minecraft.resources.ResourceLocation;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaJustify;
-import org.appliedenergistics.yoga.YogaWrap;
 
 @UtilityClass
 public final class FlexIcons {
@@ -95,15 +95,15 @@ public final class FlexIcons {
     public static SpriteTexture ALIGN_SELF_FLEX_END_COLUMN = create(2, 8);
     public static SpriteTexture ALIGN_SELF_STRETCH_COLUMN = create(3, 8);
 
-    public static IGuiTexture getFlexWrapIcon(YogaWrap wrap) {
+    public static IGuiTexture getFlexWrapIcon(FlexWrap wrap) {
         return switch (wrap) {
-            case YogaWrap.NO_WRAP -> Icons.NOWRAP;
-            case YogaWrap.WRAP -> Icons.WRAP;
-            case YogaWrap.WRAP_REVERSE -> Icons.WRAP_REVERSE;
+            case FlexWrap.NO_WRAP -> Icons.NOWRAP;
+            case FlexWrap.WRAP -> Icons.WRAP;
+            case FlexWrap.WRAP_REVERSE -> Icons.WRAP_REVERSE;
         };
     }
 
-    public static SpriteTexture getFlexDirectionIcon(YogaFlexDirection flexDirection) {
+    public static SpriteTexture getFlexDirectionIcon(FlexDirection flexDirection) {
         return switch (flexDirection) {
             case ROW -> FLEX_DIRECTION_ROW;
             case COLUMN -> FLEX_DIRECTION_COLUMN;
@@ -112,107 +112,122 @@ public final class FlexIcons {
         };
     }
 
-    public static SpriteTexture getAlignContentIcon(YogaFlexDirection flexDirection, YogaAlign yogaAlign) {
-        var isRow = flexDirection == YogaFlexDirection.ROW || flexDirection == YogaFlexDirection.ROW_REVERSE;
-        return isRow ? switch (yogaAlign) {
-            case YogaAlign.FLEX_START -> ALIGN_CONTENTS_FLEX_START_ROW;
-            case YogaAlign.FLEX_END -> ALIGN_CONTENTS_FLEX_END_ROW;
-            case YogaAlign.CENTER -> ALIGN_CONTENTS_CENTER_ROW;
-            case YogaAlign.STRETCH -> ALIGN_CONTENTS_STRETCH_ROW;
-            default -> AUTO_ROW;
-        } : switch (yogaAlign) {
-            case YogaAlign.FLEX_START -> ALIGN_CONTENTS_FLEX_START_COLUMN;
-            case YogaAlign.FLEX_END -> ALIGN_CONTENTS_FLEX_END_COLUMN;
-            case YogaAlign.CENTER -> ALIGN_CONTENTS_CENTER_COLUMN;
-            case YogaAlign.STRETCH -> ALIGN_CONTENTS_STRETCH_COLUMN;
-            default -> AUTO_COLUMN;
+    public static SpriteTexture getAlignContentIcon(FlexDirection flexDirection, AlignContent alignContent) {
+        var isRow = flexDirection == FlexDirection.ROW || flexDirection == FlexDirection.ROW_REVERSE;
+        return isRow ? switch (alignContent) {
+            case FLEX_START, START -> ALIGN_CONTENTS_FLEX_START_ROW;
+            case FLEX_END, END -> ALIGN_CONTENTS_FLEX_END_ROW;
+            case CENTER -> ALIGN_CONTENTS_CENTER_ROW;
+            case STRETCH -> ALIGN_CONTENTS_STRETCH_ROW;
+            case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_COLUMN;
+            case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_COLUMN;
+            case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_COLUMN;
+            case AUTO -> AUTO_ROW;
+        } : switch (alignContent) {
+            case FLEX_START, START -> ALIGN_CONTENTS_FLEX_START_COLUMN;
+            case FLEX_END, END -> ALIGN_CONTENTS_FLEX_END_COLUMN;
+            case CENTER -> ALIGN_CONTENTS_CENTER_COLUMN;
+            case STRETCH -> ALIGN_CONTENTS_STRETCH_COLUMN;
+            case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_ROW;
+            case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_ROW;
+            case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_ROW;
+            case AUTO -> AUTO_COLUMN;
         };
     }
 
-    public static SpriteTexture getJustifyContentIcon(YogaFlexDirection flexDirection, YogaJustify yogaJustify) {
+    public static SpriteTexture getJustifyContentIcon(FlexDirection flexDirection, AlignContent alignContent) {
         return switch (flexDirection) {
-            case COLUMN -> switch (yogaJustify) {
-                case FLEX_START   -> JUSTIFY_CONTENTS_FLEX_START_COLUMN;
-                case FLEX_END     -> JUSTIFY_CONTENTS_FLEX_END_COLUMN;
+            case COLUMN -> switch (alignContent) {
+                case FLEX_START, START   -> JUSTIFY_CONTENTS_FLEX_START_COLUMN;
+                case FLEX_END, END     -> JUSTIFY_CONTENTS_FLEX_END_COLUMN;
                 case CENTER       -> JUSTIFY_CONTENTS_CENTER_COLUMN;
                 case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_COLUMN;
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_COLUMN;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_COLUMN;
+                case STRETCH -> ALIGN_CONTENTS_STRETCH_COLUMN;
+                case AUTO -> AUTO_COLUMN;
             };
-            case COLUMN_REVERSE -> switch (yogaJustify) {
-                case FLEX_START   -> JUSTIFY_CONTENTS_FLEX_START_COLUMN_REVERSE;
-                case FLEX_END     -> JUSTIFY_CONTENTS_FLEX_END_COLUMN_REVERSE;
+            case COLUMN_REVERSE -> switch (alignContent) {
+                case FLEX_START, START   -> JUSTIFY_CONTENTS_FLEX_START_COLUMN_REVERSE;
+                case FLEX_END, END     -> JUSTIFY_CONTENTS_FLEX_END_COLUMN_REVERSE;
                 case CENTER       -> JUSTIFY_CONTENTS_CENTER_COLUMN_REVERSE;
                 case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_COLUMN_REVERSE;
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_COLUMN_REVERSE;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_COLUMN_REVERSE;
+                case STRETCH -> ALIGN_CONTENTS_STRETCH_COLUMN;
+                case AUTO -> AUTO_COLUMN;
             };
-            case ROW -> switch (yogaJustify) {
-                case FLEX_START   -> JUSTIFY_CONTENTS_FLEX_START_ROW;
-                case FLEX_END     -> JUSTIFY_CONTENTS_FLEX_END_ROW;
+            case ROW -> switch (alignContent) {
+                case FLEX_START, START   -> JUSTIFY_CONTENTS_FLEX_START_ROW;
+                case FLEX_END, END     -> JUSTIFY_CONTENTS_FLEX_END_ROW;
                 case CENTER       -> JUSTIFY_CONTENTS_CENTER_ROW;
                 case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_ROW;
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_ROW;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_ROW;
+                case STRETCH -> ALIGN_CONTENTS_STRETCH_ROW;
+                case AUTO -> AUTO_ROW;
             };
-            case ROW_REVERSE -> switch (yogaJustify) {
-                case FLEX_START   -> JUSTIFY_CONTENTS_FLEX_START_ROW_REVERSE;
-                case FLEX_END     -> JUSTIFY_CONTENTS_FLEX_END_ROW_REVERSE;
+            case ROW_REVERSE -> switch (alignContent) {
+                case FLEX_START, START   -> JUSTIFY_CONTENTS_FLEX_START_ROW_REVERSE;
+                case FLEX_END, END     -> JUSTIFY_CONTENTS_FLEX_END_ROW_REVERSE;
                 case CENTER       -> JUSTIFY_CONTENTS_CENTER_ROW_REVERSE;
                 case SPACE_BETWEEN-> JUSTIFY_CONTENTS_SPACE_BETWEEN_ROW_REVERSE;
                 case SPACE_AROUND -> JUSTIFY_CONTENTS_SPACE_AROUND_ROW_REVERSE;
                 case SPACE_EVENLY -> JUSTIFY_CONTENTS_SPACE_EVENLY_ROW_REVERSE;
+                case STRETCH -> ALIGN_CONTENTS_STRETCH_ROW;
+                case AUTO -> AUTO_ROW;
             };
         };
     }
 
-    public static SpriteTexture getAlignItemIcon(YogaFlexDirection flexDirection, YogaAlign yogaAlign) {
+    // TODO Baseline icon?
+    public static SpriteTexture getAlignItemIcon(FlexDirection flexDirection, AlignItems alignItems) {
         return switch (flexDirection) {
-            case COLUMN -> switch (yogaAlign) {
-                case YogaAlign.FLEX_START -> ALIGN_ITEMS_FLEX_START_COLUMN;
-                case YogaAlign.FLEX_END -> ALIGN_ITEMS_FLEX_END_COLUMN;
-                case YogaAlign.CENTER -> ALIGN_ITEMS_CENTER_COLUMN;
-                case YogaAlign.STRETCH -> ALIGN_ITEMS_STRETCH_COLUMN;
-                default -> AUTO_COLUMN;
+            case COLUMN -> switch (alignItems) {
+                case FLEX_START, START -> ALIGN_ITEMS_FLEX_START_COLUMN;
+                case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_COLUMN;
+                case CENTER -> ALIGN_ITEMS_CENTER_COLUMN;
+                case STRETCH -> ALIGN_ITEMS_STRETCH_COLUMN;
+                case AUTO, BASELINE -> AUTO_COLUMN;
             };
-            case COLUMN_REVERSE -> switch (yogaAlign) {
-                case YogaAlign.FLEX_START -> ALIGN_ITEMS_FLEX_START_COLUMN_REVERSE;
-                case YogaAlign.FLEX_END -> ALIGN_ITEMS_FLEX_END_COLUMN_REVERSE;
-                case YogaAlign.CENTER -> ALIGN_ITEMS_CENTER_COLUMN_REVERSE;
-                case YogaAlign.STRETCH -> ALIGN_ITEMS_STRETCH_COLUMN_REVERSE;
-                default -> AUTO_COLUMN;
+            case COLUMN_REVERSE -> switch (alignItems) {
+                case FLEX_START, START -> ALIGN_ITEMS_FLEX_START_COLUMN_REVERSE;
+                case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_COLUMN_REVERSE;
+                case CENTER -> ALIGN_ITEMS_CENTER_COLUMN_REVERSE;
+                case STRETCH -> ALIGN_ITEMS_STRETCH_COLUMN_REVERSE;
+                case AUTO, BASELINE -> AUTO_COLUMN;
             };
-            case ROW -> switch (yogaAlign) {
-                case YogaAlign.FLEX_START -> ALIGN_ITEMS_FLEX_START_ROW;
-                case YogaAlign.FLEX_END -> ALIGN_ITEMS_FLEX_END_ROW;
-                case YogaAlign.CENTER -> ALIGN_ITEMS_CENTER_ROW;
-                case YogaAlign.STRETCH -> ALIGN_ITEMS_STRETCH_ROW;
-                default -> AUTO_ROW;
+            case ROW -> switch (alignItems) {
+                case FLEX_START, START -> ALIGN_ITEMS_FLEX_START_ROW;
+                case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_ROW;
+                case CENTER -> ALIGN_ITEMS_CENTER_ROW;
+                case STRETCH -> ALIGN_ITEMS_STRETCH_ROW;
+                case AUTO, BASELINE -> AUTO_ROW;
             };
-            case ROW_REVERSE -> switch (yogaAlign) {
-                case YogaAlign.FLEX_START -> ALIGN_ITEMS_FLEX_START_ROW_REVERSE;
-                case YogaAlign.FLEX_END -> ALIGN_ITEMS_FLEX_END_ROW_REVERSE;
-                case YogaAlign.CENTER -> ALIGN_ITEMS_CENTER_ROW_REVERSE;
-                case YogaAlign.STRETCH -> ALIGN_ITEMS_STRETCH_ROW_REVERSE;
-                default -> AUTO_ROW;
+            case ROW_REVERSE -> switch (alignItems) {
+                case FLEX_START, START -> ALIGN_ITEMS_FLEX_START_ROW_REVERSE;
+                case FLEX_END, END -> ALIGN_ITEMS_FLEX_END_ROW_REVERSE;
+                case CENTER -> ALIGN_ITEMS_CENTER_ROW_REVERSE;
+                case STRETCH -> ALIGN_ITEMS_STRETCH_ROW_REVERSE;
+                case AUTO, BASELINE -> AUTO_ROW;
             };
         };
     }
 
-    public static SpriteTexture getAlignSelfIcon(YogaFlexDirection flexDirection, YogaAlign yogaAlign) {
-        var isRow = flexDirection == YogaFlexDirection.ROW || flexDirection == YogaFlexDirection.ROW_REVERSE;
-        return isRow ? switch (yogaAlign) {
-            case YogaAlign.FLEX_START -> ALIGN_SELF_FLEX_START_ROW;
-            case YogaAlign.FLEX_END -> ALIGN_SELF_FLEX_END_ROW;
-            case YogaAlign.CENTER -> ALIGN_SELF_CENTER_ROW;
-            case YogaAlign.STRETCH -> ALIGN_SELF_STRETCH_ROW;
-            default -> AUTO_ROW;
-        } : switch (yogaAlign) {
-            case YogaAlign.FLEX_START -> ALIGN_SELF_FLEX_START_COLUMN;
-            case YogaAlign.FLEX_END -> ALIGN_SELF_FLEX_END_COLUMN;
-            case YogaAlign.CENTER -> ALIGN_SELF_CENTER_COLUMN;
-            case YogaAlign.STRETCH -> ALIGN_SELF_STRETCH_COLUMN;
-            default -> AUTO_COLUMN;
+    public static SpriteTexture getAlignSelfIcon(FlexDirection flexDirection, AlignItems alignSelf) {
+        var isRow = flexDirection == FlexDirection.ROW || flexDirection == FlexDirection.ROW_REVERSE;
+        return isRow ? switch (alignSelf) {
+            case FLEX_START, START -> ALIGN_SELF_FLEX_START_ROW;
+            case FLEX_END, END -> ALIGN_SELF_FLEX_END_ROW;
+            case CENTER -> ALIGN_SELF_CENTER_ROW;
+            case STRETCH -> ALIGN_SELF_STRETCH_ROW;
+            case null, default -> AUTO_ROW;
+        } : switch (alignSelf) {
+            case FLEX_START, START -> ALIGN_SELF_FLEX_START_COLUMN;
+            case FLEX_END, END -> ALIGN_SELF_FLEX_END_COLUMN;
+            case CENTER -> ALIGN_SELF_CENTER_COLUMN;
+            case STRETCH -> ALIGN_SELF_STRETCH_COLUMN;
+            case AUTO, BASELINE -> AUTO_COLUMN;
         };
     }
 }

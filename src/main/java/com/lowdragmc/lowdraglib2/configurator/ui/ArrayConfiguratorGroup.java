@@ -9,16 +9,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaDisplay;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.*;
@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
  * @date 2022/12/2
  * @implNote ArrayConfigurator
  */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     @FunctionalInterface
     public interface IConfiguratorProvider<T> extends BiFunction<Supplier<T>, Consumer<T>, Configurator> {
@@ -82,24 +84,24 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         }
 
         buttonGroup.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setAlignSelf(YogaAlign.FLEX_END);
-            layout.setPadding(YogaEdge.ALL, 3f);
-        }).setDisplay(isCollapse ? YogaDisplay.NONE : YogaDisplay.FLEX)
+            layout.flexDirection(FlexDirection.ROW);
+            layout.alignSelf(AlignItems.FLEX_END);
+            layout.paddingAll(3f);
+        }).setDisplay(!isCollapse)
                 .style(style -> style.backgroundTexture(Sprites.BORDER_RT1))
                 .moveInlineAsDefault()
                 .addClass("__array-configurator_button-group__");
 
         addButton.setOnClick(this::onAdd).setText("+").textStyle(textStyle -> textStyle.textShadow(false)).layout(layout -> {
-            layout.setWidth(12);
-            layout.setHeight(12);
-        }).setDisplay(YogaDisplay.NONE);
+            layout.width(12);
+            layout.height(12);
+        }).setDisplay(false);
         removeButton.setOnClick(this::onRemove).setText("-").textStyle(textStyle -> textStyle.textColor(ColorPattern.WHITE.color).textShadow(false)
         ).layout(layout -> {
-            layout.setWidth(12);
-            layout.setHeight(12);
+            layout.width(12);
+            layout.height(12);
         }).setActive(false);
-        removeButton.setDisplay(YogaDisplay.NONE);
+        removeButton.setDisplay(false);
 
         addChild(buttonGroup.addChildren(addButton, removeButton));
     }
@@ -172,15 +174,15 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         }
     }
 
-    public ArrayConfiguratorGroup<T> setAddDefault(IAddDefault<T> addDefault) {
+    public ArrayConfiguratorGroup<T> setAddDefault(@Nullable IAddDefault<T> addDefault) {
         this.addDefault = addDefault;
-        addButton.setDisplay((addDefault != null && canAdd) ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        addButton.setDisplay((addDefault != null && canAdd));
         return this;
     }
 
     public ArrayConfiguratorGroup<T> setCanAdd(boolean canAdd) {
         this.canAdd = canAdd;
-        addButton.setDisplay((addDefault != null && canAdd) ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        addButton.setDisplay((addDefault != null && canAdd));
         return this;
     }
 
@@ -202,7 +204,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     public ArrayConfiguratorGroup<T> setCollapse(boolean collapse) {
         super.setCollapse(collapse);
         if (buttonGroup != null) {
-            buttonGroup.setDisplay(collapse ? YogaDisplay.NONE : YogaDisplay.FLEX);
+            buttonGroup.setDisplay(!collapse);
         }
         return this;
     }
@@ -233,7 +235,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
             onSelectedChanged.accept(selected == null ? null : selected.object);
         }
         removeButton.setActive(this.selected != null);
-        removeButton.setDisplay((this.selected != null && canRemove.test(this.selected.object)) ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        removeButton.setDisplay((this.selected != null && canRemove.test(this.selected.object)));
     }
 
     public class ItemConfigurator extends Configurator {
@@ -243,10 +245,10 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         public ItemConfigurator(T object, BiFunction<Supplier<T>, Consumer<T>, Configurator> provider) {
             super("=");
             label.layout(layout -> {
-                layout.setMargin(YogaEdge.LEFT, 1f);
-                layout.setAlignSelf(YogaAlign.CENTER);
+                layout.marginLeft(1f);
+                layout.alignSelf(AlignItems.CENTER);
             }).style(style -> style.tooltips("ldlib.gui.editor.tips.drag_item"));
-            getLayout().setPadding(YogaEdge.LEFT, 2f);
+            getLayout().paddingLeft(2f);
             this.object = object;
             inner = provider.apply(this::getter, this::setter);
             inlineContainer.addChild(inner);

@@ -26,15 +26,15 @@ public class TestAnimation implements IScreenTest {
     public ModularUI createUI(Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.setWidth(300);
-            layout.setHeight(300);
-            layout.setPadding(YogaEdge.ALL, 10);
+            layout.width(300);
+            layout.height(300);
+            layout.paddingAll(10);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         var target = new UIElement();
         target.getLayout().width(100).height(100);
         target.getStyle().background(ColorPattern.PINK.rectTexture());
         root.addChildren(
-                new UIElement().layout(layout -> layout.setFlex(1))
+                new UIElement().layout(layout -> layout.flex(1))
                         .style(style -> style.backgroundTexture((graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
                             DrawerHelper.drawLines(graphics, List.of(new Vector2f(x, y), new Vector2f(x + width / 3, y + height / 5), new Vector2f(x + width, y + height)),
                                     -1, 0xff00ffff, 2);

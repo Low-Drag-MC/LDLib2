@@ -22,16 +22,15 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -169,24 +168,24 @@ public class Toggle extends BindableUIElement<Boolean> {
     private ToggleGroup toggleGroup;
 
     public Toggle() {
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
-        getLayout().setAlignItems(YogaAlign.CENTER);
-        getLayout().setPadding(YogaEdge.ALL, 1);
-        getLayout().setHeight(14);
+        getLayout().flexDirection(FlexDirection.ROW);
+        getLayout().alignItems(AlignItems.CENTER);
+        getLayout().paddingAll(1);
+        getLayout().height(14);
 
         this.toggleButton
                 .setOnClick(this::onToggleClick)
                 .noText()
                 .layout(layout -> {
-                    layout.setPadding(YogaEdge.ALL, 0);
-                    layout.setHeightPercent(100);
+                    layout.paddingAll(0);
+                    layout.heightPercent(100);
                     layout.setAspectRatio(1);
                 })
                 .addClass("__toggle_button__")
                 .addChild(this.markIcon = new UIElement()
                         .layout(layout -> {
-                            layout.setWidthPercent(100);
-                            layout.setHeightPercent(100);
+                            layout.widthPercent(100);
+                            layout.heightPercent(100);
                         })
                         .style(style -> Style.importantPipeline(style, s -> s.backgroundTexture(toggleStyle.unmarkTexture())))
                         .addClass("__toggle_mark-icon__"));
@@ -197,9 +196,9 @@ public class Toggle extends BindableUIElement<Boolean> {
                         .textAlignVertical(Vertical.CENTER))
                 .addClass("__toggle_label__")
                 .layout(layout -> {
-                    layout.setHeightPercent(100);
-                    layout.setFlex(1);
-                    layout.setMargin(YogaEdge.LEFT, 2);
+                    layout.heightPercent(100);
+                    layout.flex(1);
+                    layout.marginLeft(2);
                 });
         this.toggleLabel.setText("Toggle");
         addChildren(toggleButton, toggleLabel);

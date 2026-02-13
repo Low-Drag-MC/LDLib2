@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaEdge;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -56,8 +55,8 @@ public abstract class MenuTab {
                         .textAlignVertical(Vertical.CENTER))
                 .setText(getComponent())
                 .layout(layout ->{
-                    layout.setHeightPercent(100);
-                    layout.setPadding(YogaEdge.HORIZONTAL, 2);
+                    layout.heightPercent(100);
+                    layout.paddingHorizontal(2);
                 })
                 .style(style -> style.backgroundTexture(IGuiTexture.EMPTY))
                 .addEventListener(UIEvents.MOUSE_ENTER, e -> e.currentElement.style(style -> style.backgroundTexture(ColorPattern.T_WHITE.rectTexture())), true)

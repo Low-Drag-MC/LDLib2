@@ -23,6 +23,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -44,8 +48,8 @@ public class ResourceProviderContainer<T> extends UIElement {
     private final Map<IResourcePath, UIElement> resourceUIs = new HashMap<>();
     @Setter
     protected UIElementProvider<IResourcePath> uiSupplier = path -> new UIElement().layout(layout -> {
-        layout.setWidthPercent(100);
-        layout.setHeightPercent(100);
+        layout.widthPercent(100);
+        layout.heightPercent(100);
     }).style(style -> style.backgroundTexture(Icons.FILE));
     protected Function<IResourcePath, String> nameSupplier;
     @Setter
@@ -81,8 +85,8 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected IResourcePath lastClickPath;
 
     public ResourceProviderContainer(IResourceProvider<T> resourceProvider) {
-        getLayout().setWidthPercent(100);
-        getLayout().setFlex(1);
+        getLayout().widthPercent(100);
+        getLayout().flex(1);
         this.resourceProvider = resourceProvider;
         this.nameSupplier = resourceProvider::getResourceName;
         this.canRemove = resourceProvider::canRemove;
@@ -95,12 +99,12 @@ public class ResourceProviderContainer<T> extends UIElement {
         this.scrollerView.scrollerStyle(style -> {
             style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.ALWAYS);
         }).layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         this.scrollerView.viewContainer.layout(layout -> {
-           layout.setFlexDirection(YogaFlexDirection.ROW);
-           layout.setWrap(YogaWrap.WRAP);
+           layout.flexDirection(FlexDirection.ROW);
+           layout.wrap(FlexWrap.WRAP);
         });
         addChild(scrollerView);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
@@ -115,24 +119,24 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected UIElement createResourceUI(IResourcePath key) {
         return new UIElement().layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
-                layout.setWidthPercent(100);
-                layout.setFlexDirection(YogaFlexDirection.ROW);
-                layout.setMargin(YogaEdge.VERTICAL, 1);
+                layout.widthPercent(100);
+                layout.flexDirection(FlexDirection.ROW);
+                layout.marginVertical(1);
             } else {
-                layout.setWidth(resourceProvider.getResourceInstance().getUiWidth());
-                layout.setFlexDirection(YogaFlexDirection.COLUMN);
-                layout.setMargin(YogaEdge.ALL, 3);
+                layout.width(resourceProvider.getResourceInstance().getUiWidth());
+                layout.flexDirection(FlexDirection.COLUMN);
+                layout.marginAll(3);
             }
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.gapAll(2);
         }).addChildren(new UIElement().layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
-                layout.setWidth(resourceProvider.getResourceInstance().getUiWidth());
+                layout.width(resourceProvider.getResourceInstance().getUiWidth());
             } else {
-                layout.setWidthPercent(100);
+                layout.widthPercent(100);
             }
             layout.setAspectRatio(1);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setJustifyContent(YogaJustify.CENTER);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
             style.font(LDLibFonts.JETBRAINS_MONO_BOLD);
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
@@ -144,11 +148,11 @@ public class ResourceProviderContainer<T> extends UIElement {
             }
         }).setText(nameSupplier.apply(key)).setOverflow(YogaOverflow.HIDDEN).layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
-                layout.setFlex(1);
-                layout.setHeightPercent(100);
-                layout.setJustifyContent(YogaJustify.CENTER);
+                layout.flex(1);
+                layout.heightPercent(100);
+                layout.justifyContent(AlignContent.CENTER);
             } else {
-                layout.setHeight(14);
+                layout.height(14);
             }
         }))
                 .addEventListener(UIEvents.MOUSE_DOWN, e -> selectResource(key))
@@ -226,7 +230,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                 reloadResourceContainer();
             } else {
                 for (UIElement element : resourceUIs.values()) {
-                    element.layout(layout -> layout.setWidth(uiWidth));
+                    element.layout(layout -> layout.width(uiWidth));
                 }
             }
         }

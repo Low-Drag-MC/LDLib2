@@ -9,16 +9,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.YogaProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaJustify;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -46,23 +46,24 @@ public class ViewContainer extends UIElement {
         this.tabView = new TabView();
         this.collapseButton = new Button().noText();
         this.addClass("__view-container__");
+        this.getLayout().flex(1);
 
         this.tabView.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         }).addClass("__view-container_tab-view__");
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
-        getLayout().setPadding(YogaEdge.ALL, 1);
+        getLayout().paddingAll(1);
 
         tabView.tabContentContainer.layout(layout -> {
-            layout.setFlex(1);
+            layout.flex(1);
         });
 
         collapseButton.addChild(buttonIcon = new UIElement()
-                .layout(layout -> layout.setWidth(10).setHeight(10))
+                .layout(layout -> layout.width(10).height(10))
                 .style(style -> style.backgroundTexture(Icons.COLLAPSE_HORIZONTAL).tooltips("collapse_or_expand"))
         );
-        collapseButton.layout(layout -> layout.setWidth(14).setHeight(14).setAlignItems(YogaAlign.CENTER).setJustifyContent(YogaJustify.CENTER));
+        collapseButton.layout(layout -> layout.width(14).height(14).alignItems(AlignItems.CENTER).justifyContent(AlignContent.CENTER));
         collapseButton.setDisplay(false);
         collapseButton.setOnClick(e -> {
             if (isCollapse) {
@@ -73,7 +74,7 @@ public class ViewContainer extends UIElement {
         });
 
 
-        tabView.tabScroller.layout(layout -> layout.setFlex(1));
+        tabView.tabScroller.getLayout().flex(1);
         tabView.tabHeaderContainer.addChildren(collapseButton);
 
         addChild(tabView);
@@ -111,33 +112,33 @@ public class ViewContainer extends UIElement {
         var isVertical = splitView instanceof SplitView.Vertical;
         this.collapseButton.layout(layout -> {
             if (isVertical) {
-                layout.setWidthPercent(100);;
+                layout.widthPercent(100);;
             } else {
-                layout.setHeightPercent(100);
+                layout.heightPercent(100);
             }
         });
         this.tabView.tabHeaderContainer.layout(layout -> Style.importantPipeline(layout,
-                s -> s.setPadding(YogaEdge.HORIZONTAL, 0)));
+                s -> s.paddingHorizontal(0)));
         if (!isVertical) {
             this.tabView.tabHeaderContainer.layout(layout -> Style.importantPipeline(layout,
-                    s -> s.setHeightPercent(100)));
+                    s -> s.heightPercent(100)));
         }
         if (isFirst) {
             splitView.first.layout(layout -> Style.importantPipeline(layout, s -> {
                 if (isVertical) {
-                    s.setHeight(16);
+                    s.height(16);
                 } else {
-                    s.setWidth(16);
+                    s.width(16);
                 }
             }));
         } else {
-            splitView.first.layout(layout -> Style.importantPipeline(layout, s -> s.setFlex(1)));
+            splitView.first.layout(layout -> Style.importantPipeline(layout, s -> s.flex(1)));
             splitView.second.layout(layout -> Style.importantPipeline(layout, s -> {
-                s.setFlexAuto();
+                s.flexAuto();
                 if (isVertical) {
-                    s.setHeight(16);
+                    s.height(16);
                 } else {
-                    s.setWidth(16);
+                    s.width(16);
                 }
             }));
         }
@@ -158,21 +159,21 @@ public class ViewContainer extends UIElement {
         var isVertical = splitView instanceof SplitView.Vertical;
         this.collapseButton.layout(layout -> {
             if (isVertical) {
-                layout.setWidth(14);;
+                layout.width(14);;
             } else {
-                layout.setHeight(14);
+                layout.height(14);
             }
         });
-        this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(YogaProperties.PADDINGS[YogaEdge.HORIZONTAL.ordinal()], slot -> slot.origin() == StyleOrigin.IMPORTANT);
+        this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.PADDING_HORIZONTAL, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         if (!isVertical) {
-            this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(YogaProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         }
         if (isFirst) {
-            splitView.first.getStyleBag().removeCandidates(isVertical ? YogaProperties.HEIGHT : YogaProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.first.getStyleBag().removeCandidates(isVertical ? LayoutProperties.HEIGHT : LayoutProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         } else {
-            splitView.first.getStyleBag().removeCandidates(YogaProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
-            splitView.second.getStyleBag().removeCandidates(YogaProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
-            splitView.second.getStyleBag().removeCandidates(isVertical ? YogaProperties.HEIGHT : YogaProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.first.getStyleBag().removeCandidates(LayoutProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.second.getStyleBag().removeCandidates(LayoutProperties.FLEX, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            splitView.second.getStyleBag().removeCandidates(isVertical ? LayoutProperties.HEIGHT : LayoutProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         }
         buttonIcon.style(style -> style.backgroundTexture(isVertical ?
                 Icons.COLLAPSE_VERTICAL :
@@ -184,8 +185,8 @@ public class ViewContainer extends UIElement {
         if (tabPlaceHolder != null) return;
         if (event.dragHandler.getDraggingObject() instanceof View) {
             tabPlaceHolder = new UIElement().layout(layout -> {
-                layout.setHeight(tabView.tabHeaderContainer.getContentHeight());
-                layout.setWidth(50);
+                layout.height(tabView.tabHeaderContainer.getContentHeight());
+                layout.width(50);
             }).style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
             var index = -1;
             for (var tab : tabView.tabScroller.viewContainer.getChildren()) {

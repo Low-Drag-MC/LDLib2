@@ -7,6 +7,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
 import org.appliedenergistics.yoga.*;
@@ -282,20 +284,20 @@ public class TreeBuilder<K, V> {
         public static UIElement uiProvider(Tuple<IGuiTexture, Component> node) {
             if (node == CROSS_LINE) {
                 return new UIElement().layout(layout -> {
-                    layout.setHeight(1);
-                    layout.setMargin(YogaEdge.HORIZONTAL, 3);
+                    layout.height(1);
+                    layout.marginHorizontal(3);
                 }).style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
             }
             return new UIElement().layout(layout -> {
-                layout.setHeight(12);
-                layout.setWidthPercent(100);
-                layout.setGap(YogaGutter.ALL, 2);
-                layout.setFlexDirection(YogaFlexDirection.ROW);
-                layout.setAlignItems(YogaAlign.CENTER);
+                layout.height(12);
+                layout.widthPercent(100);
+                layout.gapAll(2);
+                layout.flexDirection(FlexDirection.ROW);
+                layout.alignItems(AlignItems.CENTER);
             }).addChild(new UIElement().layout(layout -> {
-                layout.setMargin(YogaEdge.LEFT, 2);
-                layout.setWidth(10);
-                layout.setHeight(10);
+                layout.marginLeft(2);
+                layout.width(10);
+                layout.height(10);
             }).style(style -> style.backgroundTexture(node.getA())))
                     .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                             .setText(node.getB()).layout(layout -> {

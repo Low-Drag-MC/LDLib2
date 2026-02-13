@@ -24,7 +24,7 @@ public class ConfiguratorSelectorConfigurator<T> extends SelectorConfigurator<T>
         super(name, supplier, onUpdate, defaultValue, forceUpdate, candidates, mapping);
         this.configuratorBuilder = configuratorBuilder;
         container.setCollapse(false);
-        container.lineContainer.setDisplay(YogaDisplay.NONE);
+        container.lineContainer.setDisplay(false);
         reloadContainer();
         addChild(container);
     }
@@ -32,11 +32,7 @@ public class ConfiguratorSelectorConfigurator<T> extends SelectorConfigurator<T>
     private void reloadContainer() {
         container.removeAllConfigurators();
         configuratorBuilder.accept(value, container);
-        if (container.configurators.isEmpty()) {
-            container.setDisplay(YogaDisplay.NONE);
-        } else {
-            container.setDisplay(YogaDisplay.FLEX);
-        }
+        container.setDisplay(!container.configurators.isEmpty());
     }
 
     @Override

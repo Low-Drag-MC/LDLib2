@@ -18,6 +18,8 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -103,14 +105,14 @@ public class Button extends UIElement {
 
     public Button() {
         super();
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
-        getLayout().setHeight(14);
-        getLayout().setPadding(YogaEdge.ALL, 2);
-        getLayout().setJustifyContent(YogaJustify.CENTER);
+        getLayout().flexDirection(FlexDirection.ROW);
+        getLayout().height(14);
+        getLayout().paddingAll(2);
+        getLayout().justifyContent(AlignContent.CENTER);
 
         text.addClass("__button_text__");
-        text.getLayout().setHeightPercent(100);
-        text.getLayout().setMargin(YogaEdge.HORIZONTAL, 2);
+        text.getLayout().heightPercent(100);
+        text.getLayout().marginHorizontal(2);
         text.getTextStyle()
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER)
@@ -169,14 +171,14 @@ public class Button extends UIElement {
     }
 
     public Button addPreIcon(IGuiTexture icon) {
-        addChildAt(new UIElement().layout(layout -> layout.setHeightPercent(100).setAspectRatio(1f))
+        addChildAt(new UIElement().layout(layout -> layout.heightPercent(100).setAspectRatio(1f))
                 .style(style -> style.backgroundTexture(icon)),
                 0);
         return this;
     }
 
     public Button addPostIcon(IGuiTexture icon) {
-        addChild(new UIElement().layout(layout -> layout.setHeightPercent(100).setAspectRatio(1f))
+        addChild(new UIElement().layout(layout -> layout.heightPercent(100).setAspectRatio(1f))
                         .style(style -> style.backgroundTexture(icon)));
         return this;
     }

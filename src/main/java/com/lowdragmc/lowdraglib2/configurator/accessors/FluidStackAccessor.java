@@ -37,7 +37,7 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
     public Configurator create(String name, Supplier<FluidStack> supplier, Consumer<FluidStack> consumer, boolean forceUpdate, Field field, Object owner) {
         var group = new ConfiguratorGroup(name);
         var slot = new FluidSlot();
-        slot.layout(layout -> layout.setWidth(14).setHeight(14));
+        slot.layout(layout -> layout.width(14).height(14));
         slot.bindDataSource(SupplierDataSource.of(supplier));
         Consumer<FluidStack> updater = fluidStack -> {
             slot.setFluid(fluidStack);

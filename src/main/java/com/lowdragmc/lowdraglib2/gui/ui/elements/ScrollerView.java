@@ -12,6 +12,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -161,17 +163,17 @@ public class ScrollerView extends UIElement {
         this.addEventListener(UIEvents.MOUSE_WHEEL, UIEvent::stopPropagation);
 
         verticalContainer.layout(layout -> {
-            layout.setFlex(1);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.flex(1);
+            layout.flexDirection(FlexDirection.ROW);
         }).addChildren(viewPort, verticalScroller);
 
         viewPort.layout(layout -> {
-            layout.setFlex(1);
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.flex(1);
+            layout.paddingAll(5);
         }).setOverflow(YogaOverflow.HIDDEN).style(style -> style.backgroundTexture(Sprites.BORDER));
         viewPort.addEventListener(UIEvents.MOUSE_WHEEL, this::onScrollWheel);
         viewPort.addChild(new UIElement() // we wrap the view container in a new element
-                        .layout(layout -> layout.setFlex(1))
+                        .layout(layout -> layout.flex(1))
                         .addChild(viewContainer));
 
         viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onContainerLayoutChanged);
@@ -186,13 +188,13 @@ public class ScrollerView extends UIElement {
     /// events
     protected void onHorizontalScroll(float value) {
         viewContainer.layout(layout -> {
-            layout.setPosition(YogaEdge.LEFT, -value * Math.max(0, getContainerWidth() - viewPort.getContentWidth()));
+            layout.left(-value * Math.max(0, getContainerWidth() - viewPort.getContentWidth()));
         });
     }
 
     protected void onVerticalScroll(float value) {
         viewContainer.layout(layout -> {
-            layout.setPosition(YogaEdge.TOP, -value * Math.max(0, getContainerHeight() - viewPort.getContentHeight()));
+            layout.top(-value * Math.max(0, getContainerHeight() - viewPort.getContentHeight()));
         });
     }
 
@@ -234,7 +236,7 @@ public class ScrollerView extends UIElement {
         var width = viewContainer.getSizeWidth();
         for (UIElement child : viewContainer.getChildren()) {
             if (child.isDisplayed()) {
-                width = Math.max(width, child.getSizeWidth() + child.getLayoutNode().getLayoutX());
+                width = Math.max(width, child.getSizeWidth() + child.getTaffyLayout().location().x);
             }
         }
         return width;
@@ -244,7 +246,7 @@ public class ScrollerView extends UIElement {
         var height = viewContainer.getSizeHeight();
         for (UIElement child : viewContainer.getChildren()) {
             if (child.isDisplayed()) {
-                height = Math.max(height, child.getSizeHeight() + child.getLayoutNode().getLayoutY());
+                height = Math.max(height, child.getSizeHeight() + child.getTaffyLayout().location().y);
             }
         }
         return height;
@@ -259,31 +261,22 @@ public class ScrollerView extends UIElement {
             // so we need to calculate the width ourselves
             var vp = Math.min(1, viewPort.getContentWidth() / lastContainerWidth);
             horizontalScroller.setScrollBarSize(vp * 100);
-            if ((scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                horizontalScroller.setDisplay(YogaDisplay.FLEX);
-
-            } else {
-                horizontalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            horizontalScroller.setDisplay((scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.AUTO && vp < 1) || scrollerViewStyle.horizontalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            horizontalScroller.setDisplay(YogaDisplay.NONE);
+            horizontalScroller.setDisplay(false);
         }
 
         if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
             var hp = Math.min(1, viewPort.getContentHeight() / lastContainerHeight);
             verticalScroller.setScrollBarSize(hp * 100);
-            if ((scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS) {
-                verticalScroller.setDisplay(YogaDisplay.FLEX);
-            } else {
-                verticalScroller.setDisplay(YogaDisplay.NONE);
-            }
+            verticalScroller.setDisplay((scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.AUTO && hp < 1) || scrollerViewStyle.verticalScrollDisplay() == ScrollDisplay.ALWAYS);
         } else {
-            verticalScroller.setDisplay(YogaDisplay.NONE);
+            verticalScroller.setDisplay(false);
         }
 
-        if (horizontalScroller.getLayoutNode().getDisplay() == YogaDisplay.FLEX) {
+        if (horizontalScroller.getTaffyStyle().style.display == TaffyDisplay.FLEX) {
             horizontalScroller.layout(layout -> Style.importantPipeline(layout, l ->
-                    l.setMargin(YogaEdge.RIGHT, verticalScroller.isDisplayed() ? scrollerViewStyle.scrollerViewMargin() : 0)));
+                    l.marginRight(verticalScroller.isDisplayed() ? scrollerViewStyle.scrollerViewMargin() : 0)));
         }
 
         var reloadValue = false;
@@ -299,10 +292,10 @@ public class ScrollerView extends UIElement {
             this.lastContainerHeight = lastContainerHeight;
             reloadValue = true;
             if (scrollerViewStyle.adaptiveWidth()) {
-                Style.importantPipeline(getLayout(), layout -> layout.setWidth(lastContainerWidth + getSizeWidth() - viewPort.getContentWidth()));
+                Style.importantPipeline(getLayout(), layout -> layout.width(lastContainerWidth + getSizeWidth() - viewPort.getContentWidth()));
             }
             if (scrollerViewStyle.adaptiveHeight()) {
-                Style.importantPipeline(getLayout(), layout -> layout.setHeight(lastContainerHeight + getSizeHeight() - viewPort.getContentHeight()));
+                Style.importantPipeline(getLayout(), layout -> layout.height(lastContainerHeight + getSizeHeight() - viewPort.getContentHeight()));
             }
         }
         if (reloadValue) {

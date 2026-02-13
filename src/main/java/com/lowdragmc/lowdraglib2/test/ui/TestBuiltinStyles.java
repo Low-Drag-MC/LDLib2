@@ -11,10 +11,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ToggleGroupElement;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import java.util.Optional;
 
@@ -42,7 +42,7 @@ public class TestBuiltinStyles implements IScreenTest {
                 .map(UITemplate::createUI)
                 .orElseGet(UI::empty).rootElement);
 
-        root.getLayout().flexDirection(YogaFlexDirection.ROW);
+        root.getLayout().flexDirection(FlexDirection.ROW);
         root.addChildren(
                 left,
                 right

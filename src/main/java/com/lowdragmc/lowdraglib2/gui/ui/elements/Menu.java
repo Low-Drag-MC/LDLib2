@@ -14,6 +14,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -130,10 +133,10 @@ public class Menu<K, T> extends UIElement {
         this.root = root;
         this.uiProvider = uiProvider;
 
-        getLayout().setPadding(YogaEdge.ALL, 2);
-        getLayout().setGap(YogaGutter.ALL, 2);
-        getLayout().setPositionType(YogaPositionType.ABSOLUTE);
-        getLayout().setMinWidth(120);
+        getLayout().paddingAll(2);
+        getLayout().gapAll(2);
+        getLayout().positionType(TaffyPosition.ABSOLUTE);
+        getLayout().minWidth(120);
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
         getStyle().zIndex(100);
         setFocusable(true);
@@ -188,18 +191,18 @@ public class Menu<K, T> extends UIElement {
             var height = getSizeHeight();
             // check head out of screen
             if (y < 0) {
-                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() - y));
+                layout(layout -> layout.top(getLayoutY() - y));
             } else if (y + height > screenHeight) {
-                layout(layout -> layout.setPosition(YogaEdge.TOP, getLayoutY() + screenHeight - (y + height)));
+                layout(layout -> layout.top(getLayoutY() + screenHeight - (y + height)));
             }
             if (x < 0) {
-                layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() - x));
+                layout(layout -> layout.left(getLayoutX() - x));
             } else if (x + width > screenWidth) {
                 if (x > width && parentMenu != null) {
                     // move to the left first
-                    layout(layout -> layout.setPosition(YogaEdge.LEFT, 0 - width));
+                    layout(layout -> layout.left(0 - width));
                 } else {
-                    layout(layout -> layout.setPosition(YogaEdge.LEFT, getLayoutX() + screenWidth - (x + width)));
+                    layout(layout -> layout.left(getLayoutX() + screenWidth - (x + width)));
                 }
             }
         }
@@ -236,11 +239,11 @@ public class Menu<K, T> extends UIElement {
         if (!root.isLeaf()) {
             for (var child : root.getChildren()) {
                 var container = new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setAlignItems(YogaAlign.CENTER);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.alignItems(AlignItems.CENTER);
                 }).style(style -> style.backgroundTexture(textureProvider.apply(child)))
                         .addChild(new UIElement().layout(layout -> {
-                            layout.setFlex(1);
+                            layout.flex(1);
                         }).addChild(uiProvider.apply(child.getKey())))
                         .addEventListener(UIEvents.MOUSE_DOWN, e -> {
                             if (e.button == 0) {
@@ -268,8 +271,8 @@ public class Menu<K, T> extends UIElement {
                                 opened.setTextureProvider(textureProvider);
                                 opened.setHoverTextureProvider(hoverTextureProvider);
                                 opened.getStyle().copyFrom(this.getStyle());
-                                opened.getLayout().setAlignSelf(YogaAlign.FLEX_START);
-                                opened.getLayout().setPosition(YogaEdge.LEFT, e.currentElement.getSizeWidth());
+                                opened.getLayout().alignSelf(AlignItems.FLEX_START);
+                                opened.getLayout().left(e.currentElement.getSizeWidth());
                                 opened.setOnNodeClicked(node -> {
                                     if (onNodeClicked != null) {
                                         onNodeClicked.accept(node);
@@ -295,9 +298,9 @@ public class Menu<K, T> extends UIElement {
                 } else {
                     container.addClass("__menu_branch-node__");
                     container.addChild(new UIElement().layout(layout -> {
-                        layout.setWidth(8);
-                        layout.setHeight(8);
-                        layout.setMargin(YogaEdge.HORIZONTAL, 2);
+                        layout.width(8);
+                        layout.height(8);
+                        layout.marginHorizontal(2);
                     }).style(style -> style.backgroundTexture(DynamicTexture.of(menuStyle::arrowIcon))));
                 }
                 nodeUIs.put(child, container);

@@ -102,6 +102,7 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
     }
 
     public static String getEnumName(Enum enumValue) {
+        if (enumValue == null) return "null";
         if (enumValue instanceof StringRepresentable provider) {
             return provider.getSerializedName();
         } else {

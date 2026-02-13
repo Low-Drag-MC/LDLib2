@@ -20,6 +20,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import dev.vfyjxf.taffy.style.AlignItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
@@ -31,7 +32,6 @@ import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.util.INBTSerializable;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.UnknownNullability;
 import org.joml.*;
@@ -355,15 +355,15 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
                     new UIElement().layout(layout -> {
                                 layout.setPipelineState(StyleOrigin.DEFAULT);
                                 layout.setAspectRatio(1.0f);
-                                layout.setWidthPercent(80);
-                                layout.setAlignSelf(YogaAlign.CENTER);
-                                layout.setPadding(YogaEdge.ALL, 3);
+                                layout.widthPercent(80);
+                                layout.alignSelf(AlignItems.CENTER);
+                                layout.paddingAll(3);
                                 layout.setPipelineState(StyleOrigin.INLINE);
                             }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
                             .addClass("preview_bg")
                             .addChild(new UIElement().layout(layout -> {
-                                layout.setWidthPercent(100);
-                                layout.setHeightPercent(100);
+                                layout.widthPercent(100);
+                                layout.heightPercent(100);
                             }).style(style -> style.backgroundTexture(createSamplerPreview(samplerName)))),
                     // button to select image
                     new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
@@ -376,7 +376,7 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
                                 samplerConfigurator.notifyChanges();
                             }
                         }).show(e.currentElement.getModularUI());
-                    }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
+                    }).layout(layout -> layout.alignSelf(AlignItems.CENTER))
             );
             father.addConfigurator(samplerConfigurator);
         }

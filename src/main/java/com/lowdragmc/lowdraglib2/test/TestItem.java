@@ -9,21 +9,17 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.AlignContent;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaJustify;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -61,11 +57,11 @@ public class TestItem extends BlockItem implements IItemRendererProvider, HeldIt
     @Override
     public ModularUI createUI(HeldItemUIMenuType.HeldItemUIHolder holder) {
         var root = new UIElement().layout(layout -> layout
-                .setWidth(100)
-                .setHeight(100)
-                .setPadding(YogaEdge.ALL, 4)
-                .setGap(YogaGutter.ALL, 2)
-                .setJustifyContent(YogaJustify.CENTER)
+                .width(100)
+                .height(100)
+                .paddingAll(4)
+                .gapAll(2)
+                .justifyContent(AlignContent.CENTER)
         ).style(style -> style.backgroundTexture(Sprites.BORDER));
         root.addChild(new Label().setText("Test Item UI"));
         root.addChild(new TextField());

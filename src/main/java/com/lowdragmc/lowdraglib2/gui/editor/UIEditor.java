@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import net.minecraft.resources.ResourceLocation;
-import org.appliedenergistics.yoga.YogaDisplay;
 
 import javax.annotation.Nonnull;
 
@@ -13,7 +12,7 @@ public class UIEditor extends Editor {
 
 
     public UIEditor() {
-        this.leftWindow.setDisplay(YogaDisplay.NONE);
+        this.leftWindow.setDisplay(false);
         this.leftWindow.getParentWindow().removeSplitWindow(this.leftWindow);
         initResources();
     }

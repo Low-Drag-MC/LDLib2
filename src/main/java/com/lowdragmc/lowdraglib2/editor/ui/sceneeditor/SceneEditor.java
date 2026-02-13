@@ -20,6 +20,8 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneObject;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
@@ -70,19 +72,19 @@ public class SceneEditor extends UIElement implements IScene {
     public SceneEditor() {
         this.topBar = new UIElement();
         topBar.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWidthPercent(100);
-            layout.setHeight(16);
-            layout.setPadding(YogaEdge.ALL, 1);
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.widthPercent(100);
+            layout.height(16);
+            layout.paddingAll(1);
+            layout.gapAll(1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
 
         this.scene = new Scene();
         this.scene.setRenderFacing(false);
         this.scene.setRenderSelect(false);
         this.scene.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         this.scene.setAfterWorldRender(scene -> {
             var mc = Minecraft.getInstance();
@@ -92,11 +94,11 @@ public class SceneEditor extends UIElement implements IScene {
 
         this.gizmoBar = new UIElement();
         gizmoBar.layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
-            layout.setPosition(YogaEdge.TOP, 18);
-            layout.setWidth(20);
-            layout.setPadding(YogaEdge.ALL, 3);
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.top(18);
+            layout.width(20);
+            layout.paddingAll(3);
+            layout.gapAll(1);
         }).style(style -> style.backgroundTexture(Sprites.BORDER_RT0));
 
         this.screenTips = new TextElement();
@@ -104,9 +106,9 @@ public class SceneEditor extends UIElement implements IScene {
             style.textAlignHorizontal(Horizontal.CENTER);
             style.textAlignVertical(Vertical.CENTER);
         }).layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         });
 //        this.scene.addChild(screenTips);
 
@@ -124,11 +126,11 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     public void disableTransformGizmo() {
-        gizmoBar.setDisplay(YogaDisplay.NONE);
+        gizmoBar.setDisplay(false);
     }
 
     public void enableTransformGizmo() {
-        gizmoBar.setDisplay(YogaDisplay.FLEX);
+        gizmoBar.setDisplay(true);
     }
 
     public void setTransformGizmoTarget(@Nullable Transform transform) {
@@ -166,7 +168,7 @@ public class SceneEditor extends UIElement implements IScene {
                                 .textAlignHorizontal(Horizontal.LEFT)
                                 .textAlignVertical(Vertical.CENTER))
                         .setText(candidate == null ? "---" : candidate ? "editor.camera.ortho" : "editor.camera.prospective"))
-                .layout(layout -> layout.setWidth(50))
+                .layout(layout -> layout.width(50))
                 .style(style -> style.tooltips("editor.camera.mode")));
 
     }
@@ -188,8 +190,8 @@ public class SceneEditor extends UIElement implements IScene {
                 .setText("")
                 .setOn(transformGizmoMode == mode, false)
                 .toggleButton(button -> button.layout(layout -> {
-                    layout.setWidthPercent(100);
-                    layout.setHeightPercent(100);
+                    layout.widthPercent(100);
+                    layout.heightPercent(100);
                 }))
                 .setOnToggleChanged(isOn -> {
                     setTransformGizmoMode(isOn ? mode : TransformGizmoMode.NONE);
@@ -201,8 +203,8 @@ public class SceneEditor extends UIElement implements IScene {
                     style.markTexture(new GuiTextureGroup(ColorPattern.T_BLUE.rectTexture(), icon));
                 })
                 .layout(layout -> {
-                    layout.setPadding(YogaEdge.ALL, 0);
-                    layout.setWidthPercent(100);
+                    layout.paddingAll(0);
+                    layout.widthPercent(100);
                     layout.setAspectRatio(1f);
                 }).addEventListener(UIEvents.TICK, event -> {
                     if (event.currentElement instanceof Toggle toggle) {

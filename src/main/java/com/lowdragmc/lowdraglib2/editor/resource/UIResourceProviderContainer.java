@@ -21,12 +21,12 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
     public UIResourceProviderContainer(IResourceProvider<UITemplate> provider) {
         super(provider);
         setAddDefault(() -> UITemplate.of(new UIElement().layout(layout -> {
-            layout.setWidth(150);
-            layout.setHeight(150);
+            layout.width(150);
+            layout.height(150);
         }).addClass("panel_bg"), StylesheetManager.GDP)
         ).setUiSupplier(path -> new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         }).style(style -> style.backgroundTexture(Icons.WIDGET_BASIC)))
         .setOnEdit((container, path) -> {
             // if there is an existing view open, don't open a new one'

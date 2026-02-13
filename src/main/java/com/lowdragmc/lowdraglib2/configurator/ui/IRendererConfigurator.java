@@ -12,12 +12,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nullable;
@@ -63,11 +63,11 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
         preview.layout(layout -> {
             layout.setPipelineState(StyleOrigin.DEFAULT);
             layout.setAspectRatio(1.0f);
-            layout.setWidthPercent(100);
-            layout.setMaxWidth(100);
-            layout.setMaxHeight(100);
-            layout.setAlignSelf(YogaAlign.CENTER);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.widthPercent(100);
+            layout.maxWidth(100);
+            layout.maxHeight(100);
+            layout.alignSelf(AlignItems.CENTER);
+            layout.paddingAll(3);
             layout.setPipelineState(StyleOrigin.INLINE);
         });
         preview.style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))

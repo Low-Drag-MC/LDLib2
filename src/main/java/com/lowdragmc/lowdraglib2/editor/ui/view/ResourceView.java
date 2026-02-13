@@ -15,10 +15,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -37,33 +35,33 @@ public class ResourceView extends View {
     public ResourceView(Editor editor) {
         super("editor.view.resources");
         this.editor = editor;
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
+        getLayout().flexDirection(FlexDirection.ROW);
 
         tabView.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW_REVERSE);
-            layout.setHeightPercent(100);
-            layout.setFlex(1);
+            layout.flexDirection(FlexDirection.ROW_REVERSE);
+            layout.heightPercent(100);
+            layout.flex(1);
         }).moveInlineAsDefault();
         tabView.tabContentContainer.layout(layout -> {
-            layout.setFlex(1);
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.flex(1);
+            layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY)).moveInlineAsDefault();
         tabView.tabHeaderContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.COLUMN);
-            layout.setHeightPercent(100);
-            layout.setWidth(StyleSizeLength.AUTO);
-            layout.setPadding(YogaEdge.HORIZONTAL, 1);
-            layout.setPadding(YogaEdge.VERTICAL, 1);
+            layout.flexDirection(FlexDirection.COLUMN);
+            layout.heightPercent(100);
+            layout.widthAuto();
+            layout.paddingHorizontal(1);
+            layout.paddingVertical(1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).moveInlineAsDefault();
         tabView.tabScroller
                 .viewContainer(viewContainer -> viewContainer.layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.COLUMN);
+                    layout.flexDirection(FlexDirection.COLUMN);
                 }))
                 .scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.NEVER))
                 .layout(layout -> {
-                    layout.setWidth(16);
-                    layout.setFlex(1);
-                    layout.setMargin(YogaEdge.BOTTOM, 0);
+                    layout.width(16);
+                    layout.flex(1);
+                    layout.marginBottom(0);
                 }).moveInlineAsDefault();
         tabView.setOnTabSelected(this::onResourceSelected);
 
@@ -84,13 +82,13 @@ public class ResourceView extends View {
             style.selectedTexture(Sprites.RECT_RD_T);
         });
         tab.textStyle(style -> style.adaptiveWidth(false)).layout(layout -> {
-            layout.setWidth(14);
-            layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 1);
-            layout.setMargin(YogaEdge.ALL, 1);
+            layout.width(14);
+            layout.height(14);
+            layout.paddingAll(1);
+            layout.marginAll(1);
         }).style(style -> style.tooltips(resourceInstance.resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         }).style(style -> style.backgroundTexture(resourceInstance.resource.getIcon())));
         tab.moveInlineAsDefault();
         tabView.addTab(tab, new ResourceContainer<>(resourceInstance, editor));

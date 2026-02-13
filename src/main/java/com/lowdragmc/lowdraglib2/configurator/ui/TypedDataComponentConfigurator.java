@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TagField;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.TypedDataComponent;
@@ -11,7 +12,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
@@ -33,8 +33,8 @@ public class TypedDataComponentConfigurator extends ValueConfigurator<TypedDataC
         setCopiable(value -> value);
 
         if (value == null) value = defaultValue;
-        searchComponent.layout(layout -> layout.setWidthPercent(50));
-        tagField.layout(layout -> layout.setWidthPercent(50));
+        searchComponent.layout(layout -> layout.widthPercent(50));
+        tagField.layout(layout -> layout.widthPercent(50));
         tagField.setTagResponder(tag -> {
             var type = Optional.ofNullable(this.value).map(TypedDataComponent::type).orElse(null);
             TypedDataComponent result;
@@ -46,7 +46,7 @@ public class TypedDataComponentConfigurator extends ValueConfigurator<TypedDataC
             }
             updateValueActively(result);
         });
-        inlineContainer.layout(layout -> layout.setFlexDirection(YogaFlexDirection.ROW));
+        inlineContainer.layout(layout -> layout.flexDirection(FlexDirection.ROW));
         inlineContainer.addChildren(searchComponent, tagField);
         refreshUI();
     }

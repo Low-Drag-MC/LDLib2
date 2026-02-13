@@ -17,6 +17,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
@@ -51,21 +53,21 @@ public class UIXmlView extends View {
         addClass("__ui-editor-view__");
         // header initial
         header.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeight(16);
-            layout.setPadding(YogaEdge.ALL, 1);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
+            layout.widthPercent(100);
+            layout.height(16);
+            layout.paddingAll(1);
+            layout.flexDirection(FlexDirection.ROW);
         });
         header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         header.addChildren(
                 // left
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setHeightPercent(100);
-                    layout.setFlex(1);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.heightPercent(100);
+                    layout.flex(1);
                 }).addChildren(),
                 // center
-                new UIElement().layout(layout -> layout.setHeightPercent(100))
+                new UIElement().layout(layout -> layout.heightPercent(100))
                         .addChildren(new Toggle().noText()
                                 .setOnToggleChanged(isOn -> {
                                     if (isOn) {
@@ -82,10 +84,10 @@ public class UIXmlView extends View {
                                 .style(style -> style.tooltips("UIEditor.simulation"))),
                 // right
                 new UIElement().layout(layout -> {
-                    layout.setFlexDirection(YogaFlexDirection.ROW);
-                    layout.setJustifyContent(YogaJustify.FLEX_END);
-                    layout.setHeightPercent(100);
-                    layout.setFlex(1);
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.justifyContent(AlignContent.FLEX_END);
+                    layout.heightPercent(100);
+                    layout.flex(1);
                 }).addChildren(
                         // page fit button
                         new Button().noText().setOnClick(event -> {
@@ -101,10 +103,10 @@ public class UIXmlView extends View {
                                         0.1f);
                             }
                         }).layout(layout -> {
-                            layout.setWidth(14);
+                            layout.width(14);
                         }).style(style -> style.tooltips("GraphView.fit")).addChild(
                                 new UIElement().layout(layout -> {
-                                    layout.setHeightPercent(100);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1);
                                 }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
                         // selection box toggle
@@ -112,8 +114,8 @@ public class UIXmlView extends View {
                                 .setText("")
                                 .setOn(modularUIPreview.isShowSelectionBox(), false)
                                 .toggleButton(button -> button.layout(layout -> {
-                                    layout.setWidthPercent(100);
-                                    layout.setHeightPercent(100);
+                                    layout.widthPercent(100);
+                                    layout.heightPercent(100);
                                 }))
                                 .setOnToggleChanged(modularUIPreview::setShowSelectionBox)
                                 .toggleStyle(style -> {
@@ -126,8 +128,8 @@ public class UIXmlView extends View {
                                 })
                                 .bindDataSource(SupplierDataSource.of(modularUIPreview::isShowSelectionBox))
                                 .layout(layout -> {
-                                    layout.setPadding(YogaEdge.ALL, 0);
-                                    layout.setHeightPercent(100);
+                                    layout.paddingAll(0);
+                                    layout.heightPercent(100);
                                     layout.setAspectRatio(1f);
                                 })
                                 .style(style -> style.tooltips("UIEditor.selection_box"))
@@ -137,24 +139,24 @@ public class UIXmlView extends View {
 
         // canvas initial
         canvas.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         canvas.setOverflowVisible(false);
-        canvas.setDisplay(YogaDisplay.NONE);
+        canvas.setDisplay(false);
         canvas.addClass("__ui-editor-view_canvas__").moveInlineAsDefault();
 
         // editor initial
         editor.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         editor.addClass("__ui-editor-view_editor__").moveInlineAsDefault();
 
         graphView.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         graphView.addContentChild(modularUIPreview);
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
@@ -163,13 +165,13 @@ public class UIXmlView extends View {
         graphView.addClass("__ui-editor-view_graph-view__").moveInlineAsDefault();
 
         xmlEditor.setLanguage(Languages.XML);
-        xmlEditor.contentView.layout(layout -> layout.setPadding(YogaEdge.ALL, 2));
+        xmlEditor.contentView.layout(layout -> layout.paddingAll(2));
         xmlEditor.contentView.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         xmlEditor.textAreaStyle(style -> style.focusOverlay(IGuiTexture.EMPTY));
         xmlEditor.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 2);
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.paddingAll(2);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         xmlEditor.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         xmlEditor.setLinesResponder(this::onXmlChanged);
@@ -236,16 +238,16 @@ public class UIXmlView extends View {
     public void startSimulation() {
         if (this.document == null) return;
         canvas.startSimulation(UI.of(this.document));
-        canvas.setDisplay(YogaDisplay.FLEX);
-        editor.setDisplay(YogaDisplay.NONE);
+        canvas.setDisplay(true);
+        editor.setDisplay(false);
     }
 
     /**
      * Stops the simulation mode for the user interface and transitions the editor UI back to its editing state.
      */
     public void stopSimulation() {
-        canvas.setDisplay(YogaDisplay.NONE);
-        editor.setDisplay(YogaDisplay.FLEX);
+        canvas.setDisplay(false);
+        editor.setDisplay(true);
         canvas.stopSimulation();
     }
 

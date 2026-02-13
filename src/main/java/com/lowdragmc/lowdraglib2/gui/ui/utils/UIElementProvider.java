@@ -7,8 +7,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
@@ -39,19 +39,19 @@ public interface UIElementProvider<T> extends Function<T, UIElement> {
             Function<T, Component> textMapper) {
         return node -> {
             var container = new UIElement().layout(layout -> {
-                layout.setFlexDirection(YogaFlexDirection.ROW);
-                layout.setGap(YogaGutter.ALL, 2);
-                layout.setHeight(10);
+                layout.flexDirection(FlexDirection.ROW);
+                layout.gapAll(2);
+                layout.height(10);
             }).addChildren();
             var icon = new UIElement().layout(layout -> {
                 layout.setAspectRatio(1);
-                layout.setHeightPercent(100);
+                layout.heightPercent(100);
             }).style(style -> style.backgroundTexture(iconMapper.apply(node)));
             var label = new TextElement()
                     .textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER))
                     .setText(textMapper.apply(node)).layout(layout -> {
-                        layout.setHeightPercent(100);
-                        layout.setFlex(1);
+                        layout.heightPercent(100);
+                        layout.flex(1);
                     }).setOverflow(YogaOverflow.HIDDEN);
             return container.addChildren(icon, label);
         };

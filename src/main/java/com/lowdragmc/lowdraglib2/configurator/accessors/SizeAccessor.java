@@ -3,14 +3,13 @@ package com.lowdragmc.lowdraglib2.configurator.accessors;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Pivot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.math.Size;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaWrap;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -48,18 +47,18 @@ public class SizeAccessor extends TypesAccessor<Size> {
                         v -> consumer.accept(Size.of(supplier.get().width, v.intValue())),
                         defaultValue(field, field.getType()).height, forceUpdate)
         ).layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 2);
-            layout.setMargin(YogaEdge.LEFT, 2);
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setWrap(YogaWrap.WRAP);
+            layout.gapAll(2);
+            layout.marginLeft(2);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.wrap(FlexWrap.WRAP);
         });
         width.layout(layout -> {
-            layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.flex(1);
+            layout.minWidth(40);
         });
         height.layout(layout -> {
-            layout.setFlex(1);
-            layout.setMinWidth(40);
+            layout.flex(1);
+            layout.minWidth(40);
         });
         if (field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);

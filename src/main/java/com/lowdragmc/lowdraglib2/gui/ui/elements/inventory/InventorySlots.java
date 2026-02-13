@@ -6,9 +6,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.world.inventory.Slot;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 
 import java.util.function.Consumer;
 
@@ -29,7 +29,7 @@ public class InventorySlots extends UIElement {
         }
 
         addChild(inventory);
-        hotbar.getLayout().setMargin(YogaEdge.TOP, 5);
+        hotbar.getLayout().marginTop(5);
         addChild(hotbar);
         hotbar.addClass("__inventory_hotbar__");
 
@@ -82,7 +82,7 @@ public class InventorySlots extends UIElement {
         public final ItemSlot[] slots = new ItemSlot[9];
 
         public Row() {
-            getLayout().setFlexDirection(YogaFlexDirection.ROW);
+            getLayout().flexDirection(FlexDirection.ROW);
             addClass("__inventory_row__");
 
             for (int i = 0; i < slots.length; i++) {

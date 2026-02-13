@@ -39,14 +39,14 @@ public class Inspector extends UIElement {
         this.scrollerView = new ScrollerView();
         this.scrollerView.setId("_inspector_scroller-view_");
         scrollerView.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         scrollerView.viewPort.layout(layout -> {
-            layout.setPadding(YogaEdge.ALL, 1);
+            layout.paddingAll(1);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));;
         scrollerView.viewContainer.layout(layout -> {
-            layout.setGap(YogaGutter.ALL, 1);
+            layout.gapAll(1);
         });
         addChild(scrollerView);
         internalSetup();
@@ -127,10 +127,10 @@ public class Inspector extends UIElement {
 
     private <T extends IConfigurable> ConfiguratorGroup inspectInternal(T configurable) {
         var group = new ConfiguratorGroup("").setCanCollapse(false).setCollapse(false);
-        group.lineContainer.setDisplay(YogaDisplay.NONE);
+        group.lineContainer.setDisplay(false);
         group.configuratorContainer.layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 0);
-            layout.setPadding(YogaEdge.ALL, 0);
+            layout.marginLeft(0);
+            layout.paddingAll(0);
         }).style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         configurable.buildConfigurator(group);
         scrollerView.addScrollViewChild(group);

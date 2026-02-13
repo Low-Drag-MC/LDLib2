@@ -173,6 +173,10 @@ dependencies {
     libraries("org.appliedenergistics.yoga:yoga:${yoga_version}")
     jarJar(group: 'org.appliedenergistics.yoga', name: 'yoga', version: "[${yoga_version},)")
 
+    // Taffy
+    libraries("dev.vfyjxf:taffy:${taffy_version}")
+    jarJar(group: 'dev.vfyjxf', name: 'taffy', version: "[${taffy_version},)")
+
     // JUnit 5
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'

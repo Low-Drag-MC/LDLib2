@@ -13,15 +13,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaGutter;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -101,7 +99,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
     protected boolean isDragging = false;
 
     public Scroller() {
-        getLayout().setAlignItems(YogaAlign.CENTER);
+        getLayout().alignItems(AlignItems.CENTER);
         this.headButton = new Button();
         this.tailButton = new Button();
         this.scrollContainer = new UIElement();
@@ -112,24 +110,24 @@ public abstract class Scroller extends BindableUIElement<Float> {
         this.scrollBar.addClass("__scroller_scroll_bar__");
 
         this.headButton.noText().layout(layout -> {
-            layout.setWidth(5);
-            layout.setHeight(5);
+            layout.width(5);
+            layout.height(5);
         });
         this.headButton.setOnClick(e -> moveHead());
 
         this.tailButton.noText().layout(layout -> {
-            layout.setWidth(5);
-            layout.setHeight(5);
+            layout.width(5);
+            layout.height(5);
         });
         this.tailButton.setOnClick(e -> moveTail());
 
         this.scrollContainer.layout(layout -> {
-            layout.setAlignSelf(YogaAlign.STRETCH);
+            layout.alignSelf(AlignItems.STRETCH);
             layout.setFlexGrow(1);
-        }).addChild(new UIElement().layout(layout -> layout.setFlex(1)).addChild(scrollBar));
+        }).addChild(new UIElement().layout(layout -> layout.flex(1)).addChild(scrollBar));
         scrollBar.noText().layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setHeightPercent(100);
+            layout.widthPercent(100);
+            layout.heightPercent(100);
         });
         scrollBar.addEventListener(UIEvents.MOUSE_DOWN, e -> {
             scrollBar.startDrag(getValue(), null);
@@ -278,9 +276,9 @@ public abstract class Scroller extends BindableUIElement<Float> {
     @LDLRegister(name = "scroller-vertical", group = "utils", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
-            getLayout().setFlexDirection(YogaFlexDirection.COLUMN);
-            getLayout().setGap(YogaGutter.ROW, 1);
-            getLayout().setWidth(5);
+            getLayout().flexDirection(FlexDirection.COLUMN);
+            getLayout().gapRow(1);
+            getLayout().width(5);
 
             headButton.buttonStyle(style -> style
                     .baseTexture(Icons.UP_ARROW_NO_BAR_S)
@@ -308,8 +306,8 @@ public abstract class Scroller extends BindableUIElement<Float> {
             float remainingSpace = 100 - scrollBarSize;
             float position = getNormalizedValue() * remainingSpace;
             Style.importantPipeline(scrollBar.getLayout(), layout -> {
-                layout.setHeightPercent(scrollBarSize);
-                layout.setPositionPercent(YogaEdge.TOP, position);
+                layout.heightPercent(scrollBarSize);
+                layout.topPercent(position);
             });
         }
 
@@ -346,9 +344,9 @@ public abstract class Scroller extends BindableUIElement<Float> {
     @LDLRegister(name = "scroller-horizontal", group = "utils", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {
-            getLayout().setFlexDirection(YogaFlexDirection.ROW);
-            getLayout().setGap(YogaGutter.COLUMN, 1);
-            getLayout().setHeight(5);
+            getLayout().flexDirection(FlexDirection.ROW);
+            getLayout().gapColumn(1);
+            getLayout().height(5);
 
             headButton.buttonStyle(style -> style
                     .baseTexture(Icons.LEFT_ARROW_NO_BAR_S)
@@ -377,8 +375,8 @@ public abstract class Scroller extends BindableUIElement<Float> {
             float position = getNormalizedValue() * remainingSpace;
 
             Style.importantPipeline(scrollBar.getLayout(), layout -> {
-                layout.setWidthPercent(scrollBarSize);
-                layout.setPositionPercent(YogaEdge.LEFT, position);
+                layout.widthPercent(scrollBarSize);
+                layout.leftPercent(position);
             });
         }
 

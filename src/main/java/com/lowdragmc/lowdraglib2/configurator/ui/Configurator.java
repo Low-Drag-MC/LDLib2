@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -56,27 +57,27 @@ public class Configurator extends UIElement {
         this.inlineContainer = new UIElement().addClass("__configurator_inline__");
         this.tip = new UIElement().addClass("__configurator_tip__");
 
-        getLayout().setGap(YogaGutter.ALL, 1);
+        getLayout().gapAll(1);
 
         addChild(this.lineContainer.layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.gapAll(2);
         }).addChildren(
                 this.label.textStyle(textStyle -> {
                     textStyle.adaptiveWidth(true);
                     textStyle.textAlignVertical(Vertical.CENTER);
                 }).setText(name).layout(layout -> {
-                    layout.setHeight(14);
+                    layout.height(14);
                 }),
-                this.inlineContainer.layout(layout -> layout.setFlex(1)),
+                this.inlineContainer.layout(layout -> layout.flex(1)),
                 this.tip.layout(layout -> {
-                    layout.setWidth(14);
-                    layout.setHeight(14);
+                    layout.width(14);
+                    layout.height(14);
                 }).style(style -> style.backgroundTexture(Icons.HELP))));
         if (name.isEmpty()) {
-            this.label.setDisplay(YogaDisplay.NONE);
+            this.label.setDisplay(false);
         }
-        this.tip.setDisplay(YogaDisplay.NONE);
+        this.tip.setDisplay(false);
 
         this.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
 
@@ -88,13 +89,13 @@ public class Configurator extends UIElement {
 
     public Configurator setLabel(String name) {
         this.label.setText(name);
-        this.label.setDisplay(name.isEmpty() ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        this.label.setDisplay(!name.isEmpty());
         return this;
     }
 
     public Configurator setLabel(Component name) {
         this.label.setText(name);
-        this.label.setDisplay(name.getString().isEmpty() ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        this.label.setDisplay(!name.getString().isEmpty());
         return this;
     }
 
@@ -108,13 +109,13 @@ public class Configurator extends UIElement {
 
     public Configurator setTips(String... tips) {
         this.tip.style(style -> style.appendTooltipsString(tips));
-        this.tip.setDisplay(tips.length > 0 ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        this.tip.setDisplay(tips.length > 0);
         return this;
     }
 
     public Configurator setTips(Component... tips) {
         this.tip.style(style -> style.appendTooltips(tips));
-        this.tip.setDisplay(tips.length > 0 ? YogaDisplay.FLEX : YogaDisplay.NONE);
+        this.tip.setDisplay(tips.length > 0);
         return this;
     }
 
@@ -186,8 +187,8 @@ public class Configurator extends UIElement {
                             .setOnNodeClicked(TreeBuilder.Menu::handle)
                             .layout(layout -> {
                                 var localMouse = root.getLocalMouse(event.x, event.y);
-                                layout.setPosition(YogaEdge.LEFT, localMouse.x - root.getContentX());
-                                layout.setPosition(YogaEdge.TOP, localMouse.y - root.getContentY());
+                                layout.left(localMouse.x - root.getContentX());
+                                layout.top(localMouse.y - root.getContentY());
                             })
                     );
                 }

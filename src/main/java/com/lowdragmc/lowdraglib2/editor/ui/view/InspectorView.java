@@ -20,8 +20,8 @@ public class InspectorView extends View {
         this.editor = editor;
         this.inspector = new Inspector();
         this.inspector.layout(layout -> {
-            layout.setHeightPercent(100);
-            layout.setWidthPercent(100);
+            layout.heightPercent(100);
+            layout.widthPercent(100);
         });
         this.inspector.setHistoryStack(editor.getHistoryView());
         addChild(inspector);

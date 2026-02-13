@@ -14,14 +14,14 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaDirection;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.w3c.dom.Element;
 
 import javax.annotation.Nullable;
@@ -116,18 +116,18 @@ public class Switch extends BindableUIElement<Boolean> {
     private boolean isOn = false;
 
     public Switch() {
-        getLayout().setFlexDirection(YogaFlexDirection.ROW);
-        getLayout().setAlignItems(YogaAlign.CENTER);
-        getLayout().setPadding(YogaEdge.ALL, 2);
-        getLayout().setHeight(14);
-        getLayout().setWidth(26);
+        getLayout().flexDirection(FlexDirection.ROW);
+        getLayout().alignItems(AlignItems.CENTER);
+        getLayout().paddingAll(2);
+        getLayout().height(14);
+        getLayout().width(26);
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(Sprites.RECT_RD_DARK));
-        Style.importantPipeline(getLayout(), layout -> layout.setDirection(YogaDirection.LTR));
+        Style.importantPipeline(getLayout(), layout -> layout.direction(TaffyDirection.LTR));
         addEventListener(UIEvents.MOUSE_DOWN, this::onSwitchClick);
 
         this.markIcon = new UIElement();
         this.markIcon.layout(layout -> {
-                    layout.setHeightPercent(100);
+                    layout.heightPercent(100);
                     layout.setAspectRatio(1);
                 })
                 .addClass("__switch_mark-icon__");
@@ -179,7 +179,7 @@ public class Switch extends BindableUIElement<Boolean> {
 
     protected void updateSwitchStyle() {
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(isOn ? switchStyle.pressedTexture() : switchStyle.baseTexture()));
-        Style.importantPipeline(getLayout(), layout -> layout.setDirection(isOn ? YogaDirection.RTL : YogaDirection.LTR));
+        Style.importantPipeline(getLayout(), layout -> layout.direction(isOn ? TaffyDirection.RTL : TaffyDirection.LTR));
         Style.importantPipeline(markIcon.getStyle(), style -> style.backgroundTexture(isOn ? switchStyle.markTexture() : switchStyle.unmarkTexture()));
     }
 

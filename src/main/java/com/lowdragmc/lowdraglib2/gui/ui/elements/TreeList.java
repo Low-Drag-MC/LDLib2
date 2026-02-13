@@ -17,6 +17,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -124,8 +126,8 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     protected final Map<NODE, List<NODE>> displayedChildren = new HashMap<>();
 
     public TreeList() {
-        getLayout().setWidthPercent(100);
-        getLayout().setGap(YogaGutter.ALL, 1);
+        getLayout().widthPercent(100);
+        getLayout().gapAll(1);
         internalSetup();
     }
 
@@ -318,17 +320,17 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
      */
     public UIElement createNodeUI(NODE node) {
         var container = new UIElement().layout(layout -> {
-            layout.setFlexDirection(YogaFlexDirection.ROW);
-            layout.setAlignItems(YogaAlign.CENTER);
-            layout.setWidthPercent(100);
-            layout.setGap(YogaGutter.ALL, 2);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.alignItems(AlignItems.CENTER);
+            layout.widthPercent(100);
+            layout.gapAll(2);
         }).style(style -> {
             style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.hoverTexture() : treeListStyle.nodeTexture()));
         });
         var arrow = new UIElement().layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 5 * node.getDimension());
-            layout.setWidth(7);
-            layout.setHeight(7);
+            layout.marginLeft(5 * node.getDimension());
+            layout.width(7);
+            layout.height(7);
         }).style(style -> style.backgroundTexture(DynamicTexture.of(() -> node.isBranch() ?
                 (isNodeExpanded(node) ? treeListStyle.expandIcon() : treeListStyle.collapseIcon()) :
                 IGuiTexture.EMPTY
@@ -403,12 +405,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             Function<NODE, IGuiTexture> iconMapper,
             Function<NODE, Component> textMapper) {
         var provider = UIElementProvider.iconText(iconMapper, textMapper);
-        return node -> provider.apply(node).layout(layout -> layout.setFlex(1));
+        return node -> provider.apply(node).layout(layout -> layout.flex(1));
     }
 
     public static <NODE extends ITreeNode<?, ?>> UIElementProvider<NODE> textTemplate(
             Function<NODE, Component> textMapper) {
         var provider = UIElementProvider.text(textMapper);
-        return node -> provider.apply(node).layout(layout -> layout.setFlex(1));
+        return node -> provider.apply(node).layout(layout -> layout.flex(1));
     }
 }

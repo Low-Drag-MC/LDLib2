@@ -19,6 +19,8 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.*;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncPersistRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
 import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -28,7 +30,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaJustify;
 
@@ -63,9 +64,9 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
 
     public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
         var root = new UIElement().layout(layout -> layout
-                .setPadding(YogaEdge.ALL, 4)
-                .setGap(YogaGutter.ALL, 2)
-                .setJustifyContent(YogaJustify.CENTER)
+                .paddingAll(4)
+                .gapAll(2)
+                .justifyContent(AlignContent.CENTER)
         ).addClass("panel_bg");
         root.addChild(new Label().setText("Test Block UI"));
         root.addChild(new TextField());
@@ -74,7 +75,7 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
             itemStack = new ItemStack(BuiltInRegistries.ITEM.getRandom(LDLib2.RANDOM).orElse(Items.APPLE.builtInRegistryHolder()));
         }));
         root.addChild(
-                new UIElement().layout(layout -> layout.widthPercent(100).flexDirection(YogaFlexDirection.ROW))
+                new UIElement().layout(layout -> layout.widthPercent(100).flexDirection(FlexDirection.ROW))
                         .addChildren(
                                 new Button().setText("+").setOnServerClick(e -> intValue++).layout(l -> l.flex(1)),
                                 new Button().setText("-").setOnServerClick(e -> intValue--).layout(l -> l.flex(1))

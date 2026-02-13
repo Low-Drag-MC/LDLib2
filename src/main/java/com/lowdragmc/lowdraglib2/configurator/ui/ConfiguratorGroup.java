@@ -43,22 +43,22 @@ public class ConfiguratorGroup extends Configurator {
 
     public ConfiguratorGroup(String name, boolean isCollapse) {
         super(name);
-        getLayout().setGap(YogaGutter.ALL, 0);
+        getLayout().gapAll(0);
         addClass("__configurator-group__");
 
         configuratorContainer = new UIElement().layout(layout -> {
-            layout.setMargin(YogaEdge.LEFT, 2);
-            layout.setGap(YogaGutter.ALL, 1);
-            layout.setPadding(YogaEdge.ALL, 5);
+            layout.marginLeft(2);
+            layout.gapAll(1);
+            layout.paddingAll(5);
         }).style(style -> style.backgroundTexture(Sprites.BORDER)).addClass("__configurator-group_container__").moveInlineAsDefault();
 
         lineContainer.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
-                .layout(layout -> layout.setPadding(YogaEdge.ALL, 2))
+                .layout(layout -> layout.paddingAll(2))
                 .addEventListener(UIEvents.MOUSE_DOWN, this::onLineContainerClick)
                 .addChildAt(folderIcon = new UIElement().layout(layout -> {
-                    layout.setMargin(YogaEdge.ALL, 3f);
-                    layout.setWidth(8);
-                    layout.setHeight(8);
+                    layout.marginAll(3f);
+                    layout.width(8);
+                    layout.height(8);
                 }).style(style -> style.backgroundTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT))
                         .addClass("__configurator-group_folder-icon__")
                         .moveInlineAsDefault(), 0)
@@ -71,7 +71,7 @@ public class ConfiguratorGroup extends Configurator {
     }
 
     public ConfiguratorGroup hideTitle() {
-        this.lineContainer.setDisplay(YogaDisplay.NONE);
+        this.lineContainer.setDisplay(false);
         return this;
     }
 
@@ -84,7 +84,7 @@ public class ConfiguratorGroup extends Configurator {
 
     public ConfiguratorGroup setCollapse(boolean collapse) {
         isCollapse = collapse;
-        configuratorContainer.setDisplay(collapse ? YogaDisplay.NONE : YogaDisplay.FLEX);
+        configuratorContainer.setDisplay(!collapse);
         folderIcon.style(style -> style.backgroundTexture(collapse ? Icons.RIGHT_ARROW_NO_BAR_S_LIGHT : Icons.DOWN_ARROW_NO_BAR_S_LIGHT));
         return this;
     }

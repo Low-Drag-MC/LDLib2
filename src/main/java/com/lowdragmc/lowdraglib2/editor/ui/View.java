@@ -41,8 +41,8 @@ public class View extends UIElement {
     private ViewContainer viewContainer;
 
     public View() {
-        getLayout().setWidthPercent(100);
-        getLayout().setHeightPercent(100);
+        getLayout().widthPercent(100);
+        getLayout().heightPercent(100);
     }
 
     public View(String name) {
@@ -91,9 +91,9 @@ public class View extends UIElement {
             tab.setDynamicText(this::getViewName);
         }
         if (icon != IGuiTexture.EMPTY && icon != null) {
-            tab.getLayout().setGap(YogaGutter.ALL, 2);
+            tab.getLayout().gapAll(2);
             tab.addChildAt(new UIElement().layout(layout -> {
-                layout.setHeightPercent(100);
+                layout.heightPercent(100);
                 layout.setAspectRatio(1f);
             }).style(style -> style.backgroundTexture(icon)), 0);
         }
@@ -107,7 +107,7 @@ public class View extends UIElement {
             }).noText().buttonStyle(buttonStyle -> buttonStyle.baseTexture(Icons.CLOSE)
                     .hoverTexture(Icons.CLOSE.copy().setColor(ColorPattern.LIGHT_GRAY.color))
                     .pressedTexture(Icons.CLOSE.copy().setColor(ColorPattern.GRAY.color))).layout(layout -> {
-                layout.setHeightPercent(100);
+                layout.heightPercent(100);
                 layout.setAspectRatio(1f);
             }));
         }
@@ -125,12 +125,12 @@ public class View extends UIElement {
                 var h = tab.getSizeHeight();
                 tab.startDrag(this, new GuiTextureGroup(ColorPattern.T_WHITE.rectTexture(), new TextTexture(name).setWidth((int) w)))
                         .setDragTexture(- w / 2, -h / 2, w, h);
-                tab.setDisplay(YogaDisplay.NONE);
+                tab.setDisplay(false);
             }
             lastClickTime = 0;
         }, true);
         tab.addEventListener(UIEvents.DRAG_END, e -> {
-            tab.setDisplay(YogaDisplay.FLEX);
+            tab.setDisplay(true);
         });
         return tab;
     }

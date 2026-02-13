@@ -32,6 +32,8 @@ import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -257,10 +259,10 @@ public class TextField extends BindableUIElement<String> {
     private Tuple<FormattedCharSequence, Float> formattedLineCache = null;
 
     public TextField() {
-        getLayout().setHeight(14);
-        getLayout().setPadding(YogaEdge.ALL, 2);
+        getLayout().height(14);
+        getLayout().paddingAll(2);
         getStyle().backgroundTexture(Sprites.RECT_RD_SOLID);
-        getLayoutNode().setOverflow(YogaOverflow.HIDDEN);
+        setOverflowVisible(false);
         setFocusable(true);
         addEventListener(UIEvents.CHAR_TYPED, this::onCharTyped);
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
@@ -1119,20 +1121,20 @@ public class TextField extends BindableUIElement<String> {
                     max = new NumberConfigurator("max", () ->editorRange.getMax(),
                             v -> editorRange = Range.of(editorRange.getMin(), v.floatValue()), 0, true)
             ).layout(layout -> {
-                layout.setGap(YogaGutter.ALL, 2);
-                layout.setMargin(YogaEdge.LEFT, 2);
-                layout.setFlexDirection(YogaFlexDirection.ROW);
-                layout.setWrap(YogaWrap.WRAP);
+                layout.gapAll(2);
+                layout.marginLeft(2);
+                layout.flexDirection(FlexDirection.ROW);
+                layout.wrap(FlexWrap.WRAP);
             });
             min.layout(layout -> {
-                layout.setFlex(1);
-                layout.setMinWidth(40);
-                layout.setHeight(14);
+                layout.flex(1);
+                layout.minWidth(40);
+                layout.height(14);
             });
             max.layout(layout -> {
-                layout.setFlex(1);
-                layout.setMinWidth(40);
-                layout.setHeight(14);
+                layout.flex(1);
+                layout.minWidth(40);
+                layout.height(14);
             });
             if (type.min != null && type.max != null && type.wheel != null) {
                 min.setRange(type.min, type.max).setWheel(type.wheel).setType(type);

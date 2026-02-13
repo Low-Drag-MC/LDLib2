@@ -21,8 +21,8 @@ public class TestSceneEditor implements IScreenTest {
         var root = new UIElement();
         var sceneEditor = new SceneEditor();
         sceneEditor.layout(layout -> {
-            layout.setWidthPercent(100);
-            layout.setFlex(1);
+            layout.widthPercent(100);
+            layout.flex(1);
         });
         sceneEditor.scene
                 .createScene(entityPlayer.level())
@@ -40,9 +40,9 @@ public class TestSceneEditor implements IScreenTest {
                 ))
                 .useCacheBuffer();
         root.layout(layout -> {
-            layout.setWidth(300);
-            layout.setHeight(300);
-            layout.setPadding(YogaEdge.ALL, 10);
+            layout.width(300);
+            layout.height(300);
+            layout.paddingAll(10);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(sceneEditor);
         var blockModel = new BlockModelObject();

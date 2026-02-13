@@ -114,8 +114,8 @@ public class SplittableWindow extends UIElement {
     }
 
     public SplittableWindow(@Nullable SplittableWindow parent, @Nonnull ViewContainer viewContainer) {
-        getLayout().setWidthPercent(100);
-        getLayout().setHeightPercent(100);
+        getLayout().widthPercent(100);
+        getLayout().heightPercent(100);
         this.parentWindow = parent;
         setViewContainer(viewContainer);
 

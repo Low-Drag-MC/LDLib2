@@ -17,13 +17,13 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
 
 /**
@@ -167,15 +167,15 @@ public class AnimationTexture extends TransformTexture {
                         new UIElement().layout(layout -> {
                                     layout.setPipelineState(StyleOrigin.DEFAULT);
                                     layout.setAspectRatio(1.0f);
-                                    layout.setWidthPercent(80);
-                                    layout.setPadding(YogaEdge.ALL, 3);
-                                    layout.setAlignSelf(YogaAlign.CENTER);
+                                    layout.widthPercent(80);
+                                    layout.paddingAll(3);
+                                    layout.alignSelf(AlignItems.CENTER);
                                     layout.setPipelineState(StyleOrigin.INLINE);
                                 }).style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
                                 .addClass("preview_bg")
                                 .addChild(new UIElement().layout(layout -> {
-                                    layout.setWidthPercent(100);
-                                    layout.setHeightPercent(100);
+                                    layout.widthPercent(100);
+                                    layout.heightPercent(100);
                                 }).style(style -> style.backgroundTexture(this::drawRawTextureGuides))),
                         // button to select image
                         new Button().setText("ldlib.gui.editor.tips.select_image").setOnClick(e -> {
@@ -187,7 +187,7 @@ public class AnimationTexture extends TransformTexture {
                                     configurator.notifyChanges();
                                 }
                             }).show(e.currentElement.getModularUI());
-                        }).layout(layout -> layout.setAlignSelf(YogaAlign.CENTER))
+                        }).layout(layout -> layout.alignSelf(AlignItems.CENTER))
                 ));
     }
 

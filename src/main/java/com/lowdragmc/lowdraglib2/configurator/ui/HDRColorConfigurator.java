@@ -9,13 +9,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.client.gui.GuiGraphics;
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaPositionType;
 import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -43,16 +43,16 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         this.intensityConfigurator.setType(ConfigNumber.Type.FLOAT);
         this.colorSelector.setOnColorChangeListener(color -> updateValueActively(new Vector4f(
                 ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color),
-                this.intensityConfigurator.getValue().floatValue())));
-        this.colorSelector.alphaSlider.setDisplay(YogaDisplay.NONE);
+                Optional.ofNullable(this.intensityConfigurator.getValue()).map(Number::floatValue).orElse(1f))));
+        this.colorSelector.alphaSlider.setDisplay(false);
 
 
         inlineContainer.addChildren(colorPreview = new UIElement().layout(layout -> {
-            layout.setHeight(14);
-            layout.setPadding(YogaEdge.ALL, 3);
+            layout.height(14);
+            layout.paddingAll(3);
         }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
                 .addChildren(new UIElement()
-                        .layout(layout -> layout.setHeightPercent(100))
+                        .layout(layout -> layout.heightPercent(100))
                         .style(style -> style.backgroundTexture(this::drawColorPreview))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
@@ -60,11 +60,11 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
 
         this.dialog.style(style -> style.zIndex(1).backgroundTexture(Sprites.BORDER));
         this.dialog.layout(layout -> {
-            layout.setPositionType(YogaPositionType.ABSOLUTE);
-            layout.setWidthPercent(100);
-            layout.setMaxWidth(150);
-            layout.setMinWidth(100);
-            layout.setPadding(YogaEdge.ALL, 4);
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.widthPercent(100);
+            layout.maxWidth(150);
+            layout.minWidth(100);
+            layout.paddingAll(4);
         });
         this.dialog.setFocusable(true);
         this.dialog.setEnforceFocus(e -> hide());
@@ -92,9 +92,9 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
             root.addChild(dialog.layout(layout -> {
                 var x = colorPreview.getPositionX();
                 var y = colorPreview.getPositionY();
-                layout.setPosition(YogaEdge.LEFT, x - root.getLayoutX());
-                layout.setPosition(YogaEdge.TOP, y - root.getLayoutY());
-                layout.setWidth(colorPreview.getSizeWidth());
+                layout.left(x - root.getLayoutX());
+                layout.top(y - root.getLayoutY());
+                layout.width(colorPreview.getSizeWidth());
             }));
             this.dialog.focus();
         }

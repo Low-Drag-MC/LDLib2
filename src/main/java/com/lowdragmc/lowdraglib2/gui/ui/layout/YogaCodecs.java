@@ -9,10 +9,8 @@ import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.appliedenergistics.yoga.style.StyleLength;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-
 @UtilityClass
+@Deprecated
 public final class YogaCodecs {
     public static final Codec<FloatOptional> FLOAT_OPTIONAL_CODEC = LDLibExtraCodecs.TAG.xmap(YogaCodecs::decodeFloatOptional, YogaCodecs::encodeFloatOptional);
     public static final Codec<StyleSizeLength> STYLE_SIZE_LENGTH_CODEC = LDLibExtraCodecs.TAG.xmap(YogaCodecs::decodeStyleSizeLength, YogaCodecs::encodeStyleSizeLength);
@@ -92,48 +90,4 @@ public final class YogaCodecs {
         }
         return StyleLength.undefined();
     }
-
-    public static CompoundTag encodeEdge(Function<YogaEdge, StyleLength> getter) {
-        var tag = new CompoundTag();
-        for (var edge : YogaEdge.values()) {
-            tag.put(edge.name(), encodeStyleLength(getter.apply(edge)));
-        }
-        return tag;
-    }
-
-    public static void decodeEdge(CompoundTag tag, BiConsumer<YogaEdge, StyleLength> setter) {
-        for (var edge : YogaEdge.values()) {
-            setter.accept(edge, decodeStyleLength(tag.get(edge.name())));
-        }
-    }
-
-    public static CompoundTag encodeDimension(Function<YogaDimension, StyleSizeLength> getter) {
-        var tag = new CompoundTag();
-        for (var dimension : YogaDimension.values()) {
-            tag.put(dimension.name(), encodeStyleSizeLength(getter.apply(dimension)));
-        }
-        return tag;
-    }
-
-    public static void decodeDimension(CompoundTag tag, BiConsumer<YogaDimension, StyleSizeLength> setter) {
-        for (var dimension : YogaDimension.values()) {
-            var styleLength = decodeStyleSizeLength(tag.get(dimension.name()));
-            setter.accept(dimension, styleLength);
-        }
-    }
-
-    public static CompoundTag encodeGutter(Function<YogaGutter, StyleLength> getter) {
-        var tag = new CompoundTag();
-        for (var gutter : YogaGutter.values()) {
-            tag.put(gutter.name(), encodeStyleLength(getter.apply(gutter)));
-        }
-        return tag;
-    }
-
-    public static void decodeGutter(CompoundTag tag, BiConsumer<YogaGutter, StyleLength> setter) {
-        for (var gutter : YogaGutter.values()) {
-            setter.accept(gutter, decodeStyleLength(tag.get(gutter.name())));
-        }
-    }
-
 }
