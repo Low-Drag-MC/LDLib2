@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.configurator.annotation;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

@@ -26,7 +26,7 @@ import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.lwjgl.system.MemoryUtil;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.IntConsumer;
 

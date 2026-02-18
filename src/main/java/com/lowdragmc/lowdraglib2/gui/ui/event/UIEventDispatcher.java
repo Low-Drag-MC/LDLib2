@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.event;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import it.unimi.dsi.fastutil.Pair;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -58,9 +59,7 @@ public final class UIEventDispatcher {
                 // call capture listeners
                 var captures = elem.getCaptureListeners(event.type);
                 for (UIEventListener listener : captures) {
-                    event.hasHandler = true;
-                    event.currentListener = listener;
-                    listener.handleEvent(event);
+                    handleCaptureEventListener(event, elem, listener);
                     if (event.laterPropagationStopped) {
                         break;  // skip to leftover bubble phase
                     }
@@ -83,16 +82,12 @@ public final class UIEventDispatcher {
         // For target element, execute both capture and bubble listeners
         var targetCaptures = target.getCaptureListeners(event.type);
         for (UIEventListener listener : targetCaptures) {
-            event.hasHandler = true;
-            event.currentListener = listener;
-            listener.handleEvent(event);
+            handleCaptureEventListener(event, target, listener);
             if (event.laterPropagationStopped) break;
         }
         var targetBubbles = target.getBubbleListeners(event.type);
         for (UIEventListener listener : targetBubbles) {
-            event.hasHandler = true;
-            event.currentListener = listener;
-            listener.handleEvent(event);
+            handleBubbleEventListener(event, target, listener);
             if (event.laterPropagationStopped) break;
         }
         if (sendServer) {
@@ -117,9 +112,7 @@ public final class UIEventDispatcher {
                 event.currentElement = elem;
                 var bubbles = elem.getBubbleListeners(event.type);
                 for (UIEventListener listener : bubbles) {
-                    event.hasHandler = true;
-                    event.currentListener = listener;
-                    listener.handleEvent(event);
+                    handleBubbleEventListener(event, elem, listener);
                     if (event.laterPropagationStopped) break;
                 }
                 if (sendServer) {
@@ -183,9 +176,7 @@ public final class UIEventDispatcher {
         var currentElement = event.currentElement;
 
         for (var listener : currentElement.getCaptureListeners(event.type)) {
-            event.hasHandler = true;
-            event.currentListener = listener;
-            listener.handleEvent(event);
+            handleCaptureEventListener(event, currentElement, listener);
             if (event.laterPropagationStopped) break;
         }
 
@@ -202,13 +193,24 @@ public final class UIEventDispatcher {
 
         event.currentElement = currentElement;
         for (var listener : currentElement.getBubbleListeners(event.type)) {
-            event.hasHandler = true;
-            event.currentListener = listener;
-            listener.handleEvent(event);
+            handleBubbleEventListener(event, currentElement, listener);
             if (event.laterPropagationStopped) break;
         }
 
         return event.propagationStopped;
     }
 
+    private static void handleBubbleEventListener(UIEvent event, UIElement elem, UIEventListener listener) {
+        event.hasHandler = true;
+        event.currentListener = listener;
+        event.bubbleListeners.add(Pair.of(elem, listener));
+        listener.handleEvent(event);
+    }
+
+    private static void handleCaptureEventListener(UIEvent event, UIElement elem, UIEventListener listener) {
+        event.hasHandler = true;
+        event.currentListener = listener;
+        event.captureListeners.add(Pair.of(elem, listener));
+        listener.handleEvent(event);
+    }
 }

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -14,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -27,12 +29,13 @@ import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.*;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * TreeList represents a hierarchical UI element structure, where each node in the hierarchy can contain UI elements and may have a parent node.
@@ -112,9 +115,16 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @Setter
     protected Consumer<NODE> onDoubleClickNode = Consumers.nop();
     @Setter
+    protected Predicate<NODE> selectableNodeFilter = Predicates.alwaysTrue();
+    @Setter
+    protected boolean doubleClickToExpand = true;
+    @Setter
+    protected boolean clickToExpand = false;
+    @Setter
     protected boolean supportMultipleSelection = false;
     @Setter
     protected boolean staticTree = false;
+    protected boolean flattenRoot = false;
 
     // runtime
     @Nullable
@@ -165,8 +175,42 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         return this;
     }
 
+    public TreeList<NODE> setFlattenRoot(boolean flattenRoot) {
+        this.flattenRoot = flattenRoot;
+        reloadList();
+        return this;
+    }
+
     public Set<NODE> getSelected() {
         return Collections.unmodifiableSet(selectedNodes);
+    }
+
+    public TreeList<NODE> setSelected(Collection<NODE> selected, boolean notify) {
+        if (selectedNodes.equals(selected)) return this;
+        selectedNodes.clear();
+        selectedNodes.addAll(selected);
+        if (notify) {
+            onSelectedChanged.accept(selectedNodes);
+        }
+        return this;
+    }
+
+    public TreeList<NODE> addSelected(NODE node, boolean notify) {
+        if (selectedNodes.add(node)) {
+            if (notify) {
+                onSelectedChanged.accept(getSelected());
+            }
+        }
+        return this;
+    }
+
+    public TreeList<NODE> removeSelected(NODE node, boolean notify) {
+        if (selectedNodes.remove(node)) {
+            if (notify) {
+                onSelectedChanged.accept(getSelected());
+            }
+        }
+        return this;
     }
 
     /**
@@ -239,12 +283,19 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
      */
     public TreeList<NODE> reloadList() {
         nodeUIs.clear();
-        selectedNodes.clear();
+        setSelected(Collections.emptySet(), true);
         expandedNodes.clear();
         displayedChildren.clear();
         clearAllChildren();
         if (root == null) return this;
-        addNodeUI(root, 0);
+        if (flattenRoot) {
+            var index = 0;
+            for (var child : root.getChildren()) {
+                addNodeUI((NODE) child, index++);
+            }
+        } else {
+            addNodeUI(root, 0);
+        }
         return this;
     }
 
@@ -295,7 +346,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     protected void removeNodeUI(NODE node, boolean removeExpanded) {
         var ui = nodeUIs.remove(node);
-        selectedNodes.remove(node);
+        removeSelected(node, true);
         if (ui != null) {
             removeChild(ui);
         }
@@ -328,7 +379,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.hoverTexture() : treeListStyle.nodeTexture()));
         });
         var arrow = new UIElement().layout(layout -> {
-            layout.marginLeft(5 * node.getDimension());
+            layout.marginLeft(5 * (node.getDimension() - (flattenRoot ? 1 : 0)));
             layout.width(7);
             layout.height(7);
         }).style(style -> style.backgroundTexture(DynamicTexture.of(() -> node.isBranch() ?
@@ -336,7 +387,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                 IGuiTexture.EMPTY
         ))).addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (e.button == 0) {
-                if (node.isBranch()) {
+                if (node.isBranch() && !clickToExpand) {
                     if (isNodeExpanded(node)) {
                         collapseNode(node);
                     } else {
@@ -355,6 +406,14 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     protected void onNodeClicked(UIEvent event, NODE node) {
         if (event.button == 0) {
+            if (node.isBranch() && clickToExpand) {
+                if (isNodeExpanded(node)) {
+                    collapseNode(node);
+                } else {
+                    expandNode(node);
+                }
+            }
+            if (!selectableNodeFilter.test(node)) return;
             // shift
             if (supportMultipleSelection && event.isShiftDown()) {
                 if (!selectedNodes.isEmpty()) {
@@ -389,7 +448,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     protected void onNodeDoubleClicked(UIEvent event, NODE node) {
         if (event.button == 0) {
-            if (node.isBranch()) {
+            if (node.isBranch() && doubleClickToExpand) {
                 if (isNodeExpanded(node)) {
                     collapseNode(node);
                 } else {
@@ -408,9 +467,60 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         return node -> provider.apply(node).layout(layout -> layout.flex(1));
     }
 
+    public static <NODE extends ITreeNode<?, ?>> UIElementProvider<NODE> optionalIconTextTemplate(
+            Function<NODE, IGuiTexture> iconMapper,
+            Function<NODE, Component> textMapper) {
+        var provider = UIElementProvider.optionalIconText(iconMapper, textMapper);
+        return node -> provider.apply(node).layout(layout -> layout.flex(1));
+    }
+
     public static <NODE extends ITreeNode<?, ?>> UIElementProvider<NODE> textTemplate(
             Function<NODE, Component> textMapper) {
         var provider = UIElementProvider.text(textMapper);
         return node -> provider.apply(node).layout(layout -> layout.flex(1));
+    }
+
+    public static boolean isMouseOverNodeAbove(UIEvent event) {
+        var ui = event.currentElement;
+        var x = ui.getPositionX();
+        var y = ui.getPositionY();
+        var width = ui.getSizeWidth();
+        var height = ui.getSizeHeight();
+        return ui.isMouseOver(x, y, width, height / 3, event.x, event.y);
+    }
+
+    public static boolean isMouseOverNodeCenter(UIEvent event) {
+        var ui = event.currentElement;
+        var x = ui.getPositionX();
+        var y = ui.getPositionY();
+        var width = ui.getSizeWidth();
+        var height = ui.getSizeHeight();
+        return ui.isMouseOver(x, y + height / 3, width, height / 3, event.x, event.y);
+    }
+
+    public static boolean isMouseOverNodeBelow(UIEvent event) {
+        var ui = event.currentElement;
+        var x = ui.getPositionX();
+        var y = ui.getPositionY();
+        var width = ui.getSizeWidth();
+        var height = ui.getSizeHeight();
+        return ui.isMouseOver(x, y + height * 2 / 3, width, height / 3, event.x, event.y);
+    }
+
+    public static IGuiTexture createDraggingOverlay(int mode) {
+        if (mode == 0) {
+            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+                DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, ColorPattern.T_WHITE.color);
+            };
+        } else if (mode == 1) {
+            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+                DrawerHelper.drawSolidRect(graphics, x, y, width, height, ColorPattern.T_WHITE.color);
+            };
+        } else if (mode == 2) {
+            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+                DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, ColorPattern.T_WHITE.color);
+            };
+        }
+        return IGuiTexture.EMPTY;
     }
 }

@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Predicate;
 
 public abstract class Ref<TYPE> implements IRef<TYPE> {

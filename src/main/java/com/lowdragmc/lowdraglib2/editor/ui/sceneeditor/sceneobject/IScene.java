@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.UUID;
 

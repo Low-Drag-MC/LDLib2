@@ -7,8 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaGutter;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4i;
 
 import java.lang.reflect.Field;
@@ -23,8 +22,8 @@ public class Vector4iAccessor extends TypesAccessor<Vector4i> {
     }
 
     @Override
-    public Vector4i defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public Vector4i defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return new Vector4i((int) field.getAnnotation(DefaultValue.class).numberValue()[0],
                     (int) field.getAnnotation(DefaultValue.class).numberValue()[1],
                     (int) field.getAnnotation(DefaultValue.class).numberValue()[2],
@@ -34,23 +33,23 @@ public class Vector4iAccessor extends TypesAccessor<Vector4i> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Vector4i> supplier, Consumer<Vector4i> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<Vector4i> supplier, Consumer<Vector4i> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         var configurator = new Configurator(name);
         NumberConfigurator x, y, z, w;
 
         configurator.inlineContainer.addChildren(
                 x = new NumberConfigurator("x", () -> supplier.get().x,
                         v -> consumer.accept(new Vector4i(v.intValue(), supplier.get().y, supplier.get().z, supplier.get().w)),
-                        defaultValue(field, field.getType()).x, forceUpdate),
+                        defaultValue(field).x, forceUpdate),
                 y = new NumberConfigurator("y", () -> supplier.get().y,
                         v -> consumer.accept(new Vector4i(supplier.get().x, v.intValue(), supplier.get().z, supplier.get().w)),
-                        defaultValue(field, field.getType()).y, forceUpdate),
+                        defaultValue(field).y, forceUpdate),
                 z = new NumberConfigurator("z", () -> supplier.get().z,
                         v -> consumer.accept(new Vector4i(supplier.get().x, supplier.get().y, v.intValue(), supplier.get().w)),
-                        defaultValue(field, field.getType()).z, forceUpdate),
+                        defaultValue(field).z, forceUpdate),
                 w = new NumberConfigurator("w", () -> supplier.get().w,
                         v -> consumer.accept(new Vector4i(supplier.get().x, supplier.get().y, supplier.get().z, v.intValue())),
-                        defaultValue(field, field.getType()).w, forceUpdate)
+                        defaultValue(field).w, forceUpdate)
         ).layout(layout -> {
             layout.gapAll(2);
             layout.marginLeft(2);
@@ -77,7 +76,7 @@ public class Vector4iAccessor extends TypesAccessor<Vector4i> {
             layout.minWidth(40);
             layout.height(14);
         });
-        if (field.isAnnotationPresent(ConfigNumber.class)) {
+        if (field != null && field.isAnnotationPresent(ConfigNumber.class)) {
             var config = field.getAnnotation(ConfigNumber.class);
             x.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());
             y.setRange(config.range()[0], config.range()[1]).setWheel(config.wheel());

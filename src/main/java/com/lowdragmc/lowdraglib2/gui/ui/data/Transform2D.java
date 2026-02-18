@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 
@@ -179,6 +180,27 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
                 ctx.pose.scale(scale.x, scale.y, 1);
             }
             ctx.pose.translate(-px, -py, 0);
+        }
+    }
+
+    public void pushPose(Matrix4f pose, UIElement e) {
+        if (isIdentity()) return;
+        float px = e.getPositionX() + e.getSizeWidth() * pivot.x;
+        float py = e.getPositionY() + e.getSizeHeight() * pivot.y;
+
+        if (translate.x != 0f || translate.y != 0f) {
+            pose.translate(translate.x, translate.y, 0);
+        }
+
+        if (rotationRad != 0f || scale.x != 1f || scale.y != 1f) {
+            pose.translate(px, py, 0);
+            if (rotationRad != 0f) {
+                pose.rotate(new Quaternionf().rotateLocalZ(rotationRad));
+            }
+            if (scale.x != 1f || scale.y != 1f) {
+                pose.scale(scale.x, scale.y, 1);
+            }
+            pose.translate(-px, -py, 0);
         }
     }
 

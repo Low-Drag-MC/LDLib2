@@ -116,7 +116,7 @@ public class Scene extends UIElement {
     protected BlockPosFace lastSelectedPosFace;
 
     public Scene() {
-        setOverflow(YogaOverflow.HIDDEN);
+        setOverflowVisible(false);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.MOUSE_UP, this::onMouseUp);
         addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
@@ -267,7 +267,7 @@ public class Scene extends UIElement {
      * @param renderHook an optional render hook that can be used to customize the rendering of the blocks.
      * @return
      */
-    public Scene setRenderedCore(Collection<BlockPos> blocks, ISceneBlockRenderHook renderHook, boolean autoCamera) {
+    public Scene setRenderedCore(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook, boolean autoCamera) {
         if (renderer == null) return this;
         renderer.removeRenderedBlocks(core);
         core.clear();
@@ -297,7 +297,7 @@ public class Scene extends UIElement {
         return this;
     }
 
-    public Scene setRenderedCore(Collection<BlockPos> blocks, ISceneBlockRenderHook renderHook) {
+    public Scene setRenderedCore(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook) {
         return setRenderedCore(blocks, renderHook, true);
     }
 

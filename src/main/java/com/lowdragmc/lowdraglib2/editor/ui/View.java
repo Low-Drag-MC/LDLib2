@@ -17,7 +17,7 @@ import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaDisplay;
 import org.appliedenergistics.yoga.YogaGutter;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Supplier;
 
 public class View extends UIElement {

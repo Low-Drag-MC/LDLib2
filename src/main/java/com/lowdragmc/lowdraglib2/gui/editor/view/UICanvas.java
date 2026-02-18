@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault

@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
@@ -55,7 +56,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
             }, serverLevel.registryAccess());
             serverLevel.getServer().executeIfPossible(() -> {
                 var extra = new CompoundTag();
-                writeCustomSyncData(extra);
+                writeCustomSyncData(serverLevel.registryAccess(), extra);
                 var packet = createSyncPacket(changed, data, extra);
                 PacketDistributor.sendToPlayersTrackingChunk(getServerLevel(), this.getTrackingPos(), packet);
             });
@@ -69,13 +70,13 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
     /**
      * write custom data to the packet. it will always be synced.
      */
-    default void writeCustomSyncData(CompoundTag tag) {
+    default void writeCustomSyncData(HolderLookup.Provider provider, CompoundTag tag) {
     }
 
     /**
      * read custom data from the packet
      */
-    default void readCustomSyncData(CompoundTag tag) {
+    default void readCustomSyncData(HolderLookup.Provider provider, CompoundTag tag) {
     }
 
     /**
@@ -91,7 +92,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
     default CompoundTag serializeInitialData(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
         var customTag = new CompoundTag();
-        writeCustomSyncData(customTag);
+        writeCustomSyncData(provider, customTag);
         if (!customTag.isEmpty()) {
             tag.put("custom", customTag);
         }
@@ -113,7 +114,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
      */
     default void deserializeInitialData(HolderLookup.Provider provider, CompoundTag tag) {
         var customTag = tag.getCompound("custom");
-        readCustomSyncData(customTag);
+        readCustomSyncData(provider, customTag);
 
         var list = tag.getList("managed", Tag.TAG_COMPOUND);
         var syncedFields = getRootStorage().getSyncFields();
@@ -127,7 +128,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
         }
     }
 
-    default void handleSyncPacket(BitSet changed, byte[] data, CompoundTag extra) {
+    default void handleSyncPacket(RegistryAccess registryAccess, BitSet changed, byte[] data, CompoundTag extra) {
         ByteBufUtil.readCustomData(data, buffer -> {
             var storage = getRootStorage();
             var syncedFields = storage.getSyncFields();
@@ -144,8 +145,8 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
                     }
                 }
             }
-        }, Platform.getFrozenRegistry());
-        readCustomSyncData(extra);
+        }, registryAccess);
+        readCustomSyncData(registryAccess, extra);
     }
 
     /// Async

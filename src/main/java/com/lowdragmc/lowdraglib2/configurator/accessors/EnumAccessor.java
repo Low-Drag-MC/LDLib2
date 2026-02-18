@@ -2,13 +2,13 @@ package com.lowdragmc.lowdraglib2.configurator.accessors;
 
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import net.minecraft.util.StringRepresentable;
 import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -25,6 +25,7 @@ import java.util.stream.Stream;
  * @implNote NumberAccessor
  */
 @LDLRegisterClient(name = "enum", registry = "ldlib2:configurator_accessor")
+@SuppressWarnings({"rawtypes"})
 public class EnumAccessor implements IConfiguratorAccessor<Enum> {
 
     @Override
@@ -33,8 +34,9 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
     }
 
     @Override
-    public Enum defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public Enum defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (type == null) return null;
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             String name = field.getAnnotation(DefaultValue.class).stringValue()[0];
             for (var value : type.getEnumConstants()) {
                 String enumName = getEnumName((Enum) value);
@@ -47,7 +49,8 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Enum> supplier, Consumer<Enum> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<Enum> supplier, Consumer<Enum> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        if (field == null) return IConfiguratorAccessor.super.create(name, supplier, consumer, forceUpdate, field, owner);
         var type = ReflectionUtils.getRawType(field.getGenericType());
         if (type.isEnum()) {
             Stream<Enum> candidates = Arrays.stream(type.getEnumConstants()).map(Enum.class::cast);

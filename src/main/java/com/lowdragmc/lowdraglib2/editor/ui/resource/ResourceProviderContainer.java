@@ -35,7 +35,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -146,7 +146,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                 style.textAlignHorizontal(Horizontal.CENTER).textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL);
                 style.fontSize(5);
             }
-        }).setText(nameSupplier.apply(key)).setOverflow(YogaOverflow.HIDDEN).layout(layout -> {
+        }).setText(nameSupplier.apply(key)).setOverflowVisible(false).layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.flex(1);
                 layout.heightPercent(100);

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.configurator.accessors;
 
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -28,8 +29,12 @@ public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfigurat
      * @param type the class type of the field
      * @return the default value of the specified type, or null if no default value is specified
      */
-    default T defaultValue(Field field, Class<?> type) {
+    default T defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         return null;
+    }
+
+    default T defaultValue(@Nullable Field field) {
+        return defaultValue(field, field == null ? null : field.getType());
     }
 
     /**
@@ -41,7 +46,7 @@ public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfigurat
      * @param owner the field owner
      * @return a new configurator instance
      */
-    default Configurator create(String name, Supplier<T> supplier, Consumer<T> consumer, boolean forceUpdate, Field field, Object owner) {
+    default Configurator create(String name, Supplier<T> supplier, Consumer<T> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         return new Configurator(name);
     }
 }

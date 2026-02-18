@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.TransformRefConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.TransformRef;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.UUID;
@@ -19,15 +20,15 @@ public class TransformRefAccessor extends TypesAccessor<TransformRef> {
     }
 
     @Override
-    public TransformRef defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public TransformRef defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return new TransformRef(UUID.fromString(field.getAnnotation(DefaultValue.class).stringValue()[0]));
         }
         return new TransformRef();
     }
 
     @Override
-    public Configurator create(String name, Supplier<TransformRef> supplier, Consumer<TransformRef> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<TransformRef> supplier, Consumer<TransformRef> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         return new TransformRefConfigurator(name, supplier, consumer, defaultValue(field, TransformRef.class), forceUpdate);
     }
 }

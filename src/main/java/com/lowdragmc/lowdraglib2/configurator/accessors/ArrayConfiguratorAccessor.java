@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import lombok.AllArgsConstructor;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -30,15 +31,16 @@ public class ArrayConfiguratorAccessor implements IConfiguratorAccessor<Object> 
     }
 
     @Override
-    public Object defaultValue(Field field, Class<?> type) {
+    public Object defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         return Array.newInstance(childType, 0);
     }
 
     @Override
-    public Configurator create(String name, Supplier supplier, Consumer consumer, boolean forceUpdate, Field field, Object owner) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Configurator create(String name, Supplier supplier, Consumer consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         boolean isCollapse = true;
         boolean canCollapse = true;
-        if (field.isAnnotationPresent(Configurable.class)) {
+        if (field != null && field.isAnnotationPresent(Configurable.class)) {
             isCollapse = field.getAnnotation(Configurable.class).collapse();
             canCollapse = field.getAnnotation(Configurable.class).canCollapse();
         }
@@ -46,8 +48,8 @@ public class ArrayConfiguratorAccessor implements IConfiguratorAccessor<Object> 
         ArrayConfiguratorGroup.IConfiguratorProvider<Object> provider = (getter, setter) -> childAccessor.create("", getter, setter, forceUpdate, field, owner);
         ArrayConfiguratorGroup.IAddDefault<Object> addDefault = () -> childAccessor.defaultValue(field, childType);
 
-        ConfigList configList = field.isAnnotationPresent(ConfigList.class) ? field.getAnnotation(ConfigList.class) : null;
-        if (configList != null) {
+        ConfigList configList = field != null && field.isAnnotationPresent(ConfigList.class) ? field.getAnnotation(ConfigList.class) : null;
+        if (owner != null && configList != null) {
             if (!configList.configuratorMethod().isEmpty()) {
                 var declaringClass = field.getDeclaringClass();
                 try {

@@ -24,7 +24,7 @@ import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
@@ -181,7 +181,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())
                         .layout(layout -> layout.flex(1))
-                        .setOverflow(YogaOverflow.HIDDEN),
+                        .setOverflowVisible(false),
                 new Button().buttonStyle(style -> {
                     style.baseTexture(Icons.FOLDER);
                     style.hoverTexture(Icons.FOLDER.copy().setColor(ColorPattern.SLATE_PLUM.color));

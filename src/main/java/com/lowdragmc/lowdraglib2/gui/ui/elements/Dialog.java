@@ -25,7 +25,7 @@ import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
 import org.lwjgl.glfw.GLFW;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.function.Consumer;
 import java.util.function.Predicate;

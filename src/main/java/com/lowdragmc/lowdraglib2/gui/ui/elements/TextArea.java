@@ -48,7 +48,7 @@ import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
 import oshi.util.tuples.Pair;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -294,7 +294,7 @@ public class TextArea extends BindableUIElement<String[]> {
             layout.heightPercent(100);
         });
         this.contentView.style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID));
-        this.contentView.setOverflow(YogaOverflow.HIDDEN);
+        this.contentView.setOverflowVisible(false);
         this.contentView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
             updateScrollers();
             if (Float.isNaN(scrollX) || Float.isNaN(scrollY)) {

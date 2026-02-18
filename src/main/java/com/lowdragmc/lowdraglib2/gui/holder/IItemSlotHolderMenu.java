@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface IItemSlotHolderMenu {
 

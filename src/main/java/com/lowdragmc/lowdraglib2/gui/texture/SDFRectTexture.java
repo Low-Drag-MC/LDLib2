@@ -27,7 +27,7 @@ import static com.mojang.blaze3d.vertex.DefaultVertexFormat.*;
 @LDLRegisterClient(name = "sdf_rect_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 public class SDFRectTexture extends TransformTexture {
-    @Getter @Setter
+    @Getter
     @Configurable
     @ConfigNumber(range = {0f, Float.MAX_VALUE}, wheel = 1)
     private Vector4f radius = new Vector4f(0, 0, 0, 0);
@@ -63,6 +63,15 @@ public class SDFRectTexture extends TransformTexture {
     public SDFRectTexture setBorderColor(int borderColor) {
         this.borderColor = borderColor;
         this.borderColorVec4 = ColorUtils.toVector4f(borderColor);
+        return this;
+    }
+
+    public SDFRectTexture setRadius(float radius) {
+        return setRadius(new Vector4f(radius));
+    }
+
+    public SDFRectTexture setRadius(Vector4f radius) {
+        this.radius = radius;
         return this;
     }
 

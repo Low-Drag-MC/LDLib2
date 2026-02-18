@@ -7,7 +7,7 @@ import com.mojang.serialization.DynamicOps;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Predicate;
 
 /**

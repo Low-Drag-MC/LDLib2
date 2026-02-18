@@ -27,7 +27,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -386,7 +386,6 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         registerValueListener(onValueChanged);
         return this;
     }
-
 
     protected void onScrollViewLayoutChanged(UIEvent event) {
 

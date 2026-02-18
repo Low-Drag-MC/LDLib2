@@ -44,9 +44,10 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaConstants;
+import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,15 +92,18 @@ public class ModularUI {
     @Getter
     private float leftPos, topPos, width, height;
     @Getter
-    private final DragHandler dragHandler = new DragHandler();
+    private final DragHandler dragHandler = new DragHandler(this);
     @Getter
     private long tickCounter = 0;
+    @Getter
+    private Matrix4f lastDrawPose = new Matrix4f();
     // Element registry for fast retrieval
     private final List<UIElement> elements = new ArrayList<>();
     private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
     private final Map<Class<?>, List<UIElement>> elementsByType = new ConcurrentHashMap<>();
     private final Map<NodeId, UIElement> elementByNode = new HashMap<>();
     private final Set<NodeId> nodesWithNewLayout = new HashSet<>();
+    private final Set<NodeId> nodesWithNewGeometry = new HashSet<>();
 
     // UI state
     @Getter @Setter
@@ -159,7 +163,11 @@ public class ModularUI {
         this.player = player;
         this.taffyTree = new TaffyTree();
         this.taffyTree.disableRounding();
-        this.taffyTree.setLayoutChangeListener((nodeId, layout) -> nodesWithNewLayout.add(nodeId));
+        this.taffyTree.setLayoutChangeListener((nodeId, oldLayout, newLayout) -> {
+            nodesWithNewLayout.add(nodeId);
+            if (Objects.equals(oldLayout, newLayout)) return;
+            nodesWithNewGeometry.add(nodeId);
+        });
         this.syncManager = new UISyncManager(this);
         this.styleEngine.addStylesheets(this.ui.getStylesheets());
         this.ui.rootElement.addClass("__root__");
@@ -551,10 +559,11 @@ public class ModularUI {
                 for (var nodeId : nodesWithNewLayout) {
                     var element = elementByNode.get(nodeId);
                     if (element != null) {
-                        element.onLayoutChanged();
+                        element.onLayoutChanged(nodesWithNewGeometry.contains(nodeId));
                     }
                 }
                 nodesWithNewLayout.clear();
+                nodesWithNewGeometry.clear();
 
                 extraAreas.clear();
             }
@@ -905,6 +914,7 @@ public class ModularUI {
             event.y = (float) mouseY;
             event.deltaX = (float) dragX;
             event.deltaY = (float) dragY;
+            // TODO fix dragStartX and dragStartY
             event.dragStartX = lastMouseDownX;
             event.dragStartY = lastMouseDownY;
             event.dragHandler = dragHandler;
@@ -1056,6 +1066,7 @@ public class ModularUI {
             cleanTooltip();
 
             // rendering
+            lastDrawPose = new Matrix4f(guiGraphics.pose().last().pose());
             var guiContext = GUIContext.of(ModularUI.this, guiGraphics, mouseX, mouseY, partialTick);
 
             lastMouseX = guiContext.localMouseX;
@@ -1115,7 +1126,7 @@ public class ModularUI {
 
             // Do not render tooltips if carried item is existing
             if (drawDrag && dragHandler.isDragging() && dragHandler.dragTexture != null) {
-                dragHandler.dragTexture.draw(guiGraphics, (int) lastMouseX, (int) lastMouseY, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
+                dragHandler.dragTexture.draw(guiGraphics, lastMouseX, lastMouseY, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
             }
 
             if (drawTooltips && !dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {

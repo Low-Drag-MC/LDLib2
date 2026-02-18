@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import lombok.AllArgsConstructor;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -18,6 +19,7 @@ import java.util.function.Supplier;
  * @implNote ArrayConfiguratorAccessor
  */
 @AllArgsConstructor
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class CollectionConfiguratorAccessor implements IConfiguratorAccessor<Collection> {
     private final Class<?> baseType;
     private final Class<?> childType;
@@ -29,7 +31,7 @@ public class CollectionConfiguratorAccessor implements IConfiguratorAccessor<Col
     }
 
     @Override
-    public Collection defaultValue(Field field, Class<?> type) {
+    public Collection defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (type == List.class) {
             return new ArrayList<>();
         } else if (type == Set.class) {
@@ -39,11 +41,11 @@ public class CollectionConfiguratorAccessor implements IConfiguratorAccessor<Col
     }
 
     @Override
-    public Configurator create(String name, Supplier<Collection> supplier, Consumer<Collection> consumer, boolean forceUpdate, Field field, Object owner) {
+    public Configurator create(String name, Supplier<Collection> supplier, Consumer<Collection> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         boolean isCollapse = true;
         boolean canCollapse = true;
 
-        if (field.isAnnotationPresent(Configurable.class)) {
+        if (field != null && field.isAnnotationPresent(Configurable.class)) {
             isCollapse = field.getAnnotation(Configurable.class).collapse();
             canCollapse = field.getAnnotation(Configurable.class).canCollapse();
         }
@@ -52,8 +54,8 @@ public class CollectionConfiguratorAccessor implements IConfiguratorAccessor<Col
         ArrayConfiguratorGroup.IConfiguratorProvider<Object> provider = (getter, setter) -> childAccessor.create("", getter, setter, forceUpdate, field, owner);
         ArrayConfiguratorGroup.IAddDefault<Object> addDefault = () -> childAccessor.defaultValue(field, childType);
 
-        ConfigList configList = field.isAnnotationPresent(ConfigList.class) ? field.getAnnotation(ConfigList.class) : null;
-        if (configList != null) {
+        ConfigList configList = field != null && field.isAnnotationPresent(ConfigList.class) ? field.getAnnotation(ConfigList.class) : null;
+        if (owner != null && configList != null) {
             if (!configList.configuratorMethod().isEmpty()) {
                 var declaringClass = field.getDeclaringClass();
                 try {

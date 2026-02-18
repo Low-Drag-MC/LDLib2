@@ -31,7 +31,7 @@ public interface UIElementProvider<T> extends Function<T, UIElement> {
                         .textAlignHorizontal(Horizontal.LEFT)
                         .textAlignVertical(Vertical.CENTER))
                 .setText(textMapper.apply(candidate))
-                .setOverflow(YogaOverflow.HIDDEN);
+                .setOverflowVisible(false);
     }
 
     static <T> UIElementProvider<T> iconText(
@@ -52,7 +52,34 @@ public interface UIElementProvider<T> extends Function<T, UIElement> {
                     .setText(textMapper.apply(node)).layout(layout -> {
                         layout.heightPercent(100);
                         layout.flex(1);
-                    }).setOverflow(YogaOverflow.HIDDEN);
+                    }).setOverflowVisible(false);
+            return container.addChildren(icon, label);
+        };
+    }
+
+    static <T> UIElementProvider<T> optionalIconText(
+            Function<T, IGuiTexture> iconMapper,
+            Function<T, Component> textMapper) {
+        return node -> {
+            var container = new UIElement().layout(layout -> {
+                layout.flexDirection(FlexDirection.ROW);
+                layout.gapAll(2);
+                layout.height(10);
+            }).addChildren();
+            var iconTexture = iconMapper.apply(node);
+            var icon = new UIElement().layout(layout -> {
+                layout.setAspectRatio(1);
+                layout.heightPercent(100);
+            }).style(style -> style.backgroundTexture(iconTexture));
+            if (iconTexture == IGuiTexture.EMPTY) {
+                icon.setDisplay(false);
+            }
+            var label = new TextElement()
+                    .textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER))
+                    .setText(textMapper.apply(node)).layout(layout -> {
+                        layout.heightPercent(100);
+                        layout.flex(1);
+                    }).setOverflowVisible(false);
             return container.addChildren(icon, label);
         };
     }

@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.utils.consumer.*;
 import com.mojang.datafixers.util.*;
 import org.apache.logging.log4j.util.TriConsumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;

@@ -55,7 +55,7 @@ import net.neoforged.neoforge.common.util.TriState;
 import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;

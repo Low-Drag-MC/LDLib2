@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -21,9 +22,9 @@ public class NumberAccessor extends TypesAccessor<Number> {
     }
 
     @Override
-    public Number defaultValue(Field field, Class<?> type) {
+    public Number defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         Number number = 0;
-        if (field.isAnnotationPresent(ConfigNumber.class)) {
+        if (field != null && field.isAnnotationPresent(ConfigNumber.class)) {
             var configNumber = field.getAnnotation(ConfigNumber.class);
             number = configNumber.range()[0];
             if (field.isAnnotationPresent(DefaultValue.class)) {
@@ -58,7 +59,7 @@ public class NumberAccessor extends TypesAccessor<Number> {
             }
         }
 
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             number = field.getAnnotation(DefaultValue.class).numberValue()[0];
         }
 
@@ -66,12 +67,12 @@ public class NumberAccessor extends TypesAccessor<Number> {
     }
 
     @Override
-    public Configurator create(String name, Supplier<Number> supplier, Consumer<Number> consumer, boolean forceUpdate, Field field, Object owner) {
-        if (field.isAnnotationPresent(ConfigColor.class)) {
+    public Configurator create(String name, Supplier<Number> supplier, Consumer<Number> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        if (field != null && field.isAnnotationPresent(ConfigColor.class)) {
             return new ColorConfigurator(name, () -> supplier.get().intValue(), consumer::accept, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())).intValue(), forceUpdate);
         }
-        var configurator = new NumberConfigurator(name, supplier, consumer, defaultValue(field, ReflectionUtils.getRawType(field.getGenericType())), forceUpdate);
-        if (field.isAnnotationPresent(ConfigNumber.class)) {
+        var configurator = new NumberConfigurator(name, supplier, consumer, defaultValue(field, field == null ? null : ReflectionUtils.getRawType(field.getGenericType())), forceUpdate);
+        if (field != null && field.isAnnotationPresent(ConfigNumber.class)) {
             ConfigNumber range = field.getAnnotation(ConfigNumber.class);
             configurator = configurator
                     .setRange(range.range()[0], range.range()[1])

@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.sync;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface IUISyncManagerHolder {
     @Nullable

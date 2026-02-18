@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.syncdata.var;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import net.minecraft.nbt.Tag;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 

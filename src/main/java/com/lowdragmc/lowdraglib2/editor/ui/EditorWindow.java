@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
@@ -28,7 +29,7 @@ import org.appliedenergistics.yoga.*;
 import org.joml.Vector2f;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,8 +37,6 @@ import java.util.function.Supplier;
 
 public class EditorWindow extends UIElement {
     public static final ResourceLocation DEFAULT_ID = LDLib2.id("default");
-    private record DragBorder(YogaEdge[] edges, float left, float top, float width, float height) { }
-    private static final YogaEdge[] EDGES = new YogaEdge[]{YogaEdge.LEFT, YogaEdge.RIGHT, YogaEdge.TOP, YogaEdge.BOTTOM};
     private static final Map<ResourceLocation, EditorWindow> MINIMIZED_WINDOWS = Maps.newConcurrentMap();
 
     public final UIElement window = new UIElement();
@@ -54,6 +53,7 @@ public class EditorWindow extends UIElement {
     private float windowHeight = 200;
     private float windowLeft = -150;
     private float windowTop = -100;
+    protected boolean isResizing = false;
     @Getter
     @Nullable
     private Editor currentEditor;
@@ -106,8 +106,15 @@ public class EditorWindow extends UIElement {
         this.editorContainer.addClass("__editor-window_editor-container__").moveInlineAsDefault();
         this.window.layout(layout -> layout.widthPercent(100).heightPercent(100))
                 .addChildren(this.editorContainer, this.editorButtonContainer);
-        this.window.addEventListener(UIEvents.MOUSE_DOWN, this::onWindowMouseDown);
-        this.window.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onWindowDrag);
+        WindowDragHelper.setBorderResize(this.window, this.window, 4,
+                new Vector2f(200f, 150f),
+                new Vector2f(Float.MAX_VALUE, Float.MAX_VALUE), e -> {
+                    isResizing = !isMaximized();
+                    return isResizing;
+                }, (e, handle) -> {
+                    isResizing = true;
+                    return true;
+                }, e -> isResizing = false);
 
         addChild(window);
         createNewEditor(editorCreator);
@@ -322,7 +329,7 @@ public class EditorWindow extends UIElement {
                                     text.setText(currentTitle);
                                 }
                             }
-                        }).setOverflow(YogaOverflow.HIDDEN),
+                        }).setOverflowVisible(false),
                 new Button().noText().buttonStyle(style -> {
                     style.baseTexture(Icons.REMOVE);
                     style.hoverTexture(Icons.REMOVE.copy().setColor(ColorPattern.GRAY.color));
@@ -339,94 +346,11 @@ public class EditorWindow extends UIElement {
         ).addEventListener(UIEvents.MOUSE_DOWN, e -> showEditor(editor));
     }
 
-    protected boolean isMouseOverWindowBorder(YogaEdge edge, float mx, float my) {
-        if (window.isMouseOver(mx, my)) {
-            var border = 4;
-            var w = window.getSizeWidth();
-            var h = window.getSizeHeight();
-            var x = window.getPositionX();
-            var y = window.getPositionY();
-
-            return switch (edge) {
-                case LEFT -> mx <= x + border;
-                case RIGHT -> mx >= x + w - border;
-                case TOP -> my <= y + border;
-                case BOTTOM -> my >= y + h - border;
-                default -> false;
-            };
-        }
-        return false;
-    }
-
-    protected void onWindowMouseDown(UIEvent event) {
-        if (!isMaximized()) {
-            var edges = Arrays.stream(EDGES).filter(edge  -> isMouseOverWindowBorder(edge, event.x, event.y))
-                    .toArray(YogaEdge[]::new);
-            if (edges.length == 0) return;
-            var icon = Icons.ARROW_LEFT_RIGHT;
-            if (ArrayUtils.contains(edges, YogaEdge.TOP) || ArrayUtils.contains(edges, YogaEdge.BOTTOM)) {
-                icon = Icons.ARROW_UP_DOWN;
-            }
-            var width = icon.spriteSize.width;
-            var height = icon.spriteSize.height;
-            this.window.startDrag(new DragBorder(edges, windowLeft, windowTop,
-                            windowWidth, windowHeight), icon)
-                    .setDragTexture(- width / 2f, -height / 2f, width, height);
-            event.stopPropagation();
-        }
-    }
-
-    protected void onWindowDrag(UIEvent event) {
-        if (!isMaximized() && event.dragHandler.getDraggingObject() instanceof DragBorder(
-                YogaEdge[] edges, float left, float top, float width, float height
-        )) {
-            var mx = event.x - event.dragStartX;
-            var my = event.y - event.dragStartY;
-            for (YogaEdge edge : edges) {
-                switch (edge) {
-                    case LEFT -> {
-                        if (width - mx < 200) return;
-                        windowLeft = left + mx;
-                        windowWidth = width - mx;
-                    }
-                    case RIGHT -> {
-                        if (width + mx < 200) return;
-                        windowWidth = width + mx;
-                    }
-                    case TOP -> {
-                        if (height - my < 150) return;
-                        windowTop = top + my;
-                        windowHeight = height - my;
-                    }
-                    case BOTTOM -> {
-                        if (height + my < 150) return;
-                        windowHeight = height  + my;
-                    }
-                }
-            }
-            window.layout(layout -> layout.left(windowLeft).top(windowTop).width(windowWidth).height(windowHeight));
-        }
-    }
-
     @Override
     public void drawBackgroundAdditional(@Nonnull GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        if (!isMaximized()) {
-            for (var edge : EDGES) {
-                if (isMouseOverWindowBorder(edge, guiContext.localMouseX, guiContext.localMouseY)) {
-                    guiContext.postRendering(ctx -> {
-                        var icon = (edge == YogaEdge.TOP || edge == YogaEdge.BOTTOM) ? Icons.ARROW_UP_DOWN : Icons.ARROW_LEFT_RIGHT;
-                        var width = icon.spriteSize.width;
-                        var height = icon.spriteSize.height;
-                        ctx.drawTexture(icon,
-                                ctx.localMouseX - width / 2f,
-                                ctx.localMouseY - height / 2f,
-                                width,
-                                height);
-                    });
-                    return;
-                }
-            }
+        if (window.isSelfOrChildHover() && !isResizing) {
+            WindowDragHelper.drawResizeIcon(guiContext, window, 4);
         }
     }
 }

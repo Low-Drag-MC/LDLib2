@@ -50,7 +50,9 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
             LDLib2.LOGGER.warn("Block entity type mismatch in managed payload packet!");
             return;
         }
-        blockEntity.handleSyncPacket(packet.changed, packet.data, packet.extra);
+        var level = blockEntity.getSelf().getLevel();
+        if (level == null) return;
+        blockEntity.handleSyncPacket(level.registryAccess(), packet.changed, packet.data, packet.extra);
     }
 
     @Override

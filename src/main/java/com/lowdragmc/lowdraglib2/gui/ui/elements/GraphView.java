@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 @KJSBindings
 @LDLRegister(name = "graph-view", group = "container", registry = "ldlib2:ui_element")
 public class GraphView extends UIElement {
-    private record DragOffset(float startOffsetX, float startOffsetY) {}
+    public record DragOffset(float startOffsetX, float startOffsetY) {}
 
     @Configurable(name = "GraphViewStyle")
     public class GraphViewStyle extends Style {
@@ -117,13 +117,9 @@ public class GraphView extends UIElement {
     private float scale = 1f;
 
     public GraphView() {
-        setOverflow(YogaOverflow.HIDDEN);
+        setOverflowVisible(false);
 
-        contentRoot.layout(l -> {
-            l.positionType(TaffyPosition.ABSOLUTE);
-            l.width(0);
-            l.height(0);
-        }).addClass("__graph-view_content-root__");
+        contentRoot.layout(l -> l.positionType(TaffyPosition.ABSOLUTE)).addClass("__graph-view_content-root__");
         contentRoot.transform(transform -> transform.pivot(0f, 0f));
 
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);

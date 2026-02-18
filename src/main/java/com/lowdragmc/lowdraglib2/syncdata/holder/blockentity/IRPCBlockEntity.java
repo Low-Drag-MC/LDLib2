@@ -12,7 +12,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface IRPCBlockEntity extends IRPCManagedHolder, IBlockEntityManagedHolder {
     @Override

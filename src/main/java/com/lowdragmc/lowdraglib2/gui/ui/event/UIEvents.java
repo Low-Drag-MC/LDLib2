@@ -137,6 +137,10 @@ public interface UIEvents {
      */
     String LAYOUT_CHANGED = "layoutChanged";
 
+    /// Style Events, which won't be sent to the server.
+    // TODO fine shell do style changed for all changes or only custom one??????
+    String STYLE_CHANGED = "styleChanged";
+
     /// Life-Cycle Events, which won't be sent to the server.'
     /**
      * The {@code removed} is sent when the element is removed from the UI tree.

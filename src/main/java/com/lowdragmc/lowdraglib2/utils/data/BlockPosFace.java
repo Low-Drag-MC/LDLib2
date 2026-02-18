@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.utils.data;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public record BlockPosFace(BlockPos pos, Direction facing) {
 

@@ -70,7 +70,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
                 })).textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL)).layout(layout -> {
                     layout.heightPercent(100);
                     layout.flex(1);
-                }).setOverflow(YogaOverflow.HIDDEN))
+                }).setOverflowVisible(false))
                 .addChild(new UIElement().layout(layout -> {
                     layout.heightPercent(100);
                     layout.setAspectRatio(1);

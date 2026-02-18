@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.utils.animation.*;
 import lombok.Getter;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class TransitionAnimation<T> implements IFrameValueHandler<T> {
     public final StyleBag styleBag;

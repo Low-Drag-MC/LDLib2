@@ -14,6 +14,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -32,16 +33,16 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
     }
 
     @Override
-    public ResourceLocation defaultValue(Field field, Class<?> type) {
-        if (field.isAnnotationPresent(DefaultValue.class)) {
+    public ResourceLocation defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]);
         }
         return LDLib2.id("default");
     }
 
     @Override
-    public Configurator create(String name, Supplier<ResourceLocation> supplier, Consumer<ResourceLocation> consumer, boolean forceUpdate, Field field, Object owner) {
-        if (field.isAnnotationPresent(ConfigRL.class)) {
+    public Configurator create(String name, Supplier<ResourceLocation> supplier, Consumer<ResourceLocation> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        if (field != null && field.isAnnotationPresent(ConfigRL.class)) {
             var rlConfig = field.getAnnotation(ConfigRL.class);
             return switch (rlConfig.value()) {
                 case FONT -> new SearchComponentConfigurator<>(name, supplier, consumer, defaultValue(field, String.class), forceUpdate,

@@ -9,7 +9,7 @@ import dev.emi.emi.api.stack.EmiStack;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class TestEMIPlugin {
     public static void register(EmiRegistry registry) {

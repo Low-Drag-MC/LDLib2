@@ -23,6 +23,8 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapForJS;
 import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,10 +34,9 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaEdge;
 import org.joml.Matrix4f;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
@@ -78,12 +79,19 @@ public class SpriteTexture extends TransformTexture {
     @Nullable
     private Size imageSizeCache;
 
+    @HideFromJS
     public static SpriteTexture of(ResourceLocation imageLocation) {
         return new SpriteTexture().setImageLocation(imageLocation);
     }
 
+    @HideFromJS
     public static SpriteTexture of(String imageLocation) {
         return of(ResourceLocation.parse(imageLocation));
+    }
+
+    @RemapForJS("of")
+    public static SpriteTexture kjs$of(ResourceLocation imageLocation) {
+        return of(imageLocation);
     }
 
     @ConfigSetter(field = "imageLocation")

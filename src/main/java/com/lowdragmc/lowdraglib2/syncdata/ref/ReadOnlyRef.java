@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.mojang.serialization.JavaOps;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * ReadonlyRef represents a reference to a nonnull value, the value is readonly and the instance won't change.

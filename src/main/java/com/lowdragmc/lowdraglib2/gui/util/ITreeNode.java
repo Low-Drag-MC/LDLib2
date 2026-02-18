@@ -1,7 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.util;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 public interface ITreeNode<KEY, CONTENT> {
@@ -67,6 +68,28 @@ public interface ITreeNode<KEY, CONTENT> {
      */
     @Nonnull
     List<? extends ITreeNode<KEY, CONTENT>> getChildren();
+
+    /**
+     * Flattens the tree structure starting from the current node into a single list.
+     *
+     * The resulting list contains the current node followed by all its descendants
+     * in a depth-first traversal order.
+     *
+     * The method recursively retrieves the child nodes from each node
+     * using {@link #getChildren()} and aggregates them into a single list.
+     *
+     * @return a list of nodes starting with the current node and including
+     *         all its descendants in depth-first order. The resulting list is non-null
+     *         and may be empty if the current node is a leaf.
+     */
+    default List<? extends ITreeNode<KEY, CONTENT>> flatten() {
+        var result = new ArrayList<ITreeNode<KEY, CONTENT>>();
+        result.add(this);
+        for (var child : getChildren()) {
+            result.addAll(child.flatten());
+        }
+        return result;
+    }
 
     /**
      * Determines the index of the current node among its siblings in the parent's child list.

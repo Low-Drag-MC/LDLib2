@@ -37,7 +37,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
 import java.util.List;
@@ -379,7 +379,7 @@ public abstract class Editor extends UIElement {
                             .textAlignHorizontal(Horizontal.CENTER)
                             .textWrap(TextWrap.HOVER_ROLL))
                     .setText(Component.literal("-").append(getTitle()))
-                    .setOverflow(YogaOverflow.HIDDEN)
+                    .setOverflowVisible(false)
                     .layout(layout -> layout.flex(1)));
             dialog.show(this.getModularUI());
             if (dialog.buttonContainer.getChildren().getFirst() instanceof Button button) {
