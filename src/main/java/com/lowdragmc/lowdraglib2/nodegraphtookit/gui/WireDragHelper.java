@@ -7,6 +7,8 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeModelLibraryItem;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.PortElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.GhostWireModel;
@@ -86,7 +88,7 @@ public class WireDragHelper {
     protected Pair<WireElement, GhostWireModel> createGhostWire(GraphModel graphModel) {
         var ghostWire = new GhostWireModel();
         ghostWire.setGraphModel(graphModel);
-        var ui = (WireElement) ghostWire.createElementUI();
+        var ui = ghostWire.createElementUI();
         return Pair.of(ui, ghostWire);
     }
 
@@ -180,13 +182,13 @@ public class WireDragHelper {
         // Draw ghost wire if possible port exists.
         var endPort = getEndPort(mousePosition);
 
-        if (previousEndPortModel != null && previousEndPortModel != (endPort == null ? null : endPort.model)) {
+        if (previousEndPortModel != null && previousEndPortModel != (endPort == null ? null : endPort.getModel())) {
             clearWillConnect(previousEndPortModel);
         }
 
         if (endPort != null) {
             if (ghostWire == null) {
-                var gw = createGhostWire(endPort.model.getGraphModel());
+                var gw = createGhostWire(endPort.getModel().getGraphModel());
                 ghostWire = gw.first();
                 ghostWireModel = gw.second();
 //                ghostWire.pickingMode = PickingMode.Ignore;
@@ -195,11 +197,11 @@ public class WireDragHelper {
 
             var sideForEndPort = wireCandidateModel.getFromPort() == null ? WireSide.FROM : WireSide.TO;
             var previousEndPort = ghostWireModel == null ? null : ghostWireModel.getPort(sideForEndPort);
-            if (previousEndPort != null && previousEndPort.getUid() != endPort.model.getUid())
+            if (previousEndPort != null && previousEndPort.getUid() != endPort.getModel().getUid())
                 clearWillConnect(previousEndPort);
 
             if (ghostWireModel != null) {
-                ghostWireModel.setPort(sideForEndPort, endPort.model);
+                ghostWireModel.setPort(sideForEndPort, endPort.getModel());
             }
             endPort.setWillConnect(true);
 
@@ -212,7 +214,7 @@ public class WireDragHelper {
             }
 
             ghostWire.doCompleteUpdate();
-            previousEndPortModel = endPort.model;
+            previousEndPortModel = endPort.getModel();
         } else if (ghostWire != null && ghostWireModel != null) {
             clearWillConnect(ghostWireModel, wireCandidateModel.getToPort() == null ? WireSide.TO : WireSide.FROM);
 
@@ -252,9 +254,9 @@ public class WireDragHelper {
 
             if (wireCandidateModel != null) {
                 if (wireCandidateModel.getFromPort() == null)
-                    wireCandidateModel.setFromPort(endPort.model);
+                    wireCandidateModel.setFromPort(endPort.getModel());
                 else
-                    wireCandidateModel.setToPort(endPort.model);
+                    wireCandidateModel.setToPort(endPort.getModel());
             }
         }
 
@@ -268,7 +270,7 @@ public class WireDragHelper {
 
             if (endPort != null) {
                 if (originalWire == null)
-                    createNewWire(wireCandidate.model.getFromPort(), wireCandidate.model.getToPort());
+                    createNewWire(wireCandidate.getModel().getFromPort(), wireCandidate.getModel().getToPort());
                 else
                     moveWires(affectedWires, endPort);
             } else {
@@ -305,11 +307,11 @@ public class WireDragHelper {
         for (PortModel compatiblePort : compatiblePorts) {
             if (graphView.getModelElement(compatiblePort) instanceof PortElement portUI && portUI.isVisible()) {
                 NodeElement nodeUI = null;
-                if (portUI.model.getNodeModel() != null && graphView.getModelElement(portUI.model.getNodeModel()) instanceof NodeElement nodeElement) {
+                if (portUI.getModel().getNodeModel() != null && graphView.getModelElement(portUI.getModel().getNodeModel()) instanceof NodeElement nodeElement) {
                     nodeUI = nodeElement;
                 }
                 if (nodeUI != null && nodeUI.isCulled()) continue;
-                if (portUI.portConnector.isSelfOrChildHover() || portUI.portName.isSelfOrChildHover()) {
+                if (portUI.getConnector().isSelfOrChildHover()) {
                     endPort = portUI;
                     break;
                 }
@@ -376,9 +378,9 @@ public class WireDragHelper {
             WireSide side = port.getDirection() == PortDirection.INPUT
                     ? WireSide.FROM
                     : WireSide.TO;
-            wiresToConnect.add(Pair.of(wire.model, side));
+            wiresToConnect.add(Pair.of(wire.getModel(), side));
         }
-        var wiresToDelete = wires.stream().map(w -> w.model).filter(m -> m instanceof IGhostWireModel).toList();
+        var wiresToDelete = wires.stream().map(GraphElement::getModel).filter(m -> m instanceof IGhostWireModel).toList();
         createNodesFromWires(graphView, wiresToConnect, worldPosition, wiresToDelete);
     }
 
@@ -386,7 +388,7 @@ public class WireDragHelper {
                                         List<Pair<WireModel, WireSide>> wires,
                                         Vector2f worldPosition,
                                         List<WireModel> wiresToDelete) {
-        var localPosition = graphView.graphView.contentRoot.worldToLocal(worldPosition);
+        var localPosition = graphView.getContentViewContainer().worldToLocal(worldPosition);
         var portModels = wires.stream().map(w -> w.left().getOtherPort(w.right())).toList();
         if (!portModels.isEmpty()) {
             if (portModels.getFirst().getDirection() == PortDirection.NONE) return;

@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.SerializableRecordAction;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface IHistoryStack {
     record HistoryItem(Component name, EditAction action, @Nullable Object source) { }

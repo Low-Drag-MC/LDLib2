@@ -7,7 +7,7 @@ import org.apache.commons.lang3.mutable.MutableLong;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class MeshDataSortResult {
     public final Vector3f[] centroids;

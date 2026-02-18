@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * DragHandler is used to handle drag events.

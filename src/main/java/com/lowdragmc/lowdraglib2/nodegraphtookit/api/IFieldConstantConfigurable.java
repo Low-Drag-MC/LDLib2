@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import org.jetbrains.annotations.Nullable;
 
-public interface IConstantConfigurable extends IValueConfigurable {
+public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
     @Nullable Constant getConfigurableConstant();
 
     @Override
@@ -58,7 +58,7 @@ public interface IConstantConfigurable extends IValueConfigurable {
                         this.forceUpdate(),
                         this.getValueField(),
                         this.getValueOwer()
-                ).setTips(this.getTooltips().tooltips()));
+                ));
             }
         }
         for (var configurator : group.getConfigurators()) {

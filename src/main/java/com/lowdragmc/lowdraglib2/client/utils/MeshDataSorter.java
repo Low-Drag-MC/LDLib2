@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.client.utils;
 import com.mojang.blaze3d.vertex.*;
 import org.joml.Vector3f;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 

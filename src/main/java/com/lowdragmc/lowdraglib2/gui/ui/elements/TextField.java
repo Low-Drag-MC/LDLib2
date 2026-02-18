@@ -56,7 +56,7 @@ import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.text.NumberFormat;
 import java.util.Objects;

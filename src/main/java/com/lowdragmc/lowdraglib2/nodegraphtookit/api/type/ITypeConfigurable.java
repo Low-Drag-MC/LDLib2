@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.type;
 import com.lowdragmc.lowdraglib2.configurator.ConfiguratorAccessors;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IValueConfigurable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -24,7 +24,7 @@ public interface ITypeConfigurable {
                         valueConfigurable::setValue,
                         candidates.getFirst(),
                         valueConfigurable.forceUpdate()
-                        ).setTips(valueConfigurable.getTooltips().tooltips()))
+                        ))
             );
         }
         // others
@@ -36,9 +36,9 @@ public interface ITypeConfigurable {
                 valueConfigurable.forceUpdate(),
                 valueConfigurable.getValueField(),
                 valueConfigurable.getValueOwer()
-        ).setTips(valueConfigurable.getTooltips().tooltips())));
+        )));
     };
 
     @Nullable
-    IConfigurable createConfigurable(IValueConfigurable valueConfigurable, TypeHandle typeHandle);
+    IConfigurable createConfigurable(IFieldValueConfigurable valueConfigurable, TypeHandle typeHandle);
 }

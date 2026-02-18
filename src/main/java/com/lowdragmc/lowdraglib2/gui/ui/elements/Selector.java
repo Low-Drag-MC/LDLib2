@@ -31,7 +31,7 @@ import org.appliedenergistics.yoga.*;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.HashMap;

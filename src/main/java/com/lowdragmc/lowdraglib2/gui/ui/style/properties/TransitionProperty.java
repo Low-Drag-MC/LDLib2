@@ -15,7 +15,7 @@ import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.function.Consumer;

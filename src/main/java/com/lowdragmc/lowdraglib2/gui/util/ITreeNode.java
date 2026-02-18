@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.util;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 

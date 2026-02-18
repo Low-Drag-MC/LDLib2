@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHintList;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import lombok.Setter;
@@ -13,12 +14,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class UIDependencies {
-    public record Dependency(DependencyElement element, DependencyTypes type) { }
+    public record Dependency(ModelElement element, DependencyTypes type) { }
 
     protected static ModelUpdateVisitor LAYOUT_VISITOR = new ModelUpdateVisitor(ChangeHintList.LAYOUT);
     protected static ModelUpdateVisitor STYLE_VISITOR = new ModelUpdateVisitor(ChangeHintList.STYLE);
 
-    public final DependencyElement owner;
+    public final ModelElement owner;
 
     public final UIEventListener onBackWardDependencyStyleChanged;
     public final UIEventListener onBackWardDependencyLayoutChanged;
@@ -36,7 +37,7 @@ public class UIDependencies {
     private @Nullable Set<Dependency> backwardDependencies;
     private @Nullable Set<GraphElementModel> modelDependencies;
 
-    public UIDependencies(DependencyElement owner) {
+    public UIDependencies(ModelElement owner) {
         this.owner = owner;
         onBackWardDependencyStyleChanged = this::onBackWardDependencyStyleChanged;
         onBackWardDependencyLayoutChanged = this::onBackWardDependencyLayoutChanged;
@@ -55,15 +56,15 @@ public class UIDependencies {
         owner.doCompleteUpdate();
     }
 
-    protected void onSelfStyleChanged(UIEvent event) {
+    public void onSelfStyleChanged(UIEvent event) {
         updateForwardDependencies(DependencyTypes.STYLE, STYLE_VISITOR);
     }
 
-    protected void onSelfLayoutChanged() {
+    public void onSelfLayoutChanged() {
         updateForwardDependencies(DependencyTypes.LAYOUT, LAYOUT_VISITOR);
     }
 
-    protected void onSelfRemoved(UIEvent event) {
+    public void onSelfRemoved(UIEvent event) {
         if (forwardDependencies == null) return;
         for (Dependency dependency : forwardDependencies) {
             if (dependency.type.hasFlag(DependencyTypes.REMOVAL)) {
@@ -152,13 +153,13 @@ public class UIDependencies {
         }
     }
 
-    public void addBackwardDependency(DependencyElement dependency, DependencyTypes dependencyType) {
+    public void addBackwardDependency(ModelElement dependency, DependencyTypes dependencyType) {
         if (backwardDependencies == null)
             backwardDependencies = new HashSet<>();
         backwardDependencies.add(new Dependency(dependency, dependencyType));
     }
 
-    public void addForwardDependency(DependencyElement dependency, DependencyTypes dependencyType) {
+    public void addForwardDependency(ModelElement dependency, DependencyTypes dependencyType) {
         if (forwardDependencies == null)
             forwardDependencies = new HashSet<>();
         forwardDependencies.add(new Dependency(dependency, dependencyType));

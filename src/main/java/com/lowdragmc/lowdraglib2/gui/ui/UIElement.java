@@ -69,7 +69,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import oshi.util.tuples.Pair;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;
@@ -300,6 +300,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
+    @Deprecated(since = "26.1")
     public UIElement setOverflow(YogaOverflow overflow) {
         layoutStyle.setOverflow(overflow);
         return this;
@@ -574,6 +575,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             }
 
             if (event.target == this) { // lose focus
+                if (event.relatedTarget != null && !this.isAncestorOf(event.relatedTarget)) {
+                    lostFocusHandler.accept(event);
+                    return;
+                }
                 if (this.isSelfOrChildHover()) {
                     this.focus();
                 } else {
@@ -590,6 +595,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
+    /**
+     * Adjusts the position of the current element to ensure it fits within the boundaries
+     * of the specified {@link UIElement}. This method will check if the current element's
+     * position exceeds the bounds of the given element and repositions it accordingly.
+     *
+     * @param element The {@link UIElement} to which the position of the current element
+     *                should be adapted. This acts as the boundary for adjustment.
+     */
     public void adaptPositionToElement(UIElement element) {
         var elementX = element.getContentX();
         var elementY = element.getContentY();
@@ -619,6 +632,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Nullable
     public UIElement getParent() {
         return parent;
+    }
+
+    @Nullable
+    public <T extends UIElement> T getFirstAncestorOfType(Class<T> type) {
+        if (type.isAssignableFrom(this.getClass())) return type.cast(this);
+        if (parent == null) return null;
+        return parent.getFirstAncestorOfType(type);
     }
     
     public List<UIElement> getChildren() {

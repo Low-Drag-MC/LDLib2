@@ -33,7 +33,14 @@ public final class TypeHandleHelpers {
      * GenerateCustomTypeHandle(Type t, uniqueId)
      */
     public static TypeHandle customType(Type t, String uniqueId) {
-        var res = getOrCreateCustomTypeHandle(uniqueId, null);
+        return customType(t, uniqueId, null);
+    }
+
+    /**
+     * GenerateCustomTypeHandle(Type t, uniqueId)
+     */
+    public static TypeHandle customType(Type t, String uniqueId, @Nullable String friendlyName) {
+        var res = getOrCreateCustomTypeHandle(uniqueId, friendlyName);
 
         if (res.isNew) {
             ID_TO_TYPE.put(uniqueId, t);
@@ -75,7 +82,7 @@ public final class TypeHandleHelpers {
      * GenerateTypeHandle(Type t, friendlyName)
      */
     public static TypeHandle fromType(Type t, String friendlyName) {
-        t = covertType(t);
+        t = convertType(t);
         Objects.requireNonNull(t, "t");
         var identification = identificationOf(t);
 
@@ -180,7 +187,7 @@ public final class TypeHandleHelpers {
         return t.getTypeName();
     }
     
-    static Type covertType(Type t) {
+    public static Type convertType(Type t) {
         if (t instanceof Class<?> clazz && clazz.isPrimitive()) {
             if (clazz == int.class) return Integer.class;
             if (clazz == long.class) return Long.class;

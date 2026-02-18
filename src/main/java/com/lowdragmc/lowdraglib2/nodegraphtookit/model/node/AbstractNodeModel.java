@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
@@ -8,20 +10,22 @@ import lombok.Getter;
 import net.minecraft.network.chat.Component;
 import org.joml.Vector2f;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Base class for a model that represents a node in a graph.
  */
-public abstract class AbstractNodeModel extends GraphElementModel
-        implements IHasTitle, IMovable, IHasElementColor, IHasContextualMenuItems {
-
+public abstract class AbstractNodeModel extends GraphElementModel implements IHasName, IHasDisplayName, IMovable,
+        IHasElementColor, IHasContextualMenuItems, IGraphElementUIModel {
     private Vector2f position = new Vector2f(0);
     @Getter
+    protected String name = "";
+    @Nullable
     protected Component title = Component.empty();
     @Nullable
-    protected Component tooltip = Component.empty();
+    protected Component tooltip;
 
     private SpawnFlags spawnFlags = SpawnFlags.DEFAULT;
 
@@ -78,11 +82,22 @@ public abstract class AbstractNodeModel extends GraphElementModel
         if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
     }
 
+    public void setName(String value) {
+        if (Objects.equals(name, value)) return;
+        name = value;
+        GraphModel gm = getGraphModel();
+        if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
+    }
+
     public void setTitle(Component value) {
         if (Objects.equals(title, value)) return;
         title = value;
         GraphModel gm = getGraphModel();
         if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.STYLE);
+    }
+
+    public Component getTitle() {
+        return title == null ? Component.translatable(name) : title;
     }
 
     public Component getTooltip() {
@@ -129,12 +144,9 @@ public abstract class AbstractNodeModel extends GraphElementModel
     }
 
     @Override
-    public List<GraphElementModel> getDependentModels() {
-        List<GraphElementModel> list = new ArrayList<>(super.getDependentModels());
-        if (nodePreviewModel != null) list.add(nodePreviewModel);
-        return list;
+    public Stream<GraphElementModel> getDependentModels() {
+        return Stream.concat(super.getDependentModels(), nodePreviewModel == null ? Stream.empty() : Stream.of(nodePreviewModel));
     }
-
 
     public void onDeleteNode() {
         destroyed = true;
@@ -154,7 +166,7 @@ public abstract class AbstractNodeModel extends GraphElementModel
     public void onDuplicateNode(AbstractNodeModel sourceNode) {
         if (sourceNode == null) return;
 
-        setTitle(sourceNode.getTitle());
+        setName(sourceNode.getName());
         if (sourceNode.hasNodePreview() && sourceNode.getNodePreviewModel() != null) {
             NodePreviewModel preview = addNodePreview();
             preview.onDuplicateNodePreview(sourceNode.getNodePreviewModel());
@@ -195,6 +207,11 @@ public abstract class AbstractNodeModel extends GraphElementModel
         List<ContextualMenuItem> items = new ArrayList<>(GraphElementModel.COMMON_GRAPH_ELEMENT_MENU_ITEMS);
         items.addAll(CONTEXTUAL_MENU_ITEMS);
         return items;
+    }
+
+    @Override
+    public @Nullable GraphElement<?> createElementUI() {
+        return new NodeElement(this);
     }
 
     private static final List<ContextualMenuItem> CONTEXTUAL_MENU_ITEMS = List.of(

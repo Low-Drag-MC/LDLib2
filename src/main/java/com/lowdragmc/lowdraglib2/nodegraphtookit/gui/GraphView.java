@@ -6,23 +6,25 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard.Blackboard;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ElementUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.ItemLibrary;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeItemLibraryData;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeModelLibraryItem;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePlaceholder;
@@ -31,6 +33,8 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.PortMigrationResult;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
+import dev.vfyjxf.taffy.style.AlignContent;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -46,30 +50,38 @@ import java.util.*;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class GraphView extends UIElement {
-    public record ElementUpdate(DependencyElement element, ElementUpdateVisitor visitor) { }
+    public record ElementUpdate(ModelElement element, ElementUpdateVisitor visitor) { }
     public record DragRegionSelection(UIElement selectionRect) {}
-    public record DragMove(boolean targetWasSelected, GraphElementModel target, List<GraphElementModel> movables) {}
+    public record DragMove(boolean targetWasSelected, Model target, List<Model> movables) {}
 
-    public final ItemLibrary itemLibrary = new ItemLibrary(this);
+    public final UIElement header = new UIElement();
+    public final UIElement canvas = new UIElement();
     public final com.lowdragmc.lowdraglib2.gui.ui.elements.GraphView graphView = new com.lowdragmc.lowdraglib2.gui.ui.elements.GraphView();
+    public final ItemLibrary itemLibrary = new ItemLibrary(this);
+    public final Blackboard blackboard = new Blackboard(this);
+
     // runtime
+    @Getter
+    private GraphChangeset changeset = new GraphChangeset();
+    @Getter
+    private final UIElement panelLayer = new UIElement();
     private final Map<String, UIElement> layers = new HashMap<>();
     private final UIElement fallbackLayer = new UIElement();
     @Nullable @Getter
     private Graph graph;
     @Getter
-    private final Map<GraphElementModel, GraphElement<?>> modelElements = new HashMap<>();
+    private final Map<Model, ModelElement> modelElements = new HashMap<>();
     @Getter
-    private final Map<UUID, GraphElement<?>> modelElementsByID = new HashMap<>();
+    private final Map<UUID, ModelElement> modelElementsByID = new HashMap<>();
     @Getter
-    private final Map<UUID, Set<DependencyElement>> modelDependencies = new HashMap<>();
+    private final Map<UUID, Set<ModelElement>> modelDependencies = new HashMap<>();
     private final List<ElementUpdate> updatePipeline = new ArrayList<>();
     @Getter
     private boolean isUpdateBatching = false;
     @Getter
     private boolean isMenuOpen = false;
     @Getter
-    private final Set<GraphElementModel> selected = Sets.newHashSet();
+    private final Set<Model> selected = Sets.newHashSet();
     @Getter @Nullable
     private Vector4f dragRegionSelection = null; // local rect
     @Getter
@@ -80,6 +92,21 @@ public class GraphView extends UIElement {
 
     public GraphView() {
         this.graphView.getLayout().widthPercent(100).heightPercent(100);
+        this.panelLayer.getLayout().positionType(TaffyPosition.ABSOLUTE).width(0).height(0);
+
+        // header initial
+        header.layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(16);
+            layout.paddingAll(1);
+            layout.flexDirection(FlexDirection.ROW);
+        });
+        header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
+        initHeaders();
+
+        // canvas
+        canvas.getLayout().widthPercent(100).flex(1);
+
         graphView.addEventListener(UIEvents.MOUSE_DOWN, this::onGraphViewMouseDown);
         graphView.addEventListener(UIEvents.MOUSE_UP, this::onGraphViewMouseUp);
         graphView.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onGraphViewDragSourceUpdate);
@@ -95,7 +122,45 @@ public class GraphView extends UIElement {
         setEnforceFocus(Consumers.nop());
 
         itemLibrary.setDisplay(false);
-        addChildren(graphView, itemLibrary);
+        initPanels();
+
+        addChildren(header, canvas.addChildren(graphView, panelLayer, itemLibrary));
+    }
+
+    protected void initHeaders() {
+        header.addChildren(
+                // left
+                new UIElement().layout(layout -> {
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.heightPercent(100);
+                    layout.flex(1);
+                }).addChildren(
+                ),
+                // center
+                new UIElement().layout(layout -> layout.heightPercent(100)),
+                // right
+                new UIElement().layout(layout -> {
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.justifyContent(AlignContent.FLEX_END);
+                    layout.heightPercent(100);
+                    layout.flex(1);
+                }).addChildren(
+                        // page fit button
+                        new Button().noText().setOnClick(event -> fitGraphChildren(15))
+                                .layout(layout -> layout.width(14))
+                                .style(style -> style.tooltips("GraphView.fit")).addChild(
+                                        new UIElement().layout(layout -> {
+                                            layout.heightPercent(100);
+                                            layout.setAspectRatio(1);
+                                        }).style(style -> style.backgroundTexture(Icons.PAGE_FIT)))
+                )
+        );
+    }
+
+    protected void initPanels() {
+        panelLayer.addChildren(
+                new GraphPanel(this, blackboard)
+        );
     }
 
     /**
@@ -159,6 +224,36 @@ public class GraphView extends UIElement {
         this.isWireDragging = false;
     }
 
+    public void fitGraphChildren(float padding) {
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        boolean has = false;
+
+        for (var child : modelElements.values()) {
+            if (!child.isDisplayed() || !child.isVisible()) continue;
+            float x = child.getPositionX() - graphView.getContentX();
+            float y = child.getPositionY() - graphView.getContentY();
+            float w = child.getSizeWidth();
+            float h = child.getSizeHeight();
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + w);
+            maxY = Math.max(maxY, y + h);
+            has = true;
+        }
+
+        if (!has) return;
+
+        fitGraph(minX, minY, maxX, maxY, padding);
+    }
+
+    public void fitGraph(float minX, float minY, float maxX, float maxY, float padding) {
+        minX -= padding; minY -= padding;
+        maxX += padding; maxY += padding;
+
+        graphView.fit(minX, minY, maxX, maxY, 0.1f);
+    }
+
     /**
      * Constructs and initializes the UI tree for the provided {@link GraphModel}.
      * This involves creating and adding UI elements for various components such as
@@ -211,7 +306,7 @@ public class GraphView extends UIElement {
         }
 
         // placemats
-        var placemats = new ArrayList<GraphElement<?>>();
+        var placemats = new ArrayList<ModelElement>();
         for (var placematModel : graphModel.getPlacematModels()) {
             var placematUI = createAndAddModelElement(placematModel);
             if (placematUI != null) placemats.add(placematUI);
@@ -221,6 +316,13 @@ public class GraphView extends UIElement {
         for (var placemat : placemats) {
             placemat.updateElement(ModelUpdateVisitor.UNSPECIFIED);
         }
+
+        // variables
+        blackboard.doCompleteUpdate();
+    }
+
+    public UIElement getContentViewContainer() {
+        return graphView.contentRoot;
     }
 
     /**
@@ -252,14 +354,14 @@ public class GraphView extends UIElement {
     }
 
     /**
-     * Dispatches an update operation to the specified {@link DependencyElement} using the provided
+     * Dispatches an update operation to the specified {@link ModelElement} using the provided
      * {@link ElementUpdateVisitor}. If batch updating is enabled, the update is added to a pipeline
      * of pending updates; otherwise, it is executed immediately.
      *
-     * @param element the {@link DependencyElement} to update. This parameter cannot be {@code null}.
+     * @param element the {@link ModelElement} to update. This parameter cannot be {@code null}.
      * @param visitor the {@link ElementUpdateVisitor} responsible for performing the update logic. This parameter cannot be {@code null}.
      */
-    public void dispatchUpdate(DependencyElement element, ElementUpdateVisitor visitor) {
+    public void dispatchUpdate(ModelElement element, ElementUpdateVisitor visitor) {
         if (isUpdateBatching) {
             updatePipeline.add(new ElementUpdate(element, visitor));
         } else {
@@ -277,55 +379,55 @@ public class GraphView extends UIElement {
         isUpdateBatching = false;
     }
 
-    protected void registerModelElement(GraphElement<?> element) {
-        modelElements.put(element.model, element);
-        modelElementsByID.put(element.model.getUid(), element);
+    protected void registerModelElement(ModelElement element) {
+        if (element.getModel() == null) return;
+        modelElements.put(element.getModel(), element);
+        modelElementsByID.put(element.getModel().getUid(), element);
     }
 
-    protected void unregisterModelElement(GraphElement<?> element) {
-        modelElements.remove(element.model);
-        modelElementsByID.remove(element.model.getUid());
+    protected void unregisterModelElement(ModelElement element) {
+        if (element.getModel() == null) return;
+        modelElements.remove(element.getModel());
+        modelElementsByID.remove(element.getModel().getUid());
     }
 
     /**
      * Adds a dependency between a model and a UI.
      */
-    public void addModelDependency(UUID uid, DependencyElement ui) {
+    public void addModelDependency(UUID uid, ModelElement ui) {
         modelDependencies.computeIfAbsent(uid, u -> new HashSet<>()).add(ui);
     }
 
     /**
      * Removes a dependency between a model and a UI.
      */
-    public void removeModelDependency(UUID uid, DependencyElement ui) {
+    public void removeModelDependency(UUID uid, ModelElement ui) {
         Optional.ofNullable(modelDependencies.get(uid)).ifPresent(set -> set.remove(ui));
     }
 
-    public Set<DependencyElement> getModelDependencies(UUID uid) {
+    public Set<ModelElement> getModelDependencies(UUID uid) {
         return modelDependencies.getOrDefault(uid, Collections.emptySet());
     }
 
-    @SuppressWarnings("unchecked")
-    public @Nullable <T extends GraphElementModel> GraphElement<?> getModelElement(@Nullable T model) {
+    public @Nullable ModelElement getModelElement(@Nullable Model model) {
         return modelElements.get(model);
     }
 
-    @SuppressWarnings("unchecked")
-    public @Nullable <T extends GraphElementModel> GraphElement<?> getModelElement(@Nullable UUID uid) {
+    public @Nullable ModelElement getModelElement(@Nullable UUID uid) {
         return modelElementsByID.get(uid);
     }
 
     /**
      * Adds a graph element to the appropriate layer in the graph view.
      *
-     * @param element the {@link GraphElement} to add. This can be {@code null}.
+     * @param element the {@link ModelElement} to add. This can be {@code null}.
      * @return {@code true} if the element was successfully added to the graph view, {@code false} otherwise.
      */
-    public boolean addElement(@Nullable GraphElement<?> element) {
+    public boolean addElement(@Nullable ModelElement element) {
         if (element == null) return false;
         var layer = getLayer(element.getLayerName());
         if (layer == null) return false;
-        var model = element.model;
+        var model = element.getModel();
         element.setGraphView(this);
         layer.addChild(element);
         if (element.isSelectable()) {
@@ -341,9 +443,8 @@ public class GraphView extends UIElement {
                     // drag movable
                     var movables = selected.stream().filter(m -> m instanceof IMovable).toList();
                     if (movables.isEmpty()) return;
-                    var icon = Icons.MOVE;
-                    var width = icon.spriteSize.width;
-                    var height = icon.spriteSize.height;
+                    var width = 12;
+                    var height = 12;
                     startDrag(new DragMove(tagetWasSelected, model, movables), Icons.MOVE).setDragTexture(- width / 2f, -height / 2f, width, height);
                 }
             });
@@ -357,14 +458,14 @@ public class GraphView extends UIElement {
 
     /**
      * Removes a graph element from the graph view.
-     * @param element the {@link GraphElement} to remove. This can be {@code null}.
+     * @param element the {@link ModelElement} to remove. This can be {@code null}.
      * @return {@code true} if the element was successfully removed from the graph view, {@code false} otherwise.
      */
-    public boolean removeElement(@Nullable GraphElement<?> element) {
+    public boolean removeElement(@Nullable ModelElement element) {
         if (element != null) {
             // remove from selected
-            if (selected.contains(element.model)) {
-                removeSelected(element.model);
+            if (selected.contains(element.getModel())) {
+                removeSelected(element.getModel());
             }
             var layer = getLayer(element.getLayerName());
             if (layer != null && layer.removeChild(element)) {
@@ -377,25 +478,25 @@ public class GraphView extends UIElement {
     }
 
     /**
-     * Creates a new {@link GraphElement} instance based on the provided model and adds it
-     * to the graph view. If the model is already associated with an existing {@link GraphElement},
+     * Creates a new {@link ModelElement} instance based on the provided model and adds it
+     * to the graph view. If the model is already associated with an existing {@link ModelElement},
      * the existing element is returned instead.
      *
      * <br>
-     * Besides, it will do {@link GraphElement#doCompleteUpdate()} to initialize the elements.
+     * Besides, it will do {@link ModelElement#doCompleteUpdate()} to initialize the elements.
      *
-     * @param model the {@link GraphElementModel} that serves as the basis for creating
-     *              a {@link GraphElement}. This can be an instance of {@link IGraphElementUIModel}.
-     *              If {@code null} or if the model fails to create a valid {@link GraphElement},
+     * @param model the {@link Model} that serves as the basis for creating
+     *              a {@link ModelElement}. This can be an instance of {@link IGraphElementUIModel}.
+     *              If {@code null} or if the model fails to create a valid {@link ModelElement},
      *              the method will return {@code null}.
      *
-     * @return the created {@link GraphElement}, or an existing instance if one is already
+     * @return the created {@link ModelElement}, or an existing instance if one is already
      *         associated with the provided model. Returns {@code null} if the model is not
      *         of a compatible type, if no element could be created, or if an error occurs
      *         during creation.
      */
     @Nullable
-    public GraphElement<?> createAndAddModelElement(@Nullable GraphElementModel model) {
+    public ModelElement createAndAddModelElement(@Nullable Model model) {
         if (model instanceof IGraphElementUIModel graphElement) {
             var element = modelElements.get(model);
             if (element != null) return element;
@@ -408,7 +509,7 @@ public class GraphView extends UIElement {
         return null;
     }
 
-    public void moveElementTop(GraphElement<?> element) {
+    public void moveElementTop(ModelElement element) {
         // move to the top of the layer
         var layer = getLayer(element.getLayerName());
         if (layer != null && layer.hasChild(element) && layer.getChildren().size() > (element.getSiblingIndex() + 1)) {
@@ -417,16 +518,16 @@ public class GraphView extends UIElement {
         }
     }
 
-    public void addSelected(GraphElementModel nodeModel) {
-        if (!modelElements.containsKey(nodeModel)) return;
-        selected.add(nodeModel);
-        var element = modelElements.get(nodeModel);
+    public void addSelected(Model model) {
+        if (!modelElements.containsKey(model)) return;
+        selected.add(model);
+        var element = modelElements.get(model);
         if (element != null) element.onSelectionChanged();
     }
 
-    public void removeSelected(GraphElementModel nodeModel) {
-        selected.remove(nodeModel);
-        var element = modelElements.get(nodeModel);
+    public void removeSelected(Model model) {
+        selected.remove(model);
+        var element = modelElements.get(model);
         if (element != null) element.onSelectionChanged();
     }
 
@@ -439,7 +540,7 @@ public class GraphView extends UIElement {
         });
     }
 
-    public boolean isSelected(GraphElementModel nodeModel) {
+    public boolean isSelected(Model nodeModel) {
         return selected.contains(nodeModel);
     }
 
@@ -452,7 +553,7 @@ public class GraphView extends UIElement {
         if (event.dragHandler.draggingObject instanceof DragMove dragMove) {
             var offset = new Vector2f(event.x - event.dragStartX, event.y - event.dragStartY);
             if (offset.lengthSquared() < 1f) {
-                for (GraphElementModel model : dragMove.movables) {
+                for (var model : dragMove.movables) {
                     var ele = modelElements.get(model);
                     if (ele != null && model instanceof IMovable movable) {
                         ele.getLayout().left(movable.getPosition().x).top(movable.getPosition().y);
@@ -460,8 +561,8 @@ public class GraphView extends UIElement {
                 }
                 return;
             }
-            var localOffset = graphView.contentRoot.getLocalMouseNormal(offset.x, offset.y);
-            for (GraphElementModel model : dragMove.movables) {
+            var localOffset = getContentViewContainer().getLocalMouseNormal(offset.x, offset.y);
+            for (var model : dragMove.movables) {
                 var ele = modelElements.get(model);
                 if (ele != null && model instanceof IMovable movable) {
                     var newPos = localOffset.add(movable.getPosition(), new Vector2f());
@@ -484,8 +585,8 @@ public class GraphView extends UIElement {
                 }
                 return;
             }
-            var localOffset = graphView.contentRoot.getLocalMouseNormal(offset.x, offset.y);
-            for (GraphElementModel model : movables) {
+            var localOffset = getContentViewContainer().getLocalMouseNormal(offset.x, offset.y);
+            for (var model : movables) {
                 var ele = modelElements.get(model);
                 if (ele != null && model instanceof IMovable movable) {
                     var newPos = localOffset.add(movable.getPosition(), new Vector2f());
@@ -567,8 +668,8 @@ public class GraphView extends UIElement {
                     .top(localMouse.y - graphView.getContentY())
                     .width(localSize.x)
                     .height(localSize.y);
-            var localGraphMouse = graphView.contentRoot.getLocalMouse(minX, minY);
-            var localGraphSize = graphView.contentRoot.getLocalMouseNormal(width, height);
+            var localGraphMouse = getContentViewContainer().getLocalMouse(minX, minY);
+            var localGraphSize = getContentViewContainer().getLocalMouseNormal(width, height);
             dragRegionSelection = new Vector4f(localGraphMouse.x, localGraphMouse.y, localGraphSize.x, localGraphSize.y);
         }
     }
@@ -592,7 +693,7 @@ public class GraphView extends UIElement {
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder= TreeBuilder.Menu.start();
-        var localPosition = graphView.contentRoot.getLocalMouse(mouseX, mouseY);
+        var localPosition = getContentViewContainer().getLocalMouse(mouseX, mouseY);
         menuBuilder.leaf("graph.commands.add_node", () -> {
             itemLibrary.show(mouseX, mouseY, node -> {
                 if (node instanceof NodeModelLibraryItem nodeItem) {
@@ -600,7 +701,7 @@ public class GraphView extends UIElement {
                 }
             });
         });
-        if (!getSelected().isEmpty() && getSelected().stream().allMatch(GraphElementModel::isDeletable)) {
+        if (!getSelected().isEmpty() && getSelected().stream().allMatch(m -> m instanceof GraphElementModel gem && gem.isDeletable())) {
             menuBuilder.leaf("graph.commands.delete", this::deleteSelectedElements);
         }
         if (!getSelected().isEmpty() && getSelected().stream().allMatch(e -> e instanceof WireModel)) {
@@ -629,6 +730,7 @@ public class GraphView extends UIElement {
 
     @Override
     public void screenTick() {
+        super.screenTick();
         // lets update the graph elements here
         updateGraphModelChanges();
     }
@@ -637,7 +739,6 @@ public class GraphView extends UIElement {
         if (graph == null) return;
         var graphModel = graph.graphModel;
         var changes = graphModel.getCurrentGraphChangeDescription();
-        var changeset = new GraphChangeset();
         var somethingChanged = changeset.addNewModels(changes.getNewModels());
         somethingChanged |= changeset.addChangedModels(changes.getChangedModels());
         somethingChanged |= changeset.addDeletedModels(changes.getDeletedModels());
@@ -664,19 +765,13 @@ public class GraphView extends UIElement {
             // notify changes
             for (var entry : changeset.getChangedModelsAndHints().entrySet()) {
                 addChangedModel(changedModels, entry.getKey(), entry.getValue());
-//                var model = entry.getKey();
-//                var hints = entry.getValue();
-//                var changeVisitor = new ModelUpdateVisitor(hints);
-//                // update self and all dependencies
-//                var element = modelElementsByID.get(model);
-//                if (element != null) dispatchUpdate(element, changeVisitor);
-//                modelDependencies.getOrDefault(model, Collections.emptySet()).forEach(e -> dispatchUpdate(e, changeVisitor));
             }
 
             updateChangedModels(changedModels, newPlacemats);
         }
 
         changes.clear();
+        changeset.clear();
     }
 
     protected void updateChangedModels(Map<UUID, ChangeHintList> changedModels,
@@ -712,7 +807,7 @@ public class GraphView extends UIElement {
             // ToList is needed to bake the dependencies.
             for (var ui : List.copyOf(getModelDependencies(uid))) {
                 if (ui instanceof GraphElement<?> e) {
-                    var h = changedModels.get(e.model.getUid());
+                    var h = changedModels.get(e.getModel().getUid());
                     if (h != null && h.isSupersetOf(hints)) continue;
                 }
                 dispatchUpdate(ui, viewUpdater);
@@ -825,6 +920,9 @@ public class GraphView extends UIElement {
     }
 
     protected void deleteSelectedElements() {
-        dispatchCommand(new GraphCommands.DeleteElementsCommand(getSelected().stream().filter(GraphElementModel::isDeletable).toList()));
+        dispatchCommand(new GraphCommands.DeleteElementsCommand(getSelected().stream()
+                .filter(GraphElementModel.class::isInstance)
+                .map(GraphElementModel.class::cast)
+                .filter(GraphElementModel::isDeletable).toList()));
     }
 }

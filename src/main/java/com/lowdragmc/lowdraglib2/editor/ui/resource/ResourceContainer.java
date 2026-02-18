@@ -20,7 +20,7 @@ import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import org.appliedenergistics.yoga.*;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collections;
 import java.util.List;

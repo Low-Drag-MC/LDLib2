@@ -3,9 +3,8 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.INode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.GraphNodeCreationData;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -63,7 +62,7 @@ public abstract class Graph implements IGraph {
      * @throws IndexOutOfBoundsException if {@code index} is out of range
      */
     public IVariable getVariable(int index) {
-        return null;
+        return graphModel.getVariableModels().get(index);
     }
 
     /**
@@ -75,8 +74,8 @@ public abstract class Graph implements IGraph {
      *
      * @return an {@link Iterable} of all declared {@link IVariable}s
      */
-    public List<IVariable> getVariables() {
-        return List.of();
+    public List<? extends IVariable> getVariables() {
+        return graphModel.getVariableModels();
     }
 
     /**
@@ -99,8 +98,7 @@ public abstract class Graph implements IGraph {
      * @throws IndexOutOfBoundsException if {@code index} is out of range
      */
     public INode getNode(int index) {
-        if (graphModel instanceof CustomGraphModelImpl customGraph) return customGraph.getNodes().get(index);
-        return null;
+        return graphModel.getNodes().get(index);
     }
 
     /**
@@ -120,8 +118,7 @@ public abstract class Graph implements IGraph {
      *
      * @return an {@link Iterable} of all {@link INode}s in the graph
      */
-    public List<INode> getNodes() {
-        if (graphModel instanceof CustomGraphModelImpl customGraph) return customGraph.getNodes();
-        return List.of();
+    public List<? extends INode> getNodes() {
+        return graphModel.getNodes();
     }
 }

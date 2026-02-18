@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
+import com.mojang.serialization.DataResult;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,5 +39,12 @@ public final class PlaceholderModelHelper {
         model.clearCapabilities();
         model.setCapability(Capabilities.DELETABLE, true);
         model.setCapability(Capabilities.SELECTABLE, true);
+    }
+
+    public static DataResult<GraphElementModel> tryGetPlaceholderGraphElementModel(GraphModel graphModel, UUID originalUid) {
+        if (graphModel.getModel(originalUid) instanceof IPlaceHolder placeHolder) {
+            return DataResult.success((GraphElementModel) placeHolder);
+        }
+        return DataResult.error(() -> "No placeholder with UID " + originalUid + " found in graph " + graphModel.getUid());
     }
 }

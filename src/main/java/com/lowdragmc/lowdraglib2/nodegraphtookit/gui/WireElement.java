@@ -1,12 +1,12 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.PortElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
@@ -31,14 +31,12 @@ public class WireElement extends GraphElement<WireModel> {
     private Vector2f to = new Vector2f();
     private List<Vector2f> rawPoints = Collections.emptyList();
     private List<Vector2f> drawPoints = Collections.emptyList();
-    private GraphElement<?> lastUsedFromPort;
-    private GraphElement<?> lastUsedToPort;
+    private ModelElement lastUsedFromPort;
+    private ModelElement lastUsedToPort;
     private WireModel lastWireModel;
 
     public WireElement(WireModel wireModel) {
         super(wireModel);
-        getLayout().positionType(TaffyPosition.ABSOLUTE);
-        internalSetup();
     }
 
     @Override
@@ -46,11 +44,22 @@ public class WireElement extends GraphElement<WireModel> {
         return WIRE_LAYER;
     }
 
+    // region build ui
+
+    @Override
+    protected void buildUI() {
+        super.buildUI();
+        getLayout().positionType(TaffyPosition.ABSOLUTE);
+        internalSetup();
+    }
+
+    // endregion
+
     @Override
     public boolean hasBackwardsDependenciesChanged() {
         if (graphView == null) return false;
         var modelElements = graphView.getModelElements();
-        return lastUsedFromPort != modelElements.get(model.getFromPort()) || lastUsedToPort != modelElements.get(model.getToPort());
+        return lastUsedFromPort != modelElements.get(getModel().getFromPort()) || lastUsedToPort != modelElements.get(getModel().getToPort());
     }
 
     @Override
@@ -59,12 +68,12 @@ public class WireElement extends GraphElement<WireModel> {
         if (graphView == null) return;
 
         // When the ports move, the wire should be redrawn.
-        addDependencies(model.getFromPort());
-        addDependencies(model.getToPort());
+        addDependencies(getModel().getFromPort());
+        addDependencies(getModel().getToPort());
 
         var modelElements = graphView.getModelElements();
-        lastUsedFromPort = modelElements.get(model.getFromPort());
-        lastUsedToPort = modelElements.get(model.getToPort());
+        lastUsedFromPort = modelElements.get(getModel().getFromPort());
+        lastUsedToPort = modelElements.get(getModel().getToPort());
     }
 
     private void addDependencies(PortModel portModel) {
@@ -96,12 +105,13 @@ public class WireElement extends GraphElement<WireModel> {
 
     @Override
     public boolean hasModelDependenciesChanged() {
-        return lastWireModel != model;
+        return lastWireModel != getModel();
     }
 
     @Override
     public void addModelDependencies() {
         if (graphView == null) return;
+        var model = getModel();
         var fromPort = model.getFromPort();
         if (fromPort != null && graphView.getModelElement(fromPort) instanceof PortElement portElement) {
             portElement.addDependencyToWireModel(model);
@@ -132,10 +142,10 @@ public class WireElement extends GraphElement<WireModel> {
             if (outputNode == null || inputNode == null || outputPort == null || inputPort == null || wire == null)
                 return null;
 
-            var outputPos = graphView.graphView.contentRoot.worldToLocal(
+            var outputPos = graphView.getContentViewContainer().worldToLocal(
                     outputPort.localToWorld(new Vector2f(outputPort.getPositionX(), outputPort.getPositionY()))
             );
-            var inputPos = graphView.graphView.contentRoot.worldToLocal(
+            var inputPos = graphView.getContentViewContainer().worldToLocal(
                     inputPort.localToWorld(new Vector2f(inputPort.getPositionX(), inputPort.getPositionY()))
             );
             return new WireCommands.ConvertWiresToPortalsCommand.PortalData(wireModel,
@@ -148,6 +158,7 @@ public class WireElement extends GraphElement<WireModel> {
     protected void updatePortPosition() {
         var graphView = getGraphView();
         if (graphView == null) return;
+        var model = getModel();
         var fromPort = model.getFromPort();
         var toPort = model.getToPort();
         var dirty = rawPoints.isEmpty();
@@ -159,9 +170,10 @@ public class WireElement extends GraphElement<WireModel> {
             }
         } else {
             if (graphView.getModelElement(fromPort) instanceof PortElement portElement) {
+                var portConnector = portElement.getConnector().getConnectorIcon();
                 fromWorldPos = portElement.getWorldMouse(
-                        portElement.portConnector.getPositionX() + portElement.portConnector.getSizeWidth() / 2,
-                        portElement.portConnector.getPositionY() + portElement.portConnector.getSizeHeight() / 2
+                        portConnector.getPositionX() + portConnector.getSizeWidth() / 2,
+                        portConnector.getPositionY() + portConnector.getSizeHeight() / 2
                 );
             }
         }
@@ -178,9 +190,10 @@ public class WireElement extends GraphElement<WireModel> {
             }
         } else {
             if (graphView.getModelElement(toPort) instanceof PortElement portElement) {
+                var portConnector = portElement.getConnector().getConnectorIcon();
                 toWorldPos = portElement.getWorldMouse(
-                        portElement.portConnector.getPositionX() + portElement.portConnector.getSizeWidth() / 2,
-                        portElement.portConnector.getPositionY() + portElement.portConnector.getSizeHeight() / 2
+                        portConnector.getPositionX() + portConnector.getSizeWidth() / 2,
+                        portConnector.getPositionY() + portConnector.getSizeHeight() / 2
                 );
             }
         }
@@ -335,6 +348,7 @@ public class WireElement extends GraphElement<WireModel> {
     public boolean canBeRegionSelected(Vector4f region) {
         var graphEditor = getGraphView();
         if (graphEditor == null) return false;
+        var model = getModel();
         if (model.getFromPort() == null || model.getToPort() == null) return false;
         var fromNode = model.getFromPort().getNodeModel();
         var toNode = model.getToPort().getNodeModel();

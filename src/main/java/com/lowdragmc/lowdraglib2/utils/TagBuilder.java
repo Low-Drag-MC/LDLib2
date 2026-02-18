@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.utils;
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.*;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;

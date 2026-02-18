@@ -194,7 +194,7 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
     }
 
     @Override
-    public @Nullable GraphElement<?> createElementUI() {
+    public @Nullable WireElement createElementUI() {
         return new WireElement(this);
     }
 

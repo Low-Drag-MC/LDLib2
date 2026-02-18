@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 
 import java.lang.reflect.Field;
 
-public interface IValueConfigurable extends IConfigurable {
+public interface IFieldValueConfigurable extends IConfigurable {
     /**
      * Sets the value of this option.
      *

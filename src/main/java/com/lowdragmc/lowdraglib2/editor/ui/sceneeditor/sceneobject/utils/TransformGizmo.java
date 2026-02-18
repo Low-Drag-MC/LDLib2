@@ -24,7 +24,7 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class TransformGizmo extends SceneObject implements ISceneRendering, ISceneInteractable {
     public enum Mode {

@@ -27,13 +27,12 @@ import java.util.function.Predicate;
  * <p>Ports are connection points on nodes that allow data or execution flow to pass between nodes.
  * Each port has a direction (input or output), a data type, and can be connected to other compatible ports.</p>
  */
-public class PortModel extends GraphElementModel implements IPort, IHasTitle, IHasContextualMenuItems {
+public class PortModel extends GraphElementModel implements IPort, IHasDisplayName, IHasContextualMenuItems {
     @Getter
     protected PortNodeModel nodeModel;
     @Getter
     protected String portId;
-    @Getter
-    protected Component title;
+    protected @Nullable Component title;
     protected TypeHandle dataTypeHandle;
     @Getter
     protected PortType portType;
@@ -73,7 +72,6 @@ public class PortModel extends GraphElementModel implements IPort, IHasTitle, IH
         var uid = computePortUid(nodeModel, direction, portId, portType, dataTypeHandle, parentPort);
         super.setUid(uid);
         this.portId = portId;
-        this.title = Component.translatable(portId);
 
         this.nodeModel = nodeModel;
         this.parentPort = parentPort;
@@ -130,6 +128,14 @@ public class PortModel extends GraphElementModel implements IPort, IHasTitle, IH
         if (this.graphModel != null) {
             this.graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
         }
+    }
+
+    @Override
+    public Component getTitle() {
+        if (title == null) {
+            return Component.translatable(portId);
+        }
+        return title;
     }
 
     @Override
@@ -230,10 +236,10 @@ public class PortModel extends GraphElementModel implements IPort, IHasTitle, IH
      * Gets the ports connected to this port.
      * @return The ports connected to this port
      */
-    public List<IPort> getConnectedPorts() {
+    public List<PortModel> getConnectedPorts() {
         if (graphModel == null) return Collections.emptyList();
         var wires = getConnectedWires();
-        var results = new ArrayList<IPort>();
+        var results = new ArrayList<PortModel>();
         for (var wire : wires) {
             var port = wire.getFromPort() == this ? wire.getToPort() : wire.getFromPort();
             if (port != null) {

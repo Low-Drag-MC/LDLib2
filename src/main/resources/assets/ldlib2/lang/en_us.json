@@ -498,5 +498,9 @@
   "graph.library.choose": "Choose an action for %s",
   "graph.library.recommendation": "Recommendation",
   "graph.commands.create_node": "Create Node",
-  "graph.commands.covert_wires_to_portals": "Convert Wire to Portal"
+  "graph.commands.covert_wires_to_portals": "Convert Wire to Portal",
+  "graph.library.constants": "Constants",
+  "graph.blackboard": "Blackboard",
+  "graph.default_value": "Default Value",
+  "graph.type": "Type"
 }

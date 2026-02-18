@@ -7,26 +7,32 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.utils.ReorderType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.TypeConstant;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.GroupModelBase;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.IGroupItemModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.SectionModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.SubPortDefinitionScope;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.GroupModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
 import lombok.Getter;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -36,6 +42,7 @@ import java.util.stream.Stream;
  * It also tracks changes for efficient UI updates.</p>
  */
 public abstract class GraphModel extends GraphElementModel implements IGraphElementContainer {
+    public final static String DEFAULT_SECTION_NAME = "";
     @Getter
     private List<AbstractNodeModel> nodeModels;
     @Getter
@@ -54,12 +61,19 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     private PortWireIndex<WireModel> portWireIndex;
     @Getter
     private List<IPlaceHolder> placeholders;
-
-    private GraphChangeDescription currentChangeDescription = new GraphChangeDescription();
+    @Getter
+    private List<SectionModel> sectionModels;
+    @Getter
+    private List<VariableDeclarationModelBase> graphVariableModels;
 
     // runtime
+    private GraphChangeDescription currentChangeDescription = new GraphChangeDescription();
     @Nullable
     private Map<UUID, GraphElementModel> elementsByUID;
+    @Getter
+    private Map<UUID, PlaceholderData> placeholderData;
+    @Getter
+    private Set<String> existingVariableNames;
 
     /**
      * Creates a new graph model.
@@ -71,6 +85,14 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         stickyNoteModels = new ArrayList<>();
         placeholders = new ArrayList<>();
         portalModels= new ArrayList<>();
+        sectionModels = new ArrayList<>();
+        graphVariableModels = new ArrayList<>();
+
+        existingVariableNames = new HashSet<>();
+        placeholderData = new HashMap<>();
+
+        // todo move to CleanupSections
+        createSection(DEFAULT_SECTION_NAME);
     }
 
     public @NotNull PortWireIndex<WireModel> getPortWireIndex() {
@@ -106,6 +128,20 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      */
     public boolean allowSubgraphCreation() {
         return !isStateMachineGraph();
+    }
+
+    /**
+     * Whether it is allowed to create {@link VariableDeclarationModelBase} and add them to the graph.
+     */
+    public boolean allowExposedVariableCreation() {
+        return false;
+    }
+
+    /**
+     * Whether to hide the ports editor when the port is connected. Default is true.
+     */
+    public boolean hideConnectedPortsEditor() {
+        return true;
     }
 
     /**
@@ -157,8 +193,30 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     @Override
+    public void removeContainerElements(Collection<? extends GraphElementModel> elementsToRemove) {
+        removeElements(elementsToRemove);
+    }
+
+    @Override
     public boolean repair() {
         return false;
+    }
+
+    /**
+     * Checks whether the graph is a Container Graph or not. If it is not a Container Graph, it is an Asset Graph.
+     * <br>
+     * A Container Graph is a graph that cannot be nested inside another graph, and can be referenced by a game object or scene.
+     * @return True if the graph is a container graph, false otherwise.
+     */
+    public boolean isContainerGraph() {
+        return false;
+    }
+
+    /**
+     * Checks the conditions to specify whether the Asset Graph can be a subgraph or not.
+     */
+    public boolean canBeSubGraph() {
+        return !isContainerGraph();
     }
 
     /**
@@ -314,18 +372,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 //            RegisterElement(model);
 //        }
 //
-//        // Some variables may not be under any section.
-//        foreach (var model in m_GraphVariableModels)
-//        {
-//            RegisterElement(model);
-//        }
-//
+        // Some variables may not be under any section.
+        graphVariableModels.forEach(this::registerElement);
         portalModels.forEach(this::registerElement);
-//
-//        foreach (var model in m_SectionModels)
-//        {
-//            RegisterElement(model);
-//        }
+        sectionModels.forEach(this::registerElement);
     }
 
     /**
@@ -339,9 +389,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             LDLib2.LOGGER.error("Duplicate element UID: {}", model.getUid());
         }
 
-        for (var subModel : model.getDependentModels()) {
-            registerElement(subModel);
-        }
+        model.getDependentModels().forEach(this::registerElement);
     }
 
     public boolean hasModel(UUID uid) {
@@ -358,9 +406,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      */
     protected void unregisterElement(GraphElementModel model) {
         getElementsByUID().remove(model.getUid());
-        for (var subModel : model.getDependentModels()) {
-            unregisterElement(subModel);
-        }
+        model.getDependentModels().forEach(this::unregisterElement);
     }
 
     public void registerPort(PortModel portModel) {
@@ -402,11 +448,14 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * Deletes graph element models in the graph.
      */
     public void deleteElements(List<? extends GraphElementModel> graphElementModels) {
-//        var initialVariables = new HashSet<VariableDeclarationModelBase>(VariableDeclarations.Where(v => v != null && v.IsInputOrOutput));
+        var initialVariables = getGraphVariableModels().stream()
+                .filter(v -> v != null && v.isInputOrOutput()).collect(Collectors.toSet());
         var elementsByType = new ElementsByType(graphElementModels);
 
         // Add nodes that would be backed by declaration models.
-//        elementsByType.NodeModels.UnionWith(elementsByType.VariableDeclarationsModels.SelectMany(FindReferencesInGraph<AbstractNodeModel>));
+        elementsByType.variableDeclarationsModels.stream()
+                .flatMap(d -> findReferencesInGraph(AbstractNodeModel.class, d).stream())
+                .forEach(elementsByType.nodeModels::add);
 
         // Add wires connected to the deleted nodes.
         var allWires = new HashSet<>(wireModels);
@@ -427,30 +476,27 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             }
         }
 
-//        deleteVariableDeclarations(elementsByType.VariableDeclarationsModels, deleteUsages: false);
-//        deleteGroups(elementsByType.GroupModels);
+        deleteVariableDeclarations(elementsByType.variableDeclarationsModels, false);
+        deleteGroups(elementsByType.groupModels);
 //        deleteStickyNotes(elementsByType.StickyNoteModels);
 //        deletePlacemats(elementsByType.PlacematModels);
         deleteWires(elementsByType.wireModels);
         deleteNodes(elementsByType.nodeModels, false, true);
 
-//        if (elementsByType.VariableDeclarationsModels.Count > 0)
-//        {
-//            // Find out if there were any deleted I/O variable declaration.
-//            foreach (var variableDeclaration in VariableDeclarations)
-//            {
-//                if (variableDeclaration != null && variableDeclaration.IsInputOrOutput)
-//                {
-//                    initialVariables.Remove(variableDeclaration);
-//                }
-//            }
-//
-//            if (initialVariables.Count > 0)
-//            {
-//                foreach (var recursiveSubgraphNode in GetSelfReferringSubgraphNodes())
-//                recursiveSubgraphNode.Update();
-//            }
-//        }
+        if (!elementsByType.variableDeclarationsModels.isEmpty()) {
+            // Find out if there were any deleted I/O variable declaration.
+            for (VariableDeclarationModelBase variableDeclaration : getGraphVariableModels()) {
+                if (variableDeclaration != null && variableDeclaration.isInputOrOutput()) {
+                    initialVariables.remove(variableDeclaration);
+                }
+            }
+
+            if (!initialVariables.isEmpty()) {
+                // todo sub graph
+//                for (var recursiveSubgraphNode : getSelfReferringSubgraphNodes())
+//                    recursiveSubgraphNode.update();
+            }
+        }
 //
 //        foreach (var statePortModel in statePortModels)
 //        {
@@ -464,7 +510,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * To delete elements from the graph, call {@link #deleteElements} instead
      * @param elements
      */
-    protected void removeElements(List<? extends GraphElementModel> elements) {
+    protected void removeElements(Collection<? extends GraphElementModel> elements) {
         for (var element : elements) {
             switch (element) {
                 case IPlaceHolder placeHolder:
@@ -476,9 +522,9 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 //                case PlacematModel placematModel:
 //                    RemovePlacemat(placematModel);
 //                    break;
-//                case VariableDeclarationModelBase variableDeclarationModel:
-//                    RemoveVariableDeclaration(variableDeclarationModel);
-//                    break;
+                case VariableDeclarationModelBase variableDeclarationModel:
+                    removeVariableDeclaration(variableDeclarationModel);
+                    break;
                 case WireModel wireModel:
                     removeWire(wireModel);
                     break;
@@ -491,12 +537,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 case PortModel portModel:
                     unregisterPort(portModel);
                     break;
-//                case SectionModel sectionModel:
-//                    RemoveSection(sectionModel);
-//                    break;
-//                case GraphModel gm:
-//                    removeGroup(gm);
-//                    break;
+                case SectionModel sectionModel:
+                    removeSection(sectionModel);
+                    break;
+                case GroupModel groupModel:
+                    removeGroup(groupModel);
+                    break;
                 default:
                     unregisterElement(element);
                     break;
@@ -516,7 +562,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var t = dataTypeHandle.resolve();
         if (t == void.class || t == Void.class) return null;
 
-        var instance = new TypeConstant(t);
+        var instance = new TypeConstant();
         instance.init(dataTypeHandle);
         return instance;
     }
@@ -609,10 +655,44 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         if (spawnFlags == null) spawnFlags = SpawnFlags.NONE;
         return (ConstantNodeModel) createNode(getConstantType(constantType), constantName, position, uid, n -> {
             if (n instanceof ConstantNodeModel nodeModel) {
-                nodeModel.getValue().init(constantType);
+                nodeModel.getConstant().init(constantType);
                 if (initializationCallback != null) initializationCallback.accept(nodeModel);
             }
         }, spawnFlags);
+    }
+
+    /**
+     * Indicates whether a variable is allowed in the graph or not.
+     * @param variable The variable in the graph.
+     * @param graphModel The graph of the variable.
+     * @return {@code true} if the variable is allowed in the graph.
+     */
+    public boolean canCreateVariableNode(VariableDeclarationModelBase variable, GraphModel graphModel) {
+        // todo does it necessary?
+//        var allowMultipleDataOutputInstances = allowMultipleDataOutputInstances() != AllowMultipleDataOutputInstances.Disallow;
+        return variable.getDataTypeHandle().equals(TypeHandles.EXECUTION_FLOW)
+                || variable.getModifiers() != ModifierFlags.WRITE
+                || graphModel.findReferencesInGraph(VariableNodeModel.class, variable).isEmpty();
+    }
+
+    protected Class<? extends VariableNodeModel> getVariableNodeType() {
+        return VariableNodeModel.class;
+    }
+
+    public VariableNodeModel createVariableNode(VariableDeclarationModelBase declarationModel,
+                                                Vector2f position,
+                                                @Nullable UUID uid,
+                                                @Nullable SpawnFlags spawnFlags) {
+        var nodeType = getVariableNodeType();
+
+        Consumer<AbstractNodeModel> initializationCallback = n -> {
+            if (n instanceof VariableNodeModel variableNodeModel) {
+                variableNodeModel.setDeclarationModel(declarationModel);
+            }
+        };
+
+        spawnFlags = spawnFlags == null ? SpawnFlags.DEFAULT : spawnFlags;
+        return (VariableNodeModel) createNode(nodeType, declarationModel.getName(), position, uid, initializationCallback, spawnFlags);
     }
 
     /**
@@ -642,7 +722,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 throw new RuntimeException("Failed to instantiate constant of type " + nodeType.getName(), e);
             }
             var constantNodeModel = newConstantNodeModel();
-            constantNodeModel.setValue(constant);
+            constantNodeModel.setConstant(constant);
             nodeModel = constantNodeModel;
         } else if (AbstractNodeModel.class.isAssignableFrom(nodeType)) {
             try {
@@ -653,7 +733,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         } else throw new IllegalArgumentException("nodeType must be a subclass of AbstractNodeModel");
 
         nodeModel.setGraphModel(this);
-        nodeModel.setTitle(Component.translatable(nodeName));
+        nodeModel.setName(nodeName);
 
         if (spawnFlags == null) spawnFlags = SpawnFlags.NONE;
         nodeModel.setSpawnFlags(spawnFlags);
@@ -964,6 +1044,388 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
     // endregion
 
+    // region Group
+
+    protected Class<? extends GroupModel> getGroupModelType() {
+        return GroupModel.class;
+    }
+
+    protected Class<? extends SectionModel> getSectionModelType() {
+        return SectionModel.class;
+    }
+
+    /**
+     * Creates a new group.
+     * @param name The name of the new group.
+     * @param items An optional list of items that will be added to the group.
+     * @return a new group.
+     */
+    public GroupModel createGroup(String name, @Nullable Collection<? extends IGroupItemModel> items) {
+        var group = instantiateGroup(name);
+        addGroup(group);
+
+        if (items != null) {
+            for (IGroupItemModel item : items) {
+                group.insertItem(item, Integer.MAX_VALUE);
+            }
+        }
+        return group;
+    }
+
+    /**
+     * Instantiates a group model.
+     */
+    protected GroupModel instantiateGroup(String name) {
+        var groupType = getGroupModelType();
+        try {
+            var group = groupType.getConstructor().newInstance();
+            group.setName(name);
+            group.setGraphModel(this);
+            return group;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to instantiate group of type " + groupType.getName(), e);
+        }
+    }
+
+    /**
+     * Registers a group to the graph.
+     * @param group the group.
+     */
+    protected void addGroup(GroupModel group) {
+        // Group is not added to the graph: it will be added to a section.
+        registerElement(group);
+        getCurrentGraphChangeDescription().addNewModel(group);
+    }
+
+    /**
+     * Creates a new {@link SectionModel} and adds it to the graph.
+     * @param sectionName The name of the section.
+     * @return The newly created section.
+     */
+    public SectionModel createSection(String sectionName) {
+        var section = instantiateSection(sectionName);
+        addSection(section);
+        return section;
+    }
+
+    /**
+     * Instantiates a {@link SectionModel}.
+     */
+    protected SectionModel instantiateSection(String sectionName) {
+        var sectionType = getSectionModelType();
+        try {
+            var section = sectionType.getConstructor().newInstance();
+            section.setName(sectionName);
+            section.setGraphModel(this);
+            return section;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to instantiate section of type " + sectionType.getName(), e);
+        }
+    }
+
+    /**
+     * Registers a section to the graph.
+     * @param section the section.
+     */
+    protected void addSection(SectionModel section) {
+        registerElement(section);
+        sectionModels.add(section);
+        getCurrentGraphChangeDescription().addNewModel(section);
+    }
+
+    /**
+     * Removes a group from the graph.
+     * @param section the section.
+     */
+    protected void removeSection(SectionModel section) {
+        unregisterElement(section);
+        sectionModels.remove(section);
+        getCurrentGraphChangeDescription().addDeletedModel(section);
+    }
+
+    /**
+     * Gets a section by name.
+     * @param sectionName the name of the section.
+     * @return the section.
+     */
+    public @Nullable SectionModel getSectionModel(String sectionName) {
+        return sectionModels.stream().filter(s -> s.getName().equals(sectionName)).findAny().orElse(null);
+    }
+
+    /**
+     * Returns a valid section for a given variable. Default is to return the first section {@link #DEFAULT_SECTION_NAME}.
+     */
+    public String getVariableSection(VariableDeclarationModelBase variable) {
+        return DEFAULT_SECTION_NAME;
+    }
+
+    /**
+     * Removes a group from the graph.
+     * @param groupModels The group models to delete.
+     */
+    public void deleteGroups(Collection<? extends GroupModel> groupModels) {
+        var deletedModels = new ArrayList<GraphElementModel>();
+        var deletedVariables = new ArrayList<VariableDeclarationModelBase>();
+
+        groupModels.stream().filter(GroupModel::isDeletable).forEach(group -> {
+            if (group.getParentGroup() instanceof GroupModel groupModel) {
+                groupModel.removeItem(group);
+            }
+            registerElement(group);
+        });
+
+        deleteVariableDeclarations(deletedVariables, true);
+        getCurrentGraphChangeDescription().addDeletedModels(deletedModels);
+    }
+
+    private void recurseRemoveGroup(List<GraphElementModel> deletedModels, List<VariableDeclarationModelBase> deletedVariables, GroupModel groupModel) {
+        removeGroup(groupModel);
+        for (var item : groupModel.getItems()) {
+            if (item instanceof VariableDeclarationModelBase variable)
+                deletedVariables.add(variable);
+            else if (item instanceof GroupModel group)
+                recurseRemoveGroup(deletedModels, deletedVariables, group);
+            else
+                deletedModels.add((GraphElementModel)item);
+        }
+    }
+
+    protected void removeGroup(GroupModel groupModel) {
+        unregisterElement(groupModel);
+        getCurrentGraphChangeDescription().addDeletedModel(groupModel);
+    }
+
+    // endregion
+
+    // region Variable Declaration
+
+    public Class<? extends VariableDeclarationModel> getVariableDeclarationModelType() {
+        return VariableDeclarationModel.class;
+    }
+
+    /**
+     * Indicates whether a {@link VariableDeclarationModel} requires initialization.
+     * @param decl The variable declaration model to query.
+     * @return True if the variable declaration model requires initialization, false otherwise.
+     */
+    public boolean variableDeclarationRequiresInitialization(VariableDeclarationModelBase decl) {
+        return decl.requiresInitialization();
+    }
+
+    public VariableDeclarationModel createGraphVariableDeclaration(TypeHandle variableDataType,
+                                                                   String variableName,
+                                                                   ModifierFlags modifierFlags,
+                                                                   VariableScope scope,
+                                                                   @Nullable GroupModel group,
+                                                                   int indexInGroup,
+                                                                   @Nullable Constant initializationModel,
+                                                                   @Nullable UUID uid,
+                                                                   @Nullable SpawnFlags spawnFlags) {
+        if (isContainerGraph() && (modifierFlags == ModifierFlags.READ || modifierFlags == ModifierFlags.WRITE)) {
+            LDLib2.LOGGER.warn("Cannot create an input or an output variable declaration in a container graph.");
+            return null;
+        }
+
+        if (!allowExposedVariableCreation() && scope == VariableScope.EXPOSED) {
+            LDLib2.LOGGER.warn("This graph doesn't allow the creation of a variable declaration with an exposed scope. A variable declaration with a local scope is created instead.");
+            scope = VariableScope.LOCAL;
+        }
+
+        return createGraphVariableDeclaration(getVariableDeclarationModelType(), variableDataType, variableName,
+                modifierFlags, scope, group, indexInGroup, initializationModel, uid, (variableDeclaration, initModel) -> {
+                    if (variableDeclaration != null) {
+                        variableDeclaration.setVariableFlags(VariableFlags.NONE);
+                        if (initModel != null) variableDeclaration.setInitializationModel(initModel);
+                    }
+                }, spawnFlags);
+    }
+
+    /**
+     * Creates a new variable declaration in the graph.
+     * @param variableTypeToCreate The type of variable declaration to create.
+     * @param variableDataType The type of data the new variable declaration to create represents.
+     * @param variableName The name of the new variable declaration to create.
+     * @param modifierFlags The modifier flags of the new variable declaration to create.
+     * @param scope The scope of the variable.
+     * @param group The group in which the variable is added. If null, it will go to the root group.
+     * @param indexInGroup The index of the variable in the group. For {@code indexInGroup=0}, The item will be added at the beginning. For {@code indexInGroup=Items.size()}, items will be added at the end.
+     * @param initializationModel The initialization model of the new variable declaration to create. Can be {@code null}..
+     * @param uid The unique identifier (UUID) to assign to the newly created item.
+     * @param initializationCallback An initialization method to be called right after the variable declaration is created.
+     * @param spawnFlags The flags specifying how the variable declaration is to be spawned.
+     * @return The newly created variable declaration.
+     */
+    public VariableDeclarationModel createGraphVariableDeclaration(Class<? extends VariableDeclarationModel> variableTypeToCreate,
+                                                                   TypeHandle variableDataType,
+                                                                   String variableName,
+                                                                   ModifierFlags modifierFlags,
+                                                                   VariableScope scope,
+                                                                   @Nullable GroupModel group,
+                                                                   int indexInGroup,
+                                                                   @Nullable Constant initializationModel,
+                                                                   @Nullable UUID uid,
+                                                                   @Nullable BiConsumer<VariableDeclarationModelBase, Constant> initializationCallback,
+                                                                   @Nullable SpawnFlags spawnFlags) {
+        if (isContainerGraph() && (modifierFlags == ModifierFlags.READ || modifierFlags == ModifierFlags.WRITE)) {
+            LDLib2.LOGGER.warn("Cannot create an input or an output variable declaration in a container graph.");
+            return null;
+        }
+
+
+        var variableDeclaration = instantiateVariableDeclaration(variableTypeToCreate, variableDataType,
+                variableName, modifierFlags, scope, initializationModel, uid, initializationCallback);
+
+        if (variableDeclaration == null)
+            return null;
+
+        if (spawnFlags == null) spawnFlags = SpawnFlags.NONE;
+        if (!spawnFlags.isOrphan())
+            addVariableDeclaration(variableDeclaration);
+
+        if (group != null) {
+            group.insertItem(variableDeclaration, indexInGroup);
+        } else {
+            var section = variableDeclaration.getGraphModel().getSectionModel(variableDeclaration.getGraphModel().getVariableSection(variableDeclaration));
+            if (section != null) {
+                section.insertItem(variableDeclaration, indexInGroup);
+            }
+        }
+
+        // TODO does it a bug? uid is not set here.
+        var data = new PlaceholderData();
+        data.setGroupName(variableDeclaration.getParentGroup().getName());
+        placeholderData.put(uid, data);
+
+        if (modifierFlags != ModifierFlags.NONE) {
+            redefineSubgraphNodeModels();
+        }
+
+        return variableDeclaration;
+    }
+
+    protected VariableDeclarationModel instantiateVariableDeclaration(Class<? extends VariableDeclarationModel> variableTypeToCreate,
+                                                                      TypeHandle variableDataType,
+                                                                      String variableName,
+                                                                      ModifierFlags modifierFlags,
+                                                                      VariableScope scope,
+                                                                      @Nullable Constant initializationModel,
+                                                                      @Nullable UUID uid,
+                                                                      @Nullable BiConsumer<VariableDeclarationModelBase, Constant> initializationCallback) {
+        try {
+            var variableDeclaration = variableTypeToCreate.getConstructor().newInstance();
+            if (uid != null) {
+                variableDeclaration.setUid(uid);
+            }
+            variableDeclaration.setGraphModel(this);
+            variableDeclaration.setDataTypeHandle(variableDataType);
+            if (initializationModel != null) {
+                variableDeclaration.setInitializationModel(initializationModel);
+            }
+            variableDeclaration.setName(generateGraphVariableDeclarationUniqueName(variableName));
+            variableDeclaration.setScope(scope);
+            variableDeclaration.setModifiers(modifierFlags);
+
+            if (initializationCallback != null) {
+                initializationCallback.accept(variableDeclaration, variableDeclaration.getInitializationModel());
+            }
+
+            return variableDeclaration;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to instantiate variable declaration of type " + variableTypeToCreate.getName(), e);
+        }
+    }
+
+    /**
+     * Generates a unique name for a variable declaration in the graph.
+     * @param originalName The name of the variable declaration.
+     * @return The unique name for the variable declaration.
+     */
+    protected String generateGraphVariableDeclarationUniqueName(String originalName) {
+        var index = 0;
+        var baseName = originalName;
+        while (existingVariableNames.contains(originalName)) {
+            originalName = baseName + "." + index++;
+        }
+        return originalName;
+    }
+
+    /**
+     * Adds a variable declaration to the graph.
+     */
+    protected void addVariableDeclaration(VariableDeclarationModelBase variableDeclaration) {
+        registerElement(variableDeclaration);
+        // todo meta
+//        AddMetaData(variableDeclarationModel, m_GraphVariableModels.Count);
+        graphVariableModels.add(variableDeclaration);
+        existingVariableNames.add(variableDeclaration.getName());
+        getCurrentGraphChangeDescription().addNewModel(variableDeclaration);
+    }
+
+    /**
+     * Deletes the given variable declaration model, with the option of also deleting the corresponding variable models.
+     * @param variableModel The variable declaration model to delete.
+     * @param deleteUsages Whether to delete the corresponding variable models.
+     */
+    public void deleteVariableDeclaration(VariableDeclarationModelBase variableModel, boolean deleteUsages) {
+        if (!variableModel.isDeletable()) return;
+
+        if (variableModel instanceof VariableDeclarationPlaceholder placeholderModel) {
+            removePlaceholder(placeholderModel);
+        }
+
+        removeVariableDeclaration(variableModel);
+
+        if (deleteUsages) {
+            var nodesToDelete = findReferencesInGraph(AbstractNodeModel.class, variableModel);
+            deleteNodes(nodesToDelete, true, true);
+        }
+    }
+
+    /**
+     * Deletes the given variable declaration models, with the option of also deleting the corresponding variable models.
+     */
+    public void deleteVariableDeclarations(Collection<? extends VariableDeclarationModelBase> variableModels, boolean deleteUsages) {
+        for (var variableModel : variableModels) {
+            deleteVariableDeclaration(variableModel, deleteUsages);
+        }
+    }
+
+    protected GroupModelBase removeVariableDeclaration(VariableDeclarationModelBase variableDeclarationModel) {
+        if (variableDeclarationModel == null)
+            return null;
+
+        unregisterElement(variableDeclarationModel);
+
+        var indexToRemove = -1;
+        for (var i = 0; i < graphVariableModels.size(); i++) {
+            var variable = graphVariableModels.get(i);
+            if (variable == null)
+                continue;
+            if (variableDeclarationModel.getUid().equals(variable.getUid())) {
+                indexToRemove = i;
+                break;
+            }
+        }
+
+        if (indexToRemove != -1) {
+            // todo meta
+//            RemoveFromMetadata(indexToRemove, ManagedMissingTypeModelCategory.VariableDeclaration);
+            graphVariableModels.remove(indexToRemove);
+            graphVariableModels.add(indexToRemove, null);
+            getCurrentGraphChangeDescription().addDeletedModel(variableDeclarationModel);
+        }
+
+        existingVariableNames.remove(variableDeclarationModel.getName());
+
+        var parent = variableDeclarationModel.getParentGroup();
+        if (parent instanceof GroupModel group) {
+            group.removeItem(variableDeclarationModel);
+        }
+        return parent;
+    }
+
+    // endregion
+
     // region Placeholders
 
     protected void removePlaceholder(IPlaceHolder placeholder) {
@@ -989,8 +1451,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
     // endregion
 
-
-    // region Declaration / Portal
+    // region Portal Declaration
 
     /**
      * Finds all node models that refer to a given declaration model.
@@ -1126,14 +1587,14 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         if (!allowPortalCreation()) throw new IllegalArgumentException("Wire portal creation is disabled.");
         if (!(outputPortModel.getNodeModel() instanceof InputOutputPortsNodeModel nodeModel)) return null;
 
-        MutableComponent portalName ;
+        String portalName ;
         if (nodeModel instanceof ConstantNodeModel constantNodeModel) {
-            portalName = Component.literal(TypeHandleHelpers.identificationOf(constantNodeModel.getType()));
+            portalName = TypeHandleHelpers.identificationOf(constantNodeModel.getType());
         } else {
-            portalName = nodeModel.getTitle().copy();
-            var portName = outputPortModel.getDisplayName();
+            portalName = nodeModel.getName();
+            var portName = outputPortModel.getName();
             if (portName != null) {
-                portalName.append(Component.literal(" - ").append(portName));
+                portalName = portalName + " - " + portName;
             }
         }
 
@@ -1200,7 +1661,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     /**
      * Creates a new declaration model representing a portal and optionally add it to the graph.
      */
-    public DeclarationModel createGraphPortalDeclaration(Component portalName,
+    public DeclarationModel createGraphPortalDeclaration(String portalName,
                                                          @Nullable UUID uid,
                                                          @Nullable SpawnFlags spawnFlags) {
         if (!allowPortalCreation()) throw new IllegalArgumentException("Wire portal creation is disabled.");
@@ -1218,11 +1679,11 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     /**
      * Instantiates a new portal model.
      */
-    protected DeclarationModel instantiatePortalDeclaration(Component title, @Nullable UUID uid) {
+    protected DeclarationModel instantiatePortalDeclaration(String name, @Nullable UUID uid) {
         if (!allowPortalCreation()) throw new IllegalArgumentException("Wire portal creation is disabled.");
 
         var portalModel = new DeclarationModel();
-        portalModel.setTitle(title);
+        portalModel.setName(name);
         if (uid != null) portalModel.setUid(uid);
         portalModel.setGraphModel(this);
         return portalModel;
@@ -1230,7 +1691,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
     // endregion
 
-    // region sub graph
+    // region subgraph
 
     public void removeLocalSubgraph(GraphModel subgraphModel) {
         if (localSubGraphs != null) {
@@ -1238,6 +1699,14 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             // todo subgraph
         }
     }
+
+    /**
+     * If this GraphModel is a subgraph, any subgraph nodes that reference it in the parent graph must redefine its ports whenever an input or output variable declaration is added.
+     */
+    protected void redefineSubgraphNodeModels() {
+        // todo subgraph
+    }
+
 
     // endregion
 

@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.math.Transform;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class SceneObject implements ISceneObject {

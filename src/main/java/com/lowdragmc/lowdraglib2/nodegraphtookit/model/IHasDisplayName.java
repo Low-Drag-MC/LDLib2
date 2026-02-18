@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
 import net.minecraft.network.chat.Component;
 
-public interface IHasTitle {
+public interface IHasDisplayName {
     /**
      * Get the title of the object.
      */

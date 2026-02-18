@@ -9,7 +9,8 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.NodeElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.CollapsibleInOutNodeElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.SubPortCustomConstant;
@@ -33,7 +34,7 @@ import static com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeOption.PO
  *
  * <p>This model backs a {@link Node} instance and provides the implementation for ports and options.</p>
  */
-public abstract class NodeModel extends InputOutputPortsNodeModel implements INodeWithOptions, IGraphElementUIModel {
+public abstract class NodeModel extends InputOutputPortsNodeModel implements INodeWithOptions {
     @Getter
     protected Map<String, Constant> inputConstantsById;
     @Getter
@@ -783,6 +784,6 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
 
     @Override
     public @Nullable GraphElement<?> createElementUI() {
-        return new NodeElement(this);
+        return new CollapsibleInOutNodeElement(this);
     }
 }

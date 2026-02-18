@@ -37,7 +37,7 @@ import org.jetbrains.annotations.UnknownNullability;
 import org.joml.*;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;

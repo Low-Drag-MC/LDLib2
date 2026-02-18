@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.INode;
-import net.minecraft.network.chat.Component;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
 
 import java.util.List;
 
@@ -9,10 +9,10 @@ public interface IGraph {
     /**
      * @return variable models in creation order
      */
-    List<IVariable> getVariables();
+    List<? extends IVariable> getVariables();
 
     /**
      * @return nodes in creation order
      */
-    List<INode> getNodes();
+    List<? extends INode> getNodes();
 }

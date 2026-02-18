@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant;
 
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,15 +11,19 @@ import java.lang.reflect.Type;
 
 public class TypeConstant extends Constant {
     @Getter
-    public final Type type;
+    private Type type;
     @Getter
     @Nullable
     private Object value;
     @Nullable @Getter @Setter
     private Object defaultValue;
 
-    public TypeConstant(Type type) {
-        this.type = type;
+    public TypeConstant() {}
+
+    @Override
+    public void init(TypeHandle typeHandle) {
+        super.init(typeHandle);
+        this.type = TypeHandleHelpers.convertType(typeHandle.resolve());
     }
 
     @Override
@@ -36,10 +42,10 @@ public class TypeConstant extends Constant {
 
     @Override
     public TypeConstant copy() {
-        var copy = new TypeConstant(type);
+        var copy = new TypeConstant();
+        copy.init(typeHandle);
         copy.value = value;
         copy.defaultValue = defaultValue;
-        copy.init(typeHandle);
         return copy;
     }
 }

@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.sync.rpc;
 import com.lowdragmc.lowdraglib2.syncdata.SyncValueHolder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Function;
 
 public record RPCEvent(SyncValueHolder[] argHolders, @Nullable SyncValueHolder returnHolder, Function<Object[], Object> executor) {

@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Base class for a model of a node that has ports.
@@ -22,10 +23,8 @@ public abstract class PortNodeModel extends AbstractNodeModel {
      * Dependent models include the base dependent models and all port models.
      */
     @Override
-    public List<GraphElementModel> getDependentModels() {
-        List<GraphElementModel> result = new ArrayList<>(super.getDependentModels());
-        result.addAll(getPorts());
-        return result;
+    public Stream<GraphElementModel> getDependentModels() {
+        return Stream.concat(super.getDependentModels(), getPorts().stream());
     }
 
     /**

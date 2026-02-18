@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
 import lombok.Getter;
 import lombok.ToString;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.*;
 

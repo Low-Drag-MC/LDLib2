@@ -16,7 +16,7 @@ import org.apache.commons.lang3.function.Consumers;
 import org.apache.commons.lang3.function.Suppliers;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Type;
 import java.util.Objects;

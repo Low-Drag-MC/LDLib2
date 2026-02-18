@@ -27,7 +27,7 @@ import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -77,7 +77,7 @@ public class UIHierarchy extends UIElement {
                     }).setText(node.getKey().getEditorName()).layout((layout) -> {
                         layout.heightPercent(100.0F);
                         layout.flex(1.0F);
-                    }).setOverflow(YogaOverflow.HIDDEN).addEventListener(UIEvents.TICK, e -> {
+                    }).setOverflowVisible(false).addEventListener(UIEvents.TICK, e -> {
                         label.setText(node.getKey().getEditorName());
                     });
                     return container.addChildren(icon, label);
@@ -99,8 +99,8 @@ public class UIHierarchy extends UIElement {
                     });
                     nodeUI.addEventListener(UIEvents.DRAG_ENTER, e -> {
                         if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
-                            var mode = isMouseOverNodeAbove(e) ? 0 : isMouseOverNodeCenter(e) ? 1 : isMouseOverNodeBelow(e) ? 2 : -1;
-                            e.currentElement.style(style -> style.overlayTexture(createDraggingOverlay(mode)));
+                            var mode = TreeList.isMouseOverNodeAbove(e) ? 0 : TreeList.isMouseOverNodeCenter(e) ? 1 : TreeList.isMouseOverNodeBelow(e) ? 2 : -1;
+                            e.currentElement.style(style -> style.overlayTexture(TreeList.createDraggingOverlay(mode)));
                         }
                     }, true);
                     nodeUI.addEventListener(UIEvents.DRAG_LEAVE, e -> {
@@ -111,8 +111,8 @@ public class UIHierarchy extends UIElement {
                     });
                     nodeUI.addEventListener(UIEvents.DRAG_UPDATE, e -> {
                         if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
-                            var mode = isMouseOverNodeAbove(e) ? 0 : isMouseOverNodeCenter(e) ? 1 : isMouseOverNodeBelow(e) ? 2 : -1;
-                            e.currentElement.style(style -> style.overlayTexture(createDraggingOverlay(mode)));
+                            var mode = TreeList.isMouseOverNodeAbove(e) ? 0 : TreeList.isMouseOverNodeCenter(e) ? 1 : TreeList.isMouseOverNodeBelow(e) ? 2 : -1;
+                            e.currentElement.style(style -> style.overlayTexture(TreeList.createDraggingOverlay(mode)));
                         } else {
                             e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
                         }
@@ -123,7 +123,7 @@ public class UIHierarchy extends UIElement {
                             var target = node.getKey();
                             var toMoved = dragged.getKey();
                             if (toMoved.isAncestorOf(target)) return;
-                            if (isMouseOverNodeAbove(e)) {
+                            if (TreeList.isMouseOverNodeAbove(e)) {
                                 // sibling
                                 var originalParent = toMoved.getParent();
                                 var originalSiblingIndex = toMoved.getSiblingIndex();
@@ -137,13 +137,13 @@ public class UIHierarchy extends UIElement {
                                     toMoved.removeSelf();
                                 }
                                 newParent.addEditorChild(toMoved, newSiblingIndex);
-                            } else if (isMouseOverNodeCenter(e)) {
+                            } else if (TreeList.isMouseOverNodeCenter(e)) {
                                 // children
                                 var originalParent = toMoved.getParent();
                                 if (originalParent != target) {
                                     target.addEditorChild(toMoved, -1);
                                 }
-                            } else if (isMouseOverNodeBelow(e)) {
+                            } else if (TreeList.isMouseOverNodeBelow(e)) {
                                 // sibling
                                 var originalParent = toMoved.getParent();
                                 var originalSiblingIndex = toMoved.getSiblingIndex();
@@ -199,50 +199,6 @@ public class UIHierarchy extends UIElement {
     public Optional<UIElement> getSelectedOne() {
         var elements = getSelectedNodes();
         return elements.length == 1 ? Optional.of(elements[0]) : Optional.empty();
-    }
-
-    private boolean isMouseOverNodeAbove(UIEvent event) {
-        var ui = event.currentElement;
-        var x = ui.getPositionX();
-        var y = ui.getPositionY();
-        var width = ui.getSizeWidth();
-        var height = ui.getSizeHeight();
-        return isMouseOver(x, y, width, height / 3, event.x, event.y);
-    }
-
-    private boolean isMouseOverNodeCenter(UIEvent event) {
-        var ui = event.currentElement;
-        var x = ui.getPositionX();
-        var y = ui.getPositionY();
-        var width = ui.getSizeWidth();
-        var height = ui.getSizeHeight();
-        return isMouseOver(x, y + height / 3, width, height / 3, event.x, event.y);
-    }
-
-    private boolean isMouseOverNodeBelow(UIEvent event) {
-        var ui = event.currentElement;
-        var x = ui.getPositionX();
-        var y = ui.getPositionY();
-        var width = ui.getSizeWidth();
-        var height = ui.getSizeHeight();
-        return isMouseOver(x, y + height * 2 / 3, width, height / 3, event.x, event.y);
-    }
-
-    private IGuiTexture createDraggingOverlay(int mode) {
-        if (mode == 0) {
-            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
-                DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, ColorPattern.T_WHITE.color);
-            };
-        } else if (mode == 1) {
-            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
-                DrawerHelper.drawSolidRect(graphics, x, y, width, height, ColorPattern.T_WHITE.color);
-            };
-        } else if (mode == 2) {
-            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
-                DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, ColorPattern.T_WHITE.color);
-            };
-        }
-        return IGuiTexture.EMPTY;
     }
 
     protected void onMouseDown(UIEvent event) {

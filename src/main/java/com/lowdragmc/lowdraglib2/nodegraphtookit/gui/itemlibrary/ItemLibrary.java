@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
+import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
@@ -25,6 +26,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
@@ -34,7 +36,9 @@ import org.joml.Vector2f;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class ItemLibrary extends UIElement {
     public record DragMove(Vector2f originalPos) {}
@@ -53,6 +57,7 @@ public class ItemLibrary extends UIElement {
     public final UIElement treeContainer = new UIElement();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> searchTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> recommendationTree = new TreeList<>();
+    public final TreeList<TreeNode<ItemLibraryItem, Void>> constantTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> nodeTree = new TreeList<>();
     // runtime
     @Nullable
@@ -84,6 +89,11 @@ public class ItemLibrary extends UIElement {
 
         resultContainer.getLayout().flex(1);
 
+        searchTree.setStaticTree(false);
+        recommendationTree.setStaticTree(false);
+        constantTree.setStaticTree(false);
+        nodeTree.setStaticTree(false);
+
         searchField.setTextResponder(this::onSearchWordChanged);
         searchTree.setDisplay(false);
         searchTree.setFlattenRoot(true);
@@ -91,6 +101,7 @@ public class ItemLibrary extends UIElement {
 
         recommendationTree.setDisplay(false);
         initTreeList(recommendationTree, treeContainer);
+        initTreeList(constantTree, treeContainer);
         initTreeList(nodeTree, treeContainer);
 
         resultContainer.addScrollViewChildren(searchTree, treeContainer);
@@ -116,28 +127,12 @@ public class ItemLibrary extends UIElement {
         internalSetup();
 
         // drag
-        headBar.addEventListener(UIEvents.MOUSE_DOWN, e -> {
-            if (e.bubbleListeners.size() > 1) return;
-            var icon = Icons.MOVE;
-            var width = icon.spriteSize.width;
-            var height = icon.spriteSize.height;
-            headBar.startDrag(new DragMove(new Vector2f(this.getLayoutX(), this.getLayoutY())), Icons.MOVE)
-                    .setDragTexture(- width / 2f, -height / 2f, width, height);
-        });
-        headBar.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, e -> {
-            if (e.dragHandler.draggingObject instanceof DragMove(var oPos)) {
-                var normalPosOffset = getLocalMouseNormal(e.x - e.dragStartX, e.y - e.dragStartY);
-                this.getLayout()
-                        .left(oPos.x + normalPosOffset.x)
-                        .top(oPos.y + normalPosOffset.y);
-            }
-        });
+        WindowDragHelper.setDragMove(headBar, this, null, null);
 
         // resize
         resizeButton.addEventListener(UIEvents.MOUSE_DOWN, e -> {
-            var icon = Icons.MOVE;
-            var width = icon.spriteSize.width;
-            var height = icon.spriteSize.height;
+            var width = 12;
+            var height = 12;
             resizeButton.startDrag(new DragResize(new Vector2f(this.getSizeWidth(), this.getSizeHeight())), Icons.MOVE)
                     .setDragTexture(- width / 2f, -height / 2f, width, height);
         });
@@ -182,6 +177,26 @@ public class ItemLibrary extends UIElement {
                     data -> CustomGraphModelImpl.createNodeFromData(data, nodeType)), null);
         }
         nodeTree.setRoot(nodesBuilder.build());
+        // load constants
+        var constantsBuilder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
+                .setIcon(Icons.NODE)
+                .setDisplayName(Component.translatable("graph.library.constants")));
+        for (var typeHandle : graphModel.getSupportTypes()) {
+            constantsBuilder.leaf(new NodeModelLibraryItem(typeHandle.getName(),
+                    data -> data.createConstantNode(typeHandle.getName(), typeHandle))
+                    .setDisplayName(Component.translatable(typeHandle.getFriendlyName())), null);
+        }
+        constantTree.setRoot(constantsBuilder.build());
+    }
+
+    public Stream<ItemLibraryItem> getAllItems() {
+        return Stream.concat(getTreeItems(constantTree), getTreeItems(nodeTree));
+    }
+
+    protected Stream<ItemLibraryItem> getTreeItems(TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
+        return Optional.ofNullable(tree.getRoot())
+                .map(node -> node.flatten().stream().filter(ITreeNode::isLeaf).map(ITreeNode::getKey))
+                .orElseGet(Stream::empty);
     }
 
     protected void onSelectedChanged(TreeList<TreeNode<ItemLibraryItem, Void>> tree, ItemLibraryItem newSelected) {
@@ -202,16 +217,11 @@ public class ItemLibrary extends UIElement {
             return;
         }
         var lowerWorld = word.toLowerCase();
-        var candidates = nodeTree.getRoot() == null
-                ? Collections.<ItemLibraryItem>emptyList()
-                : nodeTree.getRoot().flatten().stream()
-                .filter(ITreeNode::isLeaf)
-                .map(ITreeNode::getKey)
-                .filter(item -> item.getSearchableName().toLowerCase().contains(lowerWorld)).toList();
         var builder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem());
-        for (ItemLibraryItem item : candidates) {
-            builder.leaf(item, null);
-        }
+        getAllItems().filter(item -> item.getSearchableName().toLowerCase().contains(lowerWorld))
+                .forEach(item -> {
+                    builder.leaf(item, null);
+                });
         searchTree.setDisplay(true);
         searchTree.setRoot(builder.build());
         treeContainer.setDisplay(false);
@@ -278,18 +288,15 @@ public class ItemLibrary extends UIElement {
         if (this.graphModel == null) return;
         var testData = GraphNodeCreationData.ofOrphan(this.graphModel);
         setRecommendation(builder -> {
-            if (nodeTree.getRoot() != null) {
-                for (var node : nodeTree.getRoot().flatten()) {
-                    var item = node.getKey();
-                    if (item instanceof NodeModelLibraryItem nodeItem) {
-                        if (nodeItem.createNode(testData) instanceof PortNodeModel portNodeModel) {
-                            if (portNodeModel.getPortFitToConnectTo(sourcePort) != null) {
-                                builder.leaf(nodeItem, null);
-                            }
+            getAllItems().forEach(item -> {
+                if (item instanceof NodeModelLibraryItem nodeItem) {
+                    if (nodeItem.createNode(testData) instanceof PortNodeModel portNodeModel) {
+                        if (portNodeModel.getPortFitToConnectTo(sourcePort) != null) {
+                            builder.leaf(nodeItem, null);
                         }
                     }
                 }
-            }
+            });
         });
     }
 

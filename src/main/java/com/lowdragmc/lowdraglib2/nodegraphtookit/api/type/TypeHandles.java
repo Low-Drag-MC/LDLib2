@@ -1,5 +1,9 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.type;
 
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
+
 public class TypeHandles {
     public static final class Unknown { private Unknown() {} }
     public static final class ExecutionFlow { private ExecutionFlow() {} }
@@ -24,15 +28,9 @@ public class TypeHandles {
     public static final TypeHandle OBJECT;
     public static final TypeHandle STRING;
 
+    public static final TypeHandle COLOR;
+
     static {
-        // Custom sentinel types
-        AUTOMATIC = TypeHandleHelpers.customType("__AUTOMATIC", "Automatic");
-        MISSING = TypeHandleHelpers.customType("__MISSING_TYPE", null);
-
-        UNKNOWN = TypeHandleHelpers.customType(Unknown.class, "__UNKNOWN");
-        EXECUTION_FLOW = TypeHandleHelpers.customType(ExecutionFlow.class, "__EXECUTION_FLOW");
-        SUBGRAPH = TypeHandleHelpers.customType(Subgraph.class, "__SUBGRAPH");
-
         // Normal type handles
         MISSING_PORT = TypeHandleHelpers.fromType(MissingPort.class);
 
@@ -46,5 +44,19 @@ public class TypeHandles {
 
         OBJECT = TypeHandleHelpers.fromType(Object.class);
         STRING = TypeHandleHelpers.fromType(String.class);
+
+        // Custom sentinel types
+        AUTOMATIC = TypeHandleHelpers.customType("AUTOMATIC", "Automatic");
+        MISSING = TypeHandleHelpers.customType("MISSING_TYPE", null);
+
+        UNKNOWN = TypeHandleHelpers.customType(Unknown.class, "UNKNOWN");
+        EXECUTION_FLOW = TypeHandleHelpers.customType(ExecutionFlow.class, "EXECUTION_FLOW");
+        SUBGRAPH = TypeHandleHelpers.customType(Subgraph.class, "SUBGRAPH");
+
+        COLOR = TypeHandleHelpers.customType(Integer.class, "COLOR", "Color");
+        TypeHandleHelpers.setCustomConfigurable(COLOR, (valueConfigurable, typeHandle) ->
+                IConfigurable.create(group -> group.addConfigurator(new ColorConfigurator("",
+                        valueConfigurable::getValue, valueConfigurable::setValue, -1,
+                        valueConfigurable.forceUpdate()))));
     }
 }

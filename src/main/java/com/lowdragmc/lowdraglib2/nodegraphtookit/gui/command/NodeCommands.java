@@ -7,10 +7,12 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeItemLibrary
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeModelLibraryItem;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.SpawnFlags;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.InputOutputPortsNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.VariableNodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableCreationInfos;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
@@ -32,20 +34,23 @@ public final class NodeCommands {
          * @param position position to create the node at
          * @param wireToInsertOn The wire model on which to insert the newly created node.
          * @param portModel The port to which to connect the new node.
+         * @param variableDeclaration The variable declaration to create.
          * @param nodeLibraryItem representing the node to create.
          * @param uid The guid to assign to the newly created item.
          * @param wiresToConnect The wire models on which to connect the newly created node.
+         * @param variableCreationInfos The variable creation infos to use to create the variable.
+         * @param variableDeclarationUid The guid of the variable declaration to create.
          */
         public record NodeData(
                 Vector2f position,
                 WireModel wireToInsertOn,
                 PortModel portModel,
-//                VariableDeclarationModelBase variableDeclaration,
+                VariableDeclarationModelBase variableDeclaration,
                 NodeModelLibraryItem nodeLibraryItem,
                 UUID uid,
-                List<Pair<WireModel, WireSide>> wiresToConnect
-//                VariableCreationInfos variableCreationInfos,
-//                UUID variableDeclarationUid;
+                List<Pair<WireModel, WireSide>> wiresToConnect,
+                VariableCreationInfos variableCreationInfos,
+                UUID variableDeclarationUid
         ) {}
 
         public enum ConnectionsToMake {
@@ -71,7 +76,7 @@ public final class NodeCommands {
         public CreateNodeCommand onGraph(NodeModelLibraryItem item,
                                          Vector2f position,
                                          @Nullable UUID uid) {
-            return withNode(new NodeData(position, null, null, item, uid, null));
+            return withNode(new NodeData(position, null, null, null, item, uid, null, null, null));
         }
 
         /**
@@ -81,7 +86,24 @@ public final class NodeCommands {
                                     List<Pair<WireModel, WireSide>> wiresToConnect,
                                     Vector2f position,
                                     @Nullable UUID uid) {
-            return withNode(new NodeData(position, null, null, item, uid, wiresToConnect));
+            return withNode(new NodeData(position, null, null, null, item, uid, wiresToConnect, null, null));
+        }
+
+        /**
+         * Adds a variable node connected to a port to a {@link CreateNodeCommand}. Also creates the corresponding variable declaration.
+         */
+        public CreateNodeCommand withNodeOnPort(VariableDeclarationModelBase variableDeclaration,
+                                   PortModel portModel,
+                                   Vector2f position,
+                                   @Nullable UUID uid) {
+            return withNode(new NodeData(position, null, portModel, variableDeclaration, null, uid, null, null, null));
+        }
+
+        /**
+         * Adds a variable.
+         */
+        public CreateNodeCommand withNodeOnGraph(VariableDeclarationModelBase variableDeclaration, Vector2f position, @Nullable UUID uid) {
+            return withNode(new NodeData(position, null, null, variableDeclaration, null, uid, null, null, null));
         }
 
         @Override
@@ -93,12 +115,49 @@ public final class NodeCommands {
         public void execute() {
             if (creationData.isEmpty()) return;
             // validation
-//            if (command.CreationData.All(nodeData => nodeData.VariableDeclaration == null) && command.CreationData.All(nodeData => nodeData.NodeLibraryItem == null) && command.CreationData.All(nodeData => nodeData.VariableCreationInfos == null))
-//                return;
+            if (creationData.stream().allMatch(nodeData -> nodeData.variableDeclaration == null) &&
+                    creationData.stream().allMatch(nodeData -> nodeData.nodeLibraryItem == null) &&
+                    creationData.stream().allMatch(nodeData -> nodeData.variableCreationInfos == null))
+                return;
 
             var elementsToSelect = new ArrayList<GraphElementModel>();
 
             for (var nodeData : creationData) {
+                var variableDeclaration = nodeData.variableDeclaration;
+
+                if ((variableDeclaration == null) == (nodeData.nodeLibraryItem == null)) {
+                    // If there is a port, try to create a variable from the variable creation infos
+                    if (nodeData.variableCreationInfos != null) {
+                        var creationInfos = nodeData.variableCreationInfos;
+                        if (creationInfos.getVariableType() != null)
+                            variableDeclaration = graphModel.createGraphVariableDeclaration(
+                                    creationInfos.getVariableType(),
+                                    creationInfos.getTypeHandle(),
+                                    creationInfos.getName(),
+                                    creationInfos.getModifiers(),
+                                    creationInfos.getScope(),
+                                    creationInfos.getGroup(),
+                                    creationInfos.getIndexInGroup(),
+                                    null,
+                                    nodeData.variableDeclarationUid(), null, null);
+                        else
+                            variableDeclaration = graphModel.createGraphVariableDeclaration(
+                                    creationInfos.getTypeHandle(),
+                                    creationInfos.getName(),
+                                    creationInfos.getModifiers(),
+                                    creationInfos.getScope(),
+                                    creationInfos.getGroup(),
+                                    creationInfos.getIndexInGroup(),
+                                    null,
+                                    nodeData.variableDeclarationUid(), null
+                            );
+                    }
+
+                    if (variableDeclaration == null) {
+                        LDLib2.LOGGER.warn("Creation command dispatched with invalid item to create: either provide VariableDeclaration or LibraryItem. Ignoring this item.");
+                        continue;
+                    }
+                }
 
                 var connectionsToMake = ConnectionsToMake.NONE;
 
@@ -121,7 +180,14 @@ public final class NodeCommands {
                 // Create new element
                 GraphElementModel createdElement = null;
 
-                if (nodeData.nodeLibraryItem != null) {
+                if (variableDeclaration != null) {
+                    if (graphModel.canCreateVariableNode(variableDeclaration, graphModel)) {
+                        createdElement = graphModel.createVariableNode(variableDeclaration, nodeData.position(), uid, null);
+                    } else {
+                        LDLib2.LOGGER.warn("Could not create a new variable node for variable {}.", variableDeclaration.getName());
+                        continue;
+                    }
+                } else if (nodeData.nodeLibraryItem != null) { // todo sub graph
                     // If there is a port, try to create a variable from the variable creation infos
                     createdElement = nodeData.nodeLibraryItem.createNode(
                             new GraphNodeCreationData(graphModel, nodeData.position(), SpawnFlags.DEFAULT, uid)
@@ -129,6 +195,16 @@ public final class NodeCommands {
                 }
 
                 if (createdElement != null) {
+                    if (nodeData.variableCreationInfos != null && createdElement instanceof VariableNodeModel variableNode) {
+                        // Variable node should not be selected, their declaration should be (which is done in GraphVariablesObserver)
+//                        if (variableNode.getVariableDeclarationModel().isRenamable())
+//                            graphUpdater.markForRename(createdElement);
+
+                        // When a variable node is created on the graph with the "Create Variable" item,
+                        // it should be expanded in the bb for the user to change its type more easily if needed
+//                        if (connectionsToMake == ConnectionsToMake.NONE)
+//                            graphUpdater.markForExpand(new[] { variableDeclaration });
+                    }
                     elementsToSelect.add(createdElement);
                 }
 

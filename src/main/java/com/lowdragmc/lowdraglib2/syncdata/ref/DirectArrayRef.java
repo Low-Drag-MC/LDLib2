@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib2.syncdata.var.ArrayVar;
 import com.lowdragmc.lowdraglib2.syncdata.var.IVar;
 import lombok.Getter;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 
 public final class DirectArrayRef<TYPE, TYPE_ARRAY> extends UniqueDirectRef<TYPE_ARRAY> implements IArrayRef<TYPE, TYPE_ARRAY> {

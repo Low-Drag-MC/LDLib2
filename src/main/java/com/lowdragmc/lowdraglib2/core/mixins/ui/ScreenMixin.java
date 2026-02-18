@@ -19,7 +19,7 @@ import java.util.List;
 @Mixin(Screen.class)
 public abstract class ScreenMixin extends AbstractContainerEventHandler implements ContainerEventHandler, GuiEventListener {
     @Shadow
-    @javax.annotation.Nullable
+    @org.jetbrains.annotations.Nullable
     protected Minecraft minecraft;
 
     @Shadow

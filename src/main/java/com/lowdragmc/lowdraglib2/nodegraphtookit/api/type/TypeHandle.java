@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.type;
 
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.utils.TypeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -71,6 +72,10 @@ public final class TypeHandle implements Comparable<TypeHandle> {
 
     public Type resolve() {
         return TypeHandleHelpers.resolveType(this);
+    }
+
+    public IGuiTexture getIcon() {
+        return IGuiTexture.EMPTY;
     }
 
     public ITypeConfigurable resolveConfigurable() {

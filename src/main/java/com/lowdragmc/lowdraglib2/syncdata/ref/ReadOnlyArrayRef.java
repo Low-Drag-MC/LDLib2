@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public final class ReadOnlyArrayRef<TYPE> extends ReadOnlyManagedRef<TYPE[]> implements IArrayRef<TYPE, TYPE[]> {
     @Getter

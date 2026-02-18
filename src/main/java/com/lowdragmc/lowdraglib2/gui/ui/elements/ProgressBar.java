@@ -31,7 +31,7 @@ import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.w3c.dom.Element;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.LinkedHashMap;
 import java.util.Map;

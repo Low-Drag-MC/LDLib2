@@ -130,6 +130,8 @@ public class Icons {
 
     public static SpriteTexture ARROW_LEFT_RIGHT = SpriteTexture.of(GDP_ICONS).setSprite(214, 191, 13, 7);
     public static SpriteTexture ARROW_UP_DOWN = SpriteTexture.of(GDP_ICONS).setSprite(219, 233, 7, 11);
+    public static SpriteTexture ARROW_LT_RB = (SpriteTexture) SpriteTexture.of(GDP_ICONS).setSprite(214, 191, 13, 7).rotate(45);
+    public static SpriteTexture ARROW_RT_LB = (SpriteTexture) SpriteTexture.of(GDP_ICONS).setSprite(214, 191, 13, 7).rotate(-45);
 
 
     public static SpriteTexture NOWRAP = icon("nowrap");

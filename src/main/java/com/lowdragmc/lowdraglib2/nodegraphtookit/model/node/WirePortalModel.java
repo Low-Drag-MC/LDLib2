@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.CapsuleNodeElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.CapsuleNodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
@@ -13,7 +13,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.PlaceholderModelHelper;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -76,8 +75,8 @@ public abstract class WirePortalModel extends NodeModel implements IHasDeclarati
     }
 
     @Override
-    public Component getTitle() {
-        return declarationModel == null ? Component.empty() : declarationModel.getTitle();
+    public String getName() {
+        return declarationModel == null ? "" : declarationModel.getName();
     }
 
     /**

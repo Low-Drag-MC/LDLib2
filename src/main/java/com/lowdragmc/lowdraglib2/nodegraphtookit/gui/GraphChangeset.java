@@ -19,6 +19,12 @@ public class GraphChangeset {
         deletedModels = new HashSet<>();
     }
 
+    public void clear() {
+        newModels.clear();
+        changedModelsAndHints.clear();
+        deletedModels.clear();
+    }
+
     public boolean addNewModels(Collection<UUID> models) {
         if (models == null) return false;
         var somethingChanged = false;

@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public abstract class GraphElementModel extends Model implements IGraphElementModelHolder {
     protected GraphModel graphModel;
@@ -25,19 +26,17 @@ public abstract class GraphElementModel extends Model implements IGraphElementMo
 
     public void setGraphModel(GraphModel value) {
         this.graphModel = value;
-        for (var subModel : getDependentModels()) {
-            if (subModel != null) {
-                subModel.setGraphModel(value);
-            }
-        }
+        getDependentModels().forEach(m -> {
+            if (m != null) m.setGraphModel(value);
+        });
     }
 
     /**
      * The dependent models for this model (for example, ports on a node, blocks in context node).
      * Default: empty.
      */
-    public List<GraphElementModel> getDependentModels() {
-        return Collections.emptyList();
+    public Stream<GraphElementModel> getDependentModels() {
+        return Stream.empty();
     }
 
     protected static final List<ContextualMenuItem> COMMON_GRAPH_ELEMENT_MENU_ITEMS = List.of(

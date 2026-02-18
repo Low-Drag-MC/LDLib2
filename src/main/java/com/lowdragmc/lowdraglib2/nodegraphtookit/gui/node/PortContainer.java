@@ -1,7 +1,10 @@
-package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
+package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortModelOptions;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import lombok.Getter;
 
@@ -11,19 +14,19 @@ import java.util.List;
 import java.util.Map;
 
 public class PortContainer extends UIElement {
-    public final NodeElement nodeElement;
-
     // runtime
     @Getter
     private List<PortModel> ports = Collections.emptyList();
     @Getter
     private Map<PortModel, PortElement> portElements = new HashMap<>();
 
-    public PortContainer(NodeElement nodeElement) {
-        this.nodeElement = nodeElement;
+    public PortContainer() {
+        this.setId("node-port-container");
+        this.getLayout().paddingAll(4).gapAll(2).flexGrow(1);
+        this.getStyle().background(Sprites.RECT_SOLID);
     }
 
-    public void loadPorts(List<PortModel> ports) {
+    public void updatePorts(ModelUpdateVisitor visitor, List<PortModel> ports, GraphView graphView) {
         var previousPorts = this.ports;
         this.ports = List.copyOf(ports);
         // remove outdated elements
@@ -46,10 +49,12 @@ public class PortContainer extends UIElement {
                     addChildAt(element, index);
                 }
                 index++;
+                element.updateElement(visitor);
                 continue;
             }
             var portElement = new PortElement(port);
-            portElement.setGraphView(nodeElement.getGraphView());
+            portElement.setGraphView(graphView);
+            portElement.doCompleteUpdate();
             addChildAt(portElement, index);
             portElements.put(port, portElement);
             index++;

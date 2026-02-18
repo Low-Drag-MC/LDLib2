@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -12,6 +13,12 @@ public interface IGraphElementContainer {
      * @return the graph element models contained in this container
      */
     List<GraphElementModel> getGraphElementModels();
+
+    /**
+     * Removes the given graph element models from the container.
+     * @param elementsToRemove The graph element models to remove.
+     */
+    void removeContainerElements(Collection<? extends GraphElementModel> elementsToRemove);
 
     /**
      * Repairs the container by removing invalid or null references.

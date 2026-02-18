@@ -21,7 +21,7 @@ import net.minecraft.nbt.CompoundTag;
 import org.appliedenergistics.yoga.YogaEdge;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;

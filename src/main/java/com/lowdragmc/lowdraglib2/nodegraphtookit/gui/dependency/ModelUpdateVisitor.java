@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency;
 
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHintList;
 import lombok.EqualsAndHashCode;
@@ -19,7 +20,7 @@ public class ModelUpdateVisitor extends ElementUpdateVisitor {
     }
 
     @Override
-    public void update(DependencyElement view) {
+    public void update(ModelElement view) {
         view.updateUIFromModel(this);
     }
 

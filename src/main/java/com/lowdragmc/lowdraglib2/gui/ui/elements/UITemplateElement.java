@@ -24,7 +24,7 @@ import net.minecraft.nbt.NbtOps;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 

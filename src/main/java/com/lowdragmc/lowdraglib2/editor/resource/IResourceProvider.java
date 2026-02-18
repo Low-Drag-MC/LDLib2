@@ -13,7 +13,7 @@ import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaOverflow;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -129,7 +129,7 @@ v     */
                 new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
                         .setText(getName())
                         .layout(layout -> layout.flex(1))
-                        .setOverflow(YogaOverflow.HIDDEN)
+                        .setOverflowVisible(false)
         );
     }
 

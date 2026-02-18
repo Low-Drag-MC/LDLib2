@@ -12,7 +12,8 @@ public class TestGraph extends Graph {
         return List.of(
                 TestAddNode.class,
                 TestConstantNode.class,
-                TestStringConcatNode.class
+                TestStringConcatNode.class,
+                TestColorBlendNode.class
         );
     }
 }

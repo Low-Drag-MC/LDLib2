@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.node;
 
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldConstantConfigurable;
 import com.mojang.serialization.DataResult;
 
 import java.lang.reflect.Type;
@@ -13,7 +14,7 @@ import java.lang.reflect.Type;
  * to the node's value if the type matches.
  * The {@link #getDataType()} property identifies the constant's type.</p>
  */
-public interface IConstantNode extends INode {
+public interface IConstantNode extends INode, IFieldConstantConfigurable {
 
     /**
      * Gets the data type of the constant node's value.

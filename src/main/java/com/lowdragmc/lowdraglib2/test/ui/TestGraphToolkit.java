@@ -37,6 +37,8 @@ public class TestGraphToolkit implements IScreenTest {
 
     public static Graph createTestGraph() {
         var graph = new TestGraph();
+        // variables
+        graph.graphModel.createVariable("test_v", Float.class, 10f, null);
         // nodes
         graph.graphModel.createNodeModel(new TestStringConcatNode(), new Vector2f(200, 200));
         var constant = graph.graphModel.createNodeModel(new TestConstantNode(), new Vector2f(0));

@@ -1,22 +1,19 @@
-package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
+package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IValueConfigurable;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortConnectorUI;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortCapacity;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortModelOptions;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.WireDragHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModelImpl;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IPlaceHolder;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
@@ -25,45 +22,49 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
-import java.lang.reflect.Type;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 public class PortElement extends GraphElement<PortModel> {
-    public final UIElement portConnector = new UIElement();
-    public final Label portName = new Label();
-    public final UIElement constantConfigurator = new UIElement();
+    @Getter
+    private PortConnectorElement connector;
+    @Getter
+    private PortConstantEditorElement constant;
+
     // runtime
     @Getter
     private boolean isWireDragging;
     @Nullable
     private WireDragHelper wireDragHelper;
-    @Getter
-    private boolean willConnect = false;
-    @Nullable
-    private PortModelOptions lastOptions = null;
-    @Nullable
-    private Constant lastEmbeddedValue = null;
-    @Nullable
-    private Type lastType = null;
-    private boolean hasConstantConfigurators = false;
 
     public PortElement(PortModel portModel) {
         super(portModel);
-        getLayout().flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2);
-        portConnector.getLayout().aspectRatio(1).width(9);
-        portName.getTextStyle().adaptiveWidth(true);
-        constantConfigurator.getLayout().flexGrow(1).minWidth(55);
-        portConnector.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
-        portConnector.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
-        portConnector.addEventListener(UIEvents.DRAG_END, this::onDragEnd);
+    }
 
-        addChildren(portConnector, portName, constantConfigurator);
-        internalSetup();
+    // region build ui
+
+    @Override
+    protected void buildPartList() {
+        parts.add(connector = new PortConnectorWithIconElement(getModel()));
+        parts.add(constant = new PortConstantEditorElement(getModel()));
     }
 
     @Override
-    protected void setGraphView(@Nullable GraphView graphView) {
+    protected void buildUI() {
+        super.buildUI();
+        getLayout().flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2);
+        connector.getWireDragParts().forEach(p -> p.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown));
+        connector.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
+        connector.addEventListener(UIEvents.DRAG_END, this::onDragEnd);
+        addChildren(connector, constant);
+        internalSetup();
+    }
+
+    // endregion
+
+    @Override
+    public void setGraphView(@Nullable GraphView graphView) {
         super.setGraphView(graphView);
         if (graphView == null) {
             wireDragHelper = null;
@@ -79,6 +80,7 @@ public class PortElement extends GraphElement<PortModel> {
 
     @Override
     public void addModelDependencies() {
+        var model = getModel();
         for (WireModel wire : model.getConnectedWires()) {
             addDependencyToWireModel(wire);
         }
@@ -114,69 +116,17 @@ public class PortElement extends GraphElement<PortModel> {
      * Whether the port will be connected during an edge drag if the mouse is released where it is.
      */
     public void setWillConnect(boolean willConnect) {
-        if (willConnect == this.willConnect) return;
-        this.willConnect = willConnect;
-        updateConnector();
+        connector.setWillConnect(willConnect);
     }
 
     @Override
     public void updateUIFromModel(ModelUpdateVisitor visitor) {
         super.updateUIFromModel(visitor);
-        if (visitor.hasHint(ChangeHint.GRAPH_TOPOLOGY) || visitor.hasHint(ChangeHint.DATA)) {
-            // update connector icon
-            updateConnector();
-
-            // Hide the editor if the port is connected.
-            constantConfigurator.setDisplay(hasConstantConfigurators && model.getConnectedWires().isEmpty());
-        }
-        if (visitor.hasHint(ChangeHint.STYLE)) {
-            // update title and tooltips
-            portName.setText(model.getDisplayName());
-        }
+        var model = getModel();
         if (visitor.hasHint(ChangeHint.DATA)) {
             getLayout().direction(model.getDirection() == PortDirection.INPUT ? TaffyDirection.LTR :
                             model.getDirection() == PortDirection.OUTPUT ? TaffyDirection.RTL : TaffyDirection.INHERIT);
-            createOrUpdateConstant();
         }
-    }
-
-    protected void updateConnector() {
-        if (model.getOptions().hasFlag(PortModelOptions.NODE_OPTION)) {
-            portConnector.setDisplay(false);
-        } else {
-            portConnector.setDisplay(true);
-            var connectorUI = model instanceof PortModelImpl portModel ? portModel.getConnectorUI() : PortConnectorUI.DEFAULT;
-            var icon = connectorUI.getIcon(model.isConnected() || isWillConnect());
-            portConnector.getStyle().background(DynamicTexture.of(() -> {
-                if (isActive()) return icon;
-                else return icon.copy().setColor(ColorPattern.GRAY.color);
-            }));
-        }
-    }
-
-    protected void createOrUpdateConstant() {
-        var options = model.getOptions();
-        var embeddedValue = model.getEmbeddedValue();
-        var valueType = embeddedValue == null ? null : embeddedValue.getType();
-        if (lastOptions == options && lastEmbeddedValue == embeddedValue && lastType == valueType ) return;
-
-        constantConfigurator.clearAllChildren();
-        hasConstantConfigurators = false;
-        if (!model.getOptions().hasFlag(PortModelOptions.NO_EMBEDDED_CONSTANT)
-                && model instanceof IValueConfigurable configurable) {
-            var container = new ConfiguratorGroup();
-            configurable.buildConfigurator(container);
-            if (!container.getConfigurators().isEmpty()) {
-                for (Configurator configurator : container.getConfigurators()) {
-                    constantConfigurator.addChild(configurator);
-                }
-                hasConstantConfigurators = true;
-            }
-        }
-        constantConfigurator.setDisplay(hasConstantConfigurators && model.getConnectedWires().isEmpty());
-        lastOptions = options;
-        lastEmbeddedValue = embeddedValue;
-        lastType = valueType;
     }
 
     protected boolean canPerformConnection(Vector2f localMouse) {
@@ -193,7 +143,7 @@ public class PortElement extends GraphElement<PortModel> {
         }
         if (event.button == 0 && graphView != null && wireDragHelper != null) {
             wireDragHelper.createWireCandidate();
-            wireDragHelper.setDraggedPort(model);
+            wireDragHelper.setDraggedPort(getModel());
             if (wireDragHelper.handleMouseDown(event, null)) {
                 // Disable all wires except the dragged one.
                 WireDragHelper.enableAllWires(wireDragHelper.graphView, false, Set.of(wireDragHelper.getWireCandidateModel()));
@@ -203,7 +153,7 @@ public class PortElement extends GraphElement<PortModel> {
 //                if (graphView.getModelElement(model.getNodeModel()) instanceof GraphElement<?> nodeUI) {
 //                    nodeUI.preventCulling = true;
 //                }
-                portConnector.startDrag(wireDragHelper, null);
+                connector.startDrag(wireDragHelper, null);
             } else {
                 wireDragHelper.reset();
             }
@@ -235,4 +185,33 @@ public class PortElement extends GraphElement<PortModel> {
         }
     }
 
+    public boolean canAcceptDrop(GraphElementModel droppedElement) {
+        // The elements that can be dropped: a variable declaration from the Blackboard and any node with a single input or output (eg.: variable and constant nodes).
+        return switch (droppedElement) {
+            case VariableDeclarationModelBase variableDeclaration -> canAcceptDroppedVariable(variableDeclaration);
+            case ISingleInputPortNodeModel ignored ->
+                    droppedElement instanceof PortNodeModel portNodeModel && (portNodeModel.getPortFitToConnectTo(getModel()) != null);
+            case ISingleOutputPortNodeModel ignored ->
+                    droppedElement instanceof PortNodeModel portNodeModel && (portNodeModel.getPortFitToConnectTo(getModel()) != null);
+            default -> false;
+        };
+    }
+
+    protected boolean canAcceptDroppedVariable(VariableDeclarationModelBase variableDeclaration) {
+        if (variableDeclaration instanceof IPlaceHolder) return false;
+
+        var model = getModel();
+        if (model.getPortCapacity() == PortCapacity.NONE)
+            return false;
+
+        if (!variableDeclaration.isInputOrOutput())
+            return model.getDirection() == PortDirection.INPUT
+                    && Objects.equals(variableDeclaration.getDataTypeHandle(), model.getDataTypeHandle());
+
+        if (!Objects.equals(model.getDataTypeHandle(), variableDeclaration.getDataTypeHandle()))
+            return false;
+
+        var isInput = variableDeclaration.getModifiers() == ModifierFlags.READ;
+        return (!isInput || model.getDirection() == PortDirection.INPUT) && (isInput || model.getDirection() == PortDirection.OUTPUT);
+    }
 }

@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.node;
 
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.IVariable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
 
 /**
  * Interface for a variable node, which is a specialized node that references an {@link IVariable} defined in the graph.

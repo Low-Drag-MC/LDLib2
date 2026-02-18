@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -28,7 +29,7 @@ import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.*;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -477,5 +478,49 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             Function<NODE, Component> textMapper) {
         var provider = UIElementProvider.text(textMapper);
         return node -> provider.apply(node).layout(layout -> layout.flex(1));
+    }
+
+    public static boolean isMouseOverNodeAbove(UIEvent event) {
+        var ui = event.currentElement;
+        var x = ui.getPositionX();
+        var y = ui.getPositionY();
+        var width = ui.getSizeWidth();
+        var height = ui.getSizeHeight();
+        return ui.isMouseOver(x, y, width, height / 3, event.x, event.y);
+    }
+
+    public static boolean isMouseOverNodeCenter(UIEvent event) {
+        var ui = event.currentElement;
+        var x = ui.getPositionX();
+        var y = ui.getPositionY();
+        var width = ui.getSizeWidth();
+        var height = ui.getSizeHeight();
+        return ui.isMouseOver(x, y + height / 3, width, height / 3, event.x, event.y);
+    }
+
+    public static boolean isMouseOverNodeBelow(UIEvent event) {
+        var ui = event.currentElement;
+        var x = ui.getPositionX();
+        var y = ui.getPositionY();
+        var width = ui.getSizeWidth();
+        var height = ui.getSizeHeight();
+        return ui.isMouseOver(x, y + height * 2 / 3, width, height / 3, event.x, event.y);
+    }
+
+    public static IGuiTexture createDraggingOverlay(int mode) {
+        if (mode == 0) {
+            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+                DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, ColorPattern.T_WHITE.color);
+            };
+        } else if (mode == 1) {
+            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+                DrawerHelper.drawSolidRect(graphics, x, y, width, height, ColorPattern.T_WHITE.color);
+            };
+        } else if (mode == 2) {
+            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
+                DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, ColorPattern.T_WHITE.color);
+            };
+        }
+        return IGuiTexture.EMPTY;
     }
 }

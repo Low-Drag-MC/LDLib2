@@ -6,14 +6,20 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.GraphNodeCreationData;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableScope;
 import com.lowdragmc.lowdraglib2.utils.TypeUtils;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -69,8 +75,9 @@ public class CustomGraphModelImpl extends GraphModel {
     public static List<TypeHandle> detectSupportedTypes(GraphModel graphModel) {
         var foundTypes = new HashSet<TypeHandle>();
         var nodeCreationData = GraphNodeCreationData.ofOrphan(graphModel);
+        // load nodes
         for (var nodeType : graphModel.getSupportNodes()) {
-            // context node
+            // todo context node
 //            if (typeof(ContextNode).IsAssignableFrom(type))
 //            {
 //                InitializeSupportedTypesFromContextNodeType(m_Graph.GetType(), nodeCreationData, type, supportedTypes);
@@ -99,7 +106,7 @@ public class CustomGraphModelImpl extends GraphModel {
     }
 
     public static AbstractNodeModel createNodeFromData(GraphNodeCreationData nodeCreationData, Class<? extends Node> customNodeType) {
-        return nodeCreationData.createNode(getNodeImpType(customNodeType), "", n -> {
+        return nodeCreationData.createNode(getNodeImplType(customNodeType), "", n -> {
            if (n instanceof ICustomNodeModel customNodeModel) {
                try {
                    customNodeModel.initCustomNode(customNodeType.getConstructor().newInstance());
@@ -127,7 +134,7 @@ public class CustomGraphModelImpl extends GraphModel {
         });
     }
 
-    public static <T extends AbstractNodeModel & ICustomNodeModel> Class<T> getNodeImpType(Class<? extends Node> nodeType) {
+    public static <T extends AbstractNodeModel & ICustomNodeModel> Class<T> getNodeImplType(Class<? extends Node> nodeType) {
 //        if (ContextNode.IsAssignableFrom(nodeType)) {
 //            return typeof(UserContextNodeModelImp);
 //        } if (typeof(BlockNode).IsAssignableFrom(nodeType)) {
@@ -136,9 +143,13 @@ public class CustomGraphModelImpl extends GraphModel {
         return (Class<T>) CustomNodeModelImpl.class;
     }
 
-    public List<INode> getNodes() {
+    public List<? extends INode> getNodes() {
         if (nodes == null) buildNodesFromNodeModels();
         return nodes;
+    }
+
+    public List<? extends IVariable> getVariableModels() {
+        return this.getGraphVariableModels();
     }
 
     protected void buildNodesFromNodeModels() {
@@ -187,9 +198,44 @@ public class CustomGraphModelImpl extends GraphModel {
         return (ConstantNodeModelImpl) createConstantNode(valueType, name, position,
                 null,
                 n -> {
-                    n.getValue().setDefaultValue(defaultValue);
-                    n.getValue().setValue(defaultValue);
+                    n.getConstant().setDefaultValue(defaultValue);
+                    n.getConstant().setValue(defaultValue);
                 },
                 null);
+    }
+
+    @Override
+    protected Class<? extends VariableNodeModel> getVariableNodeType() {
+        return VariableNodeModelImpl.class;
+    }
+
+    public IVariable createVariable(String name, Type valueType, @Nullable Object defaultValue, @Nullable VariableKind kind) {
+        return createVariable(name, TypeHandleHelpers.fromType(valueType), defaultValue, kind);
+    }
+
+    public IVariable createVariable(String name, TypeHandle valueType, @Nullable Object defaultValue, @Nullable VariableKind kind) {
+        if (kind == null) kind = VariableKind.LOCAL;
+        var constant = createConstantValue(valueType);
+        if (defaultValue != null) {
+            constant.setDefaultValue(defaultValue);
+            constant.setValue(defaultValue);
+        }
+
+        return createGraphVariableDeclaration(
+                valueType,
+                name,
+                kind == VariableKind.INPUT ? ModifierFlags.READ : (kind == VariableKind.OUTPUT ? ModifierFlags.WRITE : ModifierFlags.NONE),
+                kind != VariableKind.LOCAL ? VariableScope.EXPOSED : VariableScope.LOCAL,
+                null,
+                Integer.MAX_VALUE,
+                constant,
+                null, null
+        );
+    }
+
+    @Override
+    public boolean variableDeclarationRequiresInitialization(VariableDeclarationModelBase decl) {
+        // We want all variables to have a default value field.
+        return true;
     }
 }
