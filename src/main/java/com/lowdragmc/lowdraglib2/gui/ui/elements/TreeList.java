@@ -26,6 +26,8 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.*;
 
@@ -507,6 +509,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         return ui.isMouseOver(x, y + height * 2 / 3, width, height / 3, event.x, event.y);
     }
 
+    @OnlyIn(Dist.CLIENT)
     public static IGuiTexture createDraggingOverlay(int mode) {
         if (mode == 0) {
             return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {

@@ -25,7 +25,8 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
         setCopiable(value -> value);
 
-        if (value == null) {            value = defaultValue;77/
+        if (value == null) {
+            value = defaultValue;
         }
 
         this.colorSelector = new ColorSelector();
@@ -73,7 +74,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         if (newValue.equals(value)) return;
         super.onValueUpdatePassively(newValue);
         this.colorSelector.setColor(newValue, false);
-    }/
+    }
 
     public void show() {
         var parent = this.colorSelector.getParent();
@@ -118,6 +119,4 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, color);
         DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, color);
     }
-
 }
-7/78/*/

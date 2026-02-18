@@ -166,7 +166,8 @@ public class RectTexture extends TransformTexture {
             drawBorder(buffer, mat, x, y, width, height);
         }
     }
-    
+
+    @OnlyIn(Dist.CLIENT)
     private void drawFill(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
         int r = (color >> 16) & 0xFF;
         int g = (color >> 8) & 0xFF;
@@ -225,7 +226,8 @@ public class RectTexture extends TransformTexture {
             buffer.addVertex(mat, centerX, centerY, 0).setColor(r, g, b, a);
         }
     }
-    
+
+    @OnlyIn(Dist.CLIENT)
     private void drawBorder(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
         int r = (borderColor >> 16) & 0xFF;
         int g = (borderColor >> 8) & 0xFF;
