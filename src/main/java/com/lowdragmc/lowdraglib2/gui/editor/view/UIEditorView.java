@@ -35,7 +35,6 @@ import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -43,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class UIEditorView extends View {
@@ -50,7 +50,7 @@ public class UIEditorView extends View {
     public final UICanvas canvas = new UICanvas();
     public final UIElement editor = new UIElement();
     public final UIElement styleView = new UIElement();
-    public final UIHierarchy hierarchy = new UIHierarchy(this);
+    public final UIHierarchy hierarchy = new UIHierarchy();
     public final GraphView graphView = new GraphView();
     public final CodeEditor stylesheetEditor = new CodeEditor();
     public final Inspector inspector = new Inspector();
@@ -188,7 +188,7 @@ public class UIEditorView extends View {
             layout.widthPercent(100);
         });
         hierarchy.addClass("__ui-editor-view_hierarchy__").moveInlineAsDefault();
-
+        hierarchy.setOnSelectedChanged(this::onHierarchyNodeSelected);
 
         graphView.layout(layout -> {
             layout.heightPercent(100);
@@ -335,6 +335,17 @@ public class UIEditorView extends View {
         addChildren(header, canvas, editor);
     }
 
+    protected void onHierarchyNodeSelected(Set<UITreeNode> selected) {
+        if (selected.size() == 1) {
+            var element = selected.iterator().next().getKey();
+            if (inspector.getInspectedConfigurable() != element) {
+                inspector.inspect(element);
+            }
+        } else {
+            inspector.clear();
+        }
+    }
+
     protected void onMouseDown(UIEvent event) {
         if (event.target.isFocusable()) return;
         focus();
@@ -478,23 +489,6 @@ public class UIEditorView extends View {
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-    }
-
-    public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
-        var menu = new Menu<>(menuNode, uiProvider);
-        menu.layout(layout -> {
-            layout.left(posX - getContentX());
-            layout.top(posY - getContentY());
-        });
-        addChildren(menu);
-        return menu;
-    }
-
-    public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
-        if (menuBuilder == null || menuBuilder.isEmpty()) return;
-        openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider)
-                .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
-                .setOnNodeClicked(TreeBuilder.Menu::handle);
     }
 
     public boolean isTemplateDirty() {

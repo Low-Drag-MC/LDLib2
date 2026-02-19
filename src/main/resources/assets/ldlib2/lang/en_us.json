@@ -502,5 +502,8 @@
   "graph.library.constants": "Constants",
   "graph.blackboard": "Blackboard",
   "graph.default_value": "Default Value",
-  "graph.type": "Type"
+  "graph.type": "Type",
+  "debugger.focus_mode.0": "focus mode (F1)",
+  "debugger.focus_mode.1": "click element to focus",
+  "debugger.ui_shaping.0": "render ui shaping (F4)"
 }

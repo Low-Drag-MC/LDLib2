@@ -1485,7 +1485,7 @@ public final class LayoutStyle extends Style {
     }
 
     // grid
-    public LayoutStyle girdTemplateRows(String gridTemplateRows) {
+    public LayoutStyle gridTemplateRows(String gridTemplateRows) {
         set(LayoutProperties.GRID_TEMPLATE_ROWS, GridTemplateValue.parse(gridTemplateRows));
         return this;
     }
@@ -1495,27 +1495,27 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
-    public LayoutStyle girdTemplateColumns(String girdTemplateColumns) {
-        set(LayoutProperties.GRID_TEMPLATE_COLUMNS, GridTemplateValue.parse(girdTemplateColumns));
+    public LayoutStyle gridTemplateColumns(String gridTemplateColumns) {
+        set(LayoutProperties.GRID_TEMPLATE_COLUMNS, GridTemplateValue.parse(gridTemplateColumns));
         return this;
     }
 
-    public LayoutStyle gridTemplateColumns(GridTemplate girdTemplateColumns) {
-        set(LayoutProperties.GRID_TEMPLATE_COLUMNS, girdTemplateColumns);
+    public LayoutStyle gridTemplateColumns(GridTemplate gridTemplateColumns) {
+        set(LayoutProperties.GRID_TEMPLATE_COLUMNS, gridTemplateColumns);
         return this;
     }
 
-    public LayoutStyle girdTemplateAreas(String girdTemplateAreas) {
-        set(LayoutProperties.GRID_TEMPLATE_AREAS, GridTemplateAreasValue.parse(girdTemplateAreas));
+    public LayoutStyle gridTemplateAreas(String gridTemplateAreas) {
+        set(LayoutProperties.GRID_TEMPLATE_AREAS, GridTemplateAreasValue.parse(gridTemplateAreas));
         return this;
     }
 
-    public LayoutStyle girdTemplateAreas(GridTemplateAreas templateAreas) {
+    public LayoutStyle gridTemplateAreas(GridTemplateAreas templateAreas) {
         set(LayoutProperties.GRID_TEMPLATE_AREAS, templateAreas);
         return this;
     }
 
-    public LayoutStyle girdAutoRows(String gridAutoRows) {
+    public LayoutStyle gridAutoRows(String gridAutoRows) {
         set(LayoutProperties.GRID_AUTO_ROWS, GridAutoValue.parse(gridAutoRows));
         return this;
     }
@@ -1525,13 +1525,13 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
-    public LayoutStyle girdAutoColumns(String girdAutoColumns) {
-        set(LayoutProperties.GRID_AUTO_COLUMNS, GridAutoValue.parse(girdAutoColumns));
+    public LayoutStyle gridAutoColumns(String gridAutoColumns) {
+        set(LayoutProperties.GRID_AUTO_COLUMNS, GridAutoValue.parse(gridAutoColumns));
         return this;
     }
 
-    public LayoutStyle girdAutoColumns(GridAuto girdAutoColumns) {
-        set(LayoutProperties.GRID_AUTO_COLUMNS, girdAutoColumns);
+    public LayoutStyle gridAutoColumns(GridAuto gridAutoColumns) {
+        set(LayoutProperties.GRID_AUTO_COLUMNS, gridAutoColumns);
         return this;
     }
 
@@ -1540,7 +1540,7 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
-    public LayoutStyle girdRow(String gridRow) {
+    public LayoutStyle gridRow(String gridRow) {
         set(LayoutProperties.GRID_ROW, GridValue.parse(gridRow));
         return this;
     }
@@ -1550,13 +1550,13 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
-    public LayoutStyle girdColumn(String girdColumn) {
-        set(LayoutProperties.GRID_COLUMN, GridValue.parse(girdColumn));
+    public LayoutStyle gridColumn(String gridColumn) {
+        set(LayoutProperties.GRID_COLUMN, GridValue.parse(gridColumn));
         return this;
     }
 
-    public LayoutStyle girdColumn(Grid girdColumn) {
-        set(LayoutProperties.GRID_COLUMN, girdColumn);
+    public LayoutStyle gridColumn(Grid gridColumn) {
+        set(LayoutProperties.GRID_COLUMN, gridColumn);
         return this;
     }
 

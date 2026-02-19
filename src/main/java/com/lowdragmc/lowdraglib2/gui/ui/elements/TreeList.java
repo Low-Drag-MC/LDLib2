@@ -134,6 +134,8 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     protected NODE root;
     protected final BiMap<NODE, UIElement> nodeUIs = HashBiMap.create();
     protected final Set<NODE> selectedNodes = new LinkedHashSet<>();
+    @Getter @Nullable
+    protected NODE hoveredNode = null;
     protected final Set<NODE> expandedNodes = new HashSet<>();
     protected final Map<NODE, List<NODE>> displayedChildren = new HashMap<>();
 
@@ -213,6 +215,19 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             }
         }
         return this;
+    }
+
+    public void expandNodeAlongPath(@Nullable NODE node) {
+        if (node == null) return;
+        var stack = new Stack<NODE>();
+        var parent = node.getParent();
+        while (parent != null) {
+            stack.push((NODE) parent);
+            parent = parent.getParent();
+        }
+        while (!stack.isEmpty()) {
+            expandNode(stack.pop());
+        }
     }
 
     /**
@@ -402,6 +417,8 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         container.addChildren(arrow, ui);
         container.addEventListener(UIEvents.CLICK, e -> onNodeClicked(e, node));
         container.addEventListener(UIEvents.DOUBLE_CLICK, e -> onNodeDoubleClicked(e, node));
+        container.addEventListener(UIEvents.MOUSE_ENTER, e -> hoveredNode = node, true);
+        container.addEventListener(UIEvents.MOUSE_LEAVE, e -> hoveredNode = null, true);
         onNodeUICreated.accept(node, container);
         return container;
     }

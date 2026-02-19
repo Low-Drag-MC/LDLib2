@@ -99,7 +99,7 @@ public class Inspector extends UIElement {
                 if (listener != null) {
                     listener.accept(configurator);
                 }
-                if (configurable instanceof INBTSerializable<?> serializable) {
+                if (historyStack != null && configurable instanceof INBTSerializable<?> serializable) {
                     var notifyName = configurator.getNotifyName();
                     var recordHistory = historyStack.recordSerializableObject(notifyName.getString().isEmpty() ?
                                     Component.literal(configurable.getConfigurableName()) : notifyName,
@@ -112,7 +112,7 @@ public class Inspector extends UIElement {
             }
         });
 
-        if (configurable instanceof INBTSerializable<?> serializable) {
+        if (historyStack != null && configurable instanceof INBTSerializable<?> serializable) {
             historyStack.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable, configurable)
                     .setOnExecute(value -> {
                         clear();

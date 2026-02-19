@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.client.gui.GuiGraphics;
-import org.joml.Vector2f;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
@@ -86,9 +85,9 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             var root = mui.ui.rootElement;
             root.addChild(colorSelector.layout(layout -> {
                 var worldMouse = colorPreview.getWorldMouse(colorPreview.getPositionX(), colorPreview.getPositionY());
-                var rootLocal = root.worldToLocal(worldMouse.sub(root.localToWorld(new Vector2f(root.getLayoutX(), root.getLayoutY()))));
-                layout.left(rootLocal.x);
-                layout.top(rootLocal.y);
+                var layoutOffset = root.worldToLocalLayoutOffset(worldMouse);
+                layout.left(layoutOffset.x);
+                layout.top(layoutOffset.y);
                 layout.width(colorPreview.getSizeWidth());
             }));
             this.colorSelector.focus();
