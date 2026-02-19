@@ -17,6 +17,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2f;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
@@ -182,13 +183,13 @@ public class Configurator extends UIElement {
                 var mui = getModularUI();
                 if (mui != null) {
                     var root = mui.ui.rootElement;
+                    var layoutOffset = root.worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
                     root.addChild(new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
                             .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
                             .setOnNodeClicked(TreeBuilder.Menu::handle)
                             .layout(layout -> {
-                                var localMouse = root.getLocalMouse(event.x, event.y);
-                                layout.left(localMouse.x - root.getContentX());
-                                layout.top(localMouse.y - root.getContentY());
+                                layout.left(layoutOffset.x);
+                                layout.top(layoutOffset.y);
                             })
                     );
                 }

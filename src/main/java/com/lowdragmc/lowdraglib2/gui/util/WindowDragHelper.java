@@ -40,7 +40,7 @@ public class WindowDragHelper {
 
     public static void setDragMove(UIElement element, UIElement target, @Nullable Predicate<UIEvent> movePredicate, @Nullable Consumer<UIEvent> onFinish) {
         element.addEventListener(UIEvents.MOUSE_DOWN, e -> {
-            if (e.bubbleListeners.size() == 1 && (movePredicate == null || movePredicate.test(e))) {
+            if ((movePredicate == null || movePredicate.test(e))) {
                 var icon = Icons.MOVE;
                 var width = 12;
                 var height = 12;
@@ -65,7 +65,6 @@ public class WindowDragHelper {
                                        @Nullable BiPredicate<UIEvent, DragResize> dragResizePredicate,
                                        @Nullable Consumer<UIEvent> onFinish) {
         element.addEventListener(UIEvents.MOUSE_DOWN, e -> {
-            if (e.target != element) return;
             if (resizePredicate != null && !resizePredicate.test(e)) return;
             var handle = detectResizeHandle(element, e.x, e.y, border);
             if (handle != null) {

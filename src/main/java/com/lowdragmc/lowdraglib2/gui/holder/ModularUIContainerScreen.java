@@ -25,6 +25,8 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
         this.imageWidth = (int) getMenu().getModularUI().getWidth();
         this.imageHeight = (int) getMenu().getModularUI().getHeight();
         super.init();
+        // initial focus
+        setFocused(getMenu().modularUI.getWidget());
     }
 
     @Override

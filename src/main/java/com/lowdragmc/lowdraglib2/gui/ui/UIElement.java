@@ -80,7 +80,8 @@ import java.util.stream.Stream;
 /**
  * The base class for all UI elements.
  * <br>
- * LDLib uses Yoga for layout. please refer to the see <a href="https://www.yogalayout.dev/">Yoga Documentation</a> for more information.
+ * LDLib uses Taffy for layout.
+ * please refer to the see <a href="https://github.com/vfyjxf/taffy-java">Taffy Documentation</a> for more information.
  *
  */
 @RemapPrefixForJS("kjs$")
@@ -1175,6 +1176,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return getWorldMouseNormal(dir.x, dir.y);
     }
 
+    public final Vector2f worldToLocalLayoutOffset(Vector2f world) {
+        var local = worldToLocal(world);
+        return local.sub(getLayoutX(), getLayoutY());
+    }
+
     public final boolean isMouseOver(float worldX, float worldY) {
         return isMouseOver(getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), worldX, worldY);
     }
@@ -1609,23 +1615,23 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         info.add(Component.literal("[type: %s, pos: (%.1f %.1f), size: (%.1f, %.1f), children: %d]".formatted(
                 getElementName(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(), children.size())).withColor(0xFFFF00FF));
         info.add(Component.literal("[id: %s, class: \"%s\"]".formatted(getId().isEmpty() ? "empty" : getId(), String.join(" ", classes))).withColor(0xFF00FFFF));
-        var path = getStructurePath();
-        for (int i = 0; i < path.size(); i++) {
-            var element = path.get(i);
-            var data =Component.empty();
-            for (int i1 = 0; i1 < i; i1++) {
-                data = data.append(Component.literal("  "));
-            }
-            var style =  element.getTaffyStyle().style;
-            data = data.append("└").append(element.toString()).append(
-                    Component.literal("[flex: %s, inset: (%s, %s, %s, %s), size: (%s, %s)]".formatted(
-                            style.flex,
-                            style.inset.left, style.inset.right,
-                            style.inset.top, style.inset.bottom,
-                            style.size.width, style.size.height
-                            )).withColor(0xFFFF00FF));
-            info.add(data.withColor(0xFF00FF00));
-        }
+//        var path = getStructurePath();
+//        for (int i = 0; i < path.size(); i++) {
+//            var element = path.get(i);
+//            var data =Component.empty();
+//            for (int i1 = 0; i1 < i; i1++) {
+//                data = data.append(Component.literal("  "));
+//            }
+//            var style =  element.getTaffyStyle().style;
+//            data = data.append("└").append(element.toString()).append(
+//                    Component.literal("[flex: %s, inset: (%s, %s, %s, %s), size: (%s, %s)]".formatted(
+//                            style.flex,
+//                            style.inset.left, style.inset.right,
+//                            style.inset.top, style.inset.bottom,
+//                            style.size.width, style.size.height
+//                            )).withColor(0xFFFF00FF));
+//            info.add(data.withColor(0xFF00FF00));
+//        }
         return info;
     }
 
@@ -1665,7 +1671,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public List<UIElement> getEditorVisibleChildren() {
-        return getSafeChildren();
+        return children.stream().filter(UIElement::isEditorVisible).toList();
+    }
+
+    public boolean isEditorVisible() {
+        return true;
     }
 
     /**

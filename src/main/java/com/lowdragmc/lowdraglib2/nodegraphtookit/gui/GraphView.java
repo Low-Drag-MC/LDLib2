@@ -643,13 +643,14 @@ public class GraphView extends UIElement {
                 var menu = createMenu(event.x, event.y);
                 if (menu.isEmpty()) return;
                 isMenuOpen = true;
+                var layoutOffset = mui.ui.rootElement.worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
                 mui.ui.rootElement.addChildren(new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
                         .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
                         .setOnNodeClicked(TreeBuilder.Menu::handle)
                         .setOnClose(() -> isMenuOpen = false)
                         .layout(layout -> {
-                            layout.left(event.x - mui.ui.rootElement.getPositionX());
-                            layout.top(event.y - mui.ui.rootElement.getContentY());
+                            layout.left(layoutOffset.x);
+                            layout.top(layoutOffset.y);
                         }));
             }
         }

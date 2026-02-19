@@ -40,6 +40,8 @@ public class ModularUIScreen extends Screen {
         this.leftPos = (int) ((this.width - modularUI.getWidth()) / 2);
         this.topPos = (int) ((this.height - modularUI.getHeight()) / 2);
         super.init();
+        // initial focus
+        setFocused(modularUI.getWidget());
     }
 
     @Override

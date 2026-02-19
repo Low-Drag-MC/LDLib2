@@ -3,6 +3,8 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
+import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
 import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
 import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
@@ -153,6 +155,8 @@ public class ModularUI {
     private boolean allowDebugMode = true;
     @Getter @Setter
     private boolean debugMode = false;
+    @Nullable
+    private UIDebugger uiDebuggerCache;
 
     public ModularUI(UI ui) {
         this(ui, null);
@@ -692,6 +696,18 @@ public class ModularUI {
         ui.rootElement.appendExtraAreas(extraAreas);
     }
 
+    @OnlyIn(Dist.CLIENT)
+    public void enableDebugger(boolean debugMode) {
+        if (this.debugMode == debugMode) return;
+        this.debugMode = debugMode;
+        if (debugMode) {
+            if (uiDebuggerCache == null) {
+                uiDebuggerCache = new UIDebugger(this);
+            }
+            Minecraft.getInstance().pushGuiLayer(new DebugScreen(uiDebuggerCache));
+        }
+    }
+
     @ParametersAreNonnullByDefault
     @MethodsReturnNonnullByDefault
     @OnlyIn(Dist.CLIENT)
@@ -925,7 +941,7 @@ public class ModularUI {
         @Override
         public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
             if (allowDebugMode && keyCode == GLFW.GLFW_KEY_F3) {
-                debugMode = !debugMode;
+                enableDebugger(!debugMode);
             }
             lastPressedKeyCode = keyCode;
             lastPressedScanCode = scanCode;
@@ -1059,6 +1075,10 @@ public class ModularUI {
         /// rendering
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            if (isDebugMode() && mouseX == Integer.MAX_VALUE && mouseY == Integer.MAX_VALUE) {
+                mouseX = DebugScreen.REAL_MOUSE_POS.x;
+                mouseY = DebugScreen.REAL_MOUSE_POS.y;
+            }
             animationEngine.updateFrame();
 
             calculateStyleAndLayout();
@@ -1136,14 +1156,14 @@ public class ModularUI {
                 guiGraphics.pose().popPose();
             }
 
-            if (debugMode) {
-                renderDebugInfo(guiGraphics, mouseX, mouseY, partialTick);
-            }
-
             guiGraphics.flush();
         }
 
         public void renderUISpacing(UIElement element, GuiGraphics graphics) {
+            var transform = element.getLocalToWorldPose();
+            graphics.pose().pushPose();
+            graphics.pose().setIdentity();
+            graphics.pose().mulPose(transform);
             var posX = element.getPositionX();
             var posY = element.getPositionY();
             var sizeX = element.getSizeWidth();
@@ -1165,121 +1185,9 @@ public class ModularUI {
             var contentWidth = element.getContentWidth();
             var contentHeight = element.getContentHeight();
             DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff);
-        }
-
-        public void renderDebugInfo(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 500);
-
-            var x = 2;
-            var y = 2;
-            var font = Minecraft.getInstance().font;
-            // focus element
-            if (focusedElement != null) {
-                var posX = focusedElement.getPositionX();
-                var posY = focusedElement.getPositionY();
-                var sizeX = focusedElement.getSizeWidth();
-                var sizeY = focusedElement.getSizeHeight();
-                DrawerHelper.drawBorder(graphics, posX, posY, sizeX, sizeY, ColorPattern.PURPLE.color, -1);
-            }
-
-            graphics.flush();
-
-            // hover element
-            var hovered = getLastHoveredElement();
-            if (hovered != null) {
-                renderUISpacing(hovered, graphics);
-
-                ///  draw layout box
-                // draw layout on the right
-                var sw = 300;
-                var sh = 300;
-                var sx = screenWidth - sw - 2;
-                var sy = 12;
-                var dist = 30;
-
-                var layout = hovered.getTaffyLayout();
-                drawLayoutBox(graphics, font, sx, sy, sw, sh, "margin", 0x80646669, new String[]{
-                        String.valueOf(layout.margin().top),
-                        String.valueOf(layout.margin().bottom),
-                        String.valueOf(layout.margin().left),
-                        String.valueOf(layout.margin().right)
-                });
-
-                sx += dist;
-                sy += dist;
-                sw -= dist * 2;
-                sh -= dist * 2;
-                drawLayoutBox(graphics, font, sx, sy, sw, sh, "border", 0x80ff0000, new String[]{
-                        String.valueOf(layout.border().top),
-                        String.valueOf(layout.border().bottom),
-                        String.valueOf(layout.border().left),
-                        String.valueOf(layout.border().right)
-                });
-
-                sx += dist;
-                sy += dist;
-                sw -= dist * 2;
-                sh -= dist * 2;
-                drawLayoutBox(graphics, font, sx, sy, sw, sh, "padding", 0x8000ff00, new String[]{
-                        String.valueOf(layout.padding().top),
-                        String.valueOf(layout.padding().bottom),
-                        String.valueOf(layout.padding().left),
-                        String.valueOf(layout.padding().right)
-                });
-
-                sx += dist;
-                sy += dist;
-                sw -= dist * 2;
-                sh -= dist * 2;
-                drawLayoutBox(graphics, font, sx, sy, sw, sh, "content", 0x800000ff, new String[]{
-                        hovered.getContentWidth() + " x " + hovered.getContentHeight()
-                });
-
-                graphics.flush();
-
-                graphics.drawString(font, "hovered element:", x, y, 0xffff0000, true);
-                x += 10;
-                y += 10;
-                for (var info : hovered.getDebugInfo()) {
-                    graphics.drawString(font, info, x, y, -1, true);
-                    y += 10;
-                }
-                x -= 10;
-            }
-
-            // draw cursor
-            DrawerHelper.drawSolidRect(graphics, 0, mouseY - 1, screenWidth, 1, 0xffff0000);
-            DrawerHelper.drawSolidRect(graphics, mouseX - 1, 0, 1, screenHeight, 0xffff0000);
-            graphics.drawString(font, "pos(%d, %d)".formatted(mouseX, mouseY), mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
             graphics.pose().popPose();
         }
 
-        private void drawLayoutBox(GuiGraphics graphics, Font font, int x, int y, int width, int height, String labels, int color, String[] value) {
-            // draw layout box
-            if (color != 0) {
-                DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
-            }
-            // draw label
-            if (!labels.isEmpty()) {
-                graphics.drawString(font, labels, x, y, 0xFFFFFFFF, true);
-            }
-            // draw values (top, bottom, left, right)
-            if (value.length == 4) {
-                var topText = value[0].replace("undefined", "und").replace("NaN", "0");
-                graphics.drawString(font, topText, x + (width - font.width(topText)) / 2, y, 0xFFFFFFFF, true);
-                var bottomText = value[1].replace("undefined", "und").replace("NaN", "0");
-                graphics.drawString(font, bottomText, x + (width - font.width(bottomText)) / 2, y + height - font.lineHeight, 0xFFFFFFFF, true);
-                var leftText = value[2].replace("undefined", "und").replace("NaN", "0");
-                graphics.drawString(font, leftText, x, y + (height - font.lineHeight) / 2, 0xFFFFFFFF, true);
-                var rightText = value[3].replace("undefined", "und").replace("NaN", "0");
-                graphics.drawString(font, rightText, x + width - font.width(rightText), y + (height - font.lineHeight) / 2, 0xFFFFFFFF, true);
-            } else if (value.length == 1) {
-                var centerText = value[0];
-                graphics.drawString(font, centerText, x + (width - font.width(centerText)) / 2, y + (height - font.lineHeight) / 2, 0xFFFFFFFF, true);
-            }
-
-        }
     }
 
 }

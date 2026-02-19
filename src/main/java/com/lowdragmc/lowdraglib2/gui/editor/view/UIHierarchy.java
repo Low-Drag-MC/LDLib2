@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
@@ -17,17 +18,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
+
+import org.apache.commons.lang3.function.Consumers;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2f;
+
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -35,19 +38,20 @@ public class UIHierarchy extends UIElement {
     public record DraggingUINode(UITreeNode draggedNode) {}
     public record NodeCopy(List<CompoundTag> copiedNodes) {}
 
-    public final UIEditorView editorView;
     public final ScrollerView scrollerView = new ScrollerView();
     public final TreeList<UITreeNode> treeList = new TreeList<>();
 
     // runtime
+    @Setter
+    protected Consumer<Set<UITreeNode>> onSelectedChanged = Consumers.nop();
+
     @Getter @Nullable
     private UI ui;
     private long lastClickTime = 0;
     @Getter @Nullable
     private UITreeNode rootNode;
 
-    public UIHierarchy(UIEditorView editorView) {
-        this.editorView = editorView;
+    public UIHierarchy() {
         this.getLayout().widthPercent(100.0F);
         this.getLayout().heightPercent(100.0F);
 
@@ -170,14 +174,7 @@ public class UIHierarchy extends UIElement {
     }
 
     protected void onSelectedChanged(Set<UITreeNode> selected) {
-        if (selected.size() == 1) {
-            var element = selected.iterator().next().getKey();
-            if (editorView.inspector.getInspectedConfigurable() != element) {
-                editorView.inspector.inspect(element);
-            }
-        } else {
-            editorView.inspector.clear();
-        }
+        this.onSelectedChanged.accept(selected);
     }
 
     public void clearUI() {
@@ -204,9 +201,22 @@ public class UIHierarchy extends UIElement {
     protected void onMouseDown(UIEvent event) {
         focus();
         if (event.button == 1) {
-            editorView.openMenu(event.x, event.y, createMenu());
+            openMenu(event.x, event.y, createMenu());
             event.stopPropagation();
         }
+    }
+
+    public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
+        if (menuBuilder == null || menuBuilder.isEmpty() || getModularUI() == null) return;
+        var root = getModularUI().ui.rootElement;
+        var layoutOffset = root.worldToLocalLayoutOffset(new Vector2f(posX, posY));
+        root.addChildren(new Menu<>(menuBuilder.build(), TreeBuilder.Menu::uiProvider)
+                .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
+                .setOnNodeClicked(TreeBuilder.Menu::handle)
+                .layout(layout -> {
+                    layout.left(layoutOffset.x);
+                    layout.top(layoutOffset.y);
+                }));
     }
 
     protected void onValidateCommand(UIEvent event) {

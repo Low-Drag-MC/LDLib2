@@ -108,10 +108,7 @@ public class EditorWindow extends UIElement {
                 .addChildren(this.editorContainer, this.editorButtonContainer);
         WindowDragHelper.setBorderResize(this.window, this.window, 4,
                 new Vector2f(200f, 150f),
-                new Vector2f(Float.MAX_VALUE, Float.MAX_VALUE), e -> {
-                    isResizing = !isMaximized();
-                    return isResizing;
-                }, (e, handle) -> {
+                new Vector2f(Float.MAX_VALUE), e -> !isMaximized(), (e, handle) -> {
                     isResizing = true;
                     return true;
                 }, e -> isResizing = false);
