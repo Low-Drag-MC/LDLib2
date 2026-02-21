@@ -19,7 +19,7 @@ configurations {
     libraries
     // This will make sure that all dependencies that you add to the libraries configuration will also be added to the implementation configuration
     // This way, you only need one dependency declaration for both runtime and compile dependencies
-    implementation.extendsFrom libraries
+    compileOnlyApi.extendsFrom libraries
 
     localImplementation
     runtimeClasspath.extendsFrom localImplementation
