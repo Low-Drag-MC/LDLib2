@@ -161,9 +161,7 @@ class GridTemplateValueTest {
         // Test invalid syntax - parser is lenient and skips invalid tokens
         // This follows CSS behavior where invalid parts are ignored
         GridTemplate template = GridTemplateValue.parse("invalid(syntax");
-        assertNotNull(template);
-        // The invalid token is skipped, resulting in empty template
-        assertEquals(0, template.simples().size());
+        assertNull(template);
     }
 
     @Test

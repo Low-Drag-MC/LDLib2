@@ -153,7 +153,6 @@ dependencies {
         exclude group: "org.jetbrains", module: "annotations"
     }
     jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "[${kotlin_stdlib_version},)")
-//    compileOnly("org.jetbrains:annotations:24.1.0")
 
     // JEI
     compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
