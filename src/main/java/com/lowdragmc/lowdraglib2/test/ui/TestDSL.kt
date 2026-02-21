@@ -1,5 +1,9 @@
 package com.lowdragmc.lowdraglib2.test.ui
 
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.TrackData
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.getValue
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.map
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.setValue
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture
 import com.lowdragmc.lowdraglib2.gui.ui.*
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D
@@ -67,7 +71,24 @@ class TestDSL : IScreenTest {
                         value = if (value == "hello") "world" else "hello"
                     }
                 })
-                textField({text = 10.4f.toString()}){}.asNumeric(0.3f, 100f)
+
+                var number = 10.4f
+                textField {
+                    observer { number = it.toFloatOrNull() ?: number }
+                    dataSource { number.toString() }
+                }.asNumeric(0.3f, 100f)
+
+                val trackData = TrackData("10.4");
+                var trackNumber by trackData.map({ it.toFloatOrNull() ?: 1f }, { it.toString() })
+                textField {
+                    observer(trackData)
+                    dataSource(trackData)
+                }.asNumeric(0.3f, 100f)
+                button({
+                    text("track data + 10")
+                    onClick = { trackNumber += 10f }
+                })
+
                 row({layout = { gap { all(2.px) } }}) {
                     fluidSlot()
                     itemSlot({ item = Items.APPLE.defaultInstance })

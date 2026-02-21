@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.test.ui
 
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.rpcEvent
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
 import com.lowdragmc.lowdraglib2.gui.ui.UI
 import com.lowdragmc.lowdraglib2.gui.ui.element
@@ -49,9 +50,9 @@ class TestMenuDSL : IMenuTest {
             element ({
                 layout = { gap { all(2.px) } }
             }) {
-                switch { bind({bool}, {bool = it}) }
-                textField { bind({string}, {string = it}) }
-                scrollerHorizontal({layout = {width(100.pct)}}) { bind({number}, {number = it}) }
+                switch { bind(::bool) }
+                textField { bind(::string) }
+                scrollerHorizontal({layout = {width(100.pct)}}) { bind(::number) }
                 // read-only (s->c), always get data from the server and display on the client
                 label { bindS2C({ Component.literal("s->c only: ")
                         .append(Component.literal(bool.toString()).withStyle(ChatFormatting.AQUA)).append(" ")
@@ -66,6 +67,13 @@ class TestMenuDSL : IMenuTest {
                             } else {
                                 fluidTank.setFluid(FluidStack(Fluids.WATER, 1000))
                             }
+                        }
+                    }
+                    // define a rpc event
+                    val rpcEvent = element.rpcEvent { clickValue: String -> string = clickValue }
+                    events {
+                        UIEvents.MOUSE_DOWN += {
+                            rpcEvent.send( "rpc")
                         }
                     }
                 }

@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
@@ -151,7 +152,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     @Configurable(name = "Capacity")
     @ConfigNumber(range = {0, Integer.MAX_VALUE})
     private int capacity = 0;
-    private final RPCEvent clickEvent;
+    private final RPCEmitter clickEvent;
 
     @Nullable
     private IFluidHandler boundHandler;
@@ -175,8 +176,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         if (LDLib2.isEmiLoaded()) {
             EMISupport.stackProvider(this);
         }
-        clickEvent = RPCEventBuilder.simple(Boolean.class, this::tryClickContainer);
-        addRPCEvent(clickEvent);
+        clickEvent = addRPCEvent(RPCEventBuilder.simple(Boolean.class, this::tryClickContainer));
 
         amountLabel.addClass("__fluid-slot_amount-label__");
         amountLabel.layout(layout -> layout.widthPercent(100).heightPercent(100));
@@ -326,7 +326,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
 
     protected void onMouseDown(UIEvent event) {
-        sendEvent(clickEvent, event.isShiftDown());
+        clickEvent.send(event.isShiftDown());
     }
 
     public FluidSlot  setFluid(FluidStack fluid) {

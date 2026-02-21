@@ -7,16 +7,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyleDsl
-import com.lowdragmc.lowdraglib2.gui.ui.layout.auto
-import com.lowdragmc.lowdraglib2.gui.ui.layout.pct
-import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites
-import dev.vfyjxf.taffy.style.AlignContent
 import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
 import org.apache.commons.lang3.function.Consumers
 import org.apache.commons.lang3.function.Suppliers
+import kotlin.reflect.KMutableProperty0
 
 /**
  * DSL Marker to prevent implicit receivers from outer scopes
@@ -196,8 +192,21 @@ abstract class UIContainer<T : UIElement, S: ElementSpec<T>>(
 
     inline fun <T, reified D> UIContainer<T, *>.bind(noinline getter: () -> D,
                                                      noinline setter: (D) -> Unit,
-                                                     initialValue: D? = null) where T : UIElement, T : IBindable<D>{
+                                                     initialValue: D? = null) where T : UIElement, T : IBindable<D> {
         (element as? IBindable<D>)?.bind(bindings(getter, setter, initialValue).build())
+    }
+
+    inline fun <T, reified D> UIContainer<T, *>.bind(prop: KMutableProperty0<D>,
+                                                     initialValue: D? = null) where T : UIElement, T : IBindable<D> {
+        if (initialValue != null) prop.set(initialValue)
+
+        (element as? IBindable<D>)?.bind(
+            bindings(
+                getter = { prop.get() },
+                setter = { prop.set(it) },
+                initialValue = initialValue
+            ).syncType(D::class.java).build()
+        )
     }
 
     inline fun <T, reified D> UIContainer<T, *>.bindS2C(noinline getter: () -> D, initialValue: D? = null) where T : UIElement, T : IBindable<D>{
@@ -206,34 +215,6 @@ abstract class UIContainer<T : UIElement, S: ElementSpec<T>>(
 
     inline fun <T, reified D> UIContainer<T, *>.bindC2S(noinline setter: (D) -> Unit, initialValue: D? = null) where T : UIElement, T : IBindable<D>{
         (element as? IBindable<D>)?.bind(bindingsC2S(setter, initialValue).build())
-    }
-
-    inline fun <reified T> bindings(
-        noinline getter: () -> T,
-        noinline setter: (T) -> Unit,
-        initialValue: T? = null,
-    ): DataBindingBuilder<T> {
-        return DataBindingBuilder.create(getter, setter).syncType(T::class.java).initialValue(initialValue)
-    }
-
-    inline fun <reified T> bindingsS2C(
-        noinline getter: () -> T,
-        initialValue: T? = null,
-    ): DataBindingBuilder<T> {
-        return DataBindingBuilder.create(getter, Consumers.nop())
-            .syncType(T::class.java)
-            .c2sStrategy(SyncStrategy.NONE)
-            .initialValue(initialValue)
-    }
-
-    inline fun <reified T> bindingsC2S(
-        noinline setter: (T) -> Unit,
-        initialValue: T? = null,
-    ): DataBindingBuilder<T> {
-        return DataBindingBuilder.create(Suppliers.nul<T>(), setter)
-            .syncType(T::class.java)
-            .s2cStrategy(SyncStrategy.NONE)
-            .initialValue(initialValue)
     }
 
     /**
@@ -382,25 +363,30 @@ fun <T : UIElement> T.clsDsl(init: ClassPatchDsl.() -> Unit = {}): T {
     return this
 }
 
-private fun a() {
-    val ele = element({
-        id = "test"
-        cls = {
-            +"a"
-            +"b"
-            -"a"
-            value = setOf("x", "y")
-        }
-        layout = {
-            width(100.pct)
-            height(100.pct)
-            margin { all(auto) }
-            padding { all(4.px) }
-            flexDirection(FlexDirection.ROW)
-        }
-        style = {
-            background(Sprites.RECT)
-        }
-    }) {
-    }
+inline fun <reified T> bindings(
+    noinline getter: () -> T,
+    noinline setter: (T) -> Unit,
+    initialValue: T? = null,
+): DataBindingBuilder<T> {
+    return DataBindingBuilder.create(getter, setter).syncType(T::class.java).initialValue(initialValue)
+}
+
+inline fun <reified T> bindingsS2C(
+    noinline getter: () -> T,
+    initialValue: T? = null,
+): DataBindingBuilder<T> {
+    return DataBindingBuilder.create(getter, Consumers.nop())
+        .syncType(T::class.java)
+        .c2sStrategy(SyncStrategy.NONE)
+        .initialValue(initialValue)
+}
+
+inline fun <reified T> bindingsC2S(
+    noinline setter: (T) -> Unit,
+    initialValue: T? = null,
+): DataBindingBuilder<T> {
+    return DataBindingBuilder.create(Suppliers.nul<T>(), setter)
+        .syncType(T::class.java)
+        .s2cStrategy(SyncStrategy.NONE)
+        .initialValue(initialValue)
 }
