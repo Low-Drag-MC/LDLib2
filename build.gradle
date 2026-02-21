@@ -20,6 +20,10 @@ configurations {
     // This will make sure that all dependencies that you add to the libraries configuration will also be added to the implementation configuration
     // This way, you only need one dependency declaration for both runtime and compile dependencies
     implementation.extendsFrom libraries
+
+    localImplementation
+    runtimeClasspath.extendsFrom localImplementation
+    compileOnly.extendsFrom localImplementation
 }
 
 repositories {
@@ -157,7 +161,7 @@ dependencies {
     // JEI
     compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
-    implementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+    localImplementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 
     // REI
     compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")
@@ -169,16 +173,16 @@ dependencies {
     compileOnly("dev.emi:emi-neoforge:${emi_version}")
 
     // AE2
-    implementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
+    localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
 
     // KJS
-    implementation("dev.latvian.mods:kubejs-neoforge:${kjs_version}") {
+    localImplementation("dev.latvian.mods:kubejs-neoforge:${kjs_version}") {
         exclude(group: "dev.architectury")
     }
 
     // Iris
-    implementation("maven.modrinth:sodium:${sodium_version}")
-    implementation("maven.modrinth:iris:${iris_version}")
+    localImplementation("maven.modrinth:sodium:${sodium_version}")
+    localImplementation("maven.modrinth:iris:${iris_version}")
 
     // lombok
 //    compileOnly 'org.projectlombok:lombok:1.18.30'
