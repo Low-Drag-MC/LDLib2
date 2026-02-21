@@ -9,12 +9,23 @@ import com.lowdragmc.lowdraglib2.gui.ui.*
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties
+import com.lowdragmc.lowdraglib2.gui.ui.layout.auto
+import com.lowdragmc.lowdraglib2.gui.ui.layout.pct
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry
+import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient
+import com.lowdragmc.lowdraglib2.utils.animation.Animation
+import dev.vfyjxf.taffy.style.AlignContent
+import dev.vfyjxf.taffy.style.AlignItems
+import dev.vfyjxf.taffy.style.TaffyDirection
+import dev.vfyjxf.taffy.style.TaffyDisplay
+import dev.vfyjxf.taffy.style.TaffyPosition
 import lombok.NoArgsConstructor
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
@@ -30,6 +41,27 @@ import java.util.function.Consumer
 @NoArgsConstructor
 class TestDSL : IScreenTest {
     override fun createUI(entityPlayer: Player?): ModularUI? {
+        element({
+            layout = {
+                position(TaffyPosition.ABSOLUTE)
+                minWidth(1)
+                alignItems(AlignItems.CENTER)
+                alignContent(AlignContent.CENTER)
+            }
+            style = {
+                overflowVisible(false)
+                tooltips()
+                transition(Transition(mapOf(LayoutProperties.HEIGHT to Animation(1f, 0f, Eases.LINEAR))))
+            }
+            cls = {
+                +"add-class"
+                -"remove-class"
+            }
+            layout = { width(40.pct) }
+            style = { background(MCSprites.RECT) }
+        }) { }.styleDsl {
+            background(MCSprites.RECT)
+        }
         return ModularUI.of(UI.of(
             element({
                 layout = { size(200.px); gap{ all(3.px) }; padding { all(4.px) } }

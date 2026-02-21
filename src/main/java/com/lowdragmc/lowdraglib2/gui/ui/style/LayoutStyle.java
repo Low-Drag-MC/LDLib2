@@ -1371,6 +1371,11 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
+    public LayoutStyle flexWrap(FlexWrap wrap) {
+        set(LayoutProperties.FLEX_WRAP, wrap);
+        return this;
+    }
+
     public LayoutStyle setAspectRatio(float aspectRatio) {
         set(LayoutProperties.ASPECT_RATE, FloatOptional.of(aspectRatio));
         return this;

@@ -130,6 +130,9 @@ open class ElementSpec<T : UIElement>(
     var cls: (ClassPatchDsl.() -> Unit)? = null,
     var layout: (TaffyLayoutStyleDsl.() -> Unit)? = null,
     var style: (BasicStyle.() -> Unit)? = null,
+    var focusable: Boolean? = null,
+    var visible: Boolean? = null,
+    var active: Boolean? = null,
 )
 
 /**
@@ -154,10 +157,13 @@ abstract class UIContainer<T : UIElement, S: ElementSpec<T>>(
     }
 
     protected open fun build(spec:S?): T {
-        applyId(spec, element)
-        applyLayout(spec, element)
-        applyStyle(spec, element)
-        applyClasses(spec, element)
+        spec?.id?.let((element::setId))
+        spec?.layout?.let(TaffyLayoutStyleDsl(element.layout)::apply)
+        spec?.style?.let(element.style::apply)
+        spec?.cls?.let(ClassPatchDsl(element)::apply)
+        spec?.focusable?.let(element::setFocusable)
+        spec?.visible?.let(element::setVisible)
+        spec?.active?.let(element::setActive)
         applyEvents(element)
         return element
     }
@@ -245,28 +251,26 @@ abstract class UIContainer<T : UIElement, S: ElementSpec<T>>(
      * Apply layout configuration to a LDLib2 element
      */
     protected fun applyId(spec:S?, element: UIElement) {
-        spec?.id?.let((element::setId))
+
     }
 
     /**
      * Apply layout configuration to a LDLib2 element
      */
     protected fun applyLayout(spec:S?, element: UIElement) {
-        spec?.layout?.let(TaffyLayoutStyleDsl(element.layout)::apply)
+
     }
 
     /**
      * Apply style configuration to a LDLib2 element
      */
     protected fun applyStyle(spec:S?, element: UIElement) {
-        spec?.style?.let(element.style::apply)
     }
 
     /**
      * Apply Classes to a LDLib2 element
      */
     protected fun applyClasses(spec:S?, element: UIElement) {
-        spec?.cls?.let(ClassPatchDsl(element)::apply)
     }
 
     protected fun applyEvents(element: UIElement) {
@@ -286,7 +290,6 @@ abstract class UIContainer<T : UIElement, S: ElementSpec<T>>(
             ops.add.forEach { element.addServerEventListener(type, it) }
             ops.remove.forEach { element.removeServerEventListener(type, it) }
         }
-
     }
 
     inline fun <T : UIElement, B : UIBuilder<T>> UIContainer<*, *>.add(builder: B, init: B.() -> Unit = {}): B {

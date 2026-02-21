@@ -328,8 +328,10 @@ class TaffyLayoutStyleDsl(val layout: LayoutStyle) {
     fun alignSelf(value: AlignItems) = apply { it.alignSelf(value) }
     fun alignContent(value: AlignContent) = apply { it.alignContent(value) }
 
+    fun display(value: Boolean) = apply { it.display(if (value) TaffyDisplay.FLEX else TaffyDisplay.NONE) }
     fun display(value: TaffyDisplay) = apply { it.display(value) }
     fun direction(value: TaffyDirection) = apply { it.direction(value) }
+    fun position(value: TaffyPosition) = apply { it.positionType(value) }
 //    fun overflow(value: YogaOverflow) = add { it.overflow(value) }
 
     // ----------------------------
