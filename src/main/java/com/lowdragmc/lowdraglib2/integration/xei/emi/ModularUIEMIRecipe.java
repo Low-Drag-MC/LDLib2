@@ -46,6 +46,7 @@ public abstract class ModularUIEMIRecipe implements EmiRecipe {
                     @Override
                     public ModularUI load(ModularUIEMIRecipe key) {
                         var mui = uiProvider.createModularUI(key);
+                        mui.setTickWhileRending(true);
                         mui.setAllowDebugMode(false);
                         mui.setDrawTooltips(false);
                         mui.init(getDisplayWidth(), getDisplayHeight());
