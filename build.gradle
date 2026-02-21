@@ -17,9 +17,7 @@ jarJar.enable()
 
 configurations {
     libraries
-    // This will make sure that all dependencies that you add to the libraries configuration will also be added to the implementation configuration
-    // This way, you only need one dependency declaration for both runtime and compile dependencies
-    compileOnlyApi.extendsFrom libraries
+    api.extendsFrom libraries
 
     localImplementation
     runtimeClasspath.extendsFrom localImplementation
