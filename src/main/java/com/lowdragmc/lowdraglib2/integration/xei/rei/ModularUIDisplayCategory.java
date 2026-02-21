@@ -43,6 +43,7 @@ public abstract class ModularUIDisplayCategory<T extends ModularUIDisplay> imple
                     @Override
                     public ModularUI load(T display) {
                         var mui = uiProvider.createModularUI(display);
+                        mui.setTickWhileRending(true);
                         mui.setAllowDebugMode(false);
                         mui.setDrawTooltips(false);
                         mui.init(getDisplayWidth(display), getDisplayHeight());

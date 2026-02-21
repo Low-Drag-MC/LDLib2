@@ -1,24 +1,19 @@
 package com.lowdragmc.lowdraglib2.integration.xei.rei;
 
-import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import lombok.Getter;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.ClientHelper;
 import me.shedaniel.rei.api.client.config.ConfigObject;
 import me.shedaniel.rei.api.client.gui.widgets.Tooltip;
-import me.shedaniel.rei.api.client.gui.widgets.TooltipContext;
 import me.shedaniel.rei.api.client.gui.widgets.Widget;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -35,7 +30,6 @@ public class ModularUIREIWidget extends Widget {
     // runtime
     @Getter
     private Matrix4f localToWorld = new Matrix4f();
-    private long lastTick;
 
     public ModularUIREIWidget(ModularUI modularUI, Rectangle bounds) {
         this.modularUI = modularUI;
@@ -58,14 +52,6 @@ public class ModularUIREIWidget extends Widget {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         guiGraphics.flush();
-
-        // tick ui
-        if (Minecraft.getInstance() instanceof MinecraftAccessor accessor) {
-            if (accessor.ldlib2$getClientTickCount() != lastTick) {
-                modularUI.tick();
-                lastTick = accessor.ldlib2$getClientTickCount();
-            }
-        }
 
         // fix transform
         var pose = guiGraphics.pose();

@@ -18,6 +18,7 @@ public class Icons {
     private static final BiFunction<String, String, SpriteTexture> CACHE = Util.memoize((modID, name) -> 
             SpriteTexture.of("%s:textures/gui/icon/%s.png".formatted(modID, name)));
     private static final Map<String, SpriteTexture> FILE_ICONS = new HashMap<>();
+    public static SpriteTexture ICON = SpriteTexture.of("ldlib2:textures/gui/icon.png");
     public static SpriteTexture LEFT = SpriteTexture.of("ldlib2:textures/gui/left.png");
     public static SpriteTexture UP = SpriteTexture.of("ldlib2:textures/gui/up.png");
     public static SpriteTexture DOWN = SpriteTexture.of("ldlib2:textures/gui/down.png");

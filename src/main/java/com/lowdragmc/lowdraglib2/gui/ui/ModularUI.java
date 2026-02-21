@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
@@ -108,6 +109,8 @@ public class ModularUI {
     private final Set<NodeId> nodesWithNewGeometry = new HashSet<>();
 
     // UI state
+    @Getter @Setter
+    private boolean tickWhileRending;
     @Getter @Setter
     private boolean focused;
     @Getter @Setter
@@ -712,6 +715,8 @@ public class ModularUI {
     @MethodsReturnNonnullByDefault
     @OnlyIn(Dist.CLIENT)
     public class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable, IModularUIHolder {
+        private long lastTick;
+
         @Override
         public ModularUI getModularUI() {
             return ModularUI.this;
@@ -1075,6 +1080,15 @@ public class ModularUI {
         /// rendering
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            // update tick
+            if (tickWhileRending && Minecraft.getInstance() instanceof MinecraftAccessor accessor) {
+                var currentTick = accessor.ldlib2$getClientTickCount();
+                if (currentTick != lastTick) {
+                    tick();
+                    lastTick = currentTick;
+                }
+            }
+            // fix mouse for debugger
             if (isDebugMode() && mouseX == Integer.MAX_VALUE && mouseY == Integer.MAX_VALUE) {
                 mouseX = DebugScreen.REAL_MOUSE_POS.x;
                 mouseY = DebugScreen.REAL_MOUSE_POS.y;

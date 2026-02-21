@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -147,7 +148,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     private final AtomicBoolean isCandidatesDirty = new AtomicBoolean(false);
     protected final Map<T, Button> candidateButtons = new HashMap<>();
     @Nullable
-    protected RPCEvent searchEvent;
+    protected RPCEmitter searchEvent;
 
     public SearchComponent(ISearchUI<T> searchUI) {
         this();
@@ -257,12 +258,11 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
     public SearchComponent<T> setSearchOnServer(Class<T[]> clazz) {
         this.searchOnServer = true;
-        this.searchEvent = RPCEventBuilder.simple(String.class, clazz, word -> {
+        this.searchEvent = addRPCEvent(RPCEventBuilder.simple(String.class, clazz, word -> {
             var result = new ArrayList<T>();
             searchUI.search(word, result::add);
             return result.toArray((T[]) Array.newInstance(clazz.getComponentType(), result.size()));
-        });
-        addRPCEvent(searchEvent);
+        }));
         return this;
     }
 
@@ -277,7 +277,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         isCandidatesDirty.set(true);
         if (searchOnServer) {
             if (searchEvent != null) {
-                this.<T[]>sendEvent(searchEvent, values -> {
+                searchEvent.<T[]>send(values -> {
                     candidates.addAll(Arrays.asList(values));
                     isCandidatesDirty.set(true);
                 }, word);

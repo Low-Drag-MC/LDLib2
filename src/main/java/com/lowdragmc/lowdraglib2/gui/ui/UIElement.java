@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.editor.view.UIHierarchy;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -1359,16 +1360,16 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
-    public UIElement addRPCEvent(RPCEvent event) {
+    public RPCEmitter addRPCEvent(RPCEvent event) {
         this.rpcEvents.add(event);
         var mui = getModularUI();
         if (mui != null && mui.syncManager != null) {
             mui.syncManager.registerRPCEvent(event);
         }
-        return this;
+        return new RPCEmitter(event, this::getModularUI);
     }
 
-    public UIElement addRPCEvent(Function<UIElement, RPCEvent> creator) {
+    public RPCEmitter addRPCEvent(Function<UIElement, RPCEvent> creator) {
         return addRPCEvent(creator.apply(this));
     }
 
