@@ -131,10 +131,11 @@ public class ResourceProviderContainer<T> extends UIElement {
         }).addChildren(new UIElement().layout(layout -> {
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
                 layout.width(resourceProvider.getResourceInstance().getUiWidth());
+                layout.height(resourceProvider.getResourceInstance().getUiWidth());
             } else {
                 layout.widthPercent(100);
+                layout.setAspectRatio(1);
             }
-            layout.setAspectRatio(1);
             layout.alignItems(AlignItems.CENTER);
             layout.justifyContent(AlignContent.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
