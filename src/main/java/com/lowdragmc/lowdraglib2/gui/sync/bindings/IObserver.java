@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.sync.bindings;
 
+@FunctionalInterface
 public interface IObserver<T> {
     /**
      * Set the value of the data source.

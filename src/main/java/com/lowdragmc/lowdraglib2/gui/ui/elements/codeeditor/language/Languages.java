@@ -7,7 +7,7 @@ import java.util.Set;
 
 @UtilityClass
 public final class Languages {
-    public LanguageDefinition JAVASCRIPT = new LanguageDefinition("JavaScript", List.of(
+    public static LanguageDefinition JAVASCRIPT = new LanguageDefinition("JavaScript", List.of(
             TokenTypes.KEYWORD.createTokenType(List.of("break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "function", "if", "import", "in", "instanceof", "let", "new", "null", "return", "super", "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with", "yield")),
             TokenTypes.IDENTIFIER,
             TokenTypes.STRING,
@@ -17,7 +17,7 @@ public final class Languages {
             TokenTypes.WHITESPACE,
             TokenTypes.OTHER), Set.of("{"));
 
-    public LanguageDefinition LSS = new LanguageDefinition("LSS", List.of(
+    public static LanguageDefinition LSS = new LanguageDefinition("LSS", List.of(
             // LSS Selector
             TokenTypes.CSS_CLASS_SELECTOR,
             TokenTypes.CSS_ID_SELECTOR,
@@ -40,7 +40,7 @@ public final class Languages {
             TokenTypes.OTHER
     ), Set.of("{"));
 
-    public LanguageDefinition XML = new LanguageDefinition("XML", List.of(
+    public static LanguageDefinition XML = new LanguageDefinition("XML", List.of(
             TokenTypes.XML_COMMENT,
             TokenTypes.XML_CDATA,
             TokenTypes.XML_ATTRIBUTE_VALUE,

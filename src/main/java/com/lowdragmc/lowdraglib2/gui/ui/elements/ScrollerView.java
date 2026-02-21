@@ -175,6 +175,7 @@ public class ScrollerView extends UIElement {
         viewPort.addChild(new UIElement() // we wrap the view container in a new element
                         .layout(layout -> layout.flex(1))
                         .addChild(viewContainer));
+        viewPort.addEventListener(UIEvents.LAYOUT_CHANGED, this::onViewPortLayoutChanged);
 
         viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onContainerLayoutChanged);
 
@@ -224,6 +225,10 @@ public class ScrollerView extends UIElement {
                 scrollerViewStyle.minScrollPixel() / containerHeight,
                 scrollerViewStyle.maxScrollPixel() / containerHeight)
                 * (normalizedValue > 0 ? 1 : -1);
+    }
+
+    protected void onViewPortLayoutChanged(UIEvent event) {
+        updateScrollers();
     }
 
     protected void onContainerLayoutChanged(UIEvent event) {

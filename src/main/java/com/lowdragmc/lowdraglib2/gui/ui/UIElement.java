@@ -308,7 +308,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public UIElement setOverflowVisible(boolean overflow) {
-        layoutStyle.setOverflow(overflow ? YogaOverflow.VISIBLE : YogaOverflow.HIDDEN);
+        style.overflowVisible(overflow);
         return this;
     }
 
@@ -797,29 +797,48 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public final UIElement removeClass(String clazz) {
-        if (!classes.contains(clazz)) {
-            return this;
+        if (classes.remove(clazz)) {
+            onClassIdChanged();
         }
-        classes.remove(clazz);
-        onClassIdChanged();
+        return this;
+    }
+
+    public final UIElement removeClasses(String... classes) {
+        var doRemoved = false;
+        for (String clazz : classes) {
+            if (this.classes.remove(clazz)) {
+                doRemoved = true;
+            }
+        }
+        if (doRemoved) {
+            onClassIdChanged();
+        }
         return this;
     }
 
     public final UIElement addClass(String clazz) {
-        if (classes.contains(clazz)) {
-            return this;
+        if (classes.add(clazz)) {
+            onClassIdChanged();
         }
-        classes.add(clazz);
-        onClassIdChanged();
         return this;
     }
 
     public final UIElement addClasses(String... classes) {
-        var list = Arrays.stream(classes).toList();
-        if (this.classes.containsAll(list)) {
-            return this;
+        var doAdded = false;
+        for (String clazz : classes) {
+            if (this.classes.add(clazz)) {
+                doAdded = true;
+            }
         }
-        this.classes.addAll(list);
+        if (doAdded) {
+            onClassIdChanged();
+        }
+        return this;
+    }
+
+    public final UIElement setClasses(String... classes) {
+        this.classes.clear();
+        this.classes.addAll(Arrays.asList(classes));
         onClassIdChanged();
         return this;
     }
@@ -1092,8 +1111,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         double localMouseY = pt[1];
 
         Pair<UIElement, Integer> hover = null;
-        var overflow = layoutStyle.getOverflow();
-        var hidden = overflow == YogaOverflow.HIDDEN || overflow == YogaOverflow.SCROLL;
+        var hidden = !style.overflowVisible();
 
         if (!hidden || isMouseOverRect(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
             for (var child : getSortedChildren()) {
@@ -1178,7 +1196,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public final Vector2f worldToLocalLayoutOffset(Vector2f world) {
         var local = worldToLocal(world);
-        return local.sub(getLayoutX(), getLayoutY());
+        return local.sub(getPositionX(), getPositionY());
     }
 
     public final boolean isMouseOver(float worldX, float worldY) {
@@ -1487,10 +1505,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
 
         isCulled = !isInsideTheScissorView(guiContext);
-        var overflow = layoutStyle.getOverflow();
-        var hasOverlayClip = (
-                overflow == YogaOverflow.HIDDEN || overflow == YogaOverflow.SCROLL
-        ) && getStyle().overflowClip() != IGuiTexture.EMPTY;
+        var hasOverlayClip = !style.overflowVisible() && getStyle().overflowClip() != IGuiTexture.EMPTY;
         var hasVisualLayer = !isCulled && (hasOverlayClip || opacity < 1);
 
         if (hasVisualLayer) {
@@ -1568,9 +1583,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     public void drawContents(GUIContext guiContext) {
         // not need to use scissoring if overflow cip defined
-        var overflow = layoutStyle.getOverflow();
-        var hidden = (overflow == YogaOverflow.HIDDEN || overflow == YogaOverflow.SCROLL)
-                && getStyle().overflowClip() == IGuiTexture.EMPTY ;
+        var hidden = !style.overflowVisible() && getStyle().overflowClip() == IGuiTexture.EMPTY ;
         if (hidden) {
             if (isCulled) return;
             guiContext.graphics.flush();
