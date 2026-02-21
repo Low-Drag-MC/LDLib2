@@ -68,7 +68,8 @@ public class TestMenuDoc implements IMenuTest {
                 new UIElement().addChildren(
                         new Switch().bind(DataBindingBuilder.bool(() -> bool, value -> bool = value).build()),
                         new TextField().bind(DataBindingBuilder.string(() -> string, value -> string = value).build()),
-                        new Scroller.Horizontal().bind(DataBindingBuilder.floatVal(() -> number, value -> number = value).build()),
+                        new Scroller.Horizontal().bind(DataBindingBuilder.floatVal(() -> number, value -> number = value).build())
+                                .layout(l -> l.widthPercent(100)), // taffy bug?
                         // read-only (s->c), always get data from the server and display on the client
                         new Label().bind(DataBindingBuilder.componentS2C(() -> Component.literal("s->c only: ")
                                 .append(Component.literal(String.valueOf(bool)).withStyle(ChatFormatting.AQUA)).append(" ")

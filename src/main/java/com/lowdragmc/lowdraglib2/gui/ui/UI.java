@@ -14,10 +14,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.ProcessingInstruction;
 
 import org.jetbrains.annotations.Nullable;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -57,6 +55,10 @@ public final class UI {
 
     public static UI of(UIElement rootElement, Stylesheet... stylesheets) {
         return of(rootElement, Arrays.stream(stylesheets).toList(), null);
+    }
+
+    public static UI of(UIElement rootElement, ResourceLocation... stylesheets) {
+        return of(rootElement, Arrays.stream(stylesheets).map(StylesheetManager.INSTANCE::getStylesheet).filter(Objects::nonNull).toList(), null);
     }
 
     public static UI of(UIElement rootElement, @Nullable DynamicSizeProvider dynamicSize) {

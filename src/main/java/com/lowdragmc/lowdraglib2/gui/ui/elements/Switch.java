@@ -7,12 +7,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import com.lowdragmc.lowdraglib2.utils.animation.Animation;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
@@ -26,6 +30,7 @@ import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -108,6 +113,7 @@ public class Switch extends BindableUIElement<Boolean> {
         }
     }
 
+    public final UIElement placeholder;
     public final UIElement markIcon;
     @Getter
     private final SwitchStyle switchStyle = new SwitchStyle();
@@ -122,8 +128,11 @@ public class Switch extends BindableUIElement<Boolean> {
         getLayout().height(14);
         getLayout().width(26);
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(Sprites.RECT_RD_DARK));
-        Style.importantPipeline(getLayout(), layout -> layout.direction(TaffyDirection.LTR));
         addEventListener(UIEvents.MOUSE_DOWN, this::onSwitchClick);
+
+        this.placeholder = new UIElement();
+        Style.importantPipeline(placeholder.getLayout(), layout -> layout.flex(0));
+        this.placeholder.getStyle().transition(new Transition(Map.of(LayoutProperties.FLEX, new Animation(0.1f, 0, Eases.LINEAR))));
 
         this.markIcon = new UIElement();
         this.markIcon.layout(layout -> {
@@ -132,7 +141,7 @@ public class Switch extends BindableUIElement<Boolean> {
                 })
                 .addClass("__switch_mark-icon__");
         Style.importantPipeline(markIcon.getStyle(), style -> style.backgroundTexture(Sprites.RECT_RD));
-        addChildren(markIcon);
+        addChildren(placeholder, markIcon);
         internalSetup();
     }
 
@@ -179,7 +188,7 @@ public class Switch extends BindableUIElement<Boolean> {
 
     protected void updateSwitchStyle() {
         Style.importantPipeline(getStyle(), style -> style.backgroundTexture(isOn ? switchStyle.pressedTexture() : switchStyle.baseTexture()));
-        Style.importantPipeline(getLayout(), layout -> layout.direction(isOn ? TaffyDirection.RTL : TaffyDirection.LTR));
+        Style.importantPipeline(placeholder.getLayout(), layout -> layout.flex(isOn ? 1 : 0));
         Style.importantPipeline(markIcon.getStyle(), style -> style.backgroundTexture(isOn ? switchStyle.markTexture() : switchStyle.unmarkTexture()));
     }
 

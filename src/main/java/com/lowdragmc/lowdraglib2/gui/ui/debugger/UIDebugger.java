@@ -56,7 +56,8 @@ public class UIDebugger extends UIElement {
         getLayout().positionType(TaffyPosition.ABSOLUTE).width(200).height(200);
 
         this.title = new Label();
-        this.title.getLayout().flexGrow(1);
+        this.title.getLayout().flexGrow(1).heightPercent(100);
+        this.title.getTextStyle().textAlignVertical(Vertical.CENTER);
         this.title.setText("Debugger").setOverflowVisible(false);
         this.titleBar = new UIElement().layout(layout -> layout.paddingAll(4).alignItems(AlignItems.CENTER).flexDirection(FlexDirection.ROW))
                 .addChildren(

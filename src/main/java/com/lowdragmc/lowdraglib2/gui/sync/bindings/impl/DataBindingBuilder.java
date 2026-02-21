@@ -76,8 +76,9 @@ public class DataBindingBuilder<T> {
         return this;
     }
 
-    public DataBindingBuilder<T> initialValue(T initialValue) {
+    public DataBindingBuilder<T> initialValue(@Nullable T initialValue) {
         this.initialValue = initialValue;
+        if (initialValue == null) return this;
         if (type == null) {
             type = initialValue.getClass();
         }

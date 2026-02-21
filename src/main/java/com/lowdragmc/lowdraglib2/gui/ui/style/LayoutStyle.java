@@ -1475,6 +1475,7 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
+    @Deprecated(since = "26.1")
     public LayoutStyle setOverflow(YogaOverflow overflow) {
         set(LayoutProperties.OVERFLOW, overflow);
         return this;

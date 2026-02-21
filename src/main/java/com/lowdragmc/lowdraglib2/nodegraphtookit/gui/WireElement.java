@@ -177,11 +177,6 @@ public class WireElement extends GraphElement<WireModel> {
                 );
             }
         }
-        var fromPos = getLocalMouse(fromWorldPos.x, fromWorldPos.y);
-        if (!fromPos.equals(from)) {
-            dirty = true;
-            this.from = fromPos;
-        }
 
         Vector2f toWorldPos = new Vector2f();
         if (toPort == null) {
@@ -197,7 +192,15 @@ public class WireElement extends GraphElement<WireModel> {
                 );
             }
         }
-        var toPos = getLocalMouse(toWorldPos.x, toWorldPos.y);
+
+        if (getParent() == null) return;
+
+        var fromPos = getParent().worldToLocalLayoutOffset(fromWorldPos);
+        if (!fromPos.equals(from)) {
+            dirty = true;
+            this.from = fromPos;
+        }
+        var toPos = getParent().worldToLocalLayoutOffset(toWorldPos);
         if (!toPos.equals(to)) {
             dirty = true;
             this.to = toPos;
@@ -216,11 +219,19 @@ public class WireElement extends GraphElement<WireModel> {
             maxX = Math.max(maxX, toPoint2.x);
             maxY = Math.max(maxY, toPoint2.y);
             var border = 2;
+
+            var x = minX - border;
+            var y = minY - border;
             getLayout()
-                    .left(minX - border)
-                    .top(minY - border)
+                    .left(x)
+                    .top(y)
                     .width(maxX - minX + 2 * border)
                     .height(maxY - minY + 2 * border);
+            var offset = new Vector2f(getParent().getPositionX(), getParent().getPositionY());
+            from = from.add(offset);
+            to = to.add(offset);
+            fromPoint2 = fromPoint2.add(offset);
+            toPoint2 = toPoint2.add(offset);
             rawPoints = List.of(from, fromPoint2, toPoint2, to);
             drawPoints = roundCorners(rawPoints, 6, 5);
         }

@@ -7,10 +7,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import net.minecraft.network.chat.Component;
+import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -160,4 +162,12 @@ public class BasicStyle extends Style {
         return this;
     }
 
+    public boolean overflowVisible() {
+        return getValueSave(LayoutProperties.OVERFLOW) == YogaOverflow.VISIBLE;
+    }
+
+    public BasicStyle overflowVisible(boolean transition) {
+        set(LayoutProperties.OVERFLOW, transition ? YogaOverflow.VISIBLE : YogaOverflow.HIDDEN);
+        return this;
+    }
 }
