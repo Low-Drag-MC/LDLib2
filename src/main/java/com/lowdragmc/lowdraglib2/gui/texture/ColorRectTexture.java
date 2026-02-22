@@ -19,7 +19,7 @@ import org.joml.Matrix4f;
 @LDLRegisterClient(name = "color_rect_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 @KJSBindings
-public class ColorRectTexture extends TransformTexture{
+public class ColorRectTexture extends TransformTexture {
     @Configurable
     @ConfigColor
     @Setter
