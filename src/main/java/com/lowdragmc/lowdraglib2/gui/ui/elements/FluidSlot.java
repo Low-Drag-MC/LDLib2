@@ -167,14 +167,16 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         getStyle().backgroundTexture(Sprites.RECT_DARK);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
-        if (LDLib2.isJeiLoaded()) {
-            JEISupport.clickableIngredient(this);
-        }
-        if (LDLib2.isReiLoaded()) {
-            REISupport.focusedStack(this);
-        }
-        if (LDLib2.isEmiLoaded()) {
-            EMISupport.stackProvider(this);
+        if (LDLib2.isClient() && !LDLib2.isServer()) {
+            if (LDLib2.isJeiLoaded()) {
+                JEISupport.clickableIngredient(this);
+            }
+            if (LDLib2.isReiLoaded()) {
+                REISupport.focusedStack(this);
+            }
+            if (LDLib2.isEmiLoaded()) {
+                EMISupport.stackProvider(this);
+            }
         }
         clickEvent = addRPCEvent(RPCEventBuilder.simple(Boolean.class, this::tryClickContainer));
 

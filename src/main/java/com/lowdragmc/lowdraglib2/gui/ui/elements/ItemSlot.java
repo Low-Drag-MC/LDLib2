@@ -170,14 +170,16 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.MUI_CHANGED, this::onModularUIChanged);
-        if (LDLib2.isJeiLoaded()) {
-            JEISupport.clickableIngredient(this);
-        }
-        if (LDLib2.isReiLoaded()) {
-            REISupport.focusedStack(this);
-        }
-        if (LDLib2.isEmiLoaded()) {
-            EMISupport.stackProvider(this);
+        if (LDLib2.isClient() && !LDLib2.isServer()) {
+            if (LDLib2.isJeiLoaded()) {
+                JEISupport.clickableIngredient(this);
+            }
+            if (LDLib2.isReiLoaded()) {
+                REISupport.focusedStack(this);
+            }
+            if (LDLib2.isEmiLoaded()) {
+                EMISupport.stackProvider(this);
+            }
         }
         bind(slot);
         internalSetup();
