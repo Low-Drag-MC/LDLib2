@@ -229,6 +229,7 @@
             <xs:extension base="Element">
                 <xs:attribute name="item" type="xs:string"/>
                 <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+                <xs:attribute name="allow-xei-lookup" type="xs:boolean"/>
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
@@ -239,6 +240,7 @@
                 <xs:attribute name="fluid" type="xs:string"/>
                 <xs:attribute name="amount" type="xs:nonNegativeInteger"/>
                 <xs:attribute name="capacity" type="xs:nonNegativeInteger"/>
+                <xs:attribute name="allow-xei-lookup" type="xs:boolean"/>
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
@@ -273,6 +275,7 @@
             <xs:element name="second" type="Element"/>
         </xs:sequence>
         <xs:attributeGroup ref="CommonAttrs"/>
+        <xs:attribute name="percentage" type="xs:float"/>
     </xs:complexType>
 
     <!-- ========== selector ========== -->
@@ -292,6 +295,7 @@
                 <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
         </xs:sequence>
+        <xs:attributeGroup ref="CommonAttrs"/>
         <xs:attribute name="default-value" type="xs:string"/>
     </xs:complexType>
 

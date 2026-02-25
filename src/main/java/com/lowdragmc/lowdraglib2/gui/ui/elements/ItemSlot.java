@@ -443,7 +443,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     @Override
     public void loadXml(Element element) {
         // allow xei lookup
-        if (element.hasAttribute("allow-xei-Lookup")) {
+        if (element.hasAttribute("allow-xei-lookup")) {
             setAllowXEILookup(XmlUtils.getAsBoolean(element, "allow-xei-Lookup", allowXEILookup));
         }
         // item display
