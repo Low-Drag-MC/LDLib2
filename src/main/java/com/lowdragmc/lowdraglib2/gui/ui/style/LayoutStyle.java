@@ -1357,6 +1357,7 @@ public final class LayoutStyle extends Style {
     }
 
     @HideFromJS
+    @Deprecated(since = "26.1")
     public LayoutStyle wrap(YogaWrap wrap) {
         return wrap(switch (wrap) {
             case NO_WRAP -> FlexWrap.NO_WRAP;

@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.shader.management.Shader;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -98,13 +97,13 @@ public class LDLibShaders {
 	@Getter
 	private static ShaderInstance hsbShader;
 	@Getter
-	private static ShaderInstance compassLineShader;
+	private static ShaderInstance graphWireShader;
     @Getter
     private static ShaderInstance visualLayerShader;
     @Getter
     private static ShaderInstance SDFRect;
     @Getter
-    private static ShaderInstance GUI_TEXTURE;
+    private static ShaderInstance guiTexture;
 
 	/**
 	 * the vertex format for HSB color, three four of float
@@ -136,14 +135,14 @@ public class LDLibShaders {
 							LDLib2.id("hsb_block"), HSB_VERTEX_FORMAT),
 					shaderInstance -> hsbShader = shaderInstance);
 			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-							LDLib2.id("compass_line"), DefaultVertexFormat.POSITION_TEX_COLOR),
-					shaderInstance -> compassLineShader = shaderInstance);
+							LDLib2.id("graph_wire"), DefaultVertexFormat.POSITION_TEX_COLOR),
+					shaderInstance -> graphWireShader = shaderInstance);
             registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
                             LDLib2.id("sdf_rect"), DefaultVertexFormat.POSITION),
                     shaderInstance -> SDFRect = shaderInstance);
             registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
                             LDLib2.id("gui_texture"), DefaultVertexFormat.POSITION_TEX_COLOR),
-                    shaderInstance -> GUI_TEXTURE = shaderInstance);
+                    shaderInstance -> guiTexture = shaderInstance);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

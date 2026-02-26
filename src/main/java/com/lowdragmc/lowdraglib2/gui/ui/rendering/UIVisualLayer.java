@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -16,9 +15,13 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 public class UIVisualLayer {
+    // msaa does it necessary?
+//    private static final Queue<MsaaTarget> TARGET_POOL = new ArrayDeque<>();
     private static final Queue<MainTarget> TARGET_POOL = new ArrayDeque<>();
     private static final Queue<TextureTarget> MASK_POOL = new ArrayDeque<>();
     private static final int MAX_POOL_SIZE = 10;
+//    private static final int SAMPLER = 4;
+//    private static TextureTarget MSAA_RESOLVED_COLOR;
 
     private final UIElement element;
     @Nullable
@@ -73,6 +76,16 @@ public class UIVisualLayer {
         }
     }
 
+//    private TextureTarget ensureResolvedValid(int width, int height) {
+//        if (MSAA_RESOLVED_COLOR == null) {
+//            MSAA_RESOLVED_COLOR = new TextureTarget(width, height, false, Minecraft.ON_OSX);
+//        }
+//        if (MSAA_RESOLVED_COLOR.width != width || MSAA_RESOLVED_COLOR.height != height) {
+//            MSAA_RESOLVED_COLOR.resize(width, height, Minecraft.ON_OSX);
+//        }
+//        return MSAA_RESOLVED_COLOR;
+//    }
+
     public void clear() {
         if (target != null) {
             RenderSystem.clearColor(0, 0, 0, 0);
@@ -103,11 +116,18 @@ public class UIVisualLayer {
         if (target != null) {
             target.unbindWrite();
         }
+        // resolve MSAA -> single-sample texture for sampling in shader
+//        if (target != null) {
+//            var resolvedColor = ensureResolvedValid(target.getWidth(), target.getHeight());
+//            target.resolveTo(resolvedColor, GL30.GL_COLOR_BUFFER_BIT);
+//        }
     }
 
     public int textureId() {
         if (target == null) return -1;
         return target.getColorTextureId();
+//        if (MSAA_RESOLVED_COLOR == null) return -1;
+//        return MSAA_RESOLVED_COLOR.getColorTextureId();
     }
 
     private void drawMask(GUIContext guiContext, IGuiTexture maskTexture) {
@@ -141,9 +161,6 @@ public class UIVisualLayer {
         RenderSystem.setShaderTexture(0, textureId());
         var blitShader = LDLibShaders.getVisualLayerShader();
 
-//        blitShader.MODEL_VIEW_MATRIX.set(RenderSystem.getModelViewMatrix());
-//        blitShader.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
-//        blitShader.setSampler("DiffuseSampler", textureId());
         blitShader.safeGetUniform("Opacity").set(opacity);
         if (hasClip && mask != null) {
             blitShader.setSampler("Mask", mask.getColorTextureId());
@@ -152,7 +169,6 @@ public class UIVisualLayer {
             blitShader.safeGetUniform("HasMask").set(0f);
         }
 
-//        blitShader.apply();
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
         RenderSystem.enableBlend();
@@ -171,8 +187,5 @@ public class UIVisualLayer {
         bufferbuilder.addVertex(pose, x + width, y, 0);
         bufferbuilder.addVertex(pose, x, y, 0);
         BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
-
-//        blitShader.clear();
     }
-
 }

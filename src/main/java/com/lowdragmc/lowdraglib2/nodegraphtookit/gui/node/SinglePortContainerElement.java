@@ -22,6 +22,8 @@ public class SinglePortContainerElement extends ModelElement {
     // runtime
     @Getter @Nullable
     protected PortContainer portContainer;
+    @Getter @Nullable
+    protected PortElement portElement;
 
     public SinglePortContainerElement(PortModel portModel) {
         this.portModel = portModel;
@@ -35,6 +37,12 @@ public class SinglePortContainerElement extends ModelElement {
 
     @Override
     public void updateUIFromModel(ModelUpdateVisitor visitor) {
-        if (portContainer != null) portContainer.updatePorts(visitor, List.of(portModel), getGraphView());
+        super.updateUIFromModel(visitor);
+        if (portContainer != null) {
+            portContainer.updatePorts(visitor, List.of(portModel), getGraphView());
+            portElement = portContainer.getPortElements().get(portModel);
+        } else {
+            portElement = null;
+        }
     }
 }

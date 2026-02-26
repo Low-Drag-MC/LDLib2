@@ -1707,6 +1707,13 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // todo subgraph
     }
 
+    /**
+     * Calls update recursively on all subgraph nodes in the graph.
+     */
+    public void updateSubGraphs() {
+        // todo subgraph
+    }
+
 
     // endregion
 

@@ -208,6 +208,16 @@ public abstract class ModelElement extends UIElement {
     }
 
     /**
+     * Handles the inspection of the selection state of this element. This method is invoked to
+     * allow custom actions or logic to be performed when the associated selection needs inspection.
+     *
+     * @param inspector the {@link GraphInspector} instance used for inspecting the selection.
+     *                  Provides tools for interacting with the graph-related selection.
+     */
+    protected void onSelectionInspect(GraphInspector inspector) {
+    }
+
+    /**
      * Checks if this element can be selected within the specified region.
      * Determines whether the element overlaps with the given rectangular region
      * defined by its bounds.

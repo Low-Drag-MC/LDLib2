@@ -754,7 +754,7 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
 
     @Override
     public IGuiTexture getNodeIcon() {
-        return Icons.NODE;
+        return IGuiTexture.EMPTY;
     }
 
     @Override

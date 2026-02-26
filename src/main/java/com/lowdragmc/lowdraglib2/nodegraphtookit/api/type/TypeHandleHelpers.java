@@ -1,22 +1,31 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.type;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 @UtilityClass
 public final class TypeHandleHelpers {
+    // customId -> Type binding
+    private static final Map<String, Type> ID_TO_TYPE = new ConcurrentHashMap<>();
     // customId -> (TypeHandle + FriendlyName)
     private static final Map<String, TypeHandleDescriptor> CUSTOM_ID_TO_DESCRIPTOR = new ConcurrentHashMap<>();
     // customId -> ITypeConfigurable
     private static final Map<String, ITypeConfigurable> CUSTOM_ID_TO_CONFIGURABLE = new ConcurrentHashMap<>();
-    // customId -> Type binding
-    private static final Map<String, Type> ID_TO_TYPE = new ConcurrentHashMap<>();
+    // customId -> Color
+    private static final Map<String, Integer> CUSTOM_ID_TO_COLOR = new ConcurrentHashMap<>();// customId -> Color
+    // customId -> ICON
+    private static final Map<String, IGuiTexture> CUSTOM_ID_TO_ICON = new ConcurrentHashMap<>();
+
 
     /**
      * GenerateCustomTypeHandle(uniqueId, friendlyName)
@@ -78,6 +87,28 @@ public final class TypeHandleHelpers {
         }
     }
 
+    public static void setCustomColorAndIcon(TypeHandle typeHandle, int color, IGuiTexture icon) {
+        var id = typeHandle.getIdentification();
+        if (id != null) {
+            CUSTOM_ID_TO_COLOR.put(id, color);
+            CUSTOM_ID_TO_ICON.put(id, icon);
+        }
+    }
+
+    public static void setCustomColor(TypeHandle typeHandle, int color) {
+        var id = typeHandle.getIdentification();
+        if (id != null) {
+            CUSTOM_ID_TO_COLOR.put(id, color);
+        }
+    }
+
+    public static void setCustomIcon(TypeHandle typeHandle, IGuiTexture icon) {
+        var id = typeHandle.getIdentification();
+        if (id != null) {
+            CUSTOM_ID_TO_ICON.put(id, icon);
+        }
+    }
+
     /**
      * GenerateTypeHandle(Type t, friendlyName)
      */
@@ -122,6 +153,34 @@ public final class TypeHandleHelpers {
     static ITypeConfigurable resolveConfigurable(TypeHandle th) {
         String id = (th != null) ? th.getIdentification() : null;
         return CUSTOM_ID_TO_CONFIGURABLE.getOrDefault(id, ITypeConfigurable.DEFAULT);
+    }
+
+    static int resolveColor(TypeHandle typeHandle) {
+        String id = (typeHandle != null) ? typeHandle.getIdentification() : null;
+        var color = CUSTOM_ID_TO_COLOR.get(id);
+        if (color != null) return color;
+        if (id == null) return -1;
+        // hash color
+        var t = (fnv1a32(id) & 0xffffffffL) / (double) 0x1_0000_0000L;
+        var rgb = ColorUtils.hslToRGB(new double[]{t, 0.75, 0.68});
+        return ColorUtils.color(1, rgb[0], rgb[1], rgb[2]);
+    }
+
+    /**
+     * To make sure hash results are consistent across JVMs.
+     */
+    private static int fnv1a32(String s) {
+        int hash = 0x811c9dc5;
+        for (int i = 0; i < s.length(); i++) {
+            hash ^= s.charAt(i);
+            hash *= 0x01000193;
+        }
+        return hash;
+    }
+
+    static IGuiTexture resolveIcon(TypeHandle typeHandle) {
+        String id = (typeHandle != null) ? typeHandle.getIdentification() : null;
+        return CUSTOM_ID_TO_ICON.getOrDefault(id, IGuiTexture.EMPTY);
     }
 
     static boolean isCustomTypeHandle(TypeHandle typeHandle) {

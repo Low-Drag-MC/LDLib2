@@ -306,85 +306,163 @@ public class RenderBufferUtils {
         drawColorLines(poseStack, builder, points, colorStart, colorEnd, width, true);
     }
 
-    public static void drawColorLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vector2f> points, int colorStart, int colorEnd, float width, boolean stripSide) {
-        if (points.size() < 2) return;
+    public static void drawColorLines(@Nonnull PoseStack poseStack,
+                                      VertexConsumer builder,
+                                      List<Vector2f> points,
+                                      int colorStart, int colorEnd,
+                                      float halfWidth,
+                                      boolean stripSide) {
+        int n = points.size();
+        if (n < 2) return;
+
         Matrix4f mat = poseStack.last().pose();
-        var lastPoint = points.get(0);
-        var point = points.get(1);
-        Vector3f vec = null;
-        int sa = (colorStart >> 24) & 0xff, sr = (colorStart >> 16) & 0xff, sg = (colorStart >> 8) & 0xff, sb = colorStart & 0xff;
-        int ea = (colorEnd >> 24) & 0xff, er = (colorEnd >> 16) & 0xff, eg = (colorEnd >> 8) & 0xff, eb = colorEnd & 0xff;
-        ea = (ea - sa);
-        er = (er - sr);
-        eg = (eg - sg);
-        eb = (eb - sb);
-        for (int i = 1; i < points.size(); i++) {
-            float s = (i - 1f) / points.size();
-            float e = i * 1f / points.size();
-            var r = (sr + er * s) / 255;
-            var g = (sg + eg * s) / 255;
-            var b = (sb + eb * s) / 255;
-            var a = (sa + ea * s) / 255;
-            point = points.get(i);
-            vec = new Vector3f(point.x - lastPoint.x, point.y - lastPoint.y, 0).rotateZ(Mth.HALF_PI).normalize().mul(width);
-            builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0)
-                    .setColor(r, g, b, a);
-            if (stripSide && i == 1) {
-                builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0)
-                        .setColor(r, g, b, a);
+
+        int sa0 = (colorStart >>> 24) & 0xFF, sr0 = (colorStart >>> 16) & 0xFF, sg0 = (colorStart >>> 8) & 0xFF, sb0 = colorStart & 0xFF;
+        int ea0 = (colorEnd   >>> 24) & 0xFF, er0 = (colorEnd   >>> 16) & 0xFF, eg0 = (colorEnd   >>> 8) & 0xFF, eb0 = colorEnd & 0xFF;
+
+        int da = ea0 - sa0, dr = er0 - sr0, dg = eg0 - sg0, db = eb0 - sb0;
+
+        int segCount = n - 1;
+
+        Vector2f last = points.get(0);
+        Vector2f curr = null;
+        Vector3f perp = new Vector3f();
+
+        for (int i = 1; i < n; i++) {
+            float t = (i - 1f) / segCount;
+
+            float r = (sr0 + dr * t) / 255f;
+            float g = (sg0 + dg * t) / 255f;
+            float b = (sb0 + db * t) / 255f;
+            float a = (sa0 + da * t) / 255f;
+
+            curr = points.get(i);
+
+            float dx = curr.x - last.x;
+            float dy = curr.y - last.y;
+            float len2 = dx * dx + dy * dy;
+            if (len2 < 1.0e-12f) {
+                // skip degenerate segment
+                last = curr;
+                continue;
             }
-            vec.mul(-1);
-            builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0)
-                    .setColor(r, g, b, a);
-            lastPoint = point;
+
+            // perpendicular (dx,dy) rotated +90° => (-dy, dx)
+            float invLen = (float)(1.0 / Math.sqrt(len2));
+            perp.set(-dy * invLen * halfWidth, dx * invLen * halfWidth, 0);
+
+            builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0).setColor(r, g, b, a);
+
+            if (stripSide && i == 1) {
+                // duplicate to "prime" the strip if you need it
+                builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0).setColor(r, g, b, a);
+            }
+
+            builder.addVertex(mat, last.x - perp.x, last.y - perp.y, 0).setColor(r, g, b, a);
+
+            last = curr;
         }
-        vec.mul(-1);
-        builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0)
-                .setColor(sr + er, sg + eg, sb + eb, sa + ea);
-        vec.mul(-1);
-        builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0)
-                .setColor(sr + er, sg + eg, sb + eb, sa + ea);
+
+        if (curr == null) return;
+
+        float rEnd = (sr0 + dr) / 255f;
+        float gEnd = (sg0 + dg) / 255f;
+        float bEnd = (sb0 + db) / 255f;
+        float aEnd = (sa0 + da) / 255f;
+
+        // 'perp' still contains last segment's perpendicular if we didn't skip it.
+        builder.addVertex(mat, curr.x + perp.x, curr.y + perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
+        builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
+
         if (stripSide) {
-            builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0)
-                    .setColor(sr + er, sg + eg, sb + eb, sa + ea);
+            builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
         }
     }
 
-    public static void drawColorTexLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vec2> points, int colorStart, int colorEnd, float width) {
-        if (points.size() < 2) return;
+    public static void drawColorTexLines(@Nonnull PoseStack poseStack,
+                                         VertexConsumer builder,
+                                         List<Vector2f> points,
+                                         int colorStart, int colorEnd,
+                                         float halfWidth,
+                                         boolean stripSide) {
+        int n = points.size();
+        if (n < 2) return;
+
         Matrix4f mat = poseStack.last().pose();
-        Vec2 lastPoint = points.get(0);
-        Vec2 point = points.get(1);
-        Vector3f vec = null;
-        int sa = (colorStart >> 24) & 0xff, sr = (colorStart >> 16) & 0xff, sg = (colorStart >> 8) & 0xff, sb = colorStart & 0xff;
-        int ea = (colorEnd >> 24) & 0xff, er = (colorEnd >> 16) & 0xff, eg = (colorEnd >> 8) & 0xff, eb = colorEnd & 0xff;
-        ea = (ea - sa);
-        er = (er - sr);
-        eg = (eg - sg);
-        eb = (eb - sb);
-        for (int i = 1; i < points.size(); i++) {
-            float s = (i - 1f) / points.size();
-            float e = i * 1f / points.size();
-            point = points.get(i);
-            float u = (i - 1f) / points.size();
-            vec = new Vector3f(point.x - lastPoint.x, point.y - lastPoint.y, 0).rotateZ(Mth.HALF_PI).normalize().mul(-width);
-            builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0).setUv(u,0)
-                    .setColor((sr + er * s) / 255, (sg + eg * s) / 255, (sb + eb * s) / 255, (sa + ea * s) / 255)
-                    ;
-            vec.mul(-1);
-            builder.addVertex(mat, lastPoint.x + vec.x, lastPoint.y + vec.y, 0).setUv(u,1)
-                    .setColor((sr + er * e) / 255, (sg + eg * e) / 255, (sb + eb * e) / 255, (sa + ea * e) / 255)
-                    ;
-            lastPoint = point;
+
+        int sa0 = (colorStart >>> 24) & 0xFF, sr0 = (colorStart >>> 16) & 0xFF, sg0 = (colorStart >>> 8) & 0xFF, sb0 = colorStart & 0xFF;
+        int ea0 = (colorEnd   >>> 24) & 0xFF, er0 = (colorEnd   >>> 16) & 0xFF, eg0 = (colorEnd   >>> 8) & 0xFF, eb0 = colorEnd & 0xFF;
+
+        int da = ea0 - sa0, dr = er0 - sr0, dg = eg0 - sg0, db = eb0 - sb0;
+
+        int segCount = n - 1;
+
+        var last = points.getFirst();
+        Vector2f curr = null;
+
+        Vector3f perp = new Vector3f();
+        boolean emittedAny = false;
+
+        for (int i = 1; i < n; i++) {
+            float u = (i - 1f) / segCount; // 0..1
+            float t = u;
+
+            float r = (sr0 + dr * t) / 255f;
+            float g = (sg0 + dg * t) / 255f;
+            float b = (sb0 + db * t) / 255f;
+            float a = (sa0 + da * t) / 255f;
+
+            curr = points.get(i);
+
+            float dx = curr.x - last.x;
+            float dy = curr.y - last.y;
+            float len2 = dx * dx + dy * dy;
+            if (len2 < 1.0e-12f) {
+                last = curr;
+                continue;
+            }
+
+            float invLen = (float)(1.0 / Math.sqrt(len2));
+            perp.set(-dy * invLen * halfWidth, dx * invLen * halfWidth, 0);
+
+            builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0)
+                    .setUv(u, 0)
+                    .setColor(r, g, b, a);
+
+            if (stripSide && !emittedAny) {
+                builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0)
+                        .setUv(u, 0)
+                        .setColor(r, g, b, a);
+            }
+
+            builder.addVertex(mat, last.x - perp.x, last.y - perp.y, 0)
+                    .setUv(u, 1)
+                    .setColor(r, g, b, a);
+
+            emittedAny = true;
+            last = curr;
         }
-        vec.mul(-1);
-        builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0).setUv(1,0)
-                .setColor(sr + er, sg + eg, sb + eb, sa + ea)
-                ;
-        vec.mul(-1);
-        builder.addVertex(mat, point.x + vec.x, point.y + vec.y, 0).setUv(1,1)
-                .setColor(sr + er, sg + eg, sb + eb, sa + ea)
-                ;
+
+        if (!emittedAny || curr == null) return;
+
+        float rEnd = (sr0 + dr) / 255f;
+        float gEnd = (sg0 + dg) / 255f;
+        float bEnd = (sb0 + db) / 255f;
+        float aEnd = (sa0 + da) / 255f;
+
+        builder.addVertex(mat, curr.x + perp.x, curr.y + perp.y, 0)
+                .setUv(1, 0)
+                .setColor(rEnd, gEnd, bEnd, aEnd);
+
+        builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0)
+                .setUv(1, 1)
+                .setColor(rEnd, gEnd, bEnd, aEnd);
+
+        if (stripSide) {
+            builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0)
+                    .setUv(1, 1)
+                    .setColor(rEnd, gEnd, bEnd, aEnd);
+        }
     }
 
     public static void drawCircleLine(@Nonnull PoseStack poseStack, VertexConsumer buffer,

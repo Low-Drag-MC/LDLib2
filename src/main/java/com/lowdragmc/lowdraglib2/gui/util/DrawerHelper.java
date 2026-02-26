@@ -240,8 +240,12 @@ public class DrawerHelper {
         float endBlue    = (float)(endColor         & 255) / 255.0F;
         var buffer = graphics.bufferSource().getBuffer(RenderType.guiOverlay());
         RenderSystem.disableDepthTest();
-        // todo fis func?
-        RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+        RenderSystem.blendFuncSeparate(
+                GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                GlStateManager.SourceFactor.ONE,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA
+        );
         Matrix4f mat = graphics.pose().last().pose();
         if (horizontal) {
             buffer.addVertex(mat,x + width, y, 0).setColor(endRed, endGreen, endBlue, endAlpha);
@@ -260,6 +264,12 @@ public class DrawerHelper {
         var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.stripLines());
         RenderSystem.disableDepthTest();
         RenderBufferUtils.drawColorLines(graphics.pose(), buffer, points, startColor, endColor, width);
+    }
+
+    public static void drawTexLines(@Nonnull GuiGraphics graphics, RenderType renderType, List<Vector2f> points, int startColor, int endColor, float width) {
+        var buffer = graphics.bufferSource().getBuffer(renderType);
+        RenderSystem.disableDepthTest();
+        RenderBufferUtils.drawColorTexLines(graphics.pose(), buffer, points, startColor, endColor, width, true);
     }
 
     public static void drawTooltip(GuiGraphics graphics, int mouseX, int mouseY, List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable TooltipComponent tooltipComponent, Font tooltipFont) {

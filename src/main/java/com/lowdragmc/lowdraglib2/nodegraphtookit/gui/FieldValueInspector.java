@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import net.minecraft.network.chat.Component;
 
 public class FieldValueInspector extends UIElement {
     public final Label fieldName = new Label();
@@ -18,10 +19,16 @@ public class FieldValueInspector extends UIElement {
         fieldName.getLayout().height(14);
         fieldName.getTextStyle().textAlignVertical(Vertical.CENTER);
         fieldName.setText("");
+        fieldName.setDisplay(false);
         fieldName.getTextStyle().adaptiveWidth(true);
         fieldConfigurator.getLayout().flexGrow(1).gapAll(2).minWidth(55);
 
         addChildren(fieldName, fieldConfigurator);
+    }
+
+    public void setFieldName(Component name) {
+        fieldName.setText(name);
+        fieldName.setDisplay(!Component.empty().equals(name));
     }
 
     public void loadValueField(IFieldValueConfigurable valueField) {

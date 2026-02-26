@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.PlaceholderModelHelper;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;

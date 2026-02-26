@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.CapsuleNodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
@@ -33,11 +32,6 @@ public class ConstantNodeModel extends NodeModel implements ISingleOutputPortNod
     @Override
     public PortModel getOutputPort() {
         return getOutputPortInfos().portsById.values().getFirst();
-    }
-
-    @Override
-    public IGuiTexture getNodeIcon() {
-        return IGuiTexture.EMPTY;
     }
 
     public void setConstant(@Nullable Constant constant) {

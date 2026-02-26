@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortConnectorUI;
@@ -14,6 +15,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModelImpl;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
+import net.minecraft.network.chat.Component;
 
 import java.util.stream.Stream;
 
@@ -26,6 +28,7 @@ public class PortConnectorElement extends ModelElement {
     protected Label name;
     @Getter
     protected boolean willConnect;
+    protected IGuiTexture lastIcon = IGuiTexture.EMPTY;
 
     public PortConnectorElement(PortModel portModel) {
         this.portModel = portModel;
@@ -66,6 +69,13 @@ public class PortConnectorElement extends ModelElement {
         if (visitor.hasHint(ChangeHint.STYLE) || visitor.hasHint(ChangeHint.DATA)) {
             // update title and tooltips
             name.setText(portModel.getDisplayName());
+            name.setDisplay(!Component.empty().equals(name.getValue()));
+            // update color
+            var icon = lastIcon.copy().setColor(portModel.getDataTypeHandle().getTypeColor());
+            connectorIcon.getStyle().background(DynamicTexture.of(() -> {
+                if (isActive()) return icon;
+                else return icon.copy().setColor(ColorPattern.GRAY.color);
+            }));
         }
     }
 
@@ -75,11 +85,7 @@ public class PortConnectorElement extends ModelElement {
         } else {
             connectorIcon.setDisplay(true);
             var connectorUI = portModel instanceof PortModelImpl impl ? impl.getConnectorUI() : PortConnectorUI.DEFAULT;
-            var icon = connectorUI.getIcon(portModel.isConnected() || isWillConnect());
-            connectorIcon.getStyle().background(DynamicTexture.of(() -> {
-                if (isActive()) return icon;
-                else return icon.copy().setColor(ColorPattern.GRAY.color);
-            }));
+            lastIcon = connectorUI.getIcon(portModel.isConnected() || isWillConnect());
         }
     }
 }

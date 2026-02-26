@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
@@ -39,14 +38,12 @@ public class PortConstantEditorElement extends ModelElement {
         super.buildUI();
         getLayout().flexGrow(1);
         if (isPortRequireEditor()) {
-            if (portModel instanceof IFieldValueConfigurable) {
-                buildConstantEditor();
-            }
+            buildConstantEditor();
         }
     }
 
     protected void buildConstantEditor() {
-        if (portModel instanceof IFieldValueConfigurable filedValue && isPortRequireEditor()) {
+        if (isPortRequireEditor()) {
             var isConnected = portModel.isConnected();
             var embeddedValue = portModel.getEmbeddedValue();
             var valueType = embeddedValue == null ? null : embeddedValue.getTypeHandle();
@@ -63,7 +60,7 @@ public class PortConstantEditorElement extends ModelElement {
                 if (portModel.getDirection() == PortDirection.INPUT && portModel.getEmbeddedValue() != null) {
                     lastDataType = portModel.getEmbeddedValue().getTypeHandle();
                     editor = new FieldValueInspector();
-                    editor.loadValueField(filedValue);
+                    editor.loadValueField(portModel);
                     addChild(editor);
                 }
             }
@@ -111,7 +108,9 @@ public class PortConstantEditorElement extends ModelElement {
                 }
                 editor.setActive(!ancestorIsConnected && !allSubPortsConnected);
             }
-            editor.setDisplay(!hideEditor);
+            this.setDisplay(!hideEditor);
+        } else {
+            this.setDisplay(false);
         }
     }
 }

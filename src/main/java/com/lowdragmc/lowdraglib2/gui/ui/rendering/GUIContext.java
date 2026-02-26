@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Stack;
 import java.util.function.Consumer;
 
+import org.lwjgl.opengl.GL30;
+
 public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     public ModularUI modularUI;
@@ -45,7 +47,8 @@ public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     private final List<PostCall> postRenderingCalls = new ArrayList<>();
     private record PostCall(Consumer<GUIContext> call, PoseStack.Pose pose) {}
-
+    private int lastFBO = -1;
+    
     @OnlyIn(Dist.CLIENT)
     public static GUIContext of(ModularUI modularUI, GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         var context = new GUIContext();
@@ -96,6 +99,11 @@ public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     public void pushVisualLayer(UIVisualLayer layer) {
         graphics.flush();
+        if (visualLayers.isEmpty()) {
+            int[] fbo = new int[1];
+            GL30.glGetIntegerv(GL30.GL_FRAMEBUFFER_BINDING, fbo);
+            lastFBO = fbo[0];
+        }
         visualLayers.push(layer);
         layer.bind(this);
         layer.clear();
@@ -106,9 +114,14 @@ public class GUIContext {
         var popped = visualLayers.pop();
         if (popped != null) {
             graphics.flush();
+            popped.unbind();
             var mainTarget = Minecraft.getInstance().getMainRenderTarget();
             if (visualLayers.isEmpty()) {
-                mainTarget.bindWrite(false);
+                if (lastFBO == -1) {
+                    mainTarget.bindWrite(false);
+                } else {
+                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, lastFBO);
+                }
             } else {
                 visualLayers.peek().bind(this);
             }

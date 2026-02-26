@@ -505,5 +505,10 @@
   "graph.type": "Type",
   "debugger.focus_mode.0": "focus mode (F1)",
   "debugger.focus_mode.1": "click element to focus",
-  "debugger.ui_shaping.0": "render ui shaping (F4)"
+  "debugger.ui_shaping.0": "render ui shaping (F4)",
+  "graph.commands.create_variable": "Create Variable",
+  "graph.inspector": "Inspector",
+  "graph.variable_type": "Variable Type",
+  "graph.commands.change_variable_modifiers": "Change Variable Subgraph Use",
+  "graph.flow_direction": "Flow Direction"
 }

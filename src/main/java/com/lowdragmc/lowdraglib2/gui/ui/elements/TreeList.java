@@ -132,10 +132,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @Nullable
     @Getter
     protected NODE root;
+    @Getter
     protected final BiMap<NODE, UIElement> nodeUIs = HashBiMap.create();
     protected final Set<NODE> selectedNodes = new LinkedHashSet<>();
     @Getter @Nullable
     protected NODE hoveredNode = null;
+    @Getter
     protected final Set<NODE> expandedNodes = new HashSet<>();
     protected final Map<NODE, List<NODE>> displayedChildren = new HashMap<>();
 
@@ -271,6 +273,31 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                     addNodeUI(childNode, nodeIndex + 1);
                 }
             }
+        }
+    }
+
+    /**
+     * Expands or collapses all nodes in the tree starting from the specified root node,
+     * based on the evaluation of a provided predicate function. Nodes for which the
+     * predicate evaluates to {@code true} are expanded, while others are collapsed.
+     *
+     * This method recursively processes each node and its children, ensuring that
+     * the expand or collapse operation is applied consistently throughout the subtree.
+     * It utilizes {@link #expandNode(NODE)} to expand nodes and {@link #collapseNode(NODE)}
+     * to collapse nodes.
+     *
+     * @param root the starting node of the tree or subtree to process
+     * @param predicate a {@code Predicate} applied to each node to determine if it
+     *        should be expanded ({@code true}) or collapsed ({@code false})
+     */
+    public void expandAllNodesIf(NODE root, Predicate<NODE> predicate) {
+        if (predicate.test(root)) {
+            expandNode(root);
+            for (var child : root.getChildren()) {
+                expandAllNodesIf((NODE) child, predicate);
+            }
+        } else {
+            collapseNode(root);
         }
     }
 

@@ -37,7 +37,7 @@ public class LDLibRenderTypes extends RenderType {
 
 
     private static final RenderStateShard.ShaderStateShard GUI_TEXTURE_SHADER = new RenderStateShard.ShaderStateShard(
-            LDLibShaders::getGUI_TEXTURE);
+            LDLibShaders::getGuiTexture);
 
     private static final Function<ResourceLocation, RenderType> GUI_TEXTURE = Util.memoize(
             texture -> create(
@@ -90,6 +90,19 @@ public class LDLibRenderTypes extends RenderType {
                     .createCompositeState(false)
     );
 
+    private static final RenderStateShard.ShaderStateShard GRAPH_WIRE_SHADER = new RenderStateShard.ShaderStateShard(
+            LDLibShaders::getGraphWireShader);
+    private static final RenderType GRAPH_WIRE = create("graphWire",
+            DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.TRIANGLE_STRIP,
+            1536, false, false,
+            CompositeState.builder()
+                    .setShaderState(GRAPH_WIRE_SHADER)
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setDepthTestState(NO_DEPTH_TEST)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .createCompositeState(false)
+    );
+
     public LDLibRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize, boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState, Runnable clearState) {
         super(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, setupState, clearState);
     }
@@ -114,7 +127,11 @@ public class LDLibRenderTypes extends RenderType {
         return RECT;
     }
 
-   public static RenderType stripLines() {
+    public static RenderType stripLines() {
         return STRIP_LINES;
+    }
+
+    public static RenderType graphWire() {
+        return GRAPH_WIRE;
     }
 }

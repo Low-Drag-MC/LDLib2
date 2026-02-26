@@ -58,7 +58,7 @@ public abstract class Node implements INode {
         }
     }
 
-    /**
+                                 /**
      * Called during {@link #defineNode()} to define the options available on the node.
      *
      * <p>This method is called before {@link #onDefinePorts(IPortDefinitionContext)}. Override this method to add node options

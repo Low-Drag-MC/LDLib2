@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Model;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -37,11 +38,12 @@ public class CapsuleNodeElement extends NodeElement {
     @Override
     protected void buildUI() {
         getLayout().positionType(TaffyPosition.ABSOLUTE).flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER)
+                .gapAll(2)
                 .paddingAll(2);
         getStyle().background(Sprites.RECT_SOLID);
         if (nodeTittle != null) {
             nodeTittle.getStyle().background(IGuiTexture.EMPTY);
-            nodeTittle.getLayout().flexGrow(1).paddingVertical(0).paddingHorizontal(0);;
+            nodeTittle.getLayout().flexGrow(1).paddingVertical(0).paddingHorizontal(0);
         }
         addChildren(nodeTittle, constant);
         internalSetup();
@@ -70,12 +72,13 @@ public class CapsuleNodeElement extends NodeElement {
             parts.add(inputPortContainer);
             inputPortContainer.setGraphView(getGraphView());
             inputPortContainer.getPortContainer().getStyle().background(IGuiTexture.EMPTY);
-            inputPortContainer.getPortContainer().getLayout().paddingAll(2);
+            inputPortContainer.getPortContainer().getLayout().paddingAll(0);
             addChild(inputPortContainer);
         } else if (inputPort == null && inputPortContainer != null) {
             parts.remove(inputPortContainer);
             inputPortContainer.setGraphView(null);
             inputPortContainer.removeSelf();
+            inputPortContainer = null;
         }
 
         var outputPort = extractOutputPortModel(model);
@@ -84,13 +87,16 @@ public class CapsuleNodeElement extends NodeElement {
             parts.add(outputPortContainer);
             outputPortContainer.setGraphView(getGraphView());
             outputPortContainer.getPortContainer().getStyle().background(IGuiTexture.EMPTY);
-            outputPortContainer.getPortContainer().getLayout().paddingAll(2);
+            outputPortContainer.getPortContainer().getLayout().paddingAll(0);
             addChild(outputPortContainer);
         } else if (outputPort == null && outputPortContainer != null) {
             parts.remove(outputPortContainer);
             outputPortContainer.setGraphView(null);
             outputPortContainer.removeSelf();
+            outputPortContainer = null;
         }
+
+        getLayout().direction(outputPort != null ? TaffyDirection.LTR : TaffyDirection.RTL);
     }
 
     protected static PortModel extractInputPortModel(Model model) {

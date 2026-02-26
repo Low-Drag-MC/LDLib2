@@ -1,21 +1,28 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard;
 
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorSelectorConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphInspector;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.VariableDeclarationCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasName;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
@@ -24,9 +31,12 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.system.windows.INPUT;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -78,7 +88,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
                 Component.translatable("text_field.empty").withColor(ColorPattern.LIGHT_GRAY.color) :
                 Component.translatable(value.getFriendlyName())));
 
-        valueFieldInspector.fieldName.setText("graph.default_value");
+        valueFieldInspector.setFieldName(Component.translatable("graph.default_value"));
 
         contentContainer.setDisplay(false);
         contentContainer.getLayout().paddingAll(3).gapAll(2);
@@ -156,5 +166,76 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
                 searchHandler.accept(type);
             }
         }
+    }
+
+    @Override
+    protected void onSelectionInspect(GraphInspector inspector) {
+        inspector.inspect(IConfigurable.create(group -> {
+            var defaultValue = new ConfiguratorGroup("graph.default_value").setCollapse(false);
+            getModel().buildConfigurator(defaultValue);
+            var subGraphConfigurator = new ConfiguratorSelectorConfigurator<>(
+                    "graph.variable_type",
+                    () -> getModel().getModifiers() == ModifierFlags.NONE ? VariableType.NONE : VariableType.SUB_GRAPH_PORT,
+                    type -> {
+                        if (graphView == null) return;
+                        graphView.dispatchCommand(new VariableDeclarationCommands.ChangeVariableModifiersCommand(
+                                List.of(getModel()),
+                                type == VariableType.NONE ? ModifierFlags.NONE : ModifierFlags.READ
+                        ));
+                    },
+                    VariableType.NONE,
+                    true,
+                    Arrays.stream(VariableType.values()).toList(),
+                    VariableType::getSerializedName,
+                    (type, configuratorGroup) -> {
+                        if (type == VariableType.SUB_GRAPH_PORT) {
+                            configuratorGroup.addConfigurator(EnumAccessor.create(
+                                    "graph.flow_direction",
+                                    Arrays.stream(SubGraphPort.values()).toList(),
+                                    () -> getModel().getModifiers() == ModifierFlags.READ ? SubGraphPort.INPUT : SubGraphPort.OUTPUT,
+                                    io -> {
+                                        if (graphView == null) return;
+                                        graphView.dispatchCommand(new VariableDeclarationCommands.ChangeVariableModifiersCommand(
+                                                List.of(getModel()),
+                                                io == SubGraphPort.INPUT ? ModifierFlags.READ : ModifierFlags.WRITE
+                                        ));
+                                    },
+                                    SubGraphPort.INPUT,
+                                    true,
+                                    SubGraphPort::getIcon
+                            ));
+                        }
+                    }
+            );
+            group.addConfigurators(defaultValue, subGraphConfigurator);
+        }));
+    }
+
+    private enum VariableType implements StringRepresentable {
+        NONE,
+        SUB_GRAPH_PORT;
+
+        @Override
+        public String getSerializedName() {
+            return this == NONE ? "none" : "sub graph port";
+        }
+    }
+
+    private enum SubGraphPort implements StringRepresentable {
+        INPUT(new TextTexture("I")),
+        OUTPUT(new TextTexture("O"));
+
+        @Getter
+        public final IGuiTexture icon;
+
+        SubGraphPort(IGuiTexture icon) {
+            this.icon = icon;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return this == INPUT ? "input" : "output";
+        }
+
     }
 }

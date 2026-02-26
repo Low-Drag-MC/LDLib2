@@ -23,7 +23,7 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
     @Getter
     protected String name = "";
     @Nullable
-    protected Component title = Component.empty();
+    protected Component title;
     @Nullable
     protected Component tooltip;
 
@@ -97,7 +97,7 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
     }
 
     public Component getTitle() {
-        return title == null ? Component.translatable(name) : title;
+        return title == null ? Component.translatable(getName()) : title;
     }
 
     public Component getTooltip() {

@@ -13,6 +13,10 @@ public final class TypeHandle implements Comparable<TypeHandle> {
     // lazy caches (not serialized)
     private transient String nameCache;
     private transient String friendlyNameCache;
+    private transient Type typeCache;
+    private transient IGuiTexture iconCache;
+    private transient int colorCache;
+    private transient ITypeConfigurable configurableCache;
 
     private TypeHandle(String identification) {
         this.identification = TypeHandleHelpers.convertTypeName(identification);
@@ -71,15 +75,31 @@ public final class TypeHandle implements Comparable<TypeHandle> {
     }
 
     public Type resolve() {
-        return TypeHandleHelpers.resolveType(this);
+        if (typeCache == null) {
+            typeCache = TypeHandleHelpers.resolveType(this);
+        }
+        return typeCache;
     }
 
     public IGuiTexture getIcon() {
-        return IGuiTexture.EMPTY;
+        if (iconCache == null) {
+            iconCache = TypeHandleHelpers.resolveIcon(this);
+        }
+        return iconCache;
+    }
+
+    public int getTypeColor() {
+        if (colorCache == 0) {
+            colorCache = TypeHandleHelpers.resolveColor(this);
+        }
+        return colorCache;
     }
 
     public ITypeConfigurable resolveConfigurable() {
-        return TypeHandleHelpers.resolveConfigurable(this);
+        if (configurableCache == null) {
+            configurableCache = TypeHandleHelpers.resolveConfigurable(this);
+        }
+        return configurableCache;
     }
 
     public boolean isAssignableFrom(TypeHandle other) {

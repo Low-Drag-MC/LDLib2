@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -7,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Inspector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -46,6 +48,7 @@ import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
+import java.util.function.Predicate;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -59,8 +62,10 @@ public class GraphView extends UIElement {
     public final com.lowdragmc.lowdraglib2.gui.ui.elements.GraphView graphView = new com.lowdragmc.lowdraglib2.gui.ui.elements.GraphView();
     public final ItemLibrary itemLibrary = new ItemLibrary(this);
     public final Blackboard blackboard = new Blackboard(this);
+    public final GraphInspector inspector = new GraphInspector(this);
 
     // runtime
+    private boolean requireFitGraph = false;
     @Getter
     private GraphChangeset changeset = new GraphChangeset();
     @Getter
@@ -78,6 +83,10 @@ public class GraphView extends UIElement {
     private final List<ElementUpdate> updatePipeline = new ArrayList<>();
     @Getter
     private boolean isUpdateBatching = false;
+    private final Set<Model> waitToSelected = new HashSet<>();
+    private final Set<Model> waitToDeSelected = new HashSet<>();
+    @Getter
+    private boolean isSelectionBatching = false;
     @Getter
     private boolean isMenuOpen = false;
     @Getter
@@ -93,7 +102,6 @@ public class GraphView extends UIElement {
     public GraphView() {
         this.graphView.getLayout().widthPercent(100).heightPercent(100);
         this.panelLayer.getLayout().positionType(TaffyPosition.ABSOLUTE).width(0).height(0);
-
         // header initial
         header.layout(layout -> {
             layout.widthPercent(100);
@@ -122,6 +130,8 @@ public class GraphView extends UIElement {
         setEnforceFocus(Consumers.nop());
 
         itemLibrary.setDisplay(false);
+        inspector.setHistoryStack(historyStack);
+
         initPanels();
 
         addChildren(header, canvas.addChildren(graphView, panelLayer, itemLibrary));
@@ -146,7 +156,7 @@ public class GraphView extends UIElement {
                     layout.flex(1);
                 }).addChildren(
                         // page fit button
-                        new Button().noText().setOnClick(event -> fitGraphChildren(15))
+                        new Button().noText().setOnClick(event -> fitGraphChildren())
                                 .layout(layout -> layout.width(14))
                                 .style(style -> style.tooltips("GraphView.fit")).addChild(
                                         new UIElement().layout(layout -> {
@@ -159,7 +169,8 @@ public class GraphView extends UIElement {
 
     protected void initPanels() {
         panelLayer.addChildren(
-                new GraphPanel(this, blackboard)
+                new GraphPanel(this, blackboard),
+                new GraphPanel(this, inspector).layout(l -> l.left(100000))
         );
     }
 
@@ -212,6 +223,7 @@ public class GraphView extends UIElement {
         if (this.graph == null) return this;
         this.itemLibrary.onLoadGraph(graph.graphModel);
         buildUITree(this.graph.graphModel);
+        requireFitGraph = true;
         return this;
     }
 
@@ -224,6 +236,23 @@ public class GraphView extends UIElement {
         this.isWireDragging = false;
     }
 
+    public void fitGraphChildren() {
+        fitGraphChildren(15);
+    }
+
+    /**
+     * Adjusts the graph view to fit all visible and displayed children within its bounds,
+     * adding the specified padding around the edges.
+     *
+     * The method calculates the minimal and maximal bounds of all visible child elements
+     * within the graph and resizes the graph view's viewport accordingly, ensuring
+     * all elements are fully contained with a margin defined by {@code padding}.
+     *
+     * @param padding the additional space in pixels to include around the boundaries
+     *                of the visible child elements when resizing the graph view.
+     *                A positive value increases the margin, while a value of zero
+     *                only fits the exact boundaries.
+     */
     public void fitGraphChildren(float padding) {
         float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
         float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
@@ -369,6 +398,18 @@ public class GraphView extends UIElement {
         }
     }
 
+    /**
+     * Ends the batch update process and applies all pending updates in the update pipeline.
+     *
+     * This method transitions {@code isUpdateBatching} to {@code false} after processing
+     * all elements in the {@code updatePipeline}. During execution, the pipeline is repeatedly
+     * cleared and processed until it becomes empty. Each update task invokes the
+     * {@code updateElement} method for the respective {@code element} with its provided
+     * {@code visitor}.
+     *
+     * Ensure that this method is called after invoking corresponding batch-initiating logic
+     * to process accumulated updates.
+     */
     public void endBatchUpdate() {
         isUpdateBatching = true;
         while (!updatePipeline.isEmpty()) {
@@ -434,12 +475,15 @@ public class GraphView extends UIElement {
             element.addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 if ((event.button == 0 || event.button == 1) && event.bubbleListeners.size() == 1) {
                     var tagetWasSelected = isSelected(model);
-                    // select node
-                    if (!event.isCtrlDown() && !isSelected(model)) {
-                        clearAllSelected();
-                    }
-                    addSelected(model);
-                    moveElementTop(element);
+                    batchSelection(() -> {
+                        // select node
+                        if (!event.isCtrlDown() && !isSelected(model)) {
+                            clearAllSelected();
+                        }
+                        addSelected(model);
+                        moveElementTop(element);
+                    });
+
                     // drag movable
                     var movables = selected.stream().filter(m -> m instanceof IMovable).toList();
                     if (movables.isEmpty()) return;
@@ -518,25 +562,123 @@ public class GraphView extends UIElement {
         }
     }
 
+    /**
+     * Toggles the selection batching state for the current operation.
+     * If selection batching is already active, it sets the state to active again
+     * and returns {@code false}. If selection batching is inactive, it activates
+     * the state and returns {@code true}.
+     *
+     * @return {@code true} if selection batching was previously inactive and has now been activated,
+     *         {@code false} if selection batching was already active.
+     */
+    public boolean batchSelection() {
+        var isBatching = isSelectionBatching;
+        isSelectionBatching = true;
+        return !isBatching;
+    }
+
+    /**
+     * Executes the provided {@code Runnable} within a batch selection context.
+     * Ensures that selection batching is enabled during execution
+     * and disables it afterward if it was not already enabled.
+     *
+     * @param runnable the {@code Runnable} task to be executed within the batch selection context
+     */
+    public void batchSelection(Runnable runnable) {
+        var isBatching = isSelectionBatching;
+        isSelectionBatching = true;
+        runnable.run();
+        if (!isBatching) {
+            endBatchSelection();
+        }
+    }
+
+    /**
+     * Ends the batch selection process and processes changes in selection.
+     *
+     * This method finalizes the current batch selection operations by handling
+     * pending additions and removals of models from the selection. It ensures that:
+     * <ul>
+     * - Models in the {@code waitToSelected} set are added to the {@code selected} set.
+     * - Models in the {@code waitToDeSelected} set are removed from the {@code selected} set.
+     * - Calls the {@code onSelectionChanged} method on the corresponding elements of models
+     *   whose selection state has been updated.
+     * </ul>
+     * Once all pending operations are processed, the batching mode is disabled.
+     *
+     * Note:
+     * - The method ensures that no duplicate notifications are triggered for models.
+     * - {@code isSelectionBatching} is temporarily set to {@code true} during processing,
+     *   and reset to {@code false} once the method completes execution.
+     *
+     * Dependencies:
+     * - {@link Model} represents the model being selected or deselected.
+     * - {@code modelElements} is a mapping of models to their corresponding elements
+     *   that can respond to selection changes.
+     */
+    public void endBatchSelection() {
+        isSelectionBatching = true;
+        var currentSelection = new HashSet<>(selected);
+        Set<Model> toNotify = new HashSet<>();
+        while (!waitToSelected.isEmpty() || !waitToDeSelected.isEmpty()) {
+            if (!waitToSelected.isEmpty()) {
+                var copyAdded = List.copyOf(waitToSelected);
+                waitToSelected.clear();
+                for (var model : copyAdded) {
+                    if (!selected.contains(model)) {
+                        selected.add(model);
+                        toNotify.add(model);
+                    }
+                }
+            }
+            if (!waitToDeSelected.isEmpty()) {
+                var copyRemoved = List.copyOf(waitToDeSelected);
+                waitToDeSelected.clear();
+                for (var model : copyRemoved) {
+                    if (selected.contains(model)) {
+                        selected.remove(model);
+                        toNotify.add(model);
+                    }
+                }
+            }
+        }
+        for (Model model : toNotify) {
+            var element = modelElements.get(model);
+            if (element != null) {
+                element.onSelectionChanged();
+            }
+        }
+        if (!currentSelection.equals(selected)) {
+            inspector.clear();
+            if (selected.size() == 1) {
+                var model = selected.iterator().next();
+                var element = modelElements.get(model);
+                if (element != null) {
+                    element.onSelectionInspect(inspector);
+                }
+            }
+        }
+        isSelectionBatching = false;
+    }
+
     public void addSelected(Model model) {
-        if (!modelElements.containsKey(model)) return;
-        selected.add(model);
-        var element = modelElements.get(model);
-        if (element != null) element.onSelectionChanged();
+        batchSelection(() -> {
+            waitToSelected.add(model);
+            waitToDeSelected.remove(model);
+        });
     }
 
     public void removeSelected(Model model) {
-        selected.remove(model);
-        var element = modelElements.get(model);
-        if (element != null) element.onSelectionChanged();
+        batchSelection(() -> {
+            waitToDeSelected.add(model);
+            waitToSelected.remove(model);
+        });
     }
 
     public void clearAllSelected() {
-        var selectedNodes = Sets.newHashSet(selected);
-        selected.clear();
-        selectedNodes.forEach(node -> {
-            var element = modelElements.get(node);
-            if (element != null) element.onSelectionChanged();
+        batchSelection(() -> {
+            waitToDeSelected.addAll(selected);
+            waitToSelected.clear();
         });
     }
 
@@ -577,12 +719,14 @@ public class GraphView extends UIElement {
             var offset = new Vector2f(event.x - event.dragStartX, event.y - event.dragStartY);
             if (offset.lengthSquared() < 1f) {
                 // too less drag, back to click
-                if (!event.isCtrlDown()) {
-                    clearAllSelected();
-                    addSelected(target);
-                } else if (targetWasSelected && event.isCtrlDown() && selected.size() > 1) {
-                    removeSelected(target);
-                }
+                batchSelection(() -> {
+                    if (!event.isCtrlDown()) {
+                        clearAllSelected();
+                        addSelected(target);
+                    } else if (targetWasSelected && event.isCtrlDown() && selected.size() > 1) {
+                        removeSelected(target);
+                    }
+                });
                 return;
             }
             var localOffset = getContentViewContainer().getLocalMouseNormal(offset.x, offset.y);
@@ -598,11 +742,12 @@ public class GraphView extends UIElement {
     }
 
     protected void onKeyDown(UIEvent event) {
-        if (!this.isFocused()) return;
-        switch (event.keyCode) {
-            case GLFW.GLFW_KEY_DELETE -> {
-                deleteSelectedElements();
-                break;
+        if (this.isFocused() || panelLayer.getChildren().stream().anyMatch(UIElement::isFocused)) {
+            switch (event.keyCode) {
+                case GLFW.GLFW_KEY_DELETE -> {
+                    deleteSelectedElements();
+                    break;
+                }
             }
         }
     }
@@ -679,14 +824,16 @@ public class GraphView extends UIElement {
         if (event.dragHandler.getDraggingObject() instanceof DragRegionSelection(var selectionRect)) {
             selectionRect.removeSelf();
             if (dragRegionSelection != null) {
-                // select all
-                for (var entry : modelElements.entrySet()) {
-                    var model = entry.getKey();
-                    var element = entry.getValue();
-                    if (element.isSelectable() && element.canBeRegionSelected(dragRegionSelection)) {
-                        addSelected(model);
+                batchSelection(() -> {
+                    // select all
+                    for (var entry : modelElements.entrySet()) {
+                        var model = entry.getKey();
+                        var element = entry.getValue();
+                        if (element.isSelectable() && element.canBeRegionSelected(dragRegionSelection)) {
+                            addSelected(model);
+                        }
                     }
-                }
+                });
                 this.dragRegionSelection = null;
             }
         }
@@ -734,6 +881,10 @@ public class GraphView extends UIElement {
         super.screenTick();
         // lets update the graph elements here
         updateGraphModelChanges();
+        if (requireFitGraph) {
+            requireFitGraph = false;
+            fitGraphChildren();
+        }
     }
 
     protected void updateGraphModelChanges() {
@@ -780,6 +931,9 @@ public class GraphView extends UIElement {
 //                                       HashSet<UUID> selectionAlreadyUpdatedModels,
 //                                       boolean shouldUpdatePlacematContainer,
                                        List<GraphElement<?>> placemats) {
+        // update blackboard
+        blackboard.updateModelChanges(changedModels);
+
         for (var entry : changedModels.entrySet()) {
             var uid = entry.getKey();
             var hints = entry.getValue();
@@ -920,10 +1074,24 @@ public class GraphView extends UIElement {
         return false;
     }
 
-    protected void deleteSelectedElements() {
+    public void deleteSelectedElements() {
+        deleteSelectedElements(Predicates.alwaysTrue());
+    }
+
+    /**
+     * Deletes the selected elements in the graph that match the provided {@code filter}.
+     * This method filters the selected elements based on their type, deletable status,
+     * and the given condition before dispatching a delete command.
+     *
+     * @param filter a {@link Predicate} that defines the condition to determine which
+     *               {@link GraphElementModel} elements should be deleted.
+     */
+    public void deleteSelectedElements(Predicate<GraphElementModel> filter) {
         dispatchCommand(new GraphCommands.DeleteElementsCommand(getSelected().stream()
                 .filter(GraphElementModel.class::isInstance)
                 .map(GraphElementModel.class::cast)
-                .filter(GraphElementModel::isDeletable).toList()));
+                .filter(GraphElementModel::isDeletable)
+                .filter(filter)
+                .toList()));
     }
 }

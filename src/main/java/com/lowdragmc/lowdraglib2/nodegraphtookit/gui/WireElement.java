@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -318,16 +319,34 @@ public class WireElement extends GraphElement<WireModel> {
         // couldn't be clicking state
         var isSelected = isSelected() || isUnderRegionSelection();
         var isHover = isHover();
-        var fromColor = isSelected ? ColorPattern.BLUE.color : ColorPattern.WHITE.color;
-        var toColor = isSelected ? ColorPattern.BLUE.color : ColorPattern.WHITE.color;
+
+        var fromColor = -1;
+        var toColor = -1;
+
+        if (isSelected) {
+            fromColor = ColorPattern.BLUE.color;
+            toColor = ColorPattern.BLUE.color;
+        } else {
+            var fromPort = getModel().getFromPort();
+            if (fromPort != null) {
+                fromColor = fromPort.getDataTypeHandle().getTypeColor();
+            }
+            var toPort = getModel().getToPort();
+            if (toPort != null) {
+                toColor = toPort.getDataTypeHandle().getTypeColor();
+            }
+        }
+
         if (!isActive()) {
             fromColor &= 0x77FFFFFF;
             toColor &= 0x77FFFFFF;
         }
-        DrawerHelper.drawLines(guiContext.graphics, drawPoints,
+        DrawerHelper.drawTexLines(guiContext.graphics,
+                LDLibRenderTypes.graphWire(),
+                drawPoints,
                 fromColor,
                 toColor,
-                isHover ? 1.1f : 0.7f);
+                (isHover ? 1.1f : 0.7f) * 7);
     }
 
     @Override

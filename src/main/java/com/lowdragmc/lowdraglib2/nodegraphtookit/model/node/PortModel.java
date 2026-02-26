@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldConstantConfigurable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
@@ -27,7 +29,7 @@ import java.util.function.Predicate;
  * <p>Ports are connection points on nodes that allow data or execution flow to pass between nodes.
  * Each port has a direction (input or output), a data type, and can be connected to other compatible ports.</p>
  */
-public class PortModel extends GraphElementModel implements IPort, IHasDisplayName, IHasContextualMenuItems {
+public class PortModel extends GraphElementModel implements IPort, IHasDisplayName, IHasContextualMenuItems, IFieldConstantConfigurable {
     @Getter
     protected PortNodeModel nodeModel;
     @Getter
@@ -562,5 +564,10 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
                 portType + "|" +
                 dataTypeHandle + "|" +
                 (parentPort == null ? "null" : parentPort.getUid());
+    }
+
+    @Override
+    public @Nullable Constant getConfigurableConstant() {
+        return getEmbeddedValue();
     }
 }

@@ -61,7 +61,7 @@ public class NodeOptionsInspector extends ModelElement {
             );
             if (nodeOption.getPortModel() instanceof IFieldValueConfigurable configurable) {
                 var inspector = new FieldValueInspector();
-                inspector.fieldName.setText(nodeOption.getPortModel().getDisplayName());
+                inspector.setFieldName(nodeOption.getPortModel().getDisplayName());
                 inspector.loadValueField(configurable);
                 addChildren(inspector);
             }

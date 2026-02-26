@@ -107,6 +107,10 @@ public final class ColorUtils {
         return color((int)(alpha * 255), (int)(red * 255), (int)(green * 255), (int)(blue * 255));
     }
 
+    public static int color(double alpha, double red, double green, double blue) {
+        return color((int)(alpha * 255), (int)(red * 255), (int)(green * 255), (int)(blue * 255));
+    }
+
     public static int HSBtoRGB(float hue, float saturation, float brightness, float alpha) {
         int r = 0, g = 0, b = 0;
         if (saturation == 0) {
@@ -275,6 +279,65 @@ public final class ColorUtils {
                 -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
                 -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
         };
+    }
+
+    public double[] rgbToHSL(double[] rgb) {
+        double r = rgb[0];
+        double g = rgb[1];
+        double b = rgb[2];
+
+        double max = Math.max(r, Math.max(g, b));
+        double min = Math.min(r, Math.min(g, b));
+        double h, s, l = (max + min) / 2.0;
+
+        if (max == min) {
+            h = s = 0.0; // achromatic
+        } else {
+            double d = max - min;
+            s = l > 0.5 ? d / (2.0 - max - min) : d / (max + min);
+
+            if (max == r) {
+                h = (g - b) / d + (g < b ? 6.0 : 0.0);
+            } else if (max == g) {
+                h = (b - r) / d + 2.0;
+            } else {
+                h = (r - g) / d + 4.0;
+            }
+
+            h /= 6.0;
+        }
+
+        return new double[]{h, s, l};
+    }
+
+    public double[] hslToRGB(double[] hsl) {
+        double h = hsl[0];
+        double s = hsl[1];
+        double l = hsl[2];
+
+        double r, g, b;
+
+        if (s == 0) {
+            r = g = b = l; // achromatic
+        } else {
+            double q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            double p = 2 * l - q;
+
+            r = hueToRGB(p, q, h + 1.0 / 3.0);
+            g = hueToRGB(p, q, h);
+            b = hueToRGB(p, q, h - 1.0 / 3.0);
+        }
+
+        return new double[]{r, g, b};
+    }
+
+    private double hueToRGB(double p, double q, double t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1.0 / 6.0) return p + (q - p) * 6 * t;
+        if (t < 1.0 / 2.0) return q;
+        if (t < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - t) * 6;
+        return p;
     }
 
     public static int fromVector4f(Vector4f color) {

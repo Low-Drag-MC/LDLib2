@@ -11,11 +11,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Model;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
 
 public class NodeElement extends GraphElement<AbstractNodeModel> {
     public final static String NODE_LAYER = "Node";
@@ -24,12 +27,10 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
     public class NodeStyle extends Style {
         private static final Property<?>[] PROPERTIES = new Property[] {
                 PropertyRegistry.FOCUS_OVERLAY,
-                PropertyRegistry.HOVER_OVERLAY,
         };
 
         protected NodeStyle() {
             super(NodeElement.this);
-            setDefault(PropertyRegistry.HOVER_OVERLAY, ColorPattern.T_LIGHT_BLUE.borderTexture(1));
             setDefault(PropertyRegistry.FOCUS_OVERLAY, ColorPattern.BLUE.borderTexture(1));
         }
 
@@ -44,15 +45,6 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
 
         public NodeStyle focusOverlay(IGuiTexture texture) {
             set(PropertyRegistry.FOCUS_OVERLAY, texture);
-            return this;
-        }
-
-        public IGuiTexture hoverOverlay() {
-            return getValueSave(PropertyRegistry.HOVER_OVERLAY);
-        }
-
-        public NodeStyle hoverOverlay(IGuiTexture texture) {
-            set(PropertyRegistry.HOVER_OVERLAY, texture);
             return this;
         }
     }
@@ -124,15 +116,37 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
         }
     }
 
+    /**
+     * Checks if the underlying graph element model should be highlighted.
+     * Highlight is the feedback when multiple instances stand out. e.g. variable declarations.
+     * @return true if the element should be highlighted
+     */
+    public boolean shouldBeHighlighted() {
+        if (isSelected() || graphView == null) return false;
+        if (getModel() instanceof IHasDeclarationModel declarationModel && declarationModel.getDeclarationModel() != null) {
+            var dm = declarationModel.getDeclarationModel();
+            for (Model model : graphView.getSelected()) {
+                if (model instanceof IHasDeclarationModel dm2 && Objects.equals(dm, dm2.getDeclarationModel())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     @Override
     public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {
         if (isSelected()) {
-            guiContext.drawTexture(getNodeStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            guiContext.drawTexture(getNodeStyle().focusOverlay(),
+                    getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+        } else if (shouldBeHighlighted()) {
+            guiContext.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xddffaf00),
+                    getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         } else {
             var isHover = isSelfOrChildHover() || isUnderRegionSelection();
             if (isHover) {
-                guiContext.drawTexture(getNodeStyle().hoverOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+                guiContext.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xaaffffff),
+                        getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
             }
         }
         super.drawBackgroundOverlay(guiContext);

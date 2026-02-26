@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -120,7 +121,12 @@ public class SDFRectTexture extends TransformTexture {
         RenderSystem.applyModelViewMatrix();
 
         RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();   // ONE, ONE_MINUS_SRC_ALPHA
+        RenderSystem.blendFuncSeparate(
+                GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                GlStateManager.SourceFactor.ONE,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA
+        );
         RenderSystem.disableDepthTest();
 
         RenderSystem.setShader(LDLibShaders::getSDFRect);

@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire;
 
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.WireElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
