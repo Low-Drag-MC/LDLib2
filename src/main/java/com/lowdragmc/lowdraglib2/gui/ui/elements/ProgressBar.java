@@ -100,6 +100,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     }
 
     public final UIElement barContainer;
+    public final UIElement barBackground;
     public final Label label;
     public final UIElement bar;
     @Getter
@@ -121,8 +122,10 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
 
         this.barContainer = new UIElement();
         this.label = new Label();
+        this.barBackground = new UIElement();
         this.bar = new UIElement();
         this.barContainer.addClass("__progress-bar_bar-container__");
+        this.barBackground.addClass("__progress-bar_bar-background__");
         this.label.addClass("__progress-bar_label__");
         this.bar.addClass("__progress-bar_bar__");
 
@@ -141,7 +144,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.positionType(TaffyPosition.ABSOLUTE);
                 });
 
-        this.barContainer.addChildren(new UIElement()
+        this.barContainer.addChildren(barBackground
                         .layout(layout -> {
                             layout.heightPercent(100);
                             layout.widthPercent(100);
@@ -173,7 +176,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     protected void updateProgressBarStyle(float normalizedValue) {
         switch (progressBarStyle.fillDirection()) {
             case LEFT_TO_RIGHT -> {
-                this.barContainer.layout(layout -> {
+                this.barBackground.layout(layout -> {
                     layout.flexDirection(FlexDirection.COLUMN);
                     layout.alignItems(AlignItems.FLEX_START);
                 });
@@ -183,7 +186,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 });
             }
             case RIGHT_TO_LEFT -> {
-                this.barContainer.layout(layout -> {
+                this.barBackground.layout(layout -> {
                     layout.flexDirection(FlexDirection.COLUMN);
                     layout.alignItems(AlignItems.FLEX_END);
                 });
@@ -193,7 +196,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 });
             }
             case UP_TO_DOWN -> {
-                this.barContainer.layout(layout -> {
+                this.barBackground.layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.alignItems(AlignItems.FLEX_START);
                 });
@@ -203,7 +206,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                 });
             }
             case DOWN_TO_UP -> {
-                this.barContainer.layout(layout -> {
+                this.barBackground.layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.alignItems(AlignItems.FLEX_END);
                 });
