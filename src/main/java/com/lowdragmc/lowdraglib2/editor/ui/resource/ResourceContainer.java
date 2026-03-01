@@ -17,18 +17,20 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.*;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class ResourceContainer<T> extends UIElement {
+    public final SplitView.Horizontal splitView = new SplitView.Horizontal();
     public final ScrollerView providerList = new ScrollerView();
     public final UIElement providerContainer = new UIElement();
     public final ResourceInstance<T> resourceInstance;
@@ -39,6 +41,8 @@ public class ResourceContainer<T> extends UIElement {
     @Getter
     @Nullable
     private IResourceProvider<T> selectedProvider = null;
+    @Nullable @Setter
+    private Consumer<T> onResourceSelect;
 
     public ResourceContainer(ResourceInstance<T> resourceInstance, Editor editor) {
         getLayout().flex(1);
@@ -47,7 +51,7 @@ public class ResourceContainer<T> extends UIElement {
 
         this.resourceInstance = resourceInstance;
         this.editor = editor;
-        addChildren(new SplitView.Horizontal().left(new UIElement().layout(layout -> {
+        addChildren(splitView.left(new UIElement().layout(layout -> {
             layout.widthPercent(100);
             layout.flex(1);
         }).addChildren(providerList.layout(layout -> {
@@ -158,6 +162,11 @@ public class ResourceContainer<T> extends UIElement {
             var providerView = resourceInstance.resource.createResourceProviderContainer(selectedProvider);
             providerView.setEditor(editor);
             providerView.reloadResourceContainer();
+            providerView.setOnResourceSelect(res -> {
+                if (onResourceSelect != null) {
+                    onResourceSelect.accept(res);
+                }
+            });
             providerContainer.addChild(providerView);
         }
     }

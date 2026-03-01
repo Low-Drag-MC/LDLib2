@@ -525,4 +525,12 @@ public abstract class Editor extends UIElement {
         }
     }
 
+    public static Editor emptyEditor() {
+        return new Editor() {
+            @Override
+            protected Editor createNewEditorInstance() {
+                return emptyEditor();
+            }
+        };
+    }
 }

@@ -346,7 +346,7 @@ public class EditorWindow extends UIElement {
     @Override
     public void drawBackgroundAdditional(@Nonnull GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        if (window.isSelfOrChildHover() && !isResizing) {
+        if (window.isSelfOrChildHover() && !isResizing && !isMaximized()) {
             WindowDragHelper.drawResizeIcon(guiContext, window, 4);
         }
     }

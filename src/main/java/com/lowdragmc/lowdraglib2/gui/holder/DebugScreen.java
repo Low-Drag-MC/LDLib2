@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,6 +16,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GL11;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -127,7 +129,8 @@ public class DebugScreen extends ModularUIScreen {
         REAL_MOUSE_POS.set(mouseX, mouseY);
 
         UIElement shapingUI = null;
-        if (uiDebugger.isFocusMode() && !uiDebugger.isSelfOrChildHover()) {
+        var isChildrenHovered = modularUI.getLastHoveredElement() != null && !modularUI.ui.rootElement.isHover();
+        if (uiDebugger.isFocusMode() && !isChildrenHovered) {
             shapingUI = targetUI.getLastHoveredElement();
         }
         if (shapingUI == null && uiDebugger.isRenderUIShaping() && uiDebugger.hierarchy.treeList.getHoveredNode() != null) {
@@ -137,7 +140,7 @@ public class DebugScreen extends ModularUIScreen {
             targetUI.getWidget().renderUISpacing(shapingUI, graphics);
         }
 
-        if (!uiDebugger.isSelfOrChildHover()) {
+        if (!isChildrenHovered) {
             // draw cursor
             graphics.pose().pushPose();
             graphics.pose().translate(0, 0, 500);
@@ -158,6 +161,7 @@ public class DebugScreen extends ModularUIScreen {
             }
         }
 
+        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 

@@ -65,7 +65,8 @@ public class ServerCommands {
 													.append(NbtUtils.toPrettyComponent(tag)), true);
 											return 1;
 										}))),
-                Commands.literal("ldlib2_ui_editor").executes(context -> {
+                Commands.literal("ldlib2_ui_editor").requires(s -> s.getServer().isSingleplayer())
+                        .executes(context -> {
                     if (!context.getSource().getServer().isSingleplayer()) {
                         context.getSource().sendFailure(Component.literal("This command can only be used in singleplayer"));
                         return 0;

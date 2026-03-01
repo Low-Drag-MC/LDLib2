@@ -32,7 +32,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
@@ -73,7 +72,9 @@ public class ResourceProviderContainer<T> extends UIElement {
     @Setter
     @Nullable
     protected BiConsumer<ResourceProviderContainer<T>, TreeBuilder.Menu> onMenu;
-
+    @Setter
+    @Nullable
+    protected Consumer<T> onResourceSelect = null;
     // runtime
     @Getter
     protected HashSet<IResourcePath> dirtyResources = new HashSet<>();
@@ -206,6 +207,10 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void selectResource(IResourcePath resourcePath) {
+        var res = resourceProvider.getResource(resourcePath);
+        if (onResourceSelect != null && res != null) {
+            onResourceSelect.accept(res);
+        }
         if (!resourceUIs.containsKey(resourcePath)) {
             resourcePath = null;
         }

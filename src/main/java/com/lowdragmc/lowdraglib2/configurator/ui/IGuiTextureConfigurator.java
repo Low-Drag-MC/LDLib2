@@ -1,10 +1,14 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.google.common.base.Predicates;
+import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
+import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -19,7 +23,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -76,6 +79,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
                     layout.setAspectRatio(1);
                 }).style(style -> style.backgroundTexture(DynamicTexture.of(this::getValue))))
                 .addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
+        preview.addEventListener(UIEvents.MOUSE_DOWN, this::showTextureDialog);
         inlineContainer.addChildren(preview);
 
         setPastable(IGuiTexture.class, pasted -> {
@@ -84,7 +88,34 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
             }
         });
         setCopiable(IGuiTexture::copy);
-        setCanDropPredicate(obj -> obj instanceof IGuiTexture && filter.test((IGuiTexture) obj));
+        setCanDropPredicate(obj ->
+                (obj instanceof Integer color && filter.test(new ColorRectTexture(color))) ||
+                obj instanceof IGuiTexture texture && filter.test(texture));
+    }
+
+    protected void showTextureDialog(UIEvent event) {
+        var previous = getValue();
+        TexturesResource.INSTANCE.getResourceInstance().createSelectorDialog(event.x, event.y, texture -> {
+            onValueUpdatePassively(texture);
+            updateValue();
+        }, () -> {
+            if (previous == null) return;
+            onValueUpdatePassively(previous);
+            updateValue();
+        }).show(getModularUI());
+    }
+
+    protected void onDropObject(@Nullable Object object) {
+        if (canDropObject(object)) {
+            IGuiTexture texture = IGuiTexture.EMPTY;
+            if (object instanceof Integer color) {
+                texture = new ColorRectTexture(color);
+            } else if (object instanceof IGuiTexture t) {
+                texture = t;
+            }
+            onValueUpdatePassively(texture);
+            updateValue();
+        }
     }
 
     protected void onHoverTooltips(UIEvent event) {
@@ -103,7 +134,10 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
         var menu = super.createMenu();
         var value = getValue();
         if (value != null && value != IGuiTexture.EMPTY) {
-            menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> updateValueActively(IGuiTexture.EMPTY));
+            menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> {
+                updateValueActively(IGuiTexture.EMPTY);
+                updateValue();
+            });
         }
         return menu;
     }

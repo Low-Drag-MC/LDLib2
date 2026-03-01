@@ -4,9 +4,12 @@ import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
+import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
@@ -18,7 +21,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
-import org.appliedenergistics.yoga.YogaEdge;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -73,6 +75,9 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
         preview.style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)))
                 .addClass("preview_bg");
 
+        preview.addEventListener(UIEvents.MOUSE_DOWN, this::showRendererDialog);
+
+        inlineContainer.getLayout().maxHeight(100);
         inlineContainer.addChild(preview);
 
         setPastable(IRenderer.class, pasted -> {
@@ -84,12 +89,27 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
         setCanDropPredicate(obj -> obj instanceof IRenderer && filter.test((IRenderer) obj));
     }
 
+    protected void showRendererDialog(UIEvent event) {
+        var previous = getValue();
+        IRendererResource.INSTANCE.getResourceInstance().createSelectorDialog(event.x, event.y, renderer -> {
+            onValueUpdatePassively(renderer);
+            updateValue();
+        }, () -> {
+            if (previous == null) return;
+            onValueUpdatePassively(previous);
+            updateValue();
+        }).show(getModularUI());
+    }
+
     @Override
     protected TreeBuilder.Menu createMenu() {
         var menu = super.createMenu();
         var value = getValue();
         if (value != null && value != IRenderer.EMPTY) {
-            menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> updateValueActively(IRenderer.EMPTY));
+            menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> {
+                updateValueActively(IRenderer.EMPTY);
+                updateValue();
+            });
         }
         return menu;
     }

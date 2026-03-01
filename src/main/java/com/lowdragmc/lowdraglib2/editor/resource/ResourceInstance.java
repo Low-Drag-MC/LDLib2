@@ -3,6 +3,10 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     public final Resource<T> resource;
@@ -175,6 +180,34 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                 resourceProviders.remove(type);
             }
         }
+    }
+
+    /**
+     * Creates a selector dialog to allow users to select a resource.
+     *
+     * @param mouseX the x-coordinate of the mouse position to display the dialog.
+     * @param mouseY the y-coordinate of the mouse position to display the dialog.
+     * @param onValueSelect a callback function of type {@code Consumer<T>}
+     *                      that is triggered when a resource is selected.
+     * @return an instance of {@link Dialog} configured with the resource selector.
+     */
+    public Dialog createSelectorDialog(float mouseX, float mouseY, Consumer<T> onValueSelect, @Nullable Runnable onCancel) {
+        var resourceContainer = new ResourceContainer<>(this, Editor.emptyEditor());
+        resourceContainer.getLayout().widthPercent(100).widthPercent(100).flexAuto();
+        resourceContainer.setOnResourceSelect(onValueSelect);
+        resourceContainer.splitView.setPercentage(30);
+        var dialog = new Dialog()
+                .windowMode(mouseX, mouseY)
+                .setTitle("select texture")
+                .addContent(resourceContainer);
+        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm"));
+        dialog.addButton(new Button().setOnClick(e -> {
+            if (onCancel != null) {
+                onCancel.run();
+            }
+            dialog.close();
+        }).setText("ldlib.gui.tips.cancel"));
+        return dialog;
     }
 
     @Override
