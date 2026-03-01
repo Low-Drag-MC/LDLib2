@@ -3,12 +3,19 @@ package com.lowdragmc.lowdraglib2.gui.ui.style;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import lombok.Getter;
+import lombok.Setter;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.regex.Pattern;
 
 @KJSBindings
 public final class Stylesheet {
+    @Setter @Getter
+    private String name = "unknown";
+    @Getter @Nullable
+    private String rawLss;
     public static final Pattern RULE = Pattern.compile("(?s)([^{]+)\\{([^}]*)}");
     public static final Pattern DECL = Pattern.compile("(?m)\\s*([\\w-]+)\\s*:\\s*([^;]+)\\s*;?");
 
@@ -133,6 +140,7 @@ public final class Stylesheet {
     }
 
     public static Stylesheet parse(String rawStylesheet) {
+        var raw = rawStylesheet.trim();
         // remove single-line comments
         rawStylesheet = rawStylesheet.replaceAll("//.*", "");
         // remove multi-line comments
@@ -154,7 +162,9 @@ public final class Stylesheet {
                 }
             }
         }
-        return new Stylesheet(rules);
+        var ss = new Stylesheet(rules);
+        ss.rawLss = raw;
+        return ss;
     }
 
     public static Map<Property<?>, StyleValue<?>> parseStyleValues(String block) {

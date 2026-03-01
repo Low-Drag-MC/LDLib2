@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
+import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -39,6 +40,10 @@ public abstract class Style implements IConfigurable, IPersistedSerializable {
      * @return an array of Property instances, representing the set of properties applicable to the implementing class.
      */
     protected abstract Property<?>[] getProperties();
+
+    public final ImmutableList<Property<?>> getPropertiesList() {
+        return ImmutableList.copyOf(getProperties());
+    }
 
     @SuppressWarnings("unchecked")
     private static <T> T cast(Object o) { return (T) o; }

@@ -89,6 +89,7 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
             try (var reader = res.openAsReader()) {
                 var lss = String.join("\n", reader.lines().toList());
                 var stylesheet = Stylesheet.parse(lss);
+                stylesheet.setName(key.getPath());
                 newSheets.put(key, stylesheet);
             } catch (Exception e) {
                 LDLib2.LOGGER.error("Failed to load style sheet {} of {}", res.sourcePackId(), key, e);

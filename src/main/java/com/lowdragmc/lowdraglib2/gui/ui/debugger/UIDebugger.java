@@ -8,21 +8,28 @@ import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
+import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.network.chat.Component;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
@@ -30,6 +37,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class UIDebugger extends UIElement {
     public final UIElement titleBar;
@@ -38,6 +46,9 @@ public class UIDebugger extends UIElement {
     public final ModularUI modularUI;
     public final UIHierarchy hierarchy;
     public final Inspector inspector;
+    public final TabView tabView;
+    public final ScrollerView computedView;
+    public final CodeEditor codeEditor;
     public final HistoryStack historyStack = new HistoryStack();
     public final LayoutPanel margin = new LayoutPanel(0x80646669);
     public final LayoutPanel border = new LayoutPanel(0x8000ff00);
@@ -45,6 +56,8 @@ public class UIDebugger extends UIElement {
     public final Label content = new Label();
 
     // runtime
+    @Nullable
+    private ISubscription codeEditorSubscription;
     @Getter @Setter
     private boolean focusMode;
     @Getter @Setter
@@ -145,7 +158,9 @@ public class UIDebugger extends UIElement {
         content.setText("- X -");
         content.getTextStyle().fontSize(4.5f).textAlignHorizontal(Horizontal.CENTER).textAlignVertical(Vertical.CENTER);
         content.getLayout().widthPercent(100).heightPercent(100);
-
+        tabView = new TabView();
+        tabView.getLayout().widthPercent(100).heightPercent(100);
+        tabView.tabContentContainer.getLayout().flex(1);
         this.container.addChildren(new SplitView.Horizontal()
                 .setPercentage(35)
                 .left(new UIElement().layout(layout -> layout.widthPercent(100).heightPercent(100).flexDirection(FlexDirection.ROW))
@@ -154,10 +169,13 @@ public class UIDebugger extends UIElement {
                                 .style(style -> style.background(SDFRectTexture.of(ColorPattern.T_WHITE.color).setRadius(1f)))
                         )
                 )
-                .right(new UIElement()
-                        .layout(layout -> layout.widthPercent(100).heightPercent(100).paddingAll(4))
-                        .addClass("panel_bg")
-                        .addChild(new SplitView.Vertical().setPercentage(30).top(new UIElement()
+                .right(tabView));
+
+        // inline settings
+        tabView.addTab(new Tab().setText("inline"), new UIElement()
+                .layout(layout -> layout.widthPercent(100).heightPercent(100).paddingAll(4))
+                .addClass("panel_bg")
+                .addChild(new SplitView.Vertical().setPercentage(30).top(new UIElement()
                                 .layout(layout -> layout.widthPercent(100).heightPercent(100).paddingAll(2))
                                 .addChild(margin.addCenter(border.addCenter(padding.addCenter(new UIElement()
                                         .layout(l -> l.widthPercent(100).heightPercent(100)
@@ -165,10 +183,15 @@ public class UIDebugger extends UIElement {
                                         .style(s -> s.tooltips("size")
                                                 .background(new ColorRectTexture(ColorPattern.T_GRAY.color)))
                                         .addChild(content)))))).bottom(inspector)
-                                .selfCall(e -> ((SplitView.Vertical)e).first
-                                        .addClass("panel_bg")
-                                        .layout(l -> l.minHeight(68)))
-                        )));
+                        .selfCall(e -> ((SplitView.Vertical)e).first
+                                .addClass("panel_bg")
+                                .layout(l -> l.minHeight(68)))
+                ));
+        tabView.addTab(new Tab().setText("computed"), computedView = (ScrollerView) new ScrollerView()
+                .layout(layout -> layout.widthPercent(100).heightPercent(100)));
+        tabView.addTab(new Tab().setText("local lss"), codeEditor = (CodeEditor) new CodeEditor()
+                        .layout(layout -> layout.widthPercent(100).heightPercent(100)));
+        codeEditor.setLanguage(Languages.LSS);
 
         WindowDragHelper.setDragMove(this.title, this, null, null);
         WindowDragHelper.setBorderResize(this, this, 4, new Vector2f(40), new Vector2f(Float.MAX_VALUE),
@@ -187,6 +210,48 @@ public class UIDebugger extends UIElement {
         if (uiTreeNodes.size() == 1) {
             var element = uiTreeNodes.iterator().next().key;
             inspector.inspect(element);
+            loadComputedView(element);
+            loadLocalLSS(element);
+        }
+    }
+
+    private void loadComputedView(UIElement element) {
+        computedView.clearAllScrollViewChildren();
+        for (Style style : element.getStyles()) {
+            for (Property<?> property : style.getPropertiesList()) {
+                computedView.addScrollViewChild(new Label()
+                        .bindDataSource(SupplierDataSource.of(() ->
+                                Component.literal(property.name).append(": ").append(style.getValueSave(property).toString()))
+                        )
+                        .textStyle(textStyle -> textStyle.adaptiveWidth(true))
+                );
+            }
+        }
+    }
+
+    private void loadLocalLSS(UIElement element) {
+        if (codeEditorSubscription != null) {
+            codeEditorSubscription.unsubscribe();
+            codeEditorSubscription = null;
+        }
+        codeEditor.setValue(null, false);
+        var current = new AtomicReference<Stylesheet>(null);
+        codeEditorSubscription = codeEditor.registerValueListener(lines -> {
+            var newStylesheet = Stylesheet.parse(String.join("\n", lines));
+            newStylesheet.setName("DEBUG_LOCAL");
+            if (current.get() != null) {
+                element.removeLocalStylesheet(current.get());
+            }
+            element.addLocalStylesheet(newStylesheet);
+            current.set(newStylesheet);
+        });
+        for (var stylesheet : element.getLocalStylesheets()) {
+            if (stylesheet.getName().equals("DEBUG_LOCAL") && stylesheet.getRawLss() != null) {
+                var rawLss = stylesheet.getRawLss();
+                current.set(stylesheet);
+                codeEditor.setValue(rawLss.split("\n"), false);
+                break;
+            }
         }
     }
 

@@ -65,6 +65,7 @@ public class UITemplate {
         if (builtinStyles != null) {
             if (customStylesheet == null) {
                 customStylesheet = Stylesheet.parse(builtinStyles);
+                customStylesheet.setName("builtin");
             }
             return customStylesheet;
         }
