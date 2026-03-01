@@ -79,7 +79,7 @@ public class Scene extends UIElement {
     @Getter @Setter
     protected boolean showHoverBlockTips;
     @Getter
-    protected Vector3f center;
+    protected Vector3f center = new Vector3f(0.5f);
     @Getter
     protected float rotationPitch = 25;
     @Getter

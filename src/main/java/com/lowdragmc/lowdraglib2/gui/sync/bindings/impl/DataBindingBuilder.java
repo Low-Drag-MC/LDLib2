@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -154,6 +155,18 @@ public class DataBindingBuilder<T> {
 
     public static DataBindingBuilder<Block> blockC2S(Consumer<Block> setter) {
         return block(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Tag> tag(Supplier<Tag> getter, Consumer<Tag> setter) {
+        return create(getter, setter).syncType(Tag.class);
+    }
+
+    public static DataBindingBuilder<Tag> tagS2C(Supplier<Tag> getter) {
+        return tag(getter, Consumers.nop()).c2sStrategy(SyncStrategy.NONE);
+    }
+
+    public static DataBindingBuilder<Tag> tagC2S(Consumer<Tag> setter) {
+        return tag(Suppliers.nul(), setter).s2cStrategy(SyncStrategy.NONE);
     }
 
     public static DataBindingBuilder<Component> component(Supplier<Component> getter, Consumer<Component> setter) {

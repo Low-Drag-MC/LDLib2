@@ -11,18 +11,22 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
+import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.*;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.style.StyleSizeLength;
+import org.jetbrains.annotations.NotNull;
+import org.joml.Vector2f;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
@@ -37,9 +41,12 @@ public class Dialog extends UIElement {
     public final UIElement contentContainer;
     public final UIElement buttonContainer;
     private boolean autoClose = true;
+    private boolean clickOutsideClose = false;
     @Nullable
     @Setter @Accessors(chain = true)
     private Runnable onClose;
+    private boolean windowMode = false;
+    private boolean isResizing;
 
     public Dialog() {
         this.titleBar = new UIElement().addClass("__dialog_title__");
@@ -93,6 +100,7 @@ public class Dialog extends UIElement {
         stopInteractionEventsPropagation();
         addEventListener(UIEvents.BLUR, this::onBlur);
         addEventListener(UIEvents.KEY_DOWN, this::keyDown);
+        addEventListener(UIEvents.MOUSE_DOWN, this::mouseDown);
 
         internalSetup();
     }
@@ -121,6 +129,14 @@ public class Dialog extends UIElement {
     protected void keyDown(UIEvent event) {
         if (autoClose && event.keyCode == GLFW.GLFW_KEY_ESCAPE) {
             close();
+            event.stopPropagation();
+        }
+    }
+
+    protected void mouseDown(UIEvent event) {
+        if (clickOutsideClose && autoClose && !overlay.isSelfOrChildHover()) {
+            close();
+            event.stopPropagation();
         }
     }
 
@@ -172,6 +188,17 @@ public class Dialog extends UIElement {
     }
 
     /**
+     * Sets whether the dialog should close automatically when the mouse is clicked outside of the dialog.
+     *
+     * @param clickOutsideClose true to enable auto-close, false to disable
+     * @return this dialog instance for method chaining
+     */
+    public Dialog setClickOutsideClose(boolean clickOutsideClose) {
+        this.clickOutsideClose = clickOutsideClose;
+        return this;
+    }
+
+    /**
      * Shows the dialog as a child of the specified UIElement parent.
      * This will add the dialog to the parent's children and focus it.
      * NOTE: ypu should always call this method to show the dialog after creating it,
@@ -179,6 +206,10 @@ public class Dialog extends UIElement {
      * @param parent the UIElement that will be the parent of this dialog
      */
     public Dialog show(UIElement parent) {
+        buttonContainer.setDisplay(!buttonContainer.getChildren().isEmpty());
+        contentContainer.setDisplay(!contentContainer.getChildren().isEmpty());
+        titleBar.setDisplay(!titleBar.getChildren().isEmpty());
+
         parent.addChild(this);
         focus();
         return this;
@@ -210,6 +241,41 @@ public class Dialog extends UIElement {
 
     public Dialog width(TaffyDimension width) {
         overlay.layout(layout -> layout.setWidth(width));
+        return this;
+    }
+
+    public Dialog windowMode(float worldX, float worldY) {
+        return windowMode(worldX, worldY, 200, 150);
+    }
+
+    public Dialog windowMode(float worldX, float worldY, float width, float height) {
+        windowMode = true;
+        setClickOutsideClose(true);
+        this.getLayout().justifyContent(AlignContent.FLEX_START);
+        this.getLayout().alignItems(AlignItems.STRETCH);
+        overlay.getLayout().width(width).height(height);
+        contentContainer.getLayout().flex(1);
+        // move and resize behaviour
+        WindowDragHelper.setDragMove(titleBar, overlay, null, null);
+        WindowDragHelper.setBorderResize(overlay, overlay, 2,
+                new Vector2f(50),
+                new Vector2f(Float.MAX_VALUE),
+                e -> windowMode, (e, handle) -> {
+                    isResizing = true;
+                    return true;
+                }, e -> isResizing = false);
+        addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
+            var parent = getParent();
+            if (parent != null) {
+                var local = parent.worldToLocalLayoutOffset(new Vector2f(worldX, worldY));
+                overlay.getLayout().left(local.x).top(local.y);
+                e.currentElement.addEventListener(UIEvents.LAYOUT_CHANGED, e2 -> {
+                    assert e2.currentElement.getParent() != null;
+                    overlay.adaptPositionToElement(e2.currentElement.getParent());
+                });
+            }
+            e.currentElement.removeEventListener(UIEvents.LAYOUT_CHANGED, e.currentListener);
+        });
         return this;
     }
 
@@ -313,7 +379,6 @@ public class Dialog extends UIElement {
         dialog.titleBar.setDisplay(false);
         dialog.addContent(new Label().textStyle(textStyle -> textStyle.textWrap(TextWrap.WRAP).adaptiveHeight(true))
                 .setText(info).layout(layout -> layout.widthPercent(100)));
-        dialog.buttonContainer.setDisplay(false);
         dialog.top();
         dialog.allowInteraction();
         dialog.setAutoClose(false);
@@ -515,4 +580,11 @@ public class Dialog extends UIElement {
         };
     }
 
+    @Override
+    public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
+        super.drawBackgroundAdditional(guiContext);
+        if (windowMode && !isResizing) {
+            WindowDragHelper.drawResizeIcon(guiContext, overlay, 2);
+        }
+    }
 }

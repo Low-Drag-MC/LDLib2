@@ -56,15 +56,15 @@ class ClassPatchDsl(val element: UIElement) {
 // ----------------------------
 // Pipeline helpers (INLINE/DEFAULT/IMPORTANT)
 // ----------------------------
-fun BasicStyle.inline(block: BasicStyle.() -> Unit) {
+fun <T> T.inline(block: T.() -> Unit) where T : Style{
     Style.inlinePipeline(this) { s -> s.apply(block) }
 }
 
-fun BasicStyle.important(block: BasicStyle.() -> Unit) {
+fun <T> T.important(block: T.() -> Unit) where T : Style {
     Style.importantPipeline(this) { s -> s.apply(block) }
 }
 
-fun BasicStyle.default(block: BasicStyle.() -> Unit) {
+fun <T> T.default(block: T.() -> Unit) where T : Style {
     Style.defaultPipeline(this) { s -> s.apply(block) }
 }
 // endregion
@@ -190,6 +190,21 @@ abstract class UIContainer<T : UIElement, S: ElementSpec<T>>(
 
     fun <T, D> UIContainer<T, *>.observer(observer: IObserver<D>) where T : UIElement, T : IObservable<D>{
         (element as? IObservable<D>)?.bindObserver(observer)
+    }
+
+    fun <T, D, K> UIContainer<T, *>.bindUIData(data: K) where T : UIElement, T : IObservable<D>, T : IDataConsumer<D>, K : IDataProvider<D>, K : IObserver<D>{
+        dataSource(data)
+        observer(data)
+    }
+
+    fun <T, D> UIContainer<T, *>.bindUIData(getter: () -> D,
+                                            setter: (D) -> Unit) where T : UIElement, T : IObservable<D>, T : IDataConsumer<D>{
+        dataSource(getter)
+        observer(setter)
+    }
+
+    fun <T, D> UIContainer<T, *>.bindUIData(prop: KMutableProperty0<D>) where T : UIElement, T : IObservable<D>, T : IDataConsumer<D>{
+        bindUIData(prop::get, prop::set)
     }
 
     fun <T, D> UIContainer<T, *>.bind(binding: IBinding<D>) where T : UIElement, T : IBindable<D>{
