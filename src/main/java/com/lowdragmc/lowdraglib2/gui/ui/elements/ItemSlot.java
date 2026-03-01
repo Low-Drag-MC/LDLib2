@@ -427,7 +427,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     protected void drawItemStack(GUIContext guiContext, ItemStack itemStack) {
-        DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, -1, null);
+        DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, guiContext.elementColor, null);
     }
 
     protected void drawHover(GUIContext guiContext) {

@@ -3,6 +3,8 @@ package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.math.Rect;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -38,6 +40,12 @@ public class GUIContext {
     // runtime
     @OnlyIn(Dist.CLIENT)
     public boolean refreshLocalMouse = true;
+    /**
+     * Current element tint color (ARGB), set by UIElement before drawing its background/overlay textures.
+     * -1 (0xFFFFFFFF) means no tint. Textures read this to multiply (per-channel) with their own color.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public int elementColor = -1;
     @OnlyIn(Dist.CLIENT)
     public float localMouseX, localMouseY;
     @OnlyIn(Dist.CLIENT)
@@ -128,6 +136,21 @@ public class GUIContext {
             popped.draw(this);
             popped.release();
         }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public void setElementColor(int elementColor) {
+        if (this.elementColor == elementColor) return;
+        this.elementColor = elementColor;
+        RenderSystem.setShaderColor(ColorUtils.red(elementColor), ColorUtils.green(elementColor),
+                ColorUtils.blue(elementColor), ColorUtils.alpha(elementColor));
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public void resetElementColor() {
+        if (this.elementColor == -1) return;
+        this.elementColor = -1;
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
     }
 
     public void postRendering(Consumer<GUIContext> call) {

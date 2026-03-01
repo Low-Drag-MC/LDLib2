@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -104,6 +105,24 @@ public class SDFRectTexture extends TransformTexture {
     @Override
     @OnlyIn(Dist.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+        drawInternalWithColorVecs(graphics, x, y, width, height, colorVec4, borderColorVec4);
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
+        if (context.elementColor == -1) {
+            drawInternalWithColorVecs(context.graphics, x, y, width, height, colorVec4, borderColorVec4);
+        } else {
+            var blendedFill   = ColorUtils.toVector4f(ColorUtils.mulColor(color,       context.elementColor));
+            var blendedBorder = ColorUtils.toVector4f(ColorUtils.mulColor(borderColor, context.elementColor));
+            drawInternalWithColorVecs(context.graphics, x, y, width, height, blendedFill, blendedBorder);
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void drawInternalWithColorVecs(GuiGraphics graphics, float x, float y, float width, float height,
+                                           Vector4f fillVec, Vector4f borderVec) {
         graphics.flush();
         // TODO calculate shape
 
@@ -133,12 +152,12 @@ public class SDFRectTexture extends TransformTexture {
         var shader = LDLibShaders.getSDFRect();
         shader.safeGetUniform("Radius").set(radius);
         shader.safeGetUniform("HalfSize").set(halfWidth, halfHeight);
-        shader.safeGetUniform("FillColor").set(colorVec4);
+        shader.safeGetUniform("FillColor").set(fillVec);
 
         shader.safeGetUniform("Border").set(stroke);
 
         if (stroke > 0) {
-            shader.safeGetUniform("BorderColor").set(borderColorVec4);
+            shader.safeGetUniform("BorderColor").set(borderVec);
         }
 
         var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, POSITION);

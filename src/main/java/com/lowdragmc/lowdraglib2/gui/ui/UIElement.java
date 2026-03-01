@@ -1634,12 +1634,22 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public final void drawInBackgroundInternal(GUIContext guiContext) {
-        if (!isCulled && taffyStyle.style.display == TaffyDisplay.FLEX) {
+        var elementColor = style.color();
+        var hasColor = elementColor != -1;
+        if (hasColor) {
+            guiContext.graphics.flush();
+            guiContext.setElementColor(elementColor);
+        }
+        if (!isCulled) {
             drawBackgroundTexture(guiContext);
             drawContents(guiContext);
             drawBackgroundOverlay(guiContext);
         } else { // draw contents only
             drawContents(guiContext);
+        }
+        if (hasColor) {
+            guiContext.graphics.flush();
+            guiContext.resetElementColor();
         }
     }
 
@@ -1698,7 +1708,20 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if(!isCulled) {
             drawBackgroundAdditional(guiContext);
         }
-        List.copyOf(children).forEach(child -> child.drawInBackground(guiContext));
+        if (!children.isEmpty()) {
+            var currentColor = guiContext.elementColor;
+            var hasColor = currentColor != -1;
+            // we roll back first
+            if (hasColor) {
+                guiContext.graphics.flush();
+                guiContext.resetElementColor();
+            }
+            List.copyOf(children).forEach(child -> child.drawInBackground(guiContext));
+            if (hasColor) {
+                guiContext.graphics.flush();
+                guiContext.setElementColor(currentColor);
+            }
+        }
         if (hidden) {
             guiContext.graphics.flush();
             guiContext.disableScissor();
@@ -2096,7 +2119,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
-    public Element saveXml(Document document) {
+    private Element saveXml(Document document) {
         throw new UnsupportedOperationException();
     }
     // endregion

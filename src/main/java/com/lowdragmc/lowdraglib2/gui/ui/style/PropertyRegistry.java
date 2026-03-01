@@ -152,6 +152,7 @@ public final class PropertyRegistry {
     public static final Property<Float> OPACITY = create("opacity", 1f).setRange(0f, 1f);
     public static final Property<IGuiTexture> OVERFLOW_CLIP = create("overflow-clip", IGuiTexture.EMPTY);
     public static final Property<Transition> TRANSITION = create("transition", Transition.EMPTY);
+    public static final Property<Integer> COLOR = create(new ColorProperty("color", -1));
 
     public static final Property<IGuiTexture> BASE_BACKGROUND = create("base-background", IGuiTexture.EMPTY);
     public static final Property<IGuiTexture> HOVER_BACKGROUND = create("hover-background", IGuiTexture.EMPTY);

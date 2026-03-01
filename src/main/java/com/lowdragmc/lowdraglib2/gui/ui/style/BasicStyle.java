@@ -29,6 +29,7 @@ public class BasicStyle extends Style {
             PropertyRegistry.OVERFLOW_CLIP,
             PropertyRegistry.TRANSFORM_2D,
             PropertyRegistry.TRANSITION,
+            PropertyRegistry.COLOR,
     };
 
     public BasicStyle(UIElement holder) {
@@ -159,6 +160,19 @@ public class BasicStyle extends Style {
 
     public BasicStyle transition(Transition transition) {
         set(PropertyRegistry.TRANSITION, transition);
+        return this;
+    }
+
+    /**
+     * Returns the tint color (ARGB) applied multiplicatively to background and overlay textures.
+     * -1 (0xFFFFFFFF) means no tint. Can be animated via CSS transitions.
+     */
+    public int color() {
+        return getValueSave(PropertyRegistry.COLOR);
+    }
+
+    public BasicStyle color(int color) {
+        set(PropertyRegistry.COLOR, color);
         return this;
     }
 
