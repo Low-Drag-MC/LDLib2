@@ -103,21 +103,17 @@ public class StyleAnimation {
                 var executor = new KFExecutor<>(keyFrame, new IFrameValueHandler<>() {
                     @Override
                     public void accept(AnimationRuntime runtime, Object o) {
-                        target.getStyleBag().replaceOrPutCandidate(p, new StyleSlot<>(p,
-                                StyleOrigin.ANIMATION,
-                                999,
-                                0,
-                                o));
+                        target.getStyleBag().onAnimationUpdate(p, o);
                         onInterpolate.accept(runtime, target);
                     }
 
                     @Override
                     public void onFinished(AnimationRuntime runtime) {
-                        target.getStyleBag().removeCandidates(p, slot -> slot.origin() == StyleOrigin.ANIMATION
-                                && slot.specificity() == 999
-                                && slot.sourceOrder() == 0);
-                        target.getStyleBag().replaceOrPutCandidate(p, StyleSlot.of(p, origin,
-                                specificity, sourceOrder, slots.getLast().right()));
+                        target.getStyleBag().replaceAnimationFinal(p,
+                                slot -> slot.origin() == StyleOrigin.ANIMATION
+                                        && slot.specificity() == 999
+                                        && slot.sourceOrder() == 0,
+                                StyleSlot.of(p, origin, specificity, sourceOrder, slots.getLast().right()));
                         onFinished.accept(target);
                     }
                 });

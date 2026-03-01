@@ -60,7 +60,16 @@ public record StyleSelector(SelectorType type, Either<String, HierarchicalStyleM
     @Override
     public @NotNull String toString() {
         return identity.map(left -> switch (type) {
-            case CLASS -> "." + left;
+            case CLASS -> {
+                if (left.length() > 4 && left.startsWith("__") && left.endsWith("__")) {
+                    var clazz = left.substring(2, left.length() - 2);
+                    if (clazz.equals("hovered")) {
+                        yield ":hover";
+                    }
+                    yield ":" + clazz;
+                }
+                yield "." + left;
+            }
             case ID -> "#" + left;
             case ELEMENT -> left;
             default -> "*";

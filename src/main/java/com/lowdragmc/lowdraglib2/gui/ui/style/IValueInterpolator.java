@@ -3,12 +3,21 @@ package com.lowdragmc.lowdraglib2.gui.ui.style;
 @FunctionalInterface
 @SuppressWarnings("rawtypes")
 public interface IValueInterpolator<T> {
-    IValueInterpolator ALWAYS_INTERPOLATE = (from, to, interpolation) -> to;
+    /** Instantly snaps to the end value (equivalent to CSS transition-timing-function: step-end). */
+    IValueInterpolator SNAP_TO_END = (from, to, interpolation) -> to;
+    /** @deprecated Use {@link #SNAP_TO_END} */
+    @Deprecated IValueInterpolator ALWAYS_INTERPOLATE = SNAP_TO_END;
     IValueInterpolator NEVER_INTERPOLATE = (from, to, interpolation) -> from;
     IValueInterpolator BINARY = (from, to, interpolation) -> interpolation < 0.5f ? from : to;
 
+    static <V> IValueInterpolator<V> snapToEnd() {
+        return SNAP_TO_END;
+    }
+
+    /** @deprecated Use {@link #snapToEnd()} */
+    @Deprecated
     static <V> IValueInterpolator<V> alwaysInterpolate() {
-        return ALWAYS_INTERPOLATE;
+        return SNAP_TO_END;
     }
 
     static <V> IValueInterpolator<V> neverInterpolate() {

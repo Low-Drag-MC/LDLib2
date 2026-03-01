@@ -246,4 +246,61 @@ public final class StyleBag {
     public <T> void onTransitionFinished(TransitionAnimation<T> transitionAnimation) {
         transitionAnimations.remove(transitionAnimation.property);
     }
+
+    /**
+     * Atomically removes animation candidates matching the predicate and puts the final slot,
+     * triggering markDirty and onStyleChanged only once. Used by StyleAnimation.onFinished.
+     */
+    public <T> void replaceAnimationFinal(Property<T> p, Predicate<StyleSlot<?>> removePredicate, StyleSlot<T> finalSlot) {
+        var slots = candidates.computeIfAbsent(p, k -> new ArrayList<>());
+        slots.removeIf(removePredicate);
+        // replaceOrPut the final slot
+        var iterator = slots.iterator();
+        while (iterator.hasNext()) {
+            var existSlot = iterator.next();
+            if (existSlot.typeEquals(finalSlot)) {
+                if (existSlot.equals(finalSlot)) {
+                    // already correct, just mark once
+                    dirtyProps.set(p.id);
+                    markDirty();
+                    candidates.values().removeIf(List::isEmpty);
+                    element.onStyleChanged();
+                    return;
+                }
+                iterator.remove();
+                break;
+            }
+        }
+        slots.add(finalSlot);
+        dirtyProps.set(p.id);
+        markDirty();
+        candidates.values().removeIf(List::isEmpty);
+        element.onStyleChanged();
+    }
+
+    /**
+     * Update an animation-driven property value directly without triggering a full dirty cycle.
+     * This bypasses StyleSlot allocation and markDirty, notifying listeners directly.
+     * Used by {@link com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation} per-frame.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> void onAnimationUpdate(Property<T> p, T value) {
+        var slots = candidates.computeIfAbsent(p, k -> new ArrayList<>());
+        for (int i = 0; i < slots.size(); i++) {
+            var existSlot = slots.get(i);
+            if (existSlot.origin() == StyleOrigin.ANIMATION
+                    && existSlot.specificity() == 999
+                    && existSlot.sourceOrder() == 0) {
+                T oldValue = (T) existSlot.value();
+                if (!Objects.equals(oldValue, value)) {
+                    slots.set(i, new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value));
+                    p.notifyListeners(element, oldValue, value);
+                }
+                return;
+            }
+        }
+        // First frame: no slot yet, insert and notify
+        slots.add(new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value));
+        p.notifyListeners(element, p.initialValue, value);
+    }
 }

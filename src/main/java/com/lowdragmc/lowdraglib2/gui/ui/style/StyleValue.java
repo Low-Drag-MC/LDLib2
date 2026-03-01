@@ -1,11 +1,14 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
 
 public abstract class StyleValue<T> {
     public final String rawValue;
-    private T computedValue;
-    private boolean computed = false;
+    private volatile T computedValue;
+    private volatile boolean computed = false;
 
     public StyleValue(String rawValue) {
         this.rawValue = rawValue;
@@ -24,6 +27,7 @@ public abstract class StyleValue<T> {
             try {
                 computedValue = doCompute(rawValue);
             } catch (Exception e) {
+                LDLib2.LOGGER.warn("Failed to parse style value '{}': {}", rawValue, e.getMessage());
                 computedValue = null;
             }
             computed = true;
@@ -40,4 +44,16 @@ public abstract class StyleValue<T> {
      * @return the computed value of type {@code T}
      */
     protected abstract @Nullable T doCompute(String rawValue);
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof StyleValue<?> that)) return false;
+        return Objects.equals(rawValue, that.rawValue);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(rawValue);
+    }
 }

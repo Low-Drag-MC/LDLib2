@@ -601,6 +601,7 @@ public class ModularUI {
      */
     public void onRemoved() {
         ui.rootElement.onRemoved();
+        styleEngine.dispose();
     }
 
     /**

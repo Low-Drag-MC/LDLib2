@@ -25,6 +25,18 @@ public record StyleMatcher(StyleSelector[] selector, int weight) {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof StyleMatcher that)) return false;
+        return Arrays.equals(selector, that.selector) && weight == that.weight;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * Arrays.hashCode(selector) + weight;
+    }
+
+    @Override
     public @NotNull String toString() {
         return Arrays.stream(selector)
                 .map(StyleSelector::toString)

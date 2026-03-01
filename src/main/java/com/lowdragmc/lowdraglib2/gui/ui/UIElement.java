@@ -54,6 +54,7 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -125,6 +126,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     private final StyleBag styleBag = new StyleBag(this);
     @Getter
     private final List<Style> styles = new ArrayList<>();
+    private final List<Stylesheet> localStylesheets = new ArrayList<>();
     @Getter
     private final LayoutStyle layoutStyle = new LayoutStyle(this);
     @Getter
@@ -167,10 +169,19 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     private boolean isInternalUI = false;
     @Getter @Setter @Accessors(chain = true)
     private boolean allowHitTest = true;
-    private final UIVisualLayer UIVisualLayer = new UIVisualLayer(this);
+    @Nullable
+    private UIVisualLayer visualLayer;
 
     public UIElement() {
         taffyStyle = new TaffyLayoutStyle(this);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private UIVisualLayer getOrCreateVisualLayer() {
+        if (visualLayer == null) {
+            visualLayer = new UIVisualLayer(this);
+        }
+        return visualLayer;
     }
 
     /**
@@ -245,7 +256,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         for (var child : getSafeChildren()) {
             child.onRemoved();
         }
-        UIVisualLayer.release();
+        if (visualLayer != null) {
+            visualLayer.release();
+        }
         if (bubbleListeners.containsKey(UIEvents.REMOVED) || captureListeners.containsKey(UIEvents.REMOVED)) {
             var event = UIEvent.create(UIEvents.REMOVED);
             event.target = this;
@@ -896,10 +909,99 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         styleBag.removeCandidates(slot -> slot.origin() == StyleOrigin.STYLESHEET);
     }
 
+    // region Local Stylesheets
+
+    /**
+     * Returns an unmodifiable view of the local stylesheets attached to this element.
+     * Local stylesheets only affect this element and its descendants.
+     */
+    public List<Stylesheet> getLocalStylesheets() {
+        return Collections.unmodifiableList(localStylesheets);
+    }
+
+    /**
+     * Attach a local stylesheet to this element.
+     * The stylesheet will only apply to this element and its descendants.
+     *
+     * @param stylesheet the stylesheet to attach
+     * @return this element for chaining
+     */
+    public UIElement addLocalStylesheet(Stylesheet stylesheet) {
+        if (!localStylesheets.contains(stylesheet)) {
+            localStylesheets.add(stylesheet);
+            if (!LDLib2.isServer()) {
+                var mui = getModularUI();
+                if (mui != null) {
+                    mui.getStyleEngine().addLocalStylesheet(this, stylesheet);
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Parse and attach a local stylesheet from a CSS string.
+     * The stylesheet will only apply to this element and its descendants.
+     *
+     * @param lss the LSS string to parse
+     * @return this element for chaining
+     */
+    public UIElement addLocalStylesheet(String lss) {
+        return addLocalStylesheet(Stylesheet.parse(lss));
+    }
+
+    /**
+     * Remove a previously attached local stylesheet from this element.
+     *
+     * @param stylesheet the stylesheet to remove
+     * @return this element for chaining
+     */
+    public UIElement removeLocalStylesheet(Stylesheet stylesheet) {
+        if (localStylesheets.remove(stylesheet)) {
+            if (!LDLib2.isServer()) {
+                var mui = getModularUI();
+                if (mui != null) {
+                    mui.getStyleEngine().removeLocalStylesheet(this, stylesheet);
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Remove all local stylesheets from this element.
+     *
+     * @return this element for chaining
+     */
+    public UIElement clearLocalStylesheets() {
+        if (!localStylesheets.isEmpty()) {
+            var sheets = new ArrayList<>(localStylesheets);
+            localStylesheets.clear();
+            if (!LDLib2.isServer()) {
+                var mui = getModularUI();
+                if (mui != null) {
+                    for (var sheet : sheets) {
+                        mui.getStyleEngine().removeLocalStylesheet(this, sheet);
+                    }
+                }
+            }
+        }
+        return this;
+    }
+
+    // endregion
+
     /**
      * This method is called when the style of the element has changed.
      */
     public void onStyleChanged() {
+        if (bubbleListeners.containsKey(UIEvents.STYLE_CHANGED) || captureListeners.containsKey(UIEvents.STYLE_CHANGED)) {
+            var event = UIEvent.create(UIEvents.STYLE_CHANGED);
+            event.target = this;
+            event.hasBubblePhase = false;
+            event.hasCapturePhase = false;
+            UIEventDispatcher.dispatchEvent(event, false, false, false);
+        }
     }
 
     public UIElement style(Consumer<BasicStyle> style) {
@@ -1048,13 +1150,16 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     public List<UIElement> getSortedChildren() {
         if (sortedChildrenCache == null) {
-            // sorted by zIndex
+            // Pre-build index map to avoid O(n) indexOf calls inside the comparator
+            var indexMap = new HashMap<UIElement, Integer>(children.size() * 2);
+            for (int i = 0; i < children.size(); i++) {
+                indexMap.put(children.get(i), i);
+            }
             sortedChildrenCache = new ArrayList<>(children);
             sortedChildrenCache.sort((a, b) -> {
                 int zCompare = Integer.compare(b.style.zIndex(), a.style.zIndex());
                 if (zCompare != 0) return zCompare;
-                // if z-index is the same, sort by order in the list
-                return children.indexOf(b) - children.indexOf(a);
+                return indexMap.getOrDefault(b, 0) - indexMap.getOrDefault(a, 0);
             });
         }
         return sortedChildrenCache;
@@ -1510,7 +1615,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var hasVisualLayer = !isCulled && (hasOverlayClip || opacity < 1);
 
         if (hasVisualLayer) {
-            guiContext.pushVisualLayer(UIVisualLayer);
+            guiContext.pushVisualLayer(getOrCreateVisualLayer());
         }
 
         drawInBackgroundInternal(guiContext);
@@ -1939,7 +2044,29 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             var node = nodes.item(i);
             if (node.getNodeType() == Node.ELEMENT_NODE && node instanceof Element child) {
                 var tagName = child.getTagName();
-                if (tagName.equals("internal")) {
+                if (tagName.equals("style")) {
+                    // Inline CSS block — parsed as a local stylesheet scoped to this element
+                    if (!LDLib2.isServer()) {
+                        var content = child.getTextContent();
+                        if (content != null && !content.isBlank()) {
+                            addLocalStylesheet(Stylesheet.parse(content));
+                        }
+                    }
+                } else if (tagName.equals("stylesheet")) {
+                    // External stylesheet reference — loaded from resource location
+                    if (!LDLib2.isServer()) {
+                        var location = XmlUtils.getAsString(child, "location", "");
+                        if (!location.isEmpty()) {
+                            var rs = ResourceLocation.tryParse(location);
+                            if (rs != null) {
+                                var sheet = StylesheetManager.INSTANCE.getStylesheet(rs);
+                                if (sheet != null) {
+                                    addLocalStylesheet(sheet);
+                                }
+                            }
+                        }
+                    }
+                } else if (tagName.equals("internal")) {
                     parseXmlInternalChild(child);
                 } else {
                     parseXmlChildElement(child);

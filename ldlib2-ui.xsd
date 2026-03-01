@@ -78,6 +78,9 @@
         <xs:sequence minOccurs="0" maxOccurs="unbounded">
             <xs:choice>
                 <xs:element ref="ui-node"/>
+                <!-- local style -->
+                <xs:element name="stylesheet" type="Stylesheet" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element name="style" type="StyleBlock" minOccurs="0" maxOccurs="unbounded"/>
                 <!-- support unknown tags -->
                 <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
@@ -291,6 +294,9 @@
             <xs:choice>
                 <xs:element name="candidate" type="Candidate"/>
                 <xs:element ref="ui-node"/>
+                <!-- local style -->
+                <xs:element name="stylesheet" type="Stylesheet" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element name="style" type="StyleBlock" minOccurs="0" maxOccurs="unbounded"/>
                 <!-- support unknown tags -->
                 <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
@@ -314,6 +320,9 @@
             <xs:sequence minOccurs="0" maxOccurs="unbounded">
                 <xs:choice>
                     <xs:element ref="ui-node"/>
+                    <!-- local style -->
+                    <xs:element name="stylesheet" type="Stylesheet" minOccurs="0" maxOccurs="unbounded"/>
+                    <xs:element name="style" type="StyleBlock" minOccurs="0" maxOccurs="unbounded"/>
                     <!-- support unknown tags -->
                     <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
                 </xs:choice>

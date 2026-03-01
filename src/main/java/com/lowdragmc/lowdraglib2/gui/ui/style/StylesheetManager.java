@@ -8,10 +8,8 @@ import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.ref.WeakReference;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @KJSBindings
@@ -24,7 +22,11 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
     public static final ResourceLocation MODERN = LDLib2.id(PATH + "/modern.lss");
 
     private final Map<ResourceLocation, Stylesheet> builtinStylesheets = new ConcurrentHashMap<>();
-    private final Map<ResourceLocation, Stylesheet> packStylesheets = new HashMap<>();
+    private final Map<ResourceLocation, Stylesheet> packStylesheets = new ConcurrentHashMap<>();
+
+    /** Live StyleEngine instances (held via WeakReference for auto-cleanup). */
+    private final Set<WeakReference<StyleEngine>> activeEngines =
+            Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private StylesheetManager() {}
 
@@ -61,21 +63,63 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
         return builtinStylesheets.containsKey(location) || packStylesheets.containsKey(location);
     }
 
+    /** Register a StyleEngine so it receives reload notifications. */
+    public void registerEngine(StyleEngine engine) {
+        activeEngines.add(new WeakReference<>(engine));
+    }
+
+    /** Unregister a StyleEngine (e.g. when the UI closes). */
+    public void unregisterEngine(StyleEngine engine) {
+        activeEngines.removeIf(ref -> {
+            var e = ref.get();
+            return e == null || e == engine;
+        });
+    }
+
     @Override
     public void onResourceManagerReload(@Nonnull ResourceManager resourceManager) {
         var resources = resourceManager.listResources(PATH,
                 location -> location.getPath().endsWith(".lss"));
-        packStylesheets.clear();
+
+        // Parse new stylesheets
+        var newSheets = new HashMap<ResourceLocation, Stylesheet>();
         for (var entry : resources.entrySet()) {
             var key = entry.getKey();
             var res = entry.getValue();
             try (var reader = res.openAsReader()) {
                 var lss = String.join("\n", reader.lines().toList());
                 var stylesheet = Stylesheet.parse(lss);
-                packStylesheets.put(key, stylesheet);
+                newSheets.put(key, stylesheet);
             } catch (Exception e) {
                 LDLib2.LOGGER.error("Failed to load style sheet {} of {}", res.sourcePackId(), key, e);
             }
         }
+
+        // Update existing Stylesheet objects in-place so existing references stay valid,
+        // and add/remove entries for changed keys.
+        for (var entry : newSheets.entrySet()) {
+            var key = entry.getKey();
+            var newSheet = entry.getValue();
+            var existing = packStylesheets.get(key);
+            if (existing != null) {
+                existing.clear();
+                existing.merge(newSheet);
+            } else {
+                packStylesheets.put(key, newSheet);
+            }
+        }
+        packStylesheets.keySet().removeIf(key -> !newSheets.containsKey(key));
+
+        // Notify all live engines to re-match elements
+        notifyEnginesReload();
+    }
+
+    private void notifyEnginesReload() {
+        activeEngines.removeIf(ref -> {
+            var engine = ref.get();
+            if (engine == null) return true; // clean up dead ref
+            engine.scheduleFullReload();
+            return false;
+        });
     }
 }

@@ -16,8 +16,6 @@ import java.util.function.Supplier;
 public class GridTemplateProperty extends Property<GridTemplate> {
     public GridTemplateProperty(String name, GridTemplate initialValue) {
         super(name, GridTemplate.class, TaffyCodecs.GRID_TEMPLATE_CODEC, initialValue, GridTemplateValue::new);
-        setAllowTransition(true);
-        setInterpolator(this::interpolate);
     }
 
     @Override
@@ -44,9 +42,4 @@ public class GridTemplateProperty extends Property<GridTemplate> {
         return configurator;
     }
 
-    private GridTemplate interpolate(GridTemplate from, GridTemplate to, float interpolation) {
-        // Binary snap: use 'from' until halfway, then switch to 'to'
-        // Grid templates have discrete structure that doesn't interpolate smoothly
-        return interpolation < 0.5f ? from : to;
-    }
 }

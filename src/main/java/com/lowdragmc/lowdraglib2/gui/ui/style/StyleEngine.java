@@ -6,10 +6,12 @@ import lombok.Getter;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 public final class StyleEngine {
     public final ModularUI modularUI;
-    public final List<Stylesheet> globalSheets = new ArrayList<>();
+    public final List<Stylesheet> globalSheets = new CopyOnWriteArrayList<>();
 
     // runtime
     private final Set<UIElement> dirtyElements = ConcurrentHashMap.newKeySet();
@@ -20,6 +22,20 @@ public final class StyleEngine {
 
     public StyleEngine(ModularUI modularUI) {
         this.modularUI = modularUI;
+        StylesheetManager.INSTANCE.registerEngine(this);
+    }
+
+    /** Called when the owning ModularUI is closed/disposed. */
+    public void dispose() {
+        StylesheetManager.INSTANCE.unregisterEngine(this);
+    }
+
+    /**
+     * Schedule all registered elements for style re-matching.
+     * Called after a resource pack reload so elements pick up updated stylesheet rules.
+     */
+    public void scheduleFullReload() {
+        dirtyElements.addAll(modularUI.getAllElements());
     }
 
     public void addStylesheets(Stylesheet... stylesheets) {
@@ -78,7 +94,7 @@ public final class StyleEngine {
     }
 
     public void calculateStyle() {
-        dirtyElements.parallelStream().forEach(this::updateElementStyle);
+        dirtyElements.forEach(this::updateElementStyle);
         dirtyElements.clear();
 
         if (queue.isEmpty()) return;
@@ -92,11 +108,72 @@ public final class StyleEngine {
 
     public void onElementRegister(UIElement element) {
         enqueue(element.getStyleBag());
+        // Apply global stylesheets
         for (var stylesheet : globalSheets) {
             var rules = stylesheet.calculateValues(element);
             if (!rules.isEmpty()) {
                 elementStyleRules.computeIfAbsent(element, e -> new ConcurrentHashMap<>()).put(stylesheet, rules);
                 element.addStyleRules(rules);
+            }
+        }
+        // Apply local stylesheets from ancestors (including self)
+        applyAncestorLocalStylesheets(element);
+    }
+
+    /**
+     * Apply local stylesheets from this element and all its ancestors to the given element.
+     */
+    private void applyAncestorLocalStylesheets(UIElement element) {
+        var ancestor = element;
+        while (ancestor != null) {
+            for (var sheet : ancestor.getLocalStylesheets()) {
+                var rules = sheet.calculateValues(element);
+                if (!rules.isEmpty()) {
+                    elementStyleRules.computeIfAbsent(element, e -> new ConcurrentHashMap<>()).put(sheet, rules);
+                    element.addStyleRules(rules);
+                }
+            }
+            ancestor = ancestor.getParent();
+        }
+    }
+
+    /**
+     * Add a local stylesheet scoped to the given owner element's subtree.
+     * The stylesheet will only be applied to the owner and its descendants.
+     */
+    public void addLocalStylesheet(UIElement owner, Stylesheet stylesheet) {
+        forEachRegisteredDescendantAndSelf(owner, element -> {
+            var rules = stylesheet.calculateValues(element);
+            if (!rules.isEmpty()) {
+                elementStyleRules.computeIfAbsent(element, e -> new ConcurrentHashMap<>()).put(stylesheet, rules);
+                element.addStyleRules(rules);
+            }
+        });
+    }
+
+    /**
+     * Remove a local stylesheet that was scoped to the given owner element's subtree.
+     */
+    public void removeLocalStylesheet(UIElement owner, Stylesheet stylesheet) {
+        forEachRegisteredDescendantAndSelf(owner, element -> {
+            var rulesMap = elementStyleRules.get(element);
+            if (rulesMap != null) {
+                var rules = rulesMap.remove(stylesheet);
+                if (rules != null) {
+                    element.removeStyleRules(rules);
+                    if (rulesMap.isEmpty()) {
+                        elementStyleRules.remove(element);
+                    }
+                }
+            }
+        });
+    }
+
+    private void forEachRegisteredDescendantAndSelf(UIElement root, Consumer<UIElement> action) {
+        if (root.getModularUI() == modularUI) {
+            action.accept(root);
+            for (var child : root.getSafeChildren()) {
+                forEachRegisteredDescendantAndSelf(child, action);
             }
         }
     }
@@ -134,12 +211,26 @@ public final class StyleEngine {
         Map<Stylesheet, List<StyleRule>> newRulesMap = new HashMap<>();
         List<StyleRule> newRules = new ArrayList<>();
 
+        // Global stylesheets
         for (var stylesheet : globalSheets) {
             var rules = stylesheet.calculateValues(element);
             if (!rules.isEmpty()) {
                 newRulesMap.put(stylesheet, rules);
                 newRules.addAll(rules);
             }
+        }
+
+        // Local stylesheets from ancestors (including self)
+        var ancestor = element;
+        while (ancestor != null) {
+            for (var sheet : ancestor.getLocalStylesheets()) {
+                var rules = sheet.calculateValues(element);
+                if (!rules.isEmpty()) {
+                    newRulesMap.put(sheet, rules);
+                    newRules.addAll(rules);
+                }
+            }
+            ancestor = ancestor.getParent();
         }
 
         // 3. compare old and new rules

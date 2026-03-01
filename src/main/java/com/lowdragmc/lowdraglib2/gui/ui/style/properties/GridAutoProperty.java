@@ -16,8 +16,6 @@ import java.util.function.Supplier;
 public class GridAutoProperty extends Property<GridAuto> {
     public GridAutoProperty(String name, GridAuto initialValue) {
         super(name, GridAuto.class, TaffyCodecs.GRID_AUTO_CODEC, initialValue, GridAutoValue::new);
-        setAllowTransition(true);
-        setInterpolator(this::interpolate);
     }
 
     @Override
@@ -44,9 +42,4 @@ public class GridAutoProperty extends Property<GridAuto> {
         return configurator;
     }
 
-    private GridAuto interpolate(GridAuto from, GridAuto to, float interpolation) {
-        // Binary snap: use 'from' until halfway, then switch to 'to'
-        // Grid auto values have discrete structure that doesn't interpolate smoothly
-        return interpolation < 0.5f ? from : to;
-    }
 }
