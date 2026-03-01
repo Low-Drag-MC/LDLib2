@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
-import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -53,14 +52,18 @@ import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import org.appliedenergistics.yoga.YogaEdge;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -249,6 +252,19 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         return this;
     }
 
+    public FluidSlot xeiRecipeIngredient(IngredientIO io, Stream<FluidStack> allPossibleFluids) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io, () -> allPossibleFluids);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeIngredient(this, io, () -> allPossibleFluids);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeIngredient(this, io, () -> allPossibleFluids);
+        }
+        return this;
+    }
+
     public FluidSlot xeiRecipeSlot() {
         return xeiRecipeSlot(IngredientIO.NONE, 1);
     }
@@ -262,6 +278,19 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
         if (LDLib2.isEmiLoaded()) {
             EMISupport.recipeSlot(this, chance);
+        }
+        return this;
+    }
+
+    public FluidSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Stream<FluidStack> allPossibleFluids) {
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this, () -> allPossibleFluids);
+        }
+        if (LDLib2.isReiLoaded()) {
+            REISupport.recipeSlot(this, io, () -> allPossibleFluids);
+        }
+        if (LDLib2.isEmiLoaded()) {
+            EMISupport.recipeSlot(this, () -> chance, () -> amount, () -> allPossibleFluids);
         }
         return this;
     }
@@ -513,22 +542,28 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
 
         public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
-            LDLibJEIPlugin.recipeIngredient(fluidSlot, io, () -> List.of(
-                    LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidSlot.getFluid()).orElseThrow()
-            ));
+            recipeIngredient(fluidSlot, io, () -> Stream.of(fluidSlot.getFluid()));
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
+            LDLibJEIPlugin.recipeIngredient(fluidSlot, io, () -> allPossibleFluids.get()
+                    .map(fluidStack -> LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidStack))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toList()));
         }
 
         public static void recipeSlot(FluidSlot fluidSlot) {
+            recipeSlot(fluidSlot, () -> Stream.of(fluidSlot.getFluid()));
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, Supplier<Stream<FluidStack>> allPossibleFluids) {
             LDLibJEIPlugin.recipeSlot(fluidSlot, () -> {
                 var fluid = fluidSlot.getValue();
                 return fluid.isEmpty() ? null : LDLibJEIPlugin
                         .createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidSlot.getFluid())
                         .orElse(null);
-            }, () -> {
-                var fluid = fluidSlot.getValue();
-                return List.of(LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid)
-                        .orElseThrow());
-            });
+            }, () -> allPossibleFluids.get().map(fluid -> LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid).orElseThrow()).collect(Collectors.toList()));
         }
     }
 
@@ -556,13 +591,24 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
 
         public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
-            LDLibREIPlugin.recipeIngredient(fluidSlot, io, () -> List.of(EntryIngredients.of(FluidStackHooksForge.fromForge(fluidSlot.getFluid()))));
+            recipeIngredient(fluidSlot, io, () -> Stream.of(fluidSlot.getFluid()));
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
+            LDLibREIPlugin.recipeIngredient(fluidSlot, io, () -> allPossibleFluids.get()
+                    .map(fluidStack -> EntryIngredients.of(FluidStackHooksForge.fromForge(fluidStack)))
+                    .toList()
+            );
         }
 
         public static void recipeSlot(FluidSlot fluidSlot, IngredientIO io) {
+            recipeSlot(fluidSlot, io, () -> Stream.of(fluidSlot.getFluid()));
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
             LDLibREIPlugin.recipeSlot(fluidSlot, io,
                     () -> EntryStacks.of(FluidStackHooksForge.fromForge(fluidSlot.getValue())),
-                    () -> List.of(EntryStacks.of(FluidStackHooksForge.fromForge(fluidSlot.getValue()))));
+                    () -> allPossibleFluids.get().map(fluid -> EntryStacks.of(FluidStackHooksForge.fromForge(fluid))).collect(Collectors.toList()));
         }
     }
 
@@ -595,10 +641,14 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
 
         public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io) {
-            LDLibEMIPlugin.recipeIngredient(fluidSlot, io, () -> {
-                var fluid = fluidSlot.getValue();
-                return List.of(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()));
-            });
+            recipeIngredient(fluidSlot, io, () -> Stream.of(fluidSlot.getFluid()));
+        }
+
+        public static void recipeIngredient(FluidSlot fluidSlot, IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
+            LDLibEMIPlugin.recipeIngredient(fluidSlot, io, () -> allPossibleFluids.get()
+                    .map(fluid -> EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()))
+                    .collect(Collectors.toList())
+            );
         }
 
         public static void recipeSlot(FluidSlot fluidSlot, float chance) {
@@ -606,6 +656,14 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
                 var fluid = fluidSlot.getValue();
                 return EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()).setChance(chance);
             });
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, Supplier<Float> chance, IntSupplier amount, Supplier<Stream<FluidStack>> allPossibleFluids) {
+            LDLibEMIPlugin.recipeSlot(fluidSlot, () ->
+                    new ListEmiIngredient(
+                            allPossibleFluids.get().map(fluid -> EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()))
+                                    .map(e -> e.setChance(chance.get())).collect(Collectors.toList()), amount.getAsInt())
+                            .setChance(chance.get()));
         }
     }
     // endregion
