@@ -10,7 +10,7 @@ public class FloatValue extends StyleValue<Float> {
 
     @Override
     protected Float doCompute(String rawValue) {
-        return Float.parseFloat(rawValue);
+        return Float.parseFloat(rawValue.trim());
     }
     
 }

@@ -167,7 +167,7 @@ text-area {
   font: ldlib2:jetbrains_mono_bold;
 }
 
-text-area:host. {
+text-area:host {
   focus-overlay: sdf(#00000000, 4, 1, #71a4f4);
 }
 

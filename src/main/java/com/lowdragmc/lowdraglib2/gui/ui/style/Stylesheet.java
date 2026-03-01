@@ -8,30 +8,41 @@ import java.util.regex.Pattern;
 
 @KJSBindings
 public final class Stylesheet {
-    public static final Stylesheet EMPTY = new Stylesheet(Collections.emptyList());
-
     public static final Pattern RULE = Pattern.compile("(?s)([^{]+)\\{([^}]*)}");
     public static final Pattern DECL = Pattern.compile("(?m)\\s*([\\w-]+)\\s*:\\s*([^;]+)\\s*;?");
 
     public final List<StyleRule> rules = new ArrayList<>();
+    private final boolean immutable;
 
     public Stylesheet(List<StyleRule> rules) {
         this.rules.addAll(rules);
+        this.immutable = false;
     }
 
+    private Stylesheet(List<StyleRule> rules, boolean immutable) {
+        this.rules.addAll(rules);
+        this.immutable = immutable;
+    }
+
+    public static final Stylesheet EMPTY = new Stylesheet(Collections.emptyList(), true);
+
     public void addRule(StyleRule rule) {
+        if (immutable) throw new UnsupportedOperationException("Cannot modify immutable Stylesheet.EMPTY");
         rules.add(rule);
     }
 
     public void removeRule(StyleRule rule) {
+        if (immutable) throw new UnsupportedOperationException("Cannot modify immutable Stylesheet.EMPTY");
         rules.remove(rule);
     }
 
     public void clear() {
+        if (immutable) throw new UnsupportedOperationException("Cannot modify immutable Stylesheet.EMPTY");
         rules.clear();
     }
 
     public void merge(Stylesheet other) {
+        if (immutable) throw new UnsupportedOperationException("Cannot modify immutable Stylesheet.EMPTY");
         for (StyleRule r : other.rules) {
             addRule(r);
         }

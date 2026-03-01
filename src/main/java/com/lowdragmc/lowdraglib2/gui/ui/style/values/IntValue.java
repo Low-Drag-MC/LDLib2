@@ -10,7 +10,7 @@ public class IntValue extends StyleValue<Integer> {
 
     @Override
     protected Integer doCompute(String rawValue) {
-        return Integer.parseInt(rawValue);
+        return Integer.parseInt(rawValue.trim());
     }
     
 }

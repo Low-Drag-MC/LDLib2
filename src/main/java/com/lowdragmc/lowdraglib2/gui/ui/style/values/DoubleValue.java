@@ -10,7 +10,7 @@ public class DoubleValue extends StyleValue<Double> {
 
     @Override
     protected Double doCompute(String rawValue) {
-        return Double.parseDouble(rawValue);
+        return Double.parseDouble(rawValue.trim());
     }
     
 }

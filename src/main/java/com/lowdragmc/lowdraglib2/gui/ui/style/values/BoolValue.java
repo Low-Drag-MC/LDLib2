@@ -10,7 +10,7 @@ public class BoolValue extends StyleValue<Boolean> {
 
     @Override
     protected Boolean doCompute(String rawValue) {
-        return Boolean.parseBoolean(rawValue);
+        return Boolean.parseBoolean(rawValue.trim());
     }
     
 }
