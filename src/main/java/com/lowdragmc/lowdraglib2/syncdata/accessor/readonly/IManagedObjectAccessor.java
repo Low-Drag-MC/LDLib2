@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.readonly;
 
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
+import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IManagedReadOnlyRef;
 import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
@@ -8,7 +9,9 @@ import com.mojang.serialization.DynamicOps;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
-public class IManagedObjectAccessor implements IReadOnlyAccessor<IManaged> {
+import java.util.Objects;
+
+public class IManagedObjectAccessor implements IReadOnlyAccessor<IManaged>, IMarkFunction<IManaged, IManaged> {
 
     @Override
     public boolean test(Class<?> type) {
@@ -38,5 +41,15 @@ public class IManagedObjectAccessor implements IReadOnlyAccessor<IManaged> {
     @Override
     public IManagedReadOnlyRef createReadOnlyRef(ManagedKey managedKey, ReadOnlyVar<IManaged> field) {
         return new IManagedReadOnlyRef(field, managedKey, this);
+    }
+
+    @Override
+    public @NotNull IManaged obtainManagedMark(@NotNull IManaged value) {
+        return value;
+    }
+
+    @Override
+    public boolean areDifferent(@NotNull IManaged managedMark, @NotNull IManaged value) {
+        return !Objects.equals(managedMark, value);
     }
 }
