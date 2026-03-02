@@ -25,6 +25,8 @@ class StyleAnimationDsl internal constructor(
 
     fun origin(value: StyleOrigin) = apply { animation.origin(value) }
 
+    fun animationOrigin(value: StyleOrigin) = apply { animation.animationOrigin(value) }
+
     fun specificity(value: Int) = apply { animation.specificity(value) }
 
     fun sourceOrder(value: Int) = apply { animation.sourceOrder(value) }

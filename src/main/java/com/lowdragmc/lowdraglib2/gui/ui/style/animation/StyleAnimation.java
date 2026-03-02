@@ -31,6 +31,8 @@ public class StyleAnimation {
     @Setter
     private StyleOrigin origin = StyleOrigin.INLINE;
     @Setter
+    private StyleOrigin animationOrigin = StyleOrigin.ANIMATION;
+    @Setter
     private float duration = 1f;
     @Setter
     private float delay = 0f;
@@ -103,14 +105,14 @@ public class StyleAnimation {
                 var executor = new KFExecutor<>(keyFrame, new IFrameValueHandler<>() {
                     @Override
                     public void accept(AnimationRuntime runtime, Object o) {
-                        target.getStyleBag().onAnimationUpdate(p, o);
+                        target.getStyleBag().onAnimationUpdate(animationOrigin, p, o);
                         onInterpolate.accept(runtime, target);
                     }
 
                     @Override
                     public void onFinished(AnimationRuntime runtime) {
                         target.getStyleBag().replaceAnimationFinal(p,
-                                slot -> slot.origin() == StyleOrigin.ANIMATION
+                                slot -> slot.origin() == animationOrigin
                                         && slot.specificity() == 999
                                         && slot.sourceOrder() == 0,
                                 StyleSlot.of(p, origin, specificity, sourceOrder, slots.getLast().right()));

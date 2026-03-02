@@ -284,17 +284,17 @@ public final class StyleBag {
      * Used by {@link com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation} per-frame.
      */
     @SuppressWarnings("unchecked")
-    public <T> void onAnimationUpdate(Property<T> p, T value) {
+    public <T> void onAnimationUpdate(StyleOrigin animationOrigin, Property<T> p, T value) {
         var slots = candidates.computeIfAbsent(p, k -> new ArrayList<>());
         StyleSlot<T> oldComputed = cast(computedSlots.get(p));
         for (int i = 0; i < slots.size(); i++) {
             var existSlot = slots.get(i);
-            if (existSlot.origin() == StyleOrigin.ANIMATION
+            if (existSlot.origin() == animationOrigin
                     && existSlot.specificity() == 999
                     && existSlot.sourceOrder() == 0) {
                 T oldValue = (T) existSlot.value();
                 if (!Objects.equals(oldValue, value)) {
-                    var animationSlot = new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value);
+                    var animationSlot = new StyleSlot<>(p, animationOrigin, 999, 0, value);
                     slots.set(i, animationSlot);
                     animationUpdateCompute(p, oldComputed);
                 }
@@ -302,7 +302,7 @@ public final class StyleBag {
             }
         }
         // First frame: no slot yet, insert and notify
-        var animationSlot = new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value);
+        var animationSlot = new StyleSlot<>(p, animationOrigin, 999, 0, value);
         slots.add(animationSlot);
         animationUpdateCompute(p, oldComputed);
     }
