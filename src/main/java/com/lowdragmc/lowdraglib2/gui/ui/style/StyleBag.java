@@ -286,6 +286,7 @@ public final class StyleBag {
     @SuppressWarnings("unchecked")
     public <T> void onAnimationUpdate(Property<T> p, T value) {
         var slots = candidates.computeIfAbsent(p, k -> new ArrayList<>());
+        StyleSlot<T> oldComputed = cast(computedSlots.get(p));
         for (int i = 0; i < slots.size(); i++) {
             var existSlot = slots.get(i);
             if (existSlot.origin() == StyleOrigin.ANIMATION
@@ -293,14 +294,30 @@ public final class StyleBag {
                     && existSlot.sourceOrder() == 0) {
                 T oldValue = (T) existSlot.value();
                 if (!Objects.equals(oldValue, value)) {
-                    slots.set(i, new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value));
-                    p.notifyListeners(element, oldValue, value);
+                    var animationSlot = new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value);
+                    slots.set(i, animationSlot);
+                    animationUpdateCompute(p, oldComputed);
                 }
                 return;
             }
         }
         // First frame: no slot yet, insert and notify
-        slots.add(new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value));
-        p.notifyListeners(element, p.initialValue, value);
+        var animationSlot = new StyleSlot<>(p, StyleOrigin.ANIMATION, 999, 0, value);
+        slots.add(animationSlot);
+        animationUpdateCompute(p, oldComputed);
+    }
+
+    private <T> void animationUpdateCompute(Property<T> p, StyleSlot<T> oldComputed) {
+        var computed = computeCandidateSlot(p);
+        if (computed == null) {
+            computedSlots.remove(p);
+        } else {
+            computedSlots.put(p, computed);
+        }
+        T oldComputedValue = oldComputed == null ? null : oldComputed.value();
+        T newComputedValue = computed == null ? null : cast(computed.value());
+        if (!Objects.equals(oldComputedValue, newComputedValue)) {
+            p.notifyListeners(element, oldComputedValue, newComputedValue);
+        }
     }
 }

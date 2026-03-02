@@ -65,31 +65,41 @@ class TestDSL : IScreenTest {
         return ModularUI.of(UI.of(
             element({
                 layout = { size(200.px); gap{ all(3.px) }; padding { all(4.px) } }
-                style = { background(Sprites.RECT) }
+                style = {
+                    background(Sprites.RECT);
+                    opacity(0f);
+                    transform2D(Transform2D().translate(0f, 40f))
+                }
                 cls = { +"cla" }
             }) {
+                // float up
+                animation {
+                    ease(Eases.QUART_IN_OUT)
+                    lss("transform", "") // empty as identity
+                    lss("opacity", "1") // empty as identity
+//                    style(PropertyRegistry.TRANSFORM_2D, Transform2D()) // equal to
+//                    style(PropertyRegistry.OPACITY, 1f) // equal to
+                }
                 element( {
                     layout = { size(30.px) }
                     style = { background(Sprites.RECT_SOLID).tooltips("animation") }
                 }) {
                     events { e ->
                         UIEvents.CLICK += {
-                            e.animation()
-                                .duration(1f)
-                                .ease(Eases.QUAD_IN_OUT)
-                                .style(
-                                    PropertyRegistry.TRANSFORM_2D,
-                                    Transform2D().scale(0.5f).translate(100f, 0f)
-                                )
-                                .style(PropertyRegistry.OPACITY, 0f)
-                                .onFinished(Consumer { element: UIElement? ->
-                                    e.animation()
-                                        .ease(Eases.QUART_IN_OUT)
-                                        .style(PropertyRegistry.TRANSFORM_2D, Transform2D())
-                                        .style(PropertyRegistry.OPACITY, 1f)
-                                        .start()
-                                })
-                                .start()
+                            e.animationDsl {
+                                duration(1f)
+                                ease(Eases.QUAD_IN_OUT)
+                                style(PropertyRegistry.TRANSFORM_2D,
+                                    Transform2D().scale(0.5f).translate(100f, 0f))
+                                style(PropertyRegistry.OPACITY, 0f)
+                                onFinished {
+                                    e.animationDsl {
+                                        ease(Eases.QUART_IN_OUT)
+                                        style(PropertyRegistry.TRANSFORM_2D, Transform2D())
+                                        style(PropertyRegistry.OPACITY, 1f)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

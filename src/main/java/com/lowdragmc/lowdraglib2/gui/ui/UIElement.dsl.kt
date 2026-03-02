@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyleDsl
 import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle
+import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimationDsl
 import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
 import org.apache.commons.lang3.function.Consumers
@@ -316,6 +317,10 @@ abstract class UIContainer<T : UIElement, S: ElementSpec<T>>(
     fun api(block: T.() -> Unit) {
         element.block()
     }
+
+    fun animation(start: Boolean = true, block: StyleAnimationDsl.() -> Unit) = apply {
+        element.animationDsl(start, block)
+    }
 }
 
 /**
@@ -378,6 +383,16 @@ fun <T : UIElement> T.styleDsl(init: BasicStyle.() -> Unit = {}): T {
 
 fun <T : UIElement> T.clsDsl(init: ClassPatchDsl.() -> Unit = {}): T {
     ClassPatchDsl(this).apply(init)
+    return this
+}
+
+fun <T : UIElement> T.animationDsl(start: Boolean = true, init: StyleAnimationDsl.() -> Unit = {}): T {
+    animation { styleAnimation ->
+        StyleAnimationDsl(styleAnimation).apply(init)
+        if (start) {
+            styleAnimation.start()
+        }
+    }
     return this
 }
 

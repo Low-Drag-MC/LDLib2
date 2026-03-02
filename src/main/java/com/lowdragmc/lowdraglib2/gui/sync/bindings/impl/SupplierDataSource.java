@@ -16,7 +16,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-@Data(staticConstructor = "of")
 @KJSBindings
 public final class SupplierDataSource<T> implements IDataProvider<T>, ITickable {
     @Getter
@@ -31,6 +30,10 @@ public final class SupplierDataSource<T> implements IDataProvider<T>, ITickable 
     private SupplierDataSource(Supplier<T> supplier) {
         this.supplier = supplier;
         this.lastValue = supplier.get();
+    }
+
+    public static <T> SupplierDataSource<T> of(Supplier<T> supplier) {
+        return new SupplierDataSource<>(supplier);
     }
 
     public <D> SupplierDataSource<D> map(Function<T, D> mapper) {
