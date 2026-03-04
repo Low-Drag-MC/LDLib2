@@ -1,5 +1,4 @@
-## v2.2.4
-* Fixed animation issue
-* Added animation dsl support
+## v2.2.4.a
+* Fixed Dummyworld RegistryAccess for EMI async Thread loading
 
 
