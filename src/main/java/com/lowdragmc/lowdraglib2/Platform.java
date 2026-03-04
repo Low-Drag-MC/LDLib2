@@ -110,7 +110,7 @@ public class Platform {
                 return getRegistryFromMultipleSources(Minecraft.getInstance().getConnection().registryAccess(), serverRegistryAccess);
             }
         }
-        return serverRegistryAccess == null ? getBLANK_REGISTRY_ACCESS() : serverRegistryAccess;
+        return serverRegistryAccess == null ? getClientRegistryAccess() : serverRegistryAccess;
     }
 
     public static RegistryAccess getServerRegistryAccess() {

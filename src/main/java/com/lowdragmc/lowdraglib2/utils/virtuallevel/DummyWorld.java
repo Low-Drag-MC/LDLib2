@@ -98,11 +98,12 @@ public class DummyWorld extends Level {
     private ParticleManager particleManager;
 
     public DummyWorld() {
-        this(Platform.getFrozenRegistry());
+        this(Platform.getClientRegistryAccess());
     }
 
     public DummyWorld(RegistryAccess registryAccess) {
-        super(createLevelData(), LEVEL_ID, registryAccess, registryAccess.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(BuiltinDimensionTypes.OVERWORLD),
+        super(createLevelData(), LEVEL_ID, registryAccess,
+                registryAccess.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(BuiltinDimensionTypes.OVERWORLD),
                 () -> InactiveProfiler.INSTANCE, true, false, 0L, 1000000);
         this.registryAccess = registryAccess;
         this.chunkProvider = new DummyChunkSource(this);
