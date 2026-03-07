@@ -8,9 +8,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -238,24 +237,21 @@ public abstract class Style implements IConfigurable, IPersistedSerializable {
     }
 
     @Override
-    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        var tag = IPersistedSerializable.super.serializeNBT(provider);
+    public void serialize(@NotNull ValueOutput output) {
+        IPersistedSerializable.super.serialize(output);
         for (Property<?> property : getProperties()) {
             var inline = getInline(property);
             if (inline != null) {
-                tag.put(property.name, property.codec.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), cast(inline)).result().orElseThrow());
+                output.store(property.name, property.codec, cast(inline));
             }
         }
-        return tag;
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.@NotNull Provider provider, @NotNull CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(provider, tag);
+    public void deserialize(@NotNull ValueInput input) {
+        IPersistedSerializable.super.deserialize(input);
         for (Property<?> property : getProperties()) {
-            if (!tag.contains(property.name)) continue;
-            property.codec.parse(provider.createSerializationContext(NbtOps.INSTANCE), tag.get(property.name)).result()
-                    .ifPresent(value -> set(property, cast(value)));
+            input.read(property.name, property.codec).ifPresent(value -> set(property, cast(value)));
         }
     }
 }

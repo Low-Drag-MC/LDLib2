@@ -17,11 +17,13 @@ import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.EnumAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.PrimitiveAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.RegistryAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.IManagedObjectAccessor;
-import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.INBTSerializableReadOnlyAccessor;
+import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.ValueIOSerializableReadOnlyAccessor;
 import com.lowdragmc.lowdraglib2.utils.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.Util;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.Tag;
@@ -30,7 +32,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -228,9 +230,9 @@ public class AccessorRegistries {
                 .codec(Range.CODEC)
                 .streamCodec(Range.STREAM_CODEC)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(ResourceLocation.class, true)
-                .codec(ResourceLocation.CODEC)
-                .streamCodec(ResourceLocation.STREAM_CODEC)
+        registerAccessor(CustomDirectAccessor.builder(Identifier.class, true)
+                .codec(Identifier.CODEC)
+                .streamCodec(Identifier.STREAM_CODEC)
                 .build());
 
         setPriority(1000);
@@ -239,7 +241,7 @@ public class AccessorRegistries {
                 .streamCodec(ByteBufCodecs.fromCodec(LDLibExtraCodecs.NUMBER))
                 .codecMark()
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Vector3f.class)
+        registerAccessor(CustomDirectAccessor.builder(Vector3fc.class)
                 .codec(ExtraCodecs.VECTOR3F)
                 .streamCodec(ByteBufCodecs.VECTOR3F)
                 .copyMark(Vector3f::new)
@@ -256,14 +258,14 @@ public class AccessorRegistries {
                 ))
                 .copyMark(Vector3i::new)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Vector4f.class)
+        registerAccessor(CustomDirectAccessor.builder(Vector4fc.class)
                 .codec(ExtraCodecs.VECTOR4F)
                 .streamCodec(StreamCodec.of(
                         (byteBuf, vector) -> {
-                            byteBuf.writeFloat(vector.x);
-                            byteBuf.writeFloat(vector.y);
-                            byteBuf.writeFloat(vector.z);
-                            byteBuf.writeFloat(vector.w);
+                            byteBuf.writeFloat(vector.x());
+                            byteBuf.writeFloat(vector.y());
+                            byteBuf.writeFloat(vector.z());
+                            byteBuf.writeFloat(vector.w());
                         },
                         byteBuf -> new Vector4f(byteBuf.readFloat(), byteBuf.readFloat(), byteBuf.readFloat(), byteBuf.readFloat())
                 ))
@@ -291,7 +293,7 @@ public class AccessorRegistries {
                 ))
                 .copyMark(Vector2i::new)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Quaternionf.class)
+        registerAccessor(CustomDirectAccessor.builder(Quaternionfc.class)
                 .codec(ExtraCodecs.QUATERNIONF)
                 .streamCodec(ByteBufCodecs.QUATERNIONF)
                 .copyMark(Quaternionf::new)
@@ -343,7 +345,7 @@ public class AccessorRegistries {
         }
         registerAccessor(CustomDirectAccessor.builder(RecipeHolder.class)
                 .codec(RecordCodecBuilder.create(instance -> instance.group(
-                        ResourceLocation.CODEC.fieldOf("id").forGetter(RecipeHolder::id),
+                        ResourceKey.codec(Registries.RECIPE).fieldOf("id").forGetter(RecipeHolder::id),
                         Recipe.CODEC.fieldOf("recipe").forGetter(RecipeHolder::value)
                 ).apply(instance, RecipeHolder::new)))
                 .streamCodec((StreamCodec<RegistryFriendlyByteBuf, RecipeHolder>) (Object)RecipeHolder.STREAM_CODEC)
@@ -364,9 +366,9 @@ public class AccessorRegistries {
 
         setPriority(2000);
 
-        registerAccessor(new INBTSerializableReadOnlyAccessor());
+        registerAccessor(new ValueIOSerializableReadOnlyAccessor());
         registerAccessor(CustomDirectAccessor.builder(Tag.class, true)
-                .codec(LDLibExtraCodecs.TAG)
+                .codec(ExtraCodecs.NBT)
                 .streamCodec(ByteBufCodecs.TRUSTED_TAG)
                 .copyMark(Tag::copy)
                 .build());

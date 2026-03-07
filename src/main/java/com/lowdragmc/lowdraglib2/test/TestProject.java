@@ -5,8 +5,8 @@ import com.lowdragmc.lowdraglib2.editor.resource.*;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 
 public class TestProject implements IProject {
@@ -30,13 +30,12 @@ public class TestProject implements IProject {
     }
 
     @Override
-    public CompoundTag serializeProject(@NotNull HolderLookup.Provider provider) {
-        return new CompoundTag();
+    public void serializeProject(@NotNull ValueOutput output) {
+
     }
 
     @Override
-    public void deserializeProject(@NotNull HolderLookup.Provider provider, @NotNull CompoundTag nbt) {
+    public void deserializeProject(@NotNull ValueInput input) {
 
     }
-
 }

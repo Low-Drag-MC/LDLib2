@@ -13,12 +13,12 @@ import lombok.NoArgsConstructor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
-import org.appliedenergistics.yoga.YogaEdge;
 
 @LDLRegisterClient(name="scene", registry = "ldlib2:screen_test")
 @NoArgsConstructor
@@ -48,12 +48,12 @@ public class TestScene implements IScreenTest {
         }
 
         // add some entities
-        var sheep = EntityType.SHEEP.create(dummyWorld);
+        var sheep = EntityType.SHEEP.create(dummyWorld, EntitySpawnReason.COMMAND);
         if (sheep != null) {
             sheep.setPos(0.5, 3, -1.5);
             dummyWorld.addEntity(sheep);
         }
-        var item = EntityType.ITEM.create(dummyWorld);
+        var item = EntityType.ITEM.create(dummyWorld, EntitySpawnReason.COMMAND);
         if (item != null) {
             item.setPos(1.5, 3, -0.5);
             item.setItem(Items.DIAMOND.getDefaultInstance());

@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.core.mixins.ui;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.input.MouseButtonEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,11 +19,11 @@ public interface ContainerEventHandlerMixin extends GuiEventListener{
     List<? extends GuiEventListener> children();
 
     @Inject(method = "mouseDragged", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY, CallbackInfoReturnable<Boolean> cir) {
+    private void ldlib2$mouseDragged(MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
         for (var child : children()) {
             if (child instanceof IModularUIHolder holder) {
                 var mui = holder.getModularUI();
-                if (mui != null && mui.getWidget().mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+                if (mui != null && mui.getWidget().mouseDragged(event, dx, dy)) {
                     cir.setReturnValue(true);
                 }
             }

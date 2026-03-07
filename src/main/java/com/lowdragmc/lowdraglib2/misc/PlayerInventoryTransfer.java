@@ -10,6 +10,6 @@ public class PlayerInventoryTransfer extends InvWrapper {
 
     @Override
     public int getSlots() {
-        return ((Inventory) getInv()).items.size();
+        return 36;
     }
 }

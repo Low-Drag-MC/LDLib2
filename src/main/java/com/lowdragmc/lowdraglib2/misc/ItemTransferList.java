@@ -2,11 +2,10 @@ package com.lowdragmc.lowdraglib2.misc;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import lombok.Setter;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
@@ -20,7 +19,7 @@ import java.util.function.Predicate;
  * @date 2023/2/25
  * @implNote ItemTransferList
  */
-public class ItemTransferList implements IItemHandlerModifiable, INBTSerializable<CompoundTag> {
+public class ItemTransferList implements IItemHandlerModifiable, ValueIOSerializable {
 
     public final IItemHandlerModifiable[] transfers;
     @Setter
@@ -119,30 +118,29 @@ public class ItemTransferList implements IItemHandlerModifiable, INBTSerializabl
     }
 
     @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        var tag = new CompoundTag();
-        var list = new ListTag();
+    public void serialize(ValueOutput output) {
+        var list = output.childrenList("slots");
         for (var transfer : transfers) {
-            if (transfer instanceof INBTSerializable<?> serializable) {
-                list.add(serializable.serializeNBT(provider));
+            if (transfer instanceof ValueIOSerializable serializable) {
+                serializable.serialize(list.addChild());
             } else {
-                LDLib2.LOGGER.warn("[ItemTransferList] internal container doesn't support serialization");
+                LDLib2.LOGGER.warn("[ItemTransferList] internal slot doesn't support serialization");
             }
         }
-        tag.put("slots", list);
-        tag.putByte("type", list.getElementType());
-        return tag;
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        var list = nbt.getList("slots", nbt.getByte("type"));
-        for (int i = 0; i < list.size(); i++) {
-            if (transfers[i] instanceof INBTSerializable serializable) {
-                serializable.deserializeNBT(provider, list.get(i));
-            } else {
-                LDLib2.LOGGER.warn("[ItemTransferList] internal container doesn't support serialization");
+    public void deserialize(ValueInput input) {
+        input.childrenList("slots").ifPresent(tanks -> {
+            var index = 0;
+            for (var tank : tanks) {
+                if (transfers[index] instanceof ValueIOSerializable serializable) {
+                    serializable.deserialize(tank);
+                } else {
+                    LDLib2.LOGGER.warn("[ItemTransferList] internal slot doesn't support serialization");
+                }
+                index++;
             }
-        }
+        });
     }
 }

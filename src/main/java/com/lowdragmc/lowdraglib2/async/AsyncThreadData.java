@@ -3,14 +3,18 @@ package com.lowdragmc.lowdraglib2.async;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import lombok.Getter;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.*;
 
 /**
@@ -24,28 +28,22 @@ import java.util.concurrent.*;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class AsyncThreadData extends SavedData {
+    public static Codec<AsyncThreadData> CODEC = MapCodec.unitCodec(() -> new AsyncThreadData(null));
+    public static final SavedDataType<AsyncThreadData> TYPE = new SavedDataType<>(
+            LDLib2.id("async_thread"), AsyncThreadData::new, _ -> CODEC, DataFixTypes.LEVEL
+    );
     private static final String THREAD_NAME_FORMAT = "LDLib Async Thread-%d";
     private static final int DEFAULT_SCHEDULE_PERIOD_MS = 50;
 
-    public final ServerLevel serverLevel;
+    public final @Nullable WeakReference<ServerLevel> serverLevel;
 
     public static AsyncThreadData getOrCreate(ServerLevel serverLevel) {
-        return serverLevel.getDataStorage().computeIfAbsent(new SavedData.Factory<>(() -> new AsyncThreadData(serverLevel), (tag, provider) -> new AsyncThreadData(serverLevel, tag)), LDLib2.MOD_ID);
+        return serverLevel.getDataStorage().computeIfAbsent(TYPE);
     }
 
-    private AsyncThreadData(ServerLevel serverLevel) {
-        this.serverLevel = serverLevel;
+    private AsyncThreadData(@Nullable ServerLevel serverLevel) {
+        this.serverLevel = new WeakReference<>(serverLevel);
     }
-
-    private AsyncThreadData(ServerLevel serverLevel, CompoundTag compoundTag) {
-        this(serverLevel);
-    }
-
-    @Override
-    public CompoundTag save(CompoundTag compoundTag, HolderLookup.Provider provider) {
-        return compoundTag;
-    }
-
 
     // ********************************* async thread ********************************* //
     private final CopyOnWriteArrayList<IAsyncLogic> asyncLogics = new CopyOnWriteArrayList<>();
@@ -59,6 +57,7 @@ public class AsyncThreadData extends SavedData {
     private long periodID = Long.MIN_VALUE;
 
     public void createExecutorService() {
+        if (serverLevel == null) return;
         if (executorService != null && !executorService.isShutdown()) return;
         executorService = Executors.newSingleThreadScheduledExecutor(THREAD_FACTORY);
         executorService.scheduleAtFixedRate(this::searchingTask, 0, DEFAULT_SCHEDULE_PERIOD_MS, TimeUnit.MILLISECONDS);
@@ -69,6 +68,7 @@ public class AsyncThreadData extends SavedData {
      * @param logic runnable
      */
     public void addAsyncLogic(IAsyncLogic logic) {
+        if (serverLevel == null) return;
         asyncLogics.add(logic);
         createExecutorService();
     }
@@ -78,6 +78,7 @@ public class AsyncThreadData extends SavedData {
      * @param logic runnable
      */
     public void removeAsyncLogic(IAsyncLogic logic) {
+        if (serverLevel == null) return;
         asyncLogics.remove(logic);
         if (asyncLogics.isEmpty()) {
             releaseExecutorService();
@@ -86,6 +87,7 @@ public class AsyncThreadData extends SavedData {
 
     private void searchingTask() {
         try {
+            if (serverLevel == null || serverLevel.get() == null) return;
             if (Platform.isServerNotSafe()) return;
             IN_SERVICE.set(true);
             for (IAsyncLogic logic : asyncLogics) {
@@ -111,5 +113,4 @@ public class AsyncThreadData extends SavedData {
         }
         executorService = null;
     }
-
 }

@@ -6,20 +6,19 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Setter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
-import org.joml.Vector4f;
+import org.joml.Vector2f;
 
 import java.util.Collections;
 import java.util.List;
@@ -162,12 +161,12 @@ public class TextTexture extends TransformTexture {
         return copied;
     }
 
-    @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+    @OnlyIn(Dist.CLIENT)
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         updateTick();
         if (backgroundColor != 0) {
-            DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, backgroundColor);
+            DrawerHelper.drawSolidRect(context, (int) x, (int) y, (int) width, (int) height, backgroundColor);
         }
         Font fontRenderer = Minecraft.getInstance().font;
         int textH = fontRenderer.lineHeight;
@@ -178,14 +177,14 @@ public class TextTexture extends TransformTexture {
                 int lineWidth = fontRenderer.width(line);
                 float _x = x + (width - lineWidth) / 2f;
                 float _y = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                graphics.drawString(fontRenderer, line, (int) _x, (int) _y, color, dropShadow);
+                context.graphics.drawString(fontRenderer, line, (int) _x, (int) _y, color, dropShadow);
             }
         } else if (type == TextType.LEFT) {
             textH *= texts.size();
             for (int i = 0; i < texts.size(); i++) {
                 String line = texts.get(i);
                 float _y = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
+                context.graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
             }
         } else if (type == TextType.RIGHT) {
             textH *= texts.size();
@@ -193,61 +192,62 @@ public class TextTexture extends TransformTexture {
                 String line = texts.get(i);
                 int lineWidth = fontRenderer.width(line);
                 float _y = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                graphics.drawString(fontRenderer, line, (int) (x + width - lineWidth), (int) _y, color, dropShadow);
+                context.graphics.drawString(fontRenderer, line, (int) (x + width - lineWidth), (int) _y, color, dropShadow);
             }
         } else if (type == TextType.HIDE) {
-            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
-                drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
+            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY) && texts.size() > 1) {
+                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
             } else {
-                String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
-                drawTextLine(graphics, x, y, width, height, fontRenderer, textH, line);
+                String line = texts.getFirst() + (texts.size() > 1 ? ".." : "");
+                drawTextLine(context, x, y, width, height, fontRenderer, textH, line);
             }
         } else if (type == TextType.ROLL || type == TextType.ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
-                drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
+            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY))) {
+                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
             } else {
-                drawTextLine(graphics, x, y, width, height, fontRenderer, textH, texts.get(0));
+                drawTextLine(context, x, y, width, height, fontRenderer, textH, texts.get(0));
             }
         } else if (type == TextType.LEFT_HIDE) {
-            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY) && texts.size() > 1) {
-                drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
+            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY) && texts.size() > 1) {
+                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
             } else {
-                String line = texts.get(0) + (texts.size() > 1 ? ".." : "");
+                String line = texts.getFirst() + (texts.size() > 1 ? ".." : "");
                 float _y = y + (height - textH) / 2f;
-                graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
+                context.graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
             }
         } else if (type == TextType.LEFT_ROLL || type == TextType.LEFT_ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, mouseX, mouseY))) {
-                drawRollTextLine(graphics, x, y, width, height, fontRenderer, textH, text);
+            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY))) {
+                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
             } else {
                 float _y = y + (height - textH) / 2f;
-                graphics.drawString(fontRenderer, texts.get(0), (int) x, (int) _y, color, dropShadow);
+                context.graphics.drawString(fontRenderer, texts.getFirst(), (int) x, (int) _y, color, dropShadow);
             }
         }
-        RenderSystem.setShaderColor(1, 1, 1, 1);
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void drawRollTextLine(GuiGraphics graphics, float x, float y, float width, float height, Font fontRenderer, int textH, String line) {
+    private void drawRollTextLine(GUIContext context, float x, float y, float width, float height,
+                                  Font fontRenderer, int textH, String line) {
         float _y = y + (height - textH) / 2f;
         float textW = fontRenderer.width(line);
         float totalW = width + textW + 10;
         float from = x + width;
-        var trans = graphics.pose().last().pose();
-        var realPos = trans.transform(new Vector4f(x, y, 0, 1));
-        var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
-        graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+        var trans = context.pose.pose;
+        var realPos = trans.transformPosition(new Vector2f(x, y));
+        var realPos2 = trans.transformPosition(new Vector2f(x + width, y + height));
+        context.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
         var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
-        graphics.drawString(fontRenderer, line, (int) (from - t * totalW), (int) _y, color, dropShadow);
-        graphics.disableScissor();
+        context.graphics.drawString(fontRenderer, line, (int) (from - t * totalW), (int) _y, color, dropShadow);
+        context.disableScissor();
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void drawTextLine(GuiGraphics graphics, float x, float y, float width, float height, Font fontRenderer, int textH, String line) {
+    private void drawTextLine(GUIContext context, float x, float y, float width, float height,
+                              Font fontRenderer, int textH, String line) {
         int textW = fontRenderer.width(line);
         float _x = x + (width - textW) / 2f;
         float _y = y + (height - textH) / 2f;
-        graphics.drawString(fontRenderer, line, (int) _x, (int) _y, color, dropShadow);
+        context.graphics.drawString(fontRenderer, line, (int) _x, (int) _y, color, dropShadow);
     }
 
     @OnlyIn(Dist.CLIENT)

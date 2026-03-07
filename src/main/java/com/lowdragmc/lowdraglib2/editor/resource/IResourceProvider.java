@@ -8,10 +8,6 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.nbt.CompoundTag;
-import org.appliedenergistics.yoga.YogaAlign;
-import org.appliedenergistics.yoga.YogaFlexDirection;
-import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaOverflow;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.Map;

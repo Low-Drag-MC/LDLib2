@@ -15,9 +15,8 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
-import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
@@ -252,8 +251,8 @@ public class GraphView extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(GUIContext context) {
+        super.drawBackgroundAdditional(context);
         var x = getContentX();
         var y = getContentY();
         var w = getContentWidth();
@@ -269,7 +268,7 @@ public class GraphView extends UIElement {
             imageHeight = spriteTexture.getImageSize().height;
         }
 
-        guiContext.pose.pushPose();
+        context.pose.pushPose();
 
         float worldLeft = offsetX;
         float worldTop = offsetY;
@@ -282,23 +281,23 @@ public class GraphView extends UIElement {
         float gridEndX = (float) Math.ceil(worldRight / gridSize) * gridSize;
         float gridEndY = (float) Math.ceil(worldBottom / gridSize) * gridSize;
 
-        guiContext.pose.translate(x, y, 0);
-        guiContext.pose.scale(scale, scale, 1f);
-        guiContext.pose.translate(-offsetX, -offsetY, 0);
+        context.pose.translate(x, y);
+        context.pose.scale(scale, scale);
+        context.pose.translate(-offsetX, -offsetY);
 
         float textureScaleX = gridSize / imageWidth;
         float textureScaleY = gridSize / imageHeight;
 
-        guiContext.pose.scale(textureScaleX, textureScaleY, 1f);
+        context.pose.scale(textureScaleX, textureScaleY);
 
         float drawX = gridStartX / textureScaleX;
         float drawY = gridStartY / textureScaleY;
         float drawW = (gridEndX - gridStartX) / textureScaleX;
         float drawH = (gridEndY - gridStartY) / textureScaleY;
 
-        guiContext.drawTexture(graphViewStyle.gridTexture(), drawX, drawY, drawW, drawH);
+        context.drawTexture(graphViewStyle.gridTexture(), drawX, drawY, drawW, drawH);
 
-        guiContext.pose.popPose();
+        context.pose.popPose();
     }
 
     /// Editor

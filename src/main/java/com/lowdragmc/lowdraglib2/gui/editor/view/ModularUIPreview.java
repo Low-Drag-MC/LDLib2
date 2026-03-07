@@ -11,7 +11,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 
 import org.jetbrains.annotations.Nullable;
@@ -70,28 +70,28 @@ public class ModularUIPreview extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         updateSelectionBox();
-        super.drawBackgroundAdditional(guiContext);
+        super.drawBackgroundAdditional(context);
         if (this.previewModularUI == null) return;
-        guiContext.pose.pushPose();
+        context.pose.pushPose();
         var posX = getPositionX();
         var posY = getPositionY();
 
-        guiContext.pose.translate(posX, posY, 0);
+        context.pose.translate(posX, posY);
 
-        this.previewModularUI.getWidget().render(guiContext.graphics, guiContext.mouseX, guiContext.mouseY, guiContext.partialTick);
+        this.previewModularUI.getWidget().render(context.graphics, context.mouseX, context.mouseY, context.partialTick);
 
         if (isShiftDown()) {
             var hovered = previewModularUI.getLastHoveredElement();
             if (hovered != null) {
-                previewModularUI.getWidget().renderUISpacing(hovered, guiContext.graphics);
+                previewModularUI.getWidget().renderUISpacing(context, hovered, context.graphics);
             }
         } else if (editorView != null && selectionBox.isDisplayed() && selectionBox.label.isSelfOrChildHover()) {
             var selectedOne = editorView.hierarchy.getSelectedOne();
-            selectedOne.ifPresent(element -> previewModularUI.getWidget().renderUISpacing(element, guiContext.graphics));
+            selectedOne.ifPresent(element -> previewModularUI.getWidget().renderUISpacing(context, element, context.graphics));
         }
-        guiContext.pose.popPose();
+        context.pose.popPose();
     }
 
     private void updateSelectionBox() {

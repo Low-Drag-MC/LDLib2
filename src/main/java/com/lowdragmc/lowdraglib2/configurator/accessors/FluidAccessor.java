@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.RegistrySearchComponent;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
@@ -24,7 +24,7 @@ public class FluidAccessor extends TypesAccessor<Fluid> {
     @Override
     public Fluid defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return BuiltInRegistries.FLUID.get(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]));
+            return BuiltInRegistries.FLUID.getValue(Identifier.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]));
         }
         return Fluids.WATER;
     }

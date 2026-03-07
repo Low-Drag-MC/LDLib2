@@ -31,7 +31,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
@@ -411,7 +411,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             var ui = resourceUIs.get(key);
             if (ui != null && ui.getChildren().getLast() instanceof Label label) {
                 // remove current label and add a TextField for renaming
-                var textField = new TextField().setText(nameSupplier.apply(key)).setCharValidator(ResourceLocation::isAllowedInResourceLocation);
+                var textField = new TextField().setText(nameSupplier.apply(key)).setCharValidator(Identifier::isAllowedInIdentifier);
                 textField.addEventListener(UIEvents.BLUR, e -> {
                     var newName = textField.getText().trim();
                     var newPath = resourceProvider.createSubPath(newName);

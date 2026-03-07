@@ -6,11 +6,11 @@ import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.map
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.setValue
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture
 import com.lowdragmc.lowdraglib2.gui.ui.*
+import com.lowdragmc.lowdraglib2.gui.ui.data.Clip
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties
-import com.lowdragmc.lowdraglib2.gui.ui.layout.auto
 import com.lowdragmc.lowdraglib2.gui.ui.layout.pct
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry
@@ -23,8 +23,6 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient
 import com.lowdragmc.lowdraglib2.utils.animation.Animation
 import dev.vfyjxf.taffy.style.AlignContent
 import dev.vfyjxf.taffy.style.AlignItems
-import dev.vfyjxf.taffy.style.TaffyDirection
-import dev.vfyjxf.taffy.style.TaffyDisplay
 import dev.vfyjxf.taffy.style.TaffyPosition
 import lombok.NoArgsConstructor
 import net.minecraft.core.registries.BuiltInRegistries
@@ -34,7 +32,6 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import java.util.*
-import java.util.function.Consumer
 
 
 @LDLRegisterClient(name = "dsl", registry = "ldlib2:screen_test")
@@ -49,7 +46,7 @@ class TestDSL : IScreenTest {
                 alignContent(AlignContent.CENTER)
             }
             style = {
-                overflowVisible(false)
+                clip(Clip.SCISSOR)
                 tooltips()
                 transition(Transition(mapOf(LayoutProperties.HEIGHT to Animation(1f, 0f, Eases.LINEAR))))
             }
@@ -155,7 +152,7 @@ class TestDSL : IScreenTest {
                                 for (key in BuiltInRegistries.BLOCK.keySet()) {
                                     if (Thread.currentThread().isInterrupted()) break
                                     if (key.toString().lowercase(Locale.getDefault()).contains(lowerWord)) {
-                                        handler.acceptResult(BuiltInRegistries.BLOCK.get(key))
+                                        handler.acceptResult(BuiltInRegistries.BLOCK.getValue(key))
                                     }
                                 }
                             }

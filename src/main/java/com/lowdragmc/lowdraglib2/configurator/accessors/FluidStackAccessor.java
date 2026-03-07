@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +29,7 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
     @Override
     public FluidStack defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return new FluidStack(BuiltInRegistries.FLUID.get(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])), 1000);
+            return new FluidStack(BuiltInRegistries.FLUID.getValue(Identifier.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])), 1000);
         }
         return new FluidStack(Fluids.WATER, 1000);
     }

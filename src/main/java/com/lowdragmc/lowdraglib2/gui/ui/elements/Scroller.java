@@ -19,7 +19,7 @@ import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;

@@ -31,28 +31,28 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.brigadier.StringReader;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.Util;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.minecraft.util.Tuple;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.*;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
 
@@ -107,11 +107,11 @@ public class TextField extends BindableUIElement<String> {
             return PROPERTIES;
         }
 
-        public ResourceLocation font() {
+        public Identifier font() {
             return getValueSave(PropertyRegistry.FONT);
         }
 
-        public TextFieldStyle font(ResourceLocation font) {
+        public TextFieldStyle font(Identifier font) {
             set(PropertyRegistry.FONT, font);
             return this;
         }
@@ -491,17 +491,18 @@ public class TextField extends BindableUIElement<String> {
                 }
             }
             default -> {
-                if (Screen.isSelectAll(event.keyCode)) {
+                var keyEvent = new KeyEvent(event.keyCode, event.scanCode, event.modifiers);
+                if (keyEvent.isSelectAll()) {
                     setCursor(rawText.length());
                     setSelection(0, rawText.length());
-                } else if (Screen.isCopy(event.keyCode)) {
+                } else if (keyEvent.isCopy()) {
                     ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
-                } else if (Screen.isPaste(event.keyCode)) {
+                } else if (keyEvent.isPaste()) {
                     if (this.isEditable()) {
                         this.insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
                     }
                 } else {
-                    if (Screen.isCut(event.keyCode)) {
+                    if (keyEvent.isCut()) {
                         ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
                         if (this.isEditable()) {
                             this.insertText("");
@@ -596,7 +597,7 @@ public class TextField extends BindableUIElement<String> {
         mode = Mode.COMPOUND_TAG;
         setTextValidator(s -> {
             try {
-                TagParser.parseTag(s);
+                TagParser.parseCompoundAsArgument(new StringReader(s));
                 return true;
             } catch (Exception ignored) { }
             return false;
@@ -607,7 +608,7 @@ public class TextField extends BindableUIElement<String> {
 
     public TextField setResourceLocationOnly() {
         mode = Mode.RESOURCE_LOCATION;
-        setCharValidator(chr -> chr == ':' || ResourceLocation.isValidNamespace(Character.toString(chr)) || ResourceLocation.isAllowedInResourceLocation(chr));
+        setCharValidator(chr -> chr == ':' || Identifier.isValidNamespace(Character.toString(chr)) || Identifier.isAllowedInIdentifier(chr));
         setTextValidator(LDLib2::isValidResourceLocation);
         style(style -> style.tooltips(Component.translatable("ldlib.gui.text_field.resourcelocation")));
         return this;
@@ -780,7 +781,7 @@ public class TextField extends BindableUIElement<String> {
             return;
         }
         historyStack.record(getRawText());
-        if (Screen.hasControlDown()) {
+        if (isCtrlDown()) {
             this.deleteWords(count);
         } else {
             this.deleteChars(count);
@@ -978,7 +979,7 @@ public class TextField extends BindableUIElement<String> {
             var formattedText = rawText.isEmpty() ?
                     textFieldStyle.placeholder() :
                     (formatter == null ? Component.literal(rawText) : formatter.apply(rawText));
-            var textWithFont = font.equals(net.minecraft.network.chat.Style.DEFAULT_FONT) ? formattedText : formattedText.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(font));
+            var textWithFont = font.equals(FontDescription.DEFAULT.id()) ? formattedText : formattedText.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(new FontDescription.Resource(font)));
             var lines = TextUtilities.computeFormattedLines(
                     getFont(),
                     textWithFont,
@@ -995,15 +996,15 @@ public class TextField extends BindableUIElement<String> {
     }
 
     @Override
-    public void drawBackgroundOverlay(GUIContext guiContext) {
+    public void drawBackgroundOverlay(GUIContext context) {
         if (isSelfOrChildHover() || isFocused()) {
-            guiContext.drawTexture(getTextFieldStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            context.drawTexture(getTextFieldStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
-        super.drawBackgroundOverlay(guiContext);
+        super.drawBackgroundOverlay(context);
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         var x = getContentX();
         var y = getContentY();
         var height = getContentHeight();
@@ -1018,15 +1019,13 @@ public class TextField extends BindableUIElement<String> {
         var lineX = x - displayOffset;
 
         // draw the text line
-        RenderSystem.depthMask(false);
-        guiContext.pose.pushPose();
-        guiContext.pose.translate(lineX, lineY, 0);
-        guiContext.pose.scale(scale, scale, 1);
-        guiContext.graphics.drawString(font, line, 0, 0, rawText.isEmpty() ?
+        context.pose.pushPose();
+        context.pose.translate(lineX, lineY);
+        context.pose.scale(scale, scale);
+        context.graphics.drawString(font, line, 0, 0, rawText.isEmpty() ?
                 ColorPattern.LIGHT_GRAY.color : (isError ? textFieldStyle.errorColor() : textFieldStyle.textColor()),
                 !rawText.isEmpty() && textFieldStyle.textShadow());
-        guiContext.pose.popPose();
-        RenderSystem.depthMask(true);
+        context.pose.popPose();
 
         // draw highlight
         if (isFocused() && selectionStart != selectionEnd) {
@@ -1034,8 +1033,8 @@ public class TextField extends BindableUIElement<String> {
             var max = Math.max(selectionStart, selectionEnd);
             var minX = font.getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(0, min), textFont)) * scale - displayOffset;
             var maxX = font.getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(0, max), textFont)) * scale - displayOffset;
-            DrawerHelper.drawSolidRect(guiContext.graphics,
-                    RenderType.guiTextHighlight(),
+            DrawerHelper.drawSolidRect(context,
+                    RenderPipelines.GUI_TEXT_HIGHLIGHT,
                     x + minX,
                     lineY,
                     maxX - minX,
@@ -1044,7 +1043,7 @@ public class TextField extends BindableUIElement<String> {
         // draw cursor
         var cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(0, cursorPos), textFont)) * scale;
         if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
-            DrawerHelper.drawSolidRect(guiContext.graphics,
+            DrawerHelper.drawSolidRect(context,
                     x + cursorPosX - displayOffset,
                     lineY,
                     1,

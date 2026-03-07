@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.RandomSource;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -35,7 +35,7 @@ public class LDLib2 {
     public LDLib2(IEventBus eventBus, ModContainer modContainer) {
         LDLib2.init();
         new CommonProxy(eventBus);
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             new ClientProxy(eventBus);
         }
         if (Platform.isDevEnv()) {
@@ -65,21 +65,21 @@ public class LDLib2 {
         int i = string.indexOf(":");
         if (i == -1) {
             for (int j = 0; j < string.length(); j++) {
-                if (!ResourceLocation.isAllowedInResourceLocation(string.charAt(j))) {
+                if (!Identifier.isAllowedInIdentifier(string.charAt(j))) {
                     return false;
                 }
             }
         } else {
             var namespace = string.substring(0, i);
             var path = string.substring(i + 1);
-            return ResourceLocation.isValidNamespace(namespace) && ResourceLocation.isValidPath(path);
+            return Identifier.isValidNamespace(namespace) && Identifier.isValidPath(path);
         }
         return true;
 
     }
 
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
     public static boolean isClient() {

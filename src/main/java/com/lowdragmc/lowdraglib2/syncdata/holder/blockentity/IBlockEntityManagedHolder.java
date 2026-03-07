@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.syncdata.holder.blockentity;
 
 import com.lowdragmc.lowdraglib2.syncdata.holder.IManagedHolder;
+import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -17,7 +18,8 @@ public interface IBlockEntityManagedHolder extends IManagedHolder {
 
     @Override
     default ChunkPos getTrackingPos() {
-        return new ChunkPos(getSelf().getBlockPos());
+        var pos = getSelf().getBlockPos();
+        return new ChunkPos(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
     }
 
     @Override

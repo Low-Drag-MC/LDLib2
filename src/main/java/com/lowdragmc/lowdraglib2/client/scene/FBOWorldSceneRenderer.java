@@ -1,35 +1,28 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.mojang.blaze3d.pipeline.MainTarget;
-import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.opengl.GlStateManager;
 import lombok.Getter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import org.joml.Vector3f;
-import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Created with IntelliJ IDEA.
- *
  * @Author: KilaBash
- * @Date: 2021/08/23
- * @Description: It looks similar to {@link ImmediateWorldSceneRenderer}, but totally different.
- * It uses FBO and is more universality and efficient(X).
- * FBO can be rendered anywhere more flexibly, not just in the GUI.
- * If you have scene rendering needs, you will love this FBO renderer.
+ * @Description: FBO-based scene renderer using GPU textures.
+ * Renders scene to an offscreen texture that can be blitted into the GUI.
  */
 @OnlyIn(Dist.CLIENT)
 public class FBOWorldSceneRenderer extends WorldSceneRenderer {
@@ -37,17 +30,19 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     private int resolutionWidth = 1080;
     @Getter
     private int resolutionHeight = 1080;
+    @Nullable
+    private GpuTexture colorTexture;
+    @Nullable
     @Getter
-    private RenderTarget fbo;
+    private GpuTextureView colorTextureView;
+    @Nullable
+    private GpuTexture depthTexture;
+    @Nullable
+    private GpuTextureView depthTextureView;
 
     public FBOWorldSceneRenderer(Level world, int resolutionWidth, int resolutionHeight) {
         super(world);
         setFBOSize(resolutionWidth, resolutionHeight);
-    }
-
-    public FBOWorldSceneRenderer(Level world, @Nonnull RenderTarget fbo) {
-        super(world);
-        this.fbo = fbo;
     }
 
     /***
@@ -56,121 +51,109 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     public void setFBOSize(int resolutionWidth, int resolutionHeight) {
         this.resolutionWidth = resolutionWidth;
         this.resolutionHeight = resolutionHeight;
-        if (fbo != null) {
-            fbo.resize(resolutionWidth, resolutionHeight, Minecraft.ON_OSX);
+        if (colorTexture != null) {
+            destroyFBO();
+            createFBO();
         }
     }
 
     public BlockHitResult screenPos2BlockPosFace(int mouseX, int mouseY) {
-        int lastID = bindFBO();
+        setupFBORendering();
         BlockHitResult looking = super.screenPos2BlockPosFace(mouseX, mouseY, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        unbindFBO(lastID);
+        teardownFBORendering();
         return looking;
     }
 
-    public Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth){
-        int lastID = bindFBO();
+    public Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth) {
+        setupFBORendering();
         Vector3f winPos = super.blockPos2ScreenPos(pos, depth, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        unbindFBO(lastID);
+        teardownFBORendering();
         return winPos;
     }
 
-    public IGuiTexture drawAsTexture() {
-        return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
-            if (!checkFBOValid()) {
-                createFBO();
-                drawScene(0, 0, this.resolutionWidth, this.resolutionHeight, 0, 0);
-            }
-
-            var poseStack = graphics.pose();
-            var pose = poseStack.last().pose();
-
-            var bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, fbo.getColorTextureId());
-
-            bufferbuilder.addVertex(pose, x + width, y + height, 0).setUv(1, 0);
-            bufferbuilder.addVertex(pose, x + width, y, 0).setUv(1, 1);
-            bufferbuilder.addVertex(pose, x, y, 0).setUv(0, 1);
-            bufferbuilder.addVertex(pose, x, y + height, 0).setUv(0, 0);
-
-            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
-        };
-    }
-
+    /**
+     * Draw the scene to the FBO texture.
+     */
     public void drawScene(float x, float y, float width, float height, float mouseX, float mouseY) {
-        // bind to FBO
-        int lastID = bindFBO();
-        super.render(new PoseStack(), 0, 0, this.resolutionWidth, this.resolutionHeight, (int) (this.resolutionWidth * (mouseX - x) / width), (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
-        // unbind FBO
-        unbindFBO(lastID);
+        ensureFBOCreated();
+
+        // Clear the FBO textures
+        var encoder = RenderSystem.getDevice().createCommandEncoder();
+        encoder.clearColorAndDepthTextures(colorTexture, 0, depthTexture, 1.0);
+
+        // Redirect rendering to our FBO textures
+        setupFBORendering();
+        renderDirect(this.resolutionWidth, this.resolutionHeight,
+                (int) (this.resolutionWidth * (mouseX - x) / width),
+                (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
+        teardownFBORendering();
     }
 
+    /**
+     * Render scene to FBO and return - caller is responsible for blitting the texture.
+     * Use {@link #getColorTextureView()} to get the texture for blitting.
+     */
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, float mouseX, float mouseY) {
         drawScene(x, y, width, height, mouseX, mouseY);
-
-        // render rect with FBO texture
-        BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, fbo.getColorTextureId());
-
-        var pose = poseStack.last().pose();
-        bufferbuilder.addVertex(pose, x + width, y + height, 0).setUv(1, 0);
-        bufferbuilder.addVertex(pose, x + width, y, 0).setUv(1, 1);
-        bufferbuilder.addVertex(pose, x, y, 0).setUv(0, 1);
-        bufferbuilder.addVertex(pose, x, y + height, 0).setUv(0, 0);
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
     }
 
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY) {
         render(poseStack, x, y, width, height, (float) mouseX, (float) mouseY);
     }
 
-    private int bindFBO(){
-        if (!checkFBOValid()) {
-            createFBO();
-        }
+    private void setupFBORendering() {
+        ensureFBOCreated();
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
-        int lastID = GL11.glGetInteger(EXTFramebufferObject.GL_FRAMEBUFFER_BINDING_EXT);
-        fbo.setClearColor(0.0F, 0.0F, 0.0F, 0.0F);
-        fbo.clear(Minecraft.ON_OSX);
-        fbo.bindWrite(true);
-        return lastID;
+        RenderSystem.outputColorTextureOverride = this.colorTextureView;
+        RenderSystem.outputDepthTextureOverride = this.depthTextureView;
     }
 
-    private void unbindFBO(int lastID){
-        fbo.unbindRead();
-        GlStateManager._glBindFramebuffer(36160, lastID);
-        var mainBuffer = Minecraft.getInstance().getMainRenderTarget();
-        GlStateManager._viewport(0, 0, mainBuffer.viewWidth, mainBuffer.viewHeight);
+    private void teardownFBORendering() {
+        RenderSystem.outputColorTextureOverride = null;
+        RenderSystem.outputDepthTextureOverride = null;
+        var mainTarget = Minecraft.getInstance().getMainRenderTarget();
+        GlStateManager._viewport(0, 0, mainTarget.width, mainTarget.height);
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
     }
 
-    private boolean checkFBOValid() {
-        if (fbo == null) return false;
-        return fbo.frameBufferId >= 0;
+    private void ensureFBOCreated() {
+        if (colorTexture == null) {
+            createFBO();
+        }
     }
 
     private void createFBO() {
-        int lastID = GL11.glGetInteger(EXTFramebufferObject.GL_FRAMEBUFFER_BINDING_EXT);
-        releaseFBO();
-        fbo = new MainTarget(resolutionWidth, resolutionHeight);
-        GlStateManager._glBindFramebuffer(36160, lastID);
+        destroyFBO();
+        var device = RenderSystem.getDevice();
+        colorTexture = device.createTexture(() -> "SceneFBO/Color", 15, TextureFormat.RGBA8, resolutionWidth, resolutionHeight, 1, 1);
+        colorTextureView = device.createTextureView(colorTexture);
+        TextureFormat depthFormat = Minecraft.getInstance().getMainRenderTarget().getDepthTexture().getFormat();
+        depthTexture = device.createTexture(() -> "SceneFBO/Depth", 9, depthFormat, resolutionWidth, resolutionHeight, 1, 1);
+        depthTextureView = device.createTextureView(depthTexture);
     }
 
-    public void releaseFBO() {
-        if (fbo != null) {
-            if (RenderSystem.isOnRenderThread()) {
-                fbo.destroyBuffers();
-            } else {
-                RenderSystem.recordRenderCall(() -> fbo.destroyBuffers());
-            }
+    private void destroyFBO() {
+        if (colorTextureView != null) {
+            colorTextureView.close();
+            colorTextureView = null;
+        }
+        if (colorTexture != null) {
+            colorTexture.close();
+            colorTexture = null;
+        }
+        if (depthTextureView != null) {
+            depthTextureView.close();
+            depthTextureView = null;
+        }
+        if (depthTexture != null) {
+            depthTexture.close();
+            depthTexture = null;
         }
     }
 
     @Override
     public void releaseResource() {
         super.releaseResource();
-        releaseFBO();
+        destroyFBO();
     }
 }

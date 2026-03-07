@@ -24,12 +24,11 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.function.Consumers;
-import org.appliedenergistics.yoga.*;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -556,16 +555,16 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @OnlyIn(Dist.CLIENT)
     public static IGuiTexture createDraggingOverlay(int mode) {
         if (mode == 0) {
-            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
-                DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, ColorPattern.T_WHITE.color);
+            return (context, x, y, width, height) -> {
+                DrawerHelper.drawSolidRect(context, x, y - 1, width, 1, ColorPattern.T_WHITE.color);
             };
         } else if (mode == 1) {
-            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
-                DrawerHelper.drawSolidRect(graphics, x, y, width, height, ColorPattern.T_WHITE.color);
+            return (context, x, y, width, height) -> {
+                DrawerHelper.drawSolidRect(context, x, y, width, height, ColorPattern.T_WHITE.color);
             };
         } else if (mode == 2) {
-            return (graphics, mouseX, mouseY, x, y, width, height, partialTicks) -> {
-                DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, ColorPattern.T_WHITE.color);
+            return (context, x, y, width, height) -> {
+                DrawerHelper.drawSolidRect(context, x, y + height, width, 1, ColorPattern.T_WHITE.color);
             };
         }
         return IGuiTexture.EMPTY;

@@ -8,8 +8,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -64,7 +68,9 @@ public class UICanvas extends UIElement {
 
     protected void onMouseDown(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseClicked(event.x, event.y, event.button);
+        this.canvasModularUI.getWidget().mouseClicked(
+                new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)), false
+        );
         // trigger dragging event as well
         startDrag(null, null);
         event.stopPropagation();
@@ -72,13 +78,13 @@ public class UICanvas extends UIElement {
 
     protected void onMouseUp(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseReleased(event.x, event.y, event.button);
+        this.canvasModularUI.getWidget().mouseReleased(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)));
         event.stopPropagation();
     }
 
     protected void onMouseDrag(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseDragged(event.x, event.y, event.button, event.deltaX, event.deltaY);
+        this.canvasModularUI.getWidget().mouseDragged(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)), event.deltaX, event.deltaY);
         event.stopPropagation();
     }
 
@@ -90,19 +96,19 @@ public class UICanvas extends UIElement {
 
     protected void onKeyDown(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().keyPressed(event.keyCode, event.scanCode, event.modifiers);
+        this.canvasModularUI.getWidget().keyPressed(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
         event.stopPropagation();
     }
 
     protected void onKeyUp(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().keyReleased(event.keyCode, event.scanCode, event.modifiers);
+        this.canvasModularUI.getWidget().keyReleased(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
         event.stopPropagation();
     }
 
     protected void onCharTyped(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().charTyped(event.codePoint, event.modifiers);
+        this.canvasModularUI.getWidget().charTyped(new CharacterEvent(event.codePoint, event.modifiers));
         event.stopPropagation();
     }
 
@@ -114,8 +120,8 @@ public class UICanvas extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(GUIContext context) {
+        super.drawBackgroundAdditional(context);
         if (this.canvasModularUI == null) return;
 
         var contentWidth = (int) getContentWidth();
@@ -124,17 +130,14 @@ public class UICanvas extends UIElement {
             this.canvasModularUI.init(contentWidth, contentHeight);
         }
 
-        guiContext.pose.pushPose();
+        context.pose.pushPose();
         var posX = getContentX();
         var posY = getContentY();
 
-        guiContext.pose.translate(posX, posY, 0);
+        context.pose.translate(posX, posY);
 
-        this.canvasModularUI.getWidget().render(guiContext.graphics, guiContext.mouseX, guiContext.mouseY, guiContext.partialTick);
+        this.canvasModularUI.getWidget().render(context.graphics, context.mouseX, context.mouseY, context.partialTick);
 
-        // end batch
-        guiContext.graphics.bufferSource().endBatch();
-
-        guiContext.pose.popPose();
+        context.pose.popPose();
     }
 }

@@ -8,12 +8,12 @@ import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.lang.reflect.Modifier;
 
 public class MCSprites {
-    public static ResourceLocation MC = LDLib2.id("textures/gui/mc_styles.png");
+    public static Identifier MC = LDLib2.id("textures/gui/mc_styles.png");
 
     public static IGuiTexture RECT = SpriteTexture.of(MC).setSprite(0, 0, 16, 16).setBorder(5);
     public static IGuiTexture RECT_INVERSE = SpriteTexture.of(MC).setSprite(16, 0, 16, 16).setBorder(3);

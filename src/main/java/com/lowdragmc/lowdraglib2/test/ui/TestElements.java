@@ -24,7 +24,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
-import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -111,7 +110,7 @@ public class TestElements implements IScreenTest {
                                         for (var key : BuiltInRegistries.BLOCK.keySet()) {
                                             if (Thread.currentThread().isInterrupted()) return;
                                             if (key.toString().toLowerCase().contains(lowerWord)) {
-                                                searchHandler.acceptResult(BuiltInRegistries.BLOCK.get(key));
+                                                searchHandler.acceptResult(BuiltInRegistries.BLOCK.getValue(key));
                                             }
                                         }
                                     }

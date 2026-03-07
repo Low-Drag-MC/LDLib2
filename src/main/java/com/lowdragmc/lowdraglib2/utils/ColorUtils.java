@@ -367,6 +367,10 @@ public final class ColorUtils {
     }
 
     public static int mulColor(int color0, int color1) {
+        if (color0 == 0) return 0;
+        if (color1 == 0) return 0;
+        if (color0 == -1) return color1;
+        if (color1 == -1) return color0;
         return ColorUtils.color(
                 alpha(color0) * alpha(color1),
                 red(color0) * red(color1),

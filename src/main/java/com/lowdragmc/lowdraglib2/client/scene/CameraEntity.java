@@ -1,22 +1,24 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
-import net.minecraft.nbt.CompoundTag;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
-/**
- * @author KilaBash
- * @date 2022/06/05
- * @implNote CameraEntity,
- */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class CameraEntity extends Entity {
 
     public CameraEntity(Level pLevel) {
@@ -29,12 +31,17 @@ public class CameraEntity extends Entity {
     }
 
     @Override
-    protected void readAdditionalSaveData(@Nonnull CompoundTag pCompound) {
+    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+        return false;
+    }
+
+    @Override
+    protected void readAdditionalSaveData(ValueInput input) {
 
     }
 
     @Override
-    protected void addAdditionalSaveData(@Nonnull CompoundTag pCompound) {
+    protected void addAdditionalSaveData(ValueOutput output) {
 
     }
 

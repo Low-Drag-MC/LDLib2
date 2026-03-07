@@ -18,10 +18,12 @@ import java.util.function.Consumer;
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerMixin {
     @Inject(
-            method = "lambda$openMenu$15",
+            method = "lambda$openMenu$0",
             at = @At(value = "RETURN")
     )
-    private static void ldlib2$writeCustomData(MenuProvider menuProvider, AbstractContainerMenu menu, Consumer<RegistryFriendlyByteBuf> extraDataWriter, RegistryFriendlyByteBuf buffer, CallbackInfo ci) {
+    private static void ldlib2$writeCustomData(MenuProvider menuProvider, AbstractContainerMenu menu,
+                                               Consumer<RegistryFriendlyByteBuf> extraDataWriter,
+                                               RegistryFriendlyByteBuf buffer, CallbackInfo ci) {
         if (menu instanceof IModularUIHolder holder) {
             holder.writeInitialData(buffer);
         }

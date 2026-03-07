@@ -24,9 +24,8 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -438,11 +437,11 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
     /// rendering
     @Override
-    public void drawBackgroundOverlay(GUIContext guiContext) {
+    public void drawBackgroundOverlay(GUIContext context) {
         if (isSelfOrChildHover() || textField.isFocused()) {
-            guiContext.drawTexture(getSearchStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            context.drawTexture(getSearchStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
-        super.drawBackgroundOverlay(guiContext);
+        super.drawBackgroundOverlay(context);
     }
 
     public interface ISearchUI<T> extends ISearch<T> {

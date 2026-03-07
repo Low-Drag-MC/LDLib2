@@ -11,6 +11,7 @@ import dev.vfyjxf.taffy.style.*;
 
 import lombok.experimental.UtilityClass;
 import net.minecraft.nbt.*;
+import net.minecraft.util.ExtraCodecs;
 
 import java.util.Optional;
 
@@ -28,7 +29,7 @@ public final class TaffyCodecs {
     }));
 
     // ==================== TrackSizingFunction Codec ====================
-    public static final Codec<TrackSizingFunction> TRACK_SIZING_FUNCTION_CODEC = LDLibExtraCodecs.TAG.xmap(
+    public static final Codec<TrackSizingFunction> TRACK_SIZING_FUNCTION_CODEC = ExtraCodecs.NBT.xmap(
             TaffyCodecs::decodeTrackSizingFunction,
             TaffyCodecs::encodeTrackSizingFunction
     );
@@ -68,10 +69,10 @@ public final class TaffyCodecs {
             return TrackSizingFunction.auto();
         }
 
-        String typeName = compoundTag.getString("type");
+        var typeName = compoundTag.getString("type");
         TrackSizingFunction.Type type;
         try {
-            type = TrackSizingFunction.Type.valueOf(typeName);
+            type = typeName.map(TrackSizingFunction.Type::valueOf).orElse(TrackSizingFunction.Type.AUTO);
         } catch (IllegalArgumentException e) {
             return TrackSizingFunction.auto();
         }
@@ -88,7 +89,7 @@ public final class TaffyCodecs {
                 yield TrackSizingFunction.fitContent(limit);
             }
             case AUTO -> TrackSizingFunction.auto();
-            case FLEX -> TrackSizingFunction.flex(compoundTag.getFloat("fr"));
+            case FLEX -> TrackSizingFunction.flex(compoundTag.getFloat("fr").orElse(0f));
             case MINMAX -> {
                 TrackSizingFunction min = decodeTrackSizingFunction(compoundTag.get("min"));
                 TrackSizingFunction max = decodeTrackSizingFunction(compoundTag.get("max"));
@@ -155,18 +156,6 @@ public final class TaffyCodecs {
         case STRETCH -> LengthPercentageAuto.stretch();
     }));
 
-    @Deprecated(since = "26.1")
-    public static final Codec<LengthPercentageAuto> LPA_STYLE_LENGTH_COMPAT_CODEC = LDLibExtraCodecs.compat(LPA_CODEC, YogaCodecs.STYLE_LENGTH_CODEC.xmap(
-            styleLength -> {
-                if (styleLength.isPercent()) return LengthPercentageAuto.length(styleLength.value().getValue() / 100f);
-                if (styleLength.isPoints()) return LengthPercentageAuto.length(styleLength.value().getValue());
-                return LengthPercentageAuto.auto();
-            },
-            lpa -> {
-                throw new IllegalArgumentException("Cannot convert TaffyDimension to StyleLength");
-            }
-    ));
-
     // ==================== LPARect Codec ====================
     public static final Codec<LPARect> LPA_RECT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
             LPA_CODEC.fieldOf("left").forGetter(rect -> rect.rect().left),
@@ -224,22 +213,6 @@ public final class TaffyCodecs {
         case FIT_CONTENT -> TaffyDimension.fitContent();
         case STRETCH -> TaffyDimension.stretch();
     }))));
-
-    @Deprecated(since = "26.1")
-    public static final Codec<TaffyDimension> DIMENSION_STYLE_SIZE_LENGTH_COMPAT_CODEC = LDLibExtraCodecs.compat(DIMENSION_CODEC, YogaCodecs.STYLE_SIZE_LENGTH_CODEC.xmap(
-            styleSizeLength -> {
-                if (styleSizeLength.isPercent()) return TaffyDimension.percent(styleSizeLength.value().getValue() / 100f);
-                if (styleSizeLength.isPoints()) return TaffyDimension.length(styleSizeLength.value().getValue());
-                if (styleSizeLength.isAuto()) return TaffyDimension.auto();
-                if (styleSizeLength.isFitContent()) return TaffyDimension.fitContent();
-                if (styleSizeLength.isMaxContent()) return TaffyDimension.maxContent();
-                if (styleSizeLength.isStretch()) return TaffyDimension.stretch();
-                return TaffyDimension.auto();
-            },
-            dimension -> {
-                throw new IllegalArgumentException("Cannot convert TaffyDimension to StyleSizeLength");
-            }
-    ));
 
 
     // ==================== LPSize Codec ====================

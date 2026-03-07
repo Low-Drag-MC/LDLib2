@@ -124,12 +124,6 @@ public final class TagBuilder {
             return this;
         }
 
-        public Compound add(String key, @Nullable UUID uuid) {
-            if (uuid == null) return this;
-            this.tag.putUUID(key, uuid);
-            return this;
-        }
-
         public Compound addCompound(String key, Consumer<Compound> builder) {
             CompoundTag nested = new CompoundTag();
             builder.accept(Compound.create(nested));

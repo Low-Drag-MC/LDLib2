@@ -1,15 +1,16 @@
 package com.lowdragmc.lowdraglib2.misc;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import lombok.Setter;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -19,7 +20,9 @@ import java.util.function.Predicate;
  * @date 2023/2/25
  * @implNote FluidTransferList
  */
-public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializable<CompoundTag> {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class FluidTransferList implements IFluidHandlerModifiable, ValueIOSerializable {
     public final IFluidHandler[] transfers;
     @Setter
     protected Predicate<FluidStack> filter = fluid -> true;
@@ -41,7 +44,7 @@ public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializa
     @Override
     public FluidStack getFluidInTank(int tank) {
         int index = 0;
-        for (IFluidHandler transfer : transfers) {
+        for (var transfer : transfers) {
             if (tank - index < transfer.getTanks()) {
                 return transfer.getFluidInTank(tank - index);
             }
@@ -143,36 +146,35 @@ public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializa
     }
 
     @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        var tag = new CompoundTag();
-        var list = new ListTag();
-        for (IFluidHandler transfer : transfers) {
-            if (transfer instanceof INBTSerializable<?> serializable) {
-                list.add(serializable.serializeNBT(provider));
+    public void serialize(ValueOutput output) {
+        var list = output.childrenList("tanks");
+        for (var transfer : transfers) {
+            if (transfer instanceof ValueIOSerializable serializable) {
+                serializable.serialize(list.addChild());
             } else {
                 LDLib2.LOGGER.warn("[FluidTransferList] internal tank doesn't support serialization");
             }
         }
-        tag.put("tanks", list);
-        tag.putByte("type", list.getElementType());
-        return tag;
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        var list = nbt.getList("tanks", nbt.getByte("type"));
-        for (int i = 0; i < list.size(); i++) {
-            if (transfers[i] instanceof INBTSerializable serializable) {
-                serializable.deserializeNBT(provider, list.get(i));
-            } else {
-                LDLib2.LOGGER.warn("[FluidTransferList] internal tank doesn't support serialization");
+    public void deserialize(ValueInput input) {
+        input.childrenList("tanks").ifPresent(tanks -> {
+            var index = 0;
+            for (var tank : tanks) {
+                if (transfers[index] instanceof ValueIOSerializable serializable) {
+                    serializable.deserialize(tank);
+                } else {
+                    LDLib2.LOGGER.warn("[FluidTransferList] internal tank doesn't support serialization");
+                }
+                index++;
             }
-        }
+        });
     }
 
     @Override
     public boolean supportsFill(int tank) {
-        for (IFluidHandler transfer : transfers) {
+        for (var transfer : transfers) {
             if (tank >= transfer.getTanks()) {
                 tank -= transfer.getTanks();
                 continue;

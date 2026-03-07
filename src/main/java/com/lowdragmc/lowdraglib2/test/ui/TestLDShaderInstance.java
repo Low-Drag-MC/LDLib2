@@ -16,7 +16,10 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 
 @LDLRegisterClient(name="ld_shader_instance", registry = "ldlib2:screen_test")
 @NoArgsConstructor
@@ -47,11 +50,13 @@ public class TestLDShaderInstance implements IScreenTest {
                     layout.heightPercent(100);
                 }).addChildren(
                         new Button().setText("serialize").setOnClick(e -> {
-                            serialized = shaderTexture.serializeNBT(Platform.getFrozenRegistry());
+                            var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry());
+                            shaderTexture.serialize(output);
+                            serialized = output.buildResult();
                             text.setText(NbtUtils.toPrettyComponent(serialized));
                         }),
                         new Button().setText("deserialize").setOnClick(e -> {
-                            shaderTexture.deserializeNBT(Platform.getFrozenRegistry(), serialized);
+                            shaderTexture.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry(), serialized));
                         }),
                         new ScrollerView().addScrollViewChild(text.textStyle(style -> {
                             style.adaptiveHeight(true);

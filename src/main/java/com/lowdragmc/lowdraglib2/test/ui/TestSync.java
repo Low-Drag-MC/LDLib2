@@ -19,7 +19,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
@@ -30,7 +30,6 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.apache.commons.lang3.function.Consumers;
-import org.appliedenergistics.yoga.YogaEdge;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -110,7 +109,7 @@ public class TestSync implements IMenuTest {
                         for (var key : BuiltInRegistries.BLOCK.keySet()) {
                             if (Thread.currentThread().isInterrupted()) return;
                             if (key.toString().toLowerCase().contains(lowerWord)) {
-                                searchHandler.acceptResult(BuiltInRegistries.BLOCK.get(key));
+                                searchHandler.acceptResult(BuiltInRegistries.BLOCK.getValue(key));
                             }
                         }
                     }

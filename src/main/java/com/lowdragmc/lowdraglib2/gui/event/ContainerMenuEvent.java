@@ -33,7 +33,7 @@ public abstract class ContainerMenuEvent extends Event {
          * Return if the menu is created on the remote(client) side.
          */
         public boolean isRemote() {
-            return player.level().isClientSide;
+            return player.level().isClientSide();
         }
     }
 }

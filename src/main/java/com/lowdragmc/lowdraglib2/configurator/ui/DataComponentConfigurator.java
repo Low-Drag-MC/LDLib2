@@ -14,8 +14,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import org.appliedenergistics.yoga.YogaDirection;
-import org.appliedenergistics.yoga.YogaOverflow;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -72,7 +70,7 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
             var key = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(type);
             if (key == null) continue;
             var tagConfigurator = new TagConfigurator(key.getPath(), () -> {
-                var valueOpt = supplier.get().get(type);
+                var valueOpt = supplier.get().getPatch(type);
                 var value = valueOpt == null ? prototype.get(type) : valueOpt.orElse(null);
                 if (value == null) return EndTag.INSTANCE;
                 DataResult<Tag> result = type.codec().encodeStart(opWithRegistry, value);

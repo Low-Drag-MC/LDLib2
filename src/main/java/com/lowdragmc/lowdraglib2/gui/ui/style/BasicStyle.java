@@ -4,20 +4,16 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Clip;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
-import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
-@RemapPrefixForJS("kjs$")
+//@RemapPrefixForJS("kjs$")
 @Configurable(name = "BasicStyle")
 public class BasicStyle extends Style {
     private final static Property<?>[] PROPERTIES = {
@@ -26,7 +22,7 @@ public class BasicStyle extends Style {
             PropertyRegistry.TOOLTIPS,
             PropertyRegistry.Z_INDEX,
             PropertyRegistry.OPACITY,
-            PropertyRegistry.OVERFLOW_CLIP,
+            PropertyRegistry.MASK,
             PropertyRegistry.TRANSFORM_2D,
             PropertyRegistry.TRANSITION,
             PropertyRegistry.COLOR,
@@ -92,13 +88,13 @@ public class BasicStyle extends Style {
         return this;
     }
 
-    @HideFromJS
+//    @HideFromJS
     public BasicStyle tooltips(Component... tooltips) {
         tooltips(Tooltips.of(tooltips));
         return this;
     }
 
-    @HideFromJS
+//    @HideFromJS
     public BasicStyle tooltips(String... tooltips) {
         tooltips(Tooltips.of(tooltips));
         return this;
@@ -136,12 +132,12 @@ public class BasicStyle extends Style {
         return this;
     }
 
-    public IGuiTexture overflowClip() {
-        return getValueSave(PropertyRegistry.OVERFLOW_CLIP);
+    public IGuiTexture mask() {
+        return getValueSave(PropertyRegistry.MASK);
     }
 
-    public BasicStyle overflowClip(IGuiTexture overflowClip) {
-        set(PropertyRegistry.OVERFLOW_CLIP, overflowClip);
+    public BasicStyle mask(IGuiTexture overflowClip) {
+        set(PropertyRegistry.MASK, overflowClip);
         return this;
     }
 
@@ -176,12 +172,12 @@ public class BasicStyle extends Style {
         return this;
     }
 
-    public boolean overflowVisible() {
-        return getValueSave(LayoutProperties.OVERFLOW) == YogaOverflow.VISIBLE;
+    public Clip clip() {
+        return getValueSave(PropertyRegistry.CLIP);
     }
 
-    public BasicStyle overflowVisible(boolean transition) {
-        set(LayoutProperties.OVERFLOW, transition ? YogaOverflow.VISIBLE : YogaOverflow.HIDDEN);
+    public BasicStyle clip(Clip clip) {
+        set(PropertyRegistry.CLIP, clip);
         return this;
     }
 }

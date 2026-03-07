@@ -113,17 +113,17 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
      * This is called when the block entity is first created on the client, and deserialize initial data at client side.
      */
     default void deserializeInitialData(HolderLookup.Provider provider, CompoundTag tag) {
-        var customTag = tag.getCompound("custom");
+        var customTag = tag.getCompoundOrEmpty("custom");
         readCustomSyncData(provider, customTag);
 
-        var list = tag.getList("managed", Tag.TAG_COMPOUND);
+        var list = tag.getListOrEmpty("managed");
         var syncedFields = getRootStorage().getSyncFields();
         if (syncedFields.length != list.size()) {
             throw new IllegalStateException("Synced fields count mismatch");
         }
         var ctx = provider.createSerializationContext(NbtOps.INSTANCE);
         for (int i = 0; i < list.size(); i++) {
-            var data = list.getCompound(i).get("d");
+            var data = list.getCompoundOrEmpty(i).get("d");
             syncedFields[i].writeInitialSync(ctx, data);
         }
     }

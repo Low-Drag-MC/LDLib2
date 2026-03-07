@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
+import net.minecraft.client.gui.render.TextureSetup;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
@@ -313,8 +314,8 @@ public class WireElement extends GraphElement<WireModel> {
     }
 
     @Override
-    public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(@NotNull GUIContext context) {
+        super.drawBackgroundAdditional(context);
         if (drawPoints.isEmpty()) return;
         // couldn't be clicking state
         var isSelected = isSelected() || isUnderRegionSelection();
@@ -341,8 +342,9 @@ public class WireElement extends GraphElement<WireModel> {
             fromColor &= 0x77FFFFFF;
             toColor &= 0x77FFFFFF;
         }
-        DrawerHelper.drawTexLines(guiContext.graphics,
-                LDLibRenderTypes.graphWire(),
+        DrawerHelper.drawTexLines(context,
+                LDLibRenderPipelines.GRAPH_WIRE,
+                TextureSetup.noTexture(),
                 drawPoints,
                 fromColor,
                 toColor,

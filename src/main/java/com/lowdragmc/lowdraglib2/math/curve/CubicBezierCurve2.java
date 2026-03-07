@@ -2,18 +2,17 @@ package com.lowdragmc.lowdraglib2.math.curve;
 
 import com.lowdragmc.lowdraglib2.math.Interpolations;
 import lombok.EqualsAndHashCode;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.FloatTag;
-import net.minecraft.nbt.ListTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import org.jetbrains.annotations.UnknownNullability;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.joml.Vector2f;
+import org.joml.Vector2fc;
 
-import javax.annotation.Nonnull;
 
 @EqualsAndHashCode(callSuper = false)
-public class CubicBezierCurve2 extends Curve<Vector2f> implements INBTSerializable<ListTag> {
-    public Vector2f p0, c0, c1, p1;
+public class CubicBezierCurve2 extends Curve<Vector2f> implements ValueIOSerializable {
+    public Vector2fc p0, c0, c1, p1;
 
     public CubicBezierCurve2(Vector2f start, Vector2f control1, Vector2f control2, Vector2f end) {
         this.p0 = start;
@@ -25,34 +24,25 @@ public class CubicBezierCurve2 extends Curve<Vector2f> implements INBTSerializab
     @Override
     public Vector2f getPoint(float t) {
         return new Vector2f(
-                (float) Interpolations.CubicBezier(t, p0.x, c0.x, c1.x, p1.x),
-                (float) Interpolations.CubicBezier(t, p0.y, c0.y, c1.y, p1.y)
+                (float) Interpolations.CubicBezier(t, p0.x(), c0.x(), c1.x(), p1.x()),
+                (float) Interpolations.CubicBezier(t, p0.y(), c0.y(), c1.y(), p1.y())
         );
     }
 
     @Override
-    public @UnknownNullability ListTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
-        var list = new ListTag();
-        list.add(FloatTag.valueOf(p0.x));
-        list.add(FloatTag.valueOf(p0.y));
-
-        list.add(FloatTag.valueOf(c0.x));
-        list.add(FloatTag.valueOf(c0.y));
-
-        list.add(FloatTag.valueOf(c1.x));
-        list.add(FloatTag.valueOf(c1.y));
-
-        list.add(FloatTag.valueOf(p1.x));
-        list.add(FloatTag.valueOf(p1.y));
-        return list;
+    public void serialize(ValueOutput output) {
+        output.store("p0", ExtraCodecs.VECTOR2F, p0);
+        output.store("c0", ExtraCodecs.VECTOR2F, c0);
+        output.store("c1", ExtraCodecs.VECTOR2F, c1);
+        output.store("p1", ExtraCodecs.VECTOR2F, p1);
     }
 
     @Override
-    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, ListTag list) {
-        p0 = new Vector2f(list.getFloat(0), list.getFloat(1));
-        c0 = new Vector2f(list.getFloat(2), list.getFloat(3));
-        c1 = new Vector2f(list.getFloat(4), list.getFloat(5));
-        p1 = new Vector2f(list.getFloat(6), list.getFloat(7));
+    public void deserialize(ValueInput input) {
+        p0 = input.read("p0", ExtraCodecs.VECTOR2F).orElseGet(Vector2f::new);
+        c0 = input.read("c0", ExtraCodecs.VECTOR2F).orElseGet(Vector2f::new);
+        c1 = input.read("c1", ExtraCodecs.VECTOR2F).orElseGet(Vector2f::new);
+        p1 = input.read("p1", ExtraCodecs.VECTOR2F).orElseGet(Vector2f::new);
     }
 
     public CubicBezierCurve2 copy() {

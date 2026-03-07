@@ -1,76 +1,59 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
 import com.google.common.util.concurrent.Runnables;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Transformation;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
+import org.joml.Matrix3x2f;
+import org.joml.Matrix3x2fStack;
 
 public class EnhancedPoseStack {
-    public final PoseStack pose;
+    public final Matrix3x2fStack pose;
     @Setter @Accessors(chain = true)
     private Runnable onTransform = Runnables.doNothing();
 
-    public EnhancedPoseStack(PoseStack pose) {
+    public EnhancedPoseStack(Matrix3x2fStack pose) {
         this.pose = pose;
     }
 
-    public void translate(double x, double y, double z) {
-        pose.translate(x, y, z);
+    public void translate(float x, float y) {
+        pose.translate(x, y);
         onTransform.run();
     }
 
-    public void translate(float x, float y, float z) {
-        pose.translate(x, y, z);
+    public void scale(float x, float y) {
+        pose.scale(x, y);
         onTransform.run();
     }
 
-    public void scale(float x, float y, float z) {
-        pose.scale(x, y, z);
-        onTransform.run();
-    }
-
-    public void mulPose(Quaternionf quaternion) {
-       pose.mulPose(quaternion);
-        onTransform.run();
-    }
-
-    public void rotateAround(Quaternionf quaternion, float x, float y, float z) {
-        pose.rotateAround(quaternion, x, y, z);
+    public void rotate(float ang) {
+        pose.rotate(ang);
         onTransform.run();
     }
 
     public void pushPose() {
-        pose.pushPose();
+        pose.pushMatrix();
     }
 
     public void popPose() {
-        pose.popPose();
+        pose.popMatrix();
         onTransform.run();
     }
 
-    public PoseStack.Pose last() {
-        return pose.last();
-    }
-
-    public boolean clear() {
-        return pose.clear();
+    public void clear() {
+        pose.clear();
     }
 
     public void setIdentity() {
-        pose.setIdentity();
+        pose.identity();
         onTransform.run();
     }
 
-    public void mulPose(Matrix4f pose) {
-       this.pose.mulPose(pose);
+    public void mulPose(Matrix3x2f matrix) {
+        pose.mul(matrix);
         onTransform.run();
     }
 
-    public void pushTransformation(Transformation transformation) {
-        pose.pushTransformation(transformation);
-        onTransform.run();
+    public Matrix3x2f copyPose() {
+        return new Matrix3x2f(pose);
     }
 }

@@ -30,3 +30,6 @@ repo
 /.claude
 CLAUDE.md
 /logs
+/mc_src
+/docs
+/.codex

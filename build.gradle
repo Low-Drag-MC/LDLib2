@@ -1,19 +1,24 @@
 plugins {
     id 'java-library'
-    id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.0.181'
-    id 'org.jetbrains.kotlin.jvm' version '2.1.20'
+    id 'net.neoforged.moddev' version '2.0.140'
+    id 'org.jetbrains.kotlin.jvm' version '2.3.0'
     id 'org.jetbrains.kotlin.plugin.lombok' version '2.1.20'
     id 'io.freefair.lombok' version "9.2.0"
 }
 
+tasks.named('wrapper', Wrapper).configure {
+    // Define wrapper values here so as to not have to always do so when updating gradlew.properties.
+    // Switching this to Wrapper.DistributionType.ALL will download the full gradle sources that comes with
+    // documentation attached on cursor hover of gradle classes and methods. However, this comes with increased
+    // file size for Gradle. If you do switch this to ALL, run the Gradle wrapper task twice afterwards.
+    // (Verify by checking gradle/wrapper/gradle-wrapper.properties to see if distributionUrl now points to `-all`)
+    distributionType = Wrapper.DistributionType.BIN
+}
+
 version = mod_version
 group = maven_group
-
-// Enable the Jar-in-Jar system for your mod
-jarJar.enable()
 
 configurations {
     libraries
@@ -81,67 +86,84 @@ base {
 
 // Mojang ships Java 21 to end users in 1.20.5+, so your mod should target Java 21.
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
     compilerOptions {
         freeCompilerArgs.add("-Xcontext-parameters")
         freeCompilerArgs.add("-Xwhen-guards")
     }
 }
 
-minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 
-// Default run configurations.
-// These can be tweaked, removed, or duplicated as needed.
-runs {
-    // applies to all the run configs below
-    configureEach {
-        // Recommended logging data for a userdev environment
-        // The markers can be added/remove as needed separated by commas.
-        // "SCAN": For mods scan.
-        // "REGISTRIES": For firing of registry events.
-        // "REGISTRYDUMP": For getting the contents of all registries.
-        systemProperty 'forge.logging.markers', 'REGISTRIES'
+neoForge {
+    // Specify the version of NeoForge to use.
+    version = project.neo_version
 
-        // Recommended logging level for the console
-        // You can set various levels here.
-        // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-        systemProperty 'forge.logging.console.level', 'debug'
+    // This line is optional. Access Transformers are automatically detected
+    // accessTransformers.add('src/main/resources/META-INF/accesstransformer.cfg')
 
-        modSource project.sourceSets.main
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        client {
+            client()
 
-        dependencies {
-            runtime project.configurations.libraries
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        // This run config launches GameTestServer and runs all registered gametests, then exits.
+        // By default, the server will crash when no gametests are provided.
+        // The gametest system is also enabled by default for other run configs under the /test command.
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            clientData()
+
+            // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
+            // gameDirectory = project.file('run-data')
+
+            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        // applies to all the run configs above
+        configureEach {
+            // Recommended logging data for a userdev environment
+            // The markers can be added/remove as needed separated by commas.
+            // "SCAN": For mods scan.
+            // "REGISTRIES": For firing of registry events.
+            // "REGISTRYDUMP": For getting the contents of all registries.
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+            // Recommended logging level for the console
+            // You can set various levels here.
+            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            logLevel = org.slf4j.event.Level.DEBUG
         }
     }
 
-    client {
-        // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
-    }
-
-    server {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
-        programArgument '--nogui'
-    }
-
-    // This run config launches GameTestServer and runs all registered gametests, then exits.
-    // By default, the server will crash when no gametests are provided.
-    // The gametest system is also enabled by default for other run configs under the /test command.
-    gameTestServer {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
-    }
-
-    data {
-        // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
-        // workingDirectory project.file('run-data')
-
-        // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-        programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+    mods {
+        // define mod <-> source bindings
+        // these are used to tell the game which sources are for which mod
+        // mostly optional in a single mod project
+        // but multi mod projects should define one per mod
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
     }
 }
 
@@ -151,48 +173,54 @@ sourceSets.main.kotlin { srcDir("src/main/java") }
 
 dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
-    libraries("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_stdlib_version}") {
-        exclude group: "org.jetbrains", module: "annotations"
+    jarJar(libraries(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib')) {
+        version {
+            // Version used in your workspace and bundled in mod jar
+            prefer "${kotlin_stdlib_version}"
+        }
     }
-    jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "[${kotlin_stdlib_version},)")
+//    libraries("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_stdlib_version}") {
+//        exclude group: "org.jetbrains", module: "annotations"
+//    }
+//    jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "[${kotlin_stdlib_version},)")
 
-    // JEI
-    compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
-    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
-    localImplementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
-
-    // REI
-    compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")
-    compileOnly("me.shedaniel:RoughlyEnoughItems-api-neoforge:${rei_version}")
-    compileOnly("me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}")
-
-    // EMI
-    compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
-    compileOnly("dev.emi:emi-neoforge:${emi_version}")
-
-    // AE2
-    localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
-
-    // KJS
-    localImplementation("dev.latvian.mods:kubejs-neoforge:${kjs_version}") {
-        exclude(group: "dev.architectury")
-    }
-
-    // Iris
-    localImplementation("maven.modrinth:sodium:${sodium_version}")
-    localImplementation("maven.modrinth:iris:${iris_version}")
+//    // JEI
+//    compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
+//    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
+//    localImplementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+//
+//    // REI
+//    compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")
+//    compileOnly("me.shedaniel:RoughlyEnoughItems-api-neoforge:${rei_version}")
+//    compileOnly("me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}")
+//
+//    // EMI
+//    compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
+//    compileOnly("dev.emi:emi-neoforge:${emi_version}")
+//
+//    // AE2
+//    localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
+//
+//    // KJS
+//    localImplementation("dev.latvian.mods:kubejs-neoforge:${kjs_version}") {
+//        exclude(group: "dev.architectury")
+//    }
+//
+//    // Iris
+//    localImplementation("maven.modrinth:sodium:${sodium_version}")
+//    localImplementation("maven.modrinth:iris:${iris_version}")
 
     // lombok
 //    compileOnly 'org.projectlombok:lombok:1.18.30'
 //    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-    // Yoga
-    libraries("org.appliedenergistics.yoga:yoga:${yoga_version}")
-    jarJar(group: 'org.appliedenergistics.yoga', name: 'yoga', version: "[${yoga_version},)")
-
     // Taffy
-    libraries("dev.vfyjxf:taffy:${taffy_version}")
-    jarJar(group: 'dev.vfyjxf', name: 'taffy', version: "[${taffy_version},)")
+    jarJar(libraries(group: 'dev.vfyjxf', name: 'taffy')) {
+        version {
+            // Version used in your workspace and bundled in mod jar
+            prefer "${taffy_version}"
+        }
+    }
 
     // JUnit 5
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
@@ -204,25 +232,32 @@ dependencies {
     testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
 }
 
-tasks.withType(ProcessResources).configureEach {
-    // set up properties for filling into metadata
-    var replaceProperties = [
-            "mod_id": mod_id,
-            "version": version,
-            "loader_version": loader_version,
-            "forge_version": neo_version.split("\\.")[0], // only specify major version of forge
-            "minecraft_version": minecraft_version,
-            "mod_license": mod_license,
-            "mod_name": mod_name,
-            "mod_description": mod_description,
-            "mod_url": mod_url
-    ]
+// This block of code expands all declared replace properties in the specified resource targets.
+// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [minecraft_version      : minecraft_version,
+                             minecraft_version_range: minecraft_version_range,
+                             neo_version            : neo_version,
+                             neo_version_range      : neo_version_range,
+                             loader_version_range   : loader_version_range,
+                             mod_id                 : mod_id,
+                             mod_name               : mod_name,
+                             mod_url                : mod_url,
+                             mod_authors            : mod_authors,
+                             mod_license            : mod_license,
+                             mod_version            : mod_version,
+                             mod_description        : mod_description]
     inputs.properties replaceProperties
-
-    filesMatching(['META-INF/neoforge.mods.toml']) {
-        expand replaceProperties + [project: project]
-    }
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
 }
+
+// Include the output of "generateModMetadata" as an input directory for the build
+// this works with both building through Gradle and the IDE.
+sourceSets.main.resources.srcDir generateModMetadata
+// To avoid having to run "generateModMetadata" manually, make it run on every project reload
+neoForge.ideSyncTask generateModMetadata
 
 test {
     useJUnitPlatform()
@@ -247,7 +282,7 @@ tasks.register("printVersion") {
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-            artifactId = archivesBaseName
+//            artifactId = archivesBaseName
             from components.java
         }
     }
@@ -261,3 +296,12 @@ publishing {
         }
     }
 }
+
+// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+

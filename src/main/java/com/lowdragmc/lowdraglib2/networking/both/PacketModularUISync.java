@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -18,7 +18,7 @@ import javax.annotation.Nonnull;
  */
 @NoArgsConstructor
 public class PacketModularUISync implements CustomPacketPayload {
-    public static final ResourceLocation ID = LDLib2.id("modular_ui_sync");
+    public static final Identifier ID = LDLib2.id("modular_ui_sync");
     public static final Type<PacketModularUISync> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, PacketModularUISync> CODEC = StreamCodec.ofMember(PacketModularUISync::write, PacketModularUISync::decode);
 
@@ -35,14 +35,6 @@ public class PacketModularUISync implements CustomPacketPayload {
     public static PacketModularUISync decode(RegistryFriendlyByteBuf buffer) {
         var data = buffer.readByteArray();
         return new PacketModularUISync(data);
-    }
-
-    public static void execute(PacketModularUISync packet, IPayloadContext context) {
-        if (context.player() instanceof ServerPlayer) {
-            executeServer(packet, context);
-        } else {
-            executeClient(packet, context);
-        }
     }
 
     public static void executeClient(PacketModularUISync packet, IPayloadContext context) {

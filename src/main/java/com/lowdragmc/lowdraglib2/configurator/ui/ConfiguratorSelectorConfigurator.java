@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
-import org.appliedenergistics.yoga.YogaDisplay;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;

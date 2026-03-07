@@ -10,16 +10,16 @@ import org.lwjgl.system.MemoryUtil;
 import org.jetbrains.annotations.Nullable;
 
 public class MeshDataSortResult {
-    public final Vector3f[] centroids;
+    public final CompactVectorArray centroids;
     public final VertexFormat.IndexType indexType;
     public final VertexFormat.Mode mode;
     public final ByteBufferBuilder.Result indexBuffer;
 
-    public MeshDataSortResult(Vector3f[] centroids, VertexFormat.IndexType indexType, VertexFormat.Mode mode) {
+    public MeshDataSortResult(CompactVectorArray centroids, VertexFormat.IndexType indexType, VertexFormat.Mode mode) {
         this(centroids, indexType, mode, null);
     }
 
-    public MeshDataSortResult(Vector3f[] centroids, VertexFormat.IndexType indexType,
+    public MeshDataSortResult(CompactVectorArray centroids, VertexFormat.IndexType indexType,
                               VertexFormat.Mode mode, ByteBufferBuilder.Result indexBuffer) {
         this.centroids = centroids;
         this.indexType = indexType;

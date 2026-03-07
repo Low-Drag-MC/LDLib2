@@ -16,7 +16,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Matrix4f;
+import org.joml.Matrix3x2f;
+import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 
@@ -131,10 +132,10 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         return pivot.equals(Pivot.CENTER);
     }
 
-    public void pushPose(PoseStack poseStack, float x, float y, float width, float height) {
+    public void pushPose(Matrix3x2fStack stack, float x, float y, float width, float height) {
         if (isIdentity()) return;
-        poseStack.pushPose();
-        poseStack.translate(translate.x, translate.y, 0);
+        stack.pushMatrix();
+        stack.translate(translate.x, translate.y);
 
         var xPivot = pivot.x * width;
         var yPivot = pivot.y * height;
@@ -142,20 +143,20 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         var translationY = y + yPivot;
 
         if (rotationRad != 0f || scale.x != 1f || scale.y != 1f) {
-            poseStack.translate(translationX, translationY, 0);
+            stack.translate(translationX, translationY);
             if (rotationRad != 0f) {
-                poseStack.mulPose(new Quaternionf().rotateLocalZ(rotationRad));
+                stack.rotate(rotationRad);
             }
             if (scale.x != 1f || scale.y != 1f) {
-                poseStack.scale(scale.x, scale.y, 1);
+                stack.scale(scale.x, scale.y);
             }
-            poseStack.translate(-translationX, -translationY, 0);
+            stack.translate(-translationX, -translationY);
         }
     }
 
-    public void popPose(PoseStack poseStack) {
+    public void popPose(Matrix3x2fStack stack) {
         if (!isIdentity()) {
-            poseStack.popPose();
+            stack.popMatrix();
         }
     }
 
@@ -168,39 +169,39 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         ctx.pose.pushPose();
 
         if (translate.x != 0f || translate.y != 0f) {
-            ctx.pose.translate(translate.x, translate.y, 0);
+            ctx.pose.translate(translate.x, translate.y);
         }
 
         if (rotationRad != 0f || scale.x != 1f || scale.y != 1f) {
-            ctx.pose.translate(px, py, 0);
+            ctx.pose.translate(px, py);
             if (rotationRad != 0f) {
-                ctx.pose.mulPose(new Quaternionf().rotateLocalZ(rotationRad));
+                ctx.pose.rotate(rotationRad);
             }
             if (scale.x != 1f || scale.y != 1f) {
-                ctx.pose.scale(scale.x, scale.y, 1);
+                ctx.pose.scale(scale.x, scale.y);
             }
-            ctx.pose.translate(-px, -py, 0);
+            ctx.pose.translate(-px, -py);
         }
     }
 
-    public void pushPose(Matrix4f pose, UIElement e) {
+    public void pushPose(Matrix3x2f pose, UIElement e) {
         if (isIdentity()) return;
         float px = e.getPositionX() + e.getSizeWidth() * pivot.x;
         float py = e.getPositionY() + e.getSizeHeight() * pivot.y;
 
         if (translate.x != 0f || translate.y != 0f) {
-            pose.translate(translate.x, translate.y, 0);
+            pose.translate(translate.x, translate.y);
         }
 
         if (rotationRad != 0f || scale.x != 1f || scale.y != 1f) {
-            pose.translate(px, py, 0);
+            pose.translate(px, py);
             if (rotationRad != 0f) {
-                pose.rotate(new Quaternionf().rotateLocalZ(rotationRad));
+                pose.rotate(rotationRad);
             }
             if (scale.x != 1f || scale.y != 1f) {
-                pose.scale(scale.x, scale.y, 1);
+                pose.scale(scale.x, scale.y);
             }
-            pose.translate(-px, -py, 0);
+            pose.translate(-px, -py);
         }
     }
 

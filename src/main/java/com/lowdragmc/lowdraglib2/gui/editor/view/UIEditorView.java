@@ -34,7 +34,7 @@ import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -204,21 +204,21 @@ public class UIEditorView extends View {
         var stylesheetSelector = new ArrayConfiguratorGroup<>("", false, () -> {
             if (this.template == null) return List.of();
             return this.template.getStylesheets();
-        }, (getter, setter) -> new SearchComponentConfigurator<>("", getter, setter, new SearchComponentConfigurator.ISearchConfigurator<ResourceLocation>() {
+        }, (getter, setter) -> new SearchComponentConfigurator<>("", getter, setter, new SearchComponentConfigurator.ISearchConfigurator<Identifier>() {
             @Override
             @Nonnull
-            public ResourceLocation defaultValue() {
+            public Identifier defaultValue() {
                 return LDLib2.id("gdp");
             }
 
             @Override
             @Nonnull
-            public String resultText(@NotNull ResourceLocation value) {
+            public String resultText(@NotNull Identifier value) {
                 return value.toString();
             }
 
             @Override
-            public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
+            public void search(String word, IResultHandler<Identifier> searchHandler) {
                 var lowerWord = word.toLowerCase();
                 for (var key : StylesheetManager.INSTANCE.getAllPackStylesheets()) {
                     if (Thread.currentThread().isInterrupted()) return;
@@ -431,7 +431,7 @@ public class UIEditorView extends View {
         this.stylesheetEditor.setValue(Optional.ofNullable(this.template.getBuiltinStyles()).orElse("").split("\n"), false);
     }
 
-    public void viewStylesheet(ResourceLocation stylesheet) {
+    public void viewStylesheet(Identifier stylesheet) {
         isEditingBuiltinStyles = false;
         var res = Minecraft.getInstance().getResourceManager().getResource(stylesheet);
         if (res.isPresent()) {
@@ -487,8 +487,8 @@ public class UIEditorView extends View {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(GUIContext context) {
+        super.drawBackgroundAdditional(context);
     }
 
     public boolean isTemplateDirty() {

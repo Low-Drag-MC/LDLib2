@@ -6,7 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.TaffyDimension;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
 import javax.annotation.ParametersAreNonnullByDefault;

@@ -5,7 +5,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.util.FastColor;
+import net.minecraft.util.ARGB;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL20;
@@ -52,10 +52,10 @@ public class UniformCache {
 
 	public void fillRGBAColor(String location, int color) {
 		this.glUniform4F(location,
-				FastColor.ARGB32.red(color) / 255f,
-				FastColor.ARGB32.green(color) / 255f,
-				FastColor.ARGB32.blue(color) / 255f,
-				FastColor.ARGB32.alpha(color) / 255f);
+				ARGB.red(color) / 255f,
+				ARGB.green(color) / 255f,
+				ARGB.blue(color) / 255f,
+				ARGB.alpha(color) / 255f);
 	}
 
 	private void glUniformF(String location, IntConsumer callback, float... values) {

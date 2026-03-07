@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.editor.UIEditor;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
-import com.lowdragmc.lowdraglib2.integration.kjs.ui.LDKJSMenuTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
@@ -29,7 +28,7 @@ public final class LDMenuTypes {
 
     public static void init(IEventBus eventBus) {
         PlayerUIMenuType.register(UIEditor.WINDOW_ID, ignored -> player -> {
-            if (player.level().isClientSide) {
+            if (player.level().isClientSide()) {
                 return new ModularUI(UI.of(EditorWindow.open(UIEditor.WINDOW_ID, UIEditor::new)))
                         .shouldCloseOnEsc(false)
                         .shouldCloseOnKeyInventory(false);
@@ -38,7 +37,8 @@ public final class LDMenuTypes {
         });
 
         if (LDLib2.isKubejsLoaded()) {
-            LDKJSMenuTypes.init();
+            // todo kjs
+//            LDKJSMenuTypes.init();
         }
         MENUS.register(eventBus);
     }

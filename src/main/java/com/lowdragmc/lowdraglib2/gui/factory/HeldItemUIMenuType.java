@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -85,7 +85,7 @@ public class HeldItemUIMenuType {
         }
 
         default Component getUIDisplayName(HeldItemUIHolder holder) {
-            return Component.translatable(holder.itemStack.getDescriptionId());
+            return holder.itemStack.getDisplayName();
         }
     }
 

@@ -5,7 +5,7 @@ import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import com.lowdragmc.lowdraglib2.registry.annotation.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +41,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
     private final Comparator<AutoRegistry.Holder<A, C, V>> sorter;
 
 
-    protected AutoRegistry(ResourceLocation registryName,
+    protected AutoRegistry(Identifier registryName,
                          Class<A> annotationClass,
                          Class<C> baseClazz,
                          @Nullable Predicate<Map<java.lang.String, Object>> annotationFilter,
@@ -60,7 +60,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
         autoRegister();
     }
 
-    public static <A extends Annotation, C, V> AutoRegistry<A, C, V> create(ResourceLocation registryName,
+    public static <A extends Annotation, C, V> AutoRegistry<A, C, V> create(Identifier registryName,
                                                                             Class<A> annotationClass,
                                                                             Class<C> baseClazz,
                                                                             @Nullable Predicate<Map<java.lang.String, Object>> annotationFilter,
@@ -142,7 +142,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
     }
 
     public static final class LDLibRegister<C extends ILDLRegister, V> extends AutoRegistry<LDLRegister, C, V> {
-        private LDLibRegister(ResourceLocation registryName,
+        private LDLibRegister(Identifier registryName,
                               Class<C> baseClazz,
                               BiFunction<LDLRegister, Class<? extends C>, V> supplier) {
             super(registryName, LDLRegister.class, baseClazz, annotationData -> {
@@ -155,7 +155,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
             }, null, (annotation, clazz) -> annotation.name(), supplier, (a, b) -> b.annotation().priority() - a.annotation().priority());
         }
 
-        public static <C extends ILDLRegister, V> LDLibRegister<C, V> create(ResourceLocation registryName, Class<C> baseClazz, BiFunction<LDLRegister, Class<? extends C>, V> supplier) {
+        public static <C extends ILDLRegister, V> LDLibRegister<C, V> create(Identifier registryName, Class<C> baseClazz, BiFunction<LDLRegister, Class<? extends C>, V> supplier) {
             return new LDLibRegister<>(registryName, baseClazz, supplier);
         }
 
@@ -167,7 +167,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
     }
 
     public static final class LDLibRegisterClient<C extends ILDLRegisterClient, V> extends AutoRegistry<LDLRegisterClient, C, V> {
-        private LDLibRegisterClient(ResourceLocation registryName,
+        private LDLibRegisterClient(Identifier registryName,
                               Class<C> baseClazz,
                               BiFunction<LDLRegisterClient, Class<? extends C>, V> supplier) {
             super(registryName, LDLRegisterClient.class, baseClazz, annotationData -> {
@@ -180,7 +180,7 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
             }, null, (annotation, clazz) -> annotation.name(), supplier, (a, b) -> b.annotation().priority() - a.annotation().priority());
         }
 
-        public static <C extends ILDLRegisterClient, V> LDLibRegisterClient<C, V> create(ResourceLocation registryName, Class<C> baseClazz, BiFunction<LDLRegisterClient, Class<? extends C>, V> supplier) {
+        public static <C extends ILDLRegisterClient, V> LDLibRegisterClient<C, V> create(Identifier registryName, Class<C> baseClazz, BiFunction<LDLRegisterClient, Class<? extends C>, V> supplier) {
             return new LDLibRegisterClient<>(registryName, baseClazz, supplier);
         }
 

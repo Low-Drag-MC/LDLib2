@@ -41,7 +41,7 @@ public class TagOrCycleFluidTransfer implements IFluidHandlerModifiable {
                         return tagOrFluid.map(
                                 tagList -> tagList
                                         .stream()
-                                        .flatMap(pair -> BuiltInRegistries.FLUID.getTag(pair.getFirst())
+                                        .flatMap(pair -> BuiltInRegistries.FLUID.get(pair.getFirst())
                                                 .map(holderSet -> holderSet.stream()
                                                         .map(holder -> new FluidStack(holder.value(), pair.getSecond())))
                                                 .orElseGet(Stream::empty))

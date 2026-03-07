@@ -5,10 +5,9 @@ import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.editor.view.UIXmlView;
-import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import lombok.Getter;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,13 +64,13 @@ public class UIXmlProject implements IProject {
     }
 
     @Override
-    public CompoundTag serializeProject(@NotNull HolderLookup.Provider provider) {
-        return TagBuilder.compound().add("xml", xml).build();
+    public void serializeProject(@NotNull ValueOutput output) {
+        output.putString("xml", xml);
     }
 
     @Override
-    public void deserializeProject(@NotNull HolderLookup.Provider provider, @NotNull CompoundTag nbt) {
-        setXml(nbt.getString("xml"));
+    public void deserializeProject(@NotNull ValueInput input) {
+        setXml(input.getStringOr("xml", ""));
     }
 
     @Override

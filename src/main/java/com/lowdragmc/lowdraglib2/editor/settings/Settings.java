@@ -3,13 +3,13 @@ package com.lowdragmc.lowdraglib2.editor.settings;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public interface Settings extends IConfigurable {
     /**
      * Unique ID for this settings registry.
      */
-    ResourceLocation getId();
+    Identifier getId();
 
     /**
      * Retrieves the path associated with the current settings.

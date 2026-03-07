@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -15,7 +15,7 @@ public interface ISceneBlockRenderHook {
     /**
      * Called before rendering the given render layer
      */
-    default void apply(RenderType layer) {
+    default void apply(RenderPipeline layer) {
 
     }
 
@@ -29,7 +29,7 @@ public interface ISceneBlockRenderHook {
     /**
      * Called before pushing the vertex data into the buffer during block rendering.
      */
-    default void applyVertexConsumerWrapper(Level world, BlockPos pos, BlockState state, WorldSceneRenderer.VertexConsumerWrapper wrapperBuffer, RenderType layer, float partialTicks) {
+    default void applyVertexConsumerWrapper(Level world, BlockPos pos, BlockState state, WorldSceneRenderer.VertexConsumerWrapper wrapperBuffer, RenderPipeline renderPipeline, float partialTicks) {
 
     }
 }

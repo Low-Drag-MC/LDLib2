@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.utils.data;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
@@ -15,6 +17,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.TagValueInput;
 
 import java.util.function.Consumer;
 
@@ -94,7 +97,9 @@ public class BlockInfo implements IPersistedSerializable, IConfigurable {
             var compoundTag3 = compoundTag2.copy();
             compoundTag2.merge(tag);
             if (!compoundTag2.equals(compoundTag3)) {
-                blockEntity.loadWithComponents(compoundTag2, Platform.getFrozenRegistry());
+                try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                    blockEntity.loadWithComponents(TagValueInput.create(reporter, Platform.getFrozenRegistry(), compoundTag2));
+                }
             }
         }
         if (postCreate != null && blockEntity != null) {
@@ -108,7 +113,7 @@ public class BlockInfo implements IPersistedSerializable, IConfigurable {
 
     public ItemStack getItemStackForm(LevelReader level, BlockPos pos) {
         if (itemStack != null) return itemStack;
-        return blockState.getBlock().getCloneItemStack(level, pos, blockState);
+        return blockState.getCloneItemStack(level, pos, true);
     }
 
 }

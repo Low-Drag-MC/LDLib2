@@ -13,24 +13,24 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public abstract class LDLRegistry<K, V> implements Iterable<V> {
-    public static final Map<ResourceLocation, LDLRegistry<?, ?>> REGISTERED = new LinkedHashMap<>();
+    public static final Map<Identifier, LDLRegistry<?, ?>> REGISTERED = new LinkedHashMap<>();
 
     protected final BiMap<K, V> registry;
     @Getter
-    protected final ResourceLocation registryName;
+    protected final Identifier registryName;
     @Getter
     protected boolean frozen = false;
     @Getter @Setter @Accessors(chain = true)
     protected K missingKey = null;
 
-    public LDLRegistry(ResourceLocation registryName) {
+    public LDLRegistry(Identifier registryName) {
         registry = initRegistry();
         this.registryName = registryName;
 
@@ -160,7 +160,7 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
 
     public static class String<V> extends LDLRegistry<java.lang.String, V> {
 
-        public String(ResourceLocation registryName) {
+        public String(Identifier registryName) {
             super(registryName);
         }
 
@@ -190,7 +190,7 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
 
         @Override
         public V loadFromNBT(Tag tag) {
-            return get(tag.getAsString());
+            return get(tag.asString().orElse(null));
         }
 
         @Override
@@ -213,9 +213,9 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
 
     }
 
-    public static class RL<V> extends LDLRegistry<ResourceLocation, V> {
+    public static class RL<V> extends LDLRegistry<Identifier, V> {
 
-        public RL(ResourceLocation registryName) {
+        public RL(Identifier registryName) {
             super(registryName);
         }
 
@@ -230,7 +230,7 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
         @Override
         public V readBuf(RegistryFriendlyByteBuf buf) {
             if (buf.readBoolean()) {
-                return get(ResourceLocation.parse(buf.readUtf()));
+                return get(Identifier.parse(buf.readUtf()));
             }
             return null;
         }
@@ -245,17 +245,17 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
 
         @Override
         public V loadFromNBT(Tag tag) {
-            return get(ResourceLocation.parse(tag.getAsString()));
+            return get(Identifier.parse(tag.asString().orElse(null)));
         }
 
         @Override
         public Codec<V> codec() {
-            return ResourceLocation.CODEC.flatXmap(rl -> Optional.ofNullable(this.get(rl)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry key in " + this.registryName + ": " + rl)), obj -> Optional.ofNullable(this.getKey(obj)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry element in " + this.registryName + ": " + obj)));
+            return Identifier.CODEC.flatXmap(rl -> Optional.ofNullable(this.get(rl)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry key in " + this.registryName + ": " + rl)), obj -> Optional.ofNullable(this.getKey(obj)).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown registry element in " + this.registryName + ": " + obj)));
         }
 
         @Override
         public Codec<Optional<V>> optionalCodec() {
-            return ResourceLocation.CODEC.flatXmap(rl -> DataResult.success(getOptional(rl)),
+            return Identifier.CODEC.flatXmap(rl -> DataResult.success(getOptional(rl)),
                     optional -> optional.map(obj -> DataResult.success(this.getKey(obj)))
                             .orElseGet(() -> missingKey == null ?
                                     DataResult.error(() -> "empty obj require mising key of registry key " + this.registryName) :
@@ -264,7 +264,7 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
 
         @Override
         public StreamCodec<RegistryFriendlyByteBuf, V> streamCodec() {
-            return StreamCodec.of((buf, value) -> buf.writeResourceLocation(getKey(value)), buf -> Objects.requireNonNull(get(buf.readResourceLocation())));
+            return StreamCodec.of((buf, value) -> buf.writeIdentifier(getKey(value)), buf -> Objects.requireNonNull(get(buf.readIdentifier())));
         }
     }
 }

@@ -1,27 +1,27 @@
 package com.lowdragmc.lowdraglib2.math;
 
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import com.mojang.serialization.Codec;
 import lombok.Getter;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.FloatTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import org.joml.Vector2f;
-import org.joml.Vector3f;
-import org.joml.Vector4f;
+import net.minecraft.util.ExtraCodecs;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import org.joml.*;
 
-import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class GradientColor implements INBTSerializable<CompoundTag> {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class GradientColor implements ValueIOSerializable {
     @Getter
-    protected List<Vector2f> aP;
+    protected List<Vector2fc> aP;
     @Getter
-    protected List<Vector4f> rgbP;
+    protected List<Vector4fc> rgbP;
 
     public GradientColor() {
         this.aP = new ArrayList<>(List.of(new Vector2f(0, 1), new Vector2f(1, 1)));
@@ -44,37 +44,37 @@ public class GradientColor implements INBTSerializable<CompoundTag> {
     }
 
     public float getAlpha(float t) {
-        var value = aP.getFirst().y;
-        var found = t < aP.getFirst().x;
+        var value = aP.getFirst().y();
+        var found = t < aP.getFirst().x();
         if (!found) {
             for (int i = 0; i < aP.size() - 1; i++) {
                 var s = aP.get(i);
                 var e = aP.get(i + 1);
-                if (t >= s.x && t <= e.x) {
-                    value = s.y * (e.x - t) / (e.x - s.x) + e.y * (t - s.x) / (e.x - s.x);
+                if (t >= s.x() && t <= e.x()) {
+                    value = s.y() * (e.x() - t) / (e.x() - s.x()) + e.y() * (t - s.x()) / (e.x() - s.x());
                     found = true;
                     break;
                 }
             }
         }
         if (!found) {
-            value = aP.getLast().y;
+            value = aP.getLast().y();
         }
         return value;
     }
 
     public Vector3f getRGB(float t) {
-        var value = new Vector3f(rgbP.getFirst().y, rgbP.getFirst().z, rgbP.getFirst().w);
-        var found = t < rgbP.getFirst().x;
+        var value = new Vector3f(rgbP.getFirst().y(), rgbP.getFirst().z(), rgbP.getFirst().w());
+        var found = t < rgbP.getFirst().x();
         if (!found) {
             for (int i = 0; i < rgbP.size() - 1; i++) {
                 var s = rgbP.get(i);
                 var e = rgbP.get(i + 1);
-                if (t >= s.x && t <= e.x) {
+                if (t >= s.x() && t <= e.x()) {
                     value = new Vector3f(
-                            s.y * (e.x - t) / (e.x - s.x) + e.y * (t - s.x) / (e.x - s.x),
-                            s.z * (e.x - t) / (e.x - s.x) + e.z * (t - s.x) / (e.x - s.x),
-                            s.w * (e.x - t) / (e.x - s.x) + e.w * (t - s.x) / (e.x - s.x)
+                            s.y() * (e.x() - t) / (e.x() - s.x()) + e.y() * (t - s.x()) / (e.x() - s.x()),
+                            s.z() * (e.x() - t) / (e.x() - s.x()) + e.z() * (t - s.x()) / (e.x() - s.x()),
+                            s.w() * (e.x() - t) / (e.x() - s.x()) + e.w() * (t - s.x()) / (e.x() - s.x())
                     );
                     found = true;
                     break;
@@ -82,7 +82,7 @@ public class GradientColor implements INBTSerializable<CompoundTag> {
             }
         }
         if (!found) {
-            value = new Vector3f(rgbP.getLast().y, rgbP.getLast().z, rgbP.getLast().w);
+            value = new Vector3f(rgbP.getLast().y(), rgbP.getLast().z(), rgbP.getLast().w());
         }
         return value;
     }
@@ -103,12 +103,12 @@ public class GradientColor implements INBTSerializable<CompoundTag> {
             aP.add(new Vector2f(t, value));
             return 0;
         }
-        if (t < aP.getFirst().x) {
+        if (t < aP.getFirst().x()) {
             aP.addFirst(new Vector2f(t, value));
             return 0;
         }
         for (int i = 0; i < aP.size() - 1; i++) {
-            if (t >= aP.get(i).x && t <=  aP.get(i + 1).x) {
+            if (t >= aP.get(i).x() && t <=  aP.get(i + 1).x()) {
                 aP.add(i + 1, new Vector2f(t, value));
                 return i + 1;
             }
@@ -122,12 +122,12 @@ public class GradientColor implements INBTSerializable<CompoundTag> {
             rgbP.add(new Vector4f(t, r, g, b));
             return 0;
         }
-        if (t < rgbP.getFirst().x) {
+        if (t < rgbP.getFirst().x()) {
             rgbP.addFirst(new Vector4f(t, r, g, b));
             return 0;
         }
         for (int i = 0; i < rgbP.size() - 1; i++) {
-            if (t >= rgbP.get(i).x && t <=  rgbP.get(i + 1).x) {
+            if (t >= rgbP.get(i).x() && t <=  rgbP.get(i + 1).x()) {
                 rgbP.add(i + 1, new Vector4f(t, r, g, b));
                 return i + 1;
             }
@@ -136,60 +136,26 @@ public class GradientColor implements INBTSerializable<CompoundTag> {
         return rgbP.size() - 1;
     }
 
-    private ListTag saveAlpha(List<Vector2f> data) {
-        var list = new ListTag();
-        for (var Vector2f : data) {
-            list.add(FloatTag.valueOf(Vector2f.x));
-            list.add(FloatTag.valueOf(Vector2f.y));
-        }
-        return list;
-    }
-
-    private ListTag saveRGB(List<Vector4f> data) {
-        var list = new ListTag();
-        for (var Vector4f : data) {
-            list.add(FloatTag.valueOf(Vector4f.x));
-            list.add(FloatTag.valueOf(Vector4f.y));
-            list.add(FloatTag.valueOf(Vector4f.z));
-            list.add(FloatTag.valueOf(Vector4f.w));
-        }
-        return list;
-    }
-
-    private void loadAlphaFromTag(List<Vector2f> data, ListTag list) {
-        data.clear();
-        for (int i = 0; i < list.size(); i += 2) {
-            data.add(new Vector2f(list.getFloat(i), list.getFloat(i + 1)));
-        }
-    }
-
-    private void loadRGBFromTag(List<Vector4f> data, ListTag list) {
-        data.clear();
-        for (int i = 0; i < list.size(); i += 4) {
-            data.add(new Vector4f(list.getFloat(i), list.getFloat(i + 1), list.getFloat(i + 2), list.getFloat(i + 3)));
-        }
+    @Override
+    public void serialize(ValueOutput output) {
+        output.store("a", Codec.list(ExtraCodecs.VECTOR2F), aP);
+        output.store("rgb", Codec.list(ExtraCodecs.VECTOR4F), rgbP);
     }
 
     @Override
-    public CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
-        var tag = new CompoundTag();
-        tag.put("a", saveAlpha(aP));
-        tag.put("rgb", saveRGB(rgbP));
-        return tag;
-    }
-
-    @Override
-    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, CompoundTag nbt) {
-        loadAlphaFromTag(aP, nbt.getList("a", Tag.TAG_FLOAT));
-        loadRGBFromTag(rgbP, nbt.getList("rgb", Tag.TAG_FLOAT));
+    public void deserialize(ValueInput input) {
+        aP.clear();
+        rgbP.clear();
+        input.read("a", Codec.list(ExtraCodecs.VECTOR2F)).ifPresent(aP::addAll);
+        input.read("rgb", Codec.list(ExtraCodecs.VECTOR4F)).ifPresent(rgbP::addAll);
     }
     
     public GradientColor copy() {
         var copy = new GradientColor();
         copy.aP.clear();
         copy.rgbP.clear();
-        this.aP.forEach(Vector2f -> copy.aP.add(new Vector2f(Vector2f.x, Vector2f.y)));
-        this.rgbP.forEach(Vector2f -> copy.rgbP.add(new Vector4f(Vector2f.x, Vector2f.y, Vector2f.z, Vector2f.w)));
+        this.aP.forEach(vec2 -> copy.aP.add(new Vector2f(vec2.x(), vec2.y())));
+        this.rgbP.forEach(vec4 -> copy.rgbP.add(new Vector4f(vec4.x(), vec4.y(), vec4.z(), vec4.w())));
         return copy;
     }
 

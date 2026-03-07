@@ -53,7 +53,7 @@ public class ColorsResource extends Resource<Integer> {
 
     @Override
     public Integer deserializeResource(Tag nbt, HolderLookup.Provider provider) {
-        return nbt instanceof IntTag intTag ? intTag.getAsInt() : -1;
+        return nbt instanceof IntTag intTag ? intTag.asInt().orElse(-1) : -1;
     }
 
     @Override

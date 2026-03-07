@@ -23,11 +23,10 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Mth;
-import org.appliedenergistics.yoga.*;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
@@ -88,7 +87,7 @@ public class SceneEditor extends UIElement implements IScene {
         });
         this.scene.setAfterWorldRender(scene -> {
             var mc = Minecraft.getInstance();
-            var partialTicks = mc.getTimer().getGameTimeDeltaPartialTick(false);
+            var partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
             SceneEditor.this.renderAfterWorld(mc.renderBuffers().bufferSource(), partialTicks);
         });
 
@@ -402,9 +401,6 @@ public class SceneEditor extends UIElement implements IScene {
                 }
             });
         }
-        if (bufferSource instanceof MultiBufferSource.BufferSource buffer) {
-            buffer.endBatch();
-        }
         if (transformGizmo.hasTargetTransform() && transformGizmoMode != TransformGizmoMode.NONE) {
             transformGizmo.updateFrame(partialTicks);
             transformGizmo.preDraw(partialTicks);
@@ -414,8 +410,8 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(GUIContext context) {
+        super.drawBackgroundAdditional(context);
         var renderer = scene.getRenderer();
         if (isCameraMoving && renderer != null) {
             var _forward = isKeyDown(GLFW.GLFW_KEY_W);
@@ -429,7 +425,7 @@ public class SceneEditor extends UIElement implements IScene {
                 var lookAt = renderer.getLookAt();
                 var worldUp = renderer.getWorldUp();
                 var lookDir = new Vector3f(lookAt).sub(eyePos);
-                var realMoveSpeed = moveSpeed * guiContext.partialTick * (isShiftDown() ? 5 : 1);
+                var realMoveSpeed = moveSpeed * context.partialTick * (isShiftDown() ? 5 : 1);
                 var forward = new Vector3f(lookDir).normalize().mul(realMoveSpeed);
                 var right = new Vector3f(lookDir).cross(worldUp).normalize().mul(realMoveSpeed);
                 var up = new Vector3f(worldUp).normalize().mul(realMoveSpeed);

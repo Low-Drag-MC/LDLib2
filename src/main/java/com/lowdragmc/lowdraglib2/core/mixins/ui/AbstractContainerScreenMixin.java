@@ -6,8 +6,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,6 +22,10 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
 
     @Shadow
     public abstract T getMenu();
+
+    @Shadow
+    @Nullable
+    protected Slot hoveredSlot;
 
     @Inject(method = "removed", at = @At(value = "RETURN"))
     private void ldlib2$removed(CallbackInfo ci) {
@@ -34,10 +40,10 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
     }
 
     @Inject(method = "mouseDragged", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY, CallbackInfoReturnable<Boolean> cir) {
+    private void ldlib2$mouseDragged(MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
         if (getMenu() instanceof IModularUIHolder holder) {
             var mui = holder.getModularUI();
-            if (mui != null && mui.getWidget().mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            if (mui != null && mui.getWidget().mouseDragged(event, dx, dy)) {
                 cir.setReturnValue(true);
             }
         }
@@ -68,17 +74,26 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
         }
     }
 
-    @Inject(method = "renderSlotHighlight(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/inventory/Slot;IIF)V", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$renderSlotHighlight(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    @Inject(method = "renderSlotHighlightBack", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$renderSlotHighlightBack(GuiGraphics graphics, CallbackInfo ci) {
         if (getMenu() instanceof IItemSlotHolderMenu menu) {
-            if (menu.isItemSlot(slot)) {
+            if (menu.isItemSlot(this.hoveredSlot)) {
+                ci.cancel();
+            }
+        }
+    }
+
+    @Inject(method = "renderSlotHighlightFront", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$renderSlotHighlightFront(GuiGraphics graphics, CallbackInfo ci) {
+        if (getMenu() instanceof IItemSlotHolderMenu menu) {
+            if (menu.isItemSlot(this.hoveredSlot)) {
                 ci.cancel();
             }
         }
     }
 
     @Inject(method = "renderSlot", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$renderSlot(GuiGraphics guiGraphics, Slot slot, CallbackInfo ci) {
+    private void ldlib2$renderSlot(GuiGraphics graphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
         if (getMenu() instanceof IItemSlotHolderMenu menu) {
             if (menu.isItemSlot(slot)) {
                 ci.cancel();

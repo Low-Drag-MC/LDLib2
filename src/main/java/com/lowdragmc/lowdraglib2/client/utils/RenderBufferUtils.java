@@ -6,12 +6,12 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.joml.Matrix3x2fc;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.world.phys.Vec2;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nonnull;
@@ -302,11 +302,11 @@ public class RenderBufferUtils {
         }
     }
 
-    public static void drawColorLines(@Nonnull PoseStack poseStack, VertexConsumer builder, List<Vector2f> points, int colorStart, int colorEnd, float width) {
-        drawColorLines(poseStack, builder, points, colorStart, colorEnd, width, true);
+    public static void drawColorLines(@Nonnull Matrix3x2fc pose, VertexConsumer builder, List<Vector2f> points, int colorStart, int colorEnd, float width) {
+        drawColorLines(pose, builder, points, colorStart, colorEnd, width, true);
     }
 
-    public static void drawColorLines(@Nonnull PoseStack poseStack,
+    public static void drawColorLines(@Nonnull Matrix3x2fc pose,
                                       VertexConsumer builder,
                                       List<Vector2f> points,
                                       int colorStart, int colorEnd,
@@ -315,13 +315,10 @@ public class RenderBufferUtils {
         int n = points.size();
         if (n < 2) return;
 
-        Matrix4f mat = poseStack.last().pose();
-
         int sa0 = (colorStart >>> 24) & 0xFF, sr0 = (colorStart >>> 16) & 0xFF, sg0 = (colorStart >>> 8) & 0xFF, sb0 = colorStart & 0xFF;
-        int ea0 = (colorEnd   >>> 24) & 0xFF, er0 = (colorEnd   >>> 16) & 0xFF, eg0 = (colorEnd   >>> 8) & 0xFF, eb0 = colorEnd & 0xFF;
+        int ea0 = (colorEnd >>> 24) & 0xFF, er0 = (colorEnd >>> 16) & 0xFF, eg0 = (colorEnd >>> 8) & 0xFF, eb0 = colorEnd & 0xFF;
 
         int da = ea0 - sa0, dr = er0 - sr0, dg = eg0 - sg0, db = eb0 - sb0;
-
         int segCount = n - 1;
 
         Vector2f last = points.get(0);
@@ -342,23 +339,20 @@ public class RenderBufferUtils {
             float dy = curr.y - last.y;
             float len2 = dx * dx + dy * dy;
             if (len2 < 1.0e-12f) {
-                // skip degenerate segment
                 last = curr;
                 continue;
             }
 
-            // perpendicular (dx,dy) rotated +90° => (-dy, dx)
-            float invLen = (float)(1.0 / Math.sqrt(len2));
+            float invLen = (float) (1.0 / Math.sqrt(len2));
             perp.set(-dy * invLen * halfWidth, dx * invLen * halfWidth, 0);
 
-            builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0).setColor(r, g, b, a);
+            builder.addVertexWith2DPose(pose, last.x + perp.x, last.y + perp.y).setColor(r, g, b, a);
 
             if (stripSide && i == 1) {
-                // duplicate to "prime" the strip if you need it
-                builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0).setColor(r, g, b, a);
+                builder.addVertexWith2DPose(pose, last.x + perp.x, last.y + perp.y).setColor(r, g, b, a);
             }
 
-            builder.addVertex(mat, last.x - perp.x, last.y - perp.y, 0).setColor(r, g, b, a);
+            builder.addVertexWith2DPose(pose, last.x - perp.x, last.y - perp.y).setColor(r, g, b, a);
 
             last = curr;
         }
@@ -370,16 +364,15 @@ public class RenderBufferUtils {
         float bEnd = (sb0 + db) / 255f;
         float aEnd = (sa0 + da) / 255f;
 
-        // 'perp' still contains last segment's perpendicular if we didn't skip it.
-        builder.addVertex(mat, curr.x + perp.x, curr.y + perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
-        builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
+        builder.addVertexWith2DPose(pose, curr.x + perp.x, curr.y + perp.y).setColor(rEnd, gEnd, bEnd, aEnd);
+        builder.addVertexWith2DPose(pose, curr.x - perp.x, curr.y - perp.y).setColor(rEnd, gEnd, bEnd, aEnd);
 
         if (stripSide) {
-            builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
+            builder.addVertexWith2DPose(pose, curr.x - perp.x, curr.y - perp.y).setColor(rEnd, gEnd, bEnd, aEnd);
         }
     }
 
-    public static void drawColorTexLines(@Nonnull PoseStack poseStack,
+    public static void drawColorTexLines(@Nonnull Matrix3x2fc pose,
                                          VertexConsumer builder,
                                          List<Vector2f> points,
                                          int colorStart, int colorEnd,
@@ -388,23 +381,19 @@ public class RenderBufferUtils {
         int n = points.size();
         if (n < 2) return;
 
-        Matrix4f mat = poseStack.last().pose();
-
         int sa0 = (colorStart >>> 24) & 0xFF, sr0 = (colorStart >>> 16) & 0xFF, sg0 = (colorStart >>> 8) & 0xFF, sb0 = colorStart & 0xFF;
-        int ea0 = (colorEnd   >>> 24) & 0xFF, er0 = (colorEnd   >>> 16) & 0xFF, eg0 = (colorEnd   >>> 8) & 0xFF, eb0 = colorEnd & 0xFF;
+        int ea0 = (colorEnd >>> 24) & 0xFF, er0 = (colorEnd >>> 16) & 0xFF, eg0 = (colorEnd >>> 8) & 0xFF, eb0 = colorEnd & 0xFF;
 
         int da = ea0 - sa0, dr = er0 - sr0, dg = eg0 - sg0, db = eb0 - sb0;
-
         int segCount = n - 1;
 
         var last = points.getFirst();
         Vector2f curr = null;
-
         Vector3f perp = new Vector3f();
         boolean emittedAny = false;
 
         for (int i = 1; i < n; i++) {
-            float u = (i - 1f) / segCount; // 0..1
+            float u = (i - 1f) / segCount;
             float t = u;
 
             float r = (sr0 + dr * t) / 255f;
@@ -422,20 +411,20 @@ public class RenderBufferUtils {
                 continue;
             }
 
-            float invLen = (float)(1.0 / Math.sqrt(len2));
+            float invLen = (float) (1.0 / Math.sqrt(len2));
             perp.set(-dy * invLen * halfWidth, dx * invLen * halfWidth, 0);
 
-            builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0)
+            builder.addVertexWith2DPose(pose, last.x + perp.x, last.y + perp.y)
                     .setUv(u, 0)
                     .setColor(r, g, b, a);
 
             if (stripSide && !emittedAny) {
-                builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0)
+                builder.addVertexWith2DPose(pose, last.x + perp.x, last.y + perp.y)
                         .setUv(u, 0)
                         .setColor(r, g, b, a);
             }
 
-            builder.addVertex(mat, last.x - perp.x, last.y - perp.y, 0)
+            builder.addVertexWith2DPose(pose, last.x - perp.x, last.y - perp.y)
                     .setUv(u, 1)
                     .setColor(r, g, b, a);
 
@@ -450,16 +439,16 @@ public class RenderBufferUtils {
         float bEnd = (sb0 + db) / 255f;
         float aEnd = (sa0 + da) / 255f;
 
-        builder.addVertex(mat, curr.x + perp.x, curr.y + perp.y, 0)
+        builder.addVertexWith2DPose(pose, curr.x + perp.x, curr.y + perp.y)
                 .setUv(1, 0)
                 .setColor(rEnd, gEnd, bEnd, aEnd);
 
-        builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0)
+        builder.addVertexWith2DPose(pose, curr.x - perp.x, curr.y - perp.y)
                 .setUv(1, 1)
                 .setColor(rEnd, gEnd, bEnd, aEnd);
 
         if (stripSide) {
-            builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0)
+            builder.addVertexWith2DPose(pose, curr.x - perp.x, curr.y - perp.y)
                     .setUv(1, 1)
                     .setColor(rEnd, gEnd, bEnd, aEnd);
         }

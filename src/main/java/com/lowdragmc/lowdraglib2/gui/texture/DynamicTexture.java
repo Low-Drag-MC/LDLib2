@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.client.gui.GuiGraphics;
 import net.neoforged.api.distmarker.Dist;
@@ -20,8 +21,7 @@ public class DynamicTexture implements IGuiTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        textureSupplier.get().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+    public void draw(GUIContext context, float x, float y, float width, float height) {
+        textureSupplier.get().draw(context, x, y, width, height);
     }
 }

@@ -2,11 +2,10 @@ package com.lowdragmc.lowdraglib2.utils;
 
 import com.google.gson.JsonParser;
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.data.EntityInfo;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
 import lombok.experimental.UtilityClass;
@@ -14,12 +13,12 @@ import lombok.val;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.*;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.util.Util;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -46,6 +45,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -60,7 +60,7 @@ public class XmlUtils {
     public final static DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 
     @Nullable
-    public static Document loadXml(ResourceLocation location) {
+    public static Document loadXml(Identifier location) {
         var resourceManager = ResourceHelper.getResourceManager();
         return resourceManager.getResource(location).map(resource -> {
             try(var inputStream = resource.open()) {
@@ -207,7 +207,7 @@ public class XmlUtils {
         }
         if (!builder.isEmpty()) {
             try {
-                return TagParser.parseTag(builder.toString());
+                return TagParser.parseCompoundAsArgument(new StringReader(builder.toString()));
             } catch (CommandSyntaxException ignored) {}
         }
         return new CompoundTag();
@@ -232,8 +232,8 @@ public class XmlUtils {
 
     public static ItemStack getItemStack(Element element) {
         var ingredient = getIngredient(element);
-        if (ingredient.ingredient.getItems().length > 0) {
-            var stack = ingredient.ingredient.getItems()[0];
+        if (ingredient.ingredient.getValues().size() > 0) {
+            var stack = ingredient.ingredient.getValues().get(0).value().getDefaultInstance();
             stack.setCount(ingredient.count);
             return stack;
         }
@@ -266,7 +266,7 @@ public class XmlUtils {
         int id = getAsInt(element, "id", LDLib2.RANDOM.nextInt());
         EntityType<?> entityType = null;
         if (element.hasAttribute("type")) {
-            entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(element.getAttribute("type")));
+            entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(element.getAttribute("type")));
         }
         CompoundTag tag = null;
         NodeList nodeList = element.getChildNodes();
@@ -283,9 +283,9 @@ public class XmlUtils {
 
     public static SizedIngredient getIngredient(Element element) {
         int count = getAsInt(element, "count", 1);
-        var ingredient = new SizedIngredient(Ingredient.EMPTY, 0);
+        var ingredient = new SizedIngredient(Ingredient.of(Items.AIR), 0);
         if (element.hasAttribute("item")) {
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(element.getAttribute("item")));
+            Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(element.getAttribute("item")));
             if (item != Items.AIR) {
                 ItemStack itemStack = new ItemStack(item, count);
                 NodeList nodeList = element.getChildNodes();
@@ -295,10 +295,11 @@ public class XmlUtils {
                         break;
                     }
                 }
-                ingredient = new SizedIngredient(Ingredient.of(itemStack), count);
+                ingredient = new SizedIngredient(Ingredient.of(itemStack.getItem()), count);
             }
         } else if (element.hasAttribute("tag")) {
-            ingredient = new SizedIngredient(Ingredient.of(TagKey.create(Registries.ITEM, ResourceLocation.parse(element.getAttribute("tag")))), count);
+            var tag = BuiltInRegistries.ITEM.getOrThrow(ItemTags.create(Identifier.parse(element.getAttribute("tag"))));
+            ingredient = new SizedIngredient(Ingredient.of(tag), count);
         }
         return ingredient;
     }
@@ -307,7 +308,7 @@ public class XmlUtils {
         int amount = getAsInt(element, "amount", 1) * FluidHelper.getBucket() / 1000;
         FluidStack fluidStack = FluidStack.EMPTY;
         if (element.hasAttribute("fluid")) {
-            var fluid = BuiltInRegistries.FLUID.get(ResourceLocation.parse(element.getAttribute("fluid")));
+            var fluid = BuiltInRegistries.FLUID.getValue(Identifier.parse(element.getAttribute("fluid")));
             if (fluid != Fluids.EMPTY) {
                 fluidStack = new FluidStack(fluid, amount);
                 var nodeList = element.getChildNodes();
@@ -325,7 +326,7 @@ public class XmlUtils {
     public static BlockInfo getBlockInfo(Element element) {
         BlockInfo blockInfo = BlockInfo.EMPTY;
         if (element.hasAttribute("block")) {
-            Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(element.getAttribute("block")));
+            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(element.getAttribute("block")));
             if (block != Blocks.AIR) {
                 var blockState = block.defaultBlockState();
                 val nodeList = element.getChildNodes();
@@ -441,7 +442,7 @@ public class XmlUtils {
                             newStyle = newStyle.withBold(getAsBoolean(nodeElement, "bold", true));
                         }
                         if (nodeElement.hasAttribute("font")) {
-                            newStyle = newStyle.withFont(ResourceLocation.parse(nodeElement.getAttribute("font")));
+                            newStyle = newStyle.withFont(new FontDescription.Resource(Identifier.parse(nodeElement.getAttribute("font"))));
                         }
                         if (nodeElement.hasAttribute("italic")) {
                             newStyle = newStyle.withItalic(getAsBoolean(nodeElement, "italic", true));
@@ -456,13 +457,18 @@ public class XmlUtils {
                             newStyle = newStyle.withObfuscated(getAsBoolean(nodeElement, "obfuscated", true));
                         }
                         if (nodeElement.hasAttribute("hover-info")) {
-                            newStyle = newStyle.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable(nodeElement.getAttribute("hover-info"))));
+                            newStyle = newStyle.withHoverEvent(new HoverEvent.ShowText(
+                                    Component.translatable(nodeElement.getAttribute("hover-info"))
+                            ));
                         }
-                        if (nodeElement.hasAttribute("link")) {
-                            newStyle = newStyle.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "@!" + nodeElement.getAttribute("link")));
+                        if (nodeElement.hasAttribute("command")) {
+                            newStyle = newStyle.withClickEvent(new ClickEvent.RunCommand(nodeElement.getAttribute("command")));
                         }
-                        if (nodeElement.hasAttribute("url-link")) {
-                            newStyle = newStyle.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "@#" + nodeElement.getAttribute("url-link")));
+                        if (nodeElement.hasAttribute("url")) {
+                            try {
+                                newStyle = newStyle.withClickEvent(new ClickEvent.OpenUrl(Util.parseAndValidateUntrustedUri(nodeElement.getAttribute("url-link"))));
+                            } catch (URISyntaxException _) {
+                            }
                         }
                         var components = getComponents(nodeElement, newStyle);
                         for (int j = 0; j < components.size(); j++) {

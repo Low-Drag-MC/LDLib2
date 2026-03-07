@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
-import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -13,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -21,24 +20,20 @@ import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapForJS;
 import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.joml.Matrix4f;
 
 import org.jetbrains.annotations.Nullable;
 
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
 @KJSBindings
 @LDLRegisterClient(name = "sprite_texture", registry = "ldlib2:gui_texture")
@@ -52,7 +47,7 @@ public class SpriteTexture extends TransformTexture {
 
     @Configurable(name = "ldlib.gui.editor.name.resource")
     @Getter
-    private ResourceLocation imageLocation = LDLib2.id("textures/gui/icon.png");
+    private Identifier imageLocation = LDLib2.id("textures/gui/icon.png");
     @Configurable
     @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Setter
@@ -79,23 +74,23 @@ public class SpriteTexture extends TransformTexture {
     @Nullable
     private Size imageSizeCache;
 
-    @HideFromJS
-    public static SpriteTexture of(ResourceLocation imageLocation) {
+//    @HideFromJS
+    public static SpriteTexture of(Identifier imageLocation) {
         return new SpriteTexture().setImageLocation(imageLocation);
     }
 
-    @HideFromJS
+//    @HideFromJS
     public static SpriteTexture of(String imageLocation) {
-        return of(ResourceLocation.parse(imageLocation));
+        return of(Identifier.parse(imageLocation));
     }
 
-    @RemapForJS("of")
-    public static SpriteTexture kjs$of(ResourceLocation imageLocation) {
-        return of(imageLocation);
-    }
+//    @RemapForJS("of")
+//    public static SpriteTexture kjs$of(Identifier imageLocation) {
+//        return of(imageLocation);
+//    }
 
     @ConfigSetter(field = "imageLocation")
-    public SpriteTexture setImageLocation(ResourceLocation imageLocation) {
+    public SpriteTexture setImageLocation(Identifier imageLocation) {
         this.imageLocation = imageLocation;
         this.imageSizeCache = null;
         return this;
@@ -159,16 +154,15 @@ public class SpriteTexture extends TransformTexture {
             return new IGuiTexture() {
                 @Override
                 @OnlyIn(Dist.CLIENT)
-                public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height,
-                                 float partialTicks) {
-                    SpriteTexture.this.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+                public void draw(GUIContext context, float x, float y, float width, float height) {
+                    SpriteTexture.this.draw(context, x, y, width, height);
                     var currentColor = spriteTexture.color;
                     spriteTexture.color = ColorUtils.color(
                             ColorUtils.alpha(currentColor) * lerp,
                             ColorUtils.red(currentColor) * lerp,
                             ColorUtils.green(currentColor) * lerp,
                             ColorUtils.blue(currentColor) * lerp);
-                    spriteTexture.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+                    spriteTexture.draw(context, x, y, width, height);
                     spriteTexture.color = currentColor;
                 }
             };
@@ -191,11 +185,10 @@ public class SpriteTexture extends TransformTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         if (width <= 0 || height <= 0) {
             return;
         }
-        var poseStack = graphics.pose();
 
         var imageSize = getImageSize();
         var spriteSize = this.spriteSize;
@@ -226,46 +219,42 @@ public class SpriteTexture extends TransformTexture {
         float vCenterEnd = vEnd - borderBottom / imageSize.getHeight();
 
         // rendering
-        var matrix = poseStack.last().pose();
-        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(imageLocation));
-        RenderSystem.disableDepthTest();
-
         // 1. corners
         if (borderLeft > 0 && borderTop > 0) {
-            drawQuad(buffer, matrix, x, y, borderLeft, borderTop,
+            drawQuad(context, x, y, borderLeft, borderTop,
                     uStart, vStart, uCenterStart, vCenterStart, color); // left top
         }
         if (borderRight > 0 && borderTop > 0) {
-            drawQuad(buffer, matrix, x + width - borderRight, y, borderRight, borderTop,
+            drawQuad(context, x + width - borderRight, y, borderRight, borderTop,
                     uCenterEnd, vStart, uEnd, vCenterStart, color); // right top
         }
         if (borderLeft > 0 && borderBottom > 0) {
-            drawQuad(buffer, matrix, x, y + height - borderBottom, borderLeft, borderBottom,
+            drawQuad(context,x, y + height - borderBottom, borderLeft, borderBottom,
                     uStart, vCenterEnd, uCenterStart, vEnd, color); // left bottom
         }
         if (borderRight > 0 && borderBottom > 0) {
-            drawQuad(buffer, matrix, x + width - borderRight, y + height - borderBottom, borderRight, borderBottom,
+            drawQuad(context, x + width - borderRight, y + height - borderBottom, borderRight, borderBottom,
                     uCenterEnd, vCenterEnd, uEnd, vEnd, color); // right bottom
         }
 
         // 2. edges
         if (centerWidth > 0) {
             if (borderTop > 0) {
-                drawQuad(buffer, matrix, x + borderLeft, y, centerWidth, borderTop,
+                drawQuad(context, x + borderLeft, y, centerWidth, borderTop,
                         uCenterStart, vStart, uCenterEnd, vCenterStart, color); // top
             }
             if (borderBottom > 0) {
-                drawQuad(buffer, matrix, x + borderLeft, y + height - borderBottom, centerWidth, borderBottom,
+                drawQuad(context,x + borderLeft, y + height - borderBottom, centerWidth, borderBottom,
                         uCenterStart, vCenterEnd, uCenterEnd, vEnd, color); // bottom
             }
         }
         if (centerHeight > 0) {
             if (borderLeft > 0) {
-                drawQuad(buffer, matrix, x, y + borderTop, borderLeft, centerHeight,
+                drawQuad(context, x, y + borderTop, borderLeft, centerHeight,
                         uStart, vCenterStart, uCenterStart, vCenterEnd, color); // left
             }
             if (borderRight > 0) {
-                drawQuad(buffer, matrix, x + width - borderRight, y + borderTop, borderRight, centerHeight,
+                drawQuad(context, x + width - borderRight, y + borderTop, borderRight, centerHeight,
                         uCenterEnd, vCenterStart, uEnd, vCenterEnd, color); // right
             }
         }
@@ -273,53 +262,63 @@ public class SpriteTexture extends TransformTexture {
         // 3. center area
         if (centerWidth > 0 && centerHeight > 0) {
             if (wrapMode == WrapMode.CLAMP) {
-                drawQuad(buffer, matrix, x + borderLeft, y + borderTop, centerWidth, centerHeight,
+                drawQuad(context, x + borderLeft, y + borderTop, centerWidth, centerHeight,
                         uCenterStart, vCenterStart, uCenterEnd, vCenterEnd, color);
             } else {
-                graphics.flush();
-
-                // wrap mode
+                // tile repeat
                 var centerSpriteWidth = spriteSize.getWidth() - borderLeft - borderRight;
                 var centerSpriteHeight = spriteSize.getHeight() - borderTop - borderBottom;
                 if (centerSpriteHeight <= 0 || centerSpriteWidth <= 0) {
                     return;
                 }
+                float ox = x + borderLeft;
+                float oy = y + borderTop;
+                float remainY = centerHeight;
+                int tileRow = 0;
+                while (remainY > 0) {
+                    float tileH = Math.min(centerSpriteHeight, remainY);
+                    float remainX = centerWidth;
+                    int tileCol = 0;
+                    while (remainX > 0) {
+                        float tileW = Math.min(centerSpriteWidth, remainX);
+                        float tileUFrac = tileW / centerSpriteWidth;
+                        float tileVFrac = tileH / centerSpriteHeight;
 
-                // Risky?
-                RenderSystem.setShader(LDLibShaders::getSpriteBlitShader);
-                RenderSystem.setShaderTexture(0, imageLocation);
-                var buffer2 = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, POSITION_TEX_COLOR);
-                var shader = LDLibShaders.getSpriteBlitShader();
-                shader.safeGetUniform("UVBounds").set(uCenterStart, vCenterStart, uCenterEnd, vCenterEnd);
-                shader.safeGetUniform("WrapMode").set(wrapMode.ordinal());
+                        float tu0, tu1, tv0, tv1;
+                        if (wrapMode == WrapMode.MIRRORED_REPEAT) {
+                            boolean flipX = (tileCol % 2) != 0;
+                            boolean flipY = (tileRow % 2) != 0;
+                            tu0 = flipX ? uCenterEnd : uCenterStart;
+                            tu1 = flipX ? uCenterEnd - tileUFrac * (uCenterEnd - uCenterStart)
+                                        : uCenterStart + tileUFrac * (uCenterEnd - uCenterStart);
+                            tv0 = flipY ? vCenterEnd : vCenterStart;
+                            tv1 = flipY ? vCenterEnd - tileVFrac * (vCenterEnd - vCenterStart)
+                                        : vCenterStart + tileVFrac * (vCenterEnd - vCenterStart);
+                        } else {
+                            tu0 = uCenterStart;
+                            tu1 = uCenterStart + tileUFrac * (uCenterEnd - uCenterStart);
+                            tv0 = vCenterStart;
+                            tv1 = vCenterStart + tileVFrac * (vCenterEnd - vCenterStart);
+                        }
 
-                var u1 = centerWidth / centerSpriteWidth * (uCenterEnd - uCenterStart) + uCenterStart;
-                var v1 = centerHeight / centerSpriteHeight * (vCenterEnd - vCenterStart) + vCenterStart;
-                drawQuad(buffer2, matrix, x + borderLeft, y + borderTop, centerWidth, centerHeight,
-                        uCenterStart, vCenterStart, u1, v1, color);
-
-                // draw border first
-                var bufferData = buffer2.build();
-                if (bufferData != null) {
-                    BufferUploader.drawWithShader(bufferData);
+                        drawQuad(context, ox + centerWidth - remainX, oy + centerHeight - remainY,
+                                tileW, tileH, tu0, tv0, tu1, tv1, color);
+                        remainX -= tileW;
+                        tileCol++;
+                    }
+                    remainY -= tileH;
+                    tileRow++;
                 }
             }
         }
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void drawQuad(VertexConsumer buffer, Matrix4f matrix,
+    private void drawQuad(GUIContext context,
                           float x, float y, float w, float h,
-                          float u1, float v1, float u2, float v2, int color) {
-        float r = (color >> 16 & 255) / 255.0F;
-        float g = (color >> 8 & 255) / 255.0F;
-        float b = (color & 255) / 255.0F;
-        float a = (color >> 24 & 255) / 255.0F;
-
-        buffer.addVertex(matrix, x, y + h, 0).setUv(u1, v2).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x + w, y + h, 0).setUv(u2, v2).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x + w, y, 0).setUv(u2, v1).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x, y, 0).setUv(u1, v1).setColor(r, g, b, a);
+                          float u0, float v0, float u1, float v1, int color) {
+        context.blit(RenderPipelines.GUI_TEXTURED, imageLocation,
+                x, y, w, h,u0, v0, u1, v1, color);
     }
 
     @Override
@@ -359,9 +358,8 @@ public class SpriteTexture extends TransformTexture {
                 ));
     }
 
-    @OnlyIn(Dist.CLIENT)
-    protected void drawRawTextureGuides(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        SpriteTexture.of(imageLocation.toString()).draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+    protected void drawRawTextureGuides(GUIContext context, float x, float y, float width, float height) {
+        SpriteTexture.of(imageLocation.toString()).draw(context, x, y, width, height);
         // draw border guides
         var imageSize = getImageSize();
         var spriteSize = this.spriteSize;
@@ -374,28 +372,27 @@ public class SpriteTexture extends TransformTexture {
         var spriteY = y + spritePosition.y * height / imageSize.height;
         var spriteWidth = spriteSize.width * width / imageSize.width;
         var spriteHeight = spriteSize.height * height / imageSize.height;
-        new ColorBorderTexture(1,0xFFFF0000).draw(graphics, mouseX, mouseY,
-                spriteX, spriteY, spriteWidth, spriteHeight, partialTicks);
+        new ColorBorderTexture(1,0xFFFF0000).draw(context, spriteX, spriteY, spriteWidth, spriteHeight);
         // left
-        DrawerHelper.drawSolidRect(graphics,
+        DrawerHelper.drawSolidRect(context,
                 spriteX + borderLT.getX() * width / imageSize.width,
                 spriteY,
                 1,
                 spriteHeight, 0xFFFF0000);
         // top
-        DrawerHelper.drawSolidRect(graphics,
+        DrawerHelper.drawSolidRect(context,
                 spriteX,
                 spriteY + borderLT.getY() * height / imageSize.height,
                 spriteWidth,
                 1, 0xFFFF0000);
         // right
-        DrawerHelper.drawSolidRect(graphics,
+        DrawerHelper.drawSolidRect(context,
                 spriteX + spriteWidth - borderRB.getX() * width / imageSize.width,
                 spriteY,
                 1,
                 spriteHeight, 0xFFFF0000);
         // bottom
-        DrawerHelper.drawSolidRect(graphics,
+        DrawerHelper.drawSolidRect(context,
                 spriteX,
                 spriteY + spriteHeight - borderRB.getY() * height / imageSize.height,
                 spriteWidth,

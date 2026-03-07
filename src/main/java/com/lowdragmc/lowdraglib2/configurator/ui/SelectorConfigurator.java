@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
 import java.util.List;

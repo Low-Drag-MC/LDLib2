@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.world.inventory.Slot;
-import org.appliedenergistics.yoga.YogaEdge;
 
 import java.util.function.Consumer;
 

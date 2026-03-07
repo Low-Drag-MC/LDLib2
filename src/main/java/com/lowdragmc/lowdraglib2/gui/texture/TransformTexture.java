@@ -67,21 +67,8 @@ public abstract class TransformTexture implements IGuiTexture {
         transform2D.popPose(graphics.pose());
     }
 
-    @Override
     @OnlyIn(Dist.CLIENT)
-    public final void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        preDraw(graphics, x, y, width, height);
-        drawInternal(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
-        postDraw(graphics, x, y, width, height);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected abstract void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks);
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        drawInternal(context.graphics, context.localMouseX, context.localMouseY, x, y, width, height, context.partialTick);
-    }
+    protected abstract void drawInternal(GUIContext context, float x, float y, float width, float height);
 
     @Override
     @OnlyIn(Dist.CLIENT)

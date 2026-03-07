@@ -16,9 +16,8 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
-import org.appliedenergistics.yoga.YogaUnit;
 import org.w3c.dom.Element;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -81,10 +80,10 @@ public abstract class SplitView extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
-        if (isHoverDragging(guiContext.mouseX, guiContext.mouseY)) {
-            guiContext.postRendering(ctx -> {
+    public void drawBackgroundAdditional(GUIContext context) {
+        super.drawBackgroundAdditional(context);
+        if (isHoverDragging(context.mouseX, context.mouseY)) {
+            context.postRendering(ctx -> {
                 var icon = getDraggingIcon();
                 var width = icon.spriteSize.width;
                 var height = icon.spriteSize.height;

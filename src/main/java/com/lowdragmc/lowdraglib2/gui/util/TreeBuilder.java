@@ -11,7 +11,6 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
-import org.appliedenergistics.yoga.*;
 
 import java.util.ArrayList;
 import java.util.List;

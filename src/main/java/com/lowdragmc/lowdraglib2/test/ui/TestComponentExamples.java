@@ -31,7 +31,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -109,7 +109,7 @@ public class TestComponentExamples implements IScreenTest {
         return new ModularUI(ui);
     }
 
-    private void toggleStylesheets(UI ui, String selector, ResourceLocation stylesheet) {
+    private void toggleStylesheets(UI ui, String selector, Identifier stylesheet) {
         ui.select(selector, Toggle.class).findFirst().ifPresent(toggle -> toggle.setOnToggleChanged(isOn -> {
             // switch to the selected stylesheet
             var mui = toggle.getModularUI();
@@ -214,7 +214,7 @@ public class TestComponentExamples implements IScreenTest {
                 new Selector<Item>()
                         .setSelected(Items.APPLE)
                         .setCandidates(List.of(Items.APPLE, Items.STONE, Items.CHEST))
-                        .setCandidateUIProvider(UIElementProvider.iconText(ItemStackTexture::new, Item::getDescription))
+                        .setCandidateUIProvider(UIElementProvider.iconText(ItemStackTexture::new, item -> item.getDefaultInstance().getDisplayName()))
         );
     }
 
@@ -332,7 +332,7 @@ public class TestComponentExamples implements IScreenTest {
                         for (var key : BuiltInRegistries.BLOCK.keySet()) {
                             if (Thread.currentThread().isInterrupted()) return;
                             if (key.toString().toLowerCase().contains(lowerWord)) {
-                                searchHandler.acceptResult(BuiltInRegistries.BLOCK.get(key));
+                                searchHandler.acceptResult(BuiltInRegistries.BLOCK.getValue(key));
                             }
                         }
                     }

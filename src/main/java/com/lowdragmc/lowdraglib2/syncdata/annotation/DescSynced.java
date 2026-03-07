@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  * private ItemStack b = ItemStack.EMPTY;
  *
  * @DescSynced
- * private List<ResourceLocation> c = new ArrayList<>();
+ * private List<Identifier> c = new ArrayList<>();
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)

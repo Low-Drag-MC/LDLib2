@@ -18,12 +18,11 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -123,7 +122,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
                 layout.height(100);
             }).style(style -> style.backgroundTexture(DynamicTexture.of(this::getValue))));
         }
-        event.hoverTooltips = new HoverTooltips(List.of(Component.translatable("ldlib.gui.editor.group.preview")), hoverTooltips, null, null);
+        event.hoverTooltips = HoverTooltips.create(Component.translatable("ldlib.gui.editor.group.preview"), hoverTooltips);
     }
 
     @Override

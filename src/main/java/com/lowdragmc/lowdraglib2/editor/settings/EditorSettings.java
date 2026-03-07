@@ -20,9 +20,8 @@ import com.mojang.serialization.JsonOps;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.fml.loading.FMLLoader;
-import org.appliedenergistics.yoga.YogaEdge;
 
 import java.io.File;
 import java.io.FileReader;
@@ -31,10 +30,10 @@ import java.util.*;
 
 public class EditorSettings implements IPersistedSerializable {
     public final Editor editor;
-    private final Map<ResourceLocation, Settings> settings = new LinkedHashMap<>();
-    private final Map<ResourceLocation, Codec<? extends Settings>> codecs = new HashMap<>();
+    private final Map<Identifier, Settings> settings = new LinkedHashMap<>();
+    private final Map<Identifier, Codec<? extends Settings>> codecs = new HashMap<>();
     @Getter @Setter @Accessors(chain = true)
-    private File settingsFile = FMLLoader.getGamePath().resolve("config").resolve(LDLib2.MOD_ID).resolve("editor.json").toFile();
+    private File settingsFile = FMLLoader.getCurrent().getGameDir().resolve("config").resolve(LDLib2.MOD_ID).resolve("editor.json").toFile();
     // runtime
     private boolean isDirty = false;
     private JsonObject storedSettings = new JsonObject();
@@ -48,12 +47,12 @@ public class EditorSettings implements IPersistedSerializable {
         this.codecs.put(settings.getId(), codec);
     }
 
-    public void unregisterSettings(ResourceLocation id) {
+    public void unregisterSettings(Identifier id) {
         settings.remove(id);
         codecs.remove(id);
     }
 
-    public Optional<Settings> getSettings(ResourceLocation id) {
+    public Optional<Settings> getSettings(Identifier id) {
         return Optional.ofNullable(settings.get(id));
     }
 

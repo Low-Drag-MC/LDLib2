@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.client.scene.*;
 import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -15,17 +16,17 @@ import com.lowdragmc.lowdraglib2.math.interpolate.Interpolator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
+import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.renderer.GameRenderer;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -35,9 +36,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -104,7 +103,7 @@ public class Scene extends UIElement {
     protected Consumer<Scene> afterWorldRender;
     // editor support
 //    @Nullable
-//    private ResourceLocation editorStructureName = null;
+//    private Identifier editorStructureName = null;
     // runtime
     @Getter
     protected ItemStack lastHoverItem;
@@ -204,7 +203,8 @@ public class Scene extends UIElement {
             if (RenderSystem.isOnRenderThread()) {
                 _renderer.releaseResource();
             } else {
-                RenderSystem.recordRenderCall(_renderer::releaseResource);
+                 //todo schedule to the main thread
+//                RenderSystem.recordRenderCall(_renderer::releaseResource);
             }
         }
     }
@@ -307,6 +307,10 @@ public class Scene extends UIElement {
 
     @OnlyIn(Dist.CLIENT)
     protected void renderBeforeBatchEnd(MultiBufferSource bufferSource, float partialTicks) {
+        if (lastSelectedPosFace != null && renderSelect) {
+            var poseStack = new PoseStack();
+            RenderUtils.renderBlockOverLay(poseStack, bufferSource, lastSelectedPosFace.pos(), 0.6f, 0, 0, 1.01f);
+        }
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -348,7 +352,7 @@ public class Scene extends UIElement {
             var mui = getModularUI();
             if (lastHoverPosFace != null && hit != null && mui != null && mui.player != null) {
                 var state = dummyWorld.getBlockState(lastHoverPosFace.pos());
-                lastHoverItem = state.getBlock().getCloneItemStack(state, hit, dummyWorld, lastHoverPosFace.pos(), mui.player);
+                lastHoverItem = state.getCloneItemStack(dummyWorld, lastHoverPosFace.pos(), false);
             }
         }
 
@@ -360,9 +364,6 @@ public class Scene extends UIElement {
             if (tmp != null && !tmp.equals(lastSelectedPosFace) && renderFacing) {
                 drawFacingBorder(poseStack, tmp, 0xffffffff);
             }
-        }
-        if (lastSelectedPosFace != null && renderSelect) {
-            RenderUtils.renderBlockOverLay(poseStack, lastSelectedPosFace.pos(), 0.6f, 0, 0, 1.01f);
         }
 
         if (this.afterWorldRender != null) {
@@ -378,59 +379,41 @@ public class Scene extends UIElement {
     @OnlyIn(Dist.CLIENT)
     public void drawFacingBorder(PoseStack poseStack, BlockPosFace posFace, int color, int inner) {
         poseStack.pushPose();
-        RenderSystem.disableDepthTest();
+        GlStateManager._disableDepthTest();
         RenderUtils.moveToFace(poseStack, posFace.pos().getX(), posFace.pos().getY(), posFace.pos().getZ(), posFace.facing());
         RenderUtils.rotateToFace(poseStack, posFace.facing(), null);
         poseStack.scale(1f / 16, 1f / 16, 0);
         poseStack.translate(-8, -8, 0);
         drawBorder(poseStack, 1 + inner * 2, 1 + inner * 2, 14 - 4 * inner, 14 - 4 * inner, color, 1);
-        RenderSystem.enableDepthTest();
+        GlStateManager._enableDepthTest();
         poseStack.popPose();
     }
 
     @OnlyIn(Dist.CLIENT)
     private static void drawBorder(PoseStack poseStack, int x, int y, int width, int height, int color, int border) {
-        drawSolidRect(poseStack,x - border, y - border, width + 2 * border, border, color);
-        drawSolidRect(poseStack,x - border, y + height, width + 2 * border, border, color);
-        drawSolidRect(poseStack,x - border, y, border, height, color);
-        drawSolidRect(poseStack,x + width, y, border, height, color);
+        drawSolidRect(poseStack, x - border, y - border, width + 2 * border, border, color);
+        drawSolidRect(poseStack, x - border, y + height, width + 2 * border, border, color);
+        drawSolidRect(poseStack, x - border, y, border, height, color);
+        drawSolidRect(poseStack, x + width, y, border, height, color);
     }
 
     @OnlyIn(Dist.CLIENT)
     private static void drawSolidRect(PoseStack poseStack, int x, int y, int width, int height, int color) {
-        fill(poseStack, x, y, x + width, y + height, 0, color);
-        RenderSystem.enableBlend();
+        fill(poseStack, x, y, x + width, y + height, color);
     }
 
     @OnlyIn(Dist.CLIENT)
-    private static void fill(PoseStack matrices, int x1, int y1, int x2, int y2, int z, int color) {
-        Matrix4f matrix4f = matrices.last().pose();
-        int i;
-        if (x1 < x2) {
-            i = x1;
-            x1 = x2;
-            x2 = i;
-        }
+    private static void fill(PoseStack matrices, int x1, int y1, int x2, int y2, int color) {
+        if (x1 > x2) { int tmp = x1; x1 = x2; x2 = tmp; }
+        if (y1 > y2) { int tmp = y1; y1 = y2; y2 = tmp; }
 
-        if (y1 < y2) {
-            i = y1;
-            y1 = y2;
-            y2 = i;
-        }
-
-        float f = (float) FastColor.ARGB32.alpha(color) / 255.0F;
-        float g = (float) FastColor.ARGB32.red(color) / 255.0F;
-        float h = (float) FastColor.ARGB32.green(color) / 255.0F;
-        float j = (float) FastColor.ARGB32.blue(color) / 255.0F;
+        var renderType = RenderTypes.debugQuads();
         BufferBuilder bufferBuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        RenderSystem.enableBlend();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        bufferBuilder.addVertex(matrix4f, (float)x1, (float)y1, (float)z).setColor(g, h, j, f);
-        bufferBuilder.addVertex(matrix4f, (float)x1, (float)y2, (float)z).setColor(g, h, j, f);
-        bufferBuilder.addVertex(matrix4f, (float)x2, (float)y2, (float)z).setColor(g, h, j, f);
-        bufferBuilder.addVertex(matrix4f, (float)x2, (float)y1, (float)z).setColor(g, h, j, f);
-        BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
-        RenderSystem.disableBlend();
+        bufferBuilder.addVertex(matrices.last().pose(), (float)x1, (float)y1, 0).setColor(color);
+        bufferBuilder.addVertex(matrices.last().pose(), (float)x1, (float)y2, 0).setColor(color);
+        bufferBuilder.addVertex(matrices.last().pose(), (float)x2, (float)y2, 0).setColor(color);
+        bufferBuilder.addVertex(matrices.last().pose(), (float)x2, (float)y1, 0).setColor(color);
+        renderType.draw(bufferBuilder.buildOrThrow());
     }
 
     // TODO XEI ingredient support
@@ -516,27 +499,36 @@ public class Scene extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         var x = getContentX();
         var y = getContentY();
         var width = getContentWidth();
         var height = getPaddingHeight();
         if (interpolator != null && getModularUI() != null) {
-            interpolator.update(getModularUI().getTickCounter() + guiContext.partialTick);
+            interpolator.update(getModularUI().getTickCounter() + context.partialTick);
         }
         if (renderer != null) {
-            guiContext.graphics.flush();
-            renderer.render(guiContext.pose.pose, x, y, width, height, (int) guiContext.localMouseX, (int) guiContext.localMouseY);
+            // Submit PIP state for deferred rendering — works for both FBO and immediate renderers
+            context.submitPicturesInPictureState(new SceneRenderState(
+                    renderer,
+                    x, y, width, height,
+                    (int) context.localMouseX, (int) context.localMouseY,
+                    context.pose.copyPose(),
+                    Mth.floor(x), Mth.floor(y),
+                    Mth.ceil(x + width), Mth.ceil(y + height),
+                    1.0f,
+                    context.graphics.peekScissorStack()
+            ));
             if (renderer.isCompiling()) {
                 double progress = renderer.getCompileProgress();
                 if (progress > 0) {
-                    guiContext.drawTexture(new TextTexture("Renderer is compiling! " + String.format("%.1f", progress * 100) + "%%")
+                    context.drawTexture(new TextTexture("Renderer is compiling! " + String.format("%.1f", progress * 100) + "%%")
                             .setWidth((int) width), x, y, width, height);
                 }
             }
         }
         if (isHover() && showHoverBlockTips && lastHoverItem != null && getModularUI() != null) {
-            getModularUI().setHoverTooltip(DrawerHelper.getItemToolTip(lastHoverItem), lastHoverItem, null, lastHoverItem.getTooltipImage().orElse(null));
+            getModularUI().setHoverTooltip(HoverTooltips.create(DrawerHelper.getItemToolTip(lastHoverItem).toArray()).stack(lastHoverItem));
         }
     }
 

@@ -24,7 +24,7 @@ public class TagAccessor extends TypesAccessor<Tag> {
     public Tag defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             try {
-                return new TagParser(new StringReader(field.getAnnotation(DefaultValue.class).stringValue()[0])).readValue();
+                return TagParser.create(NbtOps.INSTANCE).parseAsArgument(new StringReader(field.getAnnotation(DefaultValue.class).stringValue()[0]));
             } catch (CommandSyntaxException e) {
                 throw new RuntimeException(e);
             }

@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.SlotAccessor;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
@@ -19,24 +18,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
-import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.*;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
-import com.lowdragmc.lowdraglib2.integration.xei.rei.LDLibREIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import dev.emi.emi.api.stack.EmiStack;
-import dev.emi.emi.api.stack.EmiStackInteraction;
-import dev.emi.emi.api.stack.ItemEmiStack;
-import dev.emi.emi.api.stack.ListEmiIngredient;
 import lombok.Getter;
-import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
-import me.shedaniel.rei.api.common.util.EntryIngredients;
-import me.shedaniel.rei.api.common.util.EntryStacks;
-import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -51,9 +38,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.IntSupplier;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
@@ -175,15 +159,16 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.MUI_CHANGED, this::onModularUIChanged);
         if (LDLib2.isClient() && !LDLib2.isServer()) {
-            if (LDLib2.isJeiLoaded()) {
-                JEISupport.clickableIngredient(this);
-            }
-            if (LDLib2.isReiLoaded()) {
-                REISupport.focusedStack(this);
-            }
-            if (LDLib2.isEmiLoaded()) {
-                EMISupport.stackProvider(this);
-            }
+            // todo xei
+//            if (LDLib2.isJeiLoaded()) {
+//                JEISupport.clickableIngredient(this);
+//            }
+//            if (LDLib2.isReiLoaded()) {
+//                REISupport.focusedStack(this);
+//            }
+//            if (LDLib2.isEmiLoaded()) {
+//                EMISupport.stackProvider(this);
+//            }
         }
         bind(slot);
         internalSetup();
@@ -193,6 +178,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         addSlotToTheMenu();
     }
 
+    // todo ItemStacksResourceHandler
     public ItemSlot bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
         bind(new ItemHandlerSlot(itemHandlerModifiable, index));
         return this;
@@ -206,43 +192,46 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     public ItemSlot xeiPhantom() {
-        if (LDLib2.isJeiLoaded()) {
-            JEISupport.ghostIngredient(this);
-        }
-        if (LDLib2.isReiLoaded()) {
-            REISupport.draggableStackBounds(this);
-            REISupport.acceptDraggableStack(this);
-        }
-        if (LDLib2.isEmiLoaded()) {
-            EMISupport.renderDragHandler(this);
-            EMISupport.dropStackHandler(this);
-        }
+        // todo xei
+//        if (LDLib2.isJeiLoaded()) {
+//            JEISupport.ghostIngredient(this);
+//        }
+//        if (LDLib2.isReiLoaded()) {
+//            REISupport.draggableStackBounds(this);
+//            REISupport.acceptDraggableStack(this);
+//        }
+//        if (LDLib2.isEmiLoaded()) {
+//            EMISupport.renderDragHandler(this);
+//            EMISupport.dropStackHandler(this);
+//        }
         return this;
     }
 
     public ItemSlot xeiRecipeIngredient(IngredientIO io) {
-        if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeIngredient(this, io);
-        }
-        if (LDLib2.isReiLoaded()) {
-            REISupport.recipeIngredient(this, io);
-        }
-        if (LDLib2.isEmiLoaded()) {
-            EMISupport.recipeIngredient(this, io);
-        }
+        // todo xei
+//        if (LDLib2.isJeiLoaded()) {
+//            JEISupport.recipeIngredient(this, io);
+//        }
+//        if (LDLib2.isReiLoaded()) {
+//            REISupport.recipeIngredient(this, io);
+//        }
+//        if (LDLib2.isEmiLoaded()) {
+//            EMISupport.recipeIngredient(this, io);
+//        }
         return this;
     }
 
     public ItemSlot xeiRecipeIngredient(IngredientIO io, Stream<ItemStack> allPossibleItems) {
-        if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeIngredient(this, io, () -> allPossibleItems);
-        }
-        if (LDLib2.isReiLoaded()) {
-            REISupport.recipeIngredient(this, io, () -> allPossibleItems);
-        }
-        if (LDLib2.isEmiLoaded()) {
-            EMISupport.recipeIngredient(this, io, () -> allPossibleItems);
-        }
+        // todo xei
+//        if (LDLib2.isJeiLoaded()) {
+//            JEISupport.recipeIngredient(this, io, () -> allPossibleItems);
+//        }
+//        if (LDLib2.isReiLoaded()) {
+//            REISupport.recipeIngredient(this, io, () -> allPossibleItems);
+//        }
+//        if (LDLib2.isEmiLoaded()) {
+//            EMISupport.recipeIngredient(this, io, () -> allPossibleItems);
+//        }
         return this;
     }
 
@@ -251,28 +240,30 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance) {
-        if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this);
-        }
-        if (LDLib2.isReiLoaded()) {
-            REISupport.recipeSlot(this, io);
-        }
-        if (LDLib2.isEmiLoaded()) {
-            EMISupport.recipeSlot(this, chance);
-        }
+        // todo xei
+//        if (LDLib2.isJeiLoaded()) {
+//            JEISupport.recipeSlot(this);
+//        }
+//        if (LDLib2.isReiLoaded()) {
+//            REISupport.recipeSlot(this, io);
+//        }
+//        if (LDLib2.isEmiLoaded()) {
+//            EMISupport.recipeSlot(this, chance);
+//        }
         return this;
     }
 
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Stream<ItemStack> allPossibleItems) {
-        if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this, () -> allPossibleItems);
-        }
-        if (LDLib2.isReiLoaded()) {
-            REISupport.recipeSlot(this, io, () -> allPossibleItems);
-        }
-        if (LDLib2.isEmiLoaded()) {
-            EMISupport.recipeSlot(this, () -> chance, () -> amount, () -> allPossibleItems);
-        }
+        // todo xei
+//        if (LDLib2.isJeiLoaded()) {
+//            JEISupport.recipeSlot(this, () -> allPossibleItems);
+//        }
+//        if (LDLib2.isReiLoaded()) {
+//            REISupport.recipeSlot(this, io, () -> allPossibleItems);
+//        }
+//        if (LDLib2.isEmiLoaded()) {
+//            EMISupport.recipeSlot(this, () -> chance, () -> amount, () -> allPossibleItems);
+//        }
         return this;
     }
 
@@ -301,9 +292,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public void updateSlotPosition() {
         var mui = getModularUI();
-        if (mui != null && slot instanceof SlotAccessor slotAccessor) {
-            slotAccessor.setX((int) (getContentX() - mui.getLeftPos()));
-            slotAccessor.setY((int) (getContentY() - mui.getTopPos()));
+        if (mui != null) {
+            slot.x = (int) (getContentX() - mui.getLeftPos());
+            slot.y = (int) (getContentY() - mui.getTopPos());
         }
     }
 
@@ -333,7 +324,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     protected void onHoverTooltips(UIEvent event) {
         var item = getValue();
         if (item.isEmpty()) return;
-        event.hoverTooltips = new HoverTooltips(getFullTooltipTexts(), item.getTooltipImage().orElse(null), null, item);
+        event.hoverTooltips = HoverTooltips.create(getFullTooltipTexts().toArray()).append(item.getTooltipImage().orElse(null)).stack(item);
     }
 
     protected void onMouseDown(UIEvent event) {
@@ -356,9 +347,10 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         var value = getValue();
-        var mui = guiContext.modularUI;
+        var mui = getModularUI();
+        if (mui == null) return;
         var hovered = isHover() || isSelfOrChildHover();
         var drawDraggingBackground = false;
         // splitting
@@ -375,7 +367,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                 if (AbstractContainerMenu.canItemQuickReplace(slot, carried, true) && containerScreen.getMenu().canDragTo(slot)) {
                     int k = Math.min(carried.getMaxStackSize(), slot.getMaxStackSize(carried));
                     int l = slot.getItem().isEmpty() ? 0 : slot.getItem().getCount();
-                    int i1 = AbstractContainerMenu.getQuickCraftPlaceCount(containerScreen.quickCraftSlots, containerScreen.quickCraftingType, carried) + l;
+                    int i1 = AbstractContainerMenu.getQuickCraftPlaceCount(containerScreen.quickCraftSlots.size(), containerScreen.quickCraftingType, carried) + l;
                     if (i1 > k) {
                         i1 = k;
                     }
@@ -398,40 +390,40 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         var contentWidth = getContentWidth();
         var contentHeight = getContentHeight();
 
-        guiContext.pose.pushPose();
-        guiContext.pose.scale(contentWidth / 16f, contentHeight / 16f, 1);
-        guiContext.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight, -200);
+        context.pose.pushPose();
+        context.pose.scale(contentWidth / 16f, contentHeight / 16f);
+        context.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight);
 
         if (drawDraggingBackground) {
-            drawDraggingBackground(guiContext);
+            drawDraggingBackground(context);
         }
 
         if (drawSlotOverlay) {
-            drawSlotOverlay(guiContext);
+            drawSlotOverlay(context);
         }
         if (!value.isEmpty()) {
-            drawItemStack(guiContext, value);
+            drawItemStack(context, value);
         }
         if (hovered) {
-            drawHover(guiContext);
+            drawHover(context);
         }
-        guiContext.pose.popPose();
+        context.pose.popPose();
     }
 
-    protected void drawDraggingBackground(GUIContext guiContext) {
-        guiContext.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
+    protected void drawDraggingBackground(GUIContext context) {
+        context.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
     }
 
-    protected void drawSlotOverlay(GUIContext guiContext) {
-        guiContext.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
+    protected void drawSlotOverlay(GUIContext context) {
+        context.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
     }
 
-    protected void drawItemStack(GUIContext guiContext, ItemStack itemStack) {
-        DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, guiContext.elementColor, null);
+    protected void drawItemStack(GUIContext context, ItemStack itemStack) {
+        DrawerHelper.drawItemStack(context, itemStack, 0, 0, 0);
     }
 
-    protected void drawHover(GUIContext guiContext) {
-        guiContext.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
+    protected void drawHover(GUIContext context) {
+        context.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
     }
 
     /// Editor Support
@@ -483,6 +475,8 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
         super.loadXml(element);
     }
+    /*
+    // todo xei
 
     // region XEI Supports
     public static class JEISupport {
@@ -617,4 +611,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
     }
     // endregion
+
+     */
 }

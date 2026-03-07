@@ -2,13 +2,14 @@ package com.lowdragmc.lowdraglib2.client.shader.management;
 
 import com.lowdragmc.lowdraglib2.client.shader.uniform.IUniformCallback;
 import com.lowdragmc.lowdraglib2.client.shader.uniform.UniformCache;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.opengl.GlTexture;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
@@ -65,14 +66,17 @@ public class ShaderProgram {
 		}
 	}
 
-	public void bindTexture(String samplerName, ResourceLocation resourceLocation) {
+	public void bindTexture(String samplerName, Identifier resourceLocation) {
 		if (resourceLocation == null) {
 			bindTexture(samplerName, 0);
 			return;
 		}
 		AbstractTexture abstracttexture = Minecraft.getInstance().getTextureManager().getTexture(resourceLocation);
-		int textureId = abstracttexture.getId();
-		bindTexture(samplerName, textureId);
+		if (abstracttexture.getTexture() instanceof GlTexture glTexture) {
+			bindTexture(samplerName, glTexture.glId());
+		} else {
+			bindTexture(samplerName, 0);
+		}
 	}
 
 	public void linkProgram() {
@@ -94,8 +98,8 @@ public class ShaderProgram {
 		if (!samplers.isEmpty()) {
 			int i = 0;
 			for (Map.Entry<String, Integer> entry : samplers.entrySet()) {
-				RenderSystem.activeTexture(GL13.GL_TEXTURE0 + i);
-				RenderSystem.bindTexture(entry.getValue());
+				GlStateManager._activeTexture(GL13.GL_TEXTURE0 + i);
+				GlStateManager._bindTexture(entry.getValue());
 				uniformCache.glUniform1I(entry.getKey(), i);
 				i++;
 			}
@@ -108,8 +112,8 @@ public class ShaderProgram {
 	public void release() {
 		if (!samplers.isEmpty()) {
 			for (int i = 0; i < samplers.size(); i++) {
-				RenderSystem.activeTexture(GL13.GL_TEXTURE0 + i);
-				RenderSystem.bindTexture(0);
+				GlStateManager._activeTexture(GL13.GL_TEXTURE0 + i);
+				GlStateManager._bindTexture(0);
 			}
 		}
 		GL20.glUseProgram(0);

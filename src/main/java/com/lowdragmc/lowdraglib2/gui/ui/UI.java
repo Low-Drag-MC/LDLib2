@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Data;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -57,7 +57,7 @@ public final class UI {
         return of(rootElement, Arrays.stream(stylesheets).toList(), null);
     }
 
-    public static UI of(UIElement rootElement, ResourceLocation... stylesheets) {
+    public static UI of(UIElement rootElement, Identifier... stylesheets) {
         return of(rootElement, Arrays.stream(stylesheets).map(StylesheetManager.INSTANCE::getStylesheet).filter(Objects::nonNull).toList(), null);
     }
 
@@ -84,7 +84,7 @@ public final class UI {
                 } else if (tagName.equals("stylesheet")) {
                     var location = XmlUtils.getAsString(element, "location", "");
                     if (!location.isEmpty()) {
-                        var rs = ResourceLocation.tryParse(location);
+                        var rs = Identifier.tryParse(location);
                         if (rs != null) {
                             var stylesheet = StylesheetManager.INSTANCE.getStylesheet(rs);
                             if (stylesheet != null) {

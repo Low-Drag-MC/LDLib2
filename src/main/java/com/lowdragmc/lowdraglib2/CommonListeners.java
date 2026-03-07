@@ -1,9 +1,7 @@
 package com.lowdragmc.lowdraglib2;
 
 import com.lowdragmc.lowdraglib2.async.AsyncThreadData;
-import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
-import com.lowdragmc.lowdraglib2.test.NoRendererTestBlock;
 import com.lowdragmc.lowdraglib2.test.TestItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -14,7 +12,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
@@ -45,7 +42,6 @@ public class CommonListeners {
                         .displayItems((parameters, output) -> {
                             // Add dev-only items here
                             output.accept(TestItem.ITEM.getBlock());
-                            output.accept(NoRendererTestBlock.BLOCK);
                         })
                         .build()) : null;
 
@@ -87,11 +83,6 @@ public class CommonListeners {
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
         ServerCommands.createServerCommands().forEach(dispatcher::register);
-    }
-
-    @SubscribeEvent
-    public static void onAddReloadListenerEvent(AddReloadListenerEvent event) {
-        event.addListener(PackResourceManager.INSTANCE);
     }
 
     // TODO move example to somewhere else

@@ -1,13 +1,15 @@
 package com.lowdragmc.lowdraglib2.client.utils;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.mojang.blaze3d.vertex.*;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -18,6 +20,13 @@ import org.jetbrains.annotations.Nullable;
 
 @OnlyIn(Dist.CLIENT)
 public class RenderUtils {
+    private static final RenderType BLOCK_OVERLAY = RenderType.create(
+            "ldlib_block_overlay",
+            RenderSetup.builder(LDLibRenderPipelines.BLOCK_OVERLAY)
+                    .bufferSize(1536)
+                    .createRenderSetup()
+    );
+
     /***
      * used to render pixels in stencil mask. (e.g. Restrict rendering results to be displayed only in Monitor Screens)
      * if you want to do the similar things in Gui(2D) not World(3D)
@@ -56,28 +65,20 @@ public class RenderUtils {
         GL11.glDisable(GL11.GL_STENCIL_TEST);
     }
 
-    public static void renderBlockOverLay(@Nonnull PoseStack poseStack, BlockPos pos, float r, float g, float b, float scale) {
+    public static void renderBlockOverLay(@Nonnull PoseStack poseStack, @Nonnull MultiBufferSource bufferSource, BlockPos pos, float r, float g, float b, float scale) {
         if (pos == null) return;
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
 
         poseStack.pushPose();
         poseStack.translate((pos.getX() + 0.5), (pos.getY() + 0.5), (pos.getZ() + 0.5));
         poseStack.scale(scale, scale, scale);
 
-        Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        var buffer = bufferSource.getBuffer(BLOCK_OVERLAY);
         RenderUtils.renderCubeFace(poseStack, buffer, -0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, r, g, b, 1);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
 
         poseStack.popPose();
-
-        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        RenderSystem.setShaderColor(1, 1, 1, 1);
     }
 
-    public static void renderCubeFace(PoseStack poseStack, BufferBuilder buffer, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float r, float g, float b, float a) {
+    public static void renderCubeFace(PoseStack poseStack, VertexConsumer buffer, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float r, float g, float b, float a) {
         Matrix4f mat = poseStack.last().pose();
         buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a);
         buffer.addVertex(mat, minX, minY, maxZ).setColor(r, g, b, a);

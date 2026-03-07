@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 
@@ -14,15 +14,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @KJSBindings
 public final class StylesheetManager implements ResourceManagerReloadListener {
+    public static Identifier RESOURCE_ID = LDLib2.id("stylesheet");
     public static final StylesheetManager INSTANCE = new StylesheetManager();
     public static final String PATH = "lss";
 
-    public static final ResourceLocation GDP = LDLib2.id(PATH + "/gdp.lss");
-    public static final ResourceLocation MC = LDLib2.id(PATH + "/mc.lss");
-    public static final ResourceLocation MODERN = LDLib2.id(PATH + "/modern.lss");
+    public static final Identifier GDP = LDLib2.id(PATH + "/gdp.lss");
+    public static final Identifier MC = LDLib2.id(PATH + "/mc.lss");
+    public static final Identifier MODERN = LDLib2.id(PATH + "/modern.lss");
 
-    private final Map<ResourceLocation, Stylesheet> builtinStylesheets = new ConcurrentHashMap<>();
-    private final Map<ResourceLocation, Stylesheet> packStylesheets = new ConcurrentHashMap<>();
+    private final Map<Identifier, Stylesheet> builtinStylesheets = new ConcurrentHashMap<>();
+    private final Map<Identifier, Stylesheet> packStylesheets = new ConcurrentHashMap<>();
 
     /** Live StyleEngine instances (held via WeakReference for auto-cleanup). */
     private final Set<WeakReference<StyleEngine>> activeEngines =
@@ -30,20 +31,20 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
 
     private StylesheetManager() {}
 
-    public void registerBuiltinStylesheet(ResourceLocation location, Stylesheet sheet) {
+    public void registerBuiltinStylesheet(Identifier location, Stylesheet sheet) {
         builtinStylesheets.put(location, sheet);
     }
 
-    public void unregisterBuiltinStylesheet(ResourceLocation location) {
+    public void unregisterBuiltinStylesheet(Identifier location) {
         builtinStylesheets.remove(location);
     }
 
-    public Collection<ResourceLocation> getAllPackStylesheets() {
+    public Collection<Identifier> getAllPackStylesheets() {
         return packStylesheets.keySet();
     }
 
     @Nullable
-    public Stylesheet getStylesheet(ResourceLocation location) {
+    public Stylesheet getStylesheet(Identifier location) {
         var result = packStylesheets.get(location);
         if (result == null) {
             result = builtinStylesheets.get(location);
@@ -51,15 +52,15 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
         return result;
     }
 
-    public Stylesheet getStylesheetOrElse(ResourceLocation location, Stylesheet fallback) {
+    public Stylesheet getStylesheetOrElse(Identifier location, Stylesheet fallback) {
         return Optional.ofNullable(getStylesheet(location)).orElse(fallback);
     }
 
-    public Stylesheet getStylesheetSafe(ResourceLocation location) {
+    public Stylesheet getStylesheetSafe(Identifier location) {
         return getStylesheetOrElse(location, Stylesheet.EMPTY);
     }
 
-    public boolean hasStylesheet(ResourceLocation location) {
+    public boolean hasStylesheet(Identifier location) {
         return builtinStylesheets.containsKey(location) || packStylesheets.containsKey(location);
     }
 
@@ -82,7 +83,7 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
                 location -> location.getPath().endsWith(".lss"));
 
         // Parse new stylesheets
-        var newSheets = new HashMap<ResourceLocation, Stylesheet>();
+        var newSheets = new HashMap<Identifier, Stylesheet>();
         for (var entry : resources.entrySet()) {
             var key = entry.getKey();
             var res = entry.getValue();

@@ -20,9 +20,8 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaEdge;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -207,7 +206,7 @@ public class Tab extends UIElement {
 
     /// rendering
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         // draw button texture
         var texture = tabStyle.baseTexture();
         if (isSelected) {
@@ -215,8 +214,8 @@ public class Tab extends UIElement {
         } else if (isHovered) {
             texture = tabStyle.hoverTexture();
         }
-        guiContext.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        super.drawBackgroundAdditional(guiContext);
+        context.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+        super.drawBackgroundAdditional(context);
     }
 
     @Override

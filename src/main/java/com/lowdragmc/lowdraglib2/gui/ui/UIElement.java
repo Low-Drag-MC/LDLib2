@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Clip;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyle;
@@ -27,19 +28,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
-import com.lowdragmc.lowdraglib2.math.Rect;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
-import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import dev.vfyjxf.taffy.style.*;
 import dev.vfyjxf.taffy.tree.Layout;
 import dev.vfyjxf.taffy.tree.NodeId;
@@ -47,25 +45,19 @@ import dev.vfyjxf.taffy.tree.TaffyTree;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.*;
-import org.appliedenergistics.yoga.numeric.FloatOptional;
-import org.jetbrains.annotations.NotNull;
-import org.joml.Matrix4f;
-import org.joml.Vector2f;
-import org.joml.Vector3f;
-import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
+import org.joml.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -73,6 +65,7 @@ import oshi.util.tuples.Pair;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.lang.Math;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -86,7 +79,7 @@ import java.util.stream.Stream;
  * please refer to the see <a href="https://github.com/vfyjxf/taffy-java">Taffy Documentation</a> for more information.
  *
  */
-@RemapPrefixForJS("kjs$")
+//@RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @KJSBindings
@@ -157,12 +150,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Nullable
     private List<UIElement> sortedChildrenCache = null;
     private ImmutableList<UIElement> structurePathCache = null;
-    private FloatOptional positionXCache = FloatOptional.of();
-    private FloatOptional positionYCache = FloatOptional.of();
+    private float positionXCache = Float.NaN;
+    private float positionYCache = Float.NaN;
     @Nullable
-    private Matrix4f localToWorldCache = null;
+    private Matrix3x2f localToWorldCache = null;
     @Nullable
-    private Matrix4f worldToLocalCache = null;
+    private Matrix3x2f worldToLocalCache = null;
     @Getter
     private boolean isCulled;
     @Getter
@@ -225,8 +218,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * This method is called when the screen is initialized with new width and height.
      */
     public void initScreen(int screenWidth, int screenHeight) {
-        positionXCache = FloatOptional.of();
-        positionYCache = FloatOptional.of();
+        positionXCache = Float.NaN;
+        positionYCache = Float.NaN;
         for (var child : children) {
             child.initScreen(screenWidth, screenHeight);
         }
@@ -299,12 +292,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
-    @Deprecated(since = "26.1")
-    public UIElement setDisplay(YogaDisplay display) {
-        layoutStyle.display(display);
-        return this;
-    }
-
     public UIElement setDisplay(TaffyDisplay display) {
         layoutStyle.display(display);
         return this;
@@ -315,14 +302,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
-    @Deprecated(since = "26.1")
-    public UIElement setOverflow(YogaOverflow overflow) {
-        layoutStyle.setOverflow(overflow);
-        return this;
-    }
-
-    public UIElement setOverflowVisible(boolean overflow) {
-        style.overflowVisible(overflow);
+    public UIElement setOverflowVisible(boolean visible) {
+        style.clip(visible ? Clip.NONE : Clip.SCISSOR);
         return this;
     }
 
@@ -361,9 +342,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     public final void clearLayoutCache() {
         clearPoseCache();
-        if (!positionXCache.isDefined() && !positionYCache.isDefined()) return;
-        positionXCache = FloatOptional.of();
-        positionYCache = FloatOptional.of();
+        if (Float.isNaN(positionXCache) && Float.isNaN(positionYCache)) return;
+        positionXCache = Float.NaN;
+        positionYCache = Float.NaN;
         for (var child : children) {
             child.clearLayoutCache();
         }
@@ -386,21 +367,21 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      *
      * @return The current pose matrix as a {@link Matrix4f}.
      */
-    public final Matrix4f getLocalToWorldPose() {
+    public final Matrix3x2f getLocalToWorldPose() {
         if (localToWorldCache == null) {
             return computeLocalToWorldPose();
         }
         return localToWorldCache;
     }
 
-    protected final Matrix4f computeLocalToWorldPose() {
+    protected final Matrix3x2f computeLocalToWorldPose() {
         if (localToWorldCache != null) return localToWorldCache;
         var parent = getParent();
         if (parent == null) {
-            if (modularUI == null) return new Matrix4f();
+            if (modularUI == null) return new Matrix3x2f();
             return modularUI.getLastDrawPose();
         }
-        var matrix = new Matrix4f(parent.getLocalToWorldPose());
+        var matrix = new Matrix3x2f(parent.getLocalToWorldPose());
         var transform2D = style.transform2D();
         var pushedTransform = !transform2D.isIdentity();
         if (pushedTransform) {
@@ -414,12 +395,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      *
      * @return The current pose matrix as a {@link Matrix4f}.
      */
-    public final Matrix4f getWorldToLocalPose() {
+    public final Matrix3x2f getWorldToLocalPose() {
         if (worldToLocalCache == null) {
             if (localToWorldCache == null) {
-                return computeLocalToWorldPose().invert(new Matrix4f());
+                return computeLocalToWorldPose().invert(new Matrix3x2f());
             }
-            worldToLocalCache = localToWorldCache.invert(new Matrix4f());
+            worldToLocalCache = localToWorldCache.invert(new Matrix3x2f());
         }
         return worldToLocalCache;
     }
@@ -442,20 +423,20 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * The absolute X offset relative to the screen.
      */
     public final float getPositionX() {
-        if (positionXCache.isUndefined()) {
-            positionXCache = FloatOptional.of(getLayoutX() + (parent == null ? 0 : parent.getPositionX()));
+        if (Float.isNaN(positionXCache)) {
+            positionXCache = getLayoutX() + (parent == null ? 0 : parent.getPositionX());
         }
-        return positionXCache.getValue();
+        return positionXCache;
     }
 
     /**
      * The absolute Y offset relative to the screen.
      */
     public final float getPositionY() {
-        if (positionYCache.isUndefined()) {
-            positionYCache = FloatOptional.of(getLayoutY() + (parent == null ? 0 : parent.getPositionY()));
+        if (Float.isNaN(positionYCache)) {
+            positionYCache = getLayoutY() + (parent == null ? 0 : parent.getPositionY());
         }
-        return positionYCache.getValue();
+        return positionYCache;
     }
 
     public final float getSizeWidth() {
@@ -1217,9 +1198,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         double localMouseY = pt[1];
 
         Pair<UIElement, Integer> hover = null;
-        var hidden = !style.overflowVisible();
+        var clip = style.clip().isClip();
 
-        if (!hidden || isMouseOverRect(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
+        if (!clip || isMouseOverRect(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
             for (var child : getSortedChildren()) {
                 var result = child.hitTest(localMouseX, localMouseY);
                 if (result != null && (hover == null || hover.getB() < result.getB())) {
@@ -1262,8 +1243,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public final Vector2f getLocalMouse(float worldX, float worldY) {
         var worldToLocal = getWorldToLocalPose();
-        var localMouse = worldToLocal.transform(new Vector4f(worldX, worldY, 0, 1));
-        return new Vector2f(localMouse.x / localMouse.w, localMouse.y / localMouse.w);
+        return worldToLocal.transformPosition(new Vector2f(worldX, worldY));
     }
 
     public final Vector2f worldToLocal(Vector2f world) {
@@ -1272,8 +1252,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public final Vector2f getWorldMouse(float localX, float localY) {
         var localToWorld = getLocalToWorldPose();
-        var worldMouse = localToWorld.transform(new Vector4f(localX, localY, 0, 1));
-        return new Vector2f(worldMouse.x / worldMouse.w, worldMouse.y / worldMouse.w);
+        return localToWorld.transformPosition(new Vector2f(localX, localY));
     }
 
     public final Vector2f localToWorld(Vector2f local) {
@@ -1282,8 +1261,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public final Vector2f getLocalMouseNormal(float dirX, float dirY) {
         var worldToLocal = getWorldToLocalPose();
-        var localMouse = worldToLocal.transformDirection(new Vector3f(dirX, dirY, 0));
-        return new Vector2f(localMouse.x, localMouse.y);
+        return worldToLocal.transformDirection(new Vector2f(dirX, dirY));
     }
 
     public final Vector2f worldToLocalNormal(Vector2f dir) {
@@ -1292,8 +1270,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public final Vector2f getWorldMouseNormal(float dirX, float dirY) {
         var localToWorld = getLocalToWorldPose();
-        var worldMouse = localToWorld.transformDirection(new Vector3f(dirX, dirY, 0));
-        return new Vector2f(worldMouse.x, worldMouse.y);
+        return localToWorld.transformDirection(new Vector2f(dirX, dirY));
     }
 
     public final Vector2f localToWorldNormal(Vector2f dir) {
@@ -1552,22 +1529,20 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public static boolean isShiftDown() {
-        long id = Minecraft.getInstance().getWindow().getWindow();
-        return InputConstants.isKeyDown(id, GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(id, GLFW.GLFW_KEY_LEFT_SHIFT);
+        return Minecraft.getInstance().hasShiftDown();
     }
 
     public static boolean isCtrlDown() {
-        return Screen.hasControlDown();
+        return Minecraft.getInstance().hasControlDown();
     }
 
     public static boolean isAltDown() {
-        long id = Minecraft.getInstance().getWindow().getWindow();
-        return InputConstants.isKeyDown(id, GLFW.GLFW_KEY_LEFT_ALT) || InputConstants.isKeyDown(id, GLFW.GLFW_KEY_RIGHT_ALT);
+        return Minecraft.getInstance().hasAltDown();
     }
 
     public static boolean isKeyDown(int keyCode) {
-        long id = Minecraft.getInstance().getWindow().getWindow();
-        return InputConstants.isKeyDown(id, keyCode);
+        var window = Minecraft.getInstance().getWindow();
+        return InputConstants.isKeyDown(window, keyCode);
     }
 
     public boolean isMouseDown(int button) {
@@ -1587,7 +1562,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * <li> 3. Overlay
      * <li> 4. Children
      */
-    public final void drawInBackground(GUIContext guiContext) {
+    public final void drawInBackground(GUIContext context) {
         var display = taffyStyle.style.display;
         var opacity = style.opacity();
         if (display == TaffyDisplay.NONE || !isVisible() || opacity == 0) {
@@ -1595,91 +1570,83 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
 
         var zIndex = style.zIndex();
-        if (zIndex != 0) {
-            guiContext.pose.pushPose();
-            guiContext.pose.translate(0, 0, zIndex);
-        }
 
         var transform2D = style.transform2D();
         var pushedTransform = !transform2D.isIdentity();
         if (pushedTransform) {
-            transform2D.pushPose(guiContext, this);
+            transform2D.pushPose(context, this);
         }
 
         if (localToWorldCache == null) {
-            localToWorldCache = new Matrix4f(guiContext.pose.last().pose());
+            localToWorldCache = new Matrix3x2f(context.pose.pose);
         }
 
-        isCulled = !isInsideTheScissorView(guiContext);
-        var hasOverlayClip = !style.overflowVisible() && getStyle().overflowClip() != IGuiTexture.EMPTY;
-        var hasVisualLayer = !isCulled && (hasOverlayClip || opacity < 1);
+        isCulled = !isInsideTheScissorView(context);
+        var isMaskClip = style.clip().isMask() && getStyle().mask() != IGuiTexture.EMPTY;
+        var hasVisualLayer = !isCulled && (isMaskClip || opacity < 1);
 
+        // todo visual layer
         if (hasVisualLayer) {
-            guiContext.pushVisualLayer(getOrCreateVisualLayer());
+            context.pushVisualLayer(getOrCreateVisualLayer());
         }
 
-        drawInBackgroundInternal(guiContext);
+        drawInBackgroundInternal(context);
 
         if (hasVisualLayer) {
-            guiContext.popVisualLayer();
+            context.popVisualLayer();
         }
 
         if (pushedTransform) {
-            transform2D.popPose(guiContext);
-        }
-
-        if (zIndex != 0) {
-            guiContext.pose.popPose();
+            transform2D.popPose(context);
         }
     }
 
-    public final void drawInBackgroundInternal(GUIContext guiContext) {
+    public final void drawInBackgroundInternal(GUIContext context) {
         var elementColor = style.color();
         var hasColor = elementColor != -1;
         if (hasColor) {
-            guiContext.graphics.flush();
-            guiContext.setElementColor(elementColor);
+            context.setElementColor(elementColor);
         }
         if (!isCulled) {
-            drawBackgroundTexture(guiContext);
-            drawContents(guiContext);
-            drawBackgroundOverlay(guiContext);
+            drawBackgroundTexture(context);
+            drawContents(context);
+            drawBackgroundOverlay(context);
         } else { // draw contents only
-            drawContents(guiContext);
+            drawContents(context);
         }
         if (hasColor) {
-            guiContext.graphics.flush();
-            guiContext.resetElementColor();
+            context.resetElementColor();
         }
     }
 
     protected boolean isInsideTheScissorView(GUIContext context) {
-        if (!context.scissorStack.isEmpty()) {
-            var trans = context.pose.last().pose();
-            var x = getPositionX();
-            var y = getPositionY();
-            var width = getSizeWidth();
-            var height = getSizeHeight();
+        var peek = context.peekScissor();
+        if (peek != null) {
+            var trans = context.pose.pose;
+            var x0 = getPositionX();
+            var y0 = getPositionY();
+            var x1 = x0 + getSizeWidth();
+            var y1 = y0 + getSizeHeight();
 
-            var corners = new Vector4f[]{
-                    new Vector4f(x, y, 0, 1),
-                    new Vector4f(x + width, y, 0, 1),
-                    new Vector4f(x, y + height, 0, 1),
-                    new Vector4f(x + width, y + height, 0, 1)
-            };
-            float minX = Float.POSITIVE_INFINITY;
-            float minY = Float.POSITIVE_INFINITY;
-            float maxX = Float.NEGATIVE_INFINITY;
-            float maxY = Float.NEGATIVE_INFINITY;
-            for (var corner : corners) {
-                trans.transform(corner);
-                minX = Math.min(minX, corner.x / corner.w);
-                minY = Math.min(minY, corner.y / corner.w);
-                maxX = Math.max(maxX, corner.x / corner.w);
-                maxY = Math.max(maxY, corner.y / corner.w);
-            }
-            var aabb = Rect.of(Mth.floor(minX), Mth.floor(minY), Mth.ceil(maxX), Mth.ceil(maxY));
-            return aabb.isCollide(context.scissorStack.peek());
+            Vector2f p = new Vector2f();
+
+            trans.transformPosition(x0, y0, p);
+            float minX = p.x, maxX = p.x, minY = p.y, maxY = p.y;
+
+            trans.transformPosition(x1, y0, p);
+            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+
+            trans.transformPosition(x0, y1, p);
+            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+
+            trans.transformPosition(x1, y1, p);
+            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+
+            return peek.intersects(new ScreenRectangle(Mth.floor(minX), Mth.floor(minY),
+                    Mth.ceil(maxX - minX), Mth.ceil(maxY - minY)));
         }
         return true;
     }
@@ -1687,61 +1654,57 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Renders the background texture of the GUI element.
      */
-    public void drawBackgroundTexture(GUIContext guiContext) {
+    public void drawBackgroundTexture(GUIContext context) {
         var background = style.backgroundTexture();
         if (background != null && background != IGuiTexture.EMPTY) {
-            guiContext.drawTexture(background, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            context.drawTexture(background, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
     }
 
     /**
      * Renders the contents of the GUI element. includes additional background and children
      */
-    public void drawContents(GUIContext guiContext) {
+    public void drawContents(GUIContext context) {
         // not need to use scissoring if overflow cip defined
-        var hidden = !style.overflowVisible() && getStyle().overflowClip() == IGuiTexture.EMPTY ;
-        if (hidden) {
+        var scissor = style.clip().isScissor();
+        if (scissor) {
             if (isCulled) return;
-            guiContext.graphics.flush();
-            guiContext.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
+            context.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
         }
         if(!isCulled) {
-            drawBackgroundAdditional(guiContext);
+            drawBackgroundAdditional(context);
         }
         if (!children.isEmpty()) {
-            var currentColor = guiContext.elementColor;
+            var currentColor = context.elementColor;
             var hasColor = currentColor != -1;
             // we roll back first
             if (hasColor) {
-                guiContext.graphics.flush();
-                guiContext.resetElementColor();
+                context.resetElementColor();
             }
-            List.copyOf(children).forEach(child -> child.drawInBackground(guiContext));
+            List.copyOf(children).forEach(child -> child.drawInBackground(context));
             if (hasColor) {
-                guiContext.graphics.flush();
-                guiContext.setElementColor(currentColor);
+                context.setElementColor(currentColor);
             }
         }
-        if (hidden) {
-            guiContext.graphics.flush();
-            guiContext.disableScissor();
+        if (scissor) {
+            context.disableScissor();
         }
     }
 
     /**
      * Renders the additional background of the GUI element.
      */
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
 
     }
 
     /**
      * Renders the overlay texture of the GUI element.
      */
-    public void drawBackgroundOverlay(GUIContext guiContext) {
+    public void drawBackgroundOverlay(GUIContext context) {
         var overlay = style.overlayTexture();
         if (overlay != null && overlay != IGuiTexture.EMPTY) {
-            guiContext.drawTexture(overlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            context.drawTexture(overlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
     }
 
@@ -1928,96 +1891,73 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     @Override
-    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        var tagBuilder = TagBuilder.compound(IPersistedSerializable.super.serializeNBT(provider));
+    public void serialize(ValueOutput output) {
+        IPersistedSerializable.super.serialize(output);
         // serialize inline styles
-        var inlineTag = new CompoundTag();
+        var inline = output.child("inline");
         for (Style style : getStyles()) {
-            var styleTag = style.serializeNBT(provider);
-            // quick merge without copy
-            for (var key : styleTag.getAllKeys()) {
-                var value = styleTag.get(key);
-                if (value != null) {
-                    inlineTag.put(key, value);
-                }
-            }
-        }
-        if (!inlineTag.isEmpty()) {
-            tagBuilder.add("inline", inlineTag);
+            style.serialize(inline);
         }
         // serialize classes
-        var classTag = new ListTag();
+        var classValue = output.list("classes", Codec.STRING);
         for (var clazz : classes) {
             // skip internal classes
             if (clazz.startsWith("__") && clazz.endsWith("__")) continue;
-            classTag.add(StringTag.valueOf(clazz));
+            classValue.add(clazz);
         }
-        if (!classTag.isEmpty()) {
-            tagBuilder.add("classes", classTag);
-        }
+
         // serialize internal children
-        var internalTag = TagBuilder.list().add(getChildren().stream()
-                .filter(UIElement::isInternalUI)
-                .map(element -> element.serializeNBT(provider)).toList()
-        ).build();
-        if (!internalTag.isEmpty()) {
-            tagBuilder.add("internal", internalTag);
-        }
         // serialize external children
-        var childrenTag = TagBuilder.list().add(getChildren().stream()
-                .filter(uiElement -> !uiElement.isInternalUI())
-                .map(child -> TagBuilder.compound()
-                        .add("index", child.getSiblingIndex())
-                        .add("data", child.serializeNBT(provider))
-                        .add("type", child.name())
-                        .build()).toList()
-        ).build();
-        if (!childrenTag.isEmpty()) {
-            tagBuilder.add("children", childrenTag);
+        var internalValue = output.childrenList("internal");
+        var childrenValue = output.childrenList("children");
+        var children = getChildren();
+        for (int i = 0; i < children.size(); i++) {
+            var child = children.get(i);
+            if (child.isInternalUI()) {
+                child.serialize(internalValue.addChild());
+            } else {
+                var childValue = childrenValue.addChild();
+                childValue.putInt("index", i);
+                childValue.putString("type", child.name());
+                child.serialize(childValue);
+            }
         }
-        return tagBuilder.build();
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.@NotNull Provider provider, CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(provider, tag);
-        if (!LDLib2.isServer()) {
-            // only for client side
-            // deserialize inline styles
-            if (tag.contains("inline")) {
-                var inlineTag = tag.getCompound("inline");
-                getStyles().forEach(style -> style.deserializeNBT(provider, inlineTag));
+    public void deserialize(ValueInput input) {
+        IPersistedSerializable.super.deserialize(input);
+        // deserialize inline styles
+        input.child("inline").ifPresent(inline -> {
+            for (Style style : getStyles()) {
+                style.deserialize(inline);
             }
-        }
+        });
+
         // deserialize classes
-        if (tag.contains("classes")) {
-            for (var clazz : tag.getList("classes", Tag.TAG_STRING)) {
-                classes.add(clazz.getAsString());
+        input.list("classes", Codec.STRING).ifPresent(list -> {
+            for (var clazz : list) {
+                classes.add(clazz);
             }
-        }
+        });
+
         // deserialize internal children
-        if (tag.contains("internal")) {
-            var internalTag = tag.getList("internal", Tag.TAG_COMPOUND);
-            var internalChildren = getChildren().stream().filter(UIElement::isInternalUI).toList();
-            for (var i = 0; i < internalTag.size(); i++) {
-                if (i < internalChildren.size()) {
-                    internalChildren.get(i).deserializeNBT(provider, internalTag.getCompound(i));
+        input.childrenList("internal").ifPresent(internal -> {
+            var i = 0;
+            for (ValueInput valueInput : internal) {
+                if (i < getChildren().size()) {
+                    getChildren().get(i).deserialize(valueInput);
                 }
+                i++;
             }
-        }
+        });
         // deserialize external children
-        if (tag.contains("children")) {
-            var externalTag = tag.getList("children", Tag.TAG_COMPOUND);
-            for (var i = 0; i < externalTag.size(); i++) {
-                var childTag = externalTag.getCompound(i);
-                var index = childTag.getInt("index");
-                var result = CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), childTag).result();
-                if (result.isEmpty()) {
-                    LDLib2.LOGGER.error("Failed to deserialize UI Element {}: {}", this, tag);
-                }
-                addChildAt(result.orElseGet(UIElement::new), index);
+        input.childrenList("children").ifPresent(children -> {
+            for (ValueInput valueInput : children) {
+                var index = valueInput.getInt("index").orElseGet(this.children::size);
+                addChildAt(valueInput.read(MapCodec.assumeMapUnsafe(CODEC)).orElseGet(UIElement::new), index);
             }
-        }
+        });
     }
     // endregion
 
@@ -2080,7 +2020,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                     if (!LDLib2.isServer()) {
                         var location = XmlUtils.getAsString(child, "location", "");
                         if (!location.isEmpty()) {
-                            var rs = ResourceLocation.tryParse(location);
+                            var rs = Identifier.tryParse(location);
                             if (rs != null) {
                                 var sheet = StylesheetManager.INSTANCE.getStylesheet(rs);
                                 if (sheet != null) {

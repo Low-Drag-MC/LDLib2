@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -11,17 +10,17 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -35,7 +34,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 public class AnimationTexture extends TransformTexture {
 
     @Configurable(name = "ldlib.gui.editor.name.resource")
-    public ResourceLocation imageLocation;
+    public Identifier imageLocation;
 
     @Configurable(tips = "ldlib.gui.editor.tips.cell_size")
     @ConfigNumber(range = {1, Integer.MAX_VALUE})
@@ -73,10 +72,10 @@ public class AnimationTexture extends TransformTexture {
     }
 
     public AnimationTexture(String imageLocation) {
-        this.imageLocation = ResourceLocation.parse(imageLocation);
+        this.imageLocation = Identifier.parse(imageLocation);
     }
 
-    public AnimationTexture(ResourceLocation imageLocation) {
+    public AnimationTexture(Identifier imageLocation) {
         this.imageLocation = imageLocation;
     }
 
@@ -87,7 +86,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     public AnimationTexture setTexture(String imageLocation) {
-        this.imageLocation = ResourceLocation.parse(imageLocation);
+        this.imageLocation = Identifier.parse(imageLocation);
         return this;
     }
 
@@ -135,8 +134,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         updateTick();
         float cell = 1f / this.cellSize;
         int X = currentFrame % cellSize;
@@ -145,14 +143,9 @@ public class AnimationTexture extends TransformTexture {
         float imageU = X * cell;
         float imageV = Y * cell;
 
-        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.guiTexture(imageLocation));
-        RenderSystem.disableDepthTest();
-
-        var matrix4f = graphics.pose().last().pose();
-        buffer.addVertex(matrix4f, x, y + height, 0).setUv(imageU, imageV + cell).setColor(color);
-        buffer.addVertex(matrix4f, x + width, y + height, 0).setUv(imageU + cell, imageV + cell).setColor(color);
-        buffer.addVertex(matrix4f, x + width, y, 0).setUv(imageU + cell, imageV).setColor(color);
-        buffer.addVertex(matrix4f, x, y, 0).setUv(imageU, imageV).setColor(color);
+        context.blit(RenderPipelines.GUI_TEXTURED, imageLocation, x, y,
+                width, height, imageU, imageV, imageU + cell, imageV + cell,
+                color);
     }
 
     @Override
@@ -190,9 +183,8 @@ public class AnimationTexture extends TransformTexture {
                 ));
     }
 
-    @OnlyIn(Dist.CLIENT)
-    protected void drawRawTextureGuides(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        SpriteTexture.of(imageLocation.toString()).draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
+    protected void drawRawTextureGuides(GUIContext context, float x, float y, float width, float height) {
+        SpriteTexture.of(imageLocation.toString()).draw(context, x, y, width, height);
         float cell = 1f / this.cellSize;
         int X = from % cellSize;
         int Y = from / cellSize;
@@ -200,9 +192,9 @@ public class AnimationTexture extends TransformTexture {
         float imageU = X * cell;
         float imageV = Y * cell;
 
-        new ColorBorderTexture(1, 0xff00ff00).draw(graphics, 0, 0,
+        new ColorBorderTexture(1, 0xff00ff00).draw(context,
                 x + width * imageU, y + height * imageV,
-                (width * (cell)), (height * (cell)), partialTicks);
+                (width * (cell)), (height * (cell)));
 
         X = to % cellSize;
         Y = to / cellSize;
@@ -210,8 +202,8 @@ public class AnimationTexture extends TransformTexture {
         imageU = X * cell;
         imageV = Y * cell;
 
-        new ColorBorderTexture(1, 0xffff0000).draw(graphics, 0, 0,
+        new ColorBorderTexture(1, 0xffff0000).draw(context,
                 x + width * imageU, y + height * imageV,
-                (width * (cell)), (height * (cell)), partialTicks);
+                (width * (cell)), (height * (cell)));
     }
 }

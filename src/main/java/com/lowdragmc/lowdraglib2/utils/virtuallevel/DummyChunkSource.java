@@ -35,7 +35,7 @@ public class DummyChunkSource extends ChunkSource {
     }
 
     public ChunkAccess getChunk(int x, int z) {
-        long pos = ChunkPos.asLong(x, z);
+        long pos = ChunkPos.pack(x, z);
         return chunks.computeIfAbsent(pos, $ -> new VirtualChunk(world, x, z));
     }
 

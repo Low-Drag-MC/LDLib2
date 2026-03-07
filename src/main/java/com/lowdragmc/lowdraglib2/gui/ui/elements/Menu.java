@@ -20,8 +20,7 @@ import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.*;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;

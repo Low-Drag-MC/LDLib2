@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TagField;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -103,7 +103,7 @@ public class TypedDataComponentConfigurator extends ValueConfigurator<TypedDataC
         for (var typeEntry : BuiltInRegistries.DATA_COMPONENT_TYPE.entrySet()) {
             if (Thread.currentThread().isInterrupted()) return;
             var type = typeEntry.getValue();
-            var id = typeEntry.getKey().location();
+            var id = typeEntry.getKey().identifier();
             if (id.toString().contains(wordLower)) {
                 searchHandler.accept(type);
             }

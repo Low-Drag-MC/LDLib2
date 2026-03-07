@@ -13,15 +13,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleRule;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib2.utils.TagBuilder;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+//import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
-import org.jetbrains.annotations.NotNull;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -30,7 +27,7 @@ import java.util.*;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@RemapPrefixForJS("kjs$")
+//@RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "template", registry = "ldlib2:ui_element")
@@ -101,22 +98,24 @@ public class UITemplateElement extends UIElement {
 
     /// Editor + Xml
     @Override
-    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        if (path == null) return new CompoundTag();
-        return TagBuilder.compound(super.serializeNBT(provider))
-                .add("path", path == null ? null : IResourcePath.CODEC.encodeStart(NbtOps.INSTANCE, path).result().orElse(null))
-                .build();
+    public void serialize(ValueOutput output) {
+        if (path != null) {
+            super.serialize(output);
+            output.store("path", IResourcePath.CODEC, path);
+        }
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.@NotNull Provider provider, CompoundTag tag) {
+    public void deserialize(ValueInput input) {
         if (isTemplateLoading) {
-            super.deserializeNBT(provider, tag);
-        } else if (tag.contains("path")) {
-            setTemplate(IResourcePath.CODEC.parse(NbtOps.INSTANCE, tag.get("path")).result().orElse(null));
-            isTemplateLoading = true;
-            super.deserializeNBT(provider, tag);
-            isTemplateLoading = false;
+            super.deserialize(input);
+        } else {
+            input.read("path", IResourcePath.CODEC).ifPresent(path -> {
+                setTemplate(path);
+                isTemplateLoading = true;
+                super.deserialize(input);
+                isTemplateLoading = false;
+            });
         }
     }
 

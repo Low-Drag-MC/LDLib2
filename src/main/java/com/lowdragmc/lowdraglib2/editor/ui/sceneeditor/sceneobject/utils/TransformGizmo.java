@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils;
 
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor;
 import com.lowdragmc.lowdraglib2.math.Ray;
@@ -9,11 +9,14 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInterac
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.LayeringTransform;
+import net.minecraft.client.renderer.rendertype.OutputTarget;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -27,6 +30,22 @@ import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 
 public class TransformGizmo extends SceneObject implements ISceneRendering, ISceneInteractable {
+    private static final RenderType POSITION_COLOR_NO_DEPTH = RenderType.create(
+            "ldlib_position_color_no_depth",
+            RenderSetup.builder(LDLibRenderPipelines.POSITION_COLOR_NO_DEPTH)
+                    .sortOnUpload()
+                    .bufferSize(256)
+                    .createRenderSetup()
+    );
+    private static final RenderType NO_DEPTH_LINES = RenderType.create(
+            "ldlib_no_depth_lines",
+            RenderSetup.builder(LDLibRenderPipelines.NO_DEPTH_LINES)
+                    .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+                    .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
+                    .bufferSize(256)
+                    .createRenderSetup()
+    );
+
     public enum Mode {
         TRANSLATE,
         ROTATE,
@@ -252,20 +271,17 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     @Override
     public void preDraw(float partialTicks) {
-        RenderSystem.disableDepthTest();
     }
 
     @Override
     public void postDraw(float partialTicks) {
-        RenderSystem.enableDepthTest();
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
         if (targetTransform == null) return;
-        var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
-        RenderSystem.disableDepthTest();
+        var buffer = bufferSource.getBuffer(NO_DEPTH_LINES);
 
         var isHoverXPlane = isHoverPlane(Direction.Axis.X);
         var isHoverYPlane = !isHoverXPlane && isHoverPlane(Direction.Axis.Y);
@@ -335,8 +351,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
             if (mode == Mode.TRANSLATE) {
                 // draw arrow
-                buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
-                RenderSystem.disableDepthTest();
+                buffer = bufferSource.getBuffer(POSITION_COLOR_NO_DEPTH);
 
                 // draw x arrow
                 RenderBufferUtils.shapeCone(poseStack, buffer, 1, 0, 0, 0.05f, 0.15f, 10,
@@ -377,7 +392,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     zR = 0;
                     zG = 0;
                 }
-                RenderSystem.depthMask(true);
                 // draw x surface
                 RenderBufferUtils.drawCubeFace(poseStack, buffer, 0, 0.1f, 0.1f, 0, 0.3f, 0.3f,
                         xR, xG, xB, xA, false);
@@ -391,8 +405,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
             if (mode == Mode.SCALE) {
                 // draw box
-                buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
-                RenderSystem.disableDepthTest();
+                buffer = bufferSource.getBuffer(POSITION_COLOR_NO_DEPTH);
 
                 // draw x box
                 RenderBufferUtils.drawCubeFace(poseStack, buffer, scale.x - 0.05f, -0.05f, -0.05f, scale.x + 0.05f, 0.05f, 0.05f,
@@ -438,8 +451,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     1f, zR, zG, zB, zA);
 
             // draw box
-            buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
-            RenderSystem.disableDepthTest();
+            buffer = bufferSource.getBuffer(POSITION_COLOR_NO_DEPTH);
 
             // draw x box
             RenderBufferUtils.drawCubeFace(poseStack, buffer, 0.95f, -0.05f, -0.05f, 1.05f, 0.05f, 0.05f,

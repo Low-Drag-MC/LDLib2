@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 @Accessors(chain = true)
 public class DimensionProperty extends Property<TaffyDimension> {
     public DimensionProperty(String name, TaffyDimension initialValue) {
-        super(name, TaffyDimension.class, TaffyCodecs.DIMENSION_STYLE_SIZE_LENGTH_COMPAT_CODEC, initialValue, DimensionValue::new);
+        super(name, TaffyDimension.class, TaffyCodecs.DIMENSION_CODEC, initialValue, DimensionValue::new);
         setAllowTransition(true);
         setInterpolator(this::interpolate);
     }

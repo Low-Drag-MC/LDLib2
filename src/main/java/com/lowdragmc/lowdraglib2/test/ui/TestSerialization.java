@@ -31,14 +31,16 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
@@ -59,7 +61,7 @@ public class TestSerialization implements IScreenTest {
         @Configurable(tips = "Test tip 0")
         private String stringValue = "default";
         @Configurable
-        private ResourceLocation resourceLocation = LDLib2.id("test");
+        private Identifier resourceLocation = LDLib2.id("test");
         @Configurable
         private Direction enumValue = Direction.NORTH;
         @Configurable
@@ -81,7 +83,7 @@ public class TestSerialization implements IScreenTest {
         @ReadOnlyManaged(serializeMethod = "testGroupSerialize", deserializeMethod = "testGroupDeserialize")
         private final List<TestGroup> groupList = new ArrayList<>();
         @Persisted
-        private final INBTSerializable<CompoundTag> stackHandler = new ItemStackHandler(5);
+        private final ValueIOSerializable stackHandler = new ItemStackHandler(5);
         @Persisted(subPersisted = true)
         private final TestContainer testContainer = new TestContainer();
 
@@ -122,7 +124,7 @@ public class TestSerialization implements IScreenTest {
 
         public List<TestGroup> testGroupDeserialize(IntTag tag) {
             var groups = new ArrayList<TestGroup>();
-            for (int i = 0; i < tag.getAsInt(); i++) {
+            for (int i = 0; i < tag.asInt().orElse(0); i++) {
                 groups.add(addDefaultTestGroup());
             }
             return groups;
@@ -185,11 +187,13 @@ public class TestSerialization implements IScreenTest {
                 }).addChildren(
                         new UIElement().addChildren(
                                 new Button().setText("S nbt").setOnClick(e -> {
-                                    serializedNbt = data.serializeNBT(Platform.getFrozenRegistry());
+                                    var valueOutput = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry());
+                                    data.serialize(valueOutput);
+                                    serializedNbt = valueOutput.buildResult();
                                     text.setText(NbtUtils.toPrettyComponent(serializedNbt));
                                 }).layout(layout -> layout.flex(1)),
                                 new Button().setText("D nbt").setOnClick(e -> {
-                                    data.deserializeNBT(Platform.getFrozenRegistry(), serializedNbt);
+                                    data.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry(), serializedNbt));
                                 }).layout(layout -> layout.flex(1))
                         ).layout(layout -> layout.flexDirection(FlexDirection.ROW)),
                         new UIElement().addChildren(

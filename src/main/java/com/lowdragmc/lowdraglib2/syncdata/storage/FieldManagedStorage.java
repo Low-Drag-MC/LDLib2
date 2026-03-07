@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IBlockEntityManaged;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.apache.commons.lang3.function.Consumers;
 
 import java.lang.reflect.Field;

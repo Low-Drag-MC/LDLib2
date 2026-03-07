@@ -25,7 +25,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
@@ -62,7 +62,7 @@ public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSe
     @Configurable(tips = "Test tip 0")
     private String stringValue = "default";
     @Configurable
-    private ResourceLocation resourceLocation = LDLib2.id("test");
+    private Identifier resourceLocation = LDLib2.id("test");
     @Configurable
     private Direction enumValue = Direction.NORTH;
     @Configurable
@@ -107,7 +107,7 @@ public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSe
     private FluidStack fluid = new FluidStack(Fluids.WATER, 1000);
     @Configurable
     @ConfigRL(ConfigRL.Type.ITEM_TAG_KEY)
-    private ResourceLocation itemTagKey = ItemTags.AXES.location();
+    private Identifier itemTagKey = ItemTags.AXES.location();
     @Configurable
     private EntityType<?> entityType = EntityType.PIG;
 
@@ -161,7 +161,7 @@ public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSe
                 for (var key : BuiltInRegistries.BLOCK.keySet()) {
                     if (Thread.currentThread().isInterrupted()) return;
                     if (key.toString().toLowerCase().contains(lowerWord)) {
-                        searchHandler.acceptResult(BuiltInRegistries.BLOCK.get(key));
+                        searchHandler.acceptResult(BuiltInRegistries.BLOCK.getValue(key));
                     }
                 }
             }

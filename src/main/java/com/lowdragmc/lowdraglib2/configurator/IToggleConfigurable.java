@@ -4,8 +4,8 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
@@ -57,22 +57,18 @@ public interface IToggleConfigurable extends IConfigurable, IPersistedSerializab
     }
 
     @Override
-    default CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        CompoundTag data;
-        if (!isEnable() && skipDisableSerialize()) {
-            data = new CompoundTag();
-        } else {
-            data = IPersistedSerializable.super.serializeNBT(provider);
+    default void serialize(@NotNull ValueOutput valueOutput) {
+        valueOutput.putBoolean("_enable", isEnable());
+        if (isEnable() || !skipDisableSerialize()) {
+            IPersistedSerializable.super.serialize(valueOutput);
         }
-        data.putBoolean("_enable", isEnable());
-        return data;
     }
 
     @Override
-    default void deserializeNBT(HolderLookup.@NotNull Provider provider, @NotNull CompoundTag tag) {
-        setEnable(tag.getBoolean("_enable"));
+    default void deserialize(@NotNull ValueInput valueOutput) {
+        setEnable(valueOutput.getBooleanOr("_enable", false));
         if (isEnable() || !skipDisableSerialize()) {
-            IPersistedSerializable.super.deserializeNBT(provider, tag);
+            IPersistedSerializable.super.deserialize(valueOutput);
         }
     }
 }

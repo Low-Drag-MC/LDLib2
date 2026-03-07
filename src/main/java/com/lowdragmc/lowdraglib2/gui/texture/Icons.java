@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import net.minecraft.Util;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Util;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +14,7 @@ import java.util.function.BiFunction;
  * @implNote Icons
  */
 public class Icons {
-    private static final ResourceLocation GDP_ICONS = LDLib2.id("textures/gui/icon/gdp_icons.png");
+    private static final Identifier GDP_ICONS = LDLib2.id("textures/gui/icon/gdp_icons.png");
     private static final BiFunction<String, String, SpriteTexture> CACHE = Util.memoize((modID, name) -> 
             SpriteTexture.of("%s:textures/gui/icon/%s.png".formatted(modID, name)));
     private static final Map<String, SpriteTexture> FILE_ICONS = new HashMap<>();

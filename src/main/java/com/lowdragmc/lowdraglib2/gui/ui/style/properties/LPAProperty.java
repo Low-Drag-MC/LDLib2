@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 @Accessors(chain = true)
 public class LPAProperty extends Property<LengthPercentageAuto> {
     public LPAProperty(String name, LengthPercentageAuto initialValue) {
-        super(name, LengthPercentageAuto.class, TaffyCodecs.LPA_STYLE_LENGTH_COMPAT_CODEC, initialValue, LPAValue::new);
+        super(name, LengthPercentageAuto.class, TaffyCodecs.LPA_CODEC, initialValue, LPAValue::new);
         setAllowTransition(true);
         setInterpolator(this::interpolate);
     }

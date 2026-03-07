@@ -15,10 +15,10 @@
 
     <!-- ========== stylesheet / lss ========== -->
     <xs:complexType name="Stylesheet">
-        <xs:attribute name="location" type="ResourceLocation" use="required"/>
+        <xs:attribute name="location" type="Identifier" use="required"/>
     </xs:complexType>
 
-    <xs:simpleType name="ResourceLocation">
+    <xs:simpleType name="Identifier">
         <xs:restriction base="xs:string">
             <xs:pattern value="([a-z0-9_.-]+:)?[a-z0-9_./-]+"/>
         </xs:restriction>

@@ -1,21 +1,17 @@
 package com.lowdragmc.lowdraglib2.utils;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.PrimitiveCodec;
 import lombok.experimental.UtilityClass;
-import net.minecraft.Util;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.util.Util;
 import net.minecraft.nbt.*;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
-import org.joml.Vector3f;
 import org.joml.Vector3i;
 
 import java.util.Arrays;
@@ -60,14 +56,14 @@ public final class LDLibExtraCodecs {
         }
     };
 
-    public final static Codec<Number> NUMBER = TAG.xmap(
+    public final static Codec<Number> NUMBER = ExtraCodecs.NBT.xmap(
             tag -> switch (tag) {
-                case IntTag intTag -> intTag.getAsInt();
-                case LongTag longTag -> longTag.getAsLong();
-                case ByteTag byteTag -> byteTag.getAsByte();
-                case ShortTag shortTag -> shortTag.getAsShort();
-                case FloatTag floatTag -> floatTag.getAsFloat();
-                case DoubleTag doubleTag -> doubleTag.getAsDouble();
+                case IntTag intTag -> intTag.intValue();
+                case LongTag longTag -> longTag.longValue();
+                case ByteTag byteTag -> byteTag.byteValue();
+                case ShortTag shortTag -> shortTag.shortValue();
+                case FloatTag floatTag -> floatTag.floatValue();
+                case DoubleTag doubleTag -> doubleTag.doubleValue();
                 case null -> null;
                 default -> throw new IllegalArgumentException("Invalid tag type: " + tag.getClass().getName());
             },

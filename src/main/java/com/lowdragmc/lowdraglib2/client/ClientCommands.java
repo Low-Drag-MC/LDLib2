@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
-import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
-import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.Minecraft;
@@ -29,12 +27,6 @@ public class ClientCommands {
 
     public static List<LiteralArgumentBuilder<CommandSourceStack>> createClientCommands() {
         var commands = new ArrayList<LiteralArgumentBuilder<CommandSourceStack>>();
-        commands.add(createLiteral("ldlib2_client").then(createLiteral("reload_shader")
-                .executes(context -> {
-                    LDLibShaders.reload();
-                    ShaderManager.getInstance().reload();
-                    return 1;
-                })));
         if (LDLib2Registries.SCREEN_TESTS != null && !LDLib2Registries.SCREEN_TESTS.values().isEmpty()) {
             commands.add(createScreenTestCommands());
         }

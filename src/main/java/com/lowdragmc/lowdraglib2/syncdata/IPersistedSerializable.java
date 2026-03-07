@@ -3,10 +3,11 @@ package com.lowdragmc.lowdraglib2.syncdata;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.Tag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.NotNull;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -16,7 +17,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
  * {@link Persisted} and {@link Configurable} annotation.
  * <br>
  * <br>
- * It will use {@link PersistedParser} to serialize and deserialize. Don't override methods of {@link #serializeNBT(HolderLookup.Provider)} and {@link #deserializeNBT(HolderLookup.Provider, CompoundTag)}. unless you know what you are doing.
+ * It will use {@link PersistedParser} to serialize and deserialize. Don't override methods of {@link #serialize(ValueOutput)} and {@link #deserialize(ValueInput)}. unless you know what you are doing.
  * <br>
  * <br>
  * For additional serialization, you can override {@link #serializeAdditionalNBT(HolderLookup.Provider)}. and {@link #deserializeAdditionalNBT(Tag, HolderLookup.Provider)}.
@@ -37,7 +38,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
  *     <li>Call {@link #afterDeserialize()}</li>
  * </ol>
  */
-public interface IPersistedSerializable extends INBTSerializable<CompoundTag> {
+public interface IPersistedSerializable extends ValueIOSerializable {
 
     /**
      * This method is invoked before the serialization process begins.
@@ -60,18 +61,14 @@ public interface IPersistedSerializable extends INBTSerializable<CompoundTag> {
 
     }
 
-    /**
-     * Serializes the current state of this object into a {@link CompoundTag}.
-     * The serialization processes any fields or additional data as defined by
-     * the implementation.
-     *
-     * @param provider The {@link HolderLookup.Provider} used to resolve any necessary
-     *                 context or dependencies during the serialization process.
-     * @return A {@link CompoundTag} representing the serialized state of this object.
-     */
     @Override
-    default CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        return PersistedParser.serializeNBT(this, provider);
+    default void serialize(@NotNull ValueOutput output) {
+        PersistedParser.serialize(this, output);
+    }
+
+    @Override
+    default void deserialize(@NotNull ValueInput input) {
+        PersistedParser.deserialize(this, input);
     }
 
     /**
@@ -115,22 +112,6 @@ public interface IPersistedSerializable extends INBTSerializable<CompoundTag> {
      */
     default void beforeDeserialize() {
 
-    }
-
-    /**
-     * Deserializes the state of this object from the given {@link CompoundTag}.
-     * This method invokes {@link PersistedParser#deserializeNBT(CompoundTag, Object, HolderLookup.Provider)}
-     * to handle the deserialization process, which updates the state of the current object
-     * based on the data stored in the specified {@code tag}.
-     *
-     * @param provider The {@link HolderLookup.Provider} providing context or dependencies required
-     *                 during the deserialization process.
-     * @param tag      The {@link CompoundTag} containing the serialized data to be deserialized
-     *                 into the current object.
-     */
-    @Override
-    default void deserializeNBT(HolderLookup.@NotNull Provider provider, @NotNull CompoundTag tag) {
-        PersistedParser.deserializeNBT(tag, this, provider);
     }
 
     /**

@@ -17,7 +17,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
-import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.AvailableSpace;
 import dev.vfyjxf.taffy.style.TaffyDimension;
@@ -27,7 +26,7 @@ import dev.vfyjxf.taffy.tree.TaffyTree;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -38,16 +37,16 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaConstants;
-import org.joml.Matrix4f;
+import org.joml.Matrix3x2f;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
@@ -91,7 +90,7 @@ public class ModularUI {
     @Getter
     private int screenWidth, screenHeight;
     @Getter
-    private float layoutWidth = YogaConstants.UNDEFINED, layoutHeight = YogaConstants.UNDEFINED;
+    private float layoutWidth = Float.NaN, layoutHeight = Float.NaN;
     @Getter
     private float leftPos, topPos, width, height;
     @Getter
@@ -99,7 +98,7 @@ public class ModularUI {
     @Getter
     private long tickCounter = 0;
     @Getter
-    private Matrix4f lastDrawPose = new Matrix4f();
+    private Matrix3x2f lastDrawPose = new Matrix3x2f();
     // Element registry for fast retrieval
     private final List<UIElement> elements = new ArrayList<>();
     private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
@@ -144,13 +143,12 @@ public class ModularUI {
 
     // hover tips
     @Nullable
-    @Getter
-    private List<Component> tooltipTexts;
-    @Nullable
-    @Getter
-    private TooltipComponent tooltipComponent;
+    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
+    @OnlyIn(Dist.CLIENT)
+    private HoverTooltips hoverTooltips;
     @Nullable
     @OnlyIn(Dist.CLIENT)
+    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
     private Font tooltipFont;
     @Getter
     private ItemStack tooltipStack = ItemStack.EMPTY;
@@ -659,25 +657,13 @@ public class ModularUI {
     }
 
     @OnlyIn(Dist.CLIENT)
-    public void setHoverTooltip(List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable Font tooltipFont, @Nullable TooltipComponent tooltipComponent) {
-        this.tooltipTexts = tooltipTexts;
-        this.tooltipStack = tooltipStack;
-        this.tooltipFont = tooltipFont;
-        this.tooltipComponent = tooltipComponent;
+    public void setHoverTooltip(HoverTooltips hoverTooltips) {
+        this.hoverTooltips = hoverTooltips;
     }
 
     @OnlyIn(Dist.CLIENT)
     public void cleanTooltip() {
-        tooltipTexts = null;
-        tooltipComponent = null;
-        tooltipFont = null;
-        tooltipStack = ItemStack.EMPTY;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Nullable
-    public Font getTooltipFont() {
-        return tooltipFont;
+        this.hoverTooltips = null;
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -764,10 +750,10 @@ public class ModularUI {
         }
 
         @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            lastMouseDownX = (float) mouseX;
-            lastMouseDownY = (float) mouseY;
-            lastMouseDownButton = button;
+        public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean doubleClick) {
+            lastMouseDownX = (float) mouseButtonEvent.x();
+            lastMouseDownY = (float) mouseButtonEvent.y();
+            lastMouseDownButton = mouseButtonEvent.button();
             lastMouseDownElement = getLastHoveredElement();
             if (lastMouseDownElement != null) {
                 if (!lastMouseDownElement.isFocusable()) {
@@ -784,9 +770,9 @@ public class ModularUI {
                     requestFocus(lastMouseDownElement);
                 }
                 var event = UIEvent.create(UIEvents.MOUSE_DOWN);
-                event.x = (float) mouseX;
-                event.y = (float) mouseY;
-                event.button = button;
+                event.x = lastMouseDownX;
+                event.y = lastMouseDownY;
+                event.button = lastMouseDownButton;
                 event.target = lastMouseDownElement;
                 UIEventDispatcher.dispatchEvent(event);
                 return event.hasHandler;
@@ -797,13 +783,16 @@ public class ModularUI {
         }
 
         @Override
-        public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
+            var mouseX = mouseButtonEvent.x();
+            var mouseY = mouseButtonEvent.y();
+            var button = mouseButtonEvent.button();
             lastMouseDownButton = -1;
             var releasedElement = getLastHoveredElement();
             if (dragHandler.isDragging()) {
                 if (releasedElement != null) {
                     var event = UIEvent.create(UIEvents.DRAG_PERFORM);
-                    dispatchDragEvent(mouseX, mouseY, 0, 0, releasedElement, event);
+                    dispatchDragEvent(mouseX, mouseY, button, 0, 0, releasedElement, event);
                 }
                 dragHandler.stopDrag(releasedElement);
             }
@@ -888,8 +877,12 @@ public class ModularUI {
             return false;
         }
 
+
         @Override
-        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        public boolean mouseDragged(MouseButtonEvent mouseButtonEvent, double dragX, double dragY) {
+            var mouseX = mouseButtonEvent.x();
+            var mouseY = mouseButtonEvent.y();
+            var button = mouseButtonEvent.button();
             if (dragHandler.isDragging()) {
                 var hasHandler = false;
                 var current = getLastHoveredElement();
@@ -897,32 +890,32 @@ public class ModularUI {
                     var event = UIEvent.create(UIEvents.DRAG_SOURCE_UPDATE);
                     event.hasBubblePhase = false;
                     event.hasCapturePhase = true;
-                    dispatchDragEvent(mouseX, mouseY, dragX, dragY, dragHandler.dragSource, event);
+                    dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, dragHandler.dragSource, event);
                     hasHandler = event.hasHandler;
                 }
                 if (current != null) {
                     if (lastMouseDragElement == current) {
                         var event = UIEvent.create(UIEvents.DRAG_UPDATE);
-                        dispatchDragEvent(mouseX, mouseY, dragX, dragY, current, event);
+                        dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, current, event);
                         hasHandler |= event.hasHandler;
                     } else {
                         if (lastMouseDragElement != null) {
                             var event = UIEvent.create(UIEvents.DRAG_LEAVE);
                             event.hasBubblePhase = false;
                             event.relatedTarget = current;
-                            dispatchDragEvent(mouseX, mouseY, dragX, dragY, lastMouseDragElement, event);
+                            dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, lastMouseDragElement, event);
                         }
                         lastMouseDragElement = current;
                         var event = UIEvent.create(UIEvents.DRAG_ENTER);
                         event.hasBubblePhase = false;
-                        dispatchDragEvent(mouseX, mouseY, dragX, dragY, current, event);
+                        dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, current, event);
                         hasHandler |= event.hasHandler;
                     }
                     return hasHandler;
                 } else if (lastMouseDragElement != null) {
                     var event = UIEvent.create(UIEvents.DRAG_LEAVE);
                     event.hasBubblePhase = false;
-                    dispatchDragEvent(mouseX, mouseY, dragX, dragY, lastMouseDragElement, event);
+                    dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, lastMouseDragElement, event);
                     lastMouseDragElement = null;
                     hasHandler |= event.hasHandler;
                     return hasHandler;
@@ -931,9 +924,10 @@ public class ModularUI {
             return false;
         }
 
-        private void dispatchDragEvent(double mouseX, double mouseY, double dragX, double dragY, UIElement current, UIEvent event) {
+        private void dispatchDragEvent(double mouseX, double mouseY, int button, double dragX, double dragY, UIElement current, UIEvent event) {
             event.x = (float) mouseX;
             event.y = (float) mouseY;
+            event.button = button;
             event.deltaX = (float) dragX;
             event.deltaY = (float) dragY;
             // TODO fix dragStartX and dragStartY
@@ -945,7 +939,10 @@ public class ModularUI {
         }
 
         @Override
-        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        public boolean keyPressed(KeyEvent keyEvent) {
+            var keyCode = keyEvent.key();
+            var scanCode = keyEvent.scancode();
+            var modifiers = keyEvent.modifiers();
             if (allowDebugMode && keyCode == GLFW.GLFW_KEY_F3) {
                 enableDebugger(!debugMode);
             }
@@ -953,7 +950,7 @@ public class ModularUI {
             lastPressedScanCode = scanCode;
             lastPressedModifiers = modifiers;
             var hasHandler = false;
-            var command = getCommandType(keyCode);
+            var command = getCommandType(keyEvent);
             if (focusedElement != null) {
                 var event = UIEvent.create(UIEvents.KEY_DOWN);
                 event.keyCode = keyCode;
@@ -986,24 +983,25 @@ public class ModularUI {
         }
 
         @Nullable
-        protected String getCommandType(int keyCode) {
-            if (Screen.isCopy(keyCode)) {
+        protected String getCommandType(KeyEvent keyEvent) {
+            var keyCode = keyEvent.key();
+            if (keyEvent.isCopy()) {
                 return CommandEvents.COPY;
-            } else if (Screen.isPaste(keyCode)) {
+            } else if (keyEvent.isPaste()) {
                 return CommandEvents.PASTE;
-            } else if (Screen.isCut(keyCode)) {
+            } else if (keyEvent.isCut()) {
                 return CommandEvents.CUT;
-            } else if (Screen.isSelectAll(keyCode)) {
+            } else if (keyEvent.isSelectAll()) {
                 return CommandEvents.SELECT_ALL;
-            } else if (keyCode == GLFW.GLFW_KEY_Z && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
                 return CommandEvents.UNDO;
-            } else if (keyCode == GLFW.GLFW_KEY_Z && Screen.hasControlDown() && Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlDown() && UIElement.isShiftDown() && !UIElement.isAltDown()) {
                 return CommandEvents.REDO;
-            } else if (keyCode == GLFW.GLFW_KEY_Y && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            } else if (keyCode == GLFW.GLFW_KEY_Y && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
                 return CommandEvents.REDO;
-            } else if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            } else if (keyCode == GLFW.GLFW_KEY_F && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
                 return CommandEvents.FIND;
-            } else if (keyCode == GLFW.GLFW_KEY_S && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+            } else if (keyCode == GLFW.GLFW_KEY_S && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
                 return CommandEvents.SAVE;
             }
             return null;
@@ -1032,12 +1030,12 @@ public class ModularUI {
         }
 
         @Override
-        public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        public boolean keyReleased(KeyEvent keyEvent) {
             if (focusedElement != null) {
                 var event = UIEvent.create(UIEvents.KEY_UP);
-                event.keyCode = keyCode;
-                event.scanCode = scanCode;
-                event.modifiers = modifiers;
+                event.keyCode = keyEvent.key();
+                event.scanCode = keyEvent.scancode();
+                event.modifiers = keyEvent.modifiers();
                 event.target = focusedElement;
                 UIEventDispatcher.dispatchEvent(event);
                 return event.hasHandler;
@@ -1046,11 +1044,11 @@ public class ModularUI {
         }
 
         @Override
-        public boolean charTyped(char codePoint, int modifiers) {
+        public boolean charTyped(CharacterEvent characterEvent) {
             if (focusedElement != null) {
                 var event = UIEvent.create(UIEvents.CHAR_TYPED);
-                event.codePoint = codePoint;
-                event.modifiers = modifiers;
+                event.codePoint = (char) characterEvent.codepoint();
+                event.modifiers = characterEvent.modifiers();
                 event.hasCapturePhase = false;
                 event.hasBubblePhase = false;
                 event.target = focusedElement;
@@ -1101,11 +1099,11 @@ public class ModularUI {
             cleanTooltip();
 
             // rendering
-            lastDrawPose = new Matrix4f(guiGraphics.pose().last().pose());
-            var guiContext = GUIContext.of(ModularUI.this, guiGraphics, mouseX, mouseY, partialTick);
+            lastDrawPose = new Matrix3x2f(guiGraphics.pose());
+            var context = GUIContext.of(guiGraphics, mouseX, mouseY, partialTick);
 
-            lastMouseX = guiContext.localMouseX;
-            lastMouseY = guiContext.localMouseY;
+            lastMouseX = context.localMouseX;
+            lastMouseY = context.localMouseY;
 
             var hoverElement = ui.rootElement.hitTest(lastMouseX, lastMouseY);
             var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
@@ -1126,9 +1124,9 @@ public class ModularUI {
             }
 
             lastHoveredElement = newHoveredElement;
-            ui.rootElement.drawInBackground(guiContext);
+            ui.rootElement.drawInBackground(context);
 
-            if (lastHoveredElement != null && tooltipTexts == null) {
+            if (lastHoveredElement != null && hoverTooltips == null) {
                 var element = lastHoveredElement;
                 while (element != null) {
                     var event = UIEvent.create(UIEvents.HOVER_TOOLTIPS);
@@ -1137,48 +1135,38 @@ public class ModularUI {
                     event.target = element;
                     UIEventDispatcher.dispatchDirectEvent(event, false);
                     if (event.hoverTooltips != null) {
-                        setHoverTooltip(event.hoverTooltips.tooltipTexts(),
-                                Optional.ofNullable(event.hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY),
-                                event.hoverTooltips.tooltipFont(),
-                                event.hoverTooltips.tooltipComponent());
+                        setHoverTooltip(event.hoverTooltips);
                         break;
                     }
                     if (!element.getStyle().tooltips().isEmpty()) {
-                        setHoverTooltip(element.getStyle().tooltips().asList(), ItemStack.EMPTY, null, null);
+                        setHoverTooltip(HoverTooltips.create(Arrays.stream(element.getStyle().tooltips().tooltips()).toArray()));
                         break;
                     }
                     element = element.getParent();
                 }
             }
 
-            guiContext.callPostRendering();
+            context.callPostRendering();
 
-            RenderSystem.enableDepthTest();
-            RenderSystem.depthMask(true);
             if (screen instanceof AbstractContainerScreen<?> containerScreen && !containerScreen.getMenu().getCarried().isEmpty()) {
                 return;
             }
 
             // Do not render tooltips if carried item is existing
             if (drawDrag && dragHandler.isDragging() && dragHandler.dragTexture != null) {
-                dragHandler.dragTexture.draw(guiGraphics, lastMouseX, lastMouseY, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height, partialTick);
+                dragHandler.dragTexture.draw(context, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height);
             }
 
-            if (drawTooltips && !dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
-                guiGraphics.pose().pushPose();
-                guiGraphics.pose().translate(0, 0, 200);
-                DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
-                guiGraphics.pose().popPose();
+            if (drawTooltips && !dragHandler.isDragging() && hoverTooltips != null) {
+                DrawerHelper.drawTooltip(context, hoverTooltips);
             }
-
-            guiGraphics.flush();
         }
 
-        public void renderUISpacing(UIElement element, GuiGraphics graphics) {
+        public void renderUISpacing(GUIContext context, UIElement element, GuiGraphics graphics) {
             var transform = element.getLocalToWorldPose();
-            graphics.pose().pushPose();
-            graphics.pose().setIdentity();
-            graphics.pose().mulPose(transform);
+            context.pose.pushPose();
+            context.pose.setIdentity();
+            context.pose.mulPose(transform);
             var posX = element.getPositionX();
             var posY = element.getPositionY();
             var sizeX = element.getSizeWidth();
@@ -1187,20 +1175,20 @@ public class ModularUI {
             var marginBottom = element.getMarginBottom();
             var marginLeft = element.getMarginLeft();
             var marginRight = element.getMarginRight();
-            DrawerHelper.drawSolidRect(graphics, posX - marginLeft, posY - marginTop,
+            DrawerHelper.drawSolidRect(context, posX - marginLeft, posY - marginTop,
                     sizeX + marginLeft + marginRight, sizeY + marginTop + marginBottom, ColorPattern.T_ORANGE.color);
-            DrawerHelper.drawSolidRect(graphics, posX, posY, sizeX, sizeY, 0x80ff0000);
+            DrawerHelper.drawSolidRect(context, posX, posY, sizeX, sizeY, 0x80ff0000);
             var paddingX = element.getPaddingX();
             var paddingY = element.getPaddingY();
             var paddingWidth = element.getPaddingWidth();
             var paddingHeight = element.getPaddingHeight();
-            DrawerHelper.drawSolidRect(graphics, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00);
+            DrawerHelper.drawSolidRect(context, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00);
             var contentX = element.getContentX();
             var contentY = element.getContentY();
             var contentWidth = element.getContentWidth();
             var contentHeight = element.getContentHeight();
-            DrawerHelper.drawSolidRect(graphics, contentX, contentY, contentWidth, contentHeight, 0x800000ff);
-            graphics.pose().popPose();
+            DrawerHelper.drawSolidRect(context, contentX, contentY, contentWidth, contentHeight, 0x800000ff);
+            context.pose.popPose();
         }
 
     }

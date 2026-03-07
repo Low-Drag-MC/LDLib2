@@ -12,12 +12,12 @@ import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 public class BehaviorSettings implements Settings {
-    public static final ResourceLocation ID = LDLib2.id("behavior");
+    public static final Identifier ID = LDLib2.id("behavior");
     public static final Codec<BehaviorSettings> CODEC =
             PersistedParser.createCodec(BehaviorSettings::new);
 
@@ -29,7 +29,7 @@ public class BehaviorSettings implements Settings {
     @Nullable private Stylesheet currentStylesheet;
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return ID;
     }
 

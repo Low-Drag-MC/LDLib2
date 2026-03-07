@@ -17,15 +17,12 @@ import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.lowdragmc.lowdraglib2.utils.animation.Animation;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import dev.vfyjxf.taffy.style.TaffyDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaEdge;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +32,6 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "switch", group = "basic", registry = "ldlib2:ui_element")

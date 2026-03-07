@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.*;
@@ -92,38 +92,33 @@ public class FacadeBlockAndTintGetter implements BlockAndTintGetter {
     }
 
     @Override
-    public int getMaxLightLevel() {
-        return parent.getMaxLightLevel();
-    }
-
-    @Override
     public int getHeight() {
         return parent.getHeight();
     }
 
     @Override
-    public int getMinBuildHeight() {
-        return parent.getMinBuildHeight();
+    public int getMinY() {
+        return parent.getMinY();
     }
 
     @Override
-    public int getMaxBuildHeight() {
-        return parent.getMaxBuildHeight();
+    public int getMaxY() {
+        return parent.getMaxY();
+    }
+
+    @Override
+    public int getMinSectionY() {
+        return parent.getMinSectionY();
+    }
+
+    @Override
+    public int getMaxSectionY() {
+        return parent.getMaxSectionY();
     }
 
     @Override
     public int getSectionsCount() {
         return parent.getSectionsCount();
-    }
-
-    @Override
-    public int getMinSection() {
-        return parent.getMinSection();
-    }
-
-    @Override
-    public int getMaxSection() {
-        return parent.getMaxSection();
     }
 
     @Override

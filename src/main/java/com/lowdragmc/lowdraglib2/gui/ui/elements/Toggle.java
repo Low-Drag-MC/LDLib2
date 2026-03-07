@@ -20,17 +20,14 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaEdge;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +38,7 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@RemapPrefixForJS("kjs$")
+//@RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "toggle", group = "basic", registry = "ldlib2:ui_element")
@@ -263,13 +260,13 @@ public class Toggle extends BindableUIElement<Boolean> {
         return this;
     }
 
-    @HideFromJS
+//    @HideFromJS
     public Toggle setText(String text) {
         toggleLabel.setText(text);
         return this;
     }
 
-    @HideFromJS
+//    @HideFromJS
     public Toggle setText(Component text) {
         toggleLabel.setText(text);
         return this;

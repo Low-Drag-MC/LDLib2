@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.renderer;
 
+import com.mojang.math.OctahedralGroup;
 import net.minecraft.client.resources.model.BlockModelRotation;
 import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.core.BlockPos;
@@ -43,7 +44,7 @@ public interface IBlockRendererProvider {
      */
     @OnlyIn(Dist.CLIENT)
     default ModelState getModelState(BlockAndTintGetter world, BlockPos pos, BlockState state) {
-        return BlockModelRotation.X0_Y0;
+        return BlockModelRotation.get(OctahedralGroup.IDENTITY);
     }
 
 }

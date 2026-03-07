@@ -7,14 +7,14 @@ import lombok.NoArgsConstructor;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import javax.annotation.Nonnull;
 
 @NoArgsConstructor
 public class SPacketUIRPCEventReturn implements CustomPacketPayload {
-    public static final ResourceLocation ID = LDLib2.id("ui_rpc_event_return");
+    public static final Identifier ID = LDLib2.id("ui_rpc_event_return");
     public static final Type<SPacketUIRPCEventReturn> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, SPacketUIRPCEventReturn> CODEC = StreamCodec.ofMember(SPacketUIRPCEventReturn::write, SPacketUIRPCEventReturn::decode);
 

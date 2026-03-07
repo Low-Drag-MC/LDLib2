@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.registry;
 
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Optional;
 
@@ -38,9 +38,9 @@ public interface ILDLRegister<T extends ILDLRegister<T, V>, V> {
         return "unknown";
     }
 
-    default ResourceLocation registryName() {
+    default Identifier registryName() {
         if (isLDLRegister()) {
-            return ResourceLocation.parse(getRegisterUI().registry());
+            return Identifier.parse(getRegisterUI().registry());
         }
         throw new RuntimeException("not registered %s".formatted(getClass()));
     }

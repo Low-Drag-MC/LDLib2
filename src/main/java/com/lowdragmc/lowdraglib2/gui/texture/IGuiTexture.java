@@ -17,24 +17,19 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.vfyjxf.taffy.style.AlignItems;
-import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.function.Supplier;
-
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
 @KJSBindings
 @FunctionalInterface
@@ -47,7 +42,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
 
         @OnlyIn(Dist.CLIENT)
         @Override
-        public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {}
+        public void draw(GUIContext context, float x, float y, float width, float height) {}
     }
 
     @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", manual = true)
@@ -57,17 +52,10 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
 
         @OnlyIn(Dist.CLIENT)
         @Override
-        public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-            Tesselator tessellator = Tesselator.getInstance();
-            BufferBuilder bufferbuilder = tessellator.begin(VertexFormat.Mode.QUADS, POSITION_TEX);
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, MissingTextureAtlasSprite.getTexture().getId());
-            var matrix4f = graphics.pose().last().pose();
-            bufferbuilder.addVertex(matrix4f, x, y + height, 0).setUv(0, 1);
-            bufferbuilder.addVertex(matrix4f, x + width, y + height, 0).setUv(1, 1);
-            bufferbuilder.addVertex(matrix4f, x + width, y, 0).setUv(1, 0);
-            bufferbuilder.addVertex(matrix4f, x, y, 0).setUv(0, 0);
-            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        public void draw(GUIContext context, float x, float y, float width, float height) {
+            context.blitSprite(RenderPipelines.GUI_TEXTURED, context.graphics.guiSprites.missingSprite(),
+                    x, y, width, height, -1
+            );
         }
     }
     //endregion
@@ -82,7 +70,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
                     optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
                             .orElseGet(() -> MapCodec.unit(MISSING_TEXTURE)));
         } else {
-            return Codec.unit(MISSING_TEXTURE);
+            return MapCodec.unitCodec(MISSING_TEXTURE);
         }
     }
 
@@ -145,24 +133,14 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
      * @return a new {@code IGuiTexture} that represents the interpolated texture.
      */
     default IGuiTexture interpolate(IGuiTexture other, float lerp) {
-        return new IGuiTexture() {
-            @Override
-            @OnlyIn(Dist.CLIENT)
-            public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-                IGuiTexture.this.getRawTexture().copy().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
-                other.getRawTexture().copy().setColor(ColorUtils.color(lerp, lerp, lerp, lerp))
-                        .draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
-            }
+        return (context, x, y, width, height) -> {
+            IGuiTexture.this.getRawTexture().copy().draw(context, x, y, width, height);
+            other.getRawTexture().copy().setColor(ColorUtils.color(lerp, lerp, lerp, lerp))
+                    .draw(context, x, y, width, height);
         };
     }
 
-    @OnlyIn(Dist.CLIENT)
-    void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks);
-
-    @OnlyIn(Dist.CLIENT)
-    default void draw(GUIContext context, float x, float y, float width, float height) {
-        draw(context.graphics, context.localMouseX, context.localMouseY, x, y, width, height, context.partialTick);
-    }
+    void draw(GUIContext context, float x, float y, float width, float height);
 
     // ***************** EDITOR  ***************** //
     @OnlyIn(Dist.CLIENT)
@@ -191,7 +169,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     }
 
     @Nullable
-    static ResourceLocation getTextureFromFile(File filePath) {
+    static Identifier getTextureFromFile(File filePath) {
         String fullPath = filePath.getPath().replace('\\', '/');
 
         // find the "assets/" directory in the path
@@ -213,7 +191,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         var location = modId + ":" + subPath;
 
         if (LDLib2.isValidResourceLocation(location)) {
-            return ResourceLocation.parse(location);
+            return Identifier.parse(location);
         }
         return null;
     }

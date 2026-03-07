@@ -14,18 +14,14 @@ import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.apache.commons.lang3.function.Consumers;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -190,28 +186,25 @@ public class TabView extends UIElement {
     }
 
     @Override
-    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider) {
-        var tagBuilder = TagBuilder.compound(super.serializeNBT(provider));
-        tagBuilder.addList("tabs", listBuilder -> {
-            for (var entry : tabContents.entrySet()) {
-                var tab = entry.getKey();
-                var content = entry.getValue();
-                // check tab valid
-                if (tab == null || !tabScroller.hasScrollViewChild(tab)) {
-                    continue;
-                }
-                if (content == null || !tabContentContainer.hasChild(content)) {
-                    continue;
-                }
-                // if valid, store their index for rebuild
-                listBuilder.addCompound(compound -> compound
-                        .add("tab", tab.getSiblingIndex())
-                        .add("content", content.getSiblingIndex())
-                );
+    public void serialize(ValueOutput valueOutput) {
+        super.serialize(valueOutput);
+        var tabs = valueOutput.childrenList("tabs");
+        for (var entry : tabContents.entrySet()) {
+            var tab = entry.getKey();
+            var content = entry.getValue();
+            // check tab valid
+            if (tab == null || !tabScroller.hasScrollViewChild(tab)) {
+                continue;
             }
-        });
-        tagBuilder.add("selected", (selectedTab == null) ? -1 : selectedTab.getSiblingIndex());
-        return tagBuilder.build();
+            if (content == null || !tabContentContainer.hasChild(content)) {
+                continue;
+            }
+            // if valid, store their index for rebuild
+            var child = tabs.addChild();
+            child.putInt("tab", tab.getSiblingIndex());
+            child.putInt("content", content.getSiblingIndex());
+        }
+        valueOutput.putInt("selected", (selectedTab == null) ? -1 : selectedTab.getSiblingIndex());
     }
 
     @Override
@@ -221,34 +214,37 @@ public class TabView extends UIElement {
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.@NotNull Provider provider, CompoundTag tag) {
-        super.deserializeNBT(provider, tag);
-        var tabs = tag.getList("tabs", Tag.TAG_COMPOUND);
-        var selectedIndex = tag.getInt("selected");
-        for (var i = 0; i < tabs.size(); i++) {
-            var tabCompound = tabs.getCompound(i);
-            var tabIndex = tabCompound.getInt("tab");
-            var contentIndex = tabCompound.getInt("content");
-            if (tabIndex < tabScroller.viewContainer.getChildren().size()) {
-                var tab = tabScroller.viewContainer.getChildren().get(tabIndex);
-                if (tab instanceof Tab tabElement) {
-                    if (contentIndex < tabContentContainer.getChildren().size()) {
-                        var content = tabContentContainer.getChildren().get(contentIndex);
-                        tabContents.put(tabElement, content);
-                        tabElement.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-                            if (event.button == 0) {
-                                UISoundUtils.playButtonClickSound();
+    public void deserialize(ValueInput valueInput) {
+        super.deserialize(valueInput);
+        var selectedIndex = valueInput.getInt("selected").orElse(-1);
+        valueInput.childrenList("tabs").ifPresent(tabs -> {
+            var index = 0;
+            var containers = tabScroller.viewContainer.getChildren();
+            for (var tabValue : tabs) {
+                int contentIndex = tabValue.getInt("content").orElse(index);
+                int tabIndex = tabValue.getInt("tab").orElse(index);
+                if (tabIndex < containers.size()) {
+                    var tab = containers.get(tabIndex);
+                    if (tab instanceof Tab tabElement) {
+                        if (contentIndex < tabContentContainer.getChildren().size()) {
+                            var content = tabContentContainer.getChildren().get(contentIndex);
+                            tabContents.put(tabElement, content);
+                            tabElement.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+                                if (event.button == 0) {
+                                    UISoundUtils.playButtonClickSound();
+                                    selectTab(tabElement);
+                                }
+                            });
+                            content.setDisplay(false);
+                            if (selectedIndex == index) {
                                 selectTab(tabElement);
                             }
-                        });
-                        content.setDisplay(false);
-                        if (selectedIndex == i) {
-                            selectTab(tabElement);
                         }
                     }
                 }
+                index++;
             }
-        }
+        });
     }
 
     @Override

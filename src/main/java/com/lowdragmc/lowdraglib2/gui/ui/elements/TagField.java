@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.ChatFormatting;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -51,7 +51,7 @@ public class TagField extends BindableUIElement<Tag> {
         textField.setTextValidator(this::isTagValid);
         textField.setTextResponder(text -> {
             try {
-                setValue(new TagParser(new StringReader(text)).readValue(), true);
+                setValue(TagParser.parseCompoundAsArgument(new StringReader(text)), true);
             } catch (Exception e) {
                 setValue(EndTag.INSTANCE, true);
             }
@@ -67,7 +67,7 @@ public class TagField extends BindableUIElement<Tag> {
         if (rawText.isEmpty()) return tagValidator.test(EndTag.INSTANCE);
         try {
             var reader = new StringReader(rawText);
-            var tag = new TagParser(reader).readValue();
+            var tag = TagParser.create(NbtOps.INSTANCE).parseAsArgument(reader);
             if (!tagValidator.test(tag)) return false;
             reader.skipWhitespace();
             return !reader.canRead();
@@ -78,7 +78,7 @@ public class TagField extends BindableUIElement<Tag> {
 
     protected void refreshTextField() {
         try {
-            var current = new TagParser(new StringReader(textField.getRawText())).readValue();;
+            var current = TagParser.create(NbtOps.INSTANCE).parseAsArgument(new StringReader(textField.getRawText()));
             if (current.equals(value)) return;
         } catch (Exception ignored) {
         }

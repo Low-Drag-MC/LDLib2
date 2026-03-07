@@ -102,10 +102,10 @@ public class GraphPanel extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(@NotNull GUIContext context) {
+        super.drawBackgroundAdditional(context);
         if (canResize() && this.isSelfOrChildHover() && !isResizing) {
-            WindowDragHelper.drawResizeIcon(guiContext, this, 2);
+            WindowDragHelper.drawResizeIcon(context, this, 2);
         }
     }
 }

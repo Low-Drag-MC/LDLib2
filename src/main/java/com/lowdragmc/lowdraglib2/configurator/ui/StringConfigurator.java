@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import lombok.Getter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
@@ -40,7 +40,7 @@ public class StringConfigurator extends ValueConfigurator<String> {
         if (newValue == null) newValue = defaultValue;
         if (newValue.equals(value)) return;
         if (isResourceLocation && value != null) {
-            if (ResourceLocation.parse(newValue).equals(ResourceLocation.parse(value))) return;
+            if (Identifier.parse(newValue).equals(Identifier.parse(value))) return;
         }
         super.onValueUpdatePassively(newValue);
         textField.setText(newValue, false);

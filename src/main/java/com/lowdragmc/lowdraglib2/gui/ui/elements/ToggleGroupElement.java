@@ -5,8 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.YogaGutter;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;

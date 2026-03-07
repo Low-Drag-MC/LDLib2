@@ -16,16 +16,13 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 import net.neoforged.api.distmarker.Dist;
@@ -38,7 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-@RemapPrefixForJS("kjs$")
+//@RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @KJSBindings
@@ -147,11 +144,11 @@ public class TextElement extends UIElement {
             return this;
         }
 
-        public ResourceLocation font() {
+        public Identifier font() {
             return getValueSave(PropertyRegistry.FONT);
         }
 
-        public TextStyle font(ResourceLocation font) {
+        public TextStyle font(Identifier font) {
             set(PropertyRegistry.FONT, font);
             return this;
         }
@@ -240,7 +237,7 @@ public class TextElement extends UIElement {
         recompute();
     }
 
-    @HideFromJS
+//    @HideFromJS
     @ConfigSetter(field = "text")
     public TextElement setText(Component text) {
         if (this.text.equals(text)) return this;
@@ -249,7 +246,7 @@ public class TextElement extends UIElement {
         return this;
     }
 
-    @HideFromJS
+//    @HideFromJS
     public TextElement setText(String text) {
         return setText(text,true);
     }
@@ -258,9 +255,9 @@ public class TextElement extends UIElement {
         return setText(translate ? Component.translatable(text) : Component.literal(text));
     }
 
-    public TextElement kjs$setText(Component text) {
-        return setText(text);
-    }
+//    public TextElement kjs$setText(Component text) {
+//        return setText(text);
+//    }
 
     @OnlyIn(Dist.CLIENT)
     public Font getFont() {
@@ -268,78 +265,74 @@ public class TextElement extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         if (formattedLines.isEmpty()) return;
-        RenderSystem.depthMask(false);
-        guiContext.graphics.drawManaged(() -> {
-            var font = getFont();
-            var defaultLineHeight = font.lineHeight;
-            var x = getContentX();
-            var y = getContentY();
-            var width = getContentWidth();
-            var height = getContentHeight();
-            var hAlign = getTextStyle().textAlignHorizontal();
-            var vAlign = getTextStyle().textAlignVertical();
-            var lineHeight = getTextStyle().fontSize();
-            var lineSpacing = getTextStyle().lineSpacing();
-            var color = getTextStyle().textColor();
-            var dropShadow = getTextStyle().textShadow();
-            var scale = lineHeight / defaultLineHeight;
+        var font = getFont();
+        var defaultLineHeight = font.lineHeight;
+        var x = getContentX();
+        var y = getContentY();
+        var width = getContentWidth();
+        var height = getContentHeight();
+        var hAlign = getTextStyle().textAlignHorizontal();
+        var vAlign = getTextStyle().textAlignVertical();
+        var lineHeight = getTextStyle().fontSize();
+        var lineSpacing = getTextStyle().lineSpacing();
+        var color = getTextStyle().textColor();
+        var dropShadow = getTextStyle().textShadow();
+        var scale = lineHeight / defaultLineHeight;
 
 
-            // calculate the total height of the text
-            var displayLines = formattedLines;
-            var textWrap = getTextStyle().textWrap();
-            if (textWrap == TextWrap.HIDE) {
-                // display the first line only
-                displayLines = formattedLines.subList(0, Math.min(1, formattedLines.size()));
-            }
+        // calculate the total height of the text
+        var displayLines = formattedLines;
+        var textWrap = getTextStyle().textWrap();
+        if (textWrap == TextWrap.HIDE) {
+            // display the first line only
+            displayLines = formattedLines.subList(0, Math.min(1, formattedLines.size()));
+        }
 
-            var totalTextHeight = displayLines.size() * (lineHeight + lineSpacing) - lineSpacing;
-            var startY = y;
+        var totalTextHeight = displayLines.size() * (lineHeight + lineSpacing) - lineSpacing;
+        var startY = y;
 
-            // according to the vertical alignment, adjust the starting Y coordinate
-            switch (vAlign) {
-                case TOP -> startY = y;
-                case CENTER -> startY = y + (height - totalTextHeight) / 2;
-                case BOTTOM -> startY = y + (height - totalTextHeight);
-            }
+        // according to the vertical alignment, adjust the starting Y coordinate
+        switch (vAlign) {
+            case TOP -> startY = y;
+            case CENTER -> startY = y + (height - totalTextHeight) / 2;
+            case BOTTOM -> startY = y + (height - totalTextHeight);
+        }
 
-            // render each line of text
-            var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && isSelfOrChildHover());
-            for (int i = 0; i < displayLines.size(); i++) {
-                var tuple = displayLines.get(i);
-                var line = tuple.getA();
-                float lineWidth = tuple.getB();
-                var lineX = x;
+        // render each line of text
+        var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && isSelfOrChildHover());
+        for (int i = 0; i < displayLines.size(); i++) {
+            var tuple = displayLines.get(i);
+            var line = tuple.getA();
+            float lineWidth = tuple.getB();
+            var lineX = x;
 
-                // according to the horizontal alignment, adjust the starting X coordinate
-                if (roll && lineWidth > width) {
-                    // for rolling text, always align to the left
-                    var rollSpeed = getTextStyle().rollSpeed();
-                    float totalW = width + lineWidth + 10;
-                    var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
-                    lineX = (float) (x + width - totalW * t);
-                } else {
-                    switch (hAlign) {
-                        case LEFT -> lineX = x;
-                        case CENTER -> lineX = (lineWidth > width) ? x : (x + (width - lineWidth) / 2);
-                        case RIGHT -> lineX = x + (width - lineWidth);
-                    }
+            // according to the horizontal alignment, adjust the starting X coordinate
+            if (roll && lineWidth > width) {
+                // for rolling text, always align to the left
+                var rollSpeed = getTextStyle().rollSpeed();
+                float totalW = width + lineWidth + 10;
+                var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
+                lineX = (float) (x + width - totalW * t);
+            } else {
+                switch (hAlign) {
+                    case LEFT -> lineX = x;
+                    case CENTER -> lineX = (lineWidth > width) ? x : (x + (width - lineWidth) / 2);
+                    case RIGHT -> lineX = x + (width - lineWidth);
                 }
-
-                // calculate the Y coordinate of the current line (including line spacing)
-                var lineY = startY + i * (lineHeight + lineSpacing);
-
-                // draw the text line
-                guiContext.pose.pushPose();
-                guiContext.pose.translate(lineX, lineY, 0);
-                guiContext.pose.scale(scale, scale, 1);
-                guiContext.graphics.drawString(font, line, 0, 0, color, dropShadow);
-                guiContext.pose.popPose();
             }
-        });
-        RenderSystem.depthMask(true);
+
+            // calculate the Y coordinate of the current line (including line spacing)
+            var lineY = startY + i * (lineHeight + lineSpacing);
+
+            // draw the text line
+            context.pose.pushPose();
+            context.pose.translate(lineX, lineY);
+            context.pose.scale(scale, scale);
+            context.graphics.drawString(font, line, 0, 0, color, dropShadow);
+            context.pose.popPose();
+        }
     }
 
     @Override

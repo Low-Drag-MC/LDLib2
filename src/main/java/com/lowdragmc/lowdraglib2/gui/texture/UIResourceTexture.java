@@ -9,8 +9,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -44,12 +43,6 @@ public final class UIResourceTexture extends TransformTexture {
     @OnlyIn(Dist.CLIENT)
     protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         getInternalTexture().draw(context, x, y, width, height);
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        getInternalTexture().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
     }
 
     @Override

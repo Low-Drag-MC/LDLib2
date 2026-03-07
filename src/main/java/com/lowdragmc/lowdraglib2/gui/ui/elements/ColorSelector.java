@@ -1,30 +1,25 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
-import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.BufferBuilderAccessor;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
+import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatHSBRectRenderState;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.render.TextureSetup;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaGutter;
-import org.lwjgl.system.MemoryUtil;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -293,230 +288,88 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawColorPreview(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        DrawerHelper.drawSolidRect(graphics, x, y, width, height, argb);
+    protected void drawColorPreview(GUIContext context, float x, float y, float width, float height) {
+        DrawerHelper.drawSolidRect(context, x, y, width, height, argb);
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawHsbContext(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.hsb());
-        RenderSystem.disableDepthTest();
-
-        var pose = graphics.pose().last().pose();
-
-        float _h = 0, _s = 0, _b = 0f;
-        {
-            //left-up corner
-            switch (mode) {
-                case H -> {
-                    _h = h;
-                    _s = 0f;
-                    _b = 1f;
-                }
-                case S -> {
-                    _h = 0f;
-                    _s = s;
-                    _b = 1f;
-                }
-                case B -> {
-                    _h = 0f;
-                    _s = 1f;
-                    _b = b;
-                }
+    protected void drawHsbContext(GUIContext context, float x, float y, float width, float height) {
+        // Per-corner HSB values: {h, s, b, a}
+        float[] tl, bl, br, tr;
+        switch (mode) {
+            case H -> {
+                tl = new float[]{h, 0f, 1f, 1f};
+                bl = new float[]{h, 0f, 0f, 1f};
+                br = new float[]{h, 1f, 0f, 1f};
+                tr = new float[]{h, 1f, 1f, 1f};
             }
-            buffer.addVertex(pose, x, y, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
-        }
-
-        {
-            //left-down corner
-            switch (mode) {
-                case H -> {
-                    _h = h;
-                    _s = 0f;
-                    _b = 0f;
-                }
-                case S -> {
-                    _h = 0f;
-                    _s = s;
-                    _b = 0f;
-                }
-                case B -> {
-                    _h = 0f;
-                    _s = 0;
-                    _b = b;
-                }
+            case S -> {
+                tl = new float[]{0f, s, 1f, 1f};
+                bl = new float[]{0f, s, 0f, 1f};
+                br = new float[]{360f, s, 0f, 1f};
+                tr = new float[]{360f, s, 1f, 1f};
             }
-            buffer.addVertex(pose, x, y + height, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
-        }
-
-        {
-            //right-down corner
-            switch (mode) {
-                case H -> {
-                    _h = h;
-                    _s = 1f;
-                    _b = 0f;
-                }
-                case S -> {
-                    _h = 360f;
-                    _s = s;
-                    _b = 0f;
-                }
-                case B -> {
-                    _h = 360f;
-                    _s = 0f;
-                    _b = b;
-                }
+            case B -> {
+                tl = new float[]{0f, 1f, b, 1f};
+                bl = new float[]{0f, 0f, b, 1f};
+                br = new float[]{360f, 0f, b, 1f};
+                tr = new float[]{360f, 1f, b, 1f};
             }
-            buffer.addVertex(pose, x + width, y + height, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
+            default -> { return; }
         }
-
-        {
-            //right-up corner
-            switch (mode) {
-                case H -> {
-                    _h = h;
-                    _s = 1f;
-                    _b = 1f;
-                }
-                case S -> {
-                    _h = 360f;
-                    _s = s;
-                    _b = 1f;
-                }
-                case B -> {
-                    _h = 360f;
-                    _s = 1f;
-                    _b = b;
-                }
-            }
-
-            buffer.addVertex(pose, x + width, y, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
-        }
+        context.submitGuiElement(new FloatHSBRectRenderState(
+                LDLibRenderPipelines.HSB, TextureSetup.noTexture(), context.pose.copyPose(),
+                x, y, x + width, y + height, tl, bl, br, tr, context.peekScissor()));
 
         // draw indicator
         float mainX = 0, mainY = 0;
         switch (mode) {
-            case H -> {
-                mainX = s;
-                mainY = 1 - b;
-            }
-            case S -> {
-                mainX = h / 360f;
-                mainY = 1 - b;
-            }
-            case B -> {
-                mainX = h / 360f;
-                mainY = 1- s;
-            }
+            case H -> { mainX = s; mainY = 1 - b; }
+            case S -> { mainX = h / 360f; mainY = 1 - b; }
+            case B -> { mainX = h / 360f; mainY = 1 - s; }
         }
-
-        DrawerHelper.drawSolidRect(graphics, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2, b > 0.5f ? 0xff000000 : 0xffffffff);
+        DrawerHelper.drawSolidRect(context, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2, b > 0.5f ? 0xff000000 : 0xffffffff);
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void drawColorSlider(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.hsb());
-        RenderSystem.disableDepthTest();
-
-        var pose = graphics.pose().last().pose();
-
-        float _h = 0f, _s = 0f, _b = 0f;
-        {
-            //down two corners
-            switch (mode) {
-                case H -> {
-                    _h = 0f;
-                    _s = 1f;
-                    _b = 1f;
-                }
-                case S -> {
-                    _h = h;
-                    _s = 0f;
-                    _b = b;
-                }
-                case B -> {
-                    _h = h;
-                    _s = s;
-                    _b = 0f;
-                }
-            }
-            buffer.addVertex(pose, x, y + height, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
-
-            buffer.addVertex(pose, x + width, y + height, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
-        }
-
-        {
-            //up two corners
-            switch (mode) {
-                case H -> {
-                    _h = 360f;
-                    _s = 1f;
-                    _b = 1f;
-                }
-                case S -> {
-                    _h = h;
-                    _s = 1f;
-                    _b = b;
-                }
-                case B -> {
-                    _h = h;
-                    _s = s;
-                    _b = 1f;
-                }
-            }
-            buffer.addVertex(pose, x + width, y, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
-
-            buffer.addVertex(pose, x, y, 0.0f);
-            putColor(buffer, _h, _s, _b, 1);
-        }
-
-        // draw indicator
-        float color = 0;
+    protected void drawColorSlider(GUIContext context, float x, float y, float width, float height) {
+        // Per-corner HSB values: {h, s, b, a}
+        // top = high value, bottom = low value
+        float[] top, bottom;
         switch (mode) {
             case H -> {
-                color = (1 - h / 360f);
+                top = new float[]{360f, 1f, 1f, 1f};
+                bottom = new float[]{0f, 1f, 1f, 1f};
             }
             case S -> {
-                color = (1 - s);
+                top = new float[]{h, 1f, b, 1f};
+                bottom = new float[]{h, 0f, b, 1f};
             }
             case B -> {
-                color = (1 - b);
+                top = new float[]{h, s, 1f, 1f};
+                bottom = new float[]{h, s, 0f, 1f};
             }
+            default -> { return; }
         }
-        DrawerHelper.drawSolidRect(graphics, (x - 2), (y + color * height), width + 4, 1, 0xffff0000);
-
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawAlphaSlider(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        DrawerHelper.drawGradientRect(graphics, x, y, width, height, argb & 0x00ffffff, argb | 0xff000000, true);
+        // TL=top, BL=bottom, BR=bottom, TR=top
+        context.submitGuiElement(new FloatHSBRectRenderState(
+                LDLibRenderPipelines.HSB, TextureSetup.noTexture(), context.pose.copyPose(),
+                x, y, x + width, y + height, top, bottom, bottom, top, context.peekScissor()));
 
         // draw indicator
-        DrawerHelper.drawSolidRect(graphics, (x + alpha * width), (y - 2), 1, (height + 4), 0xffff0000);
+        float normalizedPos = switch (mode) {
+            case H -> 1 - h / 360f;
+            case S -> 1 - s;
+            case B -> 1 - b;
+        };
+        DrawerHelper.drawSolidRect(context, (x - 2), (y + normalizedPos * height), width + 4, 1, 0xffff0000);
     }
 
-    /**
-     * put hsb color into BufferBuilder
-     */
-    @OnlyIn(Dist.CLIENT)
-    private void putColor(VertexConsumer buffer, float h, float s, float b, float a) {
-        if (buffer instanceof BufferBuilderAccessor accessor) {
-            var i = accessor.invokeBeginElement(LDLibShaders.HSB_Alpha);
-            if (i != -1L) {
-                MemoryUtil.memPutFloat(i, h);
-                MemoryUtil.memPutFloat(i + 4L, s);
-                MemoryUtil.memPutFloat(i + 8L, b);
-                MemoryUtil.memPutFloat(i + 12L, a);
-            }
-        }
+    protected void drawAlphaSlider(GUIContext context, float x, float y, float width, float height) {
+        DrawerHelper.drawGradientRect(context, x, y, width, height, argb & 0x00ffffff, argb | 0xff000000, true);
+
+        // draw indicator
+        DrawerHelper.drawSolidRect(context, (x + alpha * width), (y - 2), 1, (height + 4), 0xffff0000);
     }
 
 }

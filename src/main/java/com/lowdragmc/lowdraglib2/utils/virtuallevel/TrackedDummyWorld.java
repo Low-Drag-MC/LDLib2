@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 import com.lowdragmc.lowdraglib2.client.scene.ParticleManager;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import lombok.Setter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.world.entity.Entity;

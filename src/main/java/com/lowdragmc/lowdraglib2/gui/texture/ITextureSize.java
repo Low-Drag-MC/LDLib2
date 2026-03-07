@@ -20,5 +20,4 @@ public interface ITextureSize {
     default int getHeight() {
         return ldlib2$getImageHeight();
     }
-
 }

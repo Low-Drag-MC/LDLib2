@@ -45,18 +45,9 @@ public class GuiTextureGroup extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         for (IGuiTexture texture : textures) {
             texture.draw(context, x, y, width, height);
-        }
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        for (IGuiTexture texture : textures) {
-            texture.draw(graphics, mouseX,mouseY,  x, y, width, height, partialTicks);
         }
     }
 

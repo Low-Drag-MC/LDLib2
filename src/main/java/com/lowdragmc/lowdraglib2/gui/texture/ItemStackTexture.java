@@ -4,13 +4,11 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -77,27 +75,14 @@ public class ItemStackTexture extends TransformTexture {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        drawInternalWithColor(graphics, x, y, width, height, color);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
     protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        int effectiveColor = context.elementColor == -1 ? color : ColorUtils.mulColor(color, context.elementColor);
-        drawInternalWithColor(context.graphics, x, y, width, height, effectiveColor);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private void drawInternalWithColor(GuiGraphics graphics, float x, float y, float width, float height, int drawColor) {
         if (items.length == 0) return;
         updateTick();
         if (items[index].isEmpty()) return;
-        graphics.flush();
-        graphics.pose().pushPose();
-        graphics.pose().scale(width / 16f, height / 16f, 1);
-        graphics.pose().translate(x * 16 / width, y * 16 / height, -200);
-        DrawerHelper.drawItemStack(graphics, items[index], 0, 0, drawColor, null);
-        graphics.pose().popPose();
+        context.pose.pushPose();
+        context.pose.scale(width / 16f, height / 16f);
+        context.pose.translate(x * 16 / width, y * 16 / height);
+        DrawerHelper.drawItemStack(context, items[index], 0, 0, 0);
+        context.pose.popPose();
     }
 }

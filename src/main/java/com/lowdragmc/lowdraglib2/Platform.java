@@ -51,7 +51,7 @@ public class Platform {
     }
 
     public static boolean isDevEnv() {
-        return !FMLLoader.isProduction();
+        return !FMLLoader.getCurrent().isProduction();
     }
 
     public static boolean isDatagen() {
@@ -63,7 +63,7 @@ public class Platform {
     }
 
     public static boolean isClient() {
-        return FMLEnvironment.dist == Dist.CLIENT;
+        return FMLEnvironment.getDist() == Dist.CLIENT;
     }
 
     public static MinecraftServer getMinecraftServer() {
@@ -75,7 +75,7 @@ public class Platform {
     }
 
     public static Path getGamePath() {
-        return FMLLoader.getGamePath();
+        return FMLLoader.getCurrent().getGameDir();
     }
 
     private static RegistryAccess getBlankRegistryAccess() {
@@ -84,7 +84,7 @@ public class Platform {
         } catch (Throwable e) {
             return new RegistryAccess.Frozen() {
                 @Override
-                public <T> @NotNull Optional<Registry<T>> registry(ResourceKey<? extends Registry<? extends T>> p_206220_) {
+                public <E> Optional<Registry<E>> lookup(ResourceKey<? extends Registry<? extends E>> registryKey) {
                     return Optional.empty();
                 }
 
@@ -129,9 +129,9 @@ public class Platform {
     private static RegistryAccess getRegistryFromMultipleSources(RegistryAccess... accesses) {
         return new RegistryAccess() {
             @Override
-            public <E> Optional<Registry<E>> registry(ResourceKey<? extends Registry<? extends E>> registryKey) {
+            public <E> Optional<Registry<E>> lookup(ResourceKey<? extends Registry<? extends E>> registryKey) {
                 for (RegistryAccess access : accesses) {
-                    Optional<Registry<E>> registry = access.registry(registryKey);
+                    Optional<Registry<E>> registry = access.lookup(registryKey);
                     if (registry.isPresent()) {
                         return registry;
                     }

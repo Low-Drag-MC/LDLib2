@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.resource;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
@@ -16,7 +16,7 @@ public final class FilePath implements IResourcePath {
     public final File file;
     @Nullable
     @Getter
-    public final ResourceLocation location;
+    public final Identifier location;
 
     public static String normalizePath(String path) {
         if (path == null) return null;
@@ -37,7 +37,7 @@ public final class FilePath implements IResourcePath {
         this.location = toResourceLocation();
     }
 
-    public FilePath(ResourceLocation location) {
+    public FilePath(Identifier location) {
         this.path = "assets/" + location.getNamespace() + "/" + location.getPath();
         this.file = new File(this.path);
         this.location = location;
@@ -56,7 +56,7 @@ public final class FilePath implements IResourcePath {
     }
 
     @Nullable
-    private ResourceLocation toResourceLocation() {
+    private Identifier toResourceLocation() {
         var assetsIndex = path.indexOf("assets");
         if (assetsIndex == -1) return null;
         
@@ -77,7 +77,7 @@ public final class FilePath implements IResourcePath {
         }
         
         try {
-            return ResourceLocation.fromNamespaceAndPath(namespace, resourcePath);
+            return Identifier.fromNamespaceAndPath(namespace, resourcePath);
         } catch (Exception e) {
             return null;
         }

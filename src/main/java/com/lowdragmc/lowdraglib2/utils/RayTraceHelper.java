@@ -67,7 +67,7 @@ public final class RayTraceHelper {
         BlockPos.MutableBlockPos currentPos = new BlockPos(x, y, z).mutable();
 
         if (predicate.test(currentPos))
-            return new PredicateTraceResult(currentPos.immutable(), Direction.getNearest(dx - x, dy - y, dz - z));
+            return new PredicateTraceResult(currentPos.immutable(), Direction.getNearest(dx - x, dy - y, dz - z, null));
 
         int remainingDistance = 200;
 

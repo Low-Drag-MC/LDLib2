@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
@@ -20,6 +20,7 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -60,7 +61,7 @@ public class TagKeySearchComponent<T> extends SearchComponentConfigurator<TagKey
         var lowerWord = word.toLowerCase();
         for (var tag : registry.getTags().toList()) {
             if (Thread.currentThread().isInterrupted()) return;
-            var tagKey = tag.getFirst();
+            var tagKey = tag.key();
             if (!filter.test(tagKey)) continue;
             if (tagKey.location().toString().contains(lowerWord)) {
                 searchHandler.acceptResult(tagKey);
@@ -75,7 +76,7 @@ public class TagKeySearchComponent<T> extends SearchComponentConfigurator<TagKey
                     TagKey<net.minecraft.world.item.Item> defaultValue, boolean forceUpdate) {
             super(name, supplier, onUpdate, defaultValue, forceUpdate, BuiltInRegistries.ITEM, UIElementProvider.iconText(
                     item -> {
-                        var items = BuiltInRegistries.ITEM.getTag(item)
+                        var items = BuiltInRegistries.ITEM.get(item)
                                 .map(HolderSet.ListBacked::stream)
                                 .map(holders -> holders.map(Holder::value).map(ItemStack::new).toArray(ItemStack[]::new))
                                 .orElseGet(() -> new ItemStack[0]);
@@ -91,7 +92,7 @@ public class TagKeySearchComponent<T> extends SearchComponentConfigurator<TagKey
         public Block(String name, Supplier<TagKey<net.minecraft.world.level.block.Block>> supplier, Consumer<TagKey<net.minecraft.world.level.block.Block>> onUpdate, TagKey<net.minecraft.world.level.block.Block> defaultValue, boolean forceUpdate) {
             super(name, supplier, onUpdate, defaultValue, forceUpdate, BuiltInRegistries.BLOCK, UIElementProvider.iconText(
                     tagKey -> {
-                        var blocks = BuiltInRegistries.BLOCK.getTag(tagKey)
+                        var blocks = BuiltInRegistries.BLOCK.get(tagKey)
                                 .map(HolderSet.ListBacked::stream)
                                 .map(holders -> holders.map(Holder::value)
                                         .map(block -> new ItemStack(block.asItem()))
@@ -110,7 +111,7 @@ public class TagKeySearchComponent<T> extends SearchComponentConfigurator<TagKey
         public Fluid(String name, Supplier<TagKey<net.minecraft.world.level.material.Fluid>> supplier, Consumer<TagKey<net.minecraft.world.level.material.Fluid>> onUpdate, TagKey<net.minecraft.world.level.material.Fluid> defaultValue, boolean forceUpdate) {
             super(name, supplier, onUpdate, defaultValue, forceUpdate, BuiltInRegistries.FLUID, UIElementProvider.iconText(
                     tagKey -> {
-                        var fluids = BuiltInRegistries.FLUID.getTag(tagKey)
+                        var fluids = BuiltInRegistries.FLUID.get(tagKey)
                                 .map(HolderSet.ListBacked::stream)
                                 .map(holders -> holders.map(Holder::value)
                                         .map(fluid -> new FluidStack(fluid, 1000))
@@ -128,11 +129,12 @@ public class TagKeySearchComponent<T> extends SearchComponentConfigurator<TagKey
         public EntityType(String name, Supplier<TagKey<net.minecraft.world.entity.EntityType<?>>> supplier, Consumer<TagKey<net.minecraft.world.entity.EntityType<?>>> onUpdate, TagKey<net.minecraft.world.entity.EntityType<?>> defaultValue, boolean forceUpdate) {
             super(name, supplier, onUpdate, defaultValue, forceUpdate, BuiltInRegistries.ENTITY_TYPE, UIElementProvider.iconText(
                     tagKey -> {
-                        var types = BuiltInRegistries.ENTITY_TYPE.getTag(tagKey)
+                        var types = BuiltInRegistries.ENTITY_TYPE.get(tagKey)
                                 .map(HolderSet.ListBacked::stream)
                                 .map(holders -> holders.map(Holder::value)
                                         .map(SpawnEggItem::byId)
-                                        .filter(java.util.Objects::nonNull)
+                                        .filter(Optional::isPresent)
+                                        .map(Optional::get)
                                         .map(ItemStack::new)
                                         .toArray(ItemStack[]::new))
                                 .orElseGet(() -> new ItemStack[0]);

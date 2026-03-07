@@ -33,9 +33,8 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDimension;
 import lombok.Getter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -114,15 +113,15 @@ public abstract class Editor extends UIElement {
         rootWindow = new SplittableWindow().setImmortal(true);
         var split1 = rootWindow
                 .splitStyle(style -> style.percentage(80).minPercentage(5).maxPercentage(95))
-                .splitNew(YogaEdge.LEFT);
+                .splitNew(SplittableWindow.Edge.LEFT);
         rightWindow = split1.getSecond().setImmortal(true);
         var split2 = split1.getFirst()
                 .splitStyle(style -> style.percentage(75).minPercentage(5).maxPercentage(95))
-                .splitNew(YogaEdge.TOP);
+                .splitNew(SplittableWindow.Edge.TOP);
         bottomWindow = split2.getSecond().setImmortal(true);
         var split3 = split2.getFirst()
                 .splitStyle(style -> style.percentage(28).minPercentage(5).maxPercentage(95))
-                .splitNew(YogaEdge.LEFT);
+                .splitNew(SplittableWindow.Edge.LEFT);
         centerWindow = split3.getSecond().setImmortal(true);
         leftWindow = split3.getFirst().setImmortal(true);
 

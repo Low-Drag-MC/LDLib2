@@ -12,7 +12,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,22 +26,22 @@ import java.util.function.Supplier;
  * @implNote ResourceLocationAccessor
  */
 @LDLRegisterClient(name = "resource_location", registry = "ldlib2:configurator_accessor")
-public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
+public class ResourceLocationAccessor extends TypesAccessor<Identifier> {
 
     public ResourceLocationAccessor() {
-        super(ResourceLocation.class);
+        super(Identifier.class);
     }
 
     @Override
-    public ResourceLocation defaultValue(@Nullable Field field, @Nullable Class<?> type) {
+    public Identifier defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]);
+            return Identifier.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]);
         }
         return LDLib2.id("default");
     }
 
     @Override
-    public Configurator create(String name, Supplier<ResourceLocation> supplier, Consumer<ResourceLocation> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+    public Configurator create(String name, Supplier<Identifier> supplier, Consumer<Identifier> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         if (field != null && field.isAnnotationPresent(ConfigRL.class)) {
             var rlConfig = field.getAnnotation(ConfigRL.class);
             return switch (rlConfig.value()) {
@@ -54,39 +54,39 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
                                     handler.accept(fontName);
                                 }
                             }
-                        }, ResourceLocation::toString, UIElementProvider.text(font -> font == null ?
+                        }, Identifier::toString, UIElementProvider.text(font -> font == null ?
                         Component.literal("---") : Component.literal(font.toString()))
                 );
                 case ITEM_TAG_KEY -> new TagKeySearchComponent.Item(name,
                         () -> ItemTags.create(supplier.get()), tagKey -> consumer.accept(tagKey.location()),
-                        ItemTags.create(defaultValue(field, ResourceLocation.class)),
+                        ItemTags.create(defaultValue(field, Identifier.class)),
                         forceUpdate
                 );
                 case BLOCK_TAG_KEY -> new TagKeySearchComponent.Block(name,
                         () -> BlockTags.create(supplier.get()), tagKey -> consumer.accept(tagKey.location()),
-                        BlockTags.create(defaultValue(field, ResourceLocation.class)),
+                        BlockTags.create(defaultValue(field, Identifier.class)),
                         forceUpdate
                 );
                 case FLUID_TAG_KEY -> new TagKeySearchComponent.Fluid(name,
                         () -> FluidTags.create(supplier.get()), tagKey -> consumer.accept(tagKey.location()),
-                        FluidTags.create(defaultValue(field, ResourceLocation.class)),
+                        FluidTags.create(defaultValue(field, Identifier.class)),
                         forceUpdate
                 );
                 case ENTITY_TYPE_TAG_KEY -> new TagKeySearchComponent.EntityType(name,
                         () -> TagKey.create(Registries.ENTITY_TYPE, supplier.get()), tagKey -> consumer.accept(tagKey.location()),
-                        TagKey.create(Registries.ENTITY_TYPE, defaultValue(field, ResourceLocation.class)),
+                        TagKey.create(Registries.ENTITY_TYPE, defaultValue(field, Identifier.class)),
                         forceUpdate
                 );
             };
         }
         var configurator = new StringConfigurator(name,
                 () -> supplier.get().toString(),
-                s -> consumer.accept(ResourceLocation.parse(s)),
+                s -> consumer.accept(Identifier.parse(s)),
                 defaultValue(field, String.class).toString(),
                 forceUpdate).setResourceLocation(true);
         configurator.setPastable(String.class, pasted -> {
             if (pasted != null && LDLib2.isValidResourceLocation(pasted)) {
-                consumer.accept(ResourceLocation.parse(pasted));
+                consumer.accept(Identifier.parse(pasted));
                 configurator.notifyChanges();
             }
         });

@@ -50,7 +50,7 @@ public final class RegistryAccessor<TYPE> implements IDirectAccessor<TYPE> {
         if (type.isPresent()) {
             var.set(type.get());
         } else if (registry instanceof DefaultedRegistry<TYPE> defaultedRegistry) {
-            var.set(defaultedRegistry.get(defaultedRegistry.getDefaultKey()));
+            var.set(defaultedRegistry.getValue(defaultedRegistry.getDefaultKey()));
         } else {
             LDLib2.LOGGER.error("Cannot parse the payload {} to the registry type {}.", payload, typeClass);
             throw new IllegalArgumentException("Cannot parse the payload to the registry type.");

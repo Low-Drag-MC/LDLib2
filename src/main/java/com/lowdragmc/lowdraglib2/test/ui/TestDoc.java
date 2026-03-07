@@ -16,12 +16,11 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
-import org.appliedenergistics.yoga.YogaJustify;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -251,7 +250,7 @@ public class TestDoc implements IScreenTest{
                         new FluidSlot().setFluid(new FluidStack(Fluids.WATER, 1000))
                 ),
                 // list all stylesheets
-                new Selector<ResourceLocation>()
+                new Selector<Identifier>()
                         .setSelected(StylesheetManager.GDP, false)
                         .setCandidates(StylesheetManager.INSTANCE.getAllPackStylesheets().stream().toList())
                         .setOnValueChanged(selected -> {

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.utils;
 
 import com.google.common.base.Strings;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -19,8 +20,10 @@ import net.minecraft.nbt.*;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.*;
 import net.neoforged.neoforge.common.CommonHooks;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.neoforged.neoforge.network.connection.ConnectionType;
 
 import java.lang.reflect.Field;
@@ -69,7 +72,9 @@ public final class PersistedParser {
                     } else {
                         tag = (CompoundTag) ops.convertMap(NbtOps.INSTANCE, input);
                     }
-                    persistedSerializable.deserializeNBT(provider, tag);
+                    try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                        persistedSerializable.deserialize(TagValueInput.create(reporter, provider, tag));
+                    }
                 } else {
                     deserialize(ops, input, instance, provider);
                 }
@@ -84,11 +89,15 @@ public final class PersistedParser {
                 }
                 if (input instanceof IPersistedSerializable persistedSerializable) {
                     try {
-                        var tag = persistedSerializable.serializeNBT(provider);
-                        if (ops == NbtOps.INSTANCE || ops instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
-                            return (DataResult<T1>) DataResult.success(tag);
+                        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                            var valueOutput = TagValueOutput.createWithContext(reporter, provider);
+                            persistedSerializable.serialize(valueOutput);
+                            var tag = valueOutput.buildResult();
+                            if (ops == NbtOps.INSTANCE || ops instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
+                                return (DataResult<T1>) DataResult.success(tag);
+                            }
+                            return DataResult.success(NbtOps.INSTANCE.convertTo(ops, tag));
                         }
-                        return DataResult.success(NbtOps.INSTANCE.convertTo(ops, tag));
                     } catch (Exception e) {
                         return DataResult.error(e::getMessage);
                     }
@@ -129,6 +138,46 @@ public final class PersistedParser {
             return instance;
         });
     }
+
+    /**
+     * This method is used to serial the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
+     */
+    public static void serialize(Object object, ValueOutput output) {
+        if (output instanceof TagValueOutput tagValueOutput) {
+            var ops = tagValueOutput.ops;
+            DataResult<Tag> dataResult;
+            if (ops instanceof RegistryOps<?> registryOps && registryOps.lookupProvider instanceof RegistryOps.HolderLookupAdapter adapter) {
+                dataResult = serialize(ops, object, adapter.lookupProvider);
+            } else {
+                dataResult = serialize(ops, object, Platform.getFrozenRegistry());
+            }
+            dataResult.result().ifPresent(tag -> {
+                if (tag instanceof CompoundTag compoundTag) {
+                    output.store(compoundTag);
+                }
+            });
+        } else {
+            output.store(serializeNBT(object, Platform.getFrozenRegistry()));
+        }
+    }
+
+    /**
+     * This method is used to deserialize the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
+     */
+    public static void deserialize(Object object, ValueInput input) {
+        if (input instanceof TagValueInput tagValueInput) {
+            var ops = tagValueInput.context.ops();
+            var provider = tagValueInput.context.lookup();
+            var data = tagValueInput.input;
+            deserialize(ops, data, object, provider);
+        } else {
+            var provider = input.lookup();
+            input.read(MapCodec.assumeMapUnsafe(CompoundTag.CODEC)).ifPresent(data -> {
+                deserializeNBT(data, object, provider);
+            });
+        }
+    }
+
 
     /**
      * This method is used to serial the specific type data to the object fields with {@link Persisted} or {@link Configurable} annotation.
@@ -256,21 +305,26 @@ public final class PersistedParser {
                     field.setAccessible(true);
                     var value = field.get(object);
                     if (value != null) {
-                        if (value instanceof INBTSerializable<?> serializable) {
-                            var subData = (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) ?
-                                    (T) serializable.serializeNBT(provider) : 
-                                    NbtOps.INSTANCE.convertTo(op, serializable.serializeNBT(provider));
-                            if (subFlatten) {
-                                var mapResult = op.getMap(subData);
-                                if (mapResult.isSuccess()) {
-                                    mapResult.getOrThrow().entries().forEachOrdered(entry ->
-                                            recordBuilder.add(entry.getFirst(), entry.getSecond())
-                                    );
+                        if (value instanceof ValueIOSerializable serializable) {
+                            try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                                var output = TagValueOutput.createWithContext(reporter, provider);
+                                serializable.serialize(output);
+                                var subDataTag = output.buildResult();
+                                var subData = (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) ?
+                                        (T) subDataTag :
+                                        NbtOps.INSTANCE.convertTo(op, subDataTag);
+                                if (subFlatten) {
+                                    var mapResult = op.getMap(subData);
+                                    if (mapResult.isSuccess()) {
+                                        mapResult.getOrThrow().entries().forEachOrdered(entry ->
+                                                recordBuilder.add(entry.getFirst(), entry.getSecond())
+                                        );
+                                    } else {
+                                        data = subData;
+                                    }
                                 } else {
                                     data = subData;
                                 }
-                            } else {
-                                data = subData;
                             }
                         } else {
                             var builder = subFlatten ? recordBuilder : op.mapBuilder();
@@ -357,22 +411,28 @@ public final class PersistedParser {
                     var value = field.get(object);
                     if (value != null) {
                         if (data != null) {
-                            if (value instanceof INBTSerializable serializable) {
-                                if (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
-                                    serializable.deserializeNBT(provider, (Tag) data);
-                                } else {
-                                    serializable.deserializeNBT(provider, op.convertTo(NbtOps.INSTANCE, data));
+                            if (value instanceof ValueIOSerializable valueSerializable) {
+                                try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                                    if (data instanceof CompoundTag tag) {
+                                        valueSerializable.deserialize(TagValueInput.create(reporter, provider, tag));
+                                    } else if (op.convertTo(NbtOps.INSTANCE, data) instanceof  CompoundTag tag){
+                                        valueSerializable.deserialize(TagValueInput.create(reporter, provider, tag));
+                                    }
                                 }
                             } else {
                                 op.getMap(data).ifSuccess(mapData -> deserializeInternal(true, mapData, op,
                                         new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider));
                             }
                         } else if (subFlatten) {
-                            if (value instanceof INBTSerializable serializable) {
-                                if (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
-                                    serializable.deserializeNBT(provider, (Tag) op.createMap(map.entries()));
-                                } else {
-                                    serializable.deserializeNBT(provider, op.convertTo(NbtOps.INSTANCE, op.createMap(map.entries())));
+                            if (value instanceof ValueIOSerializable valueSerializable) {
+                                try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                                    if (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
+                                        valueSerializable.deserialize(TagValueInput.create(reporter, provider,
+                                                (CompoundTag) op.createMap(map.entries())));
+                                    } else {
+                                        valueSerializable.deserialize(TagValueInput.create(reporter, provider,
+                                                (CompoundTag) op.convertTo(NbtOps.INSTANCE, op.createMap(map.entries()))));
+                                    }
                                 }
                             } else {
                                 deserializeInternal(true, map, op,
@@ -442,9 +502,12 @@ public final class PersistedParser {
                     var value = field.get(object);
                     if (value != null) {
                         buf.writeBoolean(true);
-                        if (value instanceof INBTSerializable<?> serializable) {
-                            var tag = serializable.serializeNBT(provider);
-                            buf.writeNbt(tag);
+                        if (value instanceof ValueIOSerializable valueSerializable) {
+                            try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                                var valueOutput = TagValueOutput.createWithContext(reporter, provider);
+                                valueSerializable.serialize(valueOutput);
+                                buf.writeNbt(valueOutput.buildResult());
+                            }
                         } else {
                             writeStreamBuffInternal(true, buf, ReflectionUtils.getRawType(field.getGenericType()), value, provider);
                         }
@@ -474,7 +537,7 @@ public final class PersistedParser {
      * processing fields annotated with {@link Persisted} or {@link Configurable}.
      * Handles recursive deserialization across class hierarchies and manages
      * pre- and post-deserialization hooks for objects implementing {@link IPersistedSerializable}.
-     * Additionally supports fields capable of serialization using {@link INBTSerializable}.
+     * Additionally supports fields capable of serialization using {@link ValueIOSerializable}.
      */
     private static void readStreamBuffInternal(boolean root, RegistryFriendlyByteBuf buf, Map<String, Method> setters, Class<?> clazz, Object object, HolderLookup.Provider provider) {
         if (clazz == Object.class || clazz == null) return;
@@ -511,8 +574,12 @@ public final class PersistedParser {
                     field.setAccessible(true);
                     var value = field.get(object);
                     if (buf.readBoolean() && value != null) {
-                        if (value instanceof INBTSerializable serializable) {
-                            serializable.deserializeNBT(provider, buf.readNbt(NbtAccounter.unlimitedHeap()));
+                        if (value instanceof ValueIOSerializable serializable) {
+                            if (buf.readNbt(NbtAccounter.unlimitedHeap()) instanceof CompoundTag tag) {
+                                try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                                    serializable.deserialize(TagValueInput.create(reporter, provider, tag));
+                                }
+                            }
                         } else {
                             readStreamBuffInternal(true, buf, new HashMap<>(), ReflectionUtils.getRawType(field.getGenericType()), value, provider);
                         }

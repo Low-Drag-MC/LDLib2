@@ -1,16 +1,20 @@
 package com.lowdragmc.lowdraglib2.configurator;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.nbt.Tag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.minecraft.nbt.CompoundTag;
 
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
-public class SerializableRecordAction<T extends INBTSerializable<?>> implements EditAction {
+public class SerializableRecordAction<T extends ValueIOSerializable> implements EditAction {
     public final T serializable;
     @Nullable
     @Setter
@@ -19,14 +23,19 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
     @Setter
     private Consumer<T> onUndo;
     // runtime
-    private Tag snapshot;
+    private CompoundTag snapshot;
 
     private SerializableRecordAction(T serializable) {
         this.serializable = serializable;
-        this.snapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
+        updateSnapshot();
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            var valueOutput = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());
+            serializable.serialize(valueOutput);
+            this.snapshot = valueOutput.buildResult();
+        }
     }
 
-    public static <T extends INBTSerializable<?>> SerializableRecordAction<T> of(T serializable) {
+    public static <T extends ValueIOSerializable> SerializableRecordAction<T> of(T serializable) {
         return new SerializableRecordAction<>(serializable);
     }
 
@@ -37,12 +46,24 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
     }
 
     public void updateSnapshot() {
-        snapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            var valueOutput = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());
+            serializable.serialize(valueOutput);
+            this.snapshot = valueOutput.buildResult();
+        }
+    }
+
+
+    public void loadSnapshot() {
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            var valueInput = TagValueInput.create(reporter, Platform.getFrozenRegistry(), snapshot);
+            serializable.deserialize(valueInput);
+        }
     }
 
     @Override
     public void execute() {
-        ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
+        loadSnapshot();
         if (onExecute != null) {
             onExecute.accept(serializable);
         }
@@ -50,7 +71,7 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
 
     @Override
     public void undo() {
-        ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
+        loadSnapshot();
         if (onUndo != null) {
             onUndo.accept(serializable);
         }

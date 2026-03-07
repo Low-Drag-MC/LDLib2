@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.core.mixins;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.holder.IManagedHolder;
 import com.lowdragmc.lowdraglib2.syncdata.holder.IPersistManagedHolder;
 import com.lowdragmc.lowdraglib2.syncdata.holder.ISyncMangedHolder;
@@ -9,6 +10,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -39,18 +43,29 @@ public abstract class BlockEntityMixin {
     }
 
     @Inject(method = "saveAdditional", at = @At(value = "RETURN"))
-    private void injectSaveAdditional(CompoundTag pTag, HolderLookup.Provider provider, CallbackInfo ci) {
+    private void injectSaveAdditional(ValueOutput output, CallbackInfo ci) {
         if (this instanceof IPersistManagedHolder persistManagedHolder) {
-            persistManagedHolder.saveManagedPersistentData(provider, pTag, false);
+            persistManagedHolder.saveManagedPersistentData(output, false);
         }
     }
 
     @Inject(method = "loadAdditional", at = @At(value = "RETURN"))
-    private void injectLoad(CompoundTag pTag, HolderLookup.Provider provider, CallbackInfo ci) {
-        if (this instanceof ISyncMangedHolder syncMangedHolder && pTag.get(syncMangedHolder.getSyncTag()) instanceof CompoundTag tag) {
-            syncMangedHolder.deserializeInitialData(provider, tag);
-        } else if (this instanceof IPersistManagedHolder persistManagedHolder) {
-            persistManagedHolder.loadManagedPersistentData(provider, pTag);
+    private void injectLoad(ValueInput input, CallbackInfo ci) {
+        if (this instanceof ISyncMangedHolder syncMangedHolder) {
+            var initial = input.read(syncMangedHolder.getSyncTag(), CompoundTag.CODEC);
+            if (initial.isPresent()) {
+                HolderLookup.Provider provider;
+                if (input instanceof TagValueInput tagInput) {
+                    provider = tagInput.context.lookup();
+                } else {
+                    provider = Platform.getFrozenRegistry();
+                }
+                syncMangedHolder.deserializeInitialData(provider, initial.get());
+                return;
+            }
+        }
+        if (this instanceof IPersistManagedHolder persistManagedHolder) {
+            persistManagedHolder.loadManagedPersistentData(input);
         }
     }
 

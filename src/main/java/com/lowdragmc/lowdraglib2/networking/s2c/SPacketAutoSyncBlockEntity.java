@@ -10,7 +10,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +21,7 @@ import java.util.*;
  * a packet that contains payload for managed fields
  */
 public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
-    public static final ResourceLocation ID = LDLib2.id("auto_sync_block_entity");
+    public static final Identifier ID = LDLib2.id("auto_sync_block_entity");
     public static final Type<SPacketAutoSyncBlockEntity> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, SPacketAutoSyncBlockEntity> CODEC = StreamCodec.ofMember(SPacketAutoSyncBlockEntity::write, SPacketAutoSyncBlockEntity::decode);
 
@@ -58,7 +58,7 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
     @Override
     public void write(RegistryFriendlyByteBuf buf) {
         super.write(buf);
-        buf.writeResourceLocation(Objects.requireNonNull(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntityType)));
+        buf.writeIdentifier(Objects.requireNonNull(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntityType)));
         buf.writeByteArray(changed.toByteArray());
         buf.writeByteArray(data);
         buf.writeNbt(extra);
@@ -66,7 +66,7 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
 
     public static SPacketAutoSyncBlockEntity decode(RegistryFriendlyByteBuf buffer) {
         var pos = buffer.readBlockPos();
-        var blockEntityType = BuiltInRegistries.BLOCK_ENTITY_TYPE.get(buffer.readResourceLocation());
+        var blockEntityType = BuiltInRegistries.BLOCK_ENTITY_TYPE.getValue(buffer.readIdentifier());
         var changed = BitSet.valueOf(buffer.readByteArray());
         var data = buffer.readByteArray();
         var extra = buffer.readNbt();

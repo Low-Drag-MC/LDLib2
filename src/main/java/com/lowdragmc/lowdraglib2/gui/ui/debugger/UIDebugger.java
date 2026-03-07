@@ -297,11 +297,11 @@ public class UIDebugger extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(@Nonnull GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(@Nonnull GUIContext context) {
+        super.drawBackgroundAdditional(context);
 
         if (isSelfOrChildHover() && !isResizing) {
-            WindowDragHelper.drawResizeIcon(guiContext, this, 4);
+            WindowDragHelper.drawResizeIcon(context, this, 4);
         }
     }
 }

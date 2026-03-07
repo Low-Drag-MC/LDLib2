@@ -10,6 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +47,7 @@ public interface IRPCManagedHolder extends IManagedHolder {
     @OnlyIn(Dist.CLIENT)
     default void rpcToServer(IManaged managed, String methodName, Object... args) {
         var packet = createRPCPacket(parseArgs2Bytes(managed, methodName, args));
-        PacketDistributor.sendToServer(packet);
+        ClientPacketDistributor.sendToServer(packet);
     }
 
     default void rpcToPlayer(IManaged managed, ServerPlayer player, String methodName, Object... args) {

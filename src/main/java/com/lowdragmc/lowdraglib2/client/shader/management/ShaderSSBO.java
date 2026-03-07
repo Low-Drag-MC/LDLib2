@@ -17,7 +17,6 @@ import java.nio.FloatBuffer;
  */
 @OnlyIn(Dist.CLIENT)
 public class ShaderSSBO {
-
 	public final int id;
 	private boolean inValid = false;
 

@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
 import com.lowdragmc.lowdraglib2.math.PositionedRect;
+import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -51,12 +51,12 @@ public class ImmediateWorldSceneRenderer extends WorldSceneRenderer {
 
     @Override
     protected void clearView(int x, int y, int width, int height) {
-        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+        GlStateManager._clear(GL11.GL_DEPTH_BUFFER_BIT);
     }
 
     @Override
     protected void resetCamera() {
-        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+        GlStateManager._clear(GL11.GL_DEPTH_BUFFER_BIT);
         super.resetCamera();
     }
 }

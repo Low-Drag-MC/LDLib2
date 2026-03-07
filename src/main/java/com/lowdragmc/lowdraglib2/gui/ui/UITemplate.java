@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
@@ -11,8 +12,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.Event;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.neoforged.neoforge.common.NeoForge;
 
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +33,7 @@ public class UITemplate {
     public static final Codec<UITemplate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             CompoundTag.CODEC.fieldOf("template").forGetter(range -> range.data),
             Codec.STRING.optionalFieldOf("builtin_styles").forGetter(ui -> Optional.ofNullable((ui.builtinStyles == null || ui.builtinStyles.isBlank()) ? null : ui.builtinStyles)),
-            ResourceLocation.CODEC.listOf().optionalFieldOf("stylesheets").forGetter(ui -> Optional.ofNullable(ui.stylesheets.isEmpty() ? null : ui.stylesheets))
+            Identifier.CODEC.listOf().optionalFieldOf("stylesheets").forGetter(ui -> Optional.ofNullable(ui.stylesheets.isEmpty() ? null : ui.stylesheets))
     ).apply(instance, (template, customStyles, stylesheets) ->
             new UITemplate(template, customStyles.orElse(""), stylesheets.orElseGet(Collections::emptyList))));
 
@@ -40,18 +44,18 @@ public class UITemplate {
     @Nullable
     private String builtinStyles;
     @Getter
-    private final List<ResourceLocation> stylesheets = new ArrayList<>();
+    private final List<Identifier> stylesheets = new ArrayList<>();
     // cache
     @Nullable
     private Stylesheet customStylesheet;
 
-    private UITemplate(CompoundTag data, @Nullable String builtinStyles, List<ResourceLocation> stylesheets) {
+    private UITemplate(CompoundTag data, @Nullable String builtinStyles, List<Identifier> stylesheets) {
         this.data = data;
         this.builtinStyles = builtinStyles;
         this.stylesheets.addAll(stylesheets);
     }
 
-    private UITemplate(CompoundTag data, String builtinStyles, ResourceLocation... stylesheets) {
+    private UITemplate(CompoundTag data, String builtinStyles, Identifier... stylesheets) {
         this(data, builtinStyles, stylesheets == null ? Collections.emptyList() : List.of(stylesheets));
     }
 
@@ -82,7 +86,9 @@ public class UITemplate {
     }
 
     public void initUI(UIElement root) {
-        root.deserializeNBT(Platform.getFrozenRegistry(), data);
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            root.deserialize(TagValueInput.create(reporter, Platform.getFrozenRegistry(), data));
+        }
     }
 
     public List<Stylesheet> getAllStylesheets() {
@@ -100,16 +106,16 @@ public class UITemplate {
         return stylesheets;
     }
 
-    public static UITemplate of(CompoundTag data, String customStylesheet, ResourceLocation... styles) {
+    public static UITemplate of(CompoundTag data, String customStylesheet, Identifier... styles) {
         return new UITemplate(data, customStylesheet, styles);
     }
 
-    public static UITemplate of(UIElement root) {
-        return new UITemplate(root.serializeNBT(Platform.getFrozenRegistry()), null);
-    }
-
-    public static UITemplate of(UIElement root, ResourceLocation... styles) {
-        return new UITemplate(root.serializeNBT(Platform.getFrozenRegistry()), null, styles);
+    public static UITemplate of(UIElement root, Identifier... styles) {
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            var output = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());
+            root.serialize(output);
+            return new UITemplate(output.buildResult(), null, styles);
+        }
     }
 
     public static UITemplate missing() {

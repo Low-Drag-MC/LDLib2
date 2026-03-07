@@ -14,8 +14,9 @@ import com.mojang.serialization.Codec;
 import lombok.experimental.UtilityClass;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -132,8 +133,8 @@ public final class PropertyRegistry {
         return create(name, Component.class, ComponentSerialization.CODEC, initialValue, ComponentValue::new);
     }
 
-    public static Property<ResourceLocation> create(String name, ResourceLocation initialValue) {
-        return create(name, ResourceLocation.class, ResourceLocation.CODEC, initialValue, ResourceLocationValue::new);
+    public static Property<Identifier> create(String name, Identifier initialValue) {
+        return create(name, Identifier.class, Identifier.CODEC, initialValue, ResourceLocationValue::new);
     }
 
     public static <T extends Enum<T>> EnumProperty<T> create(String name, Class<T> clazz, T initialValue) {
@@ -149,8 +150,9 @@ public final class PropertyRegistry {
     public static final Property<Tooltips> TOOLTIPS = create("tooltips", Tooltips.empty());
     public static final Property<Integer> Z_INDEX = create("z-index", 0);
     public static final Property<Transform2D> TRANSFORM_2D = create("transform", Transform2D.identity());
+    public static final Property<Clip> CLIP = create("clip", Clip.class, Clip.NONE);
     public static final Property<Float> OPACITY = create("opacity", 1f).setRange(0f, 1f);
-    public static final Property<IGuiTexture> OVERFLOW_CLIP = create("overflow-clip", IGuiTexture.EMPTY);
+    public static final Property<IGuiTexture> MASK = create("mask", IGuiTexture.EMPTY);
     public static final Property<Transition> TRANSITION = create("transition", Transition.EMPTY);
     public static final Property<Integer> COLOR = create(new ColorProperty("color", -1));
 
@@ -211,7 +213,7 @@ public final class PropertyRegistry {
     public static final Property<Float> MAX_PERCENTAGE = create("max-percentage", 95f).setRange(0f, 100f);
 
     public static final Property<Float> FONT_SIZE = create("font-size", 9f).setMin(0f);
-    public static final Property<ResourceLocation> FONT = create("font", Style.DEFAULT_FONT);
+    public static final Property<Identifier> FONT = create("font", FontDescription.DEFAULT.id());
     public static final Property<Integer> TEXT_COLOR = createColor("text-color", -1);
     public static final Property<Integer> ERROR_COLOR = createColor("error-color", 0xffff0000);
     public static final Property<Integer> CURSOR_COLOR = createColor("cursor-color", 0xffeeeeee);

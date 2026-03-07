@@ -34,7 +34,7 @@ public interface IBlockEntityManaged extends IManaged {
         var blockEntity = asBlockEntity();
         var level = blockEntity.getLevel();
         if (level != null) {
-            if (level.isClientSide) {
+            if (level.isClientSide()) {
                 var state = blockEntity.getBlockState();
                 level.sendBlockUpdated(blockEntity.getBlockPos(), state, state, 1 << 3);
             }

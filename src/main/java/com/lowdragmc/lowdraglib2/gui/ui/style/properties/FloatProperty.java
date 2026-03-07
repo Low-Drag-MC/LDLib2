@@ -3,14 +3,12 @@ package com.lowdragmc.lowdraglib2.gui.ui.style.properties;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
-import com.lowdragmc.lowdraglib2.gui.ui.style.IValueInterpolator;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.FloatValue;
 import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.appliedenergistics.yoga.numeric.FloatOptional;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;

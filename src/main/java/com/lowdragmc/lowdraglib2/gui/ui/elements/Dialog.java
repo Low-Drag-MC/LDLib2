@@ -19,12 +19,10 @@ import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.*;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
-import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.style.StyleSizeLength;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 import org.lwjgl.glfw.GLFW;
@@ -230,14 +228,6 @@ public class Dialog extends UIElement {
         return show(modularUI.ui.rootElement);
     }
 
-    /**
-     * Sets the width of the dialog. by default, it will be 150px.
-     */
-    @Deprecated
-    public Dialog width(StyleSizeLength width) {
-        overlay.layout(layout -> layout.width(width));
-        return this;
-    }
 
     public Dialog width(TaffyDimension width) {
         overlay.layout(layout -> layout.setWidth(width));
@@ -581,10 +571,10 @@ public class Dialog extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(@NotNull GUIContext context) {
+        super.drawBackgroundAdditional(context);
         if (windowMode && !isResizing) {
-            WindowDragHelper.drawResizeIcon(guiContext, overlay, 2);
+            WindowDragHelper.drawResizeIcon(context, overlay, 2);
         }
     }
 }

@@ -3,11 +3,10 @@ package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject;
 import com.lowdragmc.lowdraglib2.math.Transform;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.StringTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import org.jetbrains.annotations.UnknownNullability;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -15,7 +14,7 @@ import java.util.UUID;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class TransformRef implements INBTSerializable<StringTag> {
+public class TransformRef implements ValueIOSerializable {
     @Nullable
     @Getter @Setter
     private UUID transformId = null;
@@ -46,22 +45,22 @@ public class TransformRef implements INBTSerializable<StringTag> {
     }
 
     @Override
-    public @UnknownNullability StringTag serializeNBT(HolderLookup.Provider provider) {
-        if (transformId == null) return StringTag.valueOf("");
-        return StringTag.valueOf(transformId.toString());
+    public void serialize(ValueOutput valueOutput) {
+        if (transformId != null) {
+            valueOutput.putString("uuid", transformId.toString());
+        }
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, StringTag nbt) {
-        if (nbt.getAsString().isEmpty()) {
-            transformId = null;
-        } else {
+    public void deserialize(ValueInput valueInput) {
+        transformId = null;
+        valueInput.getString("uuid").ifPresent(uuid -> {
             try {
-                transformId = UUID.fromString(nbt.getAsString());
+                transformId = UUID.fromString(uuid);
             } catch (Exception e) {
                 transformId = null;
             }
-        }
+        });
     }
 
     @Override

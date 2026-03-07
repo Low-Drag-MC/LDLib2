@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,12 +14,13 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 // used to present a renderer block
 public class RendererBlock extends Block implements EntityBlock, IBlockRendererProvider {
-
-    public static final RendererBlock BLOCK = new RendererBlock();
+    public static RendererBlock BLOCK;
     private static final IRenderer renderer = new RendererBlockRenderer();
 
-    private RendererBlock() {
-        super(Properties.of().noOcclusion().destroyTime(2));
+    public RendererBlock(BlockBehaviour.Properties properties) {
+        super(properties.noOcclusion().destroyTime(2));
+        if (BLOCK != null) throw new IllegalStateException("RendererBlock already exists");
+        BLOCK = this;
     }
 
     @Nullable

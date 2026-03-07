@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.utils;
 
 import com.google.common.base.Charsets;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.PackLocationInfo;
@@ -40,7 +40,7 @@ public class CustomResourcePack extends PathPackResources {
         if ("pack.mcmeta".equals(fileName)) {
             String description = "Generated resources for " + namespace;
             String fallback = "Mod resources.";
-            String pack = String.format("{\"pack\":{\"pack_format\":" + SharedConstants.getCurrentVersion().getPackVersion(type) + ",\"description\":{\"translate\":\"%s\",\"fallback\":\"%s.\"}}}", description, fallback);
+            String pack = String.format("{\"pack\":{\"pack_format\":" + SharedConstants.getCurrentVersion().packVersion(type) + ",\"description\":{\"translate\":\"%s\",\"fallback\":\"%s.\"}}}", description, fallback);
             return () -> IOUtils.toInputStream(pack, Charsets.UTF_8);
         }
         return super.getRootResource(pathSegments);

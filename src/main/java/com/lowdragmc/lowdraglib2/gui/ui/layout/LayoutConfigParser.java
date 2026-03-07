@@ -94,8 +94,8 @@ public final class LayoutConfigParser {
                                 createConfigurator(LayoutProperties.MAX_WIDTH, style),
                                 createConfigurator(LayoutProperties.MAX_HEIGHT, style)
                         ),
-                        createConfigurator(LayoutProperties.ASPECT_RATE, style),
-                        createConfigurator(LayoutProperties.OVERFLOW, style)
+                        createConfigurator(LayoutProperties.ASPECT_RATE, style)
+//                        createConfigurator(LayoutProperties.OVERFLOW, style)
                 ),
                 // align
                 new ConfiguratorGroup("property.align.group").addConfigurators(

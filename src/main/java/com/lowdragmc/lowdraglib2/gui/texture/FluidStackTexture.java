@@ -2,11 +2,11 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.api.distmarker.Dist;
@@ -73,14 +73,13 @@ public class FluidStackTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     @Override
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         if (fluids.length == 0) return;
         updateTick();
 
         if (fluids[index].isEmpty()) return;
 
-        DrawerHelper.drawFluidForGui(graphics, fluids[index], x, y, width, height, color);
+        DrawerHelper.drawFluidForGui(context, fluids[index], x, y, width, height, color);
     }
 }

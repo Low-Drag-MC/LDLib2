@@ -137,7 +137,7 @@ inline fun <T : TextField, reified N : Number> TextFieldElement<T>.asNumeric(min
 }
 
 /**
- * Extension: Configure as ResourceLocation field
+ * Extension: Configure as Identifier field
  */
 fun <T : TextField> TextFieldElement<T>.asResourceLocation(): TextFieldElement<T> = apply {
     element.setResourceLocationOnly()

@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -23,27 +22,24 @@ import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import org.apache.commons.lang3.ArrayUtils;
-import org.appliedenergistics.yoga.*;
+import net.minecraft.resources.Identifier;
 import org.joml.Vector2f;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
 public class EditorWindow extends UIElement {
-    public static final ResourceLocation DEFAULT_ID = LDLib2.id("default");
-    private static final Map<ResourceLocation, EditorWindow> MINIMIZED_WINDOWS = Maps.newConcurrentMap();
+    public static final Identifier DEFAULT_ID = LDLib2.id("default");
+    private static final Map<Identifier, EditorWindow> MINIMIZED_WINDOWS = Maps.newConcurrentMap();
 
     public final UIElement window = new UIElement();
     public final UIElement editorButtonContainer = new UIElement();
     public final UIElement editorContainer = new UIElement();
     @Nullable
-    public final ResourceLocation windowID;
+    public final Identifier windowID;
 
     // runtime
     private int initialScreenScale;
@@ -64,10 +60,10 @@ public class EditorWindow extends UIElement {
         return open(DEFAULT_ID, editorCreator);
     }
 
-    public static EditorWindow open(ResourceLocation windowID, Supplier<Editor> editorCreator) {
+    public static EditorWindow open(Identifier windowID, Supplier<Editor> editorCreator) {
         var editorWindow = MINIMIZED_WINDOWS.remove(windowID);
         if (editorWindow != null && LDLib2.isClient()) {
-            Minecraft.getInstance().getToasts().addToast(new SystemToast(
+            Minecraft.getInstance().getToastManager().addToast(new SystemToast(
                     new SystemToast.SystemToastId(1000L),
                     Component.translatable("editor.minimized.title"),
                     Component.translatable("editor.minimized.tips")
@@ -81,7 +77,7 @@ public class EditorWindow extends UIElement {
         this(null, editorCreator);
     }
 
-    public EditorWindow(@Nullable ResourceLocation windowID, Supplier<Editor> editorCreator) {
+    public EditorWindow(@Nullable Identifier windowID, Supplier<Editor> editorCreator) {
         this.windowID = windowID;
 
         if (LDLib2.isClient()) {
@@ -275,7 +271,7 @@ public class EditorWindow extends UIElement {
         var mui = getModularUI();
         var minecraft = Minecraft.getInstance();
         if (mui != null && mui.getScreen() != null) {
-            mui.getScreen().init(minecraft, minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
+            mui.getScreen().init(minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
         }
     }
 
@@ -296,7 +292,7 @@ public class EditorWindow extends UIElement {
 
         var mui = getModularUI();
         if (mui != null && mui.getScreen() != null) {
-            mui.getScreen().init(minecraft, minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
+            mui.getScreen().init(minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
         }
     }
 
@@ -344,10 +340,10 @@ public class EditorWindow extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(@Nonnull GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(@Nonnull GUIContext context) {
+        super.drawBackgroundAdditional(context);
         if (window.isSelfOrChildHover() && !isResizing && !isMaximized()) {
-            WindowDragHelper.drawResizeIcon(guiContext, window, 4);
+            WindowDragHelper.drawResizeIcon(context, window, 4);
         }
     }
 }

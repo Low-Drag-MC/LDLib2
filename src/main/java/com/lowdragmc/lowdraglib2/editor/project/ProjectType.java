@@ -1,13 +1,16 @@
 package com.lowdragmc.lowdraglib2.editor.project;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 
 import java.io.File;
-import java.util.Objects;
 import java.util.function.Supplier;
 
 @Getter
@@ -35,7 +38,11 @@ public class ProjectType {
     public IProject loadProjectFromFile(File file) throws Exception {
         var data = NbtIo.read(file.toPath());
         var project = getProjectCreator().get();
-        project.deserializeNBT(Platform.getFrozenRegistry(), Objects.requireNonNull(data));
+        if (data != null) {
+            try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                project.deserialize(TagValueInput.create(reporter, Platform.getFrozenRegistry(), data));
+            }
+        }
         return project;
     }
 
@@ -50,8 +57,11 @@ public class ProjectType {
      * @throws Exception If an error occurs during project serialization or file writing.
      */
     public void saveProjectToFile(IProject project, File file) throws Exception {
-        var fileData = project.serializeNBT(Platform.getFrozenRegistry());
-        NbtIo.write(fileData, file.toPath());
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            var output = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());
+            project.serialize(output);
+            NbtIo.write(output.buildResult(), file.toPath());
+        }
     }
 
     /**
@@ -66,9 +76,13 @@ public class ProjectType {
      * @throws Exception If an error occurs while serializing the project or reading the file.
      */
     public boolean isProjectDirty(IProject project, File file) throws Exception {
-        var data = project.serializeNBT(Platform.getFrozenRegistry());
         var fileData = NbtIo.read(file.toPath());
-        return !data.equals(fileData);
+        if (fileData == null) return true;
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            var output = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());
+            project.serialize(output);
+            return !output.buildResult().equals(fileData);
+        }
     }
 
     /**

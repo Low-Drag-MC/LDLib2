@@ -2,17 +2,17 @@ package com.lowdragmc.lowdraglib2.editor.project;
 
 import com.lowdragmc.lowdraglib2.editor.resource.Resources;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 
 /**
  * Interface for a project in the editor.
  */
-public interface IProject extends INBTSerializable<CompoundTag> {
+public interface IProject extends ValueIOSerializable {
     /**
      * Get Resources of this project
      */
@@ -41,12 +41,12 @@ public interface IProject extends INBTSerializable<CompoundTag> {
      * Serialize the project to NBT.
      * This method will be called when saving the project.
      */
-    CompoundTag serializeProject(@Nonnull HolderLookup.Provider provider);
+    void serializeProject(@NotNull ValueOutput output);
 
     /**
      * Deserialize the project from NBT.
      */
-    void deserializeProject(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt);
+    void deserializeProject(@NotNull ValueInput input);
 
     /**
      * Get the display name of this project.
@@ -85,24 +85,28 @@ public interface IProject extends INBTSerializable<CompoundTag> {
     /**
      * Get metadata of this project. e.g. version, suffix, name.
      */
-    default CompoundTag getMetadata() {
-        var data = new CompoundTag();
-        data.putString("version", getVersion());
-        data.putString("suffix", getSuffix());
-        data.putString("name", getName());
-        return data;
+    default void serializeMetadata(ValueOutput output) {
+        output.putString("version", getVersion());
+        output.putString("suffix", getSuffix());
+        output.putString("name", getName());
+    }
+
+    /**
+     * Deserialize metadata of this project.
+     */
+    default void deserializeMetadata(ValueInput input) {
+
     }
 
     @Override
-    default CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
-        var data = new CompoundTag();
-        data.put("meta", getMetadata());
-        data.put("data", serializeProject(provider));
-        return data;
+    default void serialize(@NotNull ValueOutput valueOutput) {
+        serializeMetadata(valueOutput.child("meta"));
+        serializeProject(valueOutput.child("data"));
     }
 
     @Override
-    default void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt) {
-        deserializeProject(provider, nbt.getCompound("data"));
+    default void deserialize(@NotNull ValueInput valueInput) {
+        valueInput.child("meta").ifPresent(this::deserializeMetadata);
+        valueInput.child("data").ifPresent(this::deserializeProject);
     }
 }

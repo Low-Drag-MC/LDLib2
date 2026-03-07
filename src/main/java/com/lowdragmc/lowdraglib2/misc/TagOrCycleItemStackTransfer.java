@@ -42,7 +42,7 @@ public class TagOrCycleItemStackTransfer implements IItemHandlerModifiable {
                         return tagOrItem.map(
                                 tagList -> tagList
                                         .stream()
-                                        .flatMap(pair -> BuiltInRegistries.ITEM.getTag(pair.getFirst())
+                                        .flatMap(pair -> BuiltInRegistries.ITEM.get(pair.getFirst())
                                                 .map(holderSet -> holderSet.stream()
                                                         .map(holder -> new ItemStack(holder.value(), pair.getSecond())))
                                                 .orElseGet(Stream::empty))

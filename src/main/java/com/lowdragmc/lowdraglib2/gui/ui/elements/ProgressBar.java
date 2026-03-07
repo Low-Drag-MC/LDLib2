@@ -25,10 +25,9 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 import net.minecraft.util.Mth;
-import org.appliedenergistics.yoga.YogaEdge;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -335,24 +334,24 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
-        super.drawBackgroundAdditional(guiContext);
+    public void drawBackgroundAdditional(GUIContext context) {
+        super.drawBackgroundAdditional(context);
         if (progressBarStyle.interpolate() && lastValue != value) {
             var stepValue = progressBarStyle.interpolateStep() * (maxValue - minValue);
             if (stepValue < 0) {
-                updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, value)));
+                updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, value)));
             } else {
                 if (lastValue < value) {
                     if (lastValue + stepValue < value) {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, lastValue + stepValue)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, lastValue + stepValue)));
                     } else {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, value)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, value)));
                     }
                 } else if (lastValue > value) {
                     if  (lastValue - stepValue > value) {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, lastValue - stepValue)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, lastValue - stepValue)));
                     } else {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(guiContext.partialTick, lastValue, value)));
+                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, value)));
                     }
                 }
             }

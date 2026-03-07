@@ -1,22 +1,19 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.client.gui.GuiGraphics;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
@@ -149,31 +146,20 @@ public class RectTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         ensureCornerCache();
 
-        var mat = graphics.pose().last().pose();
-
-        var buffer = graphics.bufferSource().getBuffer(LDLibRenderTypes.rect());
-        RenderSystem.disableDepthTest();
-
         if (ColorUtils.alpha(color) > 0) {
-            drawFill(buffer, mat, x, y, width, height);
+            drawFill(context, x, y, width, height);
         }
-        
+
         if (stroke > 0 && ColorUtils.alpha(borderColor) > 0) {
-            drawBorder(buffer, mat, x, y, width, height);
+            drawBorder(context, x, y, width, height);
         }
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void drawFill(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
-        int r = (color >> 16) & 0xFF;
-        int g = (color >> 8) & 0xFF;
-        int b = color & 0xFF;
-        int a = (color >> 24) & 0xFF;
-
+    private void drawFill(GUIContext context, float x, float y, float width, float height) {
         float maxRadiusX = width / 2f;
         float maxRadiusY = height / 2f;
         float r0 = Math.min(radius.w, Math.min(maxRadiusX, maxRadiusY)); // 左上
@@ -182,58 +168,49 @@ public class RectTexture extends TransformTexture {
         float r3 = Math.min(radius.x, Math.min(maxRadiusX, maxRadiusY)); // 左下
 
         // center
-        float centerX = x + width / 2f;
-        float centerY = y + height / 2f;
+        Vector2f center = new Vector2f(x + width / 2f, y + height / 2f);
 
         // outline
-        List<float[]> outlineVertices = new ArrayList<>();
+        List<Vector2f> outlineVertices = new ArrayList<>();
 
         // left top
         float cx0 = x + r0;
         float cy0 = y + r0;
         for (Vector2f v : cachedCornerArcs[0]) {
-            outlineVertices.add(new float[]{cx0 + v.x * r0, cy0 + v.y * r0});
+            outlineVertices.add(new Vector2f(cx0 + v.x * r0, cy0 + v.y * r0));
         }
 
         // right top
         float cx1 = x + width - r1;
         float cy1 = y + r1;
         for (Vector2f v : cachedCornerArcs[1]) {
-            outlineVertices.add(new float[]{cx1 + v.x * r1, cy1 + v.y * r1});
+            outlineVertices.add(new Vector2f(cx1 + v.x * r1, cy1 + v.y * r1));
         }
 
         // right bottom
         float cx2 = x + width - r2;
         float cy2 = y + height - r2;
         for (Vector2f v : cachedCornerArcs[2]) {
-            outlineVertices.add(new float[]{cx2 + v.x * r2, cy2 + v.y * r2});
+            outlineVertices.add(new Vector2f(cx2 + v.x * r2, cy2 + v.y * r2));
         }
 
         // left bottom
         float cx3 = x + r3;
         float cy3 = y + height - r3;
         for (Vector2f v : cachedCornerArcs[3]) {
-            outlineVertices.add(new float[]{cx3 + v.x * r3, cy3 + v.y * r3});
+            outlineVertices.add(new Vector2f(cx3 + v.x * r3, cy3 + v.y * r3));
         }
 
         int vertexCount = outlineVertices.size();
         for (int i = 0; i < vertexCount; i++) {
-            float[] v1 = outlineVertices.get(i);
-            float[] v2 = outlineVertices.get((i + 1) % vertexCount);
-
-            buffer.addVertex(mat, v2[0], v2[1], 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, v1[0], v1[1], 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, centerX, centerY, 0).setColor(r, g, b, a);
+            Vector2f v1 = outlineVertices.get(i);
+            Vector2f v2 = outlineVertices.get((i + 1) % vertexCount);
+            context.fillTriangle(LDLibRenderPipelines.GUI_TRIANGLE, center, v1, v2, color);
         }
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void drawBorder(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
-        int r = (borderColor >> 16) & 0xFF;
-        int g = (borderColor >> 8) & 0xFF;
-        int b = borderColor & 0xFF;
-        int a = (borderColor >> 24) & 0xFF;
-
+    private void drawBorder(GUIContext context, float x, float y, float width, float height) {
         float maxRadiusX = width / 2f;
         float maxRadiusY = height / 2f;
         float r0 = Math.min(radius.w, Math.min(maxRadiusX, maxRadiusY));
@@ -260,45 +237,40 @@ public class RectTexture extends TransformTexture {
         float icx3 = x + stroke + ir3, icy3 = y + height - stroke - ir3;
 
         // vertices
-        List<float[]> outerVertices = new ArrayList<>();
-        List<float[]> innerVertices = new ArrayList<>();
+        List<Vector2f> outerVertices = new ArrayList<>();
+        List<Vector2f> innerVertices = new ArrayList<>();
 
         for (Vector2f v : cachedCornerArcs[0]) {
-            outerVertices.add(new float[]{cx0 + v.x * or0, cy0 + v.y * or0});
-            innerVertices.add(new float[]{icx0 + v.x * ir0, icy0 + v.y * ir0});
+            outerVertices.add(new Vector2f(cx0 + v.x * or0, cy0 + v.y * or0));
+            innerVertices.add(new Vector2f(icx0 + v.x * ir0, icy0 + v.y * ir0));
         }
 
         for (Vector2f v : cachedCornerArcs[1]) {
-            outerVertices.add(new float[]{cx1 + v.x * or1, cy1 + v.y * or1});
-            innerVertices.add(new float[]{icx1 + v.x * ir1, icy1 + v.y * ir1});
+            outerVertices.add(new Vector2f(cx1 + v.x * or1, cy1 + v.y * or1));
+            innerVertices.add(new Vector2f(icx1 + v.x * ir1, icy1 + v.y * ir1));
         }
 
         for (Vector2f v : cachedCornerArcs[2]) {
-            outerVertices.add(new float[]{cx2 + v.x * or2, cy2 + v.y * or2});
-            innerVertices.add(new float[]{icx2 + v.x * ir2, icy2 + v.y * ir2});
+            outerVertices.add(new Vector2f(cx2 + v.x * or2, cy2 + v.y * or2));
+            innerVertices.add(new Vector2f(icx2 + v.x * ir2, icy2 + v.y * ir2));
         }
 
         for (Vector2f v : cachedCornerArcs[3]) {
-            outerVertices.add(new float[]{cx3 + v.x * or3, cy3 + v.y * or3});
-            innerVertices.add(new float[]{icx3 + v.x * ir3, icy3 + v.y * ir3});
+            outerVertices.add(new Vector2f(cx3 + v.x * or3, cy3 + v.y * or3));
+            innerVertices.add(new Vector2f(icx3 + v.x * ir3, icy3 + v.y * ir3));
         }
 
         int vertexCount = outerVertices.size();
         for (int i = 0; i < vertexCount; i++) {
             int next = (i + 1) % vertexCount;
 
-            float[] o1 = outerVertices.get(i);
-            float[] i1 = innerVertices.get(i);
-            float[] o2 = outerVertices.get(next);
-            float[] i2 = innerVertices.get(next);
+            Vector2f o1 = outerVertices.get(i);
+            Vector2f i1 = innerVertices.get(i);
+            Vector2f o2 = outerVertices.get(next);
+            Vector2f i2 = innerVertices.get(next);
 
-            buffer.addVertex(mat, o1[0], o1[1], 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, i1[0], i1[1], 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, o2[0], o2[1], 0).setColor(r, g, b, a);
-
-            buffer.addVertex(mat, o2[0], o2[1], 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, i1[0], i1[1], 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, i2[0], i2[1], 0).setColor(r, g, b, a);
+            context.fillTriangle(LDLibRenderPipelines.GUI_TRIANGLE, o1, i1, o2, borderColor);
+            context.fillTriangle(LDLibRenderPipelines.GUI_TRIANGLE, o2, i1, i2, borderColor);
         }
     }
 }

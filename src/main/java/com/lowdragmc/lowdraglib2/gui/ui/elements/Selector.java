@@ -25,9 +25,8 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -387,11 +386,11 @@ public class Selector<T> extends BindableUIElement<T> {
 
     /// rendering
     @Override
-    public void drawBackgroundOverlay(GUIContext guiContext) {
+    public void drawBackgroundOverlay(GUIContext context) {
         if (isSelfOrChildHover() || isFocused()) {
-            guiContext.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            context.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
-        super.drawBackgroundOverlay(guiContext);
+        super.drawBackgroundOverlay(context);
     }
 
     /// Editor + Xml

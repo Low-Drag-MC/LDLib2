@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -53,7 +53,7 @@ class TextureValueTest {
         assertNotNull(result);
         assertInstanceOf(SpriteTexture.class, result);
         SpriteTexture sprite = (SpriteTexture) result;
-        assertEquals(ResourceLocation.parse("minecraft:some_sprite"), sprite.getImageLocation());
+        assertEquals(Identifier.parse("minecraft:some_sprite"), sprite.getImageLocation());
     }
 
     /**
@@ -68,7 +68,7 @@ class TextureValueTest {
         assertNotNull(result);
         assertInstanceOf(SpriteTexture.class, result);
         SpriteTexture sprite = (SpriteTexture) result;
-        assertEquals(ResourceLocation.parse("minecraft:sprite_path"), sprite.getImageLocation());
+        assertEquals(Identifier.parse("minecraft:sprite_path"), sprite.getImageLocation());
         assertEquals(0, sprite.spritePosition.getX());
         assertEquals(1, sprite.spritePosition.getY());
         assertEquals(2, sprite.spriteSize.getWidth());

@@ -20,7 +20,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,13 +29,13 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AppearanceSettings implements Settings {
-    public static final ResourceLocation ID = LDLib2.id("appearance");
+    public static final Identifier ID = LDLib2.id("appearance");
     public static final Codec<AppearanceSettings> CODEC = PersistedParser.createCodec(AppearanceSettings::new);
 
     @Configurable
     @ConfigSearch(searchConfiguratorMethod = "searchStyles")
     @Getter @Setter
-    private ResourceLocation stylesheet = StylesheetManager.GDP;
+    private Identifier stylesheet = StylesheetManager.GDP;
     @Persisted(key = "windowSize")
     @Getter @Setter
     private int screenScale = -1;
@@ -45,7 +45,7 @@ public class AppearanceSettings implements Settings {
     private Stylesheet currentStylesheet;
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return ID;
     }
 
@@ -101,16 +101,16 @@ public class AppearanceSettings implements Settings {
         return postHandler;
     }
 
-    private SearchComponentConfigurator.ISearchConfigurator<ResourceLocation> searchStyles() {
+    private SearchComponentConfigurator.ISearchConfigurator<Identifier> searchStyles() {
         return new SearchComponentConfigurator.ISearchConfigurator<>() {
             @Override
             @Nonnull
-            public ResourceLocation defaultValue() {
+            public Identifier defaultValue() {
                 return StylesheetManager.GDP;
             }
 
             @Override
-            public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
+            public void search(String word, IResultHandler<Identifier> searchHandler) {
                 var lowerWord = word.toLowerCase();
                 for (var key : StylesheetManager.INSTANCE.getAllPackStylesheets()) {
                     if (Thread.currentThread().isInterrupted()) return;
@@ -122,12 +122,12 @@ public class AppearanceSettings implements Settings {
 
             @Override
             @Nonnull
-            public String resultText(@NotNull ResourceLocation value) {
+            public String resultText(@NotNull Identifier value) {
                 return value.toString();
             }
 
             @Override
-            public UIElementProvider<ResourceLocation> candidateUIProvider() {
+            public UIElementProvider<Identifier> candidateUIProvider() {
                 return UIElementProvider.text(res -> Component.literal(res.toString()));
             }
         };

@@ -190,10 +190,10 @@ public class WindowDragHelper {
         return null;
     }
 
-    public static void drawResizeIcon(GUIContext guiContext, UIElement element, float padding) {
-        var handle = WindowDragHelper.detectResizeHandle(element, guiContext.mouseX, guiContext.mouseY, padding);
+    public static void drawResizeIcon(GUIContext context, UIElement element, float padding) {
+        var handle = WindowDragHelper.detectResizeHandle(element, context.mouseX, context.mouseY, padding);
         if (handle == null) return;
-        guiContext.postRendering(ctx -> guiContext.drawTexture(handle.icon,
+        context.postRendering(ctx -> context.drawTexture(handle.icon,
                 ctx.mouseX - handle.icon.spriteSize.width / 2f, ctx.mouseY - handle.icon.spriteSize.height / 2f,
                 handle.icon.spriteSize.width, handle.icon.spriteSize.height)
         );

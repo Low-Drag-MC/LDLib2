@@ -8,21 +8,25 @@ import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import lombok.Getter;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.Tag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
 
-import javax.annotation.Nonnull;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
+public class ResourceInstance<T> implements ValueIOSerializable {
     public final Resource<T> resource;
 
     @Getter
@@ -51,7 +55,9 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         try {
             var data = NbtIo.read(metaFile.toPath());
             if (data != null) {
-                deserializeNBT(Platform.getFrozenRegistry(), data);
+                try(var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                    deserialize(TagValueInput.create(reporter, Platform.getFrozenRegistry(), data));
+                }
             }
         } catch (Exception ignored) {}
     }
@@ -69,8 +75,12 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                     return;
                 }
             }
-            var data = serializeNBT(Platform.getFrozenRegistry());
-            NbtIo.write(data, metaFile.toPath());
+            try(var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+                var output = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());
+                serialize(output);
+                var data = output.buildResult();
+                NbtIo.write(data, metaFile.toPath());
+            }
         } catch (Exception e) {
             LDLib2.LOGGER.error("Failed to save resource {} meta file", resource, e);
         }
@@ -211,11 +221,9 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     }
 
     @Override
-    public @Nonnull CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
-        var data = new CompoundTag();
-
-        data.putString("displayMode", displayMode.name());
-        data.putInt("uiWidth", uiWidth);
+    public void serialize(@NotNull ValueOutput output) {
+        output.putString("displayMode", displayMode.name());
+        output.putInt("uiWidth", uiWidth);
 
         var customProviders = new CompoundTag();
         for (var type : LDLib2Registries.RESOURCE_PROVIDER_TYPES) {
@@ -231,33 +239,24 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                 }
             }
         }
-        data.put("customProviders", customProviders);
-        return data;
+        output.store("customProviders", ExtraCodecs.NBT, customProviders);
     }
 
     @Override
-    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt) {
+    public void deserialize(@NotNull ValueInput input) {
         clearCache();
         customProviders.clear();
 
         try {
-            displayMode = Resource.DisplayMode.valueOf(nbt.getString("displayMode"));
+            input.getString("displayMode").ifPresent(mode -> displayMode = Resource.DisplayMode.valueOf(mode));
         } catch (IllegalArgumentException ignored) {}
-        uiWidth = nbt.getInt("uiWidth");
+        uiWidth = input.getInt("uiWidth").orElse(uiWidth);
 
         // compatible with previous
-        if (nbt.contains("fileProviders")) {
-            var providerList = nbt.getList("fileProviders", Tag.TAG_COMPOUND);
-            for (var tag : providerList) {
-                var fileResourceProvider = FileResourceProvider.fromNBT(this, (CompoundTag) tag);
-                if (fileResourceProvider.getName().equals("global")) continue;
-                addResourceProvider(customProviders, fileResourceProvider);
-            }
-        } else {
-            var customProviders = nbt.getCompound("customProviders");
+        if (input.read("customProviders", ExtraCodecs.NBT).orElse(null) instanceof CompoundTag customProviders) {
             for (var type : LDLib2Registries.RESOURCE_PROVIDER_TYPES) {
                 if (type.supportCustom()) {
-                    var list = customProviders.getList(type.getTypeName(), Tag.TAG_COMPOUND);
+                    var list = customProviders.getListOrEmpty(type.getTypeName());
                     for (var tag : list) {
                         var rp = type.fromNbt(this, (CompoundTag) tag);
                         if (rp != null) {
@@ -267,5 +266,6 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                 }
             }
         }
+
     }
 }

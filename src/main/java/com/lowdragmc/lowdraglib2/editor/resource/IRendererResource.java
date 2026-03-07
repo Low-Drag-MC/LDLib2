@@ -4,24 +4,19 @@ import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
-import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
+//import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.client.scene.FBOWorldSceneRenderer;
-import com.lowdragmc.lowdraglib2.client.scene.ImmediateWorldSceneRenderer;
-import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
-import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -67,7 +62,8 @@ public class IRendererResource extends Resource<IRenderer> {
             if (renderer == null) return;
             c.getEditor().inspectorView.inspect(renderer, configurator -> c.markResourceDirty(path));
         });
-        container.setOnDragProvider(UIResourceRenderer::new);
+        // todo renderer
+//        container.setOnDragProvider(UIResourceRenderer::new);
 
         if (provider.supportAdd()) {
             container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
@@ -100,7 +96,9 @@ public class IRendererResource extends Resource<IRenderer> {
             return new UIElement().layout(layout -> {
                         layout.widthPercent(100);
                         layout.heightPercent(100);
-                    }).style(style -> style.backgroundTexture(fboRenderer.drawAsTexture()))
+                    })
+                    // todo rendering
+//                    .style(style -> style.backgroundTexture(fboRenderer.drawAsTexture()))
                     // release resources here
                     .addEventListener(UIEvents.REMOVED, e -> fboRenderer.releaseResource());
         }

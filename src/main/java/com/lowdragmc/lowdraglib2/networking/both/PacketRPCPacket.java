@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -18,7 +18,7 @@ import javax.annotation.Nonnull;
  */
 @NoArgsConstructor
 public class PacketRPCPacket implements CustomPacketPayload {
-    public static final ResourceLocation ID = LDLib2.id("rpc_packet");
+    public static final Identifier ID = LDLib2.id("rpc_packet");
     public static final Type<PacketRPCPacket> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, PacketRPCPacket> CODEC = StreamCodec.ofMember(PacketRPCPacket::write, PacketRPCPacket::decode);
 
@@ -44,14 +44,6 @@ public class PacketRPCPacket implements CustomPacketPayload {
         var packetID = buffer.readUtf();
         var data = buffer.readByteArray();
         return new PacketRPCPacket(packetID, data);
-    }
-
-    public static void execute(PacketRPCPacket packet, IPayloadContext context) {
-        if (context.player() instanceof ServerPlayer) {
-            executeServer(packet, context);
-        } else {
-            executeClient(packet, context);
-        }
     }
 
     public static void executeClient(PacketRPCPacket packet, IPayloadContext context) {

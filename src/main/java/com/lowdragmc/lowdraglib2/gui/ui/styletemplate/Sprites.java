@@ -8,13 +8,13 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
 import lombok.experimental.UtilityClass;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.lang.reflect.Modifier;
 
 @UtilityClass
 public class Sprites {
-    public static ResourceLocation GDP = LDLib2.id("textures/gui/gdp_styles.png");
+    public static Identifier GDP = LDLib2.id("textures/gui/gdp_styles.png");
 
     public static IGuiTexture RECT_RD = SpriteTexture.of(GDP).setSprite(1, 29, 13, 13).setBorder(4, 4, 4, 4);
     public static IGuiTexture RECT_RD_LIGHT = SpriteTexture.of(GDP).setSprite(1, 15, 13, 13).setBorder(4, 4, 4, 4);

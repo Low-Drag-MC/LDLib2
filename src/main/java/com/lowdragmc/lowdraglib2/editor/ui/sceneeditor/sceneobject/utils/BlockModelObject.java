@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
@@ -22,6 +23,6 @@ public class BlockModelObject extends SceneObject implements ISceneRendering {
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
         var renderer = Minecraft.getInstance().getBlockRenderer();
         poseStack.translate(-0.5, -0.5, -0.5);
-        renderer.renderSingleBlock(blockState, poseStack, bufferSource, 0xf000f0, OverlayTexture.NO_OVERLAY);
+        renderer.renderSingleBlock(blockState, poseStack, bufferSource, 0xf000f0, OverlayTexture.NO_OVERLAY, net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, BlockPos.ZERO);
     }
 }

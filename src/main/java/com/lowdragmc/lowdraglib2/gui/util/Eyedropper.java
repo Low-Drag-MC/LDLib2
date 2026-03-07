@@ -7,7 +7,7 @@ package com.lowdragmc.lowdraglib2.gui.util;
 //import com.mojang.blaze3d.platform.Window;
 //import com.mojang.blaze3d.systems.RenderSystem;
 //import com.mojang.blaze3d.vertex.*;
-//import net.minecraft.Util;
+//import net.minecraft.util.Util;
 //import net.minecraft.client.Minecraft;
 //import net.minecraft.client.gui.GuiComponent;
 //import net.minecraft.client.renderer.ShaderInstance;

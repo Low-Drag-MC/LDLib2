@@ -5,6 +5,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 
@@ -15,7 +17,7 @@ public final class TagUtils {
         if (!compoundTag.contains(key)) {
             compoundTag.put(key, new CompoundTag());
         }
-        return compoundTag.getCompound(key);
+        return compoundTag.getCompoundOrEmpty(key);
     }
 
     /**
@@ -44,7 +46,7 @@ public final class TagUtils {
                 if (!current.contains(keys[i])) {
                     return null;
                 }
-                current = current.getCompound(keys[i]);
+                current = current.getCompoundOrEmpty(keys[i]);
             }
         }
         return current.get(keys[keys.length - 1]);
@@ -95,7 +97,7 @@ public final class TagUtils {
     public static <T extends Tag> T removeDuplicates(T target, T reference) {
         if (target.equals(reference)) return null;
         if (target instanceof CompoundTag targetTag && reference instanceof CompoundTag refTag) {
-            for (var key : refTag.getAllKeys()) {
+            for (var key : refTag.keySet()) {
                 var tag2 = refTag.get(key);
                 var tag1 = targetTag.get(key);
                 if (tag1 != null && tag2 != null) {
@@ -130,7 +132,7 @@ public final class TagUtils {
         if (tagA.equals(tagB)) return null;
 
         CompoundTag result = new CompoundTag();
-        for (String key : tagA.getAllKeys()) {
+        for (String key : tagA.keySet()) {
             Tag valueA = tagA.get(key);
             Tag valueB = tagB.get(key);
             assert valueA != null;

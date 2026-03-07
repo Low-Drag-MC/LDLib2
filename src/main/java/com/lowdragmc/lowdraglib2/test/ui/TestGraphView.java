@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
-import org.appliedenergistics.yoga.YogaEdge;
 
 @LDLRegisterClient(name="graph_view", registry = "ldlib2:screen_test")
 @NoArgsConstructor

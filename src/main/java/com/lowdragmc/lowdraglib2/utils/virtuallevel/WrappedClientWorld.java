@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 
+import net.minecraft.core.Holder;
+import net.minecraft.world.entity.Entity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
@@ -8,9 +10,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.targeting.TargetingConditions;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
@@ -20,7 +19,6 @@ import net.minecraft.world.level.material.FluidState;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 @SuppressWarnings("deprecation")
@@ -31,8 +29,8 @@ public class WrappedClientWorld extends ClientLevel {
 
     private WrappedClientWorld(Level world) {
         super(mc.getConnection(), mc.level.getLevelData(), world.dimension(), world.dimensionTypeRegistration(),
-                12, mc.level.getServerSimulationDistance(), world.getProfilerSupplier(),
-                mc.levelRenderer, world.isDebug(), -1);
+                12, mc.level.getServerSimulationDistance(),
+                mc.levelRenderer, world.isDebug(), -1, 0);
         this.world = world;
     }
 
@@ -73,13 +71,6 @@ public class WrappedClientWorld extends ClientLevel {
         return world.getFluidState(pos);
     }
 
-    @Nullable
-    @Override
-    public <T extends LivingEntity> T getNearestEntity(List<? extends T> p_217361_1_, TargetingConditions p_217361_2_,
-                                                       @Nullable LivingEntity p_217361_3_, double p_217361_4_, double p_217361_6_, double p_217361_8_) {
-        return world.getNearestEntity(p_217361_1_, p_217361_2_, p_217361_3_, p_217361_4_, p_217361_6_, p_217361_8_);
-    }
-
     @Override
     public int getBlockTint(BlockPos p_225525_1_, ColorResolver p_225525_2_) {
         return world.getBlockTint(p_225525_1_, p_225525_2_);
@@ -92,10 +83,8 @@ public class WrappedClientWorld extends ClientLevel {
     }
 
     @Override
-    public void addParticle(ParticleOptions p_195590_1_, boolean p_195590_2_, double p_195590_3_, double p_195590_5_,
-                            double p_195590_7_, double p_195590_9_, double p_195590_11_, double p_195590_13_) {
-        world.addParticle(p_195590_1_, p_195590_2_, p_195590_3_, p_195590_5_, p_195590_7_, p_195590_9_, p_195590_11_,
-                p_195590_13_);
+    public void addParticle(ParticleOptions particle, boolean overrideLimiter, boolean alwaysShow, double x, double y, double z, double xd, double yd, double zd) {
+        world.addParticle(particle, overrideLimiter, alwaysShow, x, y, z, xd, yd, zd);
     }
 
     @Override
@@ -120,10 +109,13 @@ public class WrappedClientWorld extends ClientLevel {
     }
 
     @Override
-    public void playSound(@Nullable Player p_184148_1_, double p_184148_2_, double p_184148_4_, double p_184148_6_,
-                          SoundEvent p_184148_8_, SoundSource p_184148_9_, float p_184148_10_, float p_184148_11_) {
-        world.playSound(p_184148_1_, p_184148_2_, p_184148_4_, p_184148_6_, p_184148_8_, p_184148_9_, p_184148_10_,
-                p_184148_11_);
+    public void playSeededSound(@org.jspecify.annotations.Nullable Entity except, double x, double y, double z, Holder<SoundEvent> sound, SoundSource source, float volume, float pitch, long seed) {
+        world.playSeededSound(except, x, y, z, sound, source, volume, pitch, seed);
+    }
+
+    @Override
+    public void playSeededSound(@org.jspecify.annotations.Nullable Entity except, Entity sourceEntity, Holder<SoundEvent> sound, SoundSource source, float volume, float pitch, long seed) {
+        world.playSeededSound(except, sourceEntity, sound, source, volume, pitch, seed);
     }
 
     @Nullable

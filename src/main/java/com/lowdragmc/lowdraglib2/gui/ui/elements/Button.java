@@ -16,16 +16,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -34,7 +31,7 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@RemapPrefixForJS("kjs$")
+//@RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "button", group = "basic", registry = "ldlib2:ui_element")
@@ -148,13 +145,13 @@ public class Button extends UIElement {
         return this;
     }
 
-    @HideFromJS
+//    @HideFromJS
     public Button setText(Component text) {
         this.text.setText(text);
         return this;
     }
 
-    @HideFromJS
+//    @HideFromJS
     public Button setText(String text) {
         this.text.setText(text);
         return this;
@@ -189,15 +186,15 @@ public class Button extends UIElement {
     }
 
     @Override
-    public void drawBackgroundAdditional(GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         // draw button texture
         var texture = isActive() ? switch (state) {
             case DEFAULT -> getButtonStyle().baseTexture();
             case HOVERED -> getButtonStyle().hoverTexture();
             case PRESSED -> getButtonStyle().pressedTexture();
         } : getButtonStyle().baseTexture();
-        guiContext.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        super.drawBackgroundAdditional(guiContext);
+        context.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+        super.drawBackgroundAdditional(context);
     }
 
     protected void setButtonState(State state) {

@@ -135,20 +135,20 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
     }
 
     @Override
-    public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {
+    public void drawBackgroundOverlay(@NotNull GUIContext context) {
         if (isSelected()) {
-            guiContext.drawTexture(getNodeStyle().focusOverlay(),
+            context.drawTexture(getNodeStyle().focusOverlay(),
                     getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         } else if (shouldBeHighlighted()) {
-            guiContext.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xddffaf00),
+            context.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xddffaf00),
                     getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         } else {
             var isHover = isSelfOrChildHover() || isUnderRegionSelection();
             if (isHover) {
-                guiContext.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xaaffffff),
+                context.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xaaffffff),
                         getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
             }
         }
-        super.drawBackgroundOverlay(guiContext);
+        super.drawBackgroundOverlay(context);
     }
 }

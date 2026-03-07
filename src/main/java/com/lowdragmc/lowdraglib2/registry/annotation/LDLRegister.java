@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
 public @interface LDLRegister {
 
     /**
-     * The registry name of the element. it must be {@link net.minecraft.resources.ResourceLocation} format.
+     * The registry name of the element. it must be {@link net.minecraft.resources.Identifier} format.
      */
     String registry();
 

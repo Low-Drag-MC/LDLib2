@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.utils;
 
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,7 +15,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @OnlyIn(Dist.CLIENT)
 public record ModularUIClientElementComponent(ModularUITooltipComponent modularUITooltipComponent) implements ClientTooltipComponent {
     @Override
-    public int getHeight() {
+    public int getHeight(Font font) {
         return (int) modularUITooltipComponent.modularUI.getHeight();
     }
 
@@ -25,11 +25,11 @@ public record ModularUIClientElementComponent(ModularUITooltipComponent modularU
     }
 
     @Override
-    public void renderImage(Font textRenderer, int x, int y, GuiGraphics graphics) {
-        graphics.pose().pushPose();
-        graphics.pose().translate(x, y, 0);
+    public void renderImage(Font font, int x, int y, int w, int h, GuiGraphics graphics) {
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y);
         modularUITooltipComponent.modularUI.getWidget()
-                .render(graphics, 0, 0, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false));
-        graphics.pose().popPose();
+                .render(graphics, 0, 0, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
+        graphics.pose().popMatrix();
     }
 }

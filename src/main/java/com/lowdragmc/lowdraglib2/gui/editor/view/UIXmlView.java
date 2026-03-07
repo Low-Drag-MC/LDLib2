@@ -20,7 +20,6 @@ import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Document;
 

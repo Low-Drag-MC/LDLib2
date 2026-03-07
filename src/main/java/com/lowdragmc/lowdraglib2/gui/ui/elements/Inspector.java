@@ -12,10 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import org.appliedenergistics.yoga.YogaDisplay;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaGutter;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
@@ -99,7 +96,7 @@ public class Inspector extends UIElement {
                 if (listener != null) {
                     listener.accept(configurator);
                 }
-                if (historyStack != null && configurable instanceof INBTSerializable<?> serializable) {
+                if (historyStack != null && configurable instanceof ValueIOSerializable serializable) {
                     var notifyName = configurator.getNotifyName();
                     var recordHistory = historyStack.recordSerializableObject(notifyName.getString().isEmpty() ?
                                     Component.literal(configurable.getConfigurableName()) : notifyName,
@@ -112,7 +109,7 @@ public class Inspector extends UIElement {
             }
         });
 
-        if (historyStack != null && configurable instanceof INBTSerializable<?> serializable) {
+        if (historyStack != null && configurable instanceof ValueIOSerializable serializable) {
             historyStack.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable, configurable)
                     .setOnExecute(value -> {
                         clear();

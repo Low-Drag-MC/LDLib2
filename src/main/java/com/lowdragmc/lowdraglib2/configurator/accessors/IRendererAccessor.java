@@ -1,12 +1,9 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
-import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.IRendererConfigurator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
@@ -22,9 +19,10 @@ public class IRendererAccessor extends TypesAccessor<IRenderer> {
 
     @Override
     public IRenderer defaultValue(@Nullable Field field, @Nullable Class<?> type) {
-        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return new IModelRenderer(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]));
-        }
+        // todo rernderer
+//        if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
+//            return new IModelRenderer(Identifier.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]));
+//        }
         return IRenderer.EMPTY;
     }
 

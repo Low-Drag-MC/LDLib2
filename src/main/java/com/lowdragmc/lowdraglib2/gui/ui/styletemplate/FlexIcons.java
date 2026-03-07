@@ -9,11 +9,11 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.experimental.UtilityClass;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @UtilityClass
 public final class FlexIcons {
-    public static ResourceLocation FLEX = LDLib2.id("textures/gui/flex.png");
+    public static Identifier FLEX = LDLib2.id("textures/gui/flex.png");
 
     public static SpriteTexture create(int x, int y) {
         return SpriteTexture.of(FLEX).setSprite(x * 72, y * 72, 72, 72);

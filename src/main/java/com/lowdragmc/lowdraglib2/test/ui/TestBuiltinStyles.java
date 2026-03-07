@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.Optional;
@@ -51,7 +51,7 @@ public class TestBuiltinStyles implements IScreenTest {
         return new ModularUI(ui);
     }
 
-    private Toggle toggleStylesheets(String name, ResourceLocation stylesheet) {
+    private Toggle toggleStylesheets(String name, Identifier stylesheet) {
         var toggle = new Toggle();
         toggle.setText(name);
         toggle.setOnToggleChanged(isOn -> {

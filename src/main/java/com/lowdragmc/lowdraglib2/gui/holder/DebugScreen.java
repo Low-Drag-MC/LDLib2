@@ -5,20 +5,24 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Optional;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -44,7 +48,8 @@ public class DebugScreen extends ModularUIScreen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        var keyCode = event.key();
         if (keyCode == GLFW.GLFW_KEY_F3) {
             onClose();
             return true;
@@ -55,24 +60,24 @@ public class DebugScreen extends ModularUIScreen {
         if (keyCode == GLFW.GLFW_KEY_F4) {
             uiDebugger.setRenderUIShaping(!uiDebugger.isRenderUIShaping());
         }
-        if (!super.keyPressed(keyCode, scanCode, modifiers)) {
-            return targetUI.getWidget().keyPressed(keyCode, scanCode, modifiers);
+        if (!super.keyPressed(event)) {
+            return targetUI.getWidget().keyPressed(event);
         }
         return true;
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (!super.charTyped(codePoint, modifiers)) {
-            return targetUI.getWidget().charTyped(codePoint, modifiers);
+    public boolean charTyped(CharacterEvent event) {
+        if (!super.charTyped(event)) {
+            return targetUI.getWidget().charTyped(event);
         }
         return true;
     }
 
     @Override
-    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        if (!super.keyReleased(keyCode, scanCode, modifiers)) {
-            return targetUI.getWidget().keyReleased(keyCode, scanCode, modifiers);
+    public boolean keyReleased(KeyEvent event) {
+        if (!super.keyReleased(event)) {
+            return targetUI.getWidget().keyReleased(event);
         }
         return true;
     }
@@ -86,24 +91,25 @@ public class DebugScreen extends ModularUIScreen {
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (!super.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
-            return targetUI.getWidget().mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (!super.mouseDragged(event, dx, dy)) {
+            return targetUI.getWidget().mouseDragged(event, dx, dy);
         }
         return true;
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (!super.mouseReleased(mouseX, mouseY, button)) {
-            return targetUI.getWidget().mouseReleased(mouseX, mouseY, button);
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (!modularUI.getWidget().mouseReleased(event)) {
+            return targetUI.getWidget().mouseReleased(event);
         }
         return true;
     }
 
+
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!super.mouseClicked(mouseX, mouseY, button)) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (!modularUI.getWidget().mouseClicked(event, doubleClick)) {
             if (uiDebugger.isFocusMode()) {
                 var lastHovered = targetUI.getLastHoveredElement();
                 if (lastHovered != null) {
@@ -112,7 +118,9 @@ public class DebugScreen extends ModularUIScreen {
                 }
                 return false;
             }
-            return targetUI.getWidget().mouseClicked(mouseX, mouseY, button);
+            return targetUI.getWidget().mouseClicked(event, doubleClick);
+        } else {
+            modularUI.getWidget().setFocused(true);
         }
         return true;
     }
@@ -128,6 +136,8 @@ public class DebugScreen extends ModularUIScreen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         REAL_MOUSE_POS.set(mouseX, mouseY);
 
+        var guiContext = GUIContext.of(graphics, mouseX, mouseY, partialTick);
+
         UIElement shapingUI = null;
         var isChildrenHovered = modularUI.getLastHoveredElement() != null && !modularUI.ui.rootElement.isHover();
         if (uiDebugger.isFocusMode() && !isChildrenHovered) {
@@ -137,18 +147,15 @@ public class DebugScreen extends ModularUIScreen {
             shapingUI = uiDebugger.hierarchy.treeList.getHoveredNode().key;
         }
         if (shapingUI != null) {
-            targetUI.getWidget().renderUISpacing(shapingUI, graphics);
+            targetUI.getWidget().renderUISpacing(guiContext, shapingUI, graphics);
         }
 
         if (!isChildrenHovered) {
             // draw cursor
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 500);
             var font = Minecraft.getInstance().font;
-            DrawerHelper.drawSolidRect(graphics, 0, mouseY - 1, getModularUI().getScreenWidth(), 1, 0xffff0000);
-            DrawerHelper.drawSolidRect(graphics, mouseX - 1, 0, 1, getModularUI().getScreenHeight(), 0xffff0000);
+            DrawerHelper.drawSolidRect(guiContext, 0, mouseY - 1, getModularUI().getScreenWidth(), 1, 0xffff0000);
+            DrawerHelper.drawSolidRect(guiContext, mouseX - 1, 0, 1, getModularUI().getScreenHeight(), 0xffff0000);
             graphics.drawString(font, "pos(%d, %d)".formatted(mouseX, mouseY), mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
-            graphics.pose().popPose();
         }
 
 
@@ -161,7 +168,6 @@ public class DebugScreen extends ModularUIScreen {
             }
         }
 
-        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 

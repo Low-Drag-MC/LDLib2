@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.utils;
 
 import com.mojang.blaze3d.vertex.*;
-import org.joml.Vector3f;
 
 import org.jetbrains.annotations.Nullable;
 import java.nio.ByteBuffer;
@@ -19,14 +18,14 @@ public class MeshDataSorter {
             return null;
         }
         
-        Vector3f[] centroids = extractPrimitiveCentroids(
+        var centroids = extractPrimitiveCentroids(
             meshData.vertexBuffer(),
             drawState.vertexCount(),
             drawState.format(),
             mode
         );
         
-        if (centroids.length == 0) {
+        if (centroids.size() == 0) {
             return null;
         }
         
@@ -45,7 +44,7 @@ public class MeshDataSorter {
         };
     }
     
-    private static Vector3f[] extractPrimitiveCentroids(ByteBuffer byteBuffer, int vertexCount,
+    private static CompactVectorArray extractPrimitiveCentroids(ByteBuffer byteBuffer, int vertexCount,
                                                        VertexFormat format, VertexFormat.Mode mode) {
         int positionOffset = format.getOffset(VertexFormatElement.POSITION);
         if (positionOffset == -1) {
@@ -54,7 +53,7 @@ public class MeshDataSorter {
         
         int verticesPerPrimitive = getVerticesPerPrimitive(mode);
         if (verticesPerPrimitive == 0 || vertexCount < verticesPerPrimitive) {
-            return new Vector3f[0];
+            return new CompactVectorArray(0);
         }
         
         FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
@@ -69,9 +68,9 @@ public class MeshDataSorter {
         };
     }
     
-    private static Vector3f[] extractTriangleCentroids(FloatBuffer floatBuffer, int primitiveCount,
-                                                      int vertexSizeInFloats, int positionOffset) {
-        Vector3f[] centroids = new Vector3f[primitiveCount];
+    private static CompactVectorArray extractTriangleCentroids(FloatBuffer floatBuffer, int primitiveCount,
+                                                               int vertexSizeInFloats, int positionOffset) {
+        CompactVectorArray centroids = new CompactVectorArray(primitiveCount);
         int primitiveStride = vertexSizeInFloats * 3;
         
         for (int i = 0; i < primitiveCount; i++) {
@@ -95,19 +94,19 @@ public class MeshDataSorter {
             float z3 = floatBuffer.get(v3Index + 2);
             
             // centroids =：(v1 + v2 + v3) / 3
-            centroids[i] = new Vector3f(
-                (x1 + x2 + x3) * 0.33333334f,
-                (y1 + y2 + y3) * 0.33333334f,
-                (z1 + z2 + z3) * 0.33333334f
+            centroids.set(i,
+                    (x1 + x2 + x3) * 0.33333334f,
+                    (y1 + y2 + y3) * 0.33333334f,
+                    (z1 + z2 + z3) * 0.33333334f
             );
         }
         
         return centroids;
     }
     
-    private static Vector3f[] extractQuadCentroids(FloatBuffer floatBuffer, int primitiveCount,
-                                                  int vertexSizeInFloats, int positionOffset) {
-        Vector3f[] centroids = new Vector3f[primitiveCount];
+    private static CompactVectorArray extractQuadCentroids(FloatBuffer floatBuffer, int primitiveCount,
+                                                           int vertexSizeInFloats, int positionOffset) {
+        CompactVectorArray centroids = new CompactVectorArray(primitiveCount);
         int primitiveStride = vertexSizeInFloats * 4;
         
         for (int i = 0; i < primitiveCount; i++) {
@@ -124,19 +123,19 @@ public class MeshDataSorter {
             float y3 = floatBuffer.get(v3Index + 1);
             float z3 = floatBuffer.get(v3Index + 2);
             
-            centroids[i] = new Vector3f(
-                (x1 + x3) * 0.5f,
-                (y1 + y3) * 0.5f,
-                (z1 + z3) * 0.5f
+            centroids.set(i,
+                    (x1 + x3) * 0.5f,
+                    (y1 + y3) * 0.5f,
+                    (z1 + z3) * 0.5f
             );
         }
         
         return centroids;
     }
     
-    private static Vector3f[] extractLineCentroids(FloatBuffer floatBuffer, int primitiveCount,
-                                                  int vertexSizeInFloats, int positionOffset) {
-        Vector3f[] centroids = new Vector3f[primitiveCount];
+    private static CompactVectorArray extractLineCentroids(FloatBuffer floatBuffer, int primitiveCount,
+                                                           int vertexSizeInFloats, int positionOffset) {
+        CompactVectorArray centroids = new CompactVectorArray(primitiveCount);
         int primitiveStride = vertexSizeInFloats * 2;
         
         for (int i = 0; i < primitiveCount; i++) {
@@ -154,10 +153,10 @@ public class MeshDataSorter {
             float z2 = floatBuffer.get(v2Index + 2);
             
             // center
-            centroids[i] = new Vector3f(
-                (x1 + x2) * 0.5f,
-                (y1 + y2) * 0.5f,
-                (z1 + z2) * 0.5f
+            centroids.set(i,
+                    (x1 + x2) * 0.5f,
+                    (y1 + y2) * 0.5f,
+                    (z1 + z2) * 0.5f
             );
         }
         
@@ -165,10 +164,10 @@ public class MeshDataSorter {
     }
     
     // others
-    private static Vector3f[] extractGenericCentroids(FloatBuffer floatBuffer, int primitiveCount,
-                                                     int vertexSizeInFloats, int positionOffset,
-                                                     int verticesPerPrimitive) {
-        Vector3f[] centroids = new Vector3f[primitiveCount];
+    private static CompactVectorArray extractGenericCentroids(FloatBuffer floatBuffer, int primitiveCount,
+                                                              int vertexSizeInFloats, int positionOffset,
+                                                              int verticesPerPrimitive) {
+        CompactVectorArray centroids = new CompactVectorArray(primitiveCount);
         int primitiveStride = vertexSizeInFloats * verticesPerPrimitive;
         float invVertexCount = 1.0f / verticesPerPrimitive;
         
@@ -183,10 +182,10 @@ public class MeshDataSorter {
                 sumZ += floatBuffer.get(vertexIndex + 2);
             }
             
-            centroids[i] = new Vector3f(
-                sumX * invVertexCount,
-                sumY * invVertexCount,
-                sumZ * invVertexCount
+            centroids.set(i,
+                    sumX * invVertexCount,
+                    sumY * invVertexCount,
+                    sumZ * invVertexCount
             );
         }
         

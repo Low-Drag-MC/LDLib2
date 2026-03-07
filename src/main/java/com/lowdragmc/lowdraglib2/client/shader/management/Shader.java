@@ -2,10 +2,10 @@ package com.lowdragmc.lowdraglib2.client.shader.management;
 
 import com.google.common.base.Charsets;
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.opengl.GlStateManager;
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.apache.commons.io.IOUtils;
@@ -105,7 +105,7 @@ public class Shader {
         return new Shader(type, rawShader).compileShader();
     }
 
-    public static Shader loadShader(ShaderType type, ResourceLocation resourceLocation) throws IOException {
+    public static Shader loadShader(ShaderType type, Identifier resourceLocation) throws IOException {
         var maybeResource = Minecraft.getInstance().getResourceManager().getResource(resourceLocation);
         if (maybeResource.isPresent()) {
             var resource = maybeResource.get();

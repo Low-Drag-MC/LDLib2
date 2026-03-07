@@ -11,12 +11,12 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
@@ -85,7 +85,7 @@ public class CodeEditor extends TextArea {
             switch (event.keyCode) {
                 case GLFW.GLFW_KEY_TAB -> insertText("  ");
                 case GLFW.GLFW_KEY_SLASH -> {
-                    if (Screen.hasControlDown()) {
+                    if (isCtrlDown()) {
                         toggleCommentAtBol();
                     }
                 }
@@ -214,17 +214,17 @@ public class CodeEditor extends TextArea {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void drawContentView(GUIContext guiContext) {
+    public void drawContentView(GUIContext context) {
         // Ensure we have latest styled lines
         if (needsReparsing) {
             reparseAndStyle();
         }
-        super.drawContentView(guiContext);
+        super.drawContentView(context);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void drawLines(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
+    protected void drawLines(GUIContext context, Font font, Identifier textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
         for (int i = firstVisibleLine; i <= lastVisibleLine && i < styledLines.size(); i++) {
             float lineY = y + i * lineHeight() - getScrollY();
             StyledLine styledLine = styledLines.get(i);
@@ -234,13 +234,13 @@ public class CodeEditor extends TextArea {
             // Draw each styled segment
             for (StyledText styledText : styledLine.text()) {
                 var textComponent = Component.literal(styledText.text())
-                        .withStyle(style -> style.withFont(getTextAreaStyle().font()))
+                        .withStyle(style -> style.withFont(new FontDescription.Resource(getTextAreaStyle().font())))
                         .withStyle(styledText.style());
 
-                guiContext.pose.pushPose();
-                guiContext.pose.translate(drawX, lineY, 0);
-                guiContext.pose.scale(scale, scale, 1);
-                guiContext.graphics.drawString(
+                context.pose.pushPose();
+                context.pose.translate(drawX, lineY);
+                context.pose.scale(scale, scale);
+                context.graphics.drawString(
                         font,
                         textComponent,
                         0,
@@ -248,7 +248,7 @@ public class CodeEditor extends TextArea {
                         -1, // Color is in the style
                         getTextAreaStyle().textShadow()
                 );
-                guiContext.pose.popPose();
+                context.pose.popPose();
 
                 // Move X position for next segment
                 drawX += (font.getSplitter().stringWidth(textComponent)) * scale;
@@ -257,7 +257,7 @@ public class CodeEditor extends TextArea {
 
         // Draw placeholder if empty
         if (styledLines.isEmpty() || (styledLines.size() == 1 && styledLines.getFirst().text().isEmpty())) {
-            drawPlaceHolder(guiContext, font, scale, x, y);
+            drawPlaceHolder(context, font, scale, x, y);
         }
     }
 }

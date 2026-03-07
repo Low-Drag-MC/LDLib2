@@ -7,7 +7,7 @@ import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 
@@ -28,7 +28,7 @@ public final class PackFileResourceProvider<T>  {
     }
 
     @Nullable
-    private T getResourceByLocation(ResourceLocation location) {
+    private T getResourceByLocation(Identifier location) {
         for (PackResources pack : ResourceHelper.getResourceManager().listPacks().toList()) {
             var resource = pack.getResource(PackType.CLIENT_RESOURCES, location);
             if (resource != null) {

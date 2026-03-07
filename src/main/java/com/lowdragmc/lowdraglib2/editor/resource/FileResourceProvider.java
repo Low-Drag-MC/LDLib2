@@ -16,12 +16,10 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
@@ -287,18 +285,18 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     }
 
     public static <T> FileResourceProvider<T> fromNBT(ResourceInstance<T> resourceInstance, @Nonnull CompoundTag nbt) {
-        var locationStr = nbt.getString("location").replace('\\', '/');
+        var locationStr = nbt.getStringOr("location", "").replace('\\', '/');
         var name = nbt.getString("name");
 
         File location;
-        if (nbt.contains("_version") && nbt.getInt("_version") >= 1) {
+        if (nbt.contains("_version") && nbt.getIntOr("_version", 0) >= 1) {
             location = Platform.getGamePath().resolve(locationStr).toFile();
         } else {
             location = new File(locationStr);
         }
 
         var fileProvider = new FileResourceProvider<>(resourceInstance, location);
-        fileProvider.setName(name);
+        name.ifPresent(fileProvider::setName);
         return fileProvider;
     }
 }

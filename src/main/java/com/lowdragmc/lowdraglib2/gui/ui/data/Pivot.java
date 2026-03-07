@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.data;
 
 import com.mojang.serialization.Codec;
 import lombok.Data;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 

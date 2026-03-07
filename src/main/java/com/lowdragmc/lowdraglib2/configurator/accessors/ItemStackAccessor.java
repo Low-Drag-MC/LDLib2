@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +28,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
     @Override
     public ItemStack defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return BuiltInRegistries.ITEM.get(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])).getDefaultInstance();
+            return BuiltInRegistries.ITEM.getValue(Identifier.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])).getDefaultInstance();
         }
         return Items.AIR.getDefaultInstance();
     }

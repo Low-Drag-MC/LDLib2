@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.holder;
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import lombok.Getter;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
@@ -37,7 +37,7 @@ public class ModularUIContainerMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int idx) {
-        if (player.level().isClientSide) {
+        if (player.level().isClientSide()) {
             return ItemStack.EMPTY;
         }
 

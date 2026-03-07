@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import org.jetbrains.annotations.Nullable;
@@ -59,7 +60,7 @@ public final class RPCPacketDistributor {
     @OnlyIn(Dist.CLIENT)
     public void rpcToServer(String packetID, Object... args) {
         var data = getSafePacketHandler(packetID).args2Bytes(args);
-        PacketDistributor.sendToServer(PacketRPCPacket.of(packetID, data));
+        ClientPacketDistributor.sendToServer(PacketRPCPacket.of(packetID, data));
     }
 
     public void rpcToPlayer(ServerPlayer player, String packetID, Object... args) {

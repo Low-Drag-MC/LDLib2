@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.utils.IdentityMap;
 import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.apache.commons.lang3.function.Consumers;
 
@@ -67,8 +68,8 @@ public class UISyncManager {
         var data = ByteBufUtil.writeCustomData(buf -> {
             writePack(buf, toSync);
         }, modularUI.player.level().registryAccess());
-        if (modularUI.player.level().isClientSide) {
-            PacketDistributor.sendToServer(new PacketModularUISync(data));
+        if (modularUI.player.level().isClientSide()) {
+            ClientPacketDistributor.sendToServer(new PacketModularUISync(data));
         } else if (modularUI.player instanceof ServerPlayer serverPlayer) {
             PacketDistributor.sendToPlayer(serverPlayer, new PacketModularUISync(data));
         }
@@ -153,7 +154,7 @@ public class UISyncManager {
             buf.writeVarInt(requestID);
             event.writeParametersToBuffer(buf, args);
         }, player.level().registryAccess());
-        PacketDistributor.sendToServer(new CPacketUIRPCEvent(data));
+        ClientPacketDistributor.sendToServer(new CPacketUIRPCEvent(data));
     }
 
     public void handEvent(RegistryFriendlyByteBuf buf) {

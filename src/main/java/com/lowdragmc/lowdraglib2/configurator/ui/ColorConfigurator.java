@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -110,12 +111,12 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
         }
     }
 
-    protected void drawColorPreview(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
-        int color = value == null ? defaultValue : value;
-        DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
-        DrawerHelper.drawSolidRect(graphics, x - 1, y, 1, height, color);
-        DrawerHelper.drawSolidRect(graphics, x + width, y, 1, height, color);
-        DrawerHelper.drawSolidRect(graphics, x, y - 1, width, 1, color);
-        DrawerHelper.drawSolidRect(graphics, x, y + height, width, 1, color);
+    protected void drawColorPreview(GUIContext context, float x, float y, float width, float height) {
+        int color = value == null ? (defaultValue == null ? -1 : defaultValue) : value;
+        DrawerHelper.drawSolidRect(context, x, y, width, height, color);
+        DrawerHelper.drawSolidRect(context, x - 1, y, 1, height, color);
+        DrawerHelper.drawSolidRect(context, x + width, y, 1, height, color);
+        DrawerHelper.drawSolidRect(context, x, y - 1, width, 1, color);
+        DrawerHelper.drawSolidRect(context, x, y + height, width, 1, color);
     }
 }
