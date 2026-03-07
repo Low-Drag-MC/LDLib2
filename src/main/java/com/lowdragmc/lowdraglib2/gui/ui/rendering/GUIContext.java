@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
-import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatBlitRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatBlitRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatColoredRectangleRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatColoredTriangleRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatRoundedRectRenderState;
@@ -15,7 +15,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.*;
+import net.minecraft.client.gui.render.state.GuiElementRenderState;
+import net.minecraft.client.gui.render.state.GuiItemRenderState;
+import net.minecraft.client.gui.render.state.GuiRenderState;
+import net.minecraft.client.gui.render.state.GuiTextRenderState;
 import net.minecraft.client.gui.render.state.pip.PictureInPictureRenderState;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -25,46 +28,36 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.joml.*;
+import org.joml.Matrix3x2f;
+import org.joml.Vector2f;
+import org.joml.Vector4f;
 
 import javax.annotation.Nullable;
-import java.lang.Math;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import java.util.function.Consumer;
 
 public class GUIContext {
-    @OnlyIn(Dist.CLIENT)
     public GuiGraphics graphics;
-    @OnlyIn(Dist.CLIENT)
     public int mouseX, mouseY;
-    @OnlyIn(Dist.CLIENT)
     public float partialTick;
-    @OnlyIn(Dist.CLIENT)
     public EnhancedPoseStack pose;
-    @OnlyIn(Dist.CLIENT)
     public Minecraft mc;
 
     // runtime
-    @OnlyIn(Dist.CLIENT)
     public boolean refreshLocalMouse = true;
     /**
      * Current element tint color (ARGB), set by UIElement before drawing its background/overlay textures.
      * -1 (0xFFFFFFFF) means no tint. Textures read this to multiply (per-channel) with their own color.
      */
-    @OnlyIn(Dist.CLIENT)
     public int elementColor = -1;
-    @OnlyIn(Dist.CLIENT)
     public float localMouseX, localMouseY;
-    @OnlyIn(Dist.CLIENT)
     public Stack<UIVisualLayer> visualLayers = new Stack<>();
-    @OnlyIn(Dist.CLIENT)
     private final List<PostCall> postRenderingCalls = new ArrayList<>();
 
     private record PostCall(Consumer<GUIContext> call, Matrix3x2f pose) {}
 
-    @OnlyIn(Dist.CLIENT)
     public static GUIContext of(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         var context = new GUIContext();
         context.graphics = graphics;
@@ -77,34 +70,28 @@ public class GUIContext {
         return context;
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void drawTexture(IGuiTexture texture, float x, float y, float width, float height) {
         texture.draw(this, x, y, width, height);
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void enableScissor(float x, float y, float width, float height) {
         graphics.enableScissor(Mth.floor(x), Mth.floor(y), Mth.ceil(x + width), Mth.ceil(y + height));
     }
 
-    @OnlyIn(Dist.CLIENT)
     public @Nullable ScreenRectangle peekScissor() {
         return graphics.peekScissorStack();
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void disableScissor() {
         graphics.disableScissor();
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void refreshLocalMouse() {
         var realMouse = pose.pose.invert(new Matrix3x2f()).transformPosition(new Vector2f(mouseX, mouseY));
         localMouseX = realMouse.x;
         localMouseY = realMouse.y;
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void pushVisualLayer(UIVisualLayer layer) {
         // todo visual layer
 //        graphics.flush();
@@ -118,7 +105,6 @@ public class GUIContext {
 //        layer.clear();
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void popVisualLayer() {
         // todo visual layer
 
@@ -141,13 +127,11 @@ public class GUIContext {
 //        }
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void setElementColor(int elementColor) {
         if (this.elementColor == elementColor) return;
         this.elementColor = elementColor;
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void resetElementColor() {
         if (this.elementColor == -1) return;
         this.elementColor = -1;
@@ -170,43 +154,34 @@ public class GUIContext {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     public GuiRenderState getRenderState() {
         return graphics.guiRenderState;
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void submitItem(GuiItemRenderState itemState) {
         graphics.guiRenderState.submitItem(itemState);
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void submitText(GuiTextRenderState textState) {
         graphics.guiRenderState.submitText(textState);
-
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void submitPicturesInPictureState(PictureInPictureRenderState picturesInPictureState) {
         graphics.guiRenderState.submitPicturesInPictureState(picturesInPictureState);
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void submitGuiElement(GuiElementRenderState blitState) {
         graphics.guiRenderState.submitGuiElement(blitState);
     }
 
-    @OnlyIn(Dist.CLIENT)
     public MultiBufferSource.BufferSource bufferSource() {
         return mc.renderBuffers().bufferSource();
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void endBatch() {
         bufferSource().endBatch();
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void fill(
             RenderPipeline renderPipeline, float x0, float y0, float x1, float y1,
             int colorU0V0, int colorU0V1, int colorU1V1, int colorU1V0
@@ -219,7 +194,6 @@ public class GUIContext {
         );
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void fillTriangle(
             RenderPipeline renderPipeline,
             Vector2f position0, Vector2f position1, Vector2f position2,
@@ -237,7 +211,6 @@ public class GUIContext {
         );
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void fillTriangle(
             RenderPipeline renderPipeline,
             Vector2f position0, Vector2f position1, Vector2f position2,
@@ -246,7 +219,6 @@ public class GUIContext {
         this.fillTriangle(renderPipeline, position0, position1, position2, color, color, color);
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void blit(
             RenderPipeline renderPipeline,
             Identifier texture,
@@ -264,15 +236,14 @@ public class GUIContext {
                 x + width,
                 y,
                 y + height,
-                (u) / textureWidth,
+                u / textureWidth,
                 (u + srcWidth) / textureWidth,
-                (v) / textureHeight,
+                v / textureHeight,
                 (v + srcHeight) / textureHeight,
                 color
         );
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void blit(
             RenderPipeline renderPipeline,
             Identifier texture,
@@ -293,26 +264,22 @@ public class GUIContext {
         );
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void blitSprite(RenderPipeline renderPipeline, Identifier location,
                            float x, float y, float width, float height, int color) {
         var sprite = graphics.guiSprites.getSprite(location);
         var scaling = getSpriteScaling(sprite);
         switch (scaling) {
-            case GuiSpriteScaling.Stretch stretch:
-                this.blitSprite(renderPipeline, sprite, x, y, width, height, color);
-                break;
-            case GuiSpriteScaling.Tile tile:
-                this.blitTiledSprite(renderPipeline, sprite, x, y, width, height, 0, 0, tile.width(), tile.height(), tile.width(), tile.height(), color);
-                break;
-            case GuiSpriteScaling.NineSlice nineSlice:
-                this.blitNineSlicedSprite(renderPipeline, sprite, nineSlice, x, y, width, height, color);
-                break;
-            default:
+            case GuiSpriteScaling.Stretch stretch ->
+                    this.blitSprite(renderPipeline, sprite, x, y, width, height, color);
+            case GuiSpriteScaling.Tile tile ->
+                    this.blitTiledSprite(renderPipeline, sprite, x, y, width, height, 0, 0, tile.width(), tile.height(), tile.width(), tile.height(), color);
+            case GuiSpriteScaling.NineSlice nineSlice ->
+                    this.blitNineSlicedSprite(renderPipeline, sprite, nineSlice, x, y, width, height, color);
+            default -> {
+            }
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void blitSprite(RenderPipeline renderPipeline, TextureAtlasSprite sprite,
                            float x, float y, float width, float height, int color) {
         if (width != 0 && height != 0) {
@@ -325,7 +292,6 @@ public class GUIContext {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void blitSprite(
             RenderPipeline renderPipeline,
             TextureAtlasSprite sprite,
@@ -356,7 +322,6 @@ public class GUIContext {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void blitTiledSprite(
             RenderPipeline renderPipeline,
             TextureAtlasSprite sprite,
@@ -390,7 +355,6 @@ public class GUIContext {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void blitNineSlicedSprite(
             RenderPipeline renderPipeline, TextureAtlasSprite sprite, GuiSpriteScaling.NineSlice nineSlice,
             float x, float y, float width, float height, int color
@@ -604,10 +568,10 @@ public class GUIContext {
                         x + width,
                         y,
                         y + height,
-                        sprite.getU((float)textureX / spriteWidth),
-                        sprite.getU((float)(textureX + textureWidth) / spriteWidth),
-                        sprite.getV((float)textureY / spriteHeight),
-                        sprite.getV((float)(textureY + textureHeight) / spriteHeight),
+                        sprite.getU((float) textureX / spriteWidth),
+                        sprite.getU((float) (textureX + textureWidth) / spriteWidth),
+                        sprite.getV((float) textureY / spriteHeight),
+                        sprite.getV((float) (textureY + textureHeight) / spriteHeight),
                         color
                 );
             } else {
@@ -618,7 +582,6 @@ public class GUIContext {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     private void submitTiledBlit(
             RenderPipeline pipeline,
             GpuTextureView textureView,
@@ -638,7 +601,6 @@ public class GUIContext {
         );
     }
 
-    @OnlyIn(Dist.CLIENT)
     private void innerBlit(
             RenderPipeline renderPipeline, Identifier location, float x0, float x1, float y0, float y1, float u0, float u1, float v0, float v1, int color
     ) {
@@ -653,12 +615,10 @@ public class GUIContext {
         );
     }
 
-    @OnlyIn(Dist.CLIENT)
     public static GuiSpriteScaling getSpriteScaling(TextureAtlasSprite sprite) {
         return sprite.contents().getAdditionalMetadata(GuiMetadataSection.TYPE).orElse(GuiMetadataSection.DEFAULT).scaling();
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void fillRoundedRect(float x, float y, float w, float h, Vector4f radius, int color) {
         this.submitGuiElement(
                 new FloatRoundedRectRenderState(
@@ -674,7 +634,6 @@ public class GUIContext {
         );
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void borderRoundedRect(float x, float y, float w, float h, Vector4f radius, float border, int borderColor) {
         this.submitGuiElement(
                 new FloatRoundedRectRenderState(
@@ -689,7 +648,6 @@ public class GUIContext {
                 )
         );
     }
-
 
     // endregion
 }
