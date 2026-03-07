@@ -531,9 +531,10 @@ public abstract class WorldSceneRenderer {
                         if (Thread.interrupted())
                             return;
                         ChunkSectionLayer layer = layers[i];
+                        var renderType = ItemBlockRenderTypes.getRenderType(layer);
                         // Keep the ByteBufferBuilder alive so MeshData's ByteBuffer references remain valid
-                        ByteBufferBuilder byteBuilder = new ByteBufferBuilder(layer.bufferSize());
-                        BufferBuilder buffer = new BufferBuilder(byteBuilder, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                        ByteBufferBuilder byteBuilder = new ByteBufferBuilder(renderType.bufferSize());
+                        BufferBuilder buffer = new BufferBuilder(byteBuilder, renderType.mode(), renderType.format());
                         renderedBlocksMap.forEach((renderedBlocks, hook) -> {
                             renderBlocks(matrixstack, blockRenderDispatcher, layer, new VertexConsumerWrapper(buffer), renderedBlocks, randomSource, parts, hook, 0);
                         });
