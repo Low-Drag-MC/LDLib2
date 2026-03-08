@@ -7,7 +7,9 @@ import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceProviderType;
 import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.RegisteredGuiTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.RegisteredUIElementRenderer;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.LDLRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -34,7 +36,13 @@ public class LDLib2Registries {
     public static AutoRegistry.LDLibRegisterClient<IGuiTexture, Supplier<IGuiTexture>> GUI_TEXTURES;
 
     @OnlyIn(Dist.CLIENT)
+    public static AutoRegistry.LDLibRegisterClient<RegisteredGuiTextureRenderer, RegisteredGuiTextureRenderer> GUI_TEXTURE_RENDERER_ENTRIES;
+
+    @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IRenderer, Supplier<IRenderer>> RENDERERS;
+
+    @OnlyIn(Dist.CLIENT)
+    public static AutoRegistry.LDLibRegisterClient<RegisteredUIElementRenderer, RegisteredUIElementRenderer> UI_ELEMENT_RENDERER_ENTRIES;
 
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IScreenTest, Supplier<IScreenTest>> SCREEN_TESTS;
@@ -46,8 +54,12 @@ public class LDLib2Registries {
             GUI_TEXTURES = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
             GUI_TEXTURES.setMissingKey("missing");
+            GUI_TEXTURE_RENDERER_ENTRIES = AutoRegistry.LDLibRegisterClient
+                    .create(LDLib2.id("gui_texture_renderer"), RegisteredGuiTextureRenderer.class, AutoRegistry::noArgsInstance);
             RENDERERS = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
+            UI_ELEMENT_RENDERER_ENTRIES = AutoRegistry.LDLibRegisterClient
+                    .create(LDLib2.id("ui_element_renderer"), RegisteredUIElementRenderer.class, AutoRegistry::noArgsInstance);
             if (Platform.isDevEnv()) {
                 SCREEN_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("screen_test"), IScreenTest.class, AutoRegistry::noArgsCreator);
             }

@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -27,7 +26,6 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
-import net.minecraft.util.Mth;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -333,26 +331,22 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         }
     }
 
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        super.drawBackgroundAdditional(context);
+    protected void applyInterpolatedProgress(float partialTick) {
         if (progressBarStyle.interpolate() && lastValue != value) {
             var stepValue = progressBarStyle.interpolateStep() * (maxValue - minValue);
             if (stepValue < 0) {
-                updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, value)));
-            } else {
-                if (lastValue < value) {
-                    if (lastValue + stepValue < value) {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, lastValue + stepValue)));
-                    } else {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, value)));
-                    }
-                } else if (lastValue > value) {
-                    if  (lastValue - stepValue > value) {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, lastValue - stepValue)));
-                    } else {
-                        updateProgressBarStyle(getNormalizedValue(Mth.lerp(context.partialTick, lastValue, value)));
-                    }
+                updateProgressBarStyle(getNormalizedValue(net.minecraft.util.Mth.lerp(partialTick, lastValue, value)));
+            } else if (lastValue < value) {
+                if (lastValue + stepValue < value) {
+                    updateProgressBarStyle(getNormalizedValue(net.minecraft.util.Mth.lerp(partialTick, lastValue, lastValue + stepValue)));
+                } else {
+                    updateProgressBarStyle(getNormalizedValue(net.minecraft.util.Mth.lerp(partialTick, lastValue, value)));
+                }
+            } else if (lastValue > value) {
+                if  (lastValue - stepValue > value) {
+                    updateProgressBarStyle(getNormalizedValue(net.minecraft.util.Mth.lerp(partialTick, lastValue, lastValue - stepValue)));
+                } else {
+                    updateProgressBarStyle(getNormalizedValue(net.minecraft.util.Mth.lerp(partialTick, lastValue, value)));
                 }
             }
         }

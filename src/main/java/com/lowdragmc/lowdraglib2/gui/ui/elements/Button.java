@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -183,18 +182,6 @@ public class Button extends UIElement {
     public Button buttonStyle(Consumer<ButtonStyle> style) {
         style.accept(buttonStyle);
         return this;
-    }
-
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        // draw button texture
-        var texture = isActive() ? switch (state) {
-            case DEFAULT -> getButtonStyle().baseTexture();
-            case HOVERED -> getButtonStyle().hoverTexture();
-            case PRESSED -> getButtonStyle().pressedTexture();
-        } : getButtonStyle().baseTexture();
-        context.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        super.drawBackgroundAdditional(context);
     }
 
     protected void setButtonState(State state) {

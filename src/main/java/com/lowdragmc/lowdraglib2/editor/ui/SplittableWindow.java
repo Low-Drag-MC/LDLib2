@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.GuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -347,7 +348,7 @@ public class SplittableWindow extends UIElement {
         if (isSplit()) return;
         // check if a view is being dragged into the view
         if (event.dragHandler.draggingObject instanceof View) {
-            style(style -> style.overlayTexture(this::drawOverlay));
+            style(style -> style.overlayTexture(GuiTexture.of(this::drawOverlay)));
         }
     }
 

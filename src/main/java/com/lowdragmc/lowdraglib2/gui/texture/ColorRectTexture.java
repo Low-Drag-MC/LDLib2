@@ -2,8 +2,6 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
@@ -44,12 +42,5 @@ public class ColorRectTexture extends TransformTexture {
             return new ColorRectTexture().setColor(ColorUtils.blendOklabColor(color, colorRect.color, lerp));
         }
         return super.interpolate(other, lerp);
-    }
-
-    @Override
-    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        if (width <= 0 || height <= 0) return;
-
-        DrawerHelper.drawSolidRect(context, x, y, width, height, color);
     }
 }

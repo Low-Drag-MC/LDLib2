@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -12,8 +11,6 @@ import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector4f;
 
 
@@ -87,16 +84,5 @@ public class SDFRectTexture extends TransformTexture {
             return blended;
         }
         return super.interpolate(other, lerp);
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        if (ColorUtils.alpha(color) > 0) {
-            context.fillRoundedRect(x, y, width, height, radius, color);
-        }
-        if (stroke > 0 && ColorUtils.alpha(borderColor) > 0) {
-            context.borderRoundedRect(x, y, width, height, radius, stroke, borderColor);
-        }
     }
 }

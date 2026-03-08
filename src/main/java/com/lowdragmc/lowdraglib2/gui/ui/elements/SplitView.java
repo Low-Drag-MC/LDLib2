@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
@@ -76,23 +75,6 @@ public abstract class SplitView extends UIElement {
             var width = icon.spriteSize.width;
             var height = icon.spriteSize.height;
             startDrag(DRAGGING, icon).setDragTexture(- width / 2f, -height / 2f, width, height);
-        }
-    }
-
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        super.drawBackgroundAdditional(context);
-        if (isHoverDragging(context.mouseX, context.mouseY)) {
-            context.postRendering(ctx -> {
-                var icon = getDraggingIcon();
-                var width = icon.spriteSize.width;
-                var height = icon.spriteSize.height;
-                ctx.drawTexture(icon,
-                        ctx.localMouseX - width / 2f,
-                        ctx.localMouseY - height / 2f,
-                        width,
-                        height);
-            });
         }
     }
 

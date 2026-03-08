@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.gui.texture.GuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector;
@@ -52,7 +53,7 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         }).style(style -> style.backgroundTexture(Sprites.RECT_RD_SOLID))
                 .addChildren(new UIElement()
                         .layout(layout -> layout.heightPercent(100))
-                        .style(style -> style.backgroundTexture(this::drawColorPreview))
+                        .style(style -> style.backgroundTexture(GuiTexture.of(this::drawColorPreview)))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
         this.colorSelector.setColor(ColorUtils.color(1, value.x, value.y, value.z), false);
@@ -126,6 +127,6 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         var textTexture = new TextTexture("HDR: %.1f".formatted(intensityConfigurator.value.floatValue()));
         textTexture.setType(TextTexture.TextType.ROLL);
         textTexture.setWidth((int) width);
-        textTexture.draw(context,x, y + 1, width, height);
+        context.drawTexture(textTexture, x, y + 1, width, height);
     }
 }

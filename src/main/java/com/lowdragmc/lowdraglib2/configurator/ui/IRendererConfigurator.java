@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
+import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
@@ -59,8 +60,9 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
         preview.setRenderFacing(false);
         preview.setRenderSelect(false);
         preview.createScene(level);
-        assert preview.getRenderer() != null;
-        preview.getRenderer().setOnLookingAt(null); // better performance
+        var renderer = preview.<WorldSceneRenderer>getRenderer();
+        assert renderer != null;
+        renderer.setOnLookingAt(null); // better performance
         preview.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
         preview.layout(layout -> {
             layout.setPipelineState(StyleOrigin.DEFAULT);

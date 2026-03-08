@@ -3,8 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
@@ -61,22 +59,4 @@ public class ColorBorderTexture extends TransformTexture{
         }
         return super.interpolate(other, lerp);
     }
-
-    @Override
-    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        if (width <= 0 || height <= 0) return;
-        if (border >= 0) {
-            DrawerHelper.drawSolidRect(context,x - border, y + height, width + 2 * border, border, color);
-            DrawerHelper.drawSolidRect(context,x - border, y, border, height, color);
-            DrawerHelper.drawSolidRect(context,x + width, y, border, height, color);
-            DrawerHelper.drawSolidRect(context,x - border, y - border, width + 2 * border, border, color);
-        } else {
-            float absBorder = Math.abs(border);
-            DrawerHelper.drawSolidRect(context, x, y, width - absBorder, absBorder, color);
-            DrawerHelper.drawSolidRect(context, x, y + absBorder, absBorder, height - absBorder, color);
-            DrawerHelper.drawSolidRect(context, x + absBorder, y + height - absBorder, width - absBorder, absBorder, color);
-            DrawerHelper.drawSolidRect(context, x + width - absBorder, y, absBorder, height - absBorder, color);
-        }
-    }
-
 }

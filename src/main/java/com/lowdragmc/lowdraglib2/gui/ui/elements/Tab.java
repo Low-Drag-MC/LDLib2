@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -147,6 +146,14 @@ public class Tab extends UIElement {
         return tabView.getTabContents().get(this);
     }
 
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    public boolean isHovered() {
+        return isHovered;
+    }
+
     @Override
     public boolean removeSelf() {
         if (getTabView() != null) {
@@ -202,20 +209,6 @@ public class Tab extends UIElement {
 
     protected void onMouseLeave(UIEvent event) {
         isHovered = false;
-    }
-
-    /// rendering
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        // draw button texture
-        var texture = tabStyle.baseTexture();
-        if (isSelected) {
-            texture = tabStyle.selectedTexture();
-        } else if (isHovered) {
-            texture = tabStyle.hoverTexture();
-        }
-        context.drawTexture(texture, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        super.drawBackgroundAdditional(context);
     }
 
     @Override

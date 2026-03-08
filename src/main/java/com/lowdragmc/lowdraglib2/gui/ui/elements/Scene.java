@@ -56,9 +56,7 @@ public class Scene extends UIElement {
     private static final Object ROTATION_DRAGGING = new Object();
     private static final Object PAN_DRAGGING = new Object();
     @Nullable
-    @OnlyIn(Dist.CLIENT)
-    @Getter(onMethod_ = @OnlyIn(Dist.CLIENT))
-    protected WorldSceneRenderer renderer;
+    protected Object renderer;
     @Nullable
     @Getter
     protected TrackedDummyWorld dummyWorld;
@@ -91,7 +89,7 @@ public class Scene extends UIElement {
 
     @Getter @Setter
     protected BiConsumer<BlockPos, Direction> onSelected;
-    private final Set<BlockPos> core = new HashSet<>();
+    final Set<BlockPos> core = new HashSet<>();
     @Getter
     protected boolean useCache;
     @Getter
@@ -131,7 +129,7 @@ public class Scene extends UIElement {
     public Scene useCacheBuffer(boolean cacheBuffer) {
         useCache = cacheBuffer;
         if (renderer != null) {
-            renderer.useCacheBuffer(true);
+            this.<WorldSceneRenderer>getRenderer().useCacheBuffer(true);
         }
         return this;
     }
@@ -143,6 +141,7 @@ public class Scene extends UIElement {
     public Scene useOrtho(boolean useOrtho) {
         this.useOrtho = useOrtho;
         if (renderer != null) {
+            var renderer = this.<WorldSceneRenderer>getRenderer();
             renderer.useOrtho(useOrtho);
             renderer.setCameraOrtho(range * zoom, range * zoom, range * zoom);
             renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
@@ -150,12 +149,9 @@ public class Scene extends UIElement {
         return this;
     }
 
-    @OnlyIn(Dist.CLIENT)
     public Scene setBeforeWorldRender(Consumer<Scene> beforeWorldRender) {
         this.beforeWorldRender = beforeWorldRender;
-        if (this.beforeWorldRender != null && renderer != null) {
-            renderer.setBeforeWorldRender(s -> beforeWorldRender.accept(this));
-        }
+        SceneRenderer.syncBeforeWorldRender(this);
         return this;
     }
 
@@ -181,10 +177,9 @@ public class Scene extends UIElement {
     }
 
     @Nullable
-    @OnlyIn(Dist.CLIENT)
-    public ParticleManager getParticleManager() {
-        if (renderer == null) return null;
-        return renderer.getParticleManager();
+    @SuppressWarnings("unchecked")
+    public <T> T getRenderer() {
+        return (T) renderer;
     }
 
     @Override
@@ -200,7 +195,7 @@ public class Scene extends UIElement {
      */
     public void releaseRendererResource() {
         if (renderer != null) {
-            var _renderer = renderer;
+            var _renderer = this.<WorldSceneRenderer>getRenderer();
             if (RenderSystem.isOnRenderThread()) {
                 _renderer.releaseResource();
             } else {
@@ -212,14 +207,13 @@ public class Scene extends UIElement {
 
     public void needCompileCache() {
         if (renderer != null) {
-            renderer.needCompileCache();
+            this.<WorldSceneRenderer>getRenderer().needCompileCache();
         }
     }
 
     /**
      * Creates a scene with the given world and whether to use FBO scene renderer.
      */
-    @OnlyIn(Dist.CLIENT)
     public final Scene createScene(Level world, boolean useFBOSceneRenderer, @Nullable Size fboSize) {
         releaseRendererResource();
         core.clear();
@@ -229,13 +223,9 @@ public class Scene extends UIElement {
         this.renderer = ClientWrapper.createWorldSceneRenderer(dummyWorld, useFBOSceneRenderer, fboSize);
         dummyWorld.setBlockFilter(core::contains);
         center = new Vector3f(0, 0, 0);
+        var renderer = this.<WorldSceneRenderer>getRenderer();
         renderer.useOrtho(useOrtho);
-        renderer.setOnLookingAt(ray -> {});
-        renderer.setBeforeBatchEnd(this::renderBeforeBatchEnd);
-        renderer.setAfterWorldRender(this::renderBlockOverLay);
-        if (this.beforeWorldRender != null) {
-            renderer.setBeforeWorldRender(s -> beforeWorldRender.accept(this));
-        }
+        SceneRenderer.configureRenderer(this, renderer);
         renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         renderer.useCacheBuffer(useCache);
         if (dummyWorld.getParticleManager() != null) {
@@ -256,8 +246,6 @@ public class Scene extends UIElement {
         }
     }
 
-
-    @OnlyIn(Dist.CLIENT)
     public final Scene createScene(Level world) {
         return createScene(world, false, null);
     }
@@ -270,6 +258,7 @@ public class Scene extends UIElement {
      */
     public Scene setRenderedCore(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook, boolean autoCamera) {
         if (renderer == null) return this;
+        var renderer = this.<WorldSceneRenderer>getRenderer();
         renderer.removeRenderedBlocks(core);
         core.clear();
         core.addAll(blocks);
@@ -306,117 +295,6 @@ public class Scene extends UIElement {
         return setRenderedCore(blocks, null);
     }
 
-    @OnlyIn(Dist.CLIENT)
-    protected void renderBeforeBatchEnd(MultiBufferSource bufferSource, float partialTicks) {
-        if (lastSelectedPosFace != null && renderSelect) {
-            var poseStack = new PoseStack();
-            RenderUtils.renderBlockOverLay(poseStack, bufferSource, lastSelectedPosFace.pos(), 0.6f, 0, 0, 1.01f);
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void renderBlockOverLay(WorldSceneRenderer renderer) {
-        if (renderer == null || dummyWorld == null || core == null || core.isEmpty()) {
-            return;
-        }
-        var poseStack = new PoseStack();
-        lastHoverPosFace = null;
-        lastHoverItem = null;
-        if (isHover()) {
-            var hit = renderer.getLastTraceResult();
-            if (hit != null) {
-                if (core.contains(hit.getBlockPos())) {
-                    lastHoverPosFace = new BlockPosFace(hit.getBlockPos(), hit.getDirection());
-                } else if (!useOrtho) {
-                    Vector3f hitPos = hit.getLocation().toVector3f();
-                    Level world = renderer.world;
-                    Vec3 eyePos = new Vec3(renderer.getEyePos());
-                    hitPos.mul(2); // Double view range to ensure pos can be seen.
-                    Vec3 endPos = new Vec3((hitPos.x - eyePos.x), (hitPos.y - eyePos.y), (hitPos.z - eyePos.z));
-                    double min = Float.MAX_VALUE;
-                    for (BlockPos pos : core) {
-                        BlockState blockState = world.getBlockState(pos);
-                        if (blockState.getBlock() == Blocks.AIR) {
-                            continue;
-                        }
-                        hit = world.clipWithInteractionOverride(eyePos, endPos, pos, blockState.getShape(world, pos), blockState);
-                        if (hit != null && hit.getType() != HitResult.Type.MISS) {
-                            double dist = eyePos.distanceToSqr(hit.getLocation());
-                            if (dist < min) {
-                                min = dist;
-                                lastHoverPosFace = new BlockPosFace(hit.getBlockPos(), hit.getDirection());
-                            }
-                        }
-                    }
-                }
-            }
-            var mui = getModularUI();
-            if (lastHoverPosFace != null && hit != null && mui != null && mui.player != null) {
-                var state = dummyWorld.getBlockState(lastHoverPosFace.pos());
-                lastHoverItem = state.getCloneItemStack(dummyWorld, lastHoverPosFace.pos(), false);
-            }
-        }
-
-        var tmp = dragging ? lastClickPosFace : lastHoverPosFace;
-        if (lastSelectedPosFace != null || tmp != null) {
-            if (lastSelectedPosFace != null && renderFacing) {
-                drawFacingBorder(poseStack, lastSelectedPosFace, 0xff00ff00);
-            }
-            if (tmp != null && !tmp.equals(lastSelectedPosFace) && renderFacing) {
-                drawFacingBorder(poseStack, tmp, 0xffffffff);
-            }
-        }
-
-        if (this.afterWorldRender != null) {
-            this.afterWorldRender.accept(this);
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void drawFacingBorder(PoseStack poseStack, BlockPosFace posFace, int color) {
-        drawFacingBorder(poseStack, posFace, color, 0);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void drawFacingBorder(PoseStack poseStack, BlockPosFace posFace, int color, int inner) {
-        poseStack.pushPose();
-        GlStateManager._disableDepthTest();
-        RenderUtils.moveToFace(poseStack, posFace.pos().getX(), posFace.pos().getY(), posFace.pos().getZ(), posFace.facing());
-        RenderUtils.rotateToFace(poseStack, posFace.facing(), null);
-        poseStack.scale(1f / 16, 1f / 16, 0);
-        poseStack.translate(-8, -8, 0);
-        drawBorder(poseStack, 1 + inner * 2, 1 + inner * 2, 14 - 4 * inner, 14 - 4 * inner, color, 1);
-        GlStateManager._enableDepthTest();
-        poseStack.popPose();
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private static void drawBorder(PoseStack poseStack, int x, int y, int width, int height, int color, int border) {
-        drawSolidRect(poseStack, x - border, y - border, width + 2 * border, border, color);
-        drawSolidRect(poseStack, x - border, y + height, width + 2 * border, border, color);
-        drawSolidRect(poseStack, x - border, y, border, height, color);
-        drawSolidRect(poseStack, x + width, y, border, height, color);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private static void drawSolidRect(PoseStack poseStack, int x, int y, int width, int height, int color) {
-        fill(poseStack, x, y, x + width, y + height, color);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private static void fill(PoseStack matrices, int x1, int y1, int x2, int y2, int color) {
-        if (x1 > x2) { int tmp = x1; x1 = x2; x2 = tmp; }
-        if (y1 > y2) { int tmp = y1; y1 = y2; y2 = tmp; }
-
-        var renderType = RenderTypes.debugQuads();
-        BufferBuilder bufferBuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        bufferBuilder.addVertex(matrices.last().pose(), (float)x1, (float)y1, 0).setColor(color);
-        bufferBuilder.addVertex(matrices.last().pose(), (float)x1, (float)y2, 0).setColor(color);
-        bufferBuilder.addVertex(matrices.last().pose(), (float)x2, (float)y2, 0).setColor(color);
-        bufferBuilder.addVertex(matrices.last().pose(), (float)x2, (float)y1, 0).setColor(color);
-        renderType.draw(bufferBuilder.buildOrThrow());
-    }
-
     // TODO XEI ingredient support
 
 
@@ -446,7 +324,7 @@ public class Scene extends UIElement {
             rotationYaw = rotationYaw % 360;
             rotationPitch = (float) Mth.clamp(rotationPitch + realDelta.y, -89.9, 89.9);
             if (renderer != null) {
-                renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+                this.<WorldSceneRenderer>getRenderer().setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
             }
         } else if (event.dragHandler.getDraggingObject() == PAN_DRAGGING) {
             // Calculate right vector as cross product of world up and camera direction
@@ -472,7 +350,7 @@ public class Scene extends UIElement {
                     right.z * realDelta.x * moveSpeed + up.z * realDelta.y * moveSpeed
             );
             if (renderer != null) {
-                renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+                this.<WorldSceneRenderer>getRenderer().setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
             }
         }
 
@@ -493,51 +371,18 @@ public class Scene extends UIElement {
         if (!intractable || !scalable || event.target != this) return;
         zoom = (float) Mth.clamp(zoom + (event.deltaY < 0 ? 0.5 : -0.5), 0.1, 999);
         if (renderer != null) {
+            var renderer = this.<WorldSceneRenderer>getRenderer();
             renderer.setCameraOrtho(range * zoom, range * zoom, range * zoom);
             renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         }
         event.stopPropagation();
     }
 
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        var x = getContentX();
-        var y = getContentY();
-        var width = getContentWidth();
-        var height = getPaddingHeight();
-        if (interpolator != null && getModularUI() != null) {
-            interpolator.update(getModularUI().getTickCounter() + context.partialTick);
-        }
-        if (renderer != null) {
-            // Submit PIP state for deferred rendering — works for both FBO and immediate renderers
-            context.submitPicturesInPictureState(new SceneRenderState(
-                    renderer,
-                    x, y, width, height,
-                    (int) context.localMouseX, (int) context.localMouseY,
-                    context.pose.copyPose(),
-                    Mth.floor(x), Mth.floor(y),
-                    Mth.ceil(x + width), Mth.ceil(y + height),
-                    1.0f,
-                    context.graphics.peekScissorStack()
-            ));
-            if (renderer.isCompiling()) {
-                double progress = renderer.getCompileProgress();
-                if (progress > 0) {
-                    context.drawTexture(new TextTexture("Renderer is compiling! " + String.format("%.1f", progress * 100) + "%%")
-                            .setWidth((int) width), x, y, width, height);
-                }
-            }
-        }
-        if (isHover() && showHoverBlockTips && lastHoverItem != null && getModularUI() != null) {
-            ModularUIClientAccess.setHoverTooltip(getModularUI(), HoverTooltips.create(DrawerHelper.getItemToolTip(lastHoverItem).toArray()).stack(lastHoverItem));
-        }
-    }
-
     /// Camera control methods
     public Scene setCenter(Vector3f center) {
         this.center = center;
         if (renderer != null) {
-            renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+            this.<WorldSceneRenderer>getRenderer().setCameraLookAt(this.center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         }
         return this;
     }
@@ -545,6 +390,7 @@ public class Scene extends UIElement {
     public Scene setZoom(float zoom) {
         this.zoom = zoom;
         if (renderer != null) {
+            var renderer = this.<WorldSceneRenderer>getRenderer();
             renderer.setCameraOrtho(range * zoom, range * zoom, range * zoom);
             renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         }
@@ -554,7 +400,7 @@ public class Scene extends UIElement {
     public Scene setOrthoRange(float range) {
         this.range = range;
         if (renderer != null) {
-            renderer.setCameraOrtho(range * zoom, range * zoom, range * zoom);
+            this.<WorldSceneRenderer>getRenderer().setCameraOrtho(range * zoom, range * zoom, range * zoom);
         }
         return this;
     }
@@ -563,7 +409,7 @@ public class Scene extends UIElement {
         this.rotationYaw = rotationYaw;
         this.rotationPitch = rotationPitch;
         if (renderer != null) {
-            renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
+            this.<WorldSceneRenderer>getRenderer().setCameraLookAt(this.center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         }
         return this;
     }
@@ -581,7 +427,7 @@ public class Scene extends UIElement {
             this.rotationPitch = (rotationYaw - oRotationYaw) * value.floatValue() + oRotationYaw;
             this.rotationYaw = (rotationPitch - oRotationPitch) * value.floatValue() + oRotationPitch;
             if (renderer != null) {
-                renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(this.rotationYaw), Math.toRadians(this.rotationPitch));
+                this.<WorldSceneRenderer>getRenderer().setCameraLookAt(this.center, camZoom(), Math.toRadians(this.rotationYaw), Math.toRadians(this.rotationPitch));
             }
         }, () -> interpolator = null);
     }

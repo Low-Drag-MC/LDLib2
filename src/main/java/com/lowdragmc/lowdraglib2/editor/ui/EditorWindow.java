@@ -340,7 +340,6 @@ public class EditorWindow extends UIElement {
         ).addEventListener(UIEvents.MOUSE_DOWN, e -> showEditor(editor));
     }
 
-    @Override
     public void drawBackgroundAdditional(@Nonnull GUIContext context) {
         super.drawBackgroundAdditional(context);
         if (window.isSelfOrChildHover() && !isResizing && !isMaximized()) {

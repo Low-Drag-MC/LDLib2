@@ -2,12 +2,8 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import lombok.Getter;
-import net.minecraft.client.gui.GuiGraphics;
 
 /**
  * @author KilaBash
@@ -55,26 +51,5 @@ public abstract class TransformTexture implements IGuiTexture {
 
     public void copyTransform(Transform2D transform) {
         transform2D.copyFrom(transform);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void preDraw(GuiGraphics graphics, float x, float y, float width, float height) {
-        transform2D.pushPose(graphics.pose(), x, y, width, height);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void postDraw(GuiGraphics graphics, float x, float y, float width, float height) {
-        transform2D.popPose(graphics.pose());
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected abstract void drawInternal(GUIContext context, float x, float y, float width, float height);
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void draw(GUIContext context, float x, float y, float width, float height) {
-        preDraw(context.graphics, x, y, width, height);
-        drawInternal(context, x, y, width, height);
-        postDraw(context.graphics, x, y, width, height);
     }
 }

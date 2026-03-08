@@ -23,7 +23,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Clip;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyle;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -34,7 +34,6 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.vfyjxf.taffy.style.*;
@@ -45,8 +44,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -1494,20 +1491,19 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public static boolean isShiftDown() {
-        return Minecraft.getInstance().hasShiftDown();
+        return UIElementInputAccess.isShiftDown();
     }
 
     public static boolean isCtrlDown() {
-        return Minecraft.getInstance().hasControlDown();
+        return UIElementInputAccess.isCtrlDown();
     }
 
     public static boolean isAltDown() {
-        return Minecraft.getInstance().hasAltDown();
+        return UIElementInputAccess.isAltDown();
     }
 
     public static boolean isKeyDown(int keyCode) {
-        var window = Minecraft.getInstance().getWindow();
-        return InputConstants.isKeyDown(window, keyCode);
+        return UIElementInputAccess.isKeyDown(keyCode);
     }
 
     public boolean isMouseDown(int button) {
@@ -1527,7 +1523,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * <li> 3. Overlay
      * <li> 4. Children
      */
-    public final void drawInBackground(GUIContext context) {
+    public final void drawInBackground(IGUIContext context) {
         var display = taffyStyle.style.display;
         var opacity = style.opacity();
         if (display == TaffyDisplay.NONE || !isVisible() || opacity == 0) {
@@ -1539,11 +1535,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var transform2D = style.transform2D();
         var pushedTransform = !transform2D.isIdentity();
         if (pushedTransform) {
-            transform2D.pushPose(context, this);
+            context.pushTransform(transform2D, this);
         }
 
         if (localToWorldCache == null) {
-            localToWorldCache = new Matrix3x2f(context.pose.pose);
+            localToWorldCache = new Matrix3x2f(context.currentPose());
         }
 
         isCulled = !isInsideTheScissorView(context);
@@ -1552,7 +1548,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
         // todo visual layer
         if (hasVisualLayer) {
-            UIElementClientAccess.pushVisualLayer(this, context);
+            context.pushVisualLayer(this);
         }
 
         drawInBackgroundInternal(context);
@@ -1562,11 +1558,11 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
 
         if (pushedTransform) {
-            transform2D.popPose(context);
+            context.popTransform(transform2D);
         }
     }
 
-    public final void drawInBackgroundInternal(GUIContext context) {
+    public final void drawInBackgroundInternal(IGUIContext context) {
         var elementColor = style.color();
         var hasColor = elementColor != -1;
         if (hasColor) {
@@ -1575,7 +1571,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if (!isCulled) {
             drawBackgroundTexture(context);
             drawContents(context);
-            drawBackgroundOverlay(context);
+            UIElementRendererRegistry.findRenderer(this).drawBackgroundOverlay(this, context);
         } else { // draw contents only
             drawContents(context);
         }
@@ -1584,42 +1580,37 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
-    protected boolean isInsideTheScissorView(GUIContext context) {
-        var peek = context.peekScissor();
-        if (peek != null) {
-            var trans = context.pose.pose;
-            var x0 = getPositionX();
-            var y0 = getPositionY();
-            var x1 = x0 + getSizeWidth();
-            var y1 = y0 + getSizeHeight();
+    protected boolean isInsideTheScissorView(IGUIContext context) {
+        var trans = context.currentPose();
+        var x0 = getPositionX();
+        var y0 = getPositionY();
+        var x1 = x0 + getSizeWidth();
+        var y1 = y0 + getSizeHeight();
 
-            Vector2f p = new Vector2f();
+        Vector2f p = new Vector2f();
 
-            trans.transformPosition(x0, y0, p);
-            float minX = p.x, maxX = p.x, minY = p.y, maxY = p.y;
+        trans.transformPosition(x0, y0, p);
+        float minX = p.x, maxX = p.x, minY = p.y, maxY = p.y;
 
-            trans.transformPosition(x1, y0, p);
-            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+        trans.transformPosition(x1, y0, p);
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
 
-            trans.transformPosition(x0, y1, p);
-            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+        trans.transformPosition(x0, y1, p);
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
 
-            trans.transformPosition(x1, y1, p);
-            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+        trans.transformPosition(x1, y1, p);
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
 
-            return peek.intersects(new ScreenRectangle(Mth.floor(minX), Mth.floor(minY),
-                    Mth.ceil(maxX - minX), Mth.ceil(maxY - minY)));
-        }
-        return true;
+        return context.isInsideScissor(minX, minY, maxX - minX, maxY - minY);
     }
 
     /**
      * Renders the background texture of the GUI element.
      */
-    public void drawBackgroundTexture(GUIContext context) {
+    protected void drawBackgroundTexture(IGUIContext context) {
         var background = style.backgroundTexture();
         if (background != null && background != IGuiTexture.EMPTY) {
             context.drawTexture(background, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
@@ -1629,7 +1620,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Renders the contents of the GUI element. includes additional background and children
      */
-    public void drawContents(GUIContext context) {
+    public void drawContents(IGUIContext context) {
         // not need to use scissoring if overflow cip defined
         var scissor = style.clip().isScissor();
         if (scissor) {
@@ -1637,10 +1628,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             context.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
         }
         if(!isCulled) {
-            drawBackgroundAdditional(context);
+            UIElementRendererRegistry.findRenderer(this).drawBackgroundAdditional(this, context);
         }
         if (!children.isEmpty()) {
-            var currentColor = context.elementColor;
+            var currentColor = context.getElementColor();
             var hasColor = currentColor != -1;
             // we roll back first
             if (hasColor) {
@@ -1659,14 +1650,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Renders the additional background of the GUI element.
      */
-    public void drawBackgroundAdditional(GUIContext context) {
+    protected void drawBackgroundAdditional(IGUIContext context) {
 
     }
 
     /**
      * Renders the overlay texture of the GUI element.
      */
-    public void drawBackgroundOverlay(GUIContext context) {
+    protected void drawBackgroundOverlay(IGUIContext context) {
         var overlay = style.overlayTexture();
         if (overlay != null && overlay != IGuiTexture.EMPTY) {
             context.drawTexture(overlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());

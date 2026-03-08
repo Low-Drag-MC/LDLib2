@@ -16,7 +16,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -404,55 +403,6 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         if (notify) notifyListeners();
         return this;
     }
-
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        var renderedFluid = getValue();
-        var hovered = isHover() || isSelfOrChildHover();
-        var drawSlotOverlay = slotStyle.showSlotOverlayOnlyEmpty() || !renderedFluid.isEmpty();
-
-        if (renderedFluid.isEmpty() && !hovered && !drawSlotOverlay) return;
-
-        var contentX = getContentX();
-        var contentY = getContentY();
-        var contentWidth = getContentWidth();
-        var contentHeight = getContentHeight();
-
-        if (renderedFluid.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty()) {
-            drawSlotOverlay(context, contentX, contentY, contentWidth, contentHeight);
-        }
-
-        if (!renderedFluid.isEmpty()) {
-            drawFluid(context, renderedFluid, contentX, contentY, contentWidth, contentHeight);
-        }
-
-        if (hovered) {
-            drawHover(context, contentX, contentY, contentWidth, contentHeight);
-        }
-    }
-
-    protected void drawSlotOverlay(GUIContext context, float contentX, float contentY, float contentWidth, float contentHeight) {
-        context.drawTexture(slotStyle.slotOverlay(), contentX, contentY, contentWidth, contentHeight);
-    }
-
-    protected void drawFluid(GUIContext context, FluidStack renderedFluid, float contentX, float contentY, float contentWidth, float contentHeight) {
-        var fillDirection = slotStyle.fillDirection();
-        double progress = renderedFluid.getAmount() * 1.0 / Math.max(Math.max(renderedFluid.getAmount(), capacity), 1);
-        float drawnU = (float) fillDirection.getDrawnU(progress);
-        float drawnV = (float) fillDirection.getDrawnV(progress);
-        float drawnWidth = (float) fillDirection.getDrawnWidth(progress);
-        float drawnHeight = (float) fillDirection.getDrawnHeight(progress);
-        DrawerHelper.drawFluidForGui(context, renderedFluid,
-                contentX + drawnU * contentWidth,
-                contentY + drawnV * contentHeight,
-                contentWidth * drawnWidth,
-                contentHeight * drawnHeight, -1);
-    }
-
-    protected void drawHover(GUIContext context, float contentX, float contentY, float contentWidth, float contentHeight) {
-        context.drawTexture(slotStyle.hoverOverlay(), contentX, contentY, contentWidth, contentHeight);
-    }
-
 
     /// Editor Support
     @ConfigSetter(field = "editorFluidDisplay")

@@ -5,28 +5,22 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
-import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -196,30 +190,7 @@ public class TextElement extends UIElement {
 
     public void recompute() {
         if (!LDLib2.isClient()) return;
-        var maxWidth = 0f;
-        var wrap = getTextStyle().textWrap();
-        var font = getTextStyle().font();
-        if (getTextStyle().adaptiveWidth() || wrap == TextWrap.NONE || wrap == TextWrap.ROLL || wrap == TextWrap.HOVER_ROLL) {
-            maxWidth = Float.MAX_VALUE;
-        } else {
-            maxWidth = getContentWidth();
-        }
-        formattedLines = TextUtilities.computeFormattedLines(
-                Minecraft.getInstance().font,
-                TextUtilities.withFont(text, font),
-                getTextStyle().fontSize(),
-                maxWidth
-        );
-        if (getTextStyle().adaptiveWidth()) {
-            Style.importantPipeline(getLayout(), layout -> layout.width(formattedLines.stream().findFirst().map(Tuple::getB).orElse(0f) + getSizeWidth() - getContentWidth()));
-        } else {
-            getStyleBag().removeCandidates(LayoutProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
-        }
-        if (getTextStyle().adaptiveHeight()) {
-            Style.importantPipeline(getLayout(), layout -> layout.height(formattedLines.size() * (getTextStyle().fontSize() + getTextStyle().lineSpacing()) - getTextStyle().lineSpacing() + getSizeHeight() - getContentHeight()));
-        } else {
-            getStyleBag().removeCandidates(LayoutProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
-        }
+        TextElementRenderer.recompute(this);
     }
 
     public TextElement textStyle(Consumer<TextStyle> style) {
@@ -259,75 +230,12 @@ public class TextElement extends UIElement {
 //        return setText(text);
 //    }
 
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        if (formattedLines.isEmpty()) return;
-        var font = Minecraft.getInstance().font;
-        var defaultLineHeight = font.lineHeight;
-        var x = getContentX();
-        var y = getContentY();
-        var width = getContentWidth();
-        var height = getContentHeight();
-        var hAlign = getTextStyle().textAlignHorizontal();
-        var vAlign = getTextStyle().textAlignVertical();
-        var lineHeight = getTextStyle().fontSize();
-        var lineSpacing = getTextStyle().lineSpacing();
-        var color = getTextStyle().textColor();
-        var dropShadow = getTextStyle().textShadow();
-        var scale = lineHeight / defaultLineHeight;
+    List<Tuple<FormattedCharSequence, Float>> getFormattedLines() {
+        return formattedLines;
+    }
 
-
-        // calculate the total height of the text
-        var displayLines = formattedLines;
-        var textWrap = getTextStyle().textWrap();
-        if (textWrap == TextWrap.HIDE) {
-            // display the first line only
-            displayLines = formattedLines.subList(0, Math.min(1, formattedLines.size()));
-        }
-
-        var totalTextHeight = displayLines.size() * (lineHeight + lineSpacing) - lineSpacing;
-        var startY = y;
-
-        // according to the vertical alignment, adjust the starting Y coordinate
-        switch (vAlign) {
-            case TOP -> startY = y;
-            case CENTER -> startY = y + (height - totalTextHeight) / 2;
-            case BOTTOM -> startY = y + (height - totalTextHeight);
-        }
-
-        // render each line of text
-        var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && isSelfOrChildHover());
-        for (int i = 0; i < displayLines.size(); i++) {
-            var tuple = displayLines.get(i);
-            var line = tuple.getA();
-            float lineWidth = tuple.getB();
-            var lineX = x;
-
-            // according to the horizontal alignment, adjust the starting X coordinate
-            if (roll && lineWidth > width) {
-                // for rolling text, always align to the left
-                var rollSpeed = getTextStyle().rollSpeed();
-                float totalW = width + lineWidth + 10;
-                var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
-                lineX = (float) (x + width - totalW * t);
-            } else {
-                switch (hAlign) {
-                    case LEFT -> lineX = x;
-                    case CENTER -> lineX = (lineWidth > width) ? x : (x + (width - lineWidth) / 2);
-                    case RIGHT -> lineX = x + (width - lineWidth);
-                }
-            }
-
-            // calculate the Y coordinate of the current line (including line spacing)
-            var lineY = startY + i * (lineHeight + lineSpacing);
-
-            // draw the text line
-            context.pose.pushPose();
-            context.pose.translate(lineX, lineY);
-            context.pose.scale(scale, scale);
-            context.graphics.drawString(font, line, 0, 0, color, dropShadow);
-            context.pose.popPose();
-        }
+    void setFormattedLines(List<Tuple<FormattedCharSequence, Float>> formattedLines) {
+        this.formattedLines = formattedLines;
     }
 
     @Override

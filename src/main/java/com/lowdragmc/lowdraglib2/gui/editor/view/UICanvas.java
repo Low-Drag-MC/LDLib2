@@ -120,7 +120,6 @@ public class UICanvas extends UIElement {
         this.canvasModularUI.tick();
     }
 
-    @Override
     public void drawBackgroundAdditional(GUIContext context) {
         super.drawBackgroundAdditional(context);
         if (this.canvasModularUI == null) return;

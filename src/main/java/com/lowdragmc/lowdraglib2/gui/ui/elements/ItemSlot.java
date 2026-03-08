@@ -12,7 +12,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -25,7 +24,6 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -345,86 +343,6 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         slot.set(value);
         if (notify) notifyListeners();
         return this;
-    }
-
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        var value = getValue();
-        var mui = getModularUI();
-        if (mui == null) return;
-        var hovered = isHover() || isSelfOrChildHover();
-        var drawDraggingBackground = false;
-        // splitting
-        if (ModularUIClientAccess.getScreen(mui) instanceof AbstractContainerScreen<?> containerScreen) {
-            var carried = containerScreen.getMenu().getCarried();
-            if (slot == containerScreen.clickedSlot && !containerScreen.draggingItem.isEmpty() && containerScreen.isSplittingStack && !value.isEmpty()) {
-                value = value.copyWithCount(value.getCount() / 2);
-                drawDraggingBackground = true;
-            } else if (containerScreen.isQuickCrafting && containerScreen.quickCraftSlots.contains(slot) && !carried.isEmpty()) {
-                if (containerScreen.quickCraftSlots.size() == 1) {
-                    return;
-                }
-
-                if (AbstractContainerMenu.canItemQuickReplace(slot, carried, true) && containerScreen.getMenu().canDragTo(slot)) {
-                    int k = Math.min(carried.getMaxStackSize(), slot.getMaxStackSize(carried));
-                    int l = slot.getItem().isEmpty() ? 0 : slot.getItem().getCount();
-                    int i1 = AbstractContainerMenu.getQuickCraftPlaceCount(containerScreen.quickCraftSlots.size(), containerScreen.quickCraftingType, carried) + l;
-                    if (i1 > k) {
-                        i1 = k;
-                    }
-
-                    value = carried.copyWithCount(i1);
-                    drawDraggingBackground = true;
-                } else {
-                    containerScreen.quickCraftSlots.remove(slot);
-                    containerScreen.recalculateQuickCraftRemaining();
-                }
-            }
-        }
-
-        var drawSlotOverlay = value.isEmpty() || !slotStyle.showSlotOverlayOnlyEmpty();
-
-        if (value.isEmpty() && !hovered && !drawDraggingBackground && !drawSlotOverlay) return;
-
-        var contentX = getContentX();
-        var contentY = getContentY();
-        var contentWidth = getContentWidth();
-        var contentHeight = getContentHeight();
-
-        context.pose.pushPose();
-        context.pose.scale(contentWidth / 16f, contentHeight / 16f);
-        context.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight);
-
-        if (drawDraggingBackground) {
-            drawDraggingBackground(context);
-        }
-
-        if (drawSlotOverlay) {
-            drawSlotOverlay(context);
-        }
-        if (!value.isEmpty()) {
-            drawItemStack(context, value);
-        }
-        if (hovered) {
-            drawHover(context);
-        }
-        context.pose.popPose();
-    }
-
-    protected void drawDraggingBackground(GUIContext context) {
-        context.drawTexture(DRAGGING_BG, 0, 0, 16, 16);
-    }
-
-    protected void drawSlotOverlay(GUIContext context) {
-        context.drawTexture(slotStyle.slotOverlay(), 0, 0, 16, 16);
-    }
-
-    protected void drawItemStack(GUIContext context, ItemStack itemStack) {
-        DrawerHelper.drawItemStack(context, itemStack, 0, 0, 0);
-    }
-
-    protected void drawHover(GUIContext context) {
-        context.drawTexture(slotStyle.hoverOverlay(), 0, 0, 16, 16);
     }
 
     /// Editor Support

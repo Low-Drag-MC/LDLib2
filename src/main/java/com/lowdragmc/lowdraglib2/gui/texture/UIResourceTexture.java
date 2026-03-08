@@ -3,15 +3,12 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinPath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Optional;
@@ -35,14 +32,7 @@ public final class UIResourceTexture extends TransformTexture {
     private IGuiTexture getTextureFromResource() {
         var result = Optional.ofNullable(TexturesResource.INSTANCE.getResourceInstance().getResource(resourcePath))
                 .orElse(IGuiTexture.MISSING_TEXTURE);
-        // prevent infinite loop
         return result == this ? IGuiTexture.MISSING_TEXTURE : result;
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        getInternalTexture().draw(context, x, y, width, height);
     }
 
     @Override

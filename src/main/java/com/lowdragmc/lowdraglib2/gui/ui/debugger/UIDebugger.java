@@ -296,7 +296,6 @@ public class UIDebugger extends UIElement {
         });
     }
 
-    @Override
     public void drawBackgroundAdditional(@Nonnull GUIContext context) {
         super.drawBackgroundAdditional(context);
 

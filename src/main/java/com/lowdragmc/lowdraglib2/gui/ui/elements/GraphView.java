@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -248,56 +247,6 @@ public class GraphView extends UIElement {
             }
             refreshContentTransform();
         }
-    }
-
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        super.drawBackgroundAdditional(context);
-        var x = getContentX();
-        var y = getContentY();
-        var w = getContentWidth();
-        var h = getContentHeight();
-
-
-        var imageWidth = graphViewStyle.gridSize();
-        var imageHeight = graphViewStyle.gridSize();
-        var gridSize = graphViewStyle.gridSize();
-
-        if (graphViewStyle.gridTexture() instanceof SpriteTexture spriteTexture) {
-            imageWidth = spriteTexture.getImageSize().width;
-            imageHeight = spriteTexture.getImageSize().height;
-        }
-
-        context.pose.pushPose();
-
-        float worldLeft = offsetX;
-        float worldTop = offsetY;
-        float worldRight = offsetX + w / scale;
-        float worldBottom = offsetY + h / scale;
-
-        float gridStartX = (float) Math.floor(worldLeft / gridSize) * gridSize;
-        float gridStartY = (float) Math.floor(worldTop / gridSize) * gridSize;
-
-        float gridEndX = (float) Math.ceil(worldRight / gridSize) * gridSize;
-        float gridEndY = (float) Math.ceil(worldBottom / gridSize) * gridSize;
-
-        context.pose.translate(x, y);
-        context.pose.scale(scale, scale);
-        context.pose.translate(-offsetX, -offsetY);
-
-        float textureScaleX = gridSize / imageWidth;
-        float textureScaleY = gridSize / imageHeight;
-
-        context.pose.scale(textureScaleX, textureScaleY);
-
-        float drawX = gridStartX / textureScaleX;
-        float drawY = gridStartY / textureScaleY;
-        float drawW = (gridEndX - gridStartX) / textureScaleX;
-        float drawH = (gridEndY - gridStartY) / textureScaleY;
-
-        context.drawTexture(graphViewStyle.gridTexture(), drawX, drawY, drawW, drawH);
-
-        context.pose.popPose();
     }
 
     /// Editor

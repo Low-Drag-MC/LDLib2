@@ -483,8 +483,8 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         }
 
         if (modularUI.isDrawDrag() && modularUI.getDragHandler().isDragging() && modularUI.getDragHandler().dragTexture != null) {
-            modularUI.getDragHandler().dragTexture.draw(
-                    context,
+            context.drawTexture(
+                    modularUI.getDragHandler().dragTexture,
                     modularUI.lastMouseX + modularUI.getDragHandler().offsetX,
                     modularUI.lastMouseY + modularUI.getDragHandler().offsetY,
                     modularUI.getDragHandler().width,

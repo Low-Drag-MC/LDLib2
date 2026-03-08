@@ -1,34 +1,22 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import lombok.Setter;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.network.chat.FormattedText;
-import net.minecraft.network.chat.Style;
-import org.joml.Vector2f;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 @KJSBindings
 @LDLRegisterClient(name = "text_texture", registry = "ldlib2:gui_texture")
 public class TextTexture extends TransformTexture {
-
     @Configurable
     public String text;
 
@@ -43,10 +31,12 @@ public class TextTexture extends TransformTexture {
     @Configurable(tips = "ldlib.gui.editor.tips.image_text_width")
     @ConfigNumber(range = {1, Integer.MAX_VALUE})
     public int width;
+
     @Configurable
     @ConfigNumber(range = {0, Integer.MAX_VALUE})
     @Setter
     public float rollSpeed = 1;
+
     @Configurable
     public boolean dropShadow;
 
@@ -54,10 +44,8 @@ public class TextTexture extends TransformTexture {
     public TextType type;
 
     public Supplier<String> supplier;
-    @OnlyIn(Dist.CLIENT)
-    private List<String> texts;
-
-    private long lastTick;
+    List<String> texts;
+    long lastTick;
 
     public TextTexture() {
         this("A", -1);
@@ -67,9 +55,10 @@ public class TextTexture extends TransformTexture {
     public TextTexture(String text, int color) {
         this.color = color;
         this.type = TextType.NORMAL;
+        this.text = LocalizationUtils.format(text);
+        this.texts = Collections.singletonList(this.text);
         if (LDLib2.isClient()) {
-            this.text = LocalizationUtils.format(text);
-            texts = Collections.singletonList(this.text);
+            TextTextureClientSupport.refreshTexts(this);
         }
     }
 
@@ -89,24 +78,12 @@ public class TextTexture extends TransformTexture {
         return this;
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public void updateTick() {
-        if (Minecraft.getInstance().level != null) {
-            long tick = Minecraft.getInstance().level.getGameTime();
-            if (tick == lastTick) return;
-            lastTick = tick;
-            if (supplier != null) {
-                updateText(supplier.get());
-            }
-        }
-    }
-
     @ConfigSetter(field = "text")
     public void updateText(String text) {
+        this.text = LocalizationUtils.format(text);
+        this.texts = Collections.singletonList(this.text);
         if (LDLib2.isClient()) {
-            this.text = LocalizationUtils.format(text);
-            texts = Collections.singletonList(this.text);
-            setWidth(this.width);
+            TextTextureClientSupport.refreshTexts(this);
         }
     }
 
@@ -128,18 +105,7 @@ public class TextTexture extends TransformTexture {
     public TextTexture setWidth(int width) {
         this.width = width;
         if (LDLib2.isClient()) {
-            if (this.width > 0) {
-                texts = Minecraft.getInstance()
-                        .font.getSplitter()
-                        .splitLines(text, width, Style.EMPTY)
-                        .stream().map(FormattedText::getString)
-                        .collect(Collectors.toList());
-                if (texts.isEmpty()) {
-                    texts = Collections.singletonList(text);
-                }
-            } else {
-                texts = Collections.singletonList(text);
-            }
+            TextTextureClientSupport.refreshTexts(this);
         }
         return this;
     }
@@ -157,105 +123,17 @@ public class TextTexture extends TransformTexture {
         copied.rollSpeed = rollSpeed;
         copied.width = width;
         copied.backgroundColor = backgroundColor;
+        copied.supplier = supplier;
+        copied.texts = List.copyOf(texts);
         copied.copyTransform(this);
         return copied;
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        updateTick();
-        if (backgroundColor != 0) {
-            DrawerHelper.drawSolidRect(context, (int) x, (int) y, (int) width, (int) height, backgroundColor);
-        }
-        Font fontRenderer = Minecraft.getInstance().font;
-        int textH = fontRenderer.lineHeight;
-        if (type == TextType.NORMAL) {
-            textH *= texts.size();
-            for (int i = 0; i < texts.size(); i++) {
-                String line = texts.get(i);
-                int lineWidth = fontRenderer.width(line);
-                float _x = x + (width - lineWidth) / 2f;
-                float _y = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                context.graphics.drawString(fontRenderer, line, (int) _x, (int) _y, color, dropShadow);
-            }
-        } else if (type == TextType.LEFT) {
-            textH *= texts.size();
-            for (int i = 0; i < texts.size(); i++) {
-                String line = texts.get(i);
-                float _y = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                context.graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
-            }
-        } else if (type == TextType.RIGHT) {
-            textH *= texts.size();
-            for (int i = 0; i < texts.size(); i++) {
-                String line = texts.get(i);
-                int lineWidth = fontRenderer.width(line);
-                float _y = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                context.graphics.drawString(fontRenderer, line, (int) (x + width - lineWidth), (int) _y, color, dropShadow);
-            }
-        } else if (type == TextType.HIDE) {
-            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY) && texts.size() > 1) {
-                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
-            } else {
-                String line = texts.getFirst() + (texts.size() > 1 ? ".." : "");
-                drawTextLine(context, x, y, width, height, fontRenderer, textH, line);
-            }
-        } else if (type == TextType.ROLL || type == TextType.ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY))) {
-                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
-            } else {
-                drawTextLine(context, x, y, width, height, fontRenderer, textH, texts.get(0));
-            }
-        } else if (type == TextType.LEFT_HIDE) {
-            if (UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY) && texts.size() > 1) {
-                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
-            } else {
-                String line = texts.getFirst() + (texts.size() > 1 ? ".." : "");
-                float _y = y + (height - textH) / 2f;
-                context.graphics.drawString(fontRenderer, line, (int) x, (int) _y, color, dropShadow);
-            }
-        } else if (type == TextType.LEFT_ROLL || type == TextType.LEFT_ROLL_ALWAYS) {
-            if (texts.size() > 1 && (type == TextType.LEFT_ROLL_ALWAYS || UIElement.isMouseOverRect((int) x, (int) y, (int) width, (int) height, context.localMouseX, context.localMouseY))) {
-                drawRollTextLine(context, x, y, width, height, fontRenderer, textH, text);
-            } else {
-                float _y = y + (height - textH) / 2f;
-                context.graphics.drawString(fontRenderer, texts.getFirst(), (int) x, (int) _y, color, dropShadow);
-            }
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private void drawRollTextLine(GUIContext context, float x, float y, float width, float height,
-                                  Font fontRenderer, int textH, String line) {
-        float _y = y + (height - textH) / 2f;
-        float textW = fontRenderer.width(line);
-        float totalW = width + textW + 10;
-        float from = x + width;
-        var trans = context.pose.pose;
-        var realPos = trans.transformPosition(new Vector2f(x, y));
-        var realPos2 = trans.transformPosition(new Vector2f(x + width, y + height));
-        context.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
-        var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
-        context.graphics.drawString(fontRenderer, line, (int) (from - t * totalW), (int) _y, color, dropShadow);
-        context.disableScissor();
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private void drawTextLine(GUIContext context, float x, float y, float width, float height,
-                              Font fontRenderer, int textH, String line) {
-        int textW = fontRenderer.width(line);
-        float _x = x + (width - textW) / 2f;
-        float _y = y + (height - textH) / 2f;
-        context.graphics.drawString(fontRenderer, line, (int) _x, (int) _y, color, dropShadow);
-    }
-
-    @OnlyIn(Dist.CLIENT)
     public int getLines() {
         return texts.size();
     }
 
-    public enum TextType{
+    public enum TextType {
         NORMAL,
         HIDE,
         ROLL,

@@ -4,47 +4,33 @@ import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
-import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Cursor;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
-import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
 import oshi.util.tuples.Pair;
@@ -282,12 +268,7 @@ public class TextArea extends BindableUIElement<String[]> {
         // Default layout and look
         getLayout().height(60);
 
-        this.contentView = new UIElement() {
-            @Override
-            public void drawBackgroundAdditional(GUIContext context) {
-                drawContentView(context);
-            }
-        };
+        this.contentView = new ContentView(this);
         this.contentView.addClass("__text-area_content-view__");
         this.contentView.layout(layout -> {
             layout.paddingAll(3);
@@ -507,14 +488,8 @@ public class TextArea extends BindableUIElement<String[]> {
         return this;
     }
 
-    // Editing helpers
-    @OnlyIn(Dist.CLIENT)
-    public Font getFont() {
-        return Minecraft.getInstance().font;
-    }
-
     public float scale() {
-        return textAreaStyle.fontSize() / getFont().lineHeight;
+        return LDLib2.isClient() ? TextAreaClientSupport.scale(this) : 1f;
     }
 
     public float lineHeight() {
@@ -547,13 +522,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     private float getMaxWidth() {
-        var font = getFont();
-        var s = scale();
-        var max = 0f;
-        for (String line : lines) {
-            max = Math.max(font.getSplitter().stringWidth(TextUtilities.withFont(line, getTextAreaStyle().font())) * s, max);
-        }
-        return max;
+        return LDLib2.isClient() ? TextAreaClientSupport.getMaxWidth(this) : 0f;
     }
 
     private float getMaxHeight() {
@@ -582,46 +551,12 @@ public class TextArea extends BindableUIElement<String[]> {
 
     protected void ensureCursorVisible() {
         if (!LDLib2.isClient()) return;
-        var width = contentView.getContentWidth();
-        var height = contentView.getContentHeight();
-        if (width == 0 || height == 0) return;
-
-        var font = getFont();
-        var s = scale();
-        var currentLine = lines.get(cursorLine);
-
-        // Compute cursor pixel positions
-        float cursorX = font.getSplitter().stringWidth(TextUtilities.withFont(currentLine.substring(0, cursorCol), getTextAreaStyle().font())) * s;
-        float lineTop = cursorLine * lineHeight();
-        float lineBottom = lineTop + textAreaStyle.fontSize();
-
-        // Horizontal: prefer cursor on the right edge of viewport
-        float rightPad = 1f; // keep the same visual padding as before
-        float preferredScrollX = Math.max(0, cursorX - width + rightPad);
-
-        // Only adjust when cursor is actually out of view
-        if (cursorX - scrollX > width - rightPad || cursorX - scrollX < 0) {
-            // Try to place the cursor at the right edge first;
-            // if there's not enough content on the left, preferredScrollX will clamp to 0.
-            scrollX = preferredScrollX;
-        }
-
-        // Vertical
-        if (lineBottom - scrollY > height) {
-            scrollY = lineBottom - height;
-        } else if (lineTop - scrollY < 0) {
-            scrollY = Math.max(lineTop, 0);
-        }
-
-        // Clamp vertical scroll to content size
-        float contentTotalHeight = Math.max(lineHeight(), lines.size() * lineHeight());
-        scrollY = Mth.clamp(Float.isNaN(scrollY) ? 0 : scrollY, 0, Math.max(0, contentTotalHeight - height));
-        // Clamp horizontal scroll
-        scrollX = Math.max(0, Float.isNaN(scrollX) ? 0 : scrollX);
+        var scroll = TextAreaClientSupport.computeVisibleScroll(this);
+        scrollX = scroll.getA();
+        scrollY = scroll.getB();
         updateScrollers();
-
-        lastHeight = height;
-        lastWidth = width;
+        lastHeight = contentView.getContentHeight();
+        lastWidth = contentView.getContentWidth();
     }
 
     protected void onBlur(UIEvent e) {
@@ -708,35 +643,10 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     public Cursor getCursorUnderMouse(double mouseX, double mouseY) {
-        var x = contentView.getContentX();
-        var y = contentView.getContentY();
-        var s = scale();
-        var font = getFont();
-        var textFont = getTextAreaStyle().font();
-
-        // Determine line
-        var relY = (float) (mouseY - y + scrollY) - 2;
-        int line = Mth.clamp((int) Math.floor(relY / lineHeight()), 0, Math.max(0, lines.size() - 1));
-
-        // Determine col by measuring width
-        var lineText = lines.get(line);
-        var relX = (float) (mouseX - x + scrollX);
-
-        // Estimate col using font width and substring fitting
-        var lineWithFont = TextUtilities.withFont(lineText, textFont);
-        var subWithFont = font.substrByWidth(lineWithFont, (int) (relX / s));
-        float fullLength = font.getSplitter().stringWidth(lineWithFont) * s;
-        float subLength = font.getSplitter().stringWidth(subWithFont) * s;
-        int col;
-        if (subLength >= fullLength) {
-            col = lineText.length();
-        } else {
-            var sub = subWithFont.getString();
-            float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(lineText.substring(sub.length(), sub.length() + 1), textFont)) * s;
-            col = (relX - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+        if (!LDLib2.isClient()) {
+            return cursorPos();
         }
-        col = Mth.clamp(col, 0, lineText.length());
-        return new Cursor(line, col);
+        return TextAreaClientSupport.getCursorUnderMouse(this, mouseX, mouseY);
     }
 
     protected void onCharTyped(UIEvent event) {
@@ -810,21 +720,24 @@ public class TextArea extends BindableUIElement<String[]> {
                 updateSelectionAfterMove();
             }
             default -> {
-                var keyEvent = new KeyEvent(event.keyCode, event.scanCode, event.modifiers);
-                if (keyEvent.isSelectAll()) {
+                if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_A) {
                     selectAll();
-                } else if (keyEvent.isCopy()) {
-                    ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
-                } else if (keyEvent.isPaste()) {
+                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_C) {
+                    TextAreaClientSupport.copyHighlightedText(this);
+                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_V) {
                     if (!isEditable()) return;
-                    insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
-                } else if (keyEvent.isCut()) {
+                    insertText(TextAreaClientSupport.getClipboardText());
+                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_X) {
                     if (!isEditable()) return;
-                    ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
+                    TextAreaClientSupport.copyHighlightedText(this);
                     insertText(""); // replace selection with empty
                 }
             }
         }
+    }
+
+    private boolean isPrimaryShortcut(UIEvent event) {
+        return event.isCtrlDown() || (event.modifiers & GLFW.GLFW_MOD_SUPER) != 0;
     }
 
     protected void updateSelectionAfterMove() {
@@ -1097,151 +1010,20 @@ public class TextArea extends BindableUIElement<String[]> {
         return sb.toString();
     }
 
+    String getClipboardSelectionText() {
+        return getHighlightedText();
+    }
+
     public boolean isEditable() {
         return isActive() && isVisible() && isFocused() && isDisplayed();
     }
 
-    // Rendering
-    @Override
-    public void drawBackgroundOverlay(GUIContext context) {
-        if (contentView.isSelfOrChildHover() || isFocused()) {
-            context.drawTexture(textAreaStyle.focusOverlay(),
-                    contentView.getPositionX(), contentView.getPositionY(),
-                    contentView.getSizeWidth(), contentView.getSizeHeight());
-        }
+    void drawSharedDefaultOverlay(IGUIContext context) {
         super.drawBackgroundOverlay(context);
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public void drawContentView(GUIContext context) {
+    void drawSharedDefaultAdditional(IGUIContext context) {
         super.drawBackgroundAdditional(context);
-        var x = contentView.getContentX();
-        var y = contentView.getContentY();
-        var height = contentView.getContentHeight();
-
-        var font = getFont();
-        var textFont = getTextAreaStyle().font();
-        var scale = scale();
-
-        // Draw lines of text
-        int firstVisibleLine = (int) Math.floor(scrollY / lineHeight());
-        int maxVisibleLines = (int) Math.ceil(height / lineHeight()) + 1;
-        int lastVisibleLine = Mth.clamp(firstVisibleLine + maxVisibleLines, 0, Math.max(lines.size() - 1, 0));
-
-        // Text
-        drawLines(context, font, textFont, scale, x, y, firstVisibleLine, lastVisibleLine);
-
-        // Selection
-        drawSelection(context, font, textFont, scale, x, y, firstVisibleLine, lastVisibleLine);
-
-        // Cursor
-        drawCursor(context, font, textFont, scale, x, y);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawLines(GUIContext context, Font font, Identifier textFont,
-                             float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
-        for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.size(); i++) {
-            float lineY = y + i * lineHeight() - scrollY;
-            var text = lines.get(i);
-            var drawX = x - scrollX;
-            var textWithFont = Component.literal(text).withStyle(style -> style.withFont(new FontDescription.Resource(textFont)));
-
-            context.pose.pushPose();
-            context.pose.translate(drawX, lineY);
-            context.pose.scale(scale, scale);
-            context.graphics.drawString(
-                    font,
-                    textWithFont,
-                    0,
-                    0,
-                    isError ? textAreaStyle.errorColor() : textAreaStyle.textColor(),
-                    textAreaStyle.textShadow()
-            );
-            context.pose.popPose();
-        }
-
-        // Placeholder
-        if (lines.size() == 1 && lines.getFirst().isEmpty()) {
-            drawPlaceHolder(context, font, scale, x, y);
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawPlaceHolder(GUIContext context, Font font, float scale, float x, float y) {
-        context.pose.pushPose();
-        context.pose.translate(x, y);
-        context.pose.scale(scale, scale);
-        context.graphics.drawString(
-                font,
-                textAreaStyle.placeholder(),
-                0,
-                0,
-                ColorPattern.LIGHT_GRAY.color,
-                false
-        );
-        context.pose.popPose();
-    }
-
-    /**
-     * Draw selection highlight and cursor
-     */
-    @OnlyIn(Dist.CLIENT)
-    protected void drawSelection(GUIContext context, Font font, Identifier textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
-        // Selection highlight
-        if (isFocused() && hasSelection()) {
-            var start = selMin();
-            var end = selMax();
-            var highlightColor = -16776961; // same as TextField
-            var maxWidth = getContentWidth();
-
-            for (int line = start.line(); line <= end.line(); line++) {
-                if (line < firstVisibleLine || line > lastVisibleLine) continue;
-
-                String text = lines.get(line);
-                int from = (line == start.line()) ? start.col() : 0;
-                int to = (line == end.line()) ? end.col() : text.length();
-
-                from = Mth.clamp(from, 0, text.length());
-                to = Mth.clamp(to, 0, text.length());
-
-                float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - scrollX;
-                float maxX;
-                if (line == end.line()) {
-                    if (from == to) continue;
-                    maxX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, to), textFont)) * scale - scrollX;
-                } else {
-                    maxX = maxWidth;
-                }
-                float lineY = y + line * lineHeight() - scrollY;
-
-                DrawerHelper.drawSolidRect(
-                        context,
-                        RenderPipelines.GUI_TEXT_HIGHLIGHT,
-                        x + minX,
-                        lineY,
-                        maxX - minX,
-                        textAreaStyle.fontSize(),
-                        highlightColor);
-            };
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawCursor(GUIContext context, Font font, Identifier textFont, float scale, float x, float y) {
-        if (isVisible() && isFocused() && isDisplayed() && (!isActive() || System.currentTimeMillis() % 1000 < 500)) {
-            var current = lines.get(cursorLine);
-            float cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(current.substring(0, cursorCol), textFont)) * scale;
-            float cursorY = y + cursorLine * lineHeight() - scrollY;
-            DrawerHelper.drawSolidRect(
-                    context,
-                    x + cursorPosX - scrollX,
-                    cursorY,
-                    1,
-                    textAreaStyle.fontSize(),
-                    textAreaStyle.cursorColor()
-            );
-        }
     }
 
     /// Editor + Xml
@@ -1257,5 +1039,17 @@ public class TextArea extends BindableUIElement<String[]> {
     @Override
     protected void parseXmlChildElement(Element childElement) {
         // not able to add children for text
+    }
+
+    public static class ContentView extends UIElement {
+        private final TextArea owner;
+
+        public ContentView(TextArea owner) {
+            this.owner = owner;
+        }
+
+        TextArea owner() {
+            return owner;
+        }
     }
 }

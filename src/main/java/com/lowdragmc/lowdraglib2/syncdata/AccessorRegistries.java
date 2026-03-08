@@ -241,12 +241,12 @@ public class AccessorRegistries {
                 .streamCodec(ByteBufCodecs.fromCodec(LDLibExtraCodecs.NUMBER))
                 .codecMark()
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Vector3fc.class)
+        registerAccessor(CustomDirectAccessor.builder(Vector3fc.class, true)
                 .codec(ExtraCodecs.VECTOR3F)
                 .streamCodec(ByteBufCodecs.VECTOR3F)
                 .copyMark(Vector3f::new)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Vector3i.class)
+        registerAccessor(CustomDirectAccessor.builder(Vector3i.class, true)
                 .codec(LDLibExtraCodecs.VECTOR3I)
                 .streamCodec(StreamCodec.of(
                         (byteBuf, vector) -> {
@@ -258,7 +258,7 @@ public class AccessorRegistries {
                 ))
                 .copyMark(Vector3i::new)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Vector4fc.class)
+        registerAccessor(CustomDirectAccessor.builder(Vector4fc.class, true)
                 .codec(ExtraCodecs.VECTOR4F)
                 .streamCodec(StreamCodec.of(
                         (byteBuf, vector) -> {

@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
@@ -70,7 +71,6 @@ public class ModularUIPreview extends UIElement {
         clear();
     }
 
-    @Override
     public void drawBackgroundAdditional(GUIContext context) {
         updateSelectionBox();
         super.drawBackgroundAdditional(context);
@@ -128,8 +128,7 @@ public class ModularUIPreview extends UIElement {
         }
     }
 
-    @Override
-    protected boolean isInsideTheScissorView(GUIContext context) {
+    protected boolean isInsideTheScissorView(IGUIContext context) {
         return true;
     }
 

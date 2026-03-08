@@ -1,7 +1,14 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.GuiTextureClientRenderers;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.GuiTextureRendererRegistry;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElementClientAccess;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelectorClientTextures;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeListClientTextures;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatBlitRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatColoredRectangleRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatColoredTriangleRenderState;
@@ -38,7 +45,8 @@ import java.util.List;
 import java.util.Stack;
 import java.util.function.Consumer;
 
-public class GUIContext {
+@OnlyIn(Dist.CLIENT)
+public class GUIContext implements IGUIContext {
     public GuiGraphics graphics;
     public int mouseX, mouseY;
     public float partialTick;
@@ -59,6 +67,10 @@ public class GUIContext {
     private record PostCall(Consumer<GUIContext> call, Matrix3x2f pose) {}
 
     public static GUIContext of(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        UIElementClientRenderers.init();
+        GuiTextureClientRenderers.init();
+        ColorSelectorClientTextures.init();
+        TreeListClientTextures.init();
         var context = new GUIContext();
         context.graphics = graphics;
         context.mouseX = mouseX;
@@ -70,8 +82,34 @@ public class GUIContext {
         return context;
     }
 
+    @Override
+    public Matrix3x2f currentPose() {
+        return pose.pose;
+    }
+
+    @Override
+    public void pushTransform(Transform2D transform, UIElement element) {
+        transform.pushPose(this, element);
+    }
+
+    @Override
+    public void popTransform(Transform2D transform) {
+        transform.popPose(this);
+    }
+
+    @Override
+    public boolean isInsideScissor(float minX, float minY, float width, float height) {
+        var peek = peekScissor();
+        return peek == null || peek.intersects(new ScreenRectangle(
+                Mth.floor(minX),
+                Mth.floor(minY),
+                Mth.ceil(width),
+                Mth.ceil(height)
+        ));
+    }
+
     public void drawTexture(IGuiTexture texture, float x, float y, float width, float height) {
-        texture.draw(this, x, y, width, height);
+        GuiTextureRendererRegistry.findRenderer(texture).draw(texture, this, x, y, width, height);
     }
 
     public void enableScissor(float x, float y, float width, float height) {
@@ -135,6 +173,16 @@ public class GUIContext {
     public void resetElementColor() {
         if (this.elementColor == -1) return;
         this.elementColor = -1;
+    }
+
+    @Override
+    public void pushVisualLayer(UIElement element) {
+        UIElementClientAccess.pushVisualLayer(element, this);
+    }
+
+    @Override
+    public int getElementColor() {
+        return elementColor;
     }
 
     // region rendering

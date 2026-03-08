@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextArea;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -12,13 +11,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -210,54 +204,5 @@ public class CodeEditor extends TextArea {
             reparseAndStyle();
         }
         return styledLines;
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawContentView(GUIContext context) {
-        // Ensure we have latest styled lines
-        if (needsReparsing) {
-            reparseAndStyle();
-        }
-        super.drawContentView(context);
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawLines(GUIContext context, Font font, Identifier textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
-        for (int i = firstVisibleLine; i <= lastVisibleLine && i < styledLines.size(); i++) {
-            float lineY = y + i * lineHeight() - getScrollY();
-            StyledLine styledLine = styledLines.get(i);
-
-            float drawX = x - getScrollX();
-
-            // Draw each styled segment
-            for (StyledText styledText : styledLine.text()) {
-                var textComponent = Component.literal(styledText.text())
-                        .withStyle(style -> style.withFont(new FontDescription.Resource(getTextAreaStyle().font())))
-                        .withStyle(styledText.style());
-
-                context.pose.pushPose();
-                context.pose.translate(drawX, lineY);
-                context.pose.scale(scale, scale);
-                context.graphics.drawString(
-                        font,
-                        textComponent,
-                        0,
-                        0,
-                        -1, // Color is in the style
-                        getTextAreaStyle().textShadow()
-                );
-                context.pose.popPose();
-
-                // Move X position for next segment
-                drawX += (font.getSplitter().stringWidth(textComponent)) * scale;
-            }
-        }
-
-        // Draw placeholder if empty
-        if (styledLines.isEmpty() || (styledLines.size() == 1 && styledLines.getFirst().text().isEmpty())) {
-            drawPlaceHolder(context, font, scale, x, y);
-        }
     }
 }

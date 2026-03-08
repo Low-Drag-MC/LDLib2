@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -400,6 +399,10 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         setSelected(this.value, false, true);
     }
 
+    void drawSharedDefaultOverlay(com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext context) {
+        super.drawBackgroundOverlay(context);
+    }
+
     /// Logic
     public boolean isOpen() {
         return this.dialog.getParent() != null;
@@ -433,15 +436,6 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         textField.setText(value == null ? "" : searchUI.resultText(value));
         preview.setDisplay(true);
         textField.setDisplay(false);
-    }
-
-    /// rendering
-    @Override
-    public void drawBackgroundOverlay(GUIContext context) {
-        if (isSelfOrChildHover() || textField.isFocused()) {
-            context.drawTexture(getSearchStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        }
-        super.drawBackgroundOverlay(context);
     }
 
     public interface ISearchUI<T> extends ISearch<T> {

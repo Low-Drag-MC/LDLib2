@@ -125,7 +125,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     @Nullable
     public T deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
-        if (nbt.getString("type").equals(resourceInstance.resource.getName())) {
+        if (nbt.getStringOr("type", "").equals(resourceInstance.resource.getName())) {
             return resourceInstance.resource.deserializeResource(nbt.get("data"), provider);
         }
         return null;

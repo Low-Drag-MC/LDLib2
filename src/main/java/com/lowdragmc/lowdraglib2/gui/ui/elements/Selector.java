@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -353,6 +352,10 @@ public class Selector<T> extends BindableUIElement<T> {
         setupDialog();
     }
 
+    void drawSharedDefaultOverlay(com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext context) {
+        super.drawBackgroundOverlay(context);
+    }
+
     /// Logic
     public boolean isOpen() {
         return this.dialog.getParent() != null;
@@ -382,15 +385,6 @@ public class Selector<T> extends BindableUIElement<T> {
             this.dialog.blur();
             parent.removeChild(this.dialog);
         }
-    }
-
-    /// rendering
-    @Override
-    public void drawBackgroundOverlay(GUIContext context) {
-        if (isSelfOrChildHover() || isFocused()) {
-            context.drawTexture(getSelectorStyle().focusOverlay(), getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        }
-        super.drawBackgroundOverlay(context);
     }
 
     /// Editor + Xml

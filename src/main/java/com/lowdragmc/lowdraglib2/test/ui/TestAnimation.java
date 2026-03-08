@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.texture.GuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -34,10 +35,10 @@ public class TestAnimation implements IScreenTest {
         target.getStyle().background(ColorPattern.PINK.rectTexture());
         root.addChildren(
                 new UIElement().layout(layout -> layout.flex(1))
-                        .style(style -> style.backgroundTexture((context, x, y, width, height) -> {
+                        .style(style -> style.backgroundTexture(GuiTexture.of((context, x, y, width, height) -> {
                             DrawerHelper.drawLines(context, List.of(new Vector2f(x, y), new Vector2f(x + width / 3, y + height / 5), new Vector2f(x + width, y + height)),
                                     -1, 0xff00ffff, 2);
-                        })),
+                        }))),
                 target,
                 new Button().setText("anim 1").setOnClick(e -> {
                     target.animation()

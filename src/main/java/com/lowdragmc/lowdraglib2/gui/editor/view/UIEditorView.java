@@ -486,11 +486,6 @@ public class UIEditorView extends View {
         canvas.stopSimulation();
     }
 
-    @Override
-    public void drawBackgroundAdditional(GUIContext context) {
-        super.drawBackgroundAdditional(context);
-    }
-
     public boolean isTemplateDirty() {
         if (isDirty) return true;
         if (template != null && currentUI != null) {

@@ -570,7 +570,6 @@ public class Dialog extends UIElement {
         };
     }
 
-    @Override
     public void drawBackgroundAdditional(@NotNull GUIContext context) {
         super.drawBackgroundAdditional(context);
         if (windowMode && !isResizing) {

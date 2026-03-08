@@ -134,7 +134,6 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
         return false;
     }
 
-    @Override
     public void drawBackgroundOverlay(@NotNull GUIContext context) {
         if (isSelected()) {
             context.drawTexture(getNodeStyle().focusOverlay(),

@@ -1,25 +1,18 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
-import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatHSBRectRenderState;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.render.TextureSetup;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -41,7 +34,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
     /**
      * all supported pick mode
      */
-    private enum HSB_MODE {
+    enum HSB_MODE {
         H("hue"), S("saturation"), B("brightness");
         private final String name;
 
@@ -58,25 +51,25 @@ public class ColorSelector extends BindableUIElement<Integer> {
     /**
      * hue component, must range from 0f to 360f
      */
-    private float h = 204;
+    float h = 204;
     /**
      * saturation component, must range from 0f to 1f
      */
-    private float s = 0.72f;
+    float s = 0.72f;
     /**
      * the brightness component, must range from 0f to 1f
      */
-    private float b = 0.94f;
+    float b = 0.94f;
     /**
      * thr alpha used for draw main and slide
      */
-    private float alpha = 1;
+    float alpha = 1;
     /**
      * the rgb transformed from hsb color space
      * [0x00rrggbb]
      */
-    private int argb;
-    private HSB_MODE mode = HSB_MODE.H;
+    int argb;
+    HSB_MODE mode = HSB_MODE.H;
 
     public ColorSelector() {
         this.pickerContainer = new UIElement().addClass("__color-selector_picker-container__");
@@ -93,7 +86,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                 .addChildren(new UIElement().layout(layout -> layout.flex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustColorSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustColorSlider)
-                        .addClass("__color-selector_color-slider_bar__").style(style -> style.backgroundTexture(this::drawColorSlider)));
+                        .addClass("__color-selector_color-slider_bar__").style(style -> style.backgroundTexture(ColorSelectorTextures.colorSlider(this))));
 
         alphaSlider.layout(layout -> {
             layout.setFlexGrow(1);
@@ -103,7 +96,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                 new UIElement().layout(layout -> layout.flex(1))
                         .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustAlphaSlider)
                         .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustAlphaSlider)
-                        .addClass("__color-selector_alpha-slider_bar__").style(style -> style.backgroundTexture(this::drawAlphaSlider)));
+                        .addClass("__color-selector_alpha-slider_bar__").style(style -> style.backgroundTexture(ColorSelectorTextures.alphaSlider(this))));
 
         hsbButton.setOnClick(this::onSwitchHSB).textStyle(textStyle -> textStyle.fontSize(6)).setText("H").layout(layout -> {
             layout.width(12);
@@ -124,7 +117,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                         new UIElement().layout(layout -> layout.flex(1))
                                 .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustHsbContext)
                                 .addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onAdjustHsbContext)
-                                .addClass("__color-selector_color-preview_display__").style(style -> style.backgroundTexture(this::drawHsbContext))
+                                .addClass("__color-selector_color-preview_display__").style(style -> style.backgroundTexture(ColorSelectorTextures.hsbContext(this)))
                 ), colorSlider),
 
                 new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW))
@@ -143,7 +136,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                         new UIElement().layout(layout -> {
                             layout.width(10);
                             layout.height(10);
-                        }).style(style -> style.backgroundTexture(this::drawColorPreview)),
+                        }).style(style -> style.backgroundTexture(ColorSelectorTextures.colorPreview(this))),
                         hexConfigurator = new StringConfigurator("", () -> String.format("#%08x", argb), s -> {
                             try {
                                 setValue(Integer.parseUnsignedInt(s.substring(1), 16));
@@ -286,90 +279,4 @@ public class ColorSelector extends BindableUIElement<Integer> {
         };
         hsbButton.setText(mode.name());
     }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawColorPreview(GUIContext context, float x, float y, float width, float height) {
-        DrawerHelper.drawSolidRect(context, x, y, width, height, argb);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawHsbContext(GUIContext context, float x, float y, float width, float height) {
-        // Per-corner HSB values: {h, s, b, a}
-        float[] tl, bl, br, tr;
-        switch (mode) {
-            case H -> {
-                tl = new float[]{h, 0f, 1f, 1f};
-                bl = new float[]{h, 0f, 0f, 1f};
-                br = new float[]{h, 1f, 0f, 1f};
-                tr = new float[]{h, 1f, 1f, 1f};
-            }
-            case S -> {
-                tl = new float[]{0f, s, 1f, 1f};
-                bl = new float[]{0f, s, 0f, 1f};
-                br = new float[]{360f, s, 0f, 1f};
-                tr = new float[]{360f, s, 1f, 1f};
-            }
-            case B -> {
-                tl = new float[]{0f, 1f, b, 1f};
-                bl = new float[]{0f, 0f, b, 1f};
-                br = new float[]{360f, 0f, b, 1f};
-                tr = new float[]{360f, 1f, b, 1f};
-            }
-            default -> { return; }
-        }
-        context.submitGuiElement(new FloatHSBRectRenderState(
-                LDLibRenderPipelines.HSB, TextureSetup.noTexture(), context.pose.copyPose(),
-                x, y, x + width, y + height, tl, bl, br, tr, context.peekScissor()));
-
-        // draw indicator
-        float mainX = 0, mainY = 0;
-        switch (mode) {
-            case H -> { mainX = s; mainY = 1 - b; }
-            case S -> { mainX = h / 360f; mainY = 1 - b; }
-            case B -> { mainX = h / 360f; mainY = 1 - s; }
-        }
-        DrawerHelper.drawSolidRect(context, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2, b > 0.5f ? 0xff000000 : 0xffffffff);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void drawColorSlider(GUIContext context, float x, float y, float width, float height) {
-        // Per-corner HSB values: {h, s, b, a}
-        // top = high value, bottom = low value
-        float[] top, bottom;
-        switch (mode) {
-            case H -> {
-                top = new float[]{360f, 1f, 1f, 1f};
-                bottom = new float[]{0f, 1f, 1f, 1f};
-            }
-            case S -> {
-                top = new float[]{h, 1f, b, 1f};
-                bottom = new float[]{h, 0f, b, 1f};
-            }
-            case B -> {
-                top = new float[]{h, s, 1f, 1f};
-                bottom = new float[]{h, s, 0f, 1f};
-            }
-            default -> { return; }
-        }
-        // TL=top, BL=bottom, BR=bottom, TR=top
-        context.submitGuiElement(new FloatHSBRectRenderState(
-                LDLibRenderPipelines.HSB, TextureSetup.noTexture(), context.pose.copyPose(),
-                x, y, x + width, y + height, top, bottom, bottom, top, context.peekScissor()));
-
-        // draw indicator
-        float normalizedPos = switch (mode) {
-            case H -> 1 - h / 360f;
-            case S -> 1 - s;
-            case B -> 1 - b;
-        };
-        DrawerHelper.drawSolidRect(context, (x - 2), (y + normalizedPos * height), width + 4, 1, 0xffff0000);
-    }
-
-    protected void drawAlphaSlider(GUIContext context, float x, float y, float width, float height) {
-        DrawerHelper.drawGradientRect(context, x, y, width, height, argb & 0x00ffffff, argb | 0xff000000, true);
-
-        // draw indicator
-        DrawerHelper.drawSolidRect(context, (x + alpha * width), (y - 2), 1, (height + 4), 0xffff0000);
-    }
-
 }

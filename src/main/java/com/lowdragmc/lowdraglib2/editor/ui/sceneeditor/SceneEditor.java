@@ -216,7 +216,7 @@ public class SceneEditor extends UIElement implements IScene {
 
 
     public Optional<Ray> getMouseRay() {
-        var renderer = scene.getRenderer();
+        var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (renderer == null) return Optional.empty();
         var lastHit = renderer.getLastHit();
         var startPos = renderer.getEyePos();
@@ -228,14 +228,14 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     public Optional<Ray> unProject(int mouseX, int mouseY) {
-        var renderer = scene.getRenderer();
+        var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (renderer == null) return Optional.empty();
         var mouse = renderer.getPositionedRect(mouseX, mouseY, 0, 0);
         return Optional.of(new Ray(renderer.getEyePos(), renderer.unProject(mouse.position.x, mouse.position.y, false)));
     }
 
     public Optional<Vector2f> project(Vector3f pos) {
-        var renderer = scene.getRenderer();
+        var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (renderer == null) return Optional.empty();
         var window = Minecraft.getInstance().getWindow();
         var result = renderer.project(pos);
@@ -349,7 +349,7 @@ public class SceneEditor extends UIElement implements IScene {
                     }
                 });
             } else if (event.dragHandler.getDraggingObject() == CAMERA_MOVING) {
-                var renderer = scene.getRenderer();
+                var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
                 if (renderer == null) return;
                 var eyePos = renderer.getEyePos();
                 var lookAt = renderer.getLookAt();
@@ -409,10 +409,9 @@ public class SceneEditor extends UIElement implements IScene {
         }
     }
 
-    @Override
     public void drawBackgroundAdditional(GUIContext context) {
         super.drawBackgroundAdditional(context);
-        var renderer = scene.getRenderer();
+        var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (isCameraMoving && renderer != null) {
             var _forward = isKeyDown(GLFW.GLFW_KEY_W);
             var _backward = isKeyDown(GLFW.GLFW_KEY_S);

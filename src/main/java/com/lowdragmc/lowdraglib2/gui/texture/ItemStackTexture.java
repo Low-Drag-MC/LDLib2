@@ -2,13 +2,8 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -18,17 +13,17 @@ import net.minecraft.world.item.Items;
 public class ItemStackTexture extends TransformTexture {
     @Configurable(name = "ldlib.gui.editor.name.items")
     public ItemStack[] items;
-    private int index = 0;
-    private int ticks = 0;
+    int index = 0;
+    int ticks = 0;
+
     @ConfigColor
     @Configurable(name = "ldlib.gui.editor.name.color")
-    private int color = -1;
-    private long lastTick;
+    int color = -1;
+    long lastTick;
 
     public ItemStackTexture() {
         this(Items.APPLE.asItem());
     }
-
 
     public ItemStackTexture(ItemStack... itemStacks) {
         this.items = itemStacks;
@@ -36,7 +31,7 @@ public class ItemStackTexture extends TransformTexture {
 
     public ItemStackTexture(Item... items) {
         this.items = new ItemStack[items.length];
-        for(int i = 0; i < items.length; i++) {
+        for (int i = 0; i < items.length; i++) {
             this.items[i] = new ItemStack(items[i]);
         }
     }
@@ -59,30 +54,5 @@ public class ItemStackTexture extends TransformTexture {
         copied.color = color;
         copied.copyTransform(this);
         return copied;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void updateTick() {
-        if (Minecraft.getInstance().level != null) {
-            long tick = Minecraft.getInstance().level.getGameTime();
-            if (tick == lastTick) return;
-            lastTick = tick;
-            if(items.length > 1 && ++ticks % 20 == 0)
-                if(++index == items.length)
-                    index = 0;
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
-        if (items.length == 0) return;
-        updateTick();
-        if (items[index].isEmpty()) return;
-        context.pose.pushPose();
-        context.pose.scale(width / 16f, height / 16f);
-        context.pose.translate(x * 16 / width, y * 16 / height);
-        DrawerHelper.drawItemStack(context, items[index], 0, 0, 0);
-        context.pose.popPose();
     }
 }

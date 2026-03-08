@@ -313,7 +313,6 @@ public class WireElement extends GraphElement<WireModel> {
         if (mui == null) return;
     }
 
-    @Override
     public void drawBackgroundAdditional(@NotNull GUIContext context) {
         super.drawBackgroundAdditional(context);
         if (drawPoints.isEmpty()) return;

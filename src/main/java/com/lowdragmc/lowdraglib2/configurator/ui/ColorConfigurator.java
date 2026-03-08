@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.GuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector;
@@ -62,7 +63,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
             style.setPipelineState(StyleOrigin.INLINE);
         }).addClass("configurator_preview_bg").addChildren(new UIElement()
                 .layout(layout -> layout.heightPercent(100))
-                .style(style -> style.backgroundTexture(this::drawColorPreview))
+                .style(style -> style.backgroundTexture(GuiTexture.of(this::drawColorPreview)))
                 .addEventListener(UIEvents.MOUSE_DOWN, this::onClick)));
 
         this.colorSelector.setColor(value, false);

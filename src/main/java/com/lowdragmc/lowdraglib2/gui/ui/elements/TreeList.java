@@ -15,7 +15,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -26,8 +25,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.function.Consumers;
 
 import org.jetbrains.annotations.Nullable;
@@ -552,21 +549,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         return ui.isMouseOver(x, y + height * 2 / 3, width, height / 3, event.x, event.y);
     }
 
-    @OnlyIn(Dist.CLIENT)
     public static IGuiTexture createDraggingOverlay(int mode) {
-        if (mode == 0) {
-            return (context, x, y, width, height) -> {
-                DrawerHelper.drawSolidRect(context, x, y - 1, width, 1, ColorPattern.T_WHITE.color);
-            };
-        } else if (mode == 1) {
-            return (context, x, y, width, height) -> {
-                DrawerHelper.drawSolidRect(context, x, y, width, height, ColorPattern.T_WHITE.color);
-            };
-        } else if (mode == 2) {
-            return (context, x, y, width, height) -> {
-                DrawerHelper.drawSolidRect(context, x, y + height, width, 1, ColorPattern.T_WHITE.color);
-            };
-        }
-        return IGuiTexture.EMPTY;
+        return TreeListDraggingOverlays.of(mode);
     }
 }

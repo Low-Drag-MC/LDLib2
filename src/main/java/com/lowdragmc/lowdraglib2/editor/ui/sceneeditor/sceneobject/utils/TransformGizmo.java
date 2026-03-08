@@ -166,7 +166,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     public void updateFrame(float partialTicks) {
         super.updateFrame(partialTicks);
         if (getScene() instanceof SceneEditor editor && editor.getModularUI() != null) {
-            var renderer = editor.scene.getRenderer();
+            var renderer = editor.scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
             if (renderer == null) return;
             var distance = renderer.getEyePos().distance(transform().position());
             float baseScale = 0.23F;
