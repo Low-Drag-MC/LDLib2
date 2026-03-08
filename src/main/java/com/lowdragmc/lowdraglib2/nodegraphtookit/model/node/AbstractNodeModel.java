@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
 import org.joml.Vector2f;
@@ -19,10 +20,11 @@ import java.util.stream.Stream;
  */
 public abstract class AbstractNodeModel extends GraphElementModel implements IHasName, IHasDisplayName, IMovable,
         IHasElementColor, IHasContextualMenuItems, IGraphElementUIModel {
+    @Persisted
     private Vector2f position = new Vector2f(0);
-    @Getter
+    @Persisted @Getter
     protected String name = "";
-    @Nullable
+    @Persisted @Nullable
     protected Component title;
     @Nullable
     protected Component tooltip;
@@ -31,6 +33,7 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
 
     private NodePreviewModel nodePreviewModel;
 
+    @Persisted
     private ModelState state;
 
     protected AbstractNodeModel() {

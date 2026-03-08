@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.PlaceholderModelHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.NodeDefinitionScope;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,10 +23,14 @@ public class VariableNodeModel extends NodeModel implements ISingleInputPortNode
     public static final String MAIN_PORT_ID = "main";
     @Nullable
     private VariableDeclarationModelBase declarationModel;
-    @Nullable
+    @Persisted @Nullable
     private UUID declarationModelUid;
     @Nullable
     protected PortModel mainPortModel;
+
+    public @Nullable UUID getDeclarationModelUid() {
+        return declarationModelUid;
+    }
 
     public VariableNodeModel() {
         setCapability(Capabilities.COLORABLE, false);
