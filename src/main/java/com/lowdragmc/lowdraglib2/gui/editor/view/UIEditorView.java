@@ -32,6 +32,7 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -70,6 +71,9 @@ public class UIEditorView extends View {
     private Consumer<UITemplate> onTemplateSaved;
     @Getter
     private boolean isEditingBuiltinStyles;
+    @Setter
+    @Getter
+    private boolean focusHierarchyFromPreview = true;
 
     public UIEditorView() {
         super("editor.view.ui_editor");
@@ -159,7 +163,30 @@ public class UIEditorView extends View {
                                     layout.heightPercent(100);
                                     layout.setAspectRatio(1f);
                                 })
-                                .style(style -> style.tooltips("UIEditor.selection_box"))
+                                .style(style -> style.tooltips("UIEditor.selection_box")),
+                        new Toggle()
+                                .setText("")
+                                .setOn(isFocusHierarchyFromPreview(), false)
+                                .toggleButton(button -> button.layout(layout -> {
+                                    layout.widthPercent(100);
+                                    layout.heightPercent(100);
+                                }))
+                                .setOnToggleChanged(this::setFocusHierarchyFromPreview)
+                                .toggleStyle(style -> {
+                                    style.setPipelineState(StyleOrigin.DEFAULT);
+                                    style.baseTexture(Sprites.BORDER1_RT1_DARK);
+                                    style.hoverTexture(Sprites.BORDER1_RT1);
+                                    style.setPipelineState(StyleOrigin.INLINE);
+                                    style.unmarkTexture(Icons.DOWN_ARROW_NO_BAR.copy().setColor(ColorPattern.GRAY.color).scale(0.8f));
+                                    style.markTexture(Icons.DOWN_ARROW_NO_BAR.copy().scale(0.8f));
+                                })
+                                .bindDataSource(SupplierDataSource.of(this::isFocusHierarchyFromPreview))
+                                .layout(layout -> {
+                                    layout.paddingAll(0);
+                                    layout.heightPercent(100);
+                                    layout.setAspectRatio(1f);
+                                })
+                                .style(style -> style.tooltips("ui_editor.focus_mode.0", "ui_editor.focus_mode.1"))
                 )
         );
         header.addClass("__ui-editor-view_header__").moveInlineAsDefault();
@@ -198,6 +225,16 @@ public class UIEditorView extends View {
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
             modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
         });
+        graphView.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (!event.isShiftDown() || event.button != 0 || !this.isFocusHierarchyFromPreview() || this.modularUIPreview.getPreviewModularUI() == null) {
+                return;
+            }
+            var hovered = this.modularUIPreview.getPreviewModularUI().getLastHoveredElement();
+            if (hovered != null) {
+                this.focusElement(hovered);
+            }
+            event.stopImmediatePropagation();
+        }, true);
         graphView.addClass("__ui-editor-view_graph-view__").moveInlineAsDefault();
 
         // stylesheet
@@ -510,6 +547,27 @@ public class UIEditorView extends View {
         isDirty = false;
         saveButton.setActive(false);
         saveButton.textStyle(style -> style.textColor(ColorPattern.GRAY.color));
+    }
+
+    public void focusElement(UIElement element) {
+        if (hierarchy.getRootNode() != null) {
+            var node = findElementNode(hierarchy.getRootNode(), element);
+            hierarchy.focusNode(node);
+        }
+    }
+
+    @Nullable
+    private UITreeNode findElementNode(UITreeNode node, UIElement element) {
+        if (node.getKey() == element) {
+            return node;
+        }
+        for (UITreeNode child : node.getChildren()) {
+            var result = findElementNode(child, element);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
     }
 
     public void notifySaved() {
