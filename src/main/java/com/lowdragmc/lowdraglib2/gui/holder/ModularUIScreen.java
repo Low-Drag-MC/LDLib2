@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.holder;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
@@ -35,13 +36,13 @@ public class ModularUIScreen extends Screen {
 
     @Override
     public void init() {
-        this.modularUI.setScreenAndInit(this);
-        this.addRenderableWidget(modularUI.getWidget());
+        ModularUIClientAccess.setScreenAndInit(this.modularUI, this);
+        this.addRenderableWidget(ModularUIClientAccess.getWidget(modularUI));
         this.leftPos = (int) ((this.width - modularUI.getWidth()) / 2);
         this.topPos = (int) ((this.height - modularUI.getHeight()) / 2);
         super.init();
         // initial focus
-        setFocused(modularUI.getWidget());
+        setFocused(ModularUIClientAccess.getWidget(modularUI));
     }
 
     @Override

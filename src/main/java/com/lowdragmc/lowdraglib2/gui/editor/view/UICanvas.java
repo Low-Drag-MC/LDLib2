@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.editor.view;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -62,13 +63,13 @@ public class UICanvas extends UIElement {
 
     protected void onMouseMove(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseMoved(event.x, event.y);
+        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseMoved(event.x, event.y);
         event.stopPropagation();
     }
 
     protected void onMouseDown(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseClicked(
+        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseClicked(
                 new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)), false
         );
         // trigger dragging event as well
@@ -78,37 +79,37 @@ public class UICanvas extends UIElement {
 
     protected void onMouseUp(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseReleased(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseReleased(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)));
         event.stopPropagation();
     }
 
     protected void onMouseDrag(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseDragged(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)), event.deltaX, event.deltaY);
+        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseDragged(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)), event.deltaX, event.deltaY);
         event.stopPropagation();
     }
 
     protected void onMouseWheel(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().mouseScrolled(event.x, event.y, event.deltaX, event.deltaY);
+        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseScrolled(event.x, event.y, event.deltaX, event.deltaY);
         event.stopPropagation();
     }
 
     protected void onKeyDown(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().keyPressed(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).keyPressed(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
         event.stopPropagation();
     }
 
     protected void onKeyUp(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().keyReleased(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).keyReleased(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
         event.stopPropagation();
     }
 
     protected void onCharTyped(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        this.canvasModularUI.getWidget().charTyped(new CharacterEvent(event.codePoint, event.modifiers));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).charTyped(new CharacterEvent(event.codePoint, event.modifiers));
         event.stopPropagation();
     }
 
@@ -136,7 +137,7 @@ public class UICanvas extends UIElement {
 
         context.pose.translate(posX, posY);
 
-        this.canvasModularUI.getWidget().render(context.graphics, context.mouseX, context.mouseY, context.partialTick);
+        ModularUIClientAccess.getWidget(this.canvasModularUI).render(context.graphics, context.mouseX, context.mouseY, context.partialTick);
 
         context.pose.popPose();
     }

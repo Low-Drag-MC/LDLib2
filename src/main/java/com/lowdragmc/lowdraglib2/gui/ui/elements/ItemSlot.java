@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -354,7 +355,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         var hovered = isHover() || isSelfOrChildHover();
         var drawDraggingBackground = false;
         // splitting
-        if (mui.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
+        if (ModularUIClientAccess.getScreen(mui) instanceof AbstractContainerScreen<?> containerScreen) {
             var carried = containerScreen.getMenu().getCarried();
             if (slot == containerScreen.clickedSlot && !containerScreen.draggingItem.isEmpty() && containerScreen.isSplittingStack && !value.isEmpty()) {
                 value = value.copyWithCount(value.getCount() / 2);

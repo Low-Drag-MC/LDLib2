@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.client.scene.*;
 import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -528,7 +529,7 @@ public class Scene extends UIElement {
             }
         }
         if (isHover() && showHoverBlockTips && lastHoverItem != null && getModularUI() != null) {
-            getModularUI().setHoverTooltip(HoverTooltips.create(DrawerHelper.getItemToolTip(lastHoverItem).toArray()).stack(lastHoverItem));
+            ModularUIClientAccess.setHoverTooltip(getModularUI(), HoverTooltips.create(DrawerHelper.getItemToolTip(lastHoverItem).toArray()).stack(lastHoverItem));
         }
     }
 

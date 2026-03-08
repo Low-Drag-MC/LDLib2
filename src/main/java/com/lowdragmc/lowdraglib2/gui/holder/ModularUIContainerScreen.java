@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.holder;
 
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -26,7 +27,7 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
         this.imageHeight = (int) getMenu().getModularUI().getHeight();
         super.init();
         // initial focus
-        setFocused(getMenu().modularUI.getWidget());
+        setFocused(ModularUIClientAccess.getWidget(getMenu().modularUI));
     }
 
     @Override

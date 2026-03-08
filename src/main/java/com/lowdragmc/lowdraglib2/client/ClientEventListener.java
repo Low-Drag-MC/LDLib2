@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -44,8 +45,8 @@ public class ClientEventListener {
         if (screen instanceof AbstractContainerScreen<?> containerScreen && containerScreen.getMenu() instanceof IModularUIHolder holder) {
             var mui = holder.getModularUI();
             if (mui != null) {
-                mui.setScreenAndInit(containerScreen);
-                event.addListener(mui.getWidget());
+                ModularUIClientAccess.setScreenAndInit(mui, containerScreen);
+                event.addListener(ModularUIClientAccess.getWidget(mui));
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -23,7 +24,7 @@ public interface ContainerEventHandlerMixin extends GuiEventListener{
         for (var child : children()) {
             if (child instanceof IModularUIHolder holder) {
                 var mui = holder.getModularUI();
-                if (mui != null && mui.getWidget().mouseDragged(event, dx, dy)) {
+                if (mui != null && ModularUIClientAccess.getWidget(mui).mouseDragged(event, dx, dy)) {
                     cir.setReturnValue(true);
                 }
             }
@@ -36,7 +37,7 @@ public interface ContainerEventHandlerMixin extends GuiEventListener{
             if (child instanceof IModularUIHolder holder) {
                 var mui = holder.getModularUI();
                 if (mui == null) continue;
-                mui.getWidget().mouseMoved(mouseX, mouseY);
+                ModularUIClientAccess.getWidget(mui).mouseMoved(mouseX, mouseY);
             }
         }
     }

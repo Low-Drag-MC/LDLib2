@@ -205,7 +205,7 @@ public class TextElement extends UIElement {
             maxWidth = getContentWidth();
         }
         formattedLines = TextUtilities.computeFormattedLines(
-                getFont(),
+                Minecraft.getInstance().font,
                 TextUtilities.withFont(text, font),
                 getTextStyle().fontSize(),
                 maxWidth
@@ -259,15 +259,10 @@ public class TextElement extends UIElement {
 //        return setText(text);
 //    }
 
-    @OnlyIn(Dist.CLIENT)
-    public Font getFont() {
-        return Minecraft.getInstance().font;
-    }
-
     @Override
     public void drawBackgroundAdditional(GUIContext context) {
         if (formattedLines.isEmpty()) return;
-        var font = getFont();
+        var font = Minecraft.getInstance().font;
         var defaultLineHeight = font.lineHeight;
         var x = getContentX();
         var y = getContentY();

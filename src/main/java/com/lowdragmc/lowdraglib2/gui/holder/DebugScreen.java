@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.holder;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
@@ -44,7 +45,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public void onClose() {
         super.onClose();
-        this.targetUI.enableDebugger(false);
+        ModularUIClientAccess.enableDebugger(this.targetUI, false);
     }
 
     @Override
@@ -61,7 +62,7 @@ public class DebugScreen extends ModularUIScreen {
             uiDebugger.setRenderUIShaping(!uiDebugger.isRenderUIShaping());
         }
         if (!super.keyPressed(event)) {
-            return targetUI.getWidget().keyPressed(event);
+            return ModularUIClientAccess.getWidget(targetUI).keyPressed(event);
         }
         return true;
     }
@@ -69,7 +70,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean charTyped(CharacterEvent event) {
         if (!super.charTyped(event)) {
-            return targetUI.getWidget().charTyped(event);
+            return ModularUIClientAccess.getWidget(targetUI).charTyped(event);
         }
         return true;
     }
@@ -77,7 +78,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean keyReleased(KeyEvent event) {
         if (!super.keyReleased(event)) {
-            return targetUI.getWidget().keyReleased(event);
+            return ModularUIClientAccess.getWidget(targetUI).keyReleased(event);
         }
         return true;
     }
@@ -85,7 +86,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (!super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
-            return targetUI.getWidget().mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+            return ModularUIClientAccess.getWidget(targetUI).mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         }
         return true;
     }
@@ -93,15 +94,15 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
         if (!super.mouseDragged(event, dx, dy)) {
-            return targetUI.getWidget().mouseDragged(event, dx, dy);
+            return ModularUIClientAccess.getWidget(targetUI).mouseDragged(event, dx, dy);
         }
         return true;
     }
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (!modularUI.getWidget().mouseReleased(event)) {
-            return targetUI.getWidget().mouseReleased(event);
+        if (!ModularUIClientAccess.getWidget(modularUI).mouseReleased(event)) {
+            return ModularUIClientAccess.getWidget(targetUI).mouseReleased(event);
         }
         return true;
     }
@@ -109,7 +110,7 @@ public class DebugScreen extends ModularUIScreen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (!modularUI.getWidget().mouseClicked(event, doubleClick)) {
+        if (!ModularUIClientAccess.getWidget(modularUI).mouseClicked(event, doubleClick)) {
             if (uiDebugger.isFocusMode()) {
                 var lastHovered = targetUI.getLastHoveredElement();
                 if (lastHovered != null) {
@@ -118,9 +119,9 @@ public class DebugScreen extends ModularUIScreen {
                 }
                 return false;
             }
-            return targetUI.getWidget().mouseClicked(event, doubleClick);
+            return ModularUIClientAccess.getWidget(targetUI).mouseClicked(event, doubleClick);
         } else {
-            modularUI.getWidget().setFocused(true);
+            ModularUIClientAccess.getWidget(modularUI).setFocused(true);
         }
         return true;
     }
@@ -128,7 +129,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
         super.mouseMoved(mouseX, mouseY);
-        targetUI.getWidget().mouseMoved(mouseX, mouseY);
+        ModularUIClientAccess.getWidget(targetUI).mouseMoved(mouseX, mouseY);
     }
 
     @Override
@@ -147,7 +148,7 @@ public class DebugScreen extends ModularUIScreen {
             shapingUI = uiDebugger.hierarchy.treeList.getHoveredNode().key;
         }
         if (shapingUI != null) {
-            targetUI.getWidget().renderUISpacing(guiContext, shapingUI, graphics);
+            ModularUIClientAccess.getWidget(targetUI).renderUISpacing(guiContext, shapingUI, graphics);
         }
 
         if (!isChildrenHovered) {

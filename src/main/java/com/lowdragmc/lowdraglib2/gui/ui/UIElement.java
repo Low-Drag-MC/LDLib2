@@ -24,7 +24,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -48,15 +47,12 @@ import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -163,18 +159,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Getter @Setter @Accessors(chain = true)
     private boolean allowHitTest = true;
     @Nullable
-    private UIVisualLayer visualLayer;
+    Object clientState;
 
     public UIElement() {
         taffyStyle = new TaffyLayoutStyle(this);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private UIVisualLayer getOrCreateVisualLayer() {
-        if (visualLayer == null) {
-            visualLayer = new UIVisualLayer(this);
-        }
-        return visualLayer;
     }
 
     /**
@@ -249,8 +237,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         for (var child : getSafeChildren()) {
             child.onRemoved();
         }
-        if (visualLayer != null) {
-            visualLayer.release();
+        if (!LDLib2.isServer()) {
+            UIElementClientAccess.release(this);
         }
         if (bubbleListeners.containsKey(UIEvents.REMOVED) || captureListeners.containsKey(UIEvents.REMOVED)) {
             var event = UIEvent.create(UIEvents.REMOVED);
@@ -531,29 +519,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             } else if (x + width > screenWidth) {
                 layout(layout -> layout.left(getLayoutX() + screenWidth - (x + width)));
             }
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void appendExtraAreas(List<Rect2i> extraAreas) {
-        if (!isDisplayed() || !isVisible()) return;
-        var rect = new Rect2i(Math.round(getPositionX()), Math.round(getPositionY()),
-                Math.round(getSizeWidth()), Math.round(getSizeHeight()));
-        var contains = false;
-        for (var extraArea : extraAreas) {
-            if (extraArea.getX() <= rect.getX() &&
-                    extraArea.getY() <= rect.getY() &&
-                    extraArea.getX() + extraArea.getWidth() >= rect.getX() + rect.getWidth() &&
-                    extraArea.getY() + extraArea.getHeight() >= rect.getY() + rect.getHeight()) {
-                contains = true;
-                break;
-            }
-        }
-        if (!contains) {
-            extraAreas.add(rect);
-        }
-        for (UIElement child : getChildren()) {
-            child.appendExtraAreas(extraAreas);
         }
     }
 
@@ -1587,7 +1552,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
         // todo visual layer
         if (hasVisualLayer) {
-            context.pushVisualLayer(getOrCreateVisualLayer());
+            UIElementClientAccess.pushVisualLayer(this, context);
         }
 
         drawInBackgroundInternal(context);
@@ -1805,7 +1770,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
         additionalConfigurators(father);

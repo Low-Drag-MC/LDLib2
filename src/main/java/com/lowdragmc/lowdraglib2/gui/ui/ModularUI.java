@@ -2,19 +2,12 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
-import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
-import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
 import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
 import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
-import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import dev.vfyjxf.taffy.geometry.TaffySize;
@@ -27,27 +20,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Renderable;
-import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.narration.NarratableEntry;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix3x2f;
-import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -71,13 +47,6 @@ public class ModularUI {
     private boolean shouldCloseOnKeyInventory = true;
 
     // runtime
-    @OnlyIn(Dist.CLIENT)
-    @Nullable
-    private ModularUIWidget widget;
-    @Nullable
-    @OnlyIn(Dist.CLIENT)
-    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
-    private Screen screen;
     @Getter
     private TaffyTree taffyTree;
     @Getter
@@ -98,7 +67,9 @@ public class ModularUI {
     @Getter
     private long tickCounter = 0;
     @Getter
-    private Matrix3x2f lastDrawPose = new Matrix3x2f();
+    Matrix3x2f lastDrawPose = new Matrix3x2f();
+    @Nullable
+    Object clientState;
     // Element registry for fast retrieval
     private final List<UIElement> elements = new ArrayList<>();
     private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
@@ -109,55 +80,43 @@ public class ModularUI {
 
     // UI state
     @Getter @Setter
-    private boolean tickWhileRending;
+    boolean tickWhileRending;
     @Getter @Setter
-    private boolean focused;
+    boolean focused;
     @Getter @Setter
-    private boolean drawTooltips = true;
+    boolean drawTooltips = true;
     @Getter @Setter
-    private boolean drawDrag = true;
+    boolean drawDrag = true;
     @Nullable
     @Getter
-    private UIElement lastHoveredElement;
+    UIElement lastHoveredElement;
     @Getter
-    private final List<UIElement> lastHoveredElements = new ArrayList<>();
+    final List<UIElement> lastHoveredElements = new ArrayList<>();
     @Getter
-    private UIElement lastMouseDownElement;
+    UIElement lastMouseDownElement;
     @Getter
-    private UIElement lastMouseMoveElement;
+    UIElement lastMouseMoveElement;
     @Getter
-    private UIElement lastMouseClickElement;
+    UIElement lastMouseClickElement;
     @Getter
-    private UIElement lastMouseDragElement;
+    UIElement lastMouseDragElement;
     @Getter
-    private int lastMouseDownButton = -1, lastMouseClickButton = -1;
+    int lastMouseDownButton = -1, lastMouseClickButton = -1;
     @Getter
-    private int lastPressedKeyCode = - 1, lastPressedScanCode = -1, lastPressedModifiers = -1;
+    int lastPressedKeyCode = - 1, lastPressedScanCode = -1, lastPressedModifiers = -1;
     @Getter
-    private long lastMouseClickTime;
+    long lastMouseClickTime;
     @Getter
-    private float lastMouseX, lastMouseY, lastMouseDownX, lastMouseDownY;
+    float lastMouseX, lastMouseY, lastMouseDownX, lastMouseDownY;
     @Getter @Nullable
-    private UIElement focusedElement = null;
-    private final List<Rect2i> extraAreas = new ArrayList<>();
+    UIElement focusedElement = null;
 
-    // hover tips
-    @Nullable
-    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
-    @OnlyIn(Dist.CLIENT)
-    private HoverTooltips hoverTooltips;
-    @Nullable
-    @OnlyIn(Dist.CLIENT)
-    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
-    private Font tooltipFont;
     @Getter
     private ItemStack tooltipStack = ItemStack.EMPTY;
     @Getter @Setter
     private boolean allowDebugMode = true;
     @Getter @Setter
     private boolean debugMode = false;
-    @Nullable
-    private UIDebugger uiDebuggerCache;
 
     public ModularUI(UI ui) {
         this(ui, null);
@@ -465,19 +424,6 @@ public class ModularUI {
         this.ui.rootElement._setModularUIInternal(this);
     }
 
-    /// screen only
-    @OnlyIn(Dist.CLIENT)
-    public void setScreenAndInit(Screen screen) {
-        setScreen(screen);
-        init(screen.width, screen.height);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void setScreen(@Nullable Screen screen) {
-        this.screen = screen;
-    }
-
-    @OnlyIn(Dist.CLIENT)
     public void init(int screenWidth, int screenHeight) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
@@ -545,7 +491,7 @@ public class ModularUI {
         this.ui.rootElement.clearLayoutCache();
     }
 
-    private void calculateStyleAndLayout() {
+    void calculateStyleAndLayout() {
         int dirtyCount = 0;
         while (styleEngine.requireCalculate() || taffyTree.isDirty(ui.rootElement.nodeId)) {
             dirtyCount++;
@@ -570,7 +516,6 @@ public class ModularUI {
                 nodesWithNewLayout.clear();
                 nodesWithNewGeometry.clear();
 
-                extraAreas.clear();
             }
 
             if (dirtyCount >= 10) {
@@ -607,7 +552,6 @@ public class ModularUI {
      * This will trigger FocusOut event on the old focused element and FocusIn event on the new focused element.
      * @param element the element to focus, or null to clear focus
      */
-    @OnlyIn(Dist.CLIENT)
     public void requestFocus(@Nullable UIElement element) {
         if (focusedElement == element) return;
 
@@ -644,553 +588,12 @@ public class ModularUI {
             focus.relatedTarget = lastFocusedElement;
             focus.hasBubblePhase = false;
             UIEventDispatcher.dispatchEvent(focus);
-            if (screen != null) {
-                screen.setFocused(getWidget());
-            }
         }
 
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void clearFocus() {
         requestFocus(null);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void setHoverTooltip(HoverTooltips hoverTooltips) {
-        this.hoverTooltips = hoverTooltips;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void cleanTooltip() {
-        this.hoverTooltips = null;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public ModularUIWidget getWidget() {
-        if (widget == null) {
-            widget = new ModularUIWidget();
-        }
-        return widget;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public List<Rect2i> getGuiExtraAreas() {
-        if (extraAreas.isEmpty()) calculateExtraAreas();
-        return extraAreas;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private void calculateExtraAreas() {
-        extraAreas.clear();
-        ui.rootElement.appendExtraAreas(extraAreas);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void enableDebugger(boolean debugMode) {
-        if (this.debugMode == debugMode) return;
-        this.debugMode = debugMode;
-        if (debugMode) {
-            if (uiDebuggerCache == null) {
-                uiDebuggerCache = new UIDebugger(this);
-            }
-            Minecraft.getInstance().pushGuiLayer(new DebugScreen(uiDebuggerCache));
-        }
-    }
-
-    @ParametersAreNonnullByDefault
-    @MethodsReturnNonnullByDefault
-    @OnlyIn(Dist.CLIENT)
-    public class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable, IModularUIHolder {
-        private long lastTick;
-
-        @Override
-        public ModularUI getModularUI() {
-            return ModularUI.this;
-        }
-
-        // narration
-        @Override
-        public NarrationPriority narrationPriority() {
-            if (focused) {
-                return NarrationPriority.FOCUSED;
-            } else {
-                return isHovered() ? NarrationPriority.HOVERED : NarrationPriority.NONE;
-            }
-        }
-
-        @Override
-        public void updateNarration(NarrationElementOutput narrationElementOutput) {
-
-        }
-
-        public boolean isHovered() {
-            return lastHoveredElement != null;
-        }
-
-        @Override
-        public boolean isMouseOver(double mouseX, double mouseY) {
-            return isHovered();
-        }
-
-        @Override
-        public ScreenRectangle getRectangle() {
-            return new ScreenRectangle(Math.round(leftPos), Math.round(topPos), Math.round(width), Math.round(height));
-        }
-
-        /// event handling
-        @Override
-        public void setFocused(boolean focused) {
-            ModularUI.this.setFocused(focused);
-        }
-
-        @Override
-        public boolean isFocused() {
-            return ModularUI.this.isFocused();
-        }
-
-        @Override
-        public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean doubleClick) {
-            lastMouseDownX = (float) mouseButtonEvent.x();
-            lastMouseDownY = (float) mouseButtonEvent.y();
-            lastMouseDownButton = mouseButtonEvent.button();
-            lastMouseDownElement = getLastHoveredElement();
-            if (lastMouseDownElement != null) {
-                if (!lastMouseDownElement.isFocusable()) {
-                    clearFocus();
-                    var structurePath = lastMouseDownElement.getStructurePath();
-                    for (int i = structurePath.size() - 1; i >= 0; i--) {
-                        var element = structurePath.get(i);
-                        if (element.isFocusable()) {
-                            requestFocus(element);
-                            break;
-                        }
-                    }
-                } else if (lastMouseDownElement.isActive()) {
-                    requestFocus(lastMouseDownElement);
-                }
-                var event = UIEvent.create(UIEvents.MOUSE_DOWN);
-                event.x = lastMouseDownX;
-                event.y = lastMouseDownY;
-                event.button = lastMouseDownButton;
-                event.target = lastMouseDownElement;
-                UIEventDispatcher.dispatchEvent(event);
-                return event.hasHandler;
-            } else {
-                clearFocus();
-            }
-            return false;
-        }
-
-        @Override
-        public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
-            var mouseX = mouseButtonEvent.x();
-            var mouseY = mouseButtonEvent.y();
-            var button = mouseButtonEvent.button();
-            lastMouseDownButton = -1;
-            var releasedElement = getLastHoveredElement();
-            if (dragHandler.isDragging()) {
-                if (releasedElement != null) {
-                    var event = UIEvent.create(UIEvents.DRAG_PERFORM);
-                    dispatchDragEvent(mouseX, mouseY, button, 0, 0, releasedElement, event);
-                }
-                dragHandler.stopDrag(releasedElement);
-            }
-            if (releasedElement != null) {
-                var event = UIEvent.create(UIEvents.MOUSE_UP);
-                event.x = (float) mouseX;
-                event.y = (float) mouseY;
-                event.button = button;
-                event.target = releasedElement;
-                UIEventDispatcher.dispatchEvent(event);
-                var hasHandler = event.hasHandler;
-                if (releasedElement == lastMouseDownElement) {
-                    var clickEvent = UIEvent.create(UIEvents.CLICK);
-                    clickEvent.x = (float) mouseX;
-                    clickEvent.y = (float) mouseY;
-                    clickEvent.button = button;
-                    clickEvent.target = releasedElement;
-                    UIEventDispatcher.dispatchEvent(clickEvent);
-                    hasHandler |= clickEvent.hasHandler;
-                    if (lastMouseClickElement == releasedElement && button == lastMouseClickButton) {
-                        if (System.currentTimeMillis() - lastMouseClickTime < 300) { // 300ms follow HTML5 spec
-                            var doubleClickEvent = UIEvent.create(UIEvents.DOUBLE_CLICK);
-                            doubleClickEvent.x = (float) mouseX;
-                            doubleClickEvent.y = (float) mouseY;
-                            doubleClickEvent.button = button;
-                            doubleClickEvent.target = releasedElement;
-                            UIEventDispatcher.dispatchEvent(doubleClickEvent);
-                            hasHandler |= doubleClickEvent.hasHandler;
-                            lastMouseClickElement = null;
-                        } else {
-                            lastMouseClickElement = releasedElement;
-                        }
-                    } else {
-                        lastMouseClickElement = releasedElement;
-                    }
-                }
-                lastMouseClickButton = button;
-                lastMouseClickTime = System.currentTimeMillis();
-                return hasHandler;
-            }
-            lastMouseClickButton = button;
-            lastMouseClickTime = System.currentTimeMillis();
-            return false;
-        }
-
-        @Override
-        public void mouseMoved(double mouseX, double mouseY) {
-            var current = getLastHoveredElement();
-            if (current != null) {
-                var event = UIEvent.create(UIEvents.MOUSE_MOVE);
-                event.x = (float) mouseX;
-                event.y = (float) mouseY;
-                event.target = current;
-                UIEventDispatcher.dispatchEvent(event);
-            }
-            if (lastMouseMoveElement == null && current != null) {
-                lastMouseMoveElement = current;
-                triggerMouseEnter(lastMouseMoveElement, mouseX, mouseY);
-            } else if (lastMouseMoveElement != null && current == null) {
-                triggerMouseLeave(lastMouseMoveElement, mouseX, mouseY);
-                lastMouseMoveElement = null;
-            } else if (lastMouseMoveElement != null && lastMouseMoveElement != current) {
-                triggerMouseLeave(lastMouseMoveElement, mouseX, mouseY);
-                triggerMouseEnter(current, mouseX, mouseY);
-                lastMouseMoveElement = current;
-            }
-        }
-
-        @Override
-        public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-            var current = getLastHoveredElement();
-            if (current != null) {
-                var event = UIEvent.create(UIEvents.MOUSE_WHEEL);
-                event.x = (float) mouseX;
-                event.y = (float) mouseY;
-                event.deltaX = (float) scrollX;
-                event.deltaY = (float) scrollY;
-                event.target = current;
-                UIEventDispatcher.dispatchEvent(event);
-                return event.hasHandler;
-            }
-            return false;
-        }
-
-
-        @Override
-        public boolean mouseDragged(MouseButtonEvent mouseButtonEvent, double dragX, double dragY) {
-            var mouseX = mouseButtonEvent.x();
-            var mouseY = mouseButtonEvent.y();
-            var button = mouseButtonEvent.button();
-            if (dragHandler.isDragging()) {
-                var hasHandler = false;
-                var current = getLastHoveredElement();
-                if (dragHandler.dragSource != null) {
-                    var event = UIEvent.create(UIEvents.DRAG_SOURCE_UPDATE);
-                    event.hasBubblePhase = false;
-                    event.hasCapturePhase = true;
-                    dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, dragHandler.dragSource, event);
-                    hasHandler = event.hasHandler;
-                }
-                if (current != null) {
-                    if (lastMouseDragElement == current) {
-                        var event = UIEvent.create(UIEvents.DRAG_UPDATE);
-                        dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, current, event);
-                        hasHandler |= event.hasHandler;
-                    } else {
-                        if (lastMouseDragElement != null) {
-                            var event = UIEvent.create(UIEvents.DRAG_LEAVE);
-                            event.hasBubblePhase = false;
-                            event.relatedTarget = current;
-                            dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, lastMouseDragElement, event);
-                        }
-                        lastMouseDragElement = current;
-                        var event = UIEvent.create(UIEvents.DRAG_ENTER);
-                        event.hasBubblePhase = false;
-                        dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, current, event);
-                        hasHandler |= event.hasHandler;
-                    }
-                    return hasHandler;
-                } else if (lastMouseDragElement != null) {
-                    var event = UIEvent.create(UIEvents.DRAG_LEAVE);
-                    event.hasBubblePhase = false;
-                    dispatchDragEvent(mouseX, mouseY, button, dragX, dragY, lastMouseDragElement, event);
-                    lastMouseDragElement = null;
-                    hasHandler |= event.hasHandler;
-                    return hasHandler;
-                }
-            }
-            return false;
-        }
-
-        private void dispatchDragEvent(double mouseX, double mouseY, int button, double dragX, double dragY, UIElement current, UIEvent event) {
-            event.x = (float) mouseX;
-            event.y = (float) mouseY;
-            event.button = button;
-            event.deltaX = (float) dragX;
-            event.deltaY = (float) dragY;
-            // TODO fix dragStartX and dragStartY
-            event.dragStartX = lastMouseDownX;
-            event.dragStartY = lastMouseDownY;
-            event.dragHandler = dragHandler;
-            event.target = current;
-            UIEventDispatcher.dispatchEvent(event, true, true, false);
-        }
-
-        @Override
-        public boolean keyPressed(KeyEvent keyEvent) {
-            var keyCode = keyEvent.key();
-            var scanCode = keyEvent.scancode();
-            var modifiers = keyEvent.modifiers();
-            if (allowDebugMode && keyCode == GLFW.GLFW_KEY_F3) {
-                enableDebugger(!debugMode);
-            }
-            lastPressedKeyCode = keyCode;
-            lastPressedScanCode = scanCode;
-            lastPressedModifiers = modifiers;
-            var hasHandler = false;
-            var command = getCommandType(keyEvent);
-            if (focusedElement != null) {
-                var event = UIEvent.create(UIEvents.KEY_DOWN);
-                event.keyCode = keyCode;
-                event.scanCode = scanCode;
-                event.modifiers = modifiers;
-                event.target = focusedElement;
-                UIEventDispatcher.dispatchEvent(event);
-                hasHandler = event.hasHandler;
-                if (command != null) {
-                    event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
-                    event.target = focusedElement;
-                    UIEventDispatcher.dispatchEvent(event);
-                    hasHandler |= event.hasHandler;
-                }
-                return hasHandler;
-            } else if (command != null){
-                var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
-                event.target = ui.rootElement;
-                var handled = UIEventDispatcher.dispatchAllChildren(event);
-                hasHandler |= event.hasHandler;
-                if (handled && event.currentElement != null) {
-                    var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
-                    executeCommandEvent.target = event.currentElement;
-                    UIEventDispatcher.dispatchEvent(executeCommandEvent);
-                    hasHandler |= event.hasHandler;
-                }
-                return hasHandler;
-            }
-            return false;
-        }
-
-        @Nullable
-        protected String getCommandType(KeyEvent keyEvent) {
-            var keyCode = keyEvent.key();
-            if (keyEvent.isCopy()) {
-                return CommandEvents.COPY;
-            } else if (keyEvent.isPaste()) {
-                return CommandEvents.PASTE;
-            } else if (keyEvent.isCut()) {
-                return CommandEvents.CUT;
-            } else if (keyEvent.isSelectAll()) {
-                return CommandEvents.SELECT_ALL;
-            } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-                return CommandEvents.UNDO;
-            } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlDown() && UIElement.isShiftDown() && !UIElement.isAltDown()) {
-                return CommandEvents.REDO;
-            } else if (keyCode == GLFW.GLFW_KEY_Y && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-                return CommandEvents.REDO;
-            } else if (keyCode == GLFW.GLFW_KEY_F && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-                return CommandEvents.FIND;
-            } else if (keyCode == GLFW.GLFW_KEY_S && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-                return CommandEvents.SAVE;
-            }
-            return null;
-        }
-
-        protected UIEvent createValidCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
-            var event = UIEvent.create(UIEvents.VALIDATE_COMMAND);
-            event.hasBubblePhase = false;
-            event.hasCapturePhase = false;
-            event.keyCode = keyCode;
-            event.scanCode = scanCode;
-            event.modifiers = modifiers;
-            event.command = command;
-            return event;
-        }
-
-        protected UIEvent createExecuteCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
-            var event = UIEvent.create(UIEvents.EXECUTE_COMMAND);
-            event.hasBubblePhase = false;
-            event.hasCapturePhase = false;
-            event.keyCode = keyCode;
-            event.scanCode = scanCode;
-            event.modifiers = modifiers;
-            event.command = command;
-            return event;
-        }
-
-        @Override
-        public boolean keyReleased(KeyEvent keyEvent) {
-            if (focusedElement != null) {
-                var event = UIEvent.create(UIEvents.KEY_UP);
-                event.keyCode = keyEvent.key();
-                event.scanCode = keyEvent.scancode();
-                event.modifiers = keyEvent.modifiers();
-                event.target = focusedElement;
-                UIEventDispatcher.dispatchEvent(event);
-                return event.hasHandler;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean charTyped(CharacterEvent characterEvent) {
-            if (focusedElement != null) {
-                var event = UIEvent.create(UIEvents.CHAR_TYPED);
-                event.codePoint = (char) characterEvent.codepoint();
-                event.modifiers = characterEvent.modifiers();
-                event.hasCapturePhase = false;
-                event.hasBubblePhase = false;
-                event.target = focusedElement;
-                UIEventDispatcher.dispatchEvent(event);
-                return event.hasHandler;
-            }
-            return false;
-        }
-
-        private void triggerMouseEnter(UIElement element, double mouseX, double mouseY) {
-            var event = UIEvent.create(UIEvents.MOUSE_ENTER);
-            event.hasBubblePhase = false;
-            event.x = (float) mouseX;
-            event.y = (float) mouseY;
-            event.target = element;
-            UIEventDispatcher.dispatchEvent(event);
-        }
-
-        private void triggerMouseLeave(UIElement element, double mouseX, double mouseY) {
-            var event = UIEvent.create(UIEvents.MOUSE_LEAVE);
-            event.hasBubblePhase = false;
-            event.x = (float) mouseX;
-            event.y = (float) mouseY;
-            event.target = element;
-            UIEventDispatcher.dispatchEvent(event);
-        }
-
-        /// rendering
-        @Override
-        public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-            // update tick
-            if (tickWhileRending && Minecraft.getInstance() instanceof MinecraftAccessor accessor) {
-                var currentTick = accessor.ldlib2$getClientTickCount();
-                if (currentTick != lastTick) {
-                    tick();
-                    lastTick = currentTick;
-                }
-            }
-            // fix mouse for debugger
-            if (isDebugMode() && mouseX == Integer.MAX_VALUE && mouseY == Integer.MAX_VALUE) {
-                mouseX = DebugScreen.REAL_MOUSE_POS.x;
-                mouseY = DebugScreen.REAL_MOUSE_POS.y;
-            }
-            animationEngine.updateFrame();
-
-            calculateStyleAndLayout();
-
-            cleanTooltip();
-
-            // rendering
-            lastDrawPose = new Matrix3x2f(guiGraphics.pose());
-            var context = GUIContext.of(guiGraphics, mouseX, mouseY, partialTick);
-
-            lastMouseX = context.localMouseX;
-            lastMouseY = context.localMouseY;
-
-            var hoverElement = ui.rootElement.hitTest(lastMouseX, lastMouseY);
-            var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
-            if (lastHoveredElements.isEmpty() ||
-                    newHoveredElement != null && !newHoveredElement.getStructurePath().equals(lastHoveredElements)) {
-                for (var element : lastHoveredElements) {
-                    element.removeClass("__hovered__");
-                }
-
-                lastHoveredElements.clear();
-
-                if (newHoveredElement != null) {
-                    lastHoveredElements.addAll(newHoveredElement.getStructurePath());
-                    for (var element : lastHoveredElements) {
-                        element.addClass("__hovered__");
-                    }
-                }
-            }
-
-            lastHoveredElement = newHoveredElement;
-            ui.rootElement.drawInBackground(context);
-
-            if (lastHoveredElement != null && hoverTooltips == null) {
-                var element = lastHoveredElement;
-                while (element != null) {
-                    var event = UIEvent.create(UIEvents.HOVER_TOOLTIPS);
-                    event.hasBubblePhase = false;
-                    event.hasCapturePhase = false;
-                    event.target = element;
-                    UIEventDispatcher.dispatchDirectEvent(event, false);
-                    if (event.hoverTooltips != null) {
-                        setHoverTooltip(event.hoverTooltips);
-                        break;
-                    }
-                    if (!element.getStyle().tooltips().isEmpty()) {
-                        setHoverTooltip(HoverTooltips.create(Arrays.stream(element.getStyle().tooltips().tooltips()).toArray()));
-                        break;
-                    }
-                    element = element.getParent();
-                }
-            }
-
-            context.callPostRendering();
-
-            if (screen instanceof AbstractContainerScreen<?> containerScreen && !containerScreen.getMenu().getCarried().isEmpty()) {
-                return;
-            }
-
-            // Do not render tooltips if carried item is existing
-            if (drawDrag && dragHandler.isDragging() && dragHandler.dragTexture != null) {
-                dragHandler.dragTexture.draw(context, lastMouseX + dragHandler.offsetX, lastMouseY + dragHandler.offsetY, dragHandler.width, dragHandler.height);
-            }
-
-            if (drawTooltips && !dragHandler.isDragging() && hoverTooltips != null) {
-                DrawerHelper.drawTooltip(context, hoverTooltips);
-            }
-        }
-
-        public void renderUISpacing(GUIContext context, UIElement element, GuiGraphics graphics) {
-            var transform = element.getLocalToWorldPose();
-            context.pose.pushPose();
-            context.pose.setIdentity();
-            context.pose.mulPose(transform);
-            var posX = element.getPositionX();
-            var posY = element.getPositionY();
-            var sizeX = element.getSizeWidth();
-            var sizeY = element.getSizeHeight();
-            var marginTop = element.getMarginTop();
-            var marginBottom = element.getMarginBottom();
-            var marginLeft = element.getMarginLeft();
-            var marginRight = element.getMarginRight();
-            DrawerHelper.drawSolidRect(context, posX - marginLeft, posY - marginTop,
-                    sizeX + marginLeft + marginRight, sizeY + marginTop + marginBottom, ColorPattern.T_ORANGE.color);
-            DrawerHelper.drawSolidRect(context, posX, posY, sizeX, sizeY, 0x80ff0000);
-            var paddingX = element.getPaddingX();
-            var paddingY = element.getPaddingY();
-            var paddingWidth = element.getPaddingWidth();
-            var paddingHeight = element.getPaddingHeight();
-            DrawerHelper.drawSolidRect(context, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00);
-            var contentX = element.getContentX();
-            var contentY = element.getContentY();
-            var contentWidth = element.getContentWidth();
-            var contentHeight = element.getContentHeight();
-            DrawerHelper.drawSolidRect(context, contentX, contentY, contentWidth, contentHeight, 0x800000ff);
-            context.pose.popPose();
-        }
-
     }
 
 }

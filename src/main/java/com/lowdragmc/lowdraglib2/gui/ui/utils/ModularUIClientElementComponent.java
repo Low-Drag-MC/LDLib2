@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.utils;
 
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -28,7 +29,7 @@ public record ModularUIClientElementComponent(ModularUITooltipComponent modularU
     public void renderImage(Font font, int x, int y, int w, int h, GuiGraphics graphics) {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
-        modularUITooltipComponent.modularUI.getWidget()
+        ModularUIClientAccess.getWidget(modularUITooltipComponent.modularUI)
                 .render(graphics, 0, 0, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
         graphics.pose().popMatrix();
     }

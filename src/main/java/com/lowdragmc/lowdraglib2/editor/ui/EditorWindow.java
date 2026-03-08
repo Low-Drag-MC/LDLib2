@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
@@ -221,8 +222,8 @@ public class EditorWindow extends UIElement {
                 }
             }
 
-            if (getModularUI() != null && getModularUI().getScreen() != null) {
-                getModularUI().getScreen().onClose();
+            if (getModularUI() != null && ModularUIClientAccess.getScreen(getModularUI()) != null) {
+                ModularUIClientAccess.getScreen(getModularUI()).onClose();
             }
         } else {
             showEditor(editors.lastEntry().getKey());
@@ -250,8 +251,8 @@ public class EditorWindow extends UIElement {
     public void minimizeWindow() {
         if (EditorWindow.MINIMIZED_WINDOWS.containsKey(windowID)) return;
         EditorWindow.MINIMIZED_WINDOWS.put(windowID, this);
-        if (getModularUI() != null && getModularUI().getScreen() != null) {
-            getModularUI().getScreen().onClose();
+        if (getModularUI() != null && ModularUIClientAccess.getScreen(getModularUI()) != null) {
+            ModularUIClientAccess.getScreen(getModularUI()).onClose();
         }
     }
 
@@ -270,8 +271,8 @@ public class EditorWindow extends UIElement {
 
         var mui = getModularUI();
         var minecraft = Minecraft.getInstance();
-        if (mui != null && mui.getScreen() != null) {
-            mui.getScreen().init(minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
+        if (mui != null && ModularUIClientAccess.getScreen(mui) != null) {
+            ModularUIClientAccess.getScreen(mui).init(minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
         }
     }
 
@@ -291,8 +292,8 @@ public class EditorWindow extends UIElement {
         maximized = false;
 
         var mui = getModularUI();
-        if (mui != null && mui.getScreen() != null) {
-            mui.getScreen().init(minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
+        if (mui != null && ModularUIClientAccess.getScreen(mui) != null) {
+            ModularUIClientAccess.getScreen(mui).init(minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
         }
     }
 

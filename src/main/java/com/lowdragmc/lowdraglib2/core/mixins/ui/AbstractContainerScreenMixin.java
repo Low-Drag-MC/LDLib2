@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
@@ -43,7 +44,7 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
     private void ldlib2$mouseDragged(MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
         if (getMenu() instanceof IModularUIHolder holder) {
             var mui = holder.getModularUI();
-            if (mui != null && mui.getWidget().mouseDragged(event, dx, dy)) {
+            if (mui != null && ModularUIClientAccess.getWidget(mui).mouseDragged(event, dx, dy)) {
                 cir.setReturnValue(true);
             }
         }

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
@@ -61,7 +62,7 @@ public abstract class ScreenMixin extends AbstractContainerEventHandler implemen
                     if (!mui.shouldCloseOnKeyInventory()) {
                         InputConstants.Key mouseKey = InputConstants.getKey(event);
                         if (minecraft.options.keyInventory.isActiveAndMatches(mouseKey)) {
-                            cir.setReturnValue(mui.getWidget().keyPressed(event));
+                            cir.setReturnValue(ModularUIClientAccess.getWidget(mui).keyPressed(event));
                         }
                     }
                 }

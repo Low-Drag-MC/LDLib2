@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
@@ -285,8 +286,8 @@ public abstract class Editor extends UIElement {
             if (window != null) {
                 window.removeEditor(this);
             } else {
-                if (getModularUI() != null && getModularUI().getScreen() != null) {
-                    getModularUI().getScreen().onClose();
+                if (getModularUI() != null && ModularUIClientAccess.getScreen(getModularUI()) != null) {
+                    ModularUIClientAccess.getScreen(getModularUI()).onClose();
                 }
             }
             if (onFinish != null) {

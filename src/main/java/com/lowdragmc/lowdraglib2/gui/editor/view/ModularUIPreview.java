@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.editor.view;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
@@ -80,16 +81,16 @@ public class ModularUIPreview extends UIElement {
 
         context.pose.translate(posX, posY);
 
-        this.previewModularUI.getWidget().render(context.graphics, context.mouseX, context.mouseY, context.partialTick);
+        ModularUIClientAccess.getWidget(this.previewModularUI).render(context.graphics, context.mouseX, context.mouseY, context.partialTick);
 
         if (isShiftDown()) {
             var hovered = previewModularUI.getLastHoveredElement();
             if (hovered != null) {
-                previewModularUI.getWidget().renderUISpacing(context, hovered, context.graphics);
+                ModularUIClientAccess.getWidget(previewModularUI).renderUISpacing(context, hovered, context.graphics);
             }
         } else if (editorView != null && selectionBox.isDisplayed() && selectionBox.label.isSelfOrChildHover()) {
             var selectedOne = editorView.hierarchy.getSelectedOne();
-            selectedOne.ifPresent(element -> previewModularUI.getWidget().renderUISpacing(context, element, context.graphics));
+            selectedOne.ifPresent(element -> ModularUIClientAccess.getWidget(previewModularUI).renderUISpacing(context, element, context.graphics));
         }
         context.pose.popPose();
     }

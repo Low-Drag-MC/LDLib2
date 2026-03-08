@@ -1,0 +1,33 @@
+package com.lowdragmc.lowdraglib2.gui.ui;
+
+import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import lombok.Getter;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.Rect2i;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@OnlyIn(Dist.CLIENT)
+final class ModularUIClientState {
+    @Nullable
+    Screen screen;
+    @Nullable
+    HoverTooltips hoverTooltips;
+    @Nullable
+    Font tooltipFont;
+    @Nullable
+    UIDebugger uiDebuggerCache;
+    @Getter
+    private final ModularUIWidget widget;
+    final List<Rect2i> extraAreas = new ArrayList<>();
+
+    ModularUIClientState(ModularUI modularUI) {
+        this.widget = new ModularUIWidget(modularUI);
+    }
+}
