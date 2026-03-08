@@ -6,8 +6,11 @@ import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -28,11 +31,23 @@ import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector3f;
 
 @OnlyIn(Dist.CLIENT)
-public final class SceneRenderer {
-    private SceneRenderer() {
+@LDLRegisterClient(name = "scene", registry = "ldlib2:ui_element_renderer")
+public final class SceneRenderer extends DelegatingUIElementRenderer<Scene, SceneRenderer> {
+    @Override
+    public Class<Scene> type() {
+        return Scene.class;
     }
 
-    public static void drawBackgroundAdditional(Scene scene, GUIContext context) {
+    @Override
+    public void drawBackgroundAdditional(Scene scene, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundAdditional(scene, context);
+            return;
+        }
+        drawBackgroundAdditional(scene, guiContext);
+    }
+
+    static void drawBackgroundAdditional(Scene scene, GUIContext context) {
         var x = scene.getContentX();
         var y = scene.getContentY();
         var width = scene.getContentWidth();

@@ -1563,6 +1563,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public final void drawInBackgroundInternal(IGUIContext context) {
+        var renderer = UIElementRendererRegistry.findRenderer(this);
         var elementColor = style.color();
         var hasColor = elementColor != -1;
         if (hasColor) {
@@ -1570,10 +1571,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
         if (!isCulled) {
             drawBackgroundTexture(context);
-            drawContents(context);
-            UIElementRendererRegistry.findRenderer(this).drawBackgroundOverlay(this, context);
+            renderer.drawContents(this, context);
+            renderer.drawBackgroundOverlay(this, context);
         } else { // draw contents only
-            drawContents(context);
+            renderer.drawContents(this, context);
         }
         if (hasColor) {
             context.resetElementColor();
@@ -1618,50 +1619,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /**
-     * Renders the contents of the GUI element. includes additional background and children
-     */
-    public void drawContents(IGUIContext context) {
-        // not need to use scissoring if overflow cip defined
-        var scissor = style.clip().isScissor();
-        if (scissor) {
-            if (isCulled) return;
-            context.enableScissor(getContentX(), getContentY(), getContentWidth(), getContentHeight());
-        }
-        if(!isCulled) {
-            UIElementRendererRegistry.findRenderer(this).drawBackgroundAdditional(this, context);
-        }
-        if (!children.isEmpty()) {
-            var currentColor = context.getElementColor();
-            var hasColor = currentColor != -1;
-            // we roll back first
-            if (hasColor) {
-                context.resetElementColor();
-            }
-            List.copyOf(children).forEach(child -> child.drawInBackground(context));
-            if (hasColor) {
-                context.setElementColor(currentColor);
-            }
-        }
-        if (scissor) {
-            context.disableScissor();
-        }
-    }
-
-    /**
      * Renders the additional background of the GUI element.
      */
     protected void drawBackgroundAdditional(IGUIContext context) {
 
-    }
-
-    /**
-     * Renders the overlay texture of the GUI element.
-     */
-    protected void drawBackgroundOverlay(IGUIContext context) {
-        var overlay = style.overlayTexture();
-        if (overlay != null && overlay != IGuiTexture.EMPTY) {
-            context.drawTexture(overlay, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
-        }
     }
 
     /// Editor + Serialization

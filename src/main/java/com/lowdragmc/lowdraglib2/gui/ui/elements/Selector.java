@@ -352,10 +352,6 @@ public class Selector<T> extends BindableUIElement<T> {
         setupDialog();
     }
 
-    void drawSharedDefaultOverlay(com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext context) {
-        super.drawBackgroundOverlay(context);
-    }
-
     /// Logic
     public boolean isOpen() {
         return this.dialog.getParent() != null;

@@ -1018,14 +1018,6 @@ public class TextArea extends BindableUIElement<String[]> {
         return isActive() && isVisible() && isFocused() && isDisplayed();
     }
 
-    void drawSharedDefaultOverlay(IGUIContext context) {
-        super.drawBackgroundOverlay(context);
-    }
-
-    void drawSharedDefaultAdditional(IGUIContext context) {
-        super.drawBackgroundAdditional(context);
-    }
-
     /// Editor + Xml
     @Override
     public void loadXml(Element element) {

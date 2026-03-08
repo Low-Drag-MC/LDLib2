@@ -1,17 +1,32 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 @OnlyIn(Dist.CLIENT)
-public final class FluidSlotRenderer {
-    private FluidSlotRenderer() {
+@LDLRegisterClient(name = "fluid_slot", registry = "ldlib2:ui_element_renderer")
+public final class FluidSlotRenderer extends DelegatingUIElementRenderer<FluidSlot, FluidSlotRenderer> {
+    @Override
+    public Class<FluidSlot> type() {
+        return FluidSlot.class;
     }
 
-    public static void drawBackgroundAdditional(FluidSlot fluidSlot, GUIContext context) {
+    @Override
+    public void drawBackgroundAdditional(FluidSlot fluidSlot, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundAdditional(fluidSlot, context);
+            return;
+        }
+        drawBackgroundAdditional(fluidSlot, guiContext);
+    }
+
+    static void drawBackgroundAdditional(FluidSlot fluidSlot, GUIContext context) {
         var renderedFluid = fluidSlot.getValue();
         var hovered = fluidSlot.isHover() || fluidSlot.isSelfOrChildHover();
         var drawSlotOverlay = fluidSlot.getSlotStyle().showSlotOverlayOnlyEmpty() || !renderedFluid.isEmpty();

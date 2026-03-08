@@ -955,10 +955,6 @@ public class TextField extends BindableUIElement<String> {
         return getHighlighted();
     }
 
-    void drawSharedDefaultOverlay(IGUIContext context) {
-        super.drawBackgroundOverlay(context);
-    }
-
     /// Editor + Xml
     @Override
     public void beforeDeserialize() {

@@ -1,20 +1,31 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-public final class SearchComponentRenderer {
-    private SearchComponentRenderer() {
+@LDLRegisterClient(name = "search_component", registry = "ldlib2:ui_element_renderer")
+public final class SearchComponentRenderer extends DelegatingUIElementRenderer<SearchComponent<?>, SearchComponentRenderer> {
+    @Override
+    public Class<SearchComponent<?>> type() {
+        return (Class<SearchComponent<?>>) (Class<?>) SearchComponent.class;
     }
 
-    public static void drawBackgroundOverlay(SearchComponent<?> searchComponent, GUIContext context) {
+    @Override
+    public void drawBackgroundOverlay(SearchComponent<?> searchComponent, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundOverlay(searchComponent, context);
+            return;
+        }
         if (searchComponent.isSelfOrChildHover() || searchComponent.textField.isFocused()) {
-            context.drawTexture(searchComponent.getSearchStyle().focusOverlay(),
+            guiContext.drawTexture(searchComponent.getSearchStyle().focusOverlay(),
                     searchComponent.getPositionX(), searchComponent.getPositionY(),
                     searchComponent.getSizeWidth(), searchComponent.getSizeHeight());
         }
-        searchComponent.drawSharedDefaultOverlay(context);
+        drawParentBackgroundOverlay(searchComponent, context);
     }
 }

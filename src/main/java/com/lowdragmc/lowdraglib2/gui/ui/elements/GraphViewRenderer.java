@@ -2,16 +2,31 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.rendering.SpriteTextureClientSupport;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-public final class GraphViewRenderer {
-    private GraphViewRenderer() {
+@LDLRegisterClient(name = "graph_view", registry = "ldlib2:ui_element_renderer")
+public final class GraphViewRenderer extends DelegatingUIElementRenderer<GraphView, GraphViewRenderer> {
+    @Override
+    public Class<GraphView> type() {
+        return GraphView.class;
     }
 
-    public static void drawBackgroundAdditional(GraphView graphView, GUIContext context) {
+    @Override
+    public void drawBackgroundAdditional(GraphView graphView, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundAdditional(graphView, context);
+            return;
+        }
+        drawBackgroundAdditional(graphView, guiContext);
+    }
+
+    static void drawBackgroundAdditional(GraphView graphView, GUIContext context) {
         var x = graphView.getContentX();
         var y = graphView.getContentY();
         var w = graphView.getContentWidth();

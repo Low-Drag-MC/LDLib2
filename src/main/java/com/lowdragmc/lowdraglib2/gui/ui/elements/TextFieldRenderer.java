@@ -1,7 +1,10 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import net.minecraft.client.Minecraft;
@@ -11,18 +14,35 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-public final class TextFieldRenderer {
-    private TextFieldRenderer() {
+@LDLRegisterClient(name = "text_field", registry = "ldlib2:ui_element_renderer")
+public final class TextFieldRenderer extends DelegatingUIElementRenderer<TextField, TextFieldRenderer> {
+    @Override
+    public Class<TextField> type() {
+        return TextField.class;
     }
 
-    public static void drawBackgroundOverlay(TextField field, GUIContext context) {
-        if (field.isSelfOrChildHover() || field.isFocused()) {
-            context.drawTexture(field.getTextFieldStyle().focusOverlay(), field.getPositionX(), field.getPositionY(), field.getSizeWidth(), field.getSizeHeight());
+    @Override
+    public void drawBackgroundOverlay(TextField field, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundOverlay(field, context);
+            return;
         }
-        field.drawSharedDefaultOverlay(context);
+        if (field.isSelfOrChildHover() || field.isFocused()) {
+            guiContext.drawTexture(field.getTextFieldStyle().focusOverlay(), field.getPositionX(), field.getPositionY(), field.getSizeWidth(), field.getSizeHeight());
+        }
+        drawParentBackgroundOverlay(field, context);
     }
 
-    public static void drawBackgroundAdditional(TextField field, GUIContext context) {
+    @Override
+    public void drawBackgroundAdditional(TextField field, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundAdditional(field, context);
+            return;
+        }
+        drawBackgroundAdditional(field, guiContext);
+    }
+
+    static void drawBackgroundAdditional(TextField field, GUIContext context) {
         var x = field.getContentX();
         var y = field.getContentY();
         var height = field.getContentHeight();

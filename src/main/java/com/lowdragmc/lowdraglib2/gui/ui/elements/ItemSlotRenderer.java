@@ -1,8 +1,11 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
@@ -10,11 +13,23 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-public final class ItemSlotRenderer {
-    private ItemSlotRenderer() {
+@LDLRegisterClient(name = "item_slot", registry = "ldlib2:ui_element_renderer")
+public final class ItemSlotRenderer extends DelegatingUIElementRenderer<ItemSlot, ItemSlotRenderer> {
+    @Override
+    public Class<ItemSlot> type() {
+        return ItemSlot.class;
     }
 
-    public static void drawBackgroundAdditional(ItemSlot itemSlot, GUIContext context) {
+    @Override
+    public void drawBackgroundAdditional(ItemSlot itemSlot, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundAdditional(itemSlot, context);
+            return;
+        }
+        drawBackgroundAdditional(itemSlot, guiContext);
+    }
+
+    static void drawBackgroundAdditional(ItemSlot itemSlot, GUIContext context) {
         var value = itemSlot.getValue();
         var mui = itemSlot.getModularUI();
         if (mui == null) return;

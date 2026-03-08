@@ -148,6 +148,6 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
                         getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
             }
         }
-        super.drawBackgroundOverlay(context);
+        com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry.defaultRenderer().drawBackgroundOverlay(this, context);
     }
 }

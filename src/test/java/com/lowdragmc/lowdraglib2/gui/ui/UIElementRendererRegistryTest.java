@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import org.junit.jupiter.api.AfterEach;
@@ -29,12 +30,52 @@ class UIElementRendererRegistryTest {
     }
 
     @Test
+    void delegatingRendererCanInvokeNearestParentRenderer() {
+        var child = new ChildElement();
+        var parentRenderer = new TrackingRenderer();
+        var childRenderer = new DelegatingTrackingRenderer();
+
+        UIElementRendererRegistry.register(ParentElement.class, parentRenderer);
+        UIElementRendererRegistry.register(ChildElement.class, childRenderer);
+
+        childRenderer.drawBackgroundAdditional(child, new StubContext());
+
+        assertTrue(parentRenderer.additionalCalled);
+        assertTrue(childRenderer.additionalCalled);
+    }
+
+    @Test
     void defaultRendererDelegatesToUiElementDrawHooks() {
         var element = new OverridingElement();
 
         new TrackingRenderer().drawBackgroundAdditional(element, new StubContext());
 
         assertTrue(element.additionalDrawn);
+    }
+
+    @Test
+    void defaultRendererDrawContentsInvokesUiElementAdditionalHook() {
+        var element = new OverridingElement();
+
+        new TrackingRenderer().drawContents(element, new StubContext());
+
+        assertTrue(element.additionalDrawn);
+    }
+
+    @Test
+    void rendererOwnsOverlayDrawing() {
+        var element = new UIElement();
+        var context = new StubContext();
+        var renderer = new TrackingRenderer() {
+            @Override
+            public void drawBackgroundOverlay(UIElement element, IGUIContext context) {
+                context.drawTexture(IGuiTexture.MISSING_TEXTURE, 0, 0, 1, 1);
+            }
+        };
+
+        renderer.drawBackgroundOverlay(element, context);
+
+        assertSame(IGuiTexture.MISSING_TEXTURE, context.lastTexture);
     }
 
     private static class ParentElement extends UIElement {
@@ -56,13 +97,38 @@ class UIElementRendererRegistryTest {
     }
 
     private static class TrackingRenderer implements UIElementRenderer<UIElement> {
+        private boolean additionalCalled;
+
         @Override
         public void drawBackgroundAdditional(UIElement element, IGUIContext context) {
+            additionalCalled = true;
             UIElementRenderer.super.drawBackgroundAdditional(element, context);
+        }
+
+        @Override
+        public void drawContents(UIElement element, IGUIContext context) {
+            UIElementRenderer.super.drawContents(element, context);
+        }
+    }
+
+    private static class DelegatingTrackingRenderer extends DelegatingUIElementRenderer<ChildElement, DelegatingTrackingRenderer> {
+        private boolean additionalCalled;
+
+        @Override
+        public Class<ChildElement> type() {
+            return ChildElement.class;
+        }
+
+        @Override
+        public void drawBackgroundAdditional(ChildElement element, IGUIContext context) {
+            drawParentBackgroundAdditional(element, context);
+            additionalCalled = true;
         }
     }
 
     private static class StubContext implements IGUIContext {
+        private IGuiTexture lastTexture;
+
         @Override
         public Matrix3x2f currentPose() {
             return new Matrix3x2f();
@@ -83,6 +149,7 @@ class UIElementRendererRegistryTest {
 
         @Override
         public void drawTexture(IGuiTexture texture, float x, float y, float width, float height) {
+            lastTexture = texture;
         }
 
         @Override

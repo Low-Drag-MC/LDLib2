@@ -399,10 +399,6 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         setSelected(this.value, false, true);
     }
 
-    void drawSharedDefaultOverlay(com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext context) {
-        super.drawBackgroundOverlay(context);
-    }
-
     /// Logic
     public boolean isOpen() {
         return this.dialog.getParent() != null;

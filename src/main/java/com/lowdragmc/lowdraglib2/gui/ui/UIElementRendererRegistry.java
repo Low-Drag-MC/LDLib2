@@ -22,6 +22,23 @@ public final class UIElementRendererRegistry {
         RESOLVED_RENDERERS.clear();
     }
 
+    public static UIElementRenderer<UIElement> defaultRenderer() {
+        return DEFAULT_RENDERER;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends UIElement> UIElementRenderer<? super T> findParentRenderer(Class<? extends UIElement> type) {
+        Class<?> current = type.getSuperclass();
+        while (current != null && UIElement.class.isAssignableFrom(current)) {
+            var renderer = RENDERERS.get(current);
+            if (renderer != null) {
+                return (UIElementRenderer<? super T>) renderer;
+            }
+            current = current.getSuperclass();
+        }
+        return DEFAULT_RENDERER;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T extends UIElement> UIElementRenderer<? super T> findRenderer(T element) {
         var type = element.getClass();

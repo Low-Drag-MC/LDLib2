@@ -3,8 +3,11 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -15,8 +18,11 @@ import net.neoforged.api.distmarker.OnlyIn;
 import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
-public final class TextElementRenderer {
-    private TextElementRenderer() {
+@LDLRegisterClient(name = "text_element", registry = "ldlib2:ui_element_renderer")
+public final class TextElementRenderer extends DelegatingUIElementRenderer<TextElement, TextElementRenderer> {
+    @Override
+    public Class<TextElement> type() {
+        return TextElement.class;
     }
 
     public static void recompute(TextElement textElement) {
@@ -46,7 +52,16 @@ public final class TextElementRenderer {
         }
     }
 
-    public static void drawBackgroundAdditional(TextElement textElement, GUIContext context) {
+    @Override
+    public void drawBackgroundAdditional(TextElement textElement, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundAdditional(textElement, context);
+            return;
+        }
+        drawBackgroundAdditional(textElement, guiContext);
+    }
+
+    static void drawBackgroundAdditional(TextElement textElement, GUIContext context) {
         var formattedLines = textElement.getFormattedLines();
         if (formattedLines.isEmpty()) return;
         var font = Minecraft.getInstance().font;

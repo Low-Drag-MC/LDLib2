@@ -4,7 +4,10 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Cursor;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditorRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import net.minecraft.client.Minecraft;
@@ -18,20 +21,28 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-public final class TextAreaRenderer {
-    private TextAreaRenderer() {
+@LDLRegisterClient(name = "text_area", registry = "ldlib2:ui_element_renderer")
+public final class TextAreaRenderer extends DelegatingUIElementRenderer<TextArea, TextAreaRenderer> {
+    @Override
+    public Class<TextArea> type() {
+        return TextArea.class;
     }
 
-    public static void drawBackgroundOverlay(TextArea area, GUIContext context) {
+    @Override
+    public void drawBackgroundOverlay(TextArea area, IGUIContext context) {
+        if (!(context instanceof GUIContext guiContext)) {
+            drawParentBackgroundOverlay(area, context);
+            return;
+        }
         if (area.contentView.isSelfOrChildHover() || area.isFocused()) {
-            context.drawTexture(area.getTextAreaStyle().focusOverlay(),
+            guiContext.drawTexture(area.getTextAreaStyle().focusOverlay(),
                     area.contentView.getPositionX(), area.contentView.getPositionY(),
                     area.contentView.getSizeWidth(), area.contentView.getSizeHeight());
         }
-        area.drawSharedDefaultOverlay(context);
+        drawParentBackgroundOverlay(area, context);
     }
 
-    public static void drawContentView(TextArea area, GUIContext context) {
+    static void drawContentView(TextArea area, GUIContext context) {
         drawDefaultContentView(area, context);
     }
 
@@ -40,7 +51,7 @@ public final class TextAreaRenderer {
     }
 
     public static void drawDefaultContentView(TextArea area, GUIContext context) {
-        area.drawSharedDefaultAdditional(context);
+        com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry.defaultRenderer().drawBackgroundAdditional(area, context);
         var x = area.contentView.getContentX();
         var y = area.contentView.getContentY();
         var height = area.contentView.getContentHeight();
