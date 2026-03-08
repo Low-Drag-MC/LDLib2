@@ -56,7 +56,7 @@ public class UIEditorView extends View {
     public final Inspector inspector = new Inspector();
     public final ModularUIPreview modularUIPreview = new ModularUIPreview(this);
     public final HistoryStack historyStack = new HistoryStack();
-    private final Button saveButton = new Button();
+    public final Button saveButton = new Button();
     // runtime
     private boolean isDirty;
     @Nullable
