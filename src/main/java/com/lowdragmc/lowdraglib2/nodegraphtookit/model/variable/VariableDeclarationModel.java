@@ -4,8 +4,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.TypeConstant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.VariableNodeModel;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 
 import java.awt.*;
@@ -16,14 +21,14 @@ public class VariableDeclarationModel extends VariableDeclarationModelBase {
     protected TypeHandle dataTypeHandle;
     @Getter
     protected Constant initializationModel;
-    @Getter
+    @Persisted @Getter
     protected VariableScope scope = VariableScope.UNKNOWN;
-    @Getter
+    @Persisted @Getter
     protected boolean isShowOnInspectorOnly = false;
     protected Tooltips tooltips = Tooltips.empty();
-    @Getter
+    @Persisted @Getter
     protected ModifierFlags modifiers = ModifierFlags.NONE;
-    @Getter
+    @Persisted @Getter
     protected VariableFlags variableFlags = VariableFlags.NONE;
 
     public void createInitializationValue() {
@@ -105,6 +110,33 @@ public class VariableDeclarationModel extends VariableDeclarationModelBase {
         }
     }
 
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
+        var tag = new CompoundTag();
+        if (dataTypeHandle != null) {
+            tag.putString("dataTypeId", dataTypeHandle.getIdentification());
+        }
+        if (initializationModel != null) {
+            tag.put("initializationModel", TypeConstant.serializeConstant(initializationModel, provider));
+        }
+        return tag;
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
+        if (tag instanceof CompoundTag compound) {
+            if (compound.contains("dataTypeId")) {
+                dataTypeHandle = TypeHandle.create(compound.getString("dataTypeId"));
+            }
+            if (compound.contains("initializationModel")) {
+                initializationModel = TypeConstant.deserializeConstant(compound.getCompound("initializationModel"), provider);
+                if (initializationModel != null) {
+                    initializationModel.setOwner(this);
+                }
+            }
+        }
+    }
 
     @Override
     public Tooltips getTooltips() {

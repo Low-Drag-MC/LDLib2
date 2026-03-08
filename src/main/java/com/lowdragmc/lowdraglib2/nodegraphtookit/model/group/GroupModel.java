@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IGraphElementContainer;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 import net.minecraft.util.Mth;
 import org.apache.commons.compress.utils.Lists;
@@ -17,7 +18,7 @@ public class GroupModel extends GroupModelBase {
     @Getter
     protected List<IGroupItemModel> items = Lists.newArrayList();
 
-    @Getter
+    @Persisted @Getter
     protected String name = "";
 
     @Override

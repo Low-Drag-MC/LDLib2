@@ -10,21 +10,30 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.DeclarationModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.PlaceholderModelHelper;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
 public abstract class WirePortalModel extends NodeModel implements IHasDeclarationModel {
-    @Getter @Setter(AccessLevel.PROTECTED)
+    @Persisted @Getter @Setter(AccessLevel.PROTECTED)
     private int evaluationOrder;
     @Nullable
     private DeclarationModel declarationModel;
+    @Persisted
     private UUID modelUid;
     private TypeHandle typeHandle;
+
+    public UUID getModelUid() {
+        return modelUid;
+    }
 
     protected WirePortalModel() {
         capabilities.add(Capabilities.RENAMABLE);
@@ -68,6 +77,25 @@ public abstract class WirePortalModel extends NodeModel implements IHasDeclarati
         this.typeHandle = typeHandle;
         if (graphModel != null) {
             graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
+        }
+    }
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
+        var tag = (CompoundTag) super.serializeAdditionalNBT(provider);
+        if (typeHandle != null) {
+            tag.putString("typeHandle", typeHandle.getIdentification());
+        }
+        return tag;
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
+        super.deserializeAdditionalNBT(tag, provider);
+        if (tag instanceof CompoundTag compound) {
+            if (compound.contains("typeHandle")) {
+                typeHandle = TypeHandle.create(compound.getString("typeHandle"));
+            }
         }
     }
 
