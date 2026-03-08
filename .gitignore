@@ -30,3 +30,6 @@ repo
 /.claude
 CLAUDE.md
 /logs
+.narrafork/
+/docs
+/.codex

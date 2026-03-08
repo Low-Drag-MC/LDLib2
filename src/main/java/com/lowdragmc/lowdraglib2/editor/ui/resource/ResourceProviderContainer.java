@@ -130,15 +130,10 @@ public class ResourceProviderContainer<T> extends UIElement {
             }
             layout.gapAll(2);
         }).addChildren(new UIElement().layout(layout -> {
-            if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
-                layout.width(resourceProvider.getResourceInstance().getUiWidth());
-                layout.height(resourceProvider.getResourceInstance().getUiWidth());
-            } else {
-                layout.widthPercent(100);
-                layout.setAspectRatio(1);
-            }
-            layout.alignItems(AlignItems.CENTER);
-            layout.justifyContent(AlignContent.CENTER);
+                    layout.width(resourceProvider.getResourceInstance().getUiWidth());
+                    layout.height(resourceProvider.getResourceInstance().getUiWidth());
+                    layout.alignItems(AlignItems.CENTER);
+                    layout.justifyContent(AlignContent.CENTER);
         }).addChild(uiSupplier.apply(key)), new Label().textStyle(style -> {
             style.font(LDLibFonts.JETBRAINS_MONO_BOLD);
             if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
@@ -232,13 +227,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public void setUiWidth(int uiWidth) {
         if (resourceProvider.getResourceInstance().getUiWidth() != uiWidth && uiWidth > 0) {
             resourceProvider.getResourceInstance().setUiWidth(uiWidth);
-            if (resourceProvider.getResourceInstance().getDisplayMode() == Resource.DisplayMode.LIST) {
-                reloadResourceContainer();
-            } else {
-                for (UIElement element : resourceUIs.values()) {
-                    element.layout(layout -> layout.width(uiWidth));
-                }
-            }
+            reloadResourceContainer();
         }
     }
 
