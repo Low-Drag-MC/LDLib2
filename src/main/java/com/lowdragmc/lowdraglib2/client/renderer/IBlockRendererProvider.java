@@ -1,14 +1,9 @@
 package com.lowdragmc.lowdraglib2.client.renderer;
 
-import com.mojang.math.OctahedralGroup;
-import net.minecraft.client.resources.model.BlockModelRotation;
-import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -37,14 +32,4 @@ public interface IBlockRendererProvider {
             return i << 20 | j << 4;
         }
     }
-
-    /**
-     * Provide a way to modify the model state based on the block in the world.
-     * you can use this to rotate the model based on the block state.
-     */
-    @OnlyIn(Dist.CLIENT)
-    default ModelState getModelState(BlockAndTintGetter world, BlockPos pos, BlockState state) {
-        return BlockModelRotation.get(OctahedralGroup.IDENTITY);
-    }
-
 }
