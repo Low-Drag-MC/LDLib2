@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -98,7 +98,7 @@ public final class ItemSlotRenderer extends DelegatingUIElementRenderer<ItemSlot
     }
 
     private static void drawItemStack(GUIContext context, ItemStack itemStack) {
-        DrawerHelper.drawItemStack(context, itemStack, 0, 0, 0);
+        DrawerHelperClient.drawItemStack(context, itemStack, 0, 0, 0);
     }
 
     private static void drawHover(ItemSlot itemSlot, GUIContext context) {

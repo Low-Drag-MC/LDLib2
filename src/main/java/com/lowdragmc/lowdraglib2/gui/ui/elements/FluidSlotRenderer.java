@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
@@ -60,7 +60,7 @@ public final class FluidSlotRenderer extends DelegatingUIElementRenderer<FluidSl
         float drawnV = (float) fillDirection.getDrawnV(progress);
         float drawnWidth = (float) fillDirection.getDrawnWidth(progress);
         float drawnHeight = (float) fillDirection.getDrawnHeight(progress);
-        DrawerHelper.drawFluidForGui(context, renderedFluid,
+        DrawerHelperClient.drawFluidForGui(context, renderedFluid,
                 contentX + drawnU * contentWidth,
                 contentY + drawnV * contentHeight,
                 contentWidth * drawnWidth,

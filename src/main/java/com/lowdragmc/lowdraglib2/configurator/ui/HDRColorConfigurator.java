@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import org.joml.Vector4f;
@@ -119,11 +119,11 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
     protected void drawColorPreview(GUIContext context, float x, float y, float width, float height) {
         var hdr = value == null ? defaultValue : value;
         var color = ColorUtils.color(1, hdr.x, hdr.y, hdr.z);
-        DrawerHelper.drawSolidRect(context, x, y, width, height, color);
-        DrawerHelper.drawSolidRect(context, x - 1, y, 1, height, color);
-        DrawerHelper.drawSolidRect(context, x + width, y, 1, height, color);
-        DrawerHelper.drawSolidRect(context, x, y - 1, width, 1, color);
-        DrawerHelper.drawSolidRect(context, x, y + height, width, 1, color);
+        DrawerHelperClient.drawSolidRect(context, x, y, width, height, color);
+        DrawerHelperClient.drawSolidRect(context, x - 1, y, 1, height, color);
+        DrawerHelperClient.drawSolidRect(context, x + width, y, 1, height, color);
+        DrawerHelperClient.drawSolidRect(context, x, y - 1, width, 1, color);
+        DrawerHelperClient.drawSolidRect(context, x, y + height, width, 1, color);
         var textTexture = new TextTexture("HDR: %.1f".formatted(intensityConfigurator.value.floatValue()));
         textTexture.setType(TextTexture.TextType.ROLL);
         textTexture.setWidth((int) width);

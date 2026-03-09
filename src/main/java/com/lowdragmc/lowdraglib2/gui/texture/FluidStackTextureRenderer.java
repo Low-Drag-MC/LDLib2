@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.gui.texture.rendering.TransformTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -23,6 +23,6 @@ public final class FluidStackTextureRenderer {
         if (texture.fluids[texture.index].isEmpty()) {
             return;
         }
-        DrawerHelper.drawFluidForGui(context, texture.fluids[texture.index], x, y, width, height, texture.color);
+        DrawerHelperClient.drawFluidForGui(context, texture.fluids[texture.index], x, y, width, height, texture.color);
     }
 }

@@ -9,6 +9,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElementClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelectorClientTextures;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeListClientTextures;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
+import com.lowdragmc.lowdraglib2.gui.util.UISoundPlayerClient;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatBlitRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatColoredRectangleRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatColoredTriangleRenderState;
@@ -71,6 +73,8 @@ public class GUIContext implements IGUIContext {
         GuiTextureClientRenderers.init();
         ColorSelectorClientTextures.init();
         TreeListClientTextures.init();
+        DrawerHelperClient.installSharedHooks();
+        UISoundPlayerClient.installSharedHooks();
         var context = new GUIContext();
         context.graphics = graphics;
         context.mouseX = mouseX;

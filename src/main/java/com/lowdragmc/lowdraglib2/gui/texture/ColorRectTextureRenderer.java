@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.gui.texture.rendering.TransformTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -19,6 +19,6 @@ public final class ColorRectTextureRenderer {
         if (width <= 0 || height <= 0) {
             return;
         }
-        DrawerHelper.drawSolidRect(context, x, y, width, height, texture.color);
+        DrawerHelperClient.drawSolidRect(context, x, y, width, height, texture.color);
     }
 }

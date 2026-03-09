@@ -6,22 +6,24 @@ import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatLineStripRenderState;
-import com.lowdragmc.lowdraglib2.utils.FluidHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.lowdraglib2.utils.FluidHelperClient;
 import com.lowdragmc.lowdraglib2.math.Rect;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
@@ -29,8 +31,11 @@ import org.joml.Vector2f;
 import java.util.List;
 import java.util.Optional;
 
-@OnlyIn(Dist.CLIENT)
-public class DrawerHelper {
+public class DrawerHelperClient {
+    public static void installSharedHooks() {
+        ItemTooltipTextHelper.setProvider(DrawerHelperClient::getItemToolTip);
+    }
+
     public static void drawFluidTexture(@NotNull GUIContext context,
                                         float xCoord, float yCoord, TextureAtlasSprite textureSprite,
                                         float maskTop, float maskRight, int fluidColor) {
@@ -49,7 +54,7 @@ public class DrawerHelper {
 
     public static void drawFluidForGui(@NotNull GUIContext context, FluidStack contents,
                                        float startX, float startY, float widthT, float heightT, int color) {
-        TextureAtlasSprite fluidStillSprite = FluidHelper.getStillTexture(contents);
+        TextureAtlasSprite fluidStillSprite = FluidHelperClient.getStillTexture(contents);
         if (fluidStillSprite == null) {
             fluidStillSprite = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.BLOCKS).missingSprite();
             if (Platform.isDevEnv()) {
@@ -57,7 +62,7 @@ public class DrawerHelper {
             }
         }
 
-        int fluidColor = FluidHelper.getColor(contents) | 0xff000000;
+        int fluidColor = FluidHelperClient.getColor(contents) | 0xff000000;
         if (color != -1) {
             fluidColor = ColorUtils.mulColor(fluidColor, color);
         }
@@ -197,11 +202,40 @@ public class DrawerHelper {
 
     public static void drawTooltip(GUIContext context, HoverTooltips hoverTooltips) {
         context.graphics.renderTooltip(
-                Optional.ofNullable(hoverTooltips.tooltipFont()).orElse(context.mc.font),
-                hoverTooltips.tooltips(),
+                tooltipFont(hoverTooltips, context),
+                toClientTooltips(hoverTooltips.tooltips()),
                 (int) context.localMouseX, (int) context.localMouseY,
-                Optional.ofNullable(hoverTooltips.positioner()).orElse(DefaultTooltipPositioner.INSTANCE),
+                tooltipPositioner(hoverTooltips),
                 hoverTooltips.background(),
                 Optional.ofNullable(hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY));
+    }
+
+    private static Font tooltipFont(HoverTooltips hoverTooltips, GUIContext context) {
+        return hoverTooltips.tooltipFont() instanceof Font font ? font : context.mc.font;
+    }
+
+    private static ClientTooltipPositioner tooltipPositioner(HoverTooltips hoverTooltips) {
+        return hoverTooltips.positioner() instanceof ClientTooltipPositioner positioner
+                ? positioner
+                : DefaultTooltipPositioner.INSTANCE;
+    }
+
+    private static List<ClientTooltipComponent> toClientTooltips(List<?> tooltips) {
+        if (tooltips.isEmpty()) {
+            return List.of();
+        }
+        var clientTooltips = new java.util.ArrayList<ClientTooltipComponent>(tooltips.size());
+        for (var tooltip : tooltips) {
+            if (tooltip == null) continue;
+            switch (tooltip) {
+                case ClientTooltipComponent clientTooltipComponent -> clientTooltips.add(clientTooltipComponent);
+                case TooltipComponent tooltipComponent -> clientTooltips.add(ClientTooltipComponent.create(tooltipComponent));
+                case Component component -> clientTooltips.add(ClientTooltipComponent.create(component.getVisualOrderText()));
+                case FormattedCharSequence formattedCharSequence ->
+                        clientTooltips.add(ClientTooltipComponent.create(formattedCharSequence));
+                default -> clientTooltips.add(ClientTooltipComponent.create(Component.literal(tooltip.toString()).getVisualOrderText()));
+            }
+        }
+        return clientTooltips;
     }
 }

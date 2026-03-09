@@ -15,7 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.math.Size;
 import dev.vfyjxf.taffy.style.AlignItems;
 import net.minecraft.client.Minecraft;
@@ -85,22 +85,22 @@ public final class SpriteTextureClientSupport {
         var spriteWidth = spriteSize.width * width / imageSize.width;
         var spriteHeight = spriteSize.height * height / imageSize.height;
         context.drawTexture(new ColorBorderTexture(1, 0xFFFF0000), spriteX, spriteY, spriteWidth, spriteHeight);
-        DrawerHelper.drawSolidRect(context,
+        DrawerHelperClient.drawSolidRect(context,
                 spriteX + texture.borderLT.getX() * width / imageSize.width,
                 spriteY,
                 1,
                 spriteHeight, 0xFFFF0000);
-        DrawerHelper.drawSolidRect(context,
+        DrawerHelperClient.drawSolidRect(context,
                 spriteX,
                 spriteY + texture.borderLT.getY() * height / imageSize.height,
                 spriteWidth,
                 1, 0xFFFF0000);
-        DrawerHelper.drawSolidRect(context,
+        DrawerHelperClient.drawSolidRect(context,
                 spriteX + spriteWidth - texture.borderRB.getX() * width / imageSize.width,
                 spriteY,
                 1,
                 spriteHeight, 0xFFFF0000);
-        DrawerHelper.drawSolidRect(context,
+        DrawerHelperClient.drawSolidRect(context,
                 spriteX,
                 spriteY + spriteHeight - texture.borderRB.getY() * height / imageSize.height,
                 spriteWidth,

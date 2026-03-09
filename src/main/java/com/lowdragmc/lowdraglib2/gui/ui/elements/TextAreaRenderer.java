@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -142,7 +142,7 @@ public final class TextAreaRenderer extends DelegatingUIElementRenderer<TextArea
                 }
                 float lineY = y + line * area.lineHeight() - area.getScrollY();
 
-                DrawerHelper.drawSolidRect(
+                DrawerHelperClient.drawSolidRect(
                         context,
                         RenderPipelines.GUI_TEXT_HIGHLIGHT,
                         x + minX,
@@ -159,7 +159,7 @@ public final class TextAreaRenderer extends DelegatingUIElementRenderer<TextArea
             var current = area.lines.get(area.getCursorLine());
             float cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(current.substring(0, area.getCursorCol()), textFont)) * scale;
             float cursorY = y + area.getCursorLine() * area.lineHeight() - area.getScrollY();
-            DrawerHelper.drawSolidRect(
+            DrawerHelperClient.drawSolidRect(
                     context,
                     x + cursorPosX - area.getScrollX(),
                     cursorY,

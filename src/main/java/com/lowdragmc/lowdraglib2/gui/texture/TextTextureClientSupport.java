@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.FormattedText;
@@ -52,7 +52,7 @@ public final class TextTextureClientSupport {
     public static void draw(TextTexture texture, GUIContext context, float x, float y, float width, float height) {
         updateTick(texture);
         if (texture.backgroundColor != 0) {
-            DrawerHelper.drawSolidRect(context, (int) x, (int) y, (int) width, (int) height, texture.backgroundColor);
+            DrawerHelperClient.drawSolidRect(context, (int) x, (int) y, (int) width, (int) height, texture.backgroundColor);
         }
         Font fontRenderer = Minecraft.getInstance().font;
         int textH = fontRenderer.lineHeight;

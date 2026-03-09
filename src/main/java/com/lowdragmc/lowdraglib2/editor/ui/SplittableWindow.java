@@ -12,7 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import lombok.Setter;
@@ -434,18 +434,18 @@ public class SplittableWindow extends UIElement {
         if (isWindowHovering(mouseX, mouseY)) {
             if (!isWindowEmpty) {
                 if (isBorderHovering(Edge.TOP, mouseX, mouseY)) {
-                    DrawerHelper.drawSolidRect(context, x, y, width, height * 0.5f, ColorPattern.T_BLUE.color);
+                    DrawerHelperClient.drawSolidRect(context, x, y, width, height * 0.5f, ColorPattern.T_BLUE.color);
                 } else if (isBorderHovering(Edge.BOTTOM, mouseX, mouseY)) {
-                    DrawerHelper.drawSolidRect(context, x, y + height * 0.5f, width, height * 0.5f, ColorPattern.T_BLUE.color);
+                    DrawerHelperClient.drawSolidRect(context, x, y + height * 0.5f, width, height * 0.5f, ColorPattern.T_BLUE.color);
                 } else if (isBorderHovering(Edge.LEFT, mouseX, mouseY)) {
-                    DrawerHelper.drawSolidRect(context, x, y, width * 0.5f, height, ColorPattern.T_BLUE.color);
+                    DrawerHelperClient.drawSolidRect(context, x, y, width * 0.5f, height, ColorPattern.T_BLUE.color);
                 } else if (isBorderHovering(Edge.RIGHT, mouseX, mouseY)) {
-                    DrawerHelper.drawSolidRect(context, x + width * 0.5f, y, width * 0.5f, height, ColorPattern.T_BLUE.color);
+                    DrawerHelperClient.drawSolidRect(context, x + width * 0.5f, y, width * 0.5f, height, ColorPattern.T_BLUE.color);
                 } else {
-                    DrawerHelper.drawSolidRect(context, x, y, width, height, ColorPattern.T_BLUE.color);
+                    DrawerHelperClient.drawSolidRect(context, x, y, width, height, ColorPattern.T_BLUE.color);
                 }
             } else {
-                DrawerHelper.drawSolidRect(context, x, y, width, height, ColorPattern.T_BLUE.color);
+                DrawerHelperClient.drawSolidRect(context, x, y, width, height, ColorPattern.T_BLUE.color);
             }
         }
     }

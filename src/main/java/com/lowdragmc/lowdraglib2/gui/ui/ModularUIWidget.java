@@ -10,7 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -494,7 +494,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
 
         var hoverTooltips = ModularUIClientAccess.getHoverTooltips(modularUI);
         if (modularUI.isDrawTooltips() && !modularUI.getDragHandler().isDragging() && hoverTooltips != null) {
-            DrawerHelper.drawTooltip(context, hoverTooltips);
+            DrawerHelperClient.drawTooltip(context, hoverTooltips);
         }
     }
 
@@ -511,7 +511,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         var marginBottom = element.getMarginBottom();
         var marginLeft = element.getMarginLeft();
         var marginRight = element.getMarginRight();
-        DrawerHelper.drawSolidRect(
+        DrawerHelperClient.drawSolidRect(
                 context,
                 posX - marginLeft,
                 posY - marginTop,
@@ -519,17 +519,17 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
                 sizeY + marginTop + marginBottom,
                 ColorPattern.T_ORANGE.color
         );
-        DrawerHelper.drawSolidRect(context, posX, posY, sizeX, sizeY, 0x80ff0000);
+        DrawerHelperClient.drawSolidRect(context, posX, posY, sizeX, sizeY, 0x80ff0000);
         var paddingX = element.getPaddingX();
         var paddingY = element.getPaddingY();
         var paddingWidth = element.getPaddingWidth();
         var paddingHeight = element.getPaddingHeight();
-        DrawerHelper.drawSolidRect(context, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00);
+        DrawerHelperClient.drawSolidRect(context, paddingX, paddingY, paddingWidth, paddingHeight, 0x8000ff00);
         var contentX = element.getContentX();
         var contentY = element.getContentY();
         var contentWidth = element.getContentWidth();
         var contentHeight = element.getContentHeight();
-        DrawerHelper.drawSolidRect(context, contentX, contentY, contentWidth, contentHeight, 0x800000ff);
+        DrawerHelperClient.drawSolidRect(context, contentX, contentY, contentWidth, contentHeight, 0x800000ff);
         context.pose.popPose();
     }
 }

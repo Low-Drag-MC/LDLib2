@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.GuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatHSBRectRenderState;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -41,7 +41,7 @@ public final class ColorSelectorClientTextures {
     }
 
     private static void drawColorPreview(ColorSelector selector, GUIContext context, float x, float y, float width, float height) {
-        DrawerHelper.drawSolidRect(context, x, y, width, height, selector.getColor());
+        DrawerHelperClient.drawSolidRect(context, x, y, width, height, selector.getColor());
     }
 
     private static void drawHsbContext(ColorSelector selector, GUIContext context, float x, float y, float width, float height) {
@@ -92,7 +92,7 @@ public final class ColorSelectorClientTextures {
                 mainY = 1 - selector.s;
             }
         }
-        DrawerHelper.drawSolidRect(context, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2,
+        DrawerHelperClient.drawSolidRect(context, (x + mainX * width) - 1, (y + mainY * height) - 1, 2, 2,
                 selector.b > 0.5f ? 0xff000000 : 0xffffffff);
     }
 
@@ -125,11 +125,11 @@ public final class ColorSelectorClientTextures {
             case S -> 1 - selector.s;
             case B -> 1 - selector.b;
         };
-        DrawerHelper.drawSolidRect(context, (x - 2), (y + normalizedPos * height), width + 4, 1, 0xffff0000);
+        DrawerHelperClient.drawSolidRect(context, (x - 2), (y + normalizedPos * height), width + 4, 1, 0xffff0000);
     }
 
     private static void drawAlphaSlider(ColorSelector selector, GUIContext context, float x, float y, float width, float height) {
-        DrawerHelper.drawGradientRect(context, x, y, width, height, selector.argb & 0x00ffffff, selector.argb | 0xff000000, true);
-        DrawerHelper.drawSolidRect(context, (x + selector.alpha * width), (y - 2), 1, (height + 4), 0xffff0000);
+        DrawerHelperClient.drawGradientRect(context, x, y, width, height, selector.argb & 0x00ffffff, selector.argb | 0xff000000, true);
+        DrawerHelperClient.drawSolidRect(context, (x + selector.alpha * width), (y - 2), 1, (height + 4), 0xffff0000);
     }
 }

@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import it.unimi.dsi.fastutil.floats.FloatObjectPair;
@@ -36,7 +36,7 @@ public class TestAnimation implements IScreenTest {
         root.addChildren(
                 new UIElement().layout(layout -> layout.flex(1))
                         .style(style -> style.backgroundTexture(GuiTexture.of((context, x, y, width, height) -> {
-                            DrawerHelper.drawLines(context, List.of(new Vector2f(x, y), new Vector2f(x + width / 3, y + height / 5), new Vector2f(x + width, y + height)),
+                            DrawerHelperClient.drawLines(context, List.of(new Vector2f(x, y), new Vector2f(x + width / 3, y + height / 5), new Vector2f(x + width, y + height)),
                                     -1, 0xff00ffff, 2);
                         }))),
                 target,

@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -69,7 +69,7 @@ public final class TextFieldRenderer extends DelegatingUIElementRenderer<TextFie
             var max = Math.max(field.getSelectionStart(), field.getSelectionEnd());
             var minX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, min), textFont)) * scale - field.getDisplayOffset();
             var maxX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, max), textFont)) * scale - field.getDisplayOffset();
-            DrawerHelper.drawSolidRect(context,
+            DrawerHelperClient.drawSolidRect(context,
                     RenderPipelines.GUI_TEXT_HIGHLIGHT,
                     x + minX,
                     lineY,
@@ -79,7 +79,7 @@ public final class TextFieldRenderer extends DelegatingUIElementRenderer<TextFie
 
         var cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, field.getCursorPos()), textFont)) * scale;
         if (field.isFocused() && System.currentTimeMillis() % 1000 < 500) {
-            DrawerHelper.drawSolidRect(context,
+            DrawerHelperClient.drawSolidRect(context,
                     x + cursorPosX - field.getDisplayOffset(),
                     lineY,
                     1,

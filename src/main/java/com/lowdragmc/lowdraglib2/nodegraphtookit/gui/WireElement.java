@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
@@ -341,7 +341,7 @@ public class WireElement extends GraphElement<WireModel> {
             fromColor &= 0x77FFFFFF;
             toColor &= 0x77FFFFFF;
         }
-        DrawerHelper.drawTexLines(context,
+        DrawerHelperClient.drawTexLines(context,
                 LDLibRenderPipelines.GRAPH_WIRE,
                 TextureSetup.noTexture(),
                 drawPoints,

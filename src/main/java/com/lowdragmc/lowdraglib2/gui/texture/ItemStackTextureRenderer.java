@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.gui.texture.rendering.TransformTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -26,7 +26,7 @@ public final class ItemStackTextureRenderer {
         context.pose.pushPose();
         context.pose.scale(width / 16f, height / 16f);
         context.pose.translate(x * 16 / width, y * 16 / height);
-        DrawerHelper.drawItemStack(context, texture.items[texture.index], 0, 0, 0);
+        DrawerHelperClient.drawItemStack(context, texture.items[texture.index], 0, 0, 0);
         context.pose.popPose();
     }
 }

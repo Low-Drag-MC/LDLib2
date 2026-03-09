@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 import com.mojang.blaze3d.opengl.GlStateManager;
@@ -76,7 +76,7 @@ public final class SceneRenderer extends DelegatingUIElementRenderer<Scene, Scen
             }
         }
         if (scene.isHover() && scene.showHoverBlockTips && scene.lastHoverItem != null && scene.getModularUI() != null) {
-            ModularUIClientAccess.setHoverTooltip(scene.getModularUI(), HoverTooltips.create(DrawerHelper.getItemToolTip(scene.lastHoverItem).toArray()).stack(scene.lastHoverItem));
+            ModularUIClientAccess.setHoverTooltip(scene.getModularUI(), HoverTooltips.create(DrawerHelperClient.getItemToolTip(scene.lastHoverItem).toArray()).stack(scene.lastHoverItem));
         }
     }
 

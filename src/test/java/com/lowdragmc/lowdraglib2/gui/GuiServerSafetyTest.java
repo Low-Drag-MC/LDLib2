@@ -30,6 +30,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.junit.jupiter.api.Test;
 
@@ -198,7 +199,8 @@ class GuiServerSafetyTest {
         assertSourceDoesNotContain("src/main/java/com/lowdragmc/lowdraglib2/gui/ui/elements/ItemSlot.java",
                 "net.minecraft.client.",
                 "gui.ui.rendering.GUIContext",
-                "Minecraft.getInstance()");
+                "Minecraft.getInstance()",
+                "DrawerHelper");
     }
 
     @Test
@@ -269,6 +271,43 @@ class GuiServerSafetyTest {
     @Test
     void sceneDoesNotExposeClientTypesInSharedApi() {
         assertNoClientTypeExposure(Scene.class);
+    }
+
+    @Test
+    void hoverTooltipsDoesNotExposeClientTypesInSharedApi() {
+        assertNoClientTypeExposure(HoverTooltips.class);
+    }
+
+    @Test
+    void hoverTooltipsSourceDoesNotReferenceClientRenderingTypes() throws IOException {
+        assertSourceDoesNotContain("src/main/java/com/lowdragmc/lowdraglib2/gui/ui/event/HoverTooltips.java",
+                "net.minecraft.client.",
+                "ClientTooltipComponent",
+                "ClientTooltipPositioner");
+    }
+
+    @Test
+    void uiSoundUtilsSourceDoesNotReferenceClientRenderingTypes() throws IOException {
+        assertSourceDoesNotContain("src/main/java/com/lowdragmc/lowdraglib2/gui/util/UISoundUtils.java",
+                "net.minecraft.client.",
+                "Minecraft.getInstance()",
+                "SimpleSoundInstance");
+    }
+
+    @Test
+    void localizationUtilsSourceDoesNotReferenceClientRenderingTypes() throws IOException {
+        assertSourceDoesNotContain("src/main/java/com/lowdragmc/lowdraglib2/utils/LocalizationUtils.java",
+                "net.minecraft.client.",
+                "import net.minecraft.client.resources.language.I18n;");
+    }
+
+    @Test
+    void fluidHelperSourceDoesNotReferenceClientRenderingTypes() throws IOException {
+        assertSourceDoesNotContain("src/main/java/com/lowdragmc/lowdraglib2/utils/FluidHelper.java",
+                "net.minecraft.client.",
+                "@OnlyIn",
+                "IClientFluidTypeExtensions",
+                "TextureAtlasSprite");
     }
 
     @Test
