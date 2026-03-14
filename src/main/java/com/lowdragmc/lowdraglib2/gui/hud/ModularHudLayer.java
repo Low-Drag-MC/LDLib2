@@ -28,8 +28,8 @@ public interface ModularHudLayer extends LayeredDraw.Layer {
      * @return a {@link Size} instance representing the width and height of the game screen.
      */
     default Size getScreenSize() {
-        return Size.of(Minecraft.getInstance().getWindow().getScreenWidth(),
-                Minecraft.getInstance().getWindow().getScreenHeight());
+        return Size.of(Minecraft.getInstance().getWindow().getGuiScaledWidth(),
+                Minecraft.getInstance().getWindow().getGuiScaledHeight());
     }
 
     /**
