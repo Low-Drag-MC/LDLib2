@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style.values;
 
+import com.lowdragmc.lowdraglib2.gui.ui.data.LengthPercent;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Translate2D;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,20 +26,22 @@ public class Transform2DValue extends StyleValue<Transform2D> {
             String argsStr = m.group(2);
             switch (name) {
                 case "translate": {
-                    float[] a = parseArgs(argsStr);
-                    float x = a.length >= 1 ? a[0] : 0f;
-                    float y = a.length >= 2 ? a[1] : 0f;
-                    t.translate(x, y);
+                    String[] parts = splitArgs(argsStr);
+                    LengthPercent x = parts.length >= 1 ? parseLengthPercent(parts[0]) : LengthPercent.ZERO;
+                    LengthPercent y = parts.length >= 2 ? parseLengthPercent(parts[1]) : LengthPercent.ZERO;
+                    t.translate(new Translate2D(x, y));
                     break;
                 }
                 case "translateX": {
-                    float[] a = parseArgs(argsStr);
-                    t.translate(a.length >= 1 ? a[0] : 0f, 0f);
+                    String[] parts = splitArgs(argsStr);
+                    LengthPercent x = parts.length >= 1 ? parseLengthPercent(parts[0]) : LengthPercent.ZERO;
+                    t.translate(new Translate2D(x, LengthPercent.ZERO));
                     break;
                 }
                 case "translateY": {
-                    float[] a = parseArgs(argsStr);
-                    t.translate(0f, a.length >= 1 ? a[0] : 0f);
+                    String[] parts = splitArgs(argsStr);
+                    LengthPercent y = parts.length >= 1 ? parseLengthPercent(parts[0]) : LengthPercent.ZERO;
+                    t.translate(new Translate2D(LengthPercent.ZERO, y));
                     break;
                 }
                 case "scale": {
@@ -79,6 +83,12 @@ public class Transform2DValue extends StyleValue<Transform2D> {
         return t;
     }
 
+    /** Split args string into individual tokens, preserving unit suffixes like "50%" or "20px" */
+    private static String[] splitArgs(String s) {
+        if (s.trim().isEmpty()) return new String[0];
+        return s.trim().split("\\s*,\\s*|\\s+");
+    }
+
     /** float array： "1,2" / "1 2" / "1 , 2" */
     private static float[] parseArgs(String s) {
         if (s.isEmpty()) return new float[0];
@@ -88,6 +98,17 @@ public class Transform2DValue extends StyleValue<Transform2D> {
             out[i] = parseNumber(parts[i]);
         }
         return out;
+    }
+
+    private static LengthPercent parseLengthPercent(String s) {
+        s = s.trim().toLowerCase(Locale.ROOT);
+        if (s.endsWith("%")) {
+            return LengthPercent.percent(Float.parseFloat(s.substring(0, s.length() - 1).trim()));
+        }
+        if (s.endsWith("px")) {
+            return LengthPercent.px(Float.parseFloat(s.substring(0, s.length() - 2).trim()));
+        }
+        return LengthPercent.px(Float.parseFloat(s));
     }
 
     private static float parseAngle(String s) {

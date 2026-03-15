@@ -13,9 +13,12 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
 import java.util.OptionalInt;
 
 @ParametersAreNonnullByDefault
@@ -108,13 +111,44 @@ public class ModularUIPreview extends UIElement {
             var marginBottom = selected.getMarginBottom();
             var marginLeft = selected.getMarginLeft();
             var marginRight = selected.getMarginRight();
-            var scale = editorView.graphView.getScale();
+            var graphScale = editorView.graphView.getScale();
             var offsetX = editorView.graphView.getOffsetX();
             var offsetY = editorView.graphView.getOffsetY();
-            var width = (sizeX + marginLeft + marginRight) * scale;
-            var height = (sizeY + marginTop + marginBottom) * scale;
-            var x = (posX - marginLeft - offsetX) * scale;
-            var y = (posY - marginTop - offsetY) * scale;
+
+            // Corners of the element rect including margins
+            float left = posX - marginLeft;
+            float top = posY - marginTop;
+            float right = posX + sizeX + marginRight;
+            float bottom = posY + sizeY + marginBottom;
+
+            // Build combined transform matrix (element + all ancestors)
+            var matrix = buildTransformMatrix(selected);
+
+            // Transform the 4 corners and compute AABB
+            var corners = new Vector4f[]{
+                    new Vector4f(left, top, 0, 1),
+                    new Vector4f(right, top, 0, 1),
+                    new Vector4f(left, bottom, 0, 1),
+                    new Vector4f(right, bottom, 0, 1)
+            };
+            float minX = Float.POSITIVE_INFINITY;
+            float minY = Float.POSITIVE_INFINITY;
+            float maxX = Float.NEGATIVE_INFINITY;
+            float maxY = Float.NEGATIVE_INFINITY;
+            for (var corner : corners) {
+                matrix.transform(corner);
+                float cx = corner.x / corner.w;
+                float cy = corner.y / corner.w;
+                minX = Math.min(minX, cx);
+                minY = Math.min(minY, cy);
+                maxX = Math.max(maxX, cx);
+                maxY = Math.max(maxY, cy);
+            }
+
+            var x = (minX - offsetX) * graphScale;
+            var y = (minY - offsetY) * graphScale;
+            var width = (maxX - minX) * graphScale;
+            var height = (maxY - minY) * graphScale;
 
             this.selectionBox.layout(layout -> {
                 layout.left(x);
@@ -125,6 +159,28 @@ public class ModularUIPreview extends UIElement {
         } else {
             selectionBox.setDisplay(false);
         }
+    }
+
+    /**
+     * Build the combined transform matrix for an element, including all ancestor transforms.
+     * Transforms are applied from root to element (outermost first).
+     */
+    private Matrix4f buildTransformMatrix(UIElement element) {
+        var chain = new ArrayList<UIElement>();
+        var current = element;
+        while (current != null) {
+            if (!current.getStyle().transform2D().isIdentity()) {
+                chain.add(current);
+            }
+            current = current.getParent();
+        }
+        var matrix = new Matrix4f();
+        // Apply from root to element (reverse order)
+        for (int i = chain.size() - 1; i >= 0; i--) {
+            var elem = chain.get(i);
+            elem.getStyle().transform2D().pushPose(matrix, elem);
+        }
+        return matrix;
     }
 
     @Override

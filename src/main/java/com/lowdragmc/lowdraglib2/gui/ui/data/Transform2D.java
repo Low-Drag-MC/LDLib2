@@ -32,7 +32,7 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
 
     @Getter
     @Configurable(name = "Transform2D.translate")
-    private Vector2f translate = new Vector2f();
+    private Translate2D translate = Translate2D.ZERO;
     @Getter
     @Configurable(name = "Transform2D.scale")
     private Vector2f scale = new Vector2f(1f);
@@ -58,13 +58,13 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     }
 
     public boolean isIdentity() {
-        return translate.x == 0f && translate.y == 0f
+        return translate.isZero()
                 && rotationRad == 0f
                 && scale.x == 1f && scale.y == 1f;
     }
 
     public Transform2D setIdentity() {
-        translate.set(0f, 0f);
+        translate = Translate2D.ZERO;
         scale.set(1f, 1f);
         rotationRad = 0f;
         rotation = 0f;
@@ -73,8 +73,17 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     }
 
     public Transform2D translate(float x, float y) {
-        translate.x = x;
-        translate.y = y;
+        translate = Translate2D.px(x, y);
+        return this;
+    }
+
+    public Transform2D translatePercent(float x, float y) {
+        translate = Translate2D.percent(x, y);
+        return this;
+    }
+
+    public Transform2D translate(Translate2D t) {
+        this.translate = t;
         return this;
     }
 
@@ -112,8 +121,8 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     }
 
     @SkipPersistedValue(field = "translate")
-    private boolean skipTranslatePersisted(Vector2f translate) {
-        return translate.x == 0f && translate.y == 0f;
+    private boolean skipTranslatePersisted(Translate2D translate) {
+        return translate.isZero();
     }
 
     @SkipPersistedValue(field = "rotation")
@@ -134,7 +143,9 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     public void pushPose(PoseStack poseStack, float x, float y, float width, float height) {
         if (isIdentity()) return;
         poseStack.pushPose();
-        poseStack.translate(translate.x, translate.y, 0);
+        float tx = translate.resolveX(width);
+        float ty = translate.resolveY(height);
+        poseStack.translate(tx, ty, 0);
 
         var xPivot = pivot.x * width;
         var yPivot = pivot.y * height;
@@ -167,8 +178,10 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
 
         ctx.pose.pushPose();
 
-        if (translate.x != 0f || translate.y != 0f) {
-            ctx.pose.translate(translate.x, translate.y, 0);
+        float tx = translate.resolveX(e.getSizeWidth());
+        float ty = translate.resolveY(e.getSizeHeight());
+        if (tx != 0f || ty != 0f) {
+            ctx.pose.translate(tx, ty, 0);
         }
 
         if (rotationRad != 0f || scale.x != 1f || scale.y != 1f) {
@@ -188,8 +201,10 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         float px = e.getPositionX() + e.getSizeWidth() * pivot.x;
         float py = e.getPositionY() + e.getSizeHeight() * pivot.y;
 
-        if (translate.x != 0f || translate.y != 0f) {
-            pose.translate(translate.x, translate.y, 0);
+        float tx = translate.resolveX(e.getSizeWidth());
+        float ty = translate.resolveY(e.getSizeHeight());
+        if (tx != 0f || ty != 0f) {
+            pose.translate(tx, ty, 0);
         }
 
         if (rotationRad != 0f || scale.x != 1f || scale.y != 1f) {
@@ -216,8 +231,10 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
         if (isIdentity()) return;
 
         // Inverse translation
-        p[0] -= translate.x;
-        p[1] -= translate.y;
+        float tx = translate.resolveX(e.getSizeWidth());
+        float ty = translate.resolveY(e.getSizeHeight());
+        p[0] -= tx;
+        p[1] -= ty;
 
         float px = e.getPositionX() + e.getSizeWidth() * pivot.x;
         float py = e.getPositionY() + e.getSizeHeight() * pivot.y;
@@ -253,9 +270,11 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     public void forwardPoint(UIElement e, double[] p /* [x,y] */) {
         if (isIdentity()) return;
 
-        // Inverse translation
-        p[0] += translate.x;
-        p[1] += translate.y;
+        // Translation
+        float tx = translate.resolveX(e.getSizeWidth());
+        float ty = translate.resolveY(e.getSizeHeight());
+        p[0] += tx;
+        p[1] += ty;
 
         float px = e.getPositionX() + e.getSizeWidth()  * pivot.x;
         float py = e.getPositionY() + e.getSizeHeight() * pivot.y;
@@ -291,7 +310,7 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
     }
 
     public void copyFrom(@NotNull Transform2D transform2D) {
-        this.translate = new Vector2f(transform2D.translate);
+        this.translate = transform2D.translate;
         this.scale = new Vector2f(transform2D.scale);
         this.rotation = transform2D.rotation;
         this.pivot = transform2D.pivot;
@@ -300,7 +319,7 @@ public final class Transform2D implements IConfigurable, IPersistedSerializable 
 
     public static Transform2D interpolate(Transform2D a, Transform2D b, float t) {
         var copied = new Transform2D();
-        copied.translate = a.translate.lerp(b.translate, t, new Vector2f());
+        copied.translate = Translate2D.lerp(a.translate, b.translate, t);
         copied.scale = a.scale.lerp(b.scale, t, new Vector2f());
         copied.rotation = a.rotation + (b.rotation - a.rotation) * t;
         copied.pivot = Pivot.of(a.pivot.x + (b.pivot.x - a.pivot.x) * t, a.pivot.y + (b.pivot.y - a.pivot.y) * t);
