@@ -1751,6 +1751,62 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         };
     }
 
+    /**
+     * Recursively serializes the items of a group (section or group) into a ListTag.
+     * Each item is stored as a CompoundTag with its uid, type ("variable" or "group"),
+     * and for groups, their serialized data and nested children.
+     */
+    private ListTag serializeGroupItems(GroupModelBase group, HolderLookup.Provider provider) {
+        var itemsTag = new ListTag();
+        for (var item : group.getItems()) {
+            var itemTag = new CompoundTag();
+            if (item instanceof VariableDeclarationModelBase variable) {
+                itemTag.putString("type", "variable");
+                itemTag.putUUID("uid", variable.getUid());
+            } else if (item instanceof GroupModel groupItem) {
+                itemTag.putString("type", "group");
+                itemTag.putUUID("uid", groupItem.getUid());
+                // Serialize group's own data (name, etc.)
+                var groupData = groupItem.serializeNBT(provider);
+                itemTag.put("data", groupData);
+                // Recursively serialize children
+                itemTag.put("items", serializeGroupItems(groupItem, provider));
+            }
+            itemsTag.add(itemTag);
+        }
+        return itemsTag;
+    }
+
+    /**
+     * Recursively deserializes group items and rebuilds the parent-child hierarchy.
+     */
+    private void deserializeGroupItems(GroupModel parent, ListTag itemsTag, HolderLookup.Provider provider) {
+        for (int i = 0; i < itemsTag.size(); i++) {
+            var itemTag = itemsTag.getCompound(i);
+            var type = itemTag.getString("type");
+            var uid = itemTag.getUUID("uid");
+            switch (type) {
+                case "variable" -> {
+                    var model = getModel(uid);
+                    if (model instanceof IGroupItemModel variable) {
+                        parent.insertItem(variable, parent.getItems().size());
+                    }
+                }
+                case "group" -> {
+                    var group = new GroupModel();
+                    group.setGraphModel(this);
+                    group.deserializeNBT(provider, itemTag.getCompound("data"));
+                    registerElement(group);
+                    parent.insertItem(group, parent.getItems().size());
+                    // Recursively rebuild children
+                    if (itemTag.contains("items")) {
+                        deserializeGroupItems(group, itemTag.getList("items", Tag.TAG_COMPOUND), provider);
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public Tag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
         var tag = new CompoundTag();
@@ -1773,10 +1829,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         }
         tag.put("portals", portalsTag);
 
-        // 3. Sections
+        // 3. Sections (with hierarchy)
         var sectionsTag = new ListTag();
         for (var section : sectionModels) {
-            sectionsTag.add(section.serializeNBT(provider));
+            var sectionTag = section.serializeNBT(provider);
+            sectionTag.put("items", serializeGroupItems(section, provider));
+            sectionsTag.add(sectionTag);
         }
         tag.put("sections", sectionsTag);
 
@@ -1846,7 +1904,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             }
         }
 
-        // 3. Sections
+        // 3. Sections (with hierarchy)
         if (compound.contains("sections")) {
             var sectionsTag = compound.getList("sections", Tag.TAG_COMPOUND);
             for (int i = 0; i < sectionsTag.size(); i++) {
@@ -1856,6 +1914,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 section.deserializeNBT(provider, sectionTag);
                 sectionModels.add(section);
                 registerElement(section);
+                // Rebuild hierarchy: variables and groups under this section
+                if (sectionTag.contains("items")) {
+                    deserializeGroupItems(section, sectionTag.getList("items", Tag.TAG_COMPOUND), provider);
+                }
             }
         }
 

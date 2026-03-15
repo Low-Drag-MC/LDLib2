@@ -3,13 +3,15 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Inspector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -40,6 +42,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.function.Consumers;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
@@ -127,6 +130,9 @@ public class GraphView extends UIElement {
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
         addEventListener(UIEvents.DRAG_END, this::onDragEnd);
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
+        addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+
         setEnforceFocus(Consumers.nop());
 
         itemLibrary.setDisplay(false);
@@ -137,6 +143,7 @@ public class GraphView extends UIElement {
         addChildren(header, canvas.addChildren(graphView, panelLayer, itemLibrary));
     }
 
+
     protected void initHeaders() {
         header.addChildren(
                 // left
@@ -145,6 +152,14 @@ public class GraphView extends UIElement {
                     layout.heightPercent(100);
                     layout.flex(1);
                 }).addChildren(
+                        new Button().setText("Undo")
+                                .setOnClick(event -> historyStack.undo())
+                                .layout(layout -> layout.width(30))
+                                .style(style -> style.tooltips("Ctrl+Z")),
+                        new Button().setText("Redo")
+                                .setOnClick(event -> historyStack.redo())
+                                .layout(layout -> layout.width(30))
+                                .style(style -> style.tooltips("Ctrl+Y / Ctrl+Shift+Z"))
                 ),
                 // center
                 new UIElement().layout(layout -> layout.heightPercent(100)),
@@ -224,6 +239,15 @@ public class GraphView extends UIElement {
         this.itemLibrary.onLoadGraph(graph.graphModel);
         buildUITree(this.graph.graphModel);
         requireFitGraph = true;
+        // Push initial snapshot so the first command can be undone
+        historyStack.clearHistory();
+        var provider = Platform.getFrozenRegistry();
+        var initialTag = graph.graphModel.serializeNBT(provider);
+        historyStack.pushHistory(Component.translatable("initial"),
+                EditAction.of(
+                        () -> { graph.graphModel.deserializeNBT(provider, initialTag); rebuildGraphUI(); },
+                        () -> { graph.graphModel.deserializeNBT(provider, initialTag); rebuildGraphUI(); }
+                ), null, false);
         return this;
     }
 
@@ -234,6 +258,24 @@ public class GraphView extends UIElement {
         this.selected.clear();
         this.layers.values().forEach(UIElement::clearAllChildren);
         this.isWireDragging = false;
+    }
+
+    /**
+     * Rebuilds the entire graph UI from the current graph model state.
+     * Used after undo/redo to synchronize the UI with the deserialized model.
+     */
+    public void rebuildGraphUI() {
+        if (graph == null) return;
+        modelElements.clear();
+        modelElementsByID.clear();
+        modelDependencies.clear();
+        selected.clear();
+        layers.values().forEach(UIElement::clearAllChildren);
+        isWireDragging = false;
+        graph.graphModel.getCurrentGraphChangeDescription().clear();
+        changeset.clear();
+        inspector.clear();
+        buildUITree(graph.graphModel);
     }
 
     public void fitGraphChildren() {
@@ -730,14 +772,7 @@ public class GraphView extends UIElement {
                 return;
             }
             var localOffset = getContentViewContainer().getLocalMouseNormal(offset.x, offset.y);
-            for (var model : movables) {
-                var ele = modelElements.get(model);
-                if (ele != null && model instanceof IMovable movable) {
-                    var newPos = localOffset.add(movable.getPosition(), new Vector2f());
-                    ele.getLayout().left(newPos.x).top(newPos.y);
-                    movable.setPosition(newPos);
-                }
-            }
+            dispatchCommand(new GraphCommands.MoveElementsCommand(new ArrayList<>(movables), localOffset));
         }
     }
 
@@ -749,6 +784,21 @@ public class GraphView extends UIElement {
                     break;
                 }
             }
+        }
+    }
+
+    protected void onValidateCommand(UIEvent event) {
+        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command))) {
+            event.stopPropagation();
+        }
+    }
+
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.REDO.equals(event.command)) {
+            historyStack.redo();
+        } else if (CommandEvents.UNDO.equals(event.command)) {
+            historyStack.undo();
         }
     }
 

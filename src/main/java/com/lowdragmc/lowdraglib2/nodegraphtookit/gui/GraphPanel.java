@@ -7,6 +7,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
@@ -56,7 +58,7 @@ public class GraphPanel extends UIElement {
         content.addChild(panel.getUIElement());
 
         addChildren(titleBar, content);
-        WindowDragHelper.setDragMove(titleBar, this, e -> canDragMove(), null);
+        WindowDragHelper.setDragMove(titleBar, this, e -> canDragMove() && !collapseToggle.isSelfOrChildHover(), null);
         WindowDragHelper.setBorderResize(this, this, 2, new Vector2f(20f), new Vector2f(Float.MAX_VALUE),
                 e -> canResize(),
                 (e, handle) -> {
@@ -64,6 +66,7 @@ public class GraphPanel extends UIElement {
                     return isResizing;
                 }, e -> isResizing = false);
 
+        graphView.addEventListener(UIEvents.LAYOUT_CHANGED, e -> adaptPosition());
         setFocusable(true);
         internalSetup();
     }
@@ -96,6 +99,10 @@ public class GraphPanel extends UIElement {
     @Override
     protected void onLayoutChanged() {
         super.onLayoutChanged();
+        adaptPosition();
+    }
+
+    protected void adaptPosition() {
         if (canDragMove()) {
             adaptPositionToElement(graphView.canvas);
         }

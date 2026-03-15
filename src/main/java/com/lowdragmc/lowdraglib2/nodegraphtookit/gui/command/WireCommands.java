@@ -113,10 +113,6 @@ public final class WireCommands {
             graphModel.createWire(toPortModel, fromPortModel);
         }
 
-        @Override
-        public void undo() {
-            // todo
-        }
     }
 
     public static class ConvertWiresToPortalsCommand extends UndoableGraphCommand {
@@ -154,9 +150,5 @@ public final class WireCommands {
             }
         }
 
-        @Override
-        public void undo() {
-            // todo
-        }
     }
 }
