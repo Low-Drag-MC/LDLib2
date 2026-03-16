@@ -66,6 +66,7 @@ public class GraphView extends UIElement {
     public final ItemLibrary itemLibrary = new ItemLibrary(this);
     public final Blackboard blackboard = new Blackboard(this);
     public final GraphInspector inspector = new GraphInspector(this);
+    public final GraphPreview preview = new GraphPreview(this);
 
     // runtime
     private boolean requireFitGraph = false;
@@ -185,7 +186,8 @@ public class GraphView extends UIElement {
     protected void initPanels() {
         panelLayer.addChildren(
                 new GraphPanel(this, blackboard),
-                new GraphPanel(this, inspector).layout(l -> l.left(100000))
+                new GraphPanel(this, inspector).layout(l -> l.left(100000)),
+                new GraphPanel(this, preview).layout(l -> l.left(100000).top(100000))
         );
     }
 

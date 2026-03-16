@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "moddevmcp": {
+      "command": "C:\\Users\\yefan\\.jdks\\jbr-21.0.7\\bin\\java.exe",
+      "args": [
+        "-Dmoddevmcp.host=127.0.0.1",
+        "-Dmoddevmcp.port=47653",
+        "-Dmoddevmcp.mcpPort=47654",
+        "-Dmoddevmcp.backend.javaCommand=C:\\Users\\yefan\\.jdks\\jbr-21.0.7\\bin\\java.exe",
+        "-Dmoddevmcp.backend.argsFile=C:\\Projects\\LDLib2-1.21\\build\\moddevmcp\\mcp-clients\\mcp-backend-java.args",
+        "-Dmoddevmcp.backend.launcher=C:\\Projects\\LDLib2-1.21\\build\\moddevmcp\\mcp-clients\\run-mcp-backend.bat",
+        "-Dmoddevmcp.backend.startTimeoutMs=60000",
+        "@C:\\Projects\\LDLib2-1.21\\build\\moddevmcp\\mcp-clients\\mcp-gateway-java.args"
+      ]
+    }
+  }
+}

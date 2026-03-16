@@ -20,6 +20,7 @@ public class GraphPreview extends UIElement implements IGraphTool {
 
     public GraphPreview(GraphView graphView) {
         this.graphView = graphView;
+        this.getLayout().widthPercent(100).heightPercent(100);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragUpdate);
     }
@@ -193,13 +194,5 @@ public class GraphPreview extends UIElement implements IGraphTool {
         maxY = Math.max(maxY, vpY + vpH);
 
         return new Bounds(minX - PADDING, minY - PADDING, maxX + PADDING, maxY + PADDING);
-    }
-
-    private float getContentX() {
-        return getPaddingX();
-    }
-
-    private float getContentY() {
-        return getPaddingY();
     }
 }
