@@ -150,8 +150,9 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
                     if (!registryName.toString().equals(targetRegistry)) return false;
                 }
                 if (annotationData.containsKey("modID") && annotationData.get("modID") instanceof java.lang.String modID) {
-                    return modID.isEmpty() || Platform.isModLoaded(modID);
-                } else return !annotationData.containsKey("manual") || !(annotationData.get("manual") instanceof Boolean manual) || !manual;
+                    if (!modID.isEmpty() && !Platform.isModLoaded(modID)) return false;
+                }
+                return RegistrationEnvironment.shouldRegister(annotationData);
             }, null, (annotation, clazz) -> annotation.name(), supplier, (a, b) -> b.annotation().priority() - a.annotation().priority());
         }
 
@@ -175,8 +176,9 @@ public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String
                     if (!registryName.toString().equals(targetRegistry)) return false;
                 }
                 if (annotationData.containsKey("modID") && annotationData.get("modID") instanceof java.lang.String modID) {
-                    return modID.isEmpty() || Platform.isModLoaded(modID);
-                } else return !annotationData.containsKey("manual") || !(annotationData.get("manual") instanceof Boolean manual) || !manual;
+                    if (!modID.isEmpty() && !Platform.isModLoaded(modID)) return false;
+                }
+                return RegistrationEnvironment.shouldRegister(annotationData);
             }, null, (annotation, clazz) -> annotation.name(), supplier, (a, b) -> b.annotation().priority() - a.annotation().priority());
         }
 

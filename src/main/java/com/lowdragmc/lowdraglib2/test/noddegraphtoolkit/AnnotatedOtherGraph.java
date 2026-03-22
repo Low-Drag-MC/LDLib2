@@ -7,9 +7,9 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 
 import java.util.List;
 
-public class TestGraph extends Graph {
+public class AnnotatedOtherGraph extends Graph {
     public static final GraphNodeRegistry NODE_REGISTRY =
-            GraphNodeRegistry.create(LDLib2.id("test_graph"), TestGraph.class);
+            GraphNodeRegistry.create(LDLib2.id("other_test_graph"), AnnotatedOtherGraph.class);
 
     @Override
     public List<Class<? extends Node>> getSupportNodes() {

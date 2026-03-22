@@ -240,4 +240,22 @@ public abstract class ModelElement extends UIElement {
         if (graphView.getDragRegionSelection() == null) return false;
         return canBeRegionSelected(graphView.getDragRegionSelection());
     }
+
+    /**
+     * Determines whether the graph can handle a mouse down action for a given UI event.
+     * The method checks specific conditions on the event to allow the mouse down action.
+     *
+     * @param event the UI event to be evaluated. It contains properties, such as the button
+     *              pressed and the collection of bubble listeners, which are used to determine
+     *              if the mouse down action should be allowed.
+     * @return {@code true} if the graph mouse down action is allowed for the given event,
+     *         {@code false} otherwise.
+     */
+    public boolean allowGraphMouseDown(UIEvent event) {
+        return (event.button == 0 || event.button == 1) && event.bubbleListeners.size() == 1;
+    }
+
+    public boolean isGraphMouseDownCaptured() {
+        return false;
+    }
 }

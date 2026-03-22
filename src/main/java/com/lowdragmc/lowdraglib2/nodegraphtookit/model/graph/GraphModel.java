@@ -365,17 +365,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         elementsByUID = new HashMap<>();
         nodeModels.forEach(this::registerElement);
         wireModels.forEach(this::registerElement);
-        // todo others
-//        foreach (var model in m_GraphStickyNoteModels)
-//        {
-//            RegisterElement(model);
-//        }
-//
-//        foreach (var model in m_GraphPlacematModels)
-//        {
-//            RegisterElement(model);
-//        }
-//
+        stickyNoteModels.forEach(this::registerElement);
+        placematModels.forEach(this::registerElement);
         // Some variables may not be under any section.
         graphVariableModels.forEach(this::registerElement);
         portalModels.forEach(this::registerElement);
@@ -482,8 +473,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         deleteVariableDeclarations(elementsByType.variableDeclarationsModels, false);
         deleteGroups(elementsByType.groupModels);
-//        deleteStickyNotes(elementsByType.StickyNoteModels);
-//        deletePlacemats(elementsByType.PlacematModels);
+        deleteStickyNotes(elementsByType.stickyNoteModels);
+        deletePlacemats(elementsByType.placematModels);
         deleteWires(elementsByType.wireModels);
         deleteNodes(elementsByType.nodeModels, false, true);
 
@@ -520,12 +511,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 case IPlaceHolder placeHolder:
                     removePlaceholder(placeHolder);
                     break;
-//                case StickyNoteModel stickyNoteModel:
-//                    RemoveStickyNote(stickyNoteModel);
-//                    break;
-//                case PlacematModel placematModel:
-//                    RemovePlacemat(placematModel);
-//                    break;
+                case StickyNoteModel stickyNoteModel:
+                    removeStickyNote(stickyNoteModel);
+                    break;
+                case PlacematModel placematModel:
+                    removePlacemat(placematModel);
+                    break;
                 case VariableDeclarationModelBase variableDeclarationModel:
                     removeVariableDeclaration(variableDeclarationModel);
                     break;
@@ -1201,6 +1192,58 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
     // endregion
 
+    // region Placemat & StickyNote
+
+    public PlacematModel createPlacemat(String name, Vector2f position, Vector2f size) {
+        var model = new PlacematModel();
+        model.setGraphModel(this);
+        model.setPosition(position);
+        model.setSize(size);
+        model.setName(name);
+        placematModels.add(model);
+        registerElement(model);
+        getCurrentGraphChangeDescription().addNewModel(model);
+        return model;
+    }
+
+    public StickyNoteModel createStickyNote(Vector2f position) {
+        var model = new StickyNoteModel();
+        model.setGraphModel(this);
+        model.setPosition(position);
+        stickyNoteModels.add(model);
+        registerElement(model);
+        getCurrentGraphChangeDescription().addNewModel(model);
+        return model;
+    }
+
+    public void deletePlacemats(Collection<? extends PlacematModel> placemats) {
+        var toDelete = placemats.stream().filter(PlacematModel::isDeletable).toList();
+        if (!toDelete.isEmpty()) {
+            removeElements(toDelete);
+        }
+    }
+
+    public void deleteStickyNotes(Collection<? extends StickyNoteModel> stickyNotes) {
+        var toDelete = stickyNotes.stream().filter(StickyNoteModel::isDeletable).toList();
+        if (!toDelete.isEmpty()) {
+            removeElements(toDelete);
+        }
+    }
+
+    private void removeStickyNote(StickyNoteModel model) {
+        stickyNoteModels.remove(model);
+        unregisterElement(model);
+        getCurrentGraphChangeDescription().addDeletedModel(model);
+    }
+
+    private void removePlacemat(PlacematModel model) {
+        placematModels.remove(model);
+        unregisterElement(model);
+        getCurrentGraphChangeDescription().addDeletedModel(model);
+    }
+
+    // endregion
+
     // region Variable Declaration
 
     public Class<? extends VariableDeclarationModel> getVariableDeclarationModelType() {
@@ -1860,6 +1903,24 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         }
         tag.put("wires", wiresTag);
 
+        // 6. Placemats
+        var placematsTag = new ListTag();
+        for (var placemat : placematModels) {
+            if (placemat != null) {
+                placematsTag.add(placemat.serializeNBT(provider));
+            }
+        }
+        tag.put("placemats", placematsTag);
+
+        // 7. Sticky Notes
+        var stickyNotesTag = new ListTag();
+        for (var stickyNote : stickyNoteModels) {
+            if (stickyNote != null) {
+                stickyNotesTag.add(stickyNote.serializeNBT(provider));
+            }
+        }
+        tag.put("stickyNotes", stickyNotesTag);
+
         return tag;
     }
 
@@ -1870,6 +1931,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // Clear existing state
         nodeModels.clear();
         wireModels.clear();
+        placematModels.clear();
+        stickyNoteModels.clear();
         graphVariableModels.clear();
         portalModels.clear();
         sectionModels.clear();
@@ -1983,9 +2046,20 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     PortModel fromPort = fromPortUid != null && getModel(fromPortUid) instanceof PortModel p ? p : null;
                     PortModel toPort = toPortUid != null && getModel(toPortUid) instanceof PortModel p ? p : null;
 
-                    if (fromPort != null && toPort != null) {
-                        wireModel.setPorts(toPort, fromPort);
+                    if (fromPort == null || toPort == null) {
+                        LDLib2.LOGGER.warn("Skipping wire {} with unresolvable ports (from={}, to={})",
+                                wireModel.getUid(), fromPortUid, toPortUid);
+                        if (fromPortUid != null || toPortUid != null) {
+                            // Dump registered port UUIDs to help diagnose why resolution failed
+                            var registeredPorts = getElementsByUID().entrySet().stream()
+                                    .filter(e -> e.getValue() instanceof PortModel)
+                                    .map(e -> e.getKey().toString())
+                                    .toList();
+                            LDLib2.LOGGER.warn("  Registered port UUIDs ({}): {}", registeredPorts.size(), registeredPorts);
+                        }
+                        continue;
                     }
+                    wireModel.setPorts(toPort, fromPort);
 
                     wireModels.add(wireModel);
                     registerElement(wireModel);
@@ -1995,6 +2069,32 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 } catch (Exception e) {
                     LDLib2.LOGGER.error("Failed to deserialize wire: {}", e.getMessage());
                 }
+            }
+        }
+
+        // 6. Placemats
+        if (compound.contains("placemats")) {
+            var placematsTag = compound.getList("placemats", Tag.TAG_COMPOUND);
+            for (int i = 0; i < placematsTag.size(); i++) {
+                var pmTag = placematsTag.getCompound(i);
+                var placemat = new PlacematModel();
+                placemat.setGraphModel(this);
+                placemat.deserializeNBT(provider, pmTag);
+                placematModels.add(placemat);
+                registerElement(placemat);
+            }
+        }
+
+        // 7. Sticky Notes
+        if (compound.contains("stickyNotes")) {
+            var stickyNotesTag = compound.getList("stickyNotes", Tag.TAG_COMPOUND);
+            for (int i = 0; i < stickyNotesTag.size(); i++) {
+                var snTag = stickyNotesTag.getCompound(i);
+                var stickyNote = new StickyNoteModel();
+                stickyNote.setGraphModel(this);
+                stickyNote.deserializeNBT(provider, snTag);
+                stickyNoteModels.add(stickyNote);
+                registerElement(stickyNote);
             }
         }
     }
@@ -2035,6 +2135,293 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         if (modelUid != null && getModel(modelUid) instanceof DeclarationModel decl) {
             portalNode.setDeclarationModel(decl);
         }
+    }
+
+    // endregion
+
+    // region Copy/Paste
+
+    /**
+     * Data record holding serialized copy/paste information.
+     */
+    public record CopyPasteData(CompoundTag tag, HolderLookup.Provider provider) {}
+
+    /**
+     * Copies the given elements (nodes + internal wires) into a serialized CopyPasteData.
+     * Only nodes are copied; wires whose both endpoints belong to the selected set are included automatically.
+     */
+    public CopyPasteData copyElements(List<? extends GraphElementModel> elements, HolderLookup.Provider provider) {
+        // 1. Filter to AbstractNodeModel
+        var selectedNodes = elements.stream()
+                .filter(e -> e instanceof AbstractNodeModel)
+                .map(e -> (AbstractNodeModel) e)
+                .toList();
+        var selectedNodeUids = selectedNodes.stream()
+                .map(GraphElementModel::getUid)
+                .collect(Collectors.toSet());
+
+        // 2. Collect internal wires (both ports belong to selected nodes)
+        var internalWires = new ArrayList<WireModel>();
+        for (var wire : wireModels) {
+            if (wire == null) continue;
+            var fromPort = wire.getFromPort();
+            var toPort = wire.getToPort();
+            if (fromPort == null || toPort == null) continue;
+            if (fromPort.getNodeModel() == null || toPort.getNodeModel() == null) continue;
+            if (selectedNodeUids.contains(fromPort.getNodeModel().getUid())
+                    && selectedNodeUids.contains(toPort.getNodeModel().getUid())) {
+                internalWires.add(wire);
+            }
+        }
+
+        var tag = new CompoundTag();
+
+        // 3. Serialize nodes
+        var nodesTag = new ListTag();
+        for (var node : selectedNodes) {
+            var nodeTag = node.serializeNBT(provider);
+            nodeTag.putString("_type", getNodeDiscriminator(node));
+            if (node instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
+                nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
+            }
+            nodesTag.add(nodeTag);
+        }
+        tag.put("nodes", nodesTag);
+
+        // 4. Serialize wire references using nodeUid + portUniqueName (not port UUID)
+        var wiresTag = new ListTag();
+        for (var wire : internalWires) {
+            var wireRef = new CompoundTag();
+            wireRef.putUUID("fromNodeUid", wire.getFromPort().getNodeModel().getUid());
+            wireRef.putString("fromPortUniqueName", wire.getFromPort().getUniqueName());
+            wireRef.putUUID("toNodeUid", wire.getToPort().getNodeModel().getUid());
+            wireRef.putString("toPortUniqueName", wire.getToPort().getUniqueName());
+            wiresTag.add(wireRef);
+        }
+        tag.put("wires", wiresTag);
+
+        // 5. Serialize variable declarations referenced by VariableNodeModels
+        var variablesTag = new ListTag();
+        var seenVarUids = new HashSet<UUID>();
+        for (var node : selectedNodes) {
+            if (node instanceof VariableNodeModel varNode && varNode.getDeclarationModelUid() != null) {
+                var declUid = varNode.getDeclarationModelUid();
+                if (seenVarUids.add(declUid) && getModel(declUid) instanceof VariableDeclarationModel vdm) {
+                    variablesTag.add(vdm.serializeNBT(provider));
+                }
+            }
+        }
+        tag.put("variables", variablesTag);
+
+        // 6. Serialize portal declarations referenced by WirePortalModels
+        var portalsTag = new ListTag();
+        var seenPortalUids = new HashSet<UUID>();
+        for (var node : selectedNodes) {
+            if (node instanceof WirePortalModel portalNode && portalNode.getModelUid() != null) {
+                var modelUid = portalNode.getModelUid();
+                if (seenPortalUids.add(modelUid) && getModel(modelUid) instanceof DeclarationModel decl) {
+                    portalsTag.add(decl.serializeNBT(provider));
+                }
+            }
+        }
+        tag.put("portals", portalsTag);
+
+        // 7. Serialize placemats
+        var placematsTag = new ListTag();
+        for (var element : elements) {
+            if (element instanceof PlacematModel pm) {
+                placematsTag.add(pm.serializeNBT(provider));
+            }
+        }
+        tag.put("placemats", placematsTag);
+
+        // 8. Serialize sticky notes
+        var stickyNotesTag = new ListTag();
+        for (var element : elements) {
+            if (element instanceof StickyNoteModel sn) {
+                stickyNotesTag.add(sn.serializeNBT(provider));
+            }
+        }
+        tag.put("stickyNotes", stickyNotesTag);
+
+        return new CopyPasteData(tag, provider);
+    }
+
+    /**
+     * Pastes elements from CopyPasteData, offsetting positions.
+     * Returns all newly created GraphElementModels (nodes).
+     */
+    public List<GraphElementModel> pasteElements(CopyPasteData data, Vector2f positionOffset) {
+        var compound = data.tag();
+        var provider = data.provider();
+        var result = new ArrayList<GraphElementModel>();
+
+        // 1. Variable declarations: deserialize, reuse existing by UID or register new
+        if (compound.contains("variables")) {
+            var variablesTag = compound.getList("variables", Tag.TAG_COMPOUND);
+            for (int i = 0; i < variablesTag.size(); i++) {
+                var varTag = variablesTag.getCompound(i);
+                var variable = new VariableDeclarationModel();
+                variable.setGraphModel(this);
+                variable.deserializeNBT(provider, varTag);
+                if (!hasModel(variable.getUid())) {
+                    addVariableDeclaration(variable);
+                }
+            }
+        }
+
+        // 2. Portal declarations: same logic
+        if (compound.contains("portals")) {
+            var portalsTag = compound.getList("portals", Tag.TAG_COMPOUND);
+            for (int i = 0; i < portalsTag.size(); i++) {
+                var portalTag = portalsTag.getCompound(i);
+                var portal = new DeclarationModel();
+                portal.setGraphModel(this);
+                portal.deserializeNBT(provider, portalTag);
+                if (!hasModel(portal.getUid())) {
+                    addPortal(portal);
+                }
+            }
+        }
+
+        // 3. Nodes: recreate with new UUIDs
+        var oldToNewNodeMap = new HashMap<UUID, AbstractNodeModel>();
+        if (compound.contains("nodes")) {
+            var nodesTag = compound.getList("nodes", Tag.TAG_COMPOUND);
+            for (int i = 0; i < nodesTag.size(); i++) {
+                var nodeTag = nodesTag.getCompound(i);
+                var type = nodeTag.getString("_type");
+                try {
+                    var nodeModel = createNodeFromDiscriminator(type);
+                    nodeModel.setGraphModel(this);
+                    nodeModel.deserializeNBT(provider, nodeTag);
+
+                    var oldUid = nodeModel.getUid();
+
+                    // Assign new UUID
+                    nodeModel.setUid(UUID.randomUUID());
+
+                    // CustomNodeModelImpl: init node class
+                    if (nodeModel instanceof CustomNodeModelImpl customNode) {
+                        var nodeClassName = nodeTag.getString("nodeClass");
+                        Node node = findNodeByClassName(nodeClassName);
+                        if (node != null) {
+                            customNode.initCustomNode(node);
+                        }
+                    }
+
+                    // VariableNodeModel: resolve declaration
+                    if (nodeModel instanceof VariableNodeModel variableNode) {
+                        resolveVariableNodeDeclaration(variableNode);
+                    }
+
+                    // WirePortalModel: resolve declaration
+                    if (nodeModel instanceof WirePortalModel portalNode) {
+                        resolveWirePortalDeclaration(portalNode);
+                    }
+
+                    // defineNode → reconstructs ports with deterministic UUIDs based on new node UUID
+                    if (nodeModel instanceof NodeModel nm) {
+                        nm.defineNode();
+                    }
+
+                    // Offset position
+                    var pos = nodeModel.getPosition();
+                    nodeModel.setPosition(new Vector2f(pos.x + positionOffset.x, pos.y + positionOffset.y));
+
+                    addNode(nodeModel);
+
+                    oldToNewNodeMap.put(oldUid, nodeModel);
+                    result.add(nodeModel);
+                } catch (Exception e) {
+                    LDLib2.LOGGER.error("Failed to paste node of type '{}': {}", type, e.getMessage());
+                }
+            }
+        }
+
+        // 4. Wires: reconnect using oldNodeUid→newNode mapping + portUniqueName
+        if (compound.contains("wires")) {
+            var wiresTag = compound.getList("wires", Tag.TAG_COMPOUND);
+            for (int i = 0; i < wiresTag.size(); i++) {
+                var wireRef = wiresTag.getCompound(i);
+                var fromNodeUid = wireRef.getUUID("fromNodeUid");
+                var fromPortName = wireRef.getString("fromPortUniqueName");
+                var toNodeUid = wireRef.getUUID("toNodeUid");
+                var toPortName = wireRef.getString("toPortUniqueName");
+
+                var newFromNode = oldToNewNodeMap.get(fromNodeUid);
+                var newToNode = oldToNewNodeMap.get(toNodeUid);
+                if (newFromNode == null || newToNode == null) continue;
+
+                var fromPort = findPortByUniqueName(newFromNode, fromPortName);
+                var toPort = findPortByUniqueName(newToNode, toPortName);
+                if (fromPort != null && toPort != null) {
+                    createWire(toPort, fromPort);
+                }
+            }
+        }
+
+        // 5. Placemats: recreate with new UUIDs and offset
+        if (compound.contains("placemats")) {
+            var placematsTag = compound.getList("placemats", Tag.TAG_COMPOUND);
+            for (int i = 0; i < placematsTag.size(); i++) {
+                var pmTag = placematsTag.getCompound(i);
+                var pm = new PlacematModel();
+                pm.setGraphModel(this);
+                pm.deserializeNBT(provider, pmTag);
+                pm.setUid(UUID.randomUUID());
+                var pos = pm.getPosition();
+                pm.setPosition(new Vector2f(pos.x + positionOffset.x, pos.y + positionOffset.y));
+                placematModels.add(pm);
+                registerElement(pm);
+                getCurrentGraphChangeDescription().addNewModel(pm);
+                result.add(pm);
+            }
+        }
+
+        // 6. Sticky Notes: recreate with new UUIDs and offset
+        if (compound.contains("stickyNotes")) {
+            var stickyNotesTag = compound.getList("stickyNotes", Tag.TAG_COMPOUND);
+            for (int i = 0; i < stickyNotesTag.size(); i++) {
+                var snTag = stickyNotesTag.getCompound(i);
+                var sn = new StickyNoteModel();
+                sn.setGraphModel(this);
+                sn.deserializeNBT(provider, snTag);
+                sn.setUid(UUID.randomUUID());
+                var pos = sn.getPosition();
+                sn.setPosition(new Vector2f(pos.x + positionOffset.x, pos.y + positionOffset.y));
+                stickyNoteModels.add(sn);
+                registerElement(sn);
+                getCurrentGraphChangeDescription().addNewModel(sn);
+                result.add(sn);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Finds a port on a node by its unique name, searching through all ports and sub-ports.
+     */
+    @Nullable
+    private static PortModel findPortByUniqueName(AbstractNodeModel node, String uniqueName) {
+        if (!(node instanceof PortNodeModel portNode)) return null;
+        for (var port : portNode.getPorts()) {
+            if (port.getUniqueName().equals(uniqueName)) return port;
+            var found = findPortInSubPorts(port, uniqueName);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static PortModel findPortInSubPorts(PortModel port, String uniqueName) {
+        for (var subPort : port.getSubPorts()) {
+            if (subPort.getUniqueName().equals(uniqueName)) return subPort;
+            var found = findPortInSubPorts(subPort, uniqueName);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     // endregion

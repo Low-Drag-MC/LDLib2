@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import java.util.*;
 import java.util.stream.Stream;
 
-public abstract class GraphElementModel extends Model implements IGraphElementModelHolder {
+public abstract class GraphElementModel extends Model implements IGraphElementModelHolder, IHasContextualMenuItems {
     protected GraphModel graphModel;
 
     /**
@@ -37,6 +37,11 @@ public abstract class GraphElementModel extends Model implements IGraphElementMo
      */
     public Stream<GraphElementModel> getDependentModels() {
         return Stream.empty();
+    }
+
+    @Override
+    public List<ContextualMenuItem> getContextualMenuItems() {
+        return COMMON_GRAPH_ELEMENT_MENU_ITEMS;
     }
 
     protected static final List<ContextualMenuItem> COMMON_GRAPH_ELEMENT_MENU_ITEMS = List.of(

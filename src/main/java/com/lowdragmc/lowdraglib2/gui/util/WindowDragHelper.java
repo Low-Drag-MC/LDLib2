@@ -193,9 +193,17 @@ public class WindowDragHelper {
     public static void drawResizeIcon(GUIContext guiContext, UIElement element, float padding) {
         var handle = WindowDragHelper.detectResizeHandle(element, guiContext.mouseX, guiContext.mouseY, padding);
         if (handle == null) return;
-        guiContext.postRendering(ctx -> guiContext.drawTexture(handle.icon,
-                ctx.mouseX - handle.icon.spriteSize.width / 2f, ctx.mouseY - handle.icon.spriteSize.height / 2f,
-                handle.icon.spriteSize.width, handle.icon.spriteSize.height)
-        );
+        guiContext.postRendering(ctx -> {
+            // Draw in screen space: reset the pose to identity so that mouseX/mouseY
+            // (which are screen coordinates) are not further transformed.
+            ctx.pose.pushPose();
+            ctx.pose.setIdentity();
+            ctx.drawTexture(handle.icon,
+                    ctx.mouseX - handle.icon.spriteSize.width / 2f,
+                    ctx.mouseY - handle.icon.spriteSize.height / 2f,
+                    handle.icon.spriteSize.width,
+                    handle.icon.spriteSize.height);
+            ctx.pose.popPose();
+        });
     }
 }

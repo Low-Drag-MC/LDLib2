@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
+import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
@@ -40,7 +41,7 @@ import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 @FunctionalInterface
 public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
     //region builtin textures
-    @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", manual = true)
+    @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", environment = RegistrationEnvironment.MANUAL)
     final class EmptyTexture implements IGuiTexture {
         @Override
         public IGuiTexture copy() { return EMPTY; }
@@ -50,7 +51,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {}
     }
 
-    @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", manual = true)
+    @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", environment = RegistrationEnvironment.MANUAL)
     final class MissingTexture implements IGuiTexture {
         @Override
         public IGuiTexture copy() { return MISSING_TEXTURE; }

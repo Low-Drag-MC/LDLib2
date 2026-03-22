@@ -7,7 +7,6 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.1.20'
     id 'org.jetbrains.kotlin.plugin.lombok' version '2.1.20'
     id 'io.freefair.lombok' version "9.2.0"
-    id 'dev.vfyjxf.moddevmcp' version "${moddevmcp_plugin_version}"
 }
 
 version = mod_version
@@ -205,7 +204,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
 
     // moddevmcp
-    localImplementation("dev.vfyjxf:moddevmcp:${moddevmcp_version}") { transitive = false }
+//    localImplementation("dev.vfyjxf:moddevmcp:${moddevmcp_version}") { transitive = false }
 }
 
 tasks.withType(ProcessResources).configureEach {

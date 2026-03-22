@@ -1005,6 +1005,8 @@ public class ModularUI {
                 return CommandEvents.FIND;
             } else if (keyCode == GLFW.GLFW_KEY_S && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
                 return CommandEvents.SAVE;
+            } else if (keyCode == GLFW.GLFW_KEY_D && Screen.hasControlDown() && !Screen.hasShiftDown() && !Screen.hasAltDown()) {
+                return CommandEvents.DUPLICATE;
             }
             return null;
         }

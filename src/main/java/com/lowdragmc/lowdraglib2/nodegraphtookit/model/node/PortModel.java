@@ -556,6 +556,16 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
         return Collections.emptyList();
     }
 
+//    public static final List<ContextualMenuItem> PORT_MENU_ITEMS = List.of(
+//            ContextualMenuHelpers.addNodeFromPortItem,
+//            ContextualMenuHelpers.createVariableFromPortItem,
+//            ContextualMenuHelpers.copyValueItem,
+//            ContextualMenuHelpers.pasteValueItem,
+//            ContextualMenuHelpers.disconnectAllWiresItem,
+//            ContextualMenuHelpers.expandPortItem,
+//            ContextualMenuHelpers.collapsePortItem
+//    );
+
     @Override
     public String toString() {
         return nodeModel.getUid() + "|" +
