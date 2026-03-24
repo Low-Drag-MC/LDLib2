@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style.properties;
 
 import com.lowdragmc.lowdraglib2.configurator.accessors.PivotAccessor;
+import com.lowdragmc.lowdraglib2.configurator.accessors.Translate2DAccessor;
 import com.lowdragmc.lowdraglib2.configurator.accessors.Vector2fAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
@@ -25,9 +26,9 @@ public class Transform2DProperty extends Property<Transform2D> {
     public Configurator createConfiguratorInternal(String name, Supplier<Transform2D> getter, Consumer<Transform2D> setter) {
         var group = new ConfiguratorGroup(name);
         group.addConfigurators(
-                new Vector2fAccessor().create("Transform2D.translate",
+                new Translate2DAccessor().create("Transform2D.translate",
                         () -> getter.get().translate(),
-                        tran -> setter.accept(getter.get().copy().translate(tran.x, tran.y)), true, getVALUE_FIELD(), this),
+                        tran -> setter.accept(getter.get().copy().translate(tran)), true, getVALUE_FIELD(), this),
                 new Vector2fAccessor().create("Transform2D.scale",
                         () -> getter.get().scale(),
                         scale -> setter.accept(getter.get().copy().scale(scale.x, scale.y)), true, getVALUE_FIELD(), this),

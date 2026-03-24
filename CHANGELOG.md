@@ -1,5 +1,5 @@
-## v2.2.4
-* Fixed animation issue
-* Added animation dsl support
+## v2.2.5
+* Fixed HUD overlay default size
+* Improved transform2d to support percent
 
 

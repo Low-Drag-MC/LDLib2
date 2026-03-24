@@ -11,6 +11,9 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import it.unimi.dsi.fastutil.Pair;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -190,6 +193,44 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
 //        }
 
         return Pair.of(new AddMissingPortResult(inputResult, inputNode), new AddMissingPortResult(outputResult, outputNode));
+    }
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
+        var tag = new CompoundTag();
+        if (fromPort != null) tag.putUUID("fromPortUid", fromPort.getUid());
+        if (toPort != null) tag.putUUID("toPortUid", toPort.getUid());
+        return tag;
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
+        // Port references are resolved by GraphModel after all nodes are created.
+        // Store the UUIDs temporarily in the tag - GraphModel will read them.
+    }
+
+    /**
+     * Gets the serialized from-port UUID from the additional NBT tag.
+     * Used by GraphModel during deserialization to resolve port references.
+     */
+    public static @Nullable UUID getFromPortUidFromTag(CompoundTag tag) {
+        if (tag.contains("_additional")) {
+            var additional = tag.getCompound("_additional");
+            if (additional.contains("fromPortUid")) return additional.getUUID("fromPortUid");
+        }
+        return null;
+    }
+
+    /**
+     * Gets the serialized to-port UUID from the additional NBT tag.
+     * Used by GraphModel during deserialization to resolve port references.
+     */
+    public static @Nullable UUID getToPortUidFromTag(CompoundTag tag) {
+        if (tag.contains("_additional")) {
+            var additional = tag.getCompound("_additional");
+            if (additional.contains("toPortUid")) return additional.getUUID("toPortUid");
+        }
+        return null;
     }
 
     @Override

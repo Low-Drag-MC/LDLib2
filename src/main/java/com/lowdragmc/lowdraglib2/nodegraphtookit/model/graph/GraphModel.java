@@ -25,6 +25,10 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
@@ -1714,6 +1718,324 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // todo subgraph
     }
 
+
+    // endregion
+
+    // region Serialization
+
+    /**
+     * Gets a type discriminator string for the given node model.
+     */
+    protected String getNodeDiscriminator(AbstractNodeModel node) {
+        if (node instanceof CustomNodeModelImpl) return "custom";
+        if (node instanceof VariableNodeModelImpl) return "variable";
+        if (node instanceof ConstantNodeModelImpl) return "constant";
+        if (node instanceof SubgraphNodeModel) return "subgraph";
+        if (node instanceof WirePortalEntryModel) return "wire_portal_entry";
+        if (node instanceof WirePortalExitModel) return "wire_portal_exit";
+        throw new IllegalArgumentException("Unknown node type: " + node.getClass());
+    }
+
+    /**
+     * Creates a node model instance from a discriminator string.
+     */
+    protected AbstractNodeModel createNodeFromDiscriminator(String type) {
+        return switch (type) {
+            case "custom" -> new CustomNodeModelImpl();
+            case "variable" -> new VariableNodeModelImpl();
+            case "constant" -> new ConstantNodeModelImpl();
+            case "subgraph" -> new SubgraphNodeModel();
+            case "wire_portal_entry" -> new WirePortalEntryModel();
+            case "wire_portal_exit" -> new WirePortalExitModel();
+            default -> throw new IllegalArgumentException("Unknown node type: " + type);
+        };
+    }
+
+    /**
+     * Recursively serializes the items of a group (section or group) into a ListTag.
+     * Each item is stored as a CompoundTag with its uid, type ("variable" or "group"),
+     * and for groups, their serialized data and nested children.
+     */
+    private ListTag serializeGroupItems(GroupModelBase group, HolderLookup.Provider provider) {
+        var itemsTag = new ListTag();
+        for (var item : group.getItems()) {
+            var itemTag = new CompoundTag();
+            if (item instanceof VariableDeclarationModelBase variable) {
+                itemTag.putString("type", "variable");
+                itemTag.putUUID("uid", variable.getUid());
+            } else if (item instanceof GroupModel groupItem) {
+                itemTag.putString("type", "group");
+                itemTag.putUUID("uid", groupItem.getUid());
+                // Serialize group's own data (name, etc.)
+                var groupData = groupItem.serializeNBT(provider);
+                itemTag.put("data", groupData);
+                // Recursively serialize children
+                itemTag.put("items", serializeGroupItems(groupItem, provider));
+            }
+            itemsTag.add(itemTag);
+        }
+        return itemsTag;
+    }
+
+    /**
+     * Recursively deserializes group items and rebuilds the parent-child hierarchy.
+     */
+    private void deserializeGroupItems(GroupModel parent, ListTag itemsTag, HolderLookup.Provider provider) {
+        for (int i = 0; i < itemsTag.size(); i++) {
+            var itemTag = itemsTag.getCompound(i);
+            var type = itemTag.getString("type");
+            var uid = itemTag.getUUID("uid");
+            switch (type) {
+                case "variable" -> {
+                    var model = getModel(uid);
+                    if (model instanceof IGroupItemModel variable) {
+                        parent.insertItem(variable, parent.getItems().size());
+                    }
+                }
+                case "group" -> {
+                    var group = new GroupModel();
+                    group.setGraphModel(this);
+                    group.deserializeNBT(provider, itemTag.getCompound("data"));
+                    registerElement(group);
+                    parent.insertItem(group, parent.getItems().size());
+                    // Recursively rebuild children
+                    if (itemTag.contains("items")) {
+                        deserializeGroupItems(group, itemTag.getList("items", Tag.TAG_COMPOUND), provider);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.@NotNull Provider provider) {
+        var tag = new CompoundTag();
+
+        // 1. Variables
+        var variablesTag = new ListTag();
+        for (var variable : graphVariableModels) {
+            if (variable instanceof VariableDeclarationModel vdm) {
+                variablesTag.add(vdm.serializeNBT(provider));
+            }
+        }
+        tag.put("variables", variablesTag);
+
+        // 2. Portals
+        var portalsTag = new ListTag();
+        for (var portal : portalModels) {
+            if (portal != null) {
+                portalsTag.add(portal.serializeNBT(provider));
+            }
+        }
+        tag.put("portals", portalsTag);
+
+        // 3. Sections (with hierarchy)
+        var sectionsTag = new ListTag();
+        for (var section : sectionModels) {
+            var sectionTag = section.serializeNBT(provider);
+            sectionTag.put("items", serializeGroupItems(section, provider));
+            sectionsTag.add(sectionTag);
+        }
+        tag.put("sections", sectionsTag);
+
+        // 4. Nodes
+        var nodesTag = new ListTag();
+        for (var nodeModel : nodeModels) {
+            if (nodeModel == null) continue;
+            var nodeTag = nodeModel.serializeNBT(provider);
+            nodeTag.putString("_type", getNodeDiscriminator(nodeModel));
+            if (nodeModel instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
+                nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
+            }
+            nodesTag.add(nodeTag);
+        }
+        tag.put("nodes", nodesTag);
+
+        // 5. Wires
+        var wiresTag = new ListTag();
+        for (var wireModel : wireModels) {
+            if (wireModel != null) {
+                wiresTag.add(wireModel.serializeNBT(provider));
+            }
+        }
+        tag.put("wires", wiresTag);
+
+        return tag;
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.@NotNull Provider provider) {
+        if (!(tag instanceof CompoundTag compound)) return;
+
+        // Clear existing state
+        nodeModels.clear();
+        wireModels.clear();
+        graphVariableModels.clear();
+        portalModels.clear();
+        sectionModels.clear();
+        elementsByUID = null;
+        portWireIndex = null;
+        existingVariableNames.clear();
+
+        // 1. Variables
+        if (compound.contains("variables")) {
+            var variablesTag = compound.getList("variables", Tag.TAG_COMPOUND);
+            for (int i = 0; i < variablesTag.size(); i++) {
+                var varTag = variablesTag.getCompound(i);
+                var variable = new VariableDeclarationModel();
+                variable.setGraphModel(this);
+                variable.deserializeNBT(provider, varTag);
+                graphVariableModels.add(variable);
+                existingVariableNames.add(variable.getName());
+                registerElement(variable);
+            }
+        }
+
+        // 2. Portals
+        if (compound.contains("portals")) {
+            var portalsTag = compound.getList("portals", Tag.TAG_COMPOUND);
+            for (int i = 0; i < portalsTag.size(); i++) {
+                var portalTag = portalsTag.getCompound(i);
+                var portal = new DeclarationModel();
+                portal.setGraphModel(this);
+                portal.deserializeNBT(provider, portalTag);
+                portalModels.add(portal);
+                registerElement(portal);
+            }
+        }
+
+        // 3. Sections (with hierarchy)
+        if (compound.contains("sections")) {
+            var sectionsTag = compound.getList("sections", Tag.TAG_COMPOUND);
+            for (int i = 0; i < sectionsTag.size(); i++) {
+                var sectionTag = sectionsTag.getCompound(i);
+                var section = new SectionModel();
+                section.setGraphModel(this);
+                section.deserializeNBT(provider, sectionTag);
+                sectionModels.add(section);
+                registerElement(section);
+                // Rebuild hierarchy: variables and groups under this section
+                if (sectionTag.contains("items")) {
+                    deserializeGroupItems(section, sectionTag.getList("items", Tag.TAG_COMPOUND), provider);
+                }
+            }
+        }
+
+        // 4. Nodes
+        if (compound.contains("nodes")) {
+            var nodesTag = compound.getList("nodes", Tag.TAG_COMPOUND);
+            for (int i = 0; i < nodesTag.size(); i++) {
+                var nodeTag = nodesTag.getCompound(i);
+                var type = nodeTag.getString("_type");
+                try {
+                    var nodeModel = createNodeFromDiscriminator(type);
+                    nodeModel.setGraphModel(this);
+                    nodeModel.deserializeNBT(provider, nodeTag);
+
+                    // CustomNodeModelImpl: look up node class and init
+                    if (nodeModel instanceof CustomNodeModelImpl customNode) {
+                        var nodeClassName = nodeTag.getString("nodeClass");
+                        Node node = findNodeByClassName(nodeClassName);
+                        if (node != null) {
+                            customNode.initCustomNode(node);
+                        } else {
+                            LDLib2.LOGGER.warn("Could not find node class: {}", nodeClassName);
+                        }
+                    }
+
+                    // VariableNodeModel: resolve declaration from uid
+                    if (nodeModel instanceof VariableNodeModel variableNode) {
+                        resolveVariableNodeDeclaration(variableNode);
+                    }
+
+                    // WirePortalModel: resolve declaration from modelUid
+                    if (nodeModel instanceof WirePortalModel portalNode) {
+                        resolveWirePortalDeclaration(portalNode);
+                    }
+
+                    // defineNode reconstructs all ports with deterministic UUIDs
+                    if (nodeModel instanceof NodeModel nm) {
+                        nm.defineNode();
+                    }
+
+                    nodeModels.add(nodeModel);
+                    registerElement(nodeModel);
+                } catch (Exception e) {
+                    LDLib2.LOGGER.error("Failed to deserialize node of type '{}': {}", type, e.getMessage());
+                }
+            }
+        }
+
+        // 5. Wires - resolve port references
+        if (compound.contains("wires")) {
+            var wiresTag = compound.getList("wires", Tag.TAG_COMPOUND);
+            for (int i = 0; i < wiresTag.size(); i++) {
+                var wireTag = wiresTag.getCompound(i);
+                try {
+                    var wireModel = new WireModel();
+                    wireModel.setGraphModel(this);
+                    wireModel.deserializeNBT(provider, wireTag);
+
+                    // Resolve port references from the serialized UUIDs
+                    var fromPortUid = WireModel.getFromPortUidFromTag(wireTag);
+                    var toPortUid = WireModel.getToPortUidFromTag(wireTag);
+
+                    PortModel fromPort = fromPortUid != null && getModel(fromPortUid) instanceof PortModel p ? p : null;
+                    PortModel toPort = toPortUid != null && getModel(toPortUid) instanceof PortModel p ? p : null;
+
+                    if (fromPort != null && toPort != null) {
+                        wireModel.setPorts(toPort, fromPort);
+                    }
+
+                    wireModels.add(wireModel);
+                    registerElement(wireModel);
+                    if (portWireIndex != null) {
+                        portWireIndex.wireAdded(wireModel);
+                    }
+                } catch (Exception e) {
+                    LDLib2.LOGGER.error("Failed to deserialize wire: {}", e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Finds a Node instance by its class name from the supported nodes list.
+     */
+    @Nullable
+    protected Node findNodeByClassName(String className) {
+        if (className == null || className.isEmpty()) return null;
+        for (var nodeClass : getSupportNodes()) {
+            if (nodeClass.getName().equals(className)) {
+                try {
+                    return nodeClass.getConstructor().newInstance();
+                } catch (Exception e) {
+                    LDLib2.LOGGER.error("Failed to instantiate node class: {}", className, e);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the declaration model for a VariableNodeModel after deserialization.
+     */
+    protected void resolveVariableNodeDeclaration(VariableNodeModel variableNode) {
+        var declUid = variableNode.getDeclarationModelUid();
+        if (declUid != null && getModel(declUid) instanceof VariableDeclarationModelBase decl) {
+            variableNode.setVariableDeclarationModel(decl);
+        }
+    }
+
+    /**
+     * Resolves the declaration model for a WirePortalModel after deserialization.
+     */
+    protected void resolveWirePortalDeclaration(WirePortalModel portalNode) {
+        var modelUid = portalNode.getModelUid();
+        if (modelUid != null && getModel(modelUid) instanceof DeclarationModel decl) {
+            portalNode.setDeclarationModel(decl);
+        }
+    }
 
     // endregion
 

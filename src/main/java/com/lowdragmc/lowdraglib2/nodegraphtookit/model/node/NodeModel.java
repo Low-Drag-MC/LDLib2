@@ -14,9 +14,13 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.SubPortCustomConstant;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.TypeConstant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.NodeDefinitionScope;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.SubPortDefinitionScope;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,6 +58,33 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
         inputPortInfos = new PortInfos();
         outputPortInfos = new PortInfos();
         inputConstantsById = new HashMap<>();
+    }
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
+        var tag = new CompoundTag();
+        // Serialize inputConstantsById
+        var constantsTag = new CompoundTag();
+        for (var entry : inputConstantsById.entrySet()) {
+            constantsTag.put(entry.getKey(), TypeConstant.serializeConstant(entry.getValue(), provider));
+        }
+        if (!constantsTag.isEmpty()) {
+            tag.put("inputConstants", constantsTag);
+        }
+        return tag;
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
+        if (tag instanceof CompoundTag compound && compound.contains("inputConstants")) {
+            var constantsTag = compound.getCompound("inputConstants");
+            for (var key : constantsTag.getAllKeys()) {
+                var constant = TypeConstant.deserializeConstant(constantsTag.getCompound(key), provider);
+                if (constant != null) {
+                    inputConstantsById.put(key, constant);
+                }
+            }
+        }
     }
 
     /**

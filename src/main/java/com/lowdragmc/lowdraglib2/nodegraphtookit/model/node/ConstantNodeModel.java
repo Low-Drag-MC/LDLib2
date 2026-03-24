@@ -7,8 +7,12 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ContextualMenuItem;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.TypeConstant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.NodeDefinitionScope;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Type;
@@ -59,6 +63,26 @@ public class ConstantNodeModel extends NodeModel implements ISingleOutputPortNod
 
     public Type getType() {
         return constant.getType();
+    }
+
+    @Override
+    public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
+        var tag = (CompoundTag) super.serializeAdditionalNBT(provider);
+        if (constant != null) {
+            tag.put("constant", TypeConstant.serializeConstant(constant, provider));
+        }
+        return tag;
+    }
+
+    @Override
+    public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
+        super.deserializeAdditionalNBT(tag, provider);
+        if (tag instanceof CompoundTag compound && compound.contains("constant")) {
+            constant = TypeConstant.deserializeConstant(compound.getCompound("constant"), provider);
+            if (constant != null) {
+                constant.setOwner(this);
+            }
+        }
     }
 
     @Override

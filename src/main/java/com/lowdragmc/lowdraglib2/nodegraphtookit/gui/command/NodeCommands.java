@@ -303,9 +303,5 @@ public final class NodeCommands {
             creationData.clear();
         }
 
-        @Override
-        public void undo() {
-
-        }
     }
 }

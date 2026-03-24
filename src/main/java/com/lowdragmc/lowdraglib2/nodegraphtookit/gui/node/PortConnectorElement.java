@@ -66,7 +66,7 @@ public class PortConnectorElement extends ModelElement {
         if (visitor.hasHint(ChangeHint.GRAPH_TOPOLOGY) || visitor.hasHint(ChangeHint.DATA)) {
             updateConnector();
         }
-        if (visitor.hasHint(ChangeHint.STYLE) || visitor.hasHint(ChangeHint.DATA)) {
+        if (visitor.hasHint(ChangeHint.STYLE) || visitor.hasHint(ChangeHint.DATA) || visitor.hasHint(ChangeHint.GRAPH_TOPOLOGY)) {
             // update title and tooltips
             name.setText(portModel.getDisplayName());
             name.setDisplay(!Component.empty().equals(name.getValue()));

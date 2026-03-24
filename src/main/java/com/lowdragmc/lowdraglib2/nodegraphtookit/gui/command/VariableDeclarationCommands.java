@@ -109,11 +109,6 @@ public final class VariableDeclarationCommands {
         }
 
         @Override
-        public void undo() {
-
-        }
-
-        @Override
         public Component getCommandName() {
             return NAME;
         }
@@ -137,11 +132,6 @@ public final class VariableDeclarationCommands {
             }
 
             graphModel.updateSubGraphs();
-        }
-
-        @Override
-        public void undo() {
-
         }
 
         @Override

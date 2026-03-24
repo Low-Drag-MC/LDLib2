@@ -6,6 +6,7 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.3.0'
     id 'org.jetbrains.kotlin.plugin.lombok' version '2.1.20'
     id 'io.freefair.lombok' version "9.2.0"
+    id 'dev.vfyjxf.moddevmcp' version "${moddevmcp_plugin_version}"
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -236,6 +237,9 @@ dependencies {
     // mock
     testImplementation 'org.mockito:mockito-core:5.5.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
+
+    // moddevmcp
+    localImplementation("dev.vfyjxf:moddevmcp:${moddevmcp_version}") { transitive = false }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

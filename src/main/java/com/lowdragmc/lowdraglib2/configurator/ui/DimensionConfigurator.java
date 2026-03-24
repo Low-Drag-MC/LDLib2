@@ -21,7 +21,7 @@ public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
         MIN_CONTENT,
         MAX_CONTENT,
         FIT_CONTENT,
-        STRETCH
+        STRETCH, CONTENT
     }
 
     public final TextField textField;
@@ -51,7 +51,8 @@ public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
                 Unit.MIN_CONTENT,
                 Unit.MAX_CONTENT,
                 Unit.FIT_CONTENT,
-                Unit.STRETCH
+                Unit.STRETCH,
+                Unit.CONTENT
         ));
         updateSelector();
 
@@ -64,6 +65,7 @@ public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
                 case MAX_CONTENT -> updateValueActively(TaffyDimension.maxContent());
                 case FIT_CONTENT -> updateValueActively(TaffyDimension.fitContent());
                 case STRETCH -> updateValueActively(TaffyDimension.stretch());
+                case CONTENT -> updateValueActively(TaffyDimension.content());
             }
             updateTextFieldValue();
         });
@@ -76,6 +78,7 @@ public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
             case MAX_CONTENT -> Component.literal("max-content");
             case FIT_CONTENT -> Component.literal("fit-content");
             case STRETCH -> Component.literal("stretch");
+            case CONTENT -> Component.literal("content");
         }));
 
         textField.layout(layout -> {
@@ -114,6 +117,7 @@ public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
             case MAX_CONTENT -> Unit.MAX_CONTENT;
             case FIT_CONTENT -> Unit.FIT_CONTENT;
             case STRETCH -> Unit.STRETCH;
+            case CONTENT -> Unit.CONTENT;
         };
         unitSelector.setValue(unit, false);
     }

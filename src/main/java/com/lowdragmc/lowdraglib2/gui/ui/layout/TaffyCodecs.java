@@ -212,6 +212,7 @@ public final class TaffyCodecs {
         case MAX_CONTENT -> TaffyDimension.maxContent();
         case FIT_CONTENT -> TaffyDimension.fitContent();
         case STRETCH -> TaffyDimension.stretch();
+        case CONTENT -> TaffyDimension.content();
     }))));
 
 

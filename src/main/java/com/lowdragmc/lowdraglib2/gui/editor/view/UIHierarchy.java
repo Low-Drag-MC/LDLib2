@@ -198,6 +198,28 @@ public class UIHierarchy extends UIElement {
         return elements.length == 1 ? Optional.of(elements[0]) : Optional.empty();
     }
 
+    public void focusNode(@Nullable UITreeNode node) {
+        if (node == null) return;
+        treeList.expandNodeAlongPath(node);
+        treeList.setSelected(List.of(node), true);
+        var nodeUI = treeList.getNodeUIs().get(node);
+        if (nodeUI != null) {
+            var scrollRange = scrollerView.getContainerHeight() - scrollerView.viewPort.getContentHeight();
+            if (scrollRange > 0) {
+                var targetTop = nodeUI.getTaffyLayout().location().y;
+                var targetBottom = targetTop + nodeUI.getSizeHeight();
+                var currentTop = scrollerView.verticalScroller.getValue() * scrollRange;
+                var currentBottom = currentTop + scrollerView.viewPort.getContentHeight();
+                if (targetTop < currentTop) {
+                    scrollerView.verticalScroller.setValue(targetTop / scrollRange, true);
+                } else if (targetBottom > currentBottom) {
+                    scrollerView.verticalScroller.setValue((targetBottom - scrollerView.viewPort.getContentHeight()) / scrollRange, true);
+                }
+            }
+            nodeUI.focus();
+        }
+    }
+
     protected void onMouseDown(UIEvent event) {
         focus();
         if (event.button == 1) {
