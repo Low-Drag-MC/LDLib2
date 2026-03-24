@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
@@ -6,61 +6,71 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.GroupModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.IGroupItemModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 
 import java.util.List;
 import java.util.Objects;
 
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphHierarchySerializationTest {
+public final class GraphHierarchySerializationGameTest {
+    private static final String VARIABLE_SECTION_PATH = "graph_hierarchy_variable_section";
+    private static final String NESTED_GROUP_PATH = "graph_hierarchy_nested_group";
+    private static final String DOUBLE_ROUND_TRIP_PATH = "graph_hierarchy_double_round_trip";
 
-    /**
-     * Tests that variables are correctly placed in sections after serialization round-trip.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void variableSectionHierarchy(GameTestHelper helper) {
+    private GraphHierarchySerializationGameTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(VARIABLE_SECTION_PATH, GraphHierarchySerializationGameTest::variableSectionHierarchy);
+        NodeGraphGameTests.registerFunction(NESTED_GROUP_PATH, GraphHierarchySerializationGameTest::nestedGroupHierarchy);
+        NodeGraphGameTests.registerFunction(DOUBLE_ROUND_TRIP_PATH, GraphHierarchySerializationGameTest::doubleRoundTripHierarchy);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, VARIABLE_SECTION_PATH, NodeGraphGameTests.functionKey(VARIABLE_SECTION_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, NESTED_GROUP_PATH, NodeGraphGameTests.functionKey(NESTED_GROUP_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DOUBLE_ROUND_TRIP_PATH, NodeGraphGameTests.functionKey(DOUBLE_ROUND_TRIP_PATH), testData);
+    }
+
+    private static void variableSectionHierarchy(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        // Create variables — they should be auto-inserted into the default section
         var var1 = graphModel.createVariable("alpha", float.class, 1.0f, VariableKind.LOCAL);
         var var2 = graphModel.createVariable("beta", float.class, 2.0f, VariableKind.LOCAL);
         var var3 = graphModel.createVariable("gamma", float.class, 3.0f, VariableKind.LOCAL);
 
-        // Verify original hierarchy
         var defaultSection = graphModel.getSectionModel(GraphModel.DEFAULT_SECTION_NAME);
         assertNotNull(helper, "default section exists", defaultSection);
         assertEq(helper, "section item count before serialize", 3, defaultSection.getItems().size());
 
-        // Serialize
-        CompoundTag serialized = graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graphModel, provider);
 
-        // Deserialize into new graph
         var graph2 = new TestGraph();
         var graphModel2 = graph2.graphModel;
-        graphModel2.deserializeNBT(provider, serialized);
+        deserializeGraph(graphModel2, serialized, provider);
 
-        // Verify variables exist
         assertEq(helper, "variable count", 3, graphModel2.getGraphVariableModels().size());
 
-        // Verify section hierarchy is rebuilt
         var section2 = graphModel2.getSectionModel(GraphModel.DEFAULT_SECTION_NAME);
         assertNotNull(helper, "default section exists after deserialize", section2);
         assertEq(helper, "section item count after deserialize", 3, section2.getItems().size());
 
-        // Verify order and names
         var itemNames = section2.getItems().stream().map(IGroupItemModel::getName).toList();
         assertEq(helper, "first item name", "alpha", itemNames.get(0));
         assertEq(helper, "second item name", "beta", itemNames.get(1));
         assertEq(helper, "third item name", "gamma", itemNames.get(2));
 
-        // Verify parentGroup is set
         for (var item : section2.getItems()) {
             if (item.getParentGroup() != section2) {
                 helper.fail("Item '" + item.getName() + "' has wrong parentGroup after deserialize");
@@ -71,45 +81,33 @@ public class GraphHierarchySerializationTest {
         helper.succeed();
     }
 
-    /**
-     * Tests that nested groups (section -> group -> variables) survive serialization.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void nestedGroupHierarchy(GameTestHelper helper) {
+    private static void nestedGroupHierarchy(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        // Create variables
         var var1 = (VariableDeclarationModelBase) graphModel.createVariable("x", float.class, 1.0f, VariableKind.LOCAL);
         var var2 = (VariableDeclarationModelBase) graphModel.createVariable("y", float.class, 2.0f, VariableKind.LOCAL);
         var var3 = (VariableDeclarationModelBase) graphModel.createVariable("z", float.class, 3.0f, VariableKind.LOCAL);
 
-        // Create a group and move var1, var2 into it
         var defaultSection = graphModel.getSectionModel(GraphModel.DEFAULT_SECTION_NAME);
         assertNotNull(helper, "default section", defaultSection);
         var group = graphModel.createGroup("MyGroup", List.of(var1, var2));
-        // Insert the group into the section
         defaultSection.insertItem(group, defaultSection.getItems().size());
 
-        // Now hierarchy is: section -> [var3, group -> [var1, var2]]
         assertEq(helper, "section items (var3 + group)", 2, defaultSection.getItems().size());
         assertEq(helper, "group items (var1 + var2)", 2, group.getItems().size());
 
-        // Serialize
-        CompoundTag serialized = graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graphModel, provider);
 
-        // Deserialize
         var graph2 = new TestGraph();
         var graphModel2 = graph2.graphModel;
-        graphModel2.deserializeNBT(provider, serialized);
+        deserializeGraph(graphModel2, serialized, provider);
 
         var section2 = graphModel2.getSectionModel(GraphModel.DEFAULT_SECTION_NAME);
         assertNotNull(helper, "section after deserialize", section2);
         assertEq(helper, "section items after deserialize", 2, section2.getItems().size());
 
-        // Find the group
         GroupModel restoredGroup = null;
         for (var item : section2.getItems()) {
             if (item instanceof GroupModel g && "MyGroup".equals(g.getName())) {
@@ -120,12 +118,10 @@ public class GraphHierarchySerializationTest {
         assertNotNull(helper, "restored group", restoredGroup);
         assertEq(helper, "group items after deserialize", 2, restoredGroup.getItems().size());
 
-        // Verify group children names
         var groupItemNames = restoredGroup.getItems().stream().map(IGroupItemModel::getName).toList();
         assertEq(helper, "group child 1", "x", groupItemNames.get(0));
         assertEq(helper, "group child 2", "y", groupItemNames.get(1));
 
-        // Verify the top-level var3 is still in the section
         var topLevelVar = section2.getItems().stream()
                 .filter(i -> !(i instanceof GroupModel))
                 .findFirst().orElse(null);
@@ -135,12 +131,7 @@ public class GraphHierarchySerializationTest {
         helper.succeed();
     }
 
-    /**
-     * Tests that the hierarchy survives a double round-trip (serialize -> deserialize -> serialize -> deserialize).
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void doubleRoundTripHierarchy(GameTestHelper helper) {
+    private static void doubleRoundTripHierarchy(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
@@ -151,21 +142,18 @@ public class GraphHierarchySerializationTest {
         var defaultSection = graphModel.getSectionModel(GraphModel.DEFAULT_SECTION_NAME);
         defaultSection.insertItem(group, defaultSection.getItems().size());
 
-        // First round-trip
-        CompoundTag tag1 = graphModel.serializeNBT(provider);
+        CompoundTag tag1 = serializeGraph(graphModel, provider);
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, tag1);
+        deserializeGraph(graph2.graphModel, tag1, provider);
 
-        // Second round-trip
-        CompoundTag tag2 = graph2.graphModel.serializeNBT(provider);
+        CompoundTag tag2 = serializeGraph(graph2.graphModel, provider);
         var graph3 = new TestGraph();
-        graph3.graphModel.deserializeNBT(provider, tag2);
+        deserializeGraph(graph3.graphModel, tag2, provider);
 
         var section = graph3.graphModel.getSectionModel(GraphModel.DEFAULT_SECTION_NAME);
         assertNotNull(helper, "section after double round-trip", section);
         assertEq(helper, "section items after double round-trip", 2, section.getItems().size());
 
-        // Find the group
         var restoredGroup = section.getItems().stream()
                 .filter(i -> i instanceof GroupModel)
                 .map(i -> (GroupModel) i)
@@ -175,12 +163,23 @@ public class GraphHierarchySerializationTest {
         assertEq(helper, "group items", 1, restoredGroup.getItems().size());
         assertEq(helper, "group child name", "a", restoredGroup.getItems().get(0).getName());
 
-        // Verify tag stability
         if (!tag1.equals(tag2)) {
             LDLib2.LOGGER.warn("Double round-trip produced different NBT");
         }
 
         helper.succeed();
+    }
+
+    // --- Serialization helpers ---
+
+    private static CompoundTag serializeGraph(com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl graphModel, net.minecraft.core.HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graphModel.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl graphModel, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+        graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 
     // --- Helpers ---

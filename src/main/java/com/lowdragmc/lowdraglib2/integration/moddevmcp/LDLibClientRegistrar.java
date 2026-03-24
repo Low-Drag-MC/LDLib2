@@ -8,6 +8,6 @@ import dev.vfyjxf.mcp.api.registrar.ClientMcpToolRegistrar;
 public final class LDLibClientRegistrar implements ClientMcpToolRegistrar {
     @Override
     public void register(RegisterClientMcpToolsEvent event) {
-        event.registerUiDriver();
+//        event.registerUiDriver();
     }
 }

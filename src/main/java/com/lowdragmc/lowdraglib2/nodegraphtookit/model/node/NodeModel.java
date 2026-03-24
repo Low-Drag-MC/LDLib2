@@ -77,9 +77,9 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
     @Override
     public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
         if (tag instanceof CompoundTag compound && compound.contains("inputConstants")) {
-            var constantsTag = compound.getCompound("inputConstants");
-            for (var key : constantsTag.getAllKeys()) {
-                var constant = TypeConstant.deserializeConstant(constantsTag.getCompound(key), provider);
+            var constantsTag = compound.getCompoundOrEmpty("inputConstants");
+            for (var key : constantsTag.keySet()) {
+                var constant = TypeConstant.deserializeConstant(constantsTag.getCompoundOrEmpty(key), provider);
                 if (constant != null) {
                     inputConstantsById.put(key, constant);
                 }

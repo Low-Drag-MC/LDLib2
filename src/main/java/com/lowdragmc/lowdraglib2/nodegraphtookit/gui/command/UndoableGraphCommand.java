@@ -5,6 +5,10 @@ import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class UndoableGraphCommand implements IUndoableGraphCommand {
@@ -19,15 +23,15 @@ public abstract class UndoableGraphCommand implements IUndoableGraphCommand {
         generalActionData();
 
         var provider = Platform.getFrozenRegistry();
-        var beforeTag = graphModel.serializeNBT(provider);
+        var beforeTag = serializeGraph(graphModel);
 
         execute();
 
-        var afterTag = graphModel.serializeNBT(provider);
+        var afterTag = serializeGraph(graphModel);
 
         historyStack.pushHistory(getCommandName(), EditAction.of(
-                () -> { graphModel.deserializeNBT(provider, afterTag); view.rebuildGraphUI(); },
-                () -> { graphModel.deserializeNBT(provider, beforeTag); view.rebuildGraphUI(); }
+                () -> { deserializeGraph(graphModel, afterTag); view.rebuildGraphUI(); },
+                () -> { deserializeGraph(graphModel, beforeTag); view.rebuildGraphUI(); }
         ), getSource(), false);
     }
 
@@ -39,5 +43,17 @@ public abstract class UndoableGraphCommand implements IUndoableGraphCommand {
 
     protected void generalActionData() {
 
+    }
+
+    private static CompoundTag serializeGraph(GraphModel graphModel) {
+        var provider = Platform.getFrozenRegistry();
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graphModel.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(GraphModel graphModel, CompoundTag tag) {
+        var provider = Platform.getFrozenRegistry();
+        graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 }

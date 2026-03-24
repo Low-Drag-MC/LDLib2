@@ -94,7 +94,7 @@ public abstract class WirePortalModel extends NodeModel implements IHasDeclarati
         super.deserializeAdditionalNBT(tag, provider);
         if (tag instanceof CompoundTag compound) {
             if (compound.contains("typeHandle")) {
-                typeHandle = TypeHandle.create(compound.getString("typeHandle"));
+                typeHandle = TypeHandle.create(compound.getStringOr("typeHandle", ""));
             }
         }
     }

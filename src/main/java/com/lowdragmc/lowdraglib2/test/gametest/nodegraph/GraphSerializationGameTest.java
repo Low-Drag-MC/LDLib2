@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
@@ -10,22 +10,42 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.CustomNodeModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.VariableNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestStringConcatNode;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector2f;
 
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphSerializationTest {
+public final class GraphSerializationGameTest {
+    private static final String ROUND_TRIP_PATH = "graph_serialization_round_trip";
+    private static final String EMPTY_PATH = "graph_serialization_empty";
+    private static final String PORT_CONSTANTS_PATH = "graph_serialization_port_constants";
 
-    /**
-     * Tests basic serialization and deserialization of a graph with custom nodes, wires, constants, and variables.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void graphSerializationRoundTrip(GameTestHelper helper) {
+    private GraphSerializationGameTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(ROUND_TRIP_PATH, GraphSerializationGameTest::graphSerializationRoundTrip);
+        NodeGraphGameTests.registerFunction(EMPTY_PATH, GraphSerializationGameTest::emptyGraphSerialization);
+        NodeGraphGameTests.registerFunction(PORT_CONSTANTS_PATH, GraphSerializationGameTest::portConstantsSerialization);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, ROUND_TRIP_PATH, NodeGraphGameTests.functionKey(ROUND_TRIP_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EMPTY_PATH, NodeGraphGameTests.functionKey(EMPTY_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORT_CONSTANTS_PATH, NodeGraphGameTests.functionKey(PORT_CONSTANTS_PATH), testData);
+    }
+
+    private static void graphSerializationRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start Graph Serialization Round-Trip Test");
 
@@ -33,26 +53,20 @@ public class GraphSerializationTest {
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        // Create two custom nodes (TestAddNode)
         var addNode1 = graphModel.createNodeModel(new TestAddNode(), new Vector2f(100, 100));
         var addNode2 = graphModel.createNodeModel(new TestAddNode(), new Vector2f(300, 100));
 
-        // Create a constant node
         var floatType = TypeHandleHelpers.fromType(Float.class);
         var constantNode = graphModel.createConstantNode("myConst", new Vector2f(0, 0), floatType, 42.0f);
 
-        // Create a string concat node
         var concatNode = graphModel.createNodeModel(new TestStringConcatNode(), new Vector2f(200, 300));
 
-        // Create a variable
         var variable = graphModel.createVariable("testVar", float.class, 7.5f, VariableKind.LOCAL);
 
-        // Create a variable node referencing it
         var variableNode = graphModel.createVariableNode(
                 (VariableDeclarationModel) variable,
                 new Vector2f(50, 200), null, null);
 
-        // Connect constantNode output -> addNode1 input "in1"
         var constantOutputPort = ((ConstantNodeModel) constantNode.getNodeModel()).getOutputPort();
         var addNode1InputPort = addNode1.getInputsById().get("in1");
         WireModel wire1 = null;
@@ -60,7 +74,6 @@ public class GraphSerializationTest {
             wire1 = graphModel.createWire(addNode1InputPort, constantOutputPort);
         }
 
-        // Connect addNode1 output -> addNode2 input "in1"
         var addNode1OutputPort = addNode1.getOutputsById().get("out");
         var addNode2InputPort = addNode2.getInputsById().get("in1");
         WireModel wire2 = null;
@@ -68,28 +81,23 @@ public class GraphSerializationTest {
             wire2 = graphModel.createWire(addNode2InputPort, addNode1OutputPort);
         }
 
-        // Record original counts
         int origNodeCount = countNonNull(graphModel.getNodeModels());
         int origWireCount = countNonNull(graphModel.getWireModels());
         int origVarCount = countNonNull(graphModel.getGraphVariableModels());
 
         // === Serialize ===
-        CompoundTag serialized = graphModel.serializeNBT(provider);
-        LDLib2.LOGGER.info("Serialized graph to {} keys", serialized.getAllKeys().size());
+        CompoundTag serialized = serializeGraph(graphModel, provider);
+        LDLib2.LOGGER.info("Serialized graph to {} keys", serialized.keySet().size());
 
         // === Deserialize into a new graph ===
         var graph2 = new TestGraph();
         var graphModel2 = graph2.graphModel;
-        graphModel2.deserializeNBT(provider, serialized);
+        deserializeGraph(graphModel2, serialized, provider);
 
         // === Verify counts ===
-        int newNodeCount = countNonNull(graphModel2.getNodeModels());
-        int newWireCount = countNonNull(graphModel2.getWireModels());
-        int newVarCount = countNonNull(graphModel2.getGraphVariableModels());
-
-        assertEq(helper, "node count", origNodeCount, newNodeCount);
-        assertEq(helper, "wire count", origWireCount, newWireCount);
-        assertEq(helper, "variable count", origVarCount, newVarCount);
+        assertEq(helper, "node count", origNodeCount, countNonNull(graphModel2.getNodeModels()));
+        assertEq(helper, "wire count", origWireCount, countNonNull(graphModel2.getWireModels()));
+        assertEq(helper, "variable count", origVarCount, countNonNull(graphModel2.getGraphVariableModels()));
 
         // === Verify node UIDs match ===
         for (var origNode : graphModel.getNodeModels()) {
@@ -99,7 +107,6 @@ public class GraphSerializationTest {
                 helper.fail("Node with UID " + origNode.getUid() + " not found after deserialization");
                 return;
             }
-            // Verify position
             assertEq(helper, "node position x", (int) origNode.getPosition().x, (int) found.getPosition().x);
             assertEq(helper, "node position y", (int) origNode.getPosition().y, (int) found.getPosition().y);
         }
@@ -161,7 +168,7 @@ public class GraphSerializationTest {
         }
 
         // === Round-trip test: serialize again and compare ===
-        CompoundTag serialized2 = graphModel2.serializeNBT(provider);
+        CompoundTag serialized2 = serializeGraph(graphModel2, provider);
         if (!serialized.equals(serialized2)) {
             LDLib2.LOGGER.warn("Round-trip serialization produced different NBT (this may be expected for non-deterministic elements)");
         }
@@ -170,22 +177,17 @@ public class GraphSerializationTest {
         helper.succeed();
     }
 
-    /**
-     * Tests that an empty graph serializes and deserializes correctly.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void emptyGraphSerialization(GameTestHelper helper) {
+    private static void emptyGraphSerialization(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        CompoundTag serialized = graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graphModel, provider);
 
         var graph2 = new TestGraph();
         var graphModel2 = graph2.graphModel;
-        graphModel2.deserializeNBT(provider, serialized);
+        deserializeGraph(graphModel2, serialized, provider);
 
         assertEq(helper, "empty graph node count", countNonNull(graphModel.getNodeModels()), countNonNull(graphModel2.getNodeModels()));
         assertEq(helper, "empty graph wire count", countNonNull(graphModel.getWireModels()), countNonNull(graphModel2.getWireModels()));
@@ -193,33 +195,24 @@ public class GraphSerializationTest {
         helper.succeed();
     }
 
-    /**
-     * Tests that inputConstantsById (port default values) survive serialization.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void portConstantsSerialization(GameTestHelper helper) {
+    private static void portConstantsSerialization(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        // Create an AddNode which has input ports with constants
         var addNode = graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
 
-        // Set a constant value on input port "in1"
         var in1Constant = addNode.getInputConstantsById().get("in1");
         if (in1Constant != null) {
             in1Constant.setValue(99.0f);
         }
 
-        // Serialize and deserialize
-        CompoundTag serialized = graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graphModel, provider);
         var graph2 = new TestGraph();
         var graphModel2 = graph2.graphModel;
-        graphModel2.deserializeNBT(provider, serialized);
+        deserializeGraph(graphModel2, serialized, provider);
 
-        // Find the restored add node
         CustomNodeModelImpl restoredAdd = null;
         for (var node : graphModel2.getNodeModels()) {
             if (node instanceof CustomNodeModelImpl cn && cn.getUid().equals(addNode.getUid())) {
@@ -250,6 +243,18 @@ public class GraphSerializationTest {
         }
 
         helper.succeed();
+    }
+
+    // --- Serialization helpers ---
+
+    private static CompoundTag serializeGraph(CustomGraphModelImpl graphModel, net.minecraft.core.HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graphModel.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(CustomGraphModelImpl graphModel, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+        graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 
     // --- Helpers ---

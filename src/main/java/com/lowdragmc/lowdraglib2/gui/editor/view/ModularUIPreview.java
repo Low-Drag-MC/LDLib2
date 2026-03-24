@@ -15,8 +15,7 @@ import lombok.Getter;
 import lombok.Setter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.joml.Matrix4f;
-import org.joml.Vector4f;
+import org.joml.Matrix3x2f;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -126,20 +125,17 @@ public class ModularUIPreview extends UIElement {
             var matrix = buildTransformMatrix(selected);
 
             // Transform the 4 corners and compute AABB
-            var corners = new Vector4f[]{
-                    new Vector4f(left, top, 0, 1),
-                    new Vector4f(right, top, 0, 1),
-                    new Vector4f(left, bottom, 0, 1),
-                    new Vector4f(right, bottom, 0, 1)
+            float[][] corners = {
+                    {left, top}, {right, top}, {left, bottom}, {right, bottom}
             };
             float minX = Float.POSITIVE_INFINITY;
             float minY = Float.POSITIVE_INFINITY;
             float maxX = Float.NEGATIVE_INFINITY;
             float maxY = Float.NEGATIVE_INFINITY;
             for (var corner : corners) {
-                matrix.transform(corner);
-                float cx = corner.x / corner.w;
-                float cy = corner.y / corner.w;
+                var transformed = matrix.transformPosition(corner[0], corner[1], new org.joml.Vector2f());
+                float cx = transformed.x;
+                float cy = transformed.y;
                 minX = Math.min(minX, cx);
                 minY = Math.min(minY, cy);
                 maxX = Math.max(maxX, cx);
@@ -166,7 +162,7 @@ public class ModularUIPreview extends UIElement {
      * Build the combined transform matrix for an element, including all ancestor transforms.
      * Transforms are applied from root to element (outermost first).
      */
-    private Matrix4f buildTransformMatrix(UIElement element) {
+    private Matrix3x2f buildTransformMatrix(UIElement element) {
         var chain = new ArrayList<UIElement>();
         var current = element;
         while (current != null) {
@@ -175,7 +171,7 @@ public class ModularUIPreview extends UIElement {
             }
             current = current.getParent();
         }
-        var matrix = new Matrix4f();
+        var matrix = new Matrix3x2f();
         // Apply from root to element (reverse order)
         for (int i = chain.size() - 1; i >= 0; i--) {
             var elem = chain.get(i);

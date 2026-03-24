@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import net.minecraft.network.chat.Component;
@@ -76,7 +76,6 @@ public class GraphPreview extends UIElement implements IGraphTool {
         );
     }
 
-    @Override
     public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
         float cx = getContentX();
         float cy = getContentY();
@@ -112,10 +111,10 @@ public class GraphPreview extends UIElement implements IGraphTool {
                     float rh = nodeH * minimapScale;
 
                     int color = getNodeColor(model);
-                    DrawerHelper.drawSolidRect(guiContext.graphics, rx, ry, rw, rh, color);
+                    DrawerHelperClient.drawSolidRect(guiContext, rx, ry, rw, rh, color);
 
                     if (graphView.isSelected(model)) {
-                        DrawerHelper.drawBorder(guiContext.graphics, rx, ry, rw, rh, HIGHLIGHT_COLOR, 1);
+                        DrawerHelperClient.drawBorder(guiContext, rx, ry, rw, rh, HIGHLIGHT_COLOR, 1);
                     }
                 }
             }
@@ -133,7 +132,7 @@ public class GraphPreview extends UIElement implements IGraphTool {
         float vrw = vpW * minimapScale;
         float vrh = vpH * minimapScale;
 
-        DrawerHelper.drawBorder(guiContext.graphics, vrx, vry, vrw, vrh, VIEWPORT_BORDER_COLOR, 1);
+        DrawerHelperClient.drawBorder(guiContext, vrx, vry, vrw, vrh, VIEWPORT_BORDER_COLOR, 1);
 
         guiContext.disableScissor();
     }

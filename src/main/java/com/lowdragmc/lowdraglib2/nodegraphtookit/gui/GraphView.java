@@ -43,6 +43,9 @@ import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.apache.commons.lang3.function.Consumers;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
@@ -244,11 +247,13 @@ public class GraphView extends UIElement {
         // Push initial snapshot so the first command can be undone
         historyStack.clearHistory();
         var provider = Platform.getFrozenRegistry();
-        var initialTag = graph.graphModel.serializeNBT(provider);
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graph.graphModel.serialize(output);
+        var initialTag = output.buildResult();
         historyStack.pushHistory(Component.translatable("initial"),
                 EditAction.of(
-                        () -> { graph.graphModel.deserializeNBT(provider, initialTag); rebuildGraphUI(); },
-                        () -> { graph.graphModel.deserializeNBT(provider, initialTag); rebuildGraphUI(); }
+                        () -> { graph.graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, initialTag)); rebuildGraphUI(); },
+                        () -> { graph.graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, initialTag)); rebuildGraphUI(); }
                 ), null, false);
         return this;
     }

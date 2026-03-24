@@ -99,7 +99,7 @@ public class TypeConstant extends Constant {
     @Nullable
     public static Constant deserializeConstant(CompoundTag tag, HolderLookup.Provider provider) {
         if (!tag.contains("type")) return null;
-        var typeId = tag.getString("type");
+        var typeId = tag.getStringOr("type", "");
         var typeHandle = TypeHandle.create(typeId);
 
         var constant = new TypeConstant();

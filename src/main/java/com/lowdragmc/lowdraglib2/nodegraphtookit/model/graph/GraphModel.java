@@ -29,6 +29,9 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
@@ -1751,6 +1754,16 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         };
     }
 
+    private static CompoundTag serializeModel(Model model, HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        model.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeModel(Model model, CompoundTag tag, HolderLookup.Provider provider) {
+        model.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
+    }
+
     /**
      * Recursively serializes the items of a group (section or group) into a ListTag.
      * Each item is stored as a CompoundTag with its uid, type ("variable" or "group"),
@@ -1762,12 +1775,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var itemTag = new CompoundTag();
             if (item instanceof VariableDeclarationModelBase variable) {
                 itemTag.putString("type", "variable");
-                itemTag.putUUID("uid", variable.getUid());
+                itemTag.putString("uid", variable.getUid().toString());
             } else if (item instanceof GroupModel groupItem) {
                 itemTag.putString("type", "group");
-                itemTag.putUUID("uid", groupItem.getUid());
+                itemTag.putString("uid", groupItem.getUid().toString());
                 // Serialize group's own data (name, etc.)
-                var groupData = groupItem.serializeNBT(provider);
+                var groupData = serializeModel(groupItem, provider);
                 itemTag.put("data", groupData);
                 // Recursively serialize children
                 itemTag.put("items", serializeGroupItems(groupItem, provider));
@@ -1782,9 +1795,9 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      */
     private void deserializeGroupItems(GroupModel parent, ListTag itemsTag, HolderLookup.Provider provider) {
         for (int i = 0; i < itemsTag.size(); i++) {
-            var itemTag = itemsTag.getCompound(i);
-            var type = itemTag.getString("type");
-            var uid = itemTag.getUUID("uid");
+            var itemTag = itemsTag.getCompoundOrEmpty(i);
+            var type = itemTag.getStringOr("type", "");
+            var uid = UUID.fromString(itemTag.getStringOr("uid", ""));
             switch (type) {
                 case "variable" -> {
                     var model = getModel(uid);
@@ -1795,12 +1808,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 case "group" -> {
                     var group = new GroupModel();
                     group.setGraphModel(this);
-                    group.deserializeNBT(provider, itemTag.getCompound("data"));
+                    deserializeModel(group, itemTag.getCompoundOrEmpty("data"), provider);
                     registerElement(group);
                     parent.insertItem(group, parent.getItems().size());
                     // Recursively rebuild children
                     if (itemTag.contains("items")) {
-                        deserializeGroupItems(group, itemTag.getList("items", Tag.TAG_COMPOUND), provider);
+                        deserializeGroupItems(group, itemTag.getListOrEmpty("items"), provider);
                     }
                 }
             }
@@ -1815,7 +1828,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var variablesTag = new ListTag();
         for (var variable : graphVariableModels) {
             if (variable instanceof VariableDeclarationModel vdm) {
-                variablesTag.add(vdm.serializeNBT(provider));
+                variablesTag.add(serializeModel(vdm, provider));
             }
         }
         tag.put("variables", variablesTag);
@@ -1824,7 +1837,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var portalsTag = new ListTag();
         for (var portal : portalModels) {
             if (portal != null) {
-                portalsTag.add(portal.serializeNBT(provider));
+                portalsTag.add(serializeModel(portal, provider));
             }
         }
         tag.put("portals", portalsTag);
@@ -1832,7 +1845,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // 3. Sections (with hierarchy)
         var sectionsTag = new ListTag();
         for (var section : sectionModels) {
-            var sectionTag = section.serializeNBT(provider);
+            var sectionTag = serializeModel(section, provider);
             sectionTag.put("items", serializeGroupItems(section, provider));
             sectionsTag.add(sectionTag);
         }
@@ -1842,7 +1855,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var nodesTag = new ListTag();
         for (var nodeModel : nodeModels) {
             if (nodeModel == null) continue;
-            var nodeTag = nodeModel.serializeNBT(provider);
+            var nodeTag = serializeModel(nodeModel, provider);
             nodeTag.putString("_type", getNodeDiscriminator(nodeModel));
             if (nodeModel instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
                 nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
@@ -1855,7 +1868,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var wiresTag = new ListTag();
         for (var wireModel : wireModels) {
             if (wireModel != null) {
-                wiresTag.add(wireModel.serializeNBT(provider));
+                wiresTag.add(serializeModel(wireModel, provider));
             }
         }
         tag.put("wires", wiresTag);
@@ -1879,12 +1892,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 1. Variables
         if (compound.contains("variables")) {
-            var variablesTag = compound.getList("variables", Tag.TAG_COMPOUND);
+            var variablesTag = compound.getListOrEmpty("variables");
             for (int i = 0; i < variablesTag.size(); i++) {
-                var varTag = variablesTag.getCompound(i);
+                var varTag = variablesTag.getCompoundOrEmpty(i);
                 var variable = new VariableDeclarationModel();
                 variable.setGraphModel(this);
-                variable.deserializeNBT(provider, varTag);
+                deserializeModel(variable, varTag, provider);
                 graphVariableModels.add(variable);
                 existingVariableNames.add(variable.getName());
                 registerElement(variable);
@@ -1893,12 +1906,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 2. Portals
         if (compound.contains("portals")) {
-            var portalsTag = compound.getList("portals", Tag.TAG_COMPOUND);
+            var portalsTag = compound.getListOrEmpty("portals");
             for (int i = 0; i < portalsTag.size(); i++) {
-                var portalTag = portalsTag.getCompound(i);
+                var portalTag = portalsTag.getCompoundOrEmpty(i);
                 var portal = new DeclarationModel();
                 portal.setGraphModel(this);
-                portal.deserializeNBT(provider, portalTag);
+                deserializeModel(portal, portalTag, provider);
                 portalModels.add(portal);
                 registerElement(portal);
             }
@@ -1906,35 +1919,35 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 3. Sections (with hierarchy)
         if (compound.contains("sections")) {
-            var sectionsTag = compound.getList("sections", Tag.TAG_COMPOUND);
+            var sectionsTag = compound.getListOrEmpty("sections");
             for (int i = 0; i < sectionsTag.size(); i++) {
-                var sectionTag = sectionsTag.getCompound(i);
+                var sectionTag = sectionsTag.getCompoundOrEmpty(i);
                 var section = new SectionModel();
                 section.setGraphModel(this);
-                section.deserializeNBT(provider, sectionTag);
+                deserializeModel(section, sectionTag, provider);
                 sectionModels.add(section);
                 registerElement(section);
                 // Rebuild hierarchy: variables and groups under this section
                 if (sectionTag.contains("items")) {
-                    deserializeGroupItems(section, sectionTag.getList("items", Tag.TAG_COMPOUND), provider);
+                    deserializeGroupItems(section, sectionTag.getListOrEmpty("items"), provider);
                 }
             }
         }
 
         // 4. Nodes
         if (compound.contains("nodes")) {
-            var nodesTag = compound.getList("nodes", Tag.TAG_COMPOUND);
+            var nodesTag = compound.getListOrEmpty("nodes");
             for (int i = 0; i < nodesTag.size(); i++) {
-                var nodeTag = nodesTag.getCompound(i);
-                var type = nodeTag.getString("_type");
+                var nodeTag = nodesTag.getCompoundOrEmpty(i);
+                var type = nodeTag.getStringOr("_type", "");
                 try {
                     var nodeModel = createNodeFromDiscriminator(type);
                     nodeModel.setGraphModel(this);
-                    nodeModel.deserializeNBT(provider, nodeTag);
+                    deserializeModel(nodeModel, nodeTag, provider);
 
                     // CustomNodeModelImpl: look up node class and init
                     if (nodeModel instanceof CustomNodeModelImpl customNode) {
-                        var nodeClassName = nodeTag.getString("nodeClass");
+                        var nodeClassName = nodeTag.getStringOr("nodeClass", "");
                         Node node = findNodeByClassName(nodeClassName);
                         if (node != null) {
                             customNode.initCustomNode(node);
@@ -1968,13 +1981,13 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 5. Wires - resolve port references
         if (compound.contains("wires")) {
-            var wiresTag = compound.getList("wires", Tag.TAG_COMPOUND);
+            var wiresTag = compound.getListOrEmpty("wires");
             for (int i = 0; i < wiresTag.size(); i++) {
-                var wireTag = wiresTag.getCompound(i);
+                var wireTag = wiresTag.getCompoundOrEmpty(i);
                 try {
                     var wireModel = new WireModel();
                     wireModel.setGraphModel(this);
-                    wireModel.deserializeNBT(provider, wireTag);
+                    deserializeModel(wireModel, wireTag, provider);
 
                     // Resolve port references from the serialized UUIDs
                     var fromPortUid = WireModel.getFromPortUidFromTag(wireTag);

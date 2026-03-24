@@ -127,10 +127,10 @@ public class VariableDeclarationModel extends VariableDeclarationModelBase {
     public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
         if (tag instanceof CompoundTag compound) {
             if (compound.contains("dataTypeId")) {
-                dataTypeHandle = TypeHandle.create(compound.getString("dataTypeId"));
+                dataTypeHandle = TypeHandle.create(compound.getStringOr("dataTypeId", ""));
             }
             if (compound.contains("initializationModel")) {
-                initializationModel = TypeConstant.deserializeConstant(compound.getCompound("initializationModel"), provider);
+                initializationModel = TypeConstant.deserializeConstant(compound.getCompoundOrEmpty("initializationModel"), provider);
                 if (initializationModel != null) {
                     initializationModel.setOwner(this);
                 }

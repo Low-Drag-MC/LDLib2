@@ -198,8 +198,8 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
     @Override
     public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        if (fromPort != null) tag.putUUID("fromPortUid", fromPort.getUid());
-        if (toPort != null) tag.putUUID("toPortUid", toPort.getUid());
+        if (fromPort != null) tag.putString("fromPortUid", fromPort.getUid().toString());
+        if (toPort != null) tag.putString("toPortUid", toPort.getUid().toString());
         return tag;
     }
 
@@ -215,8 +215,9 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
      */
     public static @Nullable UUID getFromPortUidFromTag(CompoundTag tag) {
         if (tag.contains("_additional")) {
-            var additional = tag.getCompound("_additional");
-            if (additional.contains("fromPortUid")) return additional.getUUID("fromPortUid");
+            var additional = tag.getCompoundOrEmpty("_additional");
+            var uid = additional.getStringOr("fromPortUid", "");
+            if (!uid.isEmpty()) return UUID.fromString(uid);
         }
         return null;
     }
@@ -227,8 +228,9 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
      */
     public static @Nullable UUID getToPortUidFromTag(CompoundTag tag) {
         if (tag.contains("_additional")) {
-            var additional = tag.getCompound("_additional");
-            if (additional.contains("toPortUid")) return additional.getUUID("toPortUid");
+            var additional = tag.getCompoundOrEmpty("_additional");
+            var uid = additional.getStringOr("toPortUid", "");
+            if (!uid.isEmpty()) return UUID.fromString(uid);
         }
         return null;
     }

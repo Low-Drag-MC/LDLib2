@@ -78,7 +78,7 @@ public class ConstantNodeModel extends NodeModel implements ISingleOutputPortNod
     public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
         super.deserializeAdditionalNBT(tag, provider);
         if (tag instanceof CompoundTag compound && compound.contains("constant")) {
-            constant = TypeConstant.deserializeConstant(compound.getCompound("constant"), provider);
+            constant = TypeConstant.deserializeConstant(compound.getCompoundOrEmpty("constant"), provider);
             if (constant != null) {
                 constant.setOwner(this);
             }
