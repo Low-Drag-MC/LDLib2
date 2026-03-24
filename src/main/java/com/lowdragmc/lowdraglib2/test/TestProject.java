@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.test;
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraphResource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
 import net.minecraft.world.level.storage.ValueInput;
@@ -20,7 +21,8 @@ public class TestProject implements IProject {
                 ColorsResource.INSTANCE,
                 TexturesResource.INSTANCE,
                 IRendererResource.INSTANCE,
-                UIResource.INSTANCE
+                UIResource.INSTANCE,
+                TestGraphResource.INSTANCE
         );
     }
 

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
+import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
@@ -23,7 +24,7 @@ import java.util.function.Supplier;
 
 public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRenderer>>, IConfigurable, IPersistedSerializable {
     //region builtin renderer
-    @LDLRegisterClient(name = "empty", registry = "ldlib2:renderer", manual = true)
+    @LDLRegisterClient(name = "empty", registry = "ldlib2:renderer", environment = RegistrationEnvironment.MANUAL)
     final class EmptyRenderer implements IRenderer {
         @Override
         public IRenderer copy() { return EMPTY; }

@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.registry.annotation;
 
+import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -42,6 +44,14 @@ public @interface LDLRegister {
     /**
      * Whether the element should be registered manually. If true, the element will not be registered automatically.
      * If false you HAVE TO register it manually in the {@link com.lowdragmc.lowdraglib2.registry.AutoRegistry.LDLibRegister}
+     * @deprecated since 26.1. Use {@link #environment()} with {@link RegistrationEnvironment#MANUAL} instead.
+     * TODO: Remove in a future version.
      */
+    @Deprecated(since = "26.1")
     boolean manual() default false;
+
+    /**
+     * The environment in which this element should be registered.
+     */
+    RegistrationEnvironment environment() default RegistrationEnvironment.ALWAYS;
 }

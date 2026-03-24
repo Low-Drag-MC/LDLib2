@@ -618,6 +618,41 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return children.stream().flatMap(UIElement::selfAndAllChildren);
     }
 
+    /**
+     * Selects and retrieves a stream of {@link UIElement} objects that match the specified CSS-like selector.
+     */
+    public Stream<UIElement> select(String selector) {
+        var match = HierarchicalStyleMatcher.parse(selector);
+        return selfAndAllChildren().filter(match::matches);
+    }
+
+    public <T> Stream<T> select(String selector, Class<T> type) {
+        return select(selector).filter(type::isInstance).map(type::cast);
+    }
+
+    /**
+     * Selects and retrieves a stream of {@link UIElement} objects whose IDs match the specified regular expression.
+     */
+    public Stream<UIElement> selectRegex(String regex) {
+        var pattern = java.util.regex.Pattern.compile(regex);
+        return selfAndAllChildren().filter(element -> pattern.matcher(element.getId()).find());
+    }
+
+    public <T> Stream<T> selectRegex(String regex, Class<T> type) {
+        return selectRegex(regex).filter(type::isInstance).map(type::cast);
+    }
+
+    /**
+     * Selects and retrieves a stream of {@link UIElement} objects whose IDs match the specified string.
+     */
+    public Stream<UIElement> selectId(String id) {
+        return selfAndAllChildren().filter(element -> id.equals(element.getId()));
+    }
+
+    public <T> Stream<T> selectId(String id, Class<T> type) {
+        return selectId(id).filter(type::isInstance).map(type::cast);
+    }
+
     public final List<UIElement> getFlattenChildren() {
         var list = new ArrayList<UIElement>();
         for (var child : children) {
@@ -1147,7 +1182,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * @return the element that is hovered and its z-index, or null if no element is hovered
      */
     @Nullable
-    protected final Pair<UIElement, Integer> hitTest(double mouseX, double mouseY) {
+    public final Pair<UIElement, Integer> hitTest(double mouseX, double mouseY) {
         // TODO do hit tree in the future?
         if (!isDisplayed() || !isVisible() || getStyle().opacity() <= 0) return null;
 

@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
+import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
@@ -21,13 +22,13 @@ import java.util.function.Supplier;
 @KJSBindings
 public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
     //region builtin textures
-    @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", manual = true)
+    @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture", environment = RegistrationEnvironment.MANUAL)
     final class EmptyTexture implements IGuiTexture {
         @Override
         public IGuiTexture copy() { return EMPTY; }
     }
 
-    @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", manual = true)
+    @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", environment = RegistrationEnvironment.MANUAL)
     final class MissingTexture implements IGuiTexture {
         @Override
         public IGuiTexture copy() { return MISSING_TEXTURE; }

@@ -29,8 +29,12 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisit
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.ItemLibrary;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeModelLibraryItem;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.PlacematElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.StickyNoteElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePlaceholder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePreviewModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
@@ -55,6 +59,7 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -72,6 +77,8 @@ public class GraphView extends UIElement {
     public final GraphPreview preview = new GraphPreview(this);
 
     // runtime
+    @Nullable
+    private GraphModel.CopyPasteData clipboardData = null;
     private boolean requireFitGraph = false;
     @Getter
     private GraphChangeset changeset = new GraphChangeset();
@@ -117,6 +124,7 @@ public class GraphView extends UIElement {
             layout.flexDirection(FlexDirection.ROW);
         });
         header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
+        header.addClass("__ui-editor-view_header__");
         initHeaders();
 
         // canvas
@@ -130,7 +138,7 @@ public class GraphView extends UIElement {
         fallbackLayer.setAllowHitTest(false);
         fallbackLayer.getLayout().positionType(TaffyPosition.ABSOLUTE);
         graphView.addContentChild(fallbackLayer);
-        setLayers(List.of(WireElement.WIRE_LAYER, NodeElement.NODE_LAYER));
+        setLayers(List.of(PlacematElement.PLACEMAT_LAYER, WireElement.WIRE_LAYER, NodeElement.NODE_LAYER, StickyNoteElement.STICKY_NOTE_LAYER));
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
         addEventListener(UIEvents.DRAG_END, this::onDragEnd);
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
@@ -151,7 +159,7 @@ public class GraphView extends UIElement {
     protected void initHeaders() {
         header.addChildren(
                 // left
-                new UIElement().layout(layout -> {
+                new UIElement().setId("header-left").layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.heightPercent(100);
                     layout.flex(1);
@@ -166,9 +174,9 @@ public class GraphView extends UIElement {
                                 .style(style -> style.tooltips("Ctrl+Y / Ctrl+Shift+Z"))
                 ),
                 // center
-                new UIElement().layout(layout -> layout.heightPercent(100)),
+                new UIElement().setId("header-center").layout(layout -> layout.heightPercent(100)),
                 // right
-                new UIElement().layout(layout -> {
+                new UIElement().setId("header-right").layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.justifyContent(AlignContent.FLEX_END);
                     layout.heightPercent(100);
@@ -372,7 +380,10 @@ public class GraphView extends UIElement {
             }
         }
 
-        // todo sticky note
+        // sticky notes
+        for (var stickyNoteModel : graphModel.getStickyNoteModels()) {
+            createAndAddModelElement(stickyNoteModel);
+        }
 
         // wire
         int index = 0;
@@ -522,7 +533,7 @@ public class GraphView extends UIElement {
         layer.addChild(element);
         if (element.isSelectable()) {
             element.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-                if ((event.button == 0 || event.button == 1) && event.bubbleListeners.size() == 1) {
+                if (element.allowGraphMouseDown(event)) {
                     var tagetWasSelected = isSelected(model);
                     batchSelection(() -> {
                         // select node
@@ -533,14 +544,28 @@ public class GraphView extends UIElement {
                         moveElementTop(element);
                     });
 
-                    // drag movable
-                    var movables = selected.stream().filter(m -> m instanceof IMovable).toList();
+                    // drag movable — include fully contained nodes when dragging a placemat
+                    var movablesList = new ArrayList<>(selected.stream().filter(m -> m instanceof IMovable).toList());
+                    for (var sel : new ArrayList<>(movablesList)) {
+                        if (sel instanceof PlacematModel pm) {
+                            java.util.function.Function<com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel, Vector2f> sizeLookup = node -> {
+                                var nodeEl = getModelElement(node);
+                                return nodeEl != null ? new Vector2f(nodeEl.getSizeWidth(), nodeEl.getSizeHeight()) : null;
+                            };
+                            for (var contained : pm.getContainedNodes(sizeLookup)) {
+                                if (contained instanceof IMovable && !movablesList.contains(contained)) {
+                                    movablesList.add(contained);
+                                }
+                            }
+                        }
+                    }
+                    var movables = List.copyOf(movablesList);
                     if (movables.isEmpty()) return;
                     var width = 12;
                     var height = 12;
                     startDrag(new DragMove(tagetWasSelected, model, movables), Icons.MOVE).setDragTexture(- width / 2f, -height / 2f, width, height);
                 }
-            });
+            }, element.isGraphMouseDownCaptured());
         }
         if (model instanceof IMovable movable) {
             // position
@@ -786,16 +811,20 @@ public class GraphView extends UIElement {
     protected void onKeyDown(UIEvent event) {
         if (this.isFocused() || panelLayer.getChildren().stream().anyMatch(UIElement::isFocused)) {
             switch (event.keyCode) {
-                case GLFW.GLFW_KEY_DELETE -> {
-                    deleteSelectedElements();
-                    break;
-                }
+                case GLFW.GLFW_KEY_DELETE -> deleteSelectedElements();
             }
         }
     }
 
     protected void onValidateCommand(UIEvent event) {
-        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command))) {
+        if (
+                CommandEvents.UNDO.equals(event.command) ||
+                CommandEvents.REDO.equals(event.command) ||
+                CommandEvents.COPY.equals(event.command) ||
+                CommandEvents.CUT.equals(event.command) ||
+                CommandEvents.DUPLICATE.equals(event.command) ||
+                CommandEvents.PASTE.equals(event.command)
+        ) {
             event.stopPropagation();
         }
     }
@@ -806,6 +835,14 @@ public class GraphView extends UIElement {
             historyStack.redo();
         } else if (CommandEvents.UNDO.equals(event.command)) {
             historyStack.undo();
+        } else if (CommandEvents.COPY.equals(event.command)) {
+            copySelectedElements();
+        } else if (CommandEvents.CUT.equals(event.command)) {
+            cutSelectedElements();
+        } else if (CommandEvents.DUPLICATE.equals(event.command)) {
+            duplicateSelectedElements();
+        } else if (CommandEvents.PASTE.equals(event.command)) {
+            pasteElements();
         }
     }
 
@@ -897,8 +934,10 @@ public class GraphView extends UIElement {
     }
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
-        var menuBuilder= TreeBuilder.Menu.start();
+        var menuBuilder = TreeBuilder.Menu.start();
         var localPosition = getContentViewContainer().getLocalMouse(mouseX, mouseY);
+
+        // "Add Node" is always available
         menuBuilder.leaf("graph.commands.add_node", () -> {
             itemLibrary.show(mouseX, mouseY, node -> {
                 if (node instanceof NodeModelLibraryItem nodeItem) {
@@ -906,31 +945,135 @@ public class GraphView extends UIElement {
                 }
             });
         });
-        if (!getSelected().isEmpty() && getSelected().stream().allMatch(m -> m instanceof GraphElementModel gem && gem.isDeletable())) {
-            menuBuilder.leaf("graph.commands.delete", this::deleteSelectedElements);
+
+        // "Create Sticky Note" is always available
+        menuBuilder.leaf(ContextualMenuHelpers.CREATE_STICKY_NOTE_ITEM.getName(), () ->
+                dispatchCommand(new GraphCommands.CreateStickyNoteCommand(localPosition))
+        );
+
+        // "Create Placemat" is always available
+        menuBuilder.leaf(ContextualMenuHelpers.CREATE_PLACEMAT_ITEM.getName(), () ->
+                createPlacematFromSelection(localPosition)
+        );
+
+        if (getSelected().isEmpty()) return menuBuilder;
+
+        // Collect selected GraphElementModels
+        var selectedModels = getSelected().stream()
+                .filter(GraphElementModel.class::isInstance)
+                .map(GraphElementModel.class::cast)
+                .toList();
+        if (selectedModels.isEmpty()) return menuBuilder;
+
+        menuBuilder.crossLine();
+
+        // Get common menu items (intersection) from all selected models, sorted by priority
+        var commonItems = getCommonMenuItems(selectedModels);
+
+        // Bind actions and build menu
+        for (var item : commonItems) {
+            var bound = bindMenuItemAction(item, selectedModels, localPosition);
+            if (bound != null) {
+                menuBuilder.leaf(bound.getName(), bound::execute);
+            }
         }
-        if (!getSelected().isEmpty() && getSelected().stream().allMatch(e -> e instanceof WireModel)) {
-            menuBuilder.leaf("graph.commands.covert_wires_to_portals", () -> {
-                var wires = new ArrayList<WireModel>();
-                var hasNullOrMissingPort = false;
-                for (var model : getSelected().stream().toList()) {
-                    // If the graph element is not a wire, don't append this menu item.
-                    if (!(model instanceof WireModel wireModel)) return;
 
-                    // If the wire has a missing port, do not allow creation of portals.
-                    hasNullOrMissingPort = wireModel.getToPort() == null || wireModel.getFromPort() == null ||
-                            wireModel.getToPort().getPortType() == PortType.MISSING_PORT ||
-                            wireModel.getFromPort().getPortType() == PortType.MISSING_PORT;
-                    if (hasNullOrMissingPort) continue;
-                    wires.add(wireModel);
-                }
-
-                var wireData = WireElement.getPortalsWireData(wires, this);
-
-                dispatchCommand(new WireCommands.ConvertWiresToPortalsCommand(wireData));
-            });
+        // Wire-specific items (only when all selected are wires)
+        if (selectedModels.stream().allMatch(WireModel.class::isInstance)) {
+            appendWireMenuItems(menuBuilder, selectedModels);
         }
+
         return menuBuilder;
+    }
+
+    /** Gets the intersection of menu items from all selected models, sorted by priority. */
+    private List<ContextualMenuItem> getCommonMenuItems(List<GraphElementModel> models) {
+        var first = new LinkedHashSet<>(models.get(0).getContextualMenuItems());
+        for (int i = 1; i < models.size(); i++) {
+            var names = models.get(i).getContextualMenuItems().stream()
+                    .map(ContextualMenuItem::getName).collect(Collectors.toSet());
+            first.removeIf(item -> !names.contains(item.getName()));
+        }
+        return first.stream().sorted(Comparator.comparingInt(ContextualMenuItem::getPriority)).toList();
+    }
+
+    /** Binds a runtime action to a menu item. Returns null if the item is not available. */
+    private @Nullable ContextualMenuItem bindMenuItemAction(ContextualMenuItem item,
+            List<GraphElementModel> selectedModels, Vector2f localPosition) {
+        return switch (item.getName()) {
+            case "Delete" -> {
+                if (selectedModels.stream().allMatch(GraphElementModel::isDeletable))
+                    yield item.withAction(this::deleteSelectedElements);
+                yield null;
+            }
+            case "Frame Selection" -> item.withAction(this::fitGraphChildren);
+            case "Cut" -> {
+                if (selectedModels.stream().allMatch(m -> m.isDeletable() && m.isCopiable()))
+                    yield item.withAction(this::cutSelectedElements);
+                yield null;
+            }
+            case "Copy" -> {
+                if (selectedModels.stream().allMatch(GraphElementModel::isCopiable))
+                    yield item.withAction(this::copySelectedElements);
+                yield null;
+            }
+            case "Paste" -> {
+                if (clipboardData != null)
+                    yield item.withAction(this::pasteElements);
+                yield null;
+            }
+            case "Paste as New" -> null; // TODO
+            case "Rename" -> null; // TODO
+            case "Duplicate" -> {
+                if (selectedModels.stream().allMatch(GraphElementModel::isCopiable))
+                    yield item.withAction(this::duplicateSelectedElements);
+                yield null;
+            }
+            case "Color..." -> null; // TODO
+            case "Create Placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
+            case "Create Subgraph from Selection" -> null; // TODO
+            case "Align and Distribute" -> null; // TODO
+            // Node-specific items
+            case "Delete and Reconnect" -> null; // TODO
+            case "Edit Subtitle" -> null; // TODO
+            case "Bypass Node" -> null; // TODO
+            case "Disable Node" -> null; // TODO
+            case "Disconnect All Wires" -> item.withAction(() -> {
+                var wiresToDelete = selectedModels.stream()
+                        .filter(AbstractNodeModel.class::isInstance)
+                        .map(AbstractNodeModel.class::cast)
+                        .flatMap(node -> node.getConnectedWires().stream())
+                        .distinct()
+                        .map(GraphElementModel.class::cast)
+                        .toList();
+                if (!wiresToDelete.isEmpty()) {
+                    dispatchCommand(new GraphCommands.DeleteElementsCommand(wiresToDelete));
+                }
+            });
+            case "Toggle Collapse" -> null; // TODO
+            default -> {
+                // If the item already has an action, use it directly
+                if (item.getAction() != null) yield item;
+                yield null;
+            }
+        };
+    }
+
+    /** Appends wire-specific menu items (e.g., Convert to Portals). */
+    private void appendWireMenuItems(TreeBuilder.Menu menuBuilder, List<GraphElementModel> models) {
+        menuBuilder.leaf("graph.commands.covert_wires_to_portals", () -> {
+            var wires = new ArrayList<WireModel>();
+            for (var model : models) {
+                if (!(model instanceof WireModel wireModel)) return;
+                var hasNullOrMissingPort = wireModel.getToPort() == null || wireModel.getFromPort() == null ||
+                        wireModel.getToPort().getPortType() == PortType.MISSING_PORT ||
+                        wireModel.getFromPort().getPortType() == PortType.MISSING_PORT;
+                if (hasNullOrMissingPort) continue;
+                wires.add(wireModel);
+            }
+            var wireData = WireElement.getPortalsWireData(wires, this);
+            dispatchCommand(new WireCommands.ConvertWiresToPortalsCommand(wireData));
+        });
     }
 
     @Override
@@ -939,6 +1082,9 @@ public class GraphView extends UIElement {
         // lets update the graph elements here
         updateGraphModelChanges();
         if (requireFitGraph) {
+            var size = getTaffyLayout().size();
+            // make sure it's a valid graph view size
+            if (size.width == 0 || size.height == 0) return;
             requireFitGraph = false;
             fitGraphChildren();
         }
@@ -1065,10 +1211,8 @@ public class GraphView extends UIElement {
             if (!(model instanceof IGraphElementUIModel)) continue;
             if (model instanceof WireModel
                     || model instanceof PortModel
-//                    || model instanceof PlacematModel
                     || model instanceof DeclarationModel
                     || model instanceof NodePreviewModel
-//                    || model instanceof GroupModelBase
             ) continue;
 
             if (model.getContainer() != graph.graphModel) continue;
@@ -1082,7 +1226,14 @@ public class GraphView extends UIElement {
             }
         }
 
-        // todo Placemat
+        for (var model : newModels) {
+            if (model instanceof PlacematModel) {
+                var element = getModelElement(model);
+                if (element instanceof GraphElement<?> ge) {
+                    newPlacemats.add(ge);
+                }
+            }
+        }
 
         for (var model : newModels) {
             if (model instanceof NodePreviewModel previewModel) {
@@ -1129,6 +1280,67 @@ public class GraphView extends UIElement {
         }
 
         return false;
+    }
+
+    private void createPlacematFromSelection(Vector2f localPosition) {
+        var movables = getSelected().stream()
+                .filter(IMovable.class::isInstance)
+                .map(IMovable.class::cast)
+                .toList();
+        if (movables.isEmpty()) {
+            dispatchCommand(new GraphCommands.CreatePlacematCommand("Placemat", localPosition, new Vector2f(200, 150)));
+        } else {
+
+            float padding = 20f;
+            float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+            float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+            for (var movable : movables) {
+                var pos = movable.getPosition();
+                var el = getModelElement((GraphElementModel) movable);
+                float w = el != null ? el.getSizeWidth() : 0;
+                float h = el != null ? el.getSizeHeight() : 0;
+                minX = Math.min(minX, pos.x);
+                minY = Math.min(minY, pos.y);
+                maxX = Math.max(maxX, pos.x + w);
+                maxY = Math.max(maxY, pos.y + h);
+            }
+            var placematPos = new Vector2f(minX - padding, minY - padding);
+            var placematSize = new Vector2f(maxX - minX + padding * 2, maxY - minY + padding * 2);
+            dispatchCommand(new GraphCommands.CreatePlacematCommand("Placemat", placematPos, placematSize));
+        }
+    }
+
+    public void copySelectedElements() {
+        if (graph == null) return;
+        var selectedModels = getSelected().stream()
+                .filter(GraphElementModel.class::isInstance)
+                .map(GraphElementModel.class::cast)
+                .filter(GraphElementModel::isCopiable)
+                .toList();
+        if (selectedModels.isEmpty()) return;
+        clipboardData = graph.graphModel.copyElements(selectedModels, Platform.getFrozenRegistry());
+    }
+
+    public void cutSelectedElements() {
+        copySelectedElements();
+        deleteSelectedElements();
+    }
+
+    public void pasteElements() {
+        if (graph == null || clipboardData == null) return;
+        dispatchCommand(new GraphCommands.PasteElementsCommand(clipboardData, new Vector2f(50, 50)));
+    }
+
+    public void duplicateSelectedElements() {
+        if (graph == null) return;
+        var selectedModels = getSelected().stream()
+                .filter(GraphElementModel.class::isInstance)
+                .map(GraphElementModel.class::cast)
+                .filter(GraphElementModel::isCopiable)
+                .toList();
+        if (selectedModels.isEmpty()) return;
+        var data = graph.graphModel.copyElements(selectedModels, Platform.getFrozenRegistry());
+        dispatchCommand(new GraphCommands.PasteElementsCommand(data, new Vector2f(50, 50)));
     }
 
     public void deleteSelectedElements() {

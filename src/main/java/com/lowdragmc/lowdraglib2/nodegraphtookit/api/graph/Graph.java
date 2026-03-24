@@ -11,15 +11,6 @@ import java.util.List;
 
 /**
  * Represents the core definition of a graph and defines its behavior.
- *
- * <p>To register a graph type and associate it with a custom identifier and configuration options,
- * apply the {@link GraphAttribute} to your custom {@code Graph} class.</p>
- *
- * <p>You can further control the graph's behavior using the {@link GraphOptions} constants, which define traits
- * such as support for subgraphs. If your graph supports subgraphs (via {@link GraphOptions#SUPPORTS_SUBGRAPHS}),
- * you can declare valid subgraph types using the {@link SubgraphAttribute}.</p>
- *
- * <p>Use the {@link GraphDatabase} utility class to create, load, and save graphs.</p>
  */
 public abstract class Graph implements IGraph {
     /** Backing implementation that stores the actual graph state. */
@@ -31,14 +22,13 @@ public abstract class Graph implements IGraph {
 
     /**
      * Retrieves a list of supported node types in the graph.
+     * <p>
+     * Typically backed by an {@link com.lowdragmc.lowdraglib2.registry.AutoRegistry} created via
+     * {@link com.lowdragmc.lowdraglib2.registry.AutoRegistry#createNodeRegistry}.
      *
-     *
-     * @return a {@link List} of {@code Class} objects representing the supported node types,
-     * or {@code null} if no specific node types are declared supported, it will be automatically detected by annotations.
+     * @return a {@link List} of {@code Class} objects representing the supported node types
      */
-    public @Nullable List<Class<? extends Node>> getSupportNodes() {
-        return null;
-    }
+    public abstract List<Class<? extends Node>> getSupportNodes();
 
     /**
      * Retrieves a list of supported types for the graph.

@@ -1,4 +1,10 @@
 # ChangeLogs
+## v2.2.5
+* Fixed HUD overlay default size
+* Improved transform2d to support percent
+* Added VanillaSpriteTexture
+* Improved Graph Toolkit
+
 ## v2.2.4.a
 * Fixed Dummyworld RegistryAccess for EMI async Thread loading
 

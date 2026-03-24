@@ -20,10 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class CustomGraphModelImpl extends GraphModel {
@@ -31,7 +28,7 @@ public class CustomGraphModelImpl extends GraphModel {
     private final Graph graph;
     // runtime
     @Nullable
-    private List<Class<? extends Node>> getSupportNodes;
+    private List<Class<? extends Node>> supportNodeCache;
     @Nullable
     private List<TypeHandle> supportedTypes;
     private List<INode> nodes;
@@ -43,20 +40,12 @@ public class CustomGraphModelImpl extends GraphModel {
 
     @Override
     public List<Class<? extends Node>> getSupportNodes() {
-        if (getSupportNodes == null) initializeSupportedNodes();
-        return getSupportNodes;
+        if (supportNodeCache == null) initializeSupportedNodes();
+        return supportNodeCache;
     }
 
     protected void initializeSupportedNodes() {
-        getSupportNodes = graph.getSupportNodes();
-        if (getSupportNodes == null) {
-            getSupportNodes = detectSupportedNodes(this);
-        }
-    }
-
-    public static List<Class<? extends Node>> detectSupportedNodes(GraphModel graphModel) {
-        // TODO annotations
-        return new ArrayList<>();
+        supportNodeCache = graph.getSupportNodes();
     }
 
     @Override

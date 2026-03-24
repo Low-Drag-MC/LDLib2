@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -9,7 +10,21 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ContextualMenuItem {
 
+    /**
+     * -- GETTER --
+     *  Gets the display name of the item.
+     *
+     * @return the name
+     */
+    @Getter
     private final String name;
+    /**
+     * -- GETTER --
+     *  Gets the priority of the item.
+     *
+     * @return the priority
+     */
+    @Getter
     private final int priority;
     private final Runnable action;
 
@@ -49,30 +64,22 @@ public class ContextualMenuItem {
     }
 
     /**
-     * Gets the display name of the item.
-     *
-     * @return the name
-     */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Gets the priority of the item.
-     *
-     * @return the priority
-     */
-    public int getPriority() {
-        return priority;
-    }
-
-    /**
      * Gets the action to perform when the item is clicked.
      *
      * @return the action, or {@code null} if none
      */
     public @Nullable Runnable getAction() {
         return action;
+    }
+
+    /**
+     * Returns a copy of this item with the given action bound.
+     *
+     * @param action the action to bind
+     * @return a new item with the same name and priority but with the given action
+     */
+    public ContextualMenuItem withAction(Runnable action) {
+        return new ContextualMenuItem(this.name, this.priority, action);
     }
 
     /**

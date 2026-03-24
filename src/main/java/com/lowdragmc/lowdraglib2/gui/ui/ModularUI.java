@@ -596,4 +596,6 @@ public class ModularUI {
         requestFocus(null);
     }
 
+    // Tooltip/widget/rendering methods are in ModularUIClientAccess and ModularUIWidget (extracted from here)
+
 }
