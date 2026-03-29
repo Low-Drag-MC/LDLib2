@@ -9,13 +9,10 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.RegistryAccess;
 
 import javax.annotation.Nonnull;
-
-/**
- * a packet that contains payload for managed fields
- */
 @NoArgsConstructor
 public class PacketRPCPacket implements CustomPacketPayload {
     public static final ResourceLocation ID = LDLib2.id("rpc_packet");
@@ -46,16 +43,16 @@ public class PacketRPCPacket implements CustomPacketPayload {
         return new PacketRPCPacket(packetID, data);
     }
 
-    public static void execute(PacketRPCPacket packet, IPayloadContext context) {
-        if (context.player() instanceof ServerPlayer) {
-            executeServer(packet, context);
+    public static void handle(PacketRPCPacket packet, Player player, RegistryAccess registryAccess) {
+        if (player instanceof ServerPlayer) {
+            executeServer(packet, player, registryAccess);
         } else {
-            executeClient(packet, context);
+            executeClient(packet, player, registryAccess);
         }
     }
 
-    public static void executeClient(PacketRPCPacket packet, IPayloadContext context) {
-        if (context.player().level() == null) {
+    public static void executeClient(PacketRPCPacket packet, Player player, RegistryAccess registryAccess) {
+        if (player.level() == null) {
             return;
         }
         var handler = RPCPacketDistributor.getPacketHandler(packet.packetID);
@@ -69,8 +66,7 @@ public class PacketRPCPacket implements CustomPacketPayload {
         handler.handler(sender, data);
     }
 
-    public static void executeServer(PacketRPCPacket packet, IPayloadContext context) {
-        var player = context.player();
+    public static void executeServer(PacketRPCPacket packet, Player player, RegistryAccess registryAccess) {
         if (!(player instanceof ServerPlayer serverPlayer)) {
             LDLib2.LOGGER.error("Received rpc payload packet from client with no server player!");
             return;

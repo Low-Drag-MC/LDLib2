@@ -21,7 +21,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.loading.FMLLoader;
+import net.fabricmc.loader.api.FabricLoader;
 import org.appliedenergistics.yoga.YogaEdge;
 
 import java.io.File;
@@ -34,7 +34,7 @@ public class EditorSettings implements IPersistedSerializable {
     private final Map<ResourceLocation, Settings> settings = new LinkedHashMap<>();
     private final Map<ResourceLocation, Codec<? extends Settings>> codecs = new HashMap<>();
     @Getter @Setter @Accessors(chain = true)
-    private File settingsFile = FMLLoader.getGamePath().resolve("config").resolve(LDLib2.MOD_ID).resolve("editor.json").toFile();
+    private File settingsFile = FabricLoader.getInstance().getGameDir().resolve("config").resolve(LDLib2.MOD_ID).resolve("editor.json").toFile();
     // runtime
     private boolean isDirty = false;
     private JsonObject storedSettings = new JsonObject();

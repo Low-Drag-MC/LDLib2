@@ -11,10 +11,6 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Configurator for LengthPercentageAuto values (margin, padding, etc.)
- */
 public class LPAConfigurator extends ValueConfigurator<LengthPercentageAuto> {
     public enum Unit {
         AUTO, LENGTH, PERCENT, MIN_CONTENT, MAX_CONTENT, FIT_CONTENT, STRETCH

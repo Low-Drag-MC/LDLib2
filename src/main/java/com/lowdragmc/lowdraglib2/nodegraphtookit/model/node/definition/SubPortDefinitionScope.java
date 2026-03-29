@@ -10,11 +10,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Scope for defining sub ports. Provides methods to instantiate, configure and add sub ports within the context of a parent port.
- * @param <T>
- */
 public class SubPortDefinitionScope<T extends NodeModel> {
     public final T nodeModel;
     public List<PortModel> addedPorts;

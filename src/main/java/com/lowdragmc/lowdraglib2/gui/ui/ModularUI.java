@@ -15,7 +15,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.geometry.TaffySize;
@@ -44,8 +43,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.appliedenergistics.yoga.YogaConstants;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
@@ -59,7 +58,6 @@ import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@KJSBindings
 public class ModularUI {
     public final UI ui;
     public final UISyncManager syncManager;
@@ -72,12 +70,12 @@ public class ModularUI {
     private boolean shouldCloseOnKeyInventory = true;
 
     // runtime
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     @Nullable
     private ModularUIWidget widget;
     @Nullable
-    @OnlyIn(Dist.CLIENT)
-    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
+    @Environment(EnvType.CLIENT)
+    @Getter(onMethod_ = {@Environment(EnvType.CLIENT)})
     private Screen screen;
     @Getter
     private TaffyTree taffyTree;
@@ -150,7 +148,7 @@ public class ModularUI {
     @Getter
     private TooltipComponent tooltipComponent;
     @Nullable
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private Font tooltipFont;
     @Getter
     private ItemStack tooltipStack = ItemStack.EMPTY;
@@ -468,18 +466,18 @@ public class ModularUI {
     }
 
     /// screen only
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void setScreenAndInit(Screen screen) {
         setScreen(screen);
         init(screen.width, screen.height);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void setScreen(@Nullable Screen screen) {
         this.screen = screen;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void init(int screenWidth, int screenHeight) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
@@ -560,7 +558,7 @@ public class ModularUI {
             if (taffyTree.isDirty(ui.rootElement.nodeId)) {
                 taffyTree.computeLayout(ui.rootElement.nodeId, new TaffySize<>(
                         Float.isNaN(layoutWidth) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutWidth),
-                        Float.isNaN(layoutWidth) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutHeight)
+                        Float.isNaN(layoutHeight) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutHeight)
                 ));
 
                 for (var nodeId : nodesWithNewLayout) {
@@ -609,7 +607,7 @@ public class ModularUI {
      * This will trigger FocusOut event on the old focused element and FocusIn event on the new focused element.
      * @param element the element to focus, or null to clear focus
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void requestFocus(@Nullable UIElement element) {
         if (focusedElement == element) return;
 
@@ -653,12 +651,12 @@ public class ModularUI {
 
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void clearFocus() {
         requestFocus(null);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void setHoverTooltip(List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable Font tooltipFont, @Nullable TooltipComponent tooltipComponent) {
         this.tooltipTexts = tooltipTexts;
         this.tooltipStack = tooltipStack;
@@ -666,7 +664,7 @@ public class ModularUI {
         this.tooltipComponent = tooltipComponent;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void cleanTooltip() {
         tooltipTexts = null;
         tooltipComponent = null;
@@ -674,13 +672,13 @@ public class ModularUI {
         tooltipStack = ItemStack.EMPTY;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     @Nullable
     public Font getTooltipFont() {
         return tooltipFont;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public ModularUIWidget getWidget() {
         if (widget == null) {
             widget = new ModularUIWidget();
@@ -688,19 +686,19 @@ public class ModularUI {
         return widget;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public List<Rect2i> getGuiExtraAreas() {
         if (extraAreas.isEmpty()) calculateExtraAreas();
         return extraAreas;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void calculateExtraAreas() {
         extraAreas.clear();
         ui.rootElement.appendExtraAreas(extraAreas);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void enableDebugger(boolean debugMode) {
         if (this.debugMode == debugMode) return;
         this.debugMode = debugMode;
@@ -708,13 +706,13 @@ public class ModularUI {
             if (uiDebuggerCache == null) {
                 uiDebuggerCache = new UIDebugger(this);
             }
-            Minecraft.getInstance().pushGuiLayer(new DebugScreen(uiDebuggerCache));
+            Minecraft.getInstance().setScreen(new DebugScreen(uiDebuggerCache));
         }
     }
 
     @ParametersAreNonnullByDefault
     @MethodsReturnNonnullByDefault
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable, IModularUIHolder {
         private long lastTick;
 

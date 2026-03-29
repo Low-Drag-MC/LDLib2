@@ -12,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.NeoForge;
 
 public abstract class Resource<T> {
     public enum DisplayMode {
@@ -63,7 +62,7 @@ public abstract class Resource<T> {
         resourceInstance.addBuiltinProvider(global);
 
         // send an Event to register built resources
-        NeoForge.EVENT_BUS.post(new EditorResourceEvent.LoadBuiltin(resourceInstance));
+        EditorResourceEvent.LOAD_BUILTIN.invoker().onLoad(resourceInstance);
     }
 
     /**

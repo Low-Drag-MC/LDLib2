@@ -17,6 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author KilaBash
  * @date 2022/12/1
  * @implNote ConfiguratorAccessors
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class ConfiguratorAccessors {
     private static final Map<Class<?>, IConfiguratorAccessor<?>> ACCESSOR_MAP = new ConcurrentHashMap<>();

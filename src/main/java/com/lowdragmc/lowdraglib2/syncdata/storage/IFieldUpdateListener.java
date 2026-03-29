@@ -8,6 +8,9 @@ import java.util.function.Consumer;
  * @author KilaBash
  * @date 2023/2/17
  * @implNote FieldUpdateListener
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @FunctionalInterface
 public

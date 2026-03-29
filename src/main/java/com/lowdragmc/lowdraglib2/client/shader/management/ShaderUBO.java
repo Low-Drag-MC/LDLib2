@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib2.client.shader.management;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 
@@ -11,8 +9,10 @@ import java.nio.FloatBuffer;
  * @author KilaBash
  * @date 2022/5/4
  * @implNote ShaderUBO, Uniform Buffer Object
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
-@OnlyIn(Dist.CLIENT)
 public class ShaderUBO {
     public final int id;
     private boolean inValid;

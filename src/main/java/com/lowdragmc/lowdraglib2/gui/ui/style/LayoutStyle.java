@@ -13,8 +13,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridAutoValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateAreasValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridTemplateValue;
 import com.lowdragmc.lowdraglib2.gui.ui.style.values.GridValue;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+
+
 import dev.vfyjxf.taffy.style.*;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
@@ -24,7 +24,7 @@ import org.appliedenergistics.yoga.style.YogaStyle;
 
 import java.util.*;
 
-@RemapPrefixForJS("kjs$")
+
 public final class LayoutStyle extends Style {
     private static final Property<?>[] PROPERTIES;
     static {
@@ -948,7 +948,7 @@ public final class LayoutStyle extends Style {
     }
 
     @Deprecated(since = "26.1")
-    @HideFromJS
+    
     public LayoutStyle positionType(YogaPositionType positionType) {
         return positionType(switch (positionType) {
             case STATIC, RELATIVE -> TaffyPosition.RELATIVE;
@@ -956,7 +956,7 @@ public final class LayoutStyle extends Style {
         });
     }
 
-    @HideFromJS
+    
     public LayoutStyle positionType(TaffyPosition positionType) {
         set(LayoutProperties.POSITION, positionType);
         return this;
@@ -1075,7 +1075,7 @@ public final class LayoutStyle extends Style {
     }
 
     @Deprecated(since = "26.1")
-    @HideFromJS
+    
     public LayoutStyle alignContent(YogaAlign alignContent) {
         return alignContent(switch (alignContent) {
             case AUTO, BASELINE -> null;
@@ -1089,7 +1089,7 @@ public final class LayoutStyle extends Style {
         });
     }
 
-    @HideFromJS
+    
     public LayoutStyle alignContent(AlignContent alignContent) {
         set(LayoutProperties.ALIGN_CONTENT, alignContent);
         return this;
@@ -1101,7 +1101,7 @@ public final class LayoutStyle extends Style {
     }
 
     @Deprecated(since = "26.1")
-    @HideFromJS
+    
     public LayoutStyle alignItems(YogaAlign alignItems) {
         return alignItems(switch (alignItems) {
             case AUTO, SPACE_BETWEEN, SPACE_AROUND, SPACE_EVENLY -> null;
@@ -1124,7 +1124,7 @@ public final class LayoutStyle extends Style {
     }
 
     @Deprecated(since = "26.1")
-    @HideFromJS
+    
     public LayoutStyle alignSelf(YogaAlign alignSelf) {
         return alignSelf(switch (alignSelf) {
             case AUTO, SPACE_BETWEEN, SPACE_AROUND, SPACE_EVENLY -> null;
@@ -1136,7 +1136,7 @@ public final class LayoutStyle extends Style {
         });
     }
 
-    @HideFromJS
+    
     public LayoutStyle alignSelf(AlignItems alignSelf) {
         set(LayoutProperties.ALIGN_SELF, alignSelf);
         return this;
@@ -1242,7 +1242,7 @@ public final class LayoutStyle extends Style {
     }
 
     @Deprecated(since = "26.1")
-    @HideFromJS
+    
     public LayoutStyle flexDirection(YogaFlexDirection direction) {
         return flexDirection(switch (direction) {
             case COLUMN -> FlexDirection.COLUMN;
@@ -1252,7 +1252,7 @@ public final class LayoutStyle extends Style {
         });
     }
 
-    @HideFromJS
+    
     public LayoutStyle flexDirection(FlexDirection flexDirection) {
         set(LayoutProperties.FLEX_DIRECTION, flexDirection);
         return this;
@@ -1301,7 +1301,7 @@ public final class LayoutStyle extends Style {
     }
 
     @Deprecated(since = "26.1")
-    @HideFromJS
+    
     public LayoutStyle justifyContent(YogaJustify justifyContent) {
         return justifyContent(switch (justifyContent) {
             case FLEX_START -> AlignContent.FLEX_START;
@@ -1313,7 +1313,7 @@ public final class LayoutStyle extends Style {
         });
     }
 
-    @HideFromJS
+    
     public LayoutStyle justifyContent(AlignContent justifyContent) {
         set(LayoutProperties.JUSTIFY_CONTENT, justifyContent);
         return this;
@@ -1340,12 +1340,12 @@ public final class LayoutStyle extends Style {
     }
 
     @Deprecated(since = "26.1")
-    @HideFromJS
+    
     public LayoutStyle direction(YogaDirection direction) {
         return setDirection(direction);
     }
 
-    @HideFromJS
+    
     public LayoutStyle direction(TaffyDirection direction) {
         set(LayoutProperties.LAYOUT_DIRECTION, direction);
         return this;
@@ -1356,7 +1356,7 @@ public final class LayoutStyle extends Style {
         return wrap(wrap);
     }
 
-    @HideFromJS
+    
     @Deprecated(since = "26.1")
     public LayoutStyle wrap(YogaWrap wrap) {
         return wrap(switch (wrap) {
@@ -1366,7 +1366,7 @@ public final class LayoutStyle extends Style {
         });
     }
 
-    @HideFromJS
+    
     public LayoutStyle wrap(FlexWrap wrap) {
         set(LayoutProperties.FLEX_WRAP, wrap);
         return this;
@@ -1469,13 +1469,13 @@ public final class LayoutStyle extends Style {
         return this;
     }
 
-    @HideFromJS
+    
     @Deprecated(since = "26.1")
     public LayoutStyle display(YogaDisplay display) {
         return setDisplay(display);
     }
 
-    @HideFromJS
+    
     public LayoutStyle display(TaffyDisplay display) {
         set(LayoutProperties.DISPLAY, display);
         return this;

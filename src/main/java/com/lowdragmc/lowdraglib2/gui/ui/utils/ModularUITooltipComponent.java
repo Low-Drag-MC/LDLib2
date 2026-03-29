@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.TaffyDimension;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -14,7 +13,6 @@ import java.util.Optional;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@KJSBindings
 public class ModularUITooltipComponent implements TooltipComponent {
     public final ModularUI modularUI;
 

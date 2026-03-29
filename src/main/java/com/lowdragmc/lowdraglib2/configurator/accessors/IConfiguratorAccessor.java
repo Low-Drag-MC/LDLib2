@@ -12,6 +12,9 @@ import java.util.function.Supplier;
  * @author KilaBash
  * @date 2022/12/1
  * @implNote IConfiguratorAccessor
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfiguratorAccessor<?>, IConfiguratorAccessor<?>> {
     IConfiguratorAccessor<?> DEFAULT = type -> true;

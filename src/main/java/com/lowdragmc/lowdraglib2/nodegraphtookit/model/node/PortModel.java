@@ -22,13 +22,6 @@ import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-
-/**
- * Model representing a port on a node.
- *
- * <p>Ports are connection points on nodes that allow data or execution flow to pass between nodes.
- * Each port has a direction (input or output), a data type, and can be connected to other compatible ports.</p>
- */
 public class PortModel extends GraphElementModel implements IPort, IHasDisplayName, IHasContextualMenuItems, IFieldConstantConfigurable {
     @Getter
     protected PortNodeModel nodeModel;

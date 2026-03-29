@@ -1,13 +1,9 @@
 package com.lowdragmc.lowdraglib2.registry;
 
 import com.lowdragmc.lowdraglib2.Platform;
-import net.neoforged.fml.loading.modscan.ModAnnotation;
+import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 
 import java.util.Map;
-
-/**
- * Controls when an annotated element should be registered based on the runtime environment.
- */
 public enum RegistrationEnvironment {
     /**
      * Always register, regardless of environment.
@@ -43,8 +39,7 @@ public enum RegistrationEnvironment {
      * Use this in annotation filters for {@link AutoRegistry}.
      */
     public static boolean shouldRegister(Map<String, Object> annotationData) {
-        // ASM scan stores enum values as ModAnnotation.EnumHolder(desc, value)
-        if (annotationData.get("environment") instanceof ModAnnotation.EnumHolder envHolder) {
+        if (annotationData.get("environment") instanceof ReflectionUtils.EnumHolder envHolder) {
             return RegistrationEnvironment.valueOf(envHolder.value()).shouldRegister();
         }
         // Legacy: check deprecated manual field

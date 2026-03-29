@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -19,13 +18,12 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.gui.GuiGraphics;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.joml.Vector4f;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.*;
 
-@KJSBindings
 @LDLRegisterClient(name = "sdf_rect_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 public class SDFRectTexture extends TransformTexture {
@@ -103,13 +101,13 @@ public class SDFRectTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         drawInternalWithColorVecs(graphics, x, y, width, height, colorVec4, borderColorVec4);
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         if (context.elementColor == -1) {
             drawInternalWithColorVecs(context.graphics, x, y, width, height, colorVec4, borderColorVec4);
@@ -120,7 +118,7 @@ public class SDFRectTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void drawInternalWithColorVecs(GuiGraphics graphics, float x, float y, float width, float height,
                                            Vector4f fillVec, Vector4f borderVec) {
         graphics.flush();

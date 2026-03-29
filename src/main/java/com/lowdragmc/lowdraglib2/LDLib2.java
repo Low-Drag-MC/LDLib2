@@ -1,15 +1,10 @@
 package com.lowdragmc.lowdraglib2;
 
-import net.minecraft.client.Minecraft;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.RandomSource;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import com.lowdragmc.lowdraglib2.CommonListeners.ModCreativeModeTab;
-import com.lowdragmc.lowdraglib2.core.mixins.MixinPluginShared;
 import com.lowdragmc.lowdraglib2.client.ClientProxy;
 import com.google.gson.GsonBuilder;
 import com.google.gson.Gson;
@@ -18,29 +13,34 @@ import org.slf4j.Logger;
 
 import java.io.File;
 
-@Mod(LDLib2.MOD_ID)
-public class LDLib2 {
+public class LDLib2 implements ModInitializer {
     public static final String MOD_ID = "ldlib2";
     public static final String NAME = "LowDragLib2";
     public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
-    public static final String MODID_JEI = "jei";
     public static final String MODID_RUBIDIUM = "rubidium";
-    public static final String MODID_REI = "roughlyenoughitems";
-    public static final String MODID_EMI = "emi";
     public static final RandomSource RANDOM = RandomSource.createThreadSafe();
     public static final Gson GSON = new GsonBuilder().create();
     private static File assetsLocation;
 
-    public LDLib2(IEventBus eventBus, ModContainer modContainer) {
+    @Override
+    public void onInitialize() {
         LDLib2.init();
-        new CommonProxy(eventBus);
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            new ClientProxy(eventBus);
-        }
-        if (Platform.isDevEnv()) {
-            ModCreativeModeTab.register(eventBus);
-        }
+        
+        // Track the server instance in Platform
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            Platform.SERVER = server;
+            Platform.SERVER_REGISTRY_ACCESS = server.registryAccess();
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            Platform.SERVER = null;
+            Platform.SERVER_REGISTRY_ACCESS = null;
+        });
+
+        CommonListeners.register();
+        new CommonProxy();
+        
+
     }
 
     public static void init() {
@@ -75,7 +75,6 @@ public class LDLib2 {
             return ResourceLocation.isValidNamespace(namespace) && ResourceLocation.isValidPath(path);
         }
         return true;
-
     }
 
     public static ResourceLocation id(String path) {
@@ -87,51 +86,15 @@ public class LDLib2 {
     }
 
     public static boolean isRemote() {
-        if (isClient()) {
-            return Minecraft.getInstance().isSameThread();
-        }
-        return false;
+        // Simple heuristic for Fabric
+        return FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT;
     }
 
     public static boolean isServer() {
-        if (!isClient()) return true;
-        var server = Platform.getMinecraftServer();
-        if (server != null) {
-            return server.isSameThread();
-        }
-        return false;
+        return FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.SERVER;
     }
 
     public static boolean isModLoaded(String mod) {
         return Platform.isModLoaded(mod);
     }
-
-    public static boolean isJeiLoaded() {
-        return isModLoaded(MODID_JEI);
-    }
-
-    public static boolean isReiLoaded() {
-        return isModLoaded(MODID_REI);
-    }
-
-    public static boolean isEmiLoaded() {
-        return isModLoaded(MODID_EMI);
-    }
-
-    public static boolean isKubejsLoaded() {
-        return Platform.isModLoaded("kubejs");
-    }
-
-    public static boolean isIrisLoaded() {
-        return MixinPluginShared.IS_IRIS_LOAD;
-    }
-
-    public static boolean isOculusLoaded() {
-        return MixinPluginShared.IS_OCULUS_LOAD;
-    }
-
-    public static boolean isOptifineLoaded() {
-        return MixinPluginShared.IS_OPT_LOAD;
-    }
-
 }

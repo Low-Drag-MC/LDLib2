@@ -8,26 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
-
-/**
- * Hierarchical style matcher that supports inheritance relationships, supporting the following syntax:
- * - "div span" - Descendant selector: all span descendants of div
- * - "div > span" - Child selector: direct span children of div
- * <p>
- * Supports CSS state pseudo-class sugar: any {@code :xxx} pseudo-class (that is not a scope modifier)
- * is automatically translated to the internal class {@code __xxx__}.
- * Examples:
- * <pre>
- *   button:hover          →  button.__hover__
- *   button:hover:focus    →  button.__hover__.__focus__
- *   .panel:disabled       →  .panel.__disabled__
- *   button:my-state       →  button.__my-state__   (custom state, no hardcoded map needed)
- * </pre>
- * Scope modifiers ({@code :host}, {@code :internal}) are NOT converted to classes and continue
- * to work as before.
- * <p>
- * In {@link StyleSelector#toString()}, {@code __xxx__} class names are printed back as {@code :xxx}.
- */
 public class HierarchicalStyleMatcher {
 
     /** Pseudo-class names that act as scope modifiers rather than state classes. */

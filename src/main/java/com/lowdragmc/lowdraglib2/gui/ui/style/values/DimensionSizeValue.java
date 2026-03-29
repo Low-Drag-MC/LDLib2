@@ -5,18 +5,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.TaffyDimension;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * Parses CSS size/min-size/max-size shorthand syntax using TaffyDimension.
- *
- * Supported syntax (following CSS):
- * <pre>
- * width: 10px;            // Both dimensions (when used as shorthand)
- * size: 10px 20px;        // Width Height
- * size: auto;             // Auto sizing
- * size: 50% 100px;        // Width Height with mixed units
- * </pre>
- */
 public class DimensionSizeValue extends StyleValue<DimensionSize> {
 
     public DimensionSizeValue(String rawValue) {

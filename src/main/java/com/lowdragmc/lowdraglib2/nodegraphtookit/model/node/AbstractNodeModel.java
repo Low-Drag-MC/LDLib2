@@ -14,10 +14,6 @@ import org.joml.Vector2f;
 import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.stream.Stream;
-
-/**
- * Base class for a model that represents a node in a graph.
- */
 public abstract class AbstractNodeModel extends GraphElementModel implements IHasName, IHasDisplayName, IMovable,
         IHasElementColor, IHasContextualMenuItems, IGraphElementUIModel {
     @Persisted

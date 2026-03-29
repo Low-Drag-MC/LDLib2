@@ -1,12 +1,14 @@
 package com.lowdragmc.lowdraglib2.misc;
 
+import com.lowdragmc.lowdraglib2.utils.fluids.*;
+
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.neoforge.fluids.FluidStack;
+import dev.architectury.fluid.FluidStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ public class TagOrCycleFluidTransfer implements IFluidHandlerModifiable {
                                         .stream()
                                         .flatMap(pair -> BuiltInRegistries.FLUID.getTag(pair.getFirst())
                                                 .map(holderSet -> holderSet.stream()
-                                                        .map(holder -> new FluidStack(holder.value(), pair.getSecond())))
+                                                        .map(holder -> FluidStack.create(holder.value(), pair.getSecond())))
                                                 .orElseGet(Stream::empty))
                                         .toList(),
                                 Function.identity());
@@ -62,7 +64,7 @@ public class TagOrCycleFluidTransfer implements IFluidHandlerModifiable {
     @Override
     public FluidStack getFluidInTank(int tank) {
         List<FluidStack> stackList = getUnwrapped().get(tank);
-        return stackList == null || stackList.isEmpty() ? FluidStack.EMPTY : stackList.get(Math.abs((int)(System.currentTimeMillis() / 1000) % stackList.size()));
+        return stackList == null || stackList.isEmpty() ? FluidStack.empty() : stackList.get(Math.abs((int)(System.currentTimeMillis() / 1000) % stackList.size()));
     }
 
     @Override
@@ -75,7 +77,7 @@ public class TagOrCycleFluidTransfer implements IFluidHandlerModifiable {
 
     @Override
     public int getTankCapacity(int tank) {
-        return getFluidInTank(tank).getAmount();
+        return (int) getFluidInTank(tank).getAmount();
     }
 
     @Override
@@ -96,12 +98,12 @@ public class TagOrCycleFluidTransfer implements IFluidHandlerModifiable {
     @NotNull
     @Override
     public FluidStack drain(FluidStack resource, FluidAction action) {
-        return FluidStack.EMPTY;
+        return FluidStack.empty();
     }
 
     @Override
     public @NotNull FluidStack drain(int maxDrain, FluidAction action) {
-        return FluidStack.EMPTY;
+        return FluidStack.empty();
     }
 
     @Override

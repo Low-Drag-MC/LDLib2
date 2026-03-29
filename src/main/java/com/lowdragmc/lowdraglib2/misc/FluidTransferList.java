@@ -1,13 +1,16 @@
 package com.lowdragmc.lowdraglib2.misc;
 
+import com.lowdragmc.lowdraglib2.utils.fluids.IFluidHandlerModifiable;
+import com.lowdragmc.lowdraglib2.utils.fluids.FluidAction;
+
 import com.lowdragmc.lowdraglib2.LDLib2;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import com.lowdragmc.lowdraglib2.utils.INBTSerializable;
+import dev.architectury.fluid.FluidStack;
+import com.lowdragmc.lowdraglib2.utils.fluids.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -18,6 +21,9 @@ import java.util.function.Predicate;
  * @author KilaBash
  * @date 2023/2/25
  * @implNote FluidTransferList
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializable<CompoundTag> {
     public final IFluidHandler[] transfers;
@@ -47,7 +53,7 @@ public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializa
             }
             index += transfer.getTanks();
         }
-        return FluidStack.EMPTY;
+        return FluidStack.empty();
     }
 
     @Override
@@ -100,12 +106,12 @@ public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializa
             copied.shrink(transfer.fill(candidate, action));
             if (copied.isEmpty()) break;
         }
-        return resource.getAmount() - copied.getAmount();
+        return (int) (resource.getAmount() - copied.getAmount());
     }
 
     @Override
     public @NotNull FluidStack drain(FluidStack resource, FluidAction action) {
-        if (resource.isEmpty() || !filter.test(resource)) return FluidStack.EMPTY;
+        if (resource.isEmpty() || !filter.test(resource)) return FluidStack.empty();
         var copied = resource.copy();
         for (var transfer : transfers) {
             var candidate = copied.copy();
@@ -119,7 +125,7 @@ public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializa
     @Override
     public @NotNull FluidStack drain(int maxDrain, FluidAction action) {
         if (maxDrain == 0) {
-            return FluidStack.EMPTY;
+            return FluidStack.empty();
         }
         FluidStack totalDrained = null;
         for (var storage : transfers) {
@@ -139,7 +145,7 @@ public class FluidTransferList implements IFluidHandlerModifiable, INBTSerializa
             }
             if (maxDrain <= 0) break;
         }
-        return totalDrained == null ? FluidStack.EMPTY : totalDrained;
+        return totalDrained == null ? FluidStack.empty() : totalDrained;
     }
 
     @Override

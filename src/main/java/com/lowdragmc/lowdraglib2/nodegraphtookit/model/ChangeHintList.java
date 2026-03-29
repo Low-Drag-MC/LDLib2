@@ -1,10 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
 import java.util.*;
-
-/**
- * Static lists used to avoid allocations when using simple change hint lists.
- */
 public final class ChangeHintList {
     public static final ChangeHintList UNSPECIFIED = new ChangeHintList(ChangeHint.UNSPECIFIED);
     public static final ChangeHintList LAYOUT      = new ChangeHintList(ChangeHint.LAYOUT);

@@ -2,21 +2,24 @@ package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 /**
  * @author KilaBash
  * @date 2024/06/26
  * @implNote A scene object that can be rendered in the scene editor.
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public interface ISceneRendering extends ISceneObject {
     /**
      * Called before draw the object in the scene.
      * before the transform is applied. all children will be drawn after this.
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     default void preDraw(float partialTicks){
     }
 
@@ -24,14 +27,14 @@ public interface ISceneRendering extends ISceneObject {
      * Called after draw the object in the scene.
      * after the transform is applied. all children will be drawn before this.
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     default void postDraw(float partialTicks){
     }
 
     /**
      * Draw the object in the scene. execute transform here.
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     default void draw(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks){
         poseStack.pushPose();
         poseStack.mulPose(transform().localToWorldMatrix());
@@ -42,6 +45,6 @@ public interface ISceneRendering extends ISceneObject {
     /**
      * Draw the object in the scene.
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks);
 }

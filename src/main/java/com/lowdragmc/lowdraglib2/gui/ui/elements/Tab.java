@@ -14,7 +14,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
@@ -33,7 +32,6 @@ import java.util.function.Supplier;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@KJSBindings
 @LDLRegister(name = "tab", group = "utils", registry = "ldlib2:ui_element")
 public class Tab extends UIElement {
     @Configurable(name = "TabStyle")

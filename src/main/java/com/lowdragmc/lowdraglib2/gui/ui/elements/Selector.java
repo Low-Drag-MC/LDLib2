@@ -15,7 +15,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
@@ -42,7 +41,6 @@ import java.util.function.Consumer;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@KJSBindings
 @LDLRegister(name = "selector", group = "basic", registry = "ldlib2:ui_element")
 public class Selector<T> extends BindableUIElement<T> {
     @Configurable(name = "SelectorStyle")

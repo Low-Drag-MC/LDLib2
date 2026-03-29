@@ -18,10 +18,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.RegistryOps;
-import net.neoforged.neoforge.common.CommonHooks;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import net.neoforged.neoforge.network.connection.ConnectionType;
+import com.lowdragmc.lowdraglib2.utils.INBTSerializable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -30,10 +27,6 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-
-/**
- * This is a tool class to serialize and deserialize the object fields with {@link Persisted} or {@link Configurable} annotation.
- */
 @UtilityClass
 public final class PersistedParser {
     /**
@@ -59,9 +52,6 @@ public final class PersistedParser {
             public <T1> DataResult<Pair<T, T1>> decode(DynamicOps<T1> ops, T1 input) {
                 T instance = creator.get();
                 HolderLookup.Provider provider = Platform.getFrozenRegistry();
-                if (ops instanceof RegistryOps<T1> registryOps) {
-                    provider = CommonHooks.extractLookupProvider(registryOps);
-                }
                 if (instance instanceof IPersistedSerializable persistedSerializable) {
                     CompoundTag tag;
                     if (input instanceof CompoundTag compoundTag) {
@@ -79,12 +69,9 @@ public final class PersistedParser {
             @Override
             public <T1> DataResult<T1> encode(T input, DynamicOps<T1> ops, T1 prefix) {
                 HolderLookup.Provider provider = Platform.getFrozenRegistry();
-                if (ops instanceof RegistryOps<T1> registryOps) {
-                    provider = CommonHooks.extractLookupProvider(registryOps);
-                }
-                if (input instanceof IPersistedSerializable persistedSerializable) {
+                if (input instanceof INBTSerializable serializable) {
                     try {
-                        var tag = persistedSerializable.serializeNBT(provider);
+                        var tag = serializable.serializeNBT(provider);
                         if (ops == NbtOps.INSTANCE || ops instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) {
                             return (DataResult<T1>) DataResult.success(tag);
                         }
@@ -141,6 +128,7 @@ public final class PersistedParser {
      * This method is used to deserialize the NBT data to the object fields with {@link Persisted} or {@link Configurable} annotation.
      */
     public static void deserializeNBT(CompoundTag tag, Object object, HolderLookup.Provider provider) {
+        if (provider == null) provider = Platform.getFrozenRegistry();
         deserialize(provider.createSerializationContext(NbtOps.INSTANCE), tag, object, provider);
     }
 
@@ -162,7 +150,7 @@ public final class PersistedParser {
         var provider = buf instanceof RegistryFriendlyByteBuf registryBuf ?
                 registryBuf.registryAccess() : Platform.getFrozenRegistry();
         var registryBuf = buf instanceof RegistryFriendlyByteBuf rb ?
-                rb : new RegistryFriendlyByteBuf(buf, provider, ConnectionType.NEOFORGE);
+                rb : new RegistryFriendlyByteBuf(buf, provider);
         writeStreamBuffInternal(true, registryBuf, object.getClass(), object, provider);
     }
 
@@ -184,7 +172,7 @@ public final class PersistedParser {
         var provider = buf instanceof RegistryFriendlyByteBuf registryBuf ?
                 registryBuf.registryAccess() : Platform.getFrozenRegistry();
         var registryBuf = buf instanceof RegistryFriendlyByteBuf rb ?
-                rb : new RegistryFriendlyByteBuf(buf, provider, ConnectionType.NEOFORGE);
+                rb : new RegistryFriendlyByteBuf(buf, provider);
         readStreamBuffInternal(true, registryBuf, new HashMap<>(), object.getClass(), object, provider);
     }
 

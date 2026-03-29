@@ -24,6 +24,9 @@ import java.util.function.Supplier;
  * @author KilaBash
  * @date 2022/12/3
  * @implNote ResourceLocationAccessor
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @LDLRegisterClient(name = "resource_location", registry = "ldlib2:configurator_accessor")
 public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
@@ -58,18 +61,18 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
                         Component.literal("---") : Component.literal(font.toString()))
                 );
                 case ITEM_TAG_KEY -> new TagKeySearchComponent.Item(name,
-                        () -> ItemTags.create(supplier.get()), tagKey -> consumer.accept(tagKey.location()),
-                        ItemTags.create(defaultValue(field, ResourceLocation.class)),
+                        () -> net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, supplier.get()), tagKey -> consumer.accept(tagKey.location()),
+                        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, defaultValue(field, ResourceLocation.class)),
                         forceUpdate
                 );
                 case BLOCK_TAG_KEY -> new TagKeySearchComponent.Block(name,
-                        () -> BlockTags.create(supplier.get()), tagKey -> consumer.accept(tagKey.location()),
-                        BlockTags.create(defaultValue(field, ResourceLocation.class)),
+                        () -> net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, supplier.get()), tagKey -> consumer.accept(tagKey.location()),
+                        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, defaultValue(field, ResourceLocation.class)),
                         forceUpdate
                 );
                 case FLUID_TAG_KEY -> new TagKeySearchComponent.Fluid(name,
-                        () -> FluidTags.create(supplier.get()), tagKey -> consumer.accept(tagKey.location()),
-                        FluidTags.create(defaultValue(field, ResourceLocation.class)),
+                        () -> net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.FLUID, supplier.get()), tagKey -> consumer.accept(tagKey.location()),
+                        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.FLUID, defaultValue(field, ResourceLocation.class)),
                         forceUpdate
                 );
                 case ENTITY_TYPE_TAG_KEY -> new TagKeySearchComponent.EntityType(name,

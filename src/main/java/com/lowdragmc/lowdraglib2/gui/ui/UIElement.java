@@ -26,7 +26,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Rect;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
@@ -39,7 +38,7 @@ import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+
 import dev.vfyjxf.taffy.style.*;
 import dev.vfyjxf.taffy.tree.Layout;
 import dev.vfyjxf.taffy.tree.NodeId;
@@ -56,8 +55,8 @@ import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.appliedenergistics.yoga.*;
 import org.appliedenergistics.yoga.numeric.FloatOptional;
 import org.jetbrains.annotations.NotNull;
@@ -86,10 +85,9 @@ import java.util.stream.Stream;
  * please refer to the see <a href="https://github.com/vfyjxf/taffy-java">Taffy Documentation</a> for more information.
  *
  */
-@RemapPrefixForJS("kjs$")
+
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@KJSBindings
 @LDLRegister(name = "element", registry = "ldlib2:ui_element", priority = -1)
 public class UIElement implements IConfigurable, IPersistedSerializable, ILDLRegister<UIElement, Supplier<UIElement>> {
     public static Codec<UIElement> CODEC = LDLib2Registries.UI_ELEMENTS.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
@@ -176,7 +174,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         taffyStyle = new TaffyLayoutStyle(this);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private UIVisualLayer getOrCreateVisualLayer() {
         if (visualLayer == null) {
             visualLayer = new UIVisualLayer(this);
@@ -553,7 +551,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void appendExtraAreas(List<Rect2i> extraAreas) {
         if (!isDisplayed() || !isVisible()) return;
         var rect = new Rect2i(Math.round(getPositionX()), Math.round(getPositionY()),
@@ -1877,7 +1875,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
         additionalConfigurators(father);

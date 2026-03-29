@@ -6,12 +6,8 @@ import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.common.NeoForgeConfig;
-import org.lwjgl.opengl.GL30;
 
-@OnlyIn(Dist.CLIENT)
+import org.lwjgl.opengl.GL30;
 public class HDRTarget extends RenderTarget {
     @Getter
     private int attachedDepthTexture = -1;
@@ -45,7 +41,7 @@ public class HDRTarget extends RenderTarget {
                 GlStateManager._texParameter(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_COMPARE_MODE, GL30.GL_NONE);
                 GlStateManager._texParameter(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_WRAP_S, GL30.GL_CLAMP_TO_EDGE);
                 GlStateManager._texParameter(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_WRAP_T, GL30.GL_CLAMP_TO_EDGE);
-                if (!isStencilEnabled())
+                if (!false)
                     GlStateManager._texImage2D(GL30.GL_TEXTURE_2D, 0, GL30.GL_DEPTH_COMPONENT, this.width, this.height, 0, GL30.GL_DEPTH_COMPONENT, GL30.GL_FLOAT, null);
                 else
                     GlStateManager._texImage2D(GL30.GL_TEXTURE_2D, 0, GL30.GL_DEPTH32F_STENCIL8, this.width, this.height, 0, org.lwjgl.opengl.GL30.GL_DEPTH_STENCIL, GL30.GL_FLOAT_32_UNSIGNED_INT_24_8_REV, null);
@@ -60,8 +56,8 @@ public class HDRTarget extends RenderTarget {
             GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL30.GL_TEXTURE_2D, this.colorTextureId, 0);
             if (this.useDepth) {
                 attachDepthBufferInternal(this.depthBufferId,
-                        isStencilEnabled(),
-                        NeoForgeConfig.CLIENT.useCombinedDepthStencilAttachment.get());
+                        false,
+                        false);
             }
             this.attachedDepthTexture = -1;
 
@@ -101,7 +97,7 @@ public class HDRTarget extends RenderTarget {
     }
 
     public void attachDepthBuffer(RenderTarget srcTarget) {
-        attachDepthBufferInternal(srcTarget.getDepthTextureId(), srcTarget.isStencilEnabled(), NeoForgeConfig.CLIENT.useCombinedDepthStencilAttachment.get());
+        attachDepthBufferInternal(srcTarget.getDepthTextureId(), false, false);
     }
 
     public void attachDepthBufferInternal(int depthTexture, boolean useStencil, boolean useCombinedDepthStencil) {
@@ -124,8 +120,8 @@ public class HDRTarget extends RenderTarget {
     public void restoreDepthTexture() {
         if (hasOtherAttachedDepthTexture()) {
             attachDepthBufferInternal(this.depthBufferId,
-                    isStencilEnabled(),
-                    NeoForgeConfig.CLIENT.useCombinedDepthStencilAttachment.get());
+                    false,
+                    false);
         }
     }
 

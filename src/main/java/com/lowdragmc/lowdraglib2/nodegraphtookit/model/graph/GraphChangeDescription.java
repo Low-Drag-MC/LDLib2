@@ -7,13 +7,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-
-/**
- * Tracks changes made to a graph during a single operation.
- *
- * <p>This class collects information about models that were added, deleted, or modified,
- * allowing the UI to efficiently update only the affected elements.</p>
- */
 public class GraphChangeDescription {
     private @Nullable Set<UUID> newModels;
     private @Nullable Set<UUID> deletedModels;

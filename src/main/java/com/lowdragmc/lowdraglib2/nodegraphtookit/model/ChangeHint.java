@@ -1,10 +1,4 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
-
-/**
- * Hints about what aspect of a model has changed.
- *
- * <p>Used to optimize UI updates by indicating which parts of a model need to be refreshed.</p>
- */
 public enum ChangeHint {
     /**
      * Unspecified changes. Assume anything could have change.

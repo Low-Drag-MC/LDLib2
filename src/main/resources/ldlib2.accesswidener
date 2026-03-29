@@ -1,0 +1,23 @@
+accessWidener v2 named
+
+# AbstractContainerScreen
+accessible method net/minecraft/client/gui/screens/inventory/AbstractContainerScreen isHovering (Lnet/minecraft/world/inventory/Slot;DD)Z
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen isSplittingStack Z
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen draggingItem Lnet/minecraft/world/item/ItemStack;
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen clickedSlot Lnet/minecraft/world/inventory/Slot;
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen isQuickCrafting Z
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen quickCraftSlots Ljava/util/Set;
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen quickCraftingType I
+accessible method net/minecraft/client/gui/screens/inventory/AbstractContainerScreen recalculateQuickCraftRemaining ()V
+
+# AbstractContainerMenu
+accessible method net/minecraft/world/inventory/AbstractContainerMenu addSlot (Lnet/minecraft/world/inventory/Slot;)Lnet/minecraft/world/inventory/Slot;
+
+# Minecraft
+accessible field net/minecraft/client/Minecraft fontManager Lnet/minecraft/client/gui/font/FontManager;
+
+# FontManager
+accessible field net/minecraft/client/gui/font/FontManager fontSets Ljava/util/Map;
+
+# TextureAtlasHolder
+accessible field net/minecraft/client/resources/TextureAtlasHolder textureAtlas Lnet/minecraft/client/renderer/texture/TextureAtlas;

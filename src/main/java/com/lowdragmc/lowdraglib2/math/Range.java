@@ -15,6 +15,9 @@ import java.util.Objects;
  * @author KilaBash
  * @date 2023/5/30
  * @implNote Range
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @Data(staticConstructor = "of")
 public final class Range {

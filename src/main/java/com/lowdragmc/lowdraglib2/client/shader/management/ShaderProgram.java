@@ -4,8 +4,6 @@ import com.lowdragmc.lowdraglib2.client.shader.uniform.IUniformCallback;
 import com.lowdragmc.lowdraglib2.client.shader.uniform.UniformCache;
 import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.ResourceLocation;
@@ -16,8 +14,6 @@ import org.lwjgl.opengl.GL20;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-
-@OnlyIn(Dist.CLIENT)
 public class ShaderProgram {
 
 	public final int programId;

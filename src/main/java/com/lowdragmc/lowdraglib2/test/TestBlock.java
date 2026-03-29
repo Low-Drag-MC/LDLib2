@@ -51,6 +51,9 @@ import java.util.Optional;
  * @author KilaBash
  * @date 2022/05/24
  * @implNote TestBlock
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -138,7 +141,6 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
         return super.getDrops(state, params);
     }
 
-    @Override
     public ItemStack getCloneItemStack(BlockState state, HitResult target, LevelReader level, BlockPos pos, Player player) {
         if (level.getBlockEntity(pos) instanceof IPersistManagedHolder persistManagedHolder) {
             var clone = new ItemStack(this);
@@ -147,6 +149,6 @@ public class TestBlock extends Block implements EntityBlock, IBlockRendererProvi
             clone.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             return clone;
         }
-        return super.getCloneItemStack(state, target, level, pos, player);
+        return super.getCloneItemStack(level, pos, state);
     }
 }

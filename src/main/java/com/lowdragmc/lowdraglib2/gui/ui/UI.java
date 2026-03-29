@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Data;
@@ -19,7 +18,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 @Data(staticConstructor = "of")
-@KJSBindings
 public final class UI {
     private static final UI EMPTY = UI.of(new UIElement());
 

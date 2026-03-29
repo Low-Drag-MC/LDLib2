@@ -11,10 +11,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleRule;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -30,9 +29,8 @@ import java.util.*;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@RemapPrefixForJS("kjs$")
+
 @Accessors(chain = true)
-@KJSBindings
 @LDLRegister(name = "template", registry = "ldlib2:ui_element")
 public class UITemplateElement extends UIElement {
     private static final ThreadLocal<Set<UITemplate>> LOADDINGS = ThreadLocal.withInitial(Sets::newHashSet);

@@ -11,6 +11,9 @@ import org.joml.Vector3f;
  * @author KilaBash
  * @date 2024/06/26
  * @implNote A ray that represents a line from start position to end position.
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public record Ray(Vector3f startPos, Vector3f endPos) {
     /**

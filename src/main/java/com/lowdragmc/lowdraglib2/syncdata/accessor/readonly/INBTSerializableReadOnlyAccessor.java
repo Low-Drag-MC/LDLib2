@@ -7,9 +7,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.RegistryOps;
-import net.neoforged.neoforge.common.CommonHooks;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import com.lowdragmc.lowdraglib2.utils.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("unchecked")
@@ -23,9 +21,6 @@ public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTS
     @Override
     public <T> T readReadOnlyValue(DynamicOps<T> op, @NotNull INBTSerializable<?> value) {
         HolderLookup.Provider registry = Platform.getFrozenRegistry();
-        if (op instanceof RegistryOps<T> registryOps) {
-            registry = CommonHooks.extractLookupProvider(registryOps);
-        }
         var tag = value.serializeNBT(registry);
         return (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) ? (T) tag : NbtOps.INSTANCE.convertTo(op, tag);
     }
@@ -33,9 +28,6 @@ public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTS
     @Override
     public <T> void writeReadOnlyValue(DynamicOps<T> op, INBTSerializable<?> value, T payload) {
         HolderLookup.Provider registry = Platform.getFrozenRegistry();
-        if (op instanceof RegistryOps<T> registryOps) {
-            registry = CommonHooks.extractLookupProvider(registryOps);
-        }
         ((INBTSerializable)value).deserializeNBT(registry,
                 (op == NbtOps.INSTANCE || op instanceof DelegatingOpsAccessor<?> accessor && accessor.getDelegate() == NbtOps.INSTANCE) ?
                 (Tag) payload : op.convertTo(NbtOps.INSTANCE, payload));

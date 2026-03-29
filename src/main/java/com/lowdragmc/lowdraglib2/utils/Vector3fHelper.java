@@ -8,6 +8,9 @@ import org.joml.Vector3f;
  * @author KilaBash
  * @date 2023/6/9
  * @implNote Vector3fHelper
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @UtilityClass
 public final class Vector3fHelper {

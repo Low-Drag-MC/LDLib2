@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.AlignItems;
@@ -272,8 +271,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         return this;
     }
 
-    @KJSBindings("ScrollerVertical")
-    @LDLRegister(name = "scroller-vertical", group = "utils", registry = "ldlib2:ui_element")
+        @LDLRegister(name = "scroller-vertical", group = "utils", registry = "ldlib2:ui_element")
     public static class Vertical extends Scroller {
         public Vertical() {
             getLayout().flexDirection(FlexDirection.COLUMN);
@@ -340,8 +338,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
         }
     }
 
-    @KJSBindings("ScrollerHorizontal")
-    @LDLRegister(name = "scroller-horizontal", group = "utils", registry = "ldlib2:ui_element")
+        @LDLRegister(name = "scroller-horizontal", group = "utils", registry = "ldlib2:ui_element")
     public static class Horizontal extends Scroller {
         public Horizontal() {
             getLayout().flexDirection(FlexDirection.ROW);

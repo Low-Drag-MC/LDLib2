@@ -6,9 +6,9 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import com.lowdragmc.lowdraglib2.utils.INBTSerializable;
+import com.lowdragmc.lowdraglib2.utils.items.IItemHandler;
+import com.lowdragmc.lowdraglib2.utils.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -19,6 +19,9 @@ import java.util.function.Predicate;
  * @author KilaBash
  * @date 2023/2/25
  * @implNote ItemTransferList
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class ItemTransferList implements IItemHandlerModifiable, INBTSerializable<CompoundTag> {
 

@@ -11,10 +11,6 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Configurator for LengthPercent values (px or %).
- */
 public class LengthPercentConfigurator extends ValueConfigurator<LengthPercent> {
     public enum Unit {
         PX, PERCENT

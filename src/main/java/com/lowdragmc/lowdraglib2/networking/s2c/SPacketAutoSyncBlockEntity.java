@@ -6,21 +6,17 @@ import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncBlockEntity;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.RegistryAccess;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-
-/**
- * a packet that contains payload for managed fields
- */
-public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
+public class SPacketAutoSyncBlockEntity extends PacketIntLocation implements CustomPacketPayload {
     public static final ResourceLocation ID = LDLib2.id("auto_sync_block_entity");
     public static final Type<SPacketAutoSyncBlockEntity> TYPE = new Type<>(ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, SPacketAutoSyncBlockEntity> CODEC = StreamCodec.ofMember(SPacketAutoSyncBlockEntity::write, SPacketAutoSyncBlockEntity::decode);
@@ -73,8 +69,8 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
         return new SPacketAutoSyncBlockEntity(blockEntityType, pos, changed, data, extra);
     }
 
-    public static void execute(SPacketAutoSyncBlockEntity packet, IPayloadContext context) {
-        var level = Minecraft.getInstance().level;
+    public static void handle(SPacketAutoSyncBlockEntity packet, Player player, RegistryAccess registryAccess) {
+        var level = player.level();
         if (level != null) {
             if (level.getBlockEntity(packet.pos) instanceof ISyncBlockEntity syncBlockEntity) {
                 processPacket(syncBlockEntity, packet);

@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.FlexDirection;
@@ -125,8 +124,7 @@ public abstract class SplitView extends UIElement {
         }
     }
 
-    @KJSBindings("SplitViewHorizontal")
-    @LDLRegister(name = "split-view-horizontal", group = "container", registry = "ldlib2:ui_element")
+        @LDLRegister(name = "split-view-horizontal", group = "container", registry = "ldlib2:ui_element")
     public static class Horizontal extends SplitView {
         public Horizontal() {
             getLayout().flexDirection(FlexDirection.ROW);
@@ -185,8 +183,7 @@ public abstract class SplitView extends UIElement {
         }
     }
 
-    @KJSBindings("SplitViewVertical")
-    @LDLRegister(name = "split-view-vertical", group = "container", registry = "ldlib2:ui_element")
+        @LDLRegister(name = "split-view-vertical", group = "container", registry = "ldlib2:ui_element")
     public static class Vertical extends SplitView {
         public Vertical() {
             first.getLayout().widthPercent(100);

@@ -20,7 +20,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
@@ -40,8 +39,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.lwjgl.glfw.GLFW;
@@ -60,7 +59,6 @@ import java.util.function.Predicate;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @Accessors(chain = true)
-@KJSBindings
 @LDLRegister(name = "text-area", group = "basic", registry = "ldlib2:ui_element")
 public class TextArea extends BindableUIElement<String[]> {
     // Internal helpers
@@ -507,7 +505,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     // Editing helpers
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public Font getFont() {
         return Minecraft.getInstance().font;
     }
@@ -1110,7 +1108,7 @@ public class TextArea extends BindableUIElement<String[]> {
         super.drawBackgroundOverlay(guiContext);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void drawContentView(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
         var x = contentView.getContentX();
@@ -1138,7 +1136,7 @@ public class TextArea extends BindableUIElement<String[]> {
         drawCursor(guiContext, font, textFont, scale, x, y);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawLines(GUIContext guiContext, Font font, ResourceLocation textFont,
                              float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
         for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.size(); i++) {
@@ -1167,7 +1165,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawPlaceHolder(GUIContext guiContext, Font font, float scale, float x, float y) {
         guiContext.pose.pushPose();
         guiContext.pose.translate(x, y, 0);
@@ -1186,7 +1184,7 @@ public class TextArea extends BindableUIElement<String[]> {
     /**
      * Draw selection highlight and cursor
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawSelection(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
         // Selection highlight
         if (isFocused() && hasSelection()) {
@@ -1227,7 +1225,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawCursor(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y) {
         if (isVisible() && isFocused() && isDisplayed() && (!isActive() || System.currentTimeMillis() % 1000 < 500)) {
             var current = lines.get(cursorLine);

@@ -12,13 +12,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+
+
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
@@ -28,8 +27,8 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -38,10 +37,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-@RemapPrefixForJS("kjs$")
+
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@KJSBindings
 @LDLRegister(name = "text", group = "basic", registry = "ldlib2:ui_element")
 public class TextElement extends UIElement {
     @Configurable(name = "TextStyle")
@@ -240,7 +238,7 @@ public class TextElement extends UIElement {
         recompute();
     }
 
-    @HideFromJS
+    
     @ConfigSetter(field = "text")
     public TextElement setText(Component text) {
         if (this.text.equals(text)) return this;
@@ -249,7 +247,7 @@ public class TextElement extends UIElement {
         return this;
     }
 
-    @HideFromJS
+    
     public TextElement setText(String text) {
         return setText(text,true);
     }
@@ -262,7 +260,7 @@ public class TextElement extends UIElement {
         return setText(text);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public Font getFont() {
         return Minecraft.getInstance().font;
     }

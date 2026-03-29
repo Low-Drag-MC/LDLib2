@@ -17,7 +17,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
-import net.neoforged.neoforge.fluids.FluidStack;
+import dev.architectury.fluid.FluidStack;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
@@ -113,7 +113,7 @@ public class TagKeySearchComponent<T> extends SearchComponentConfigurator<TagKey
                         var fluids = BuiltInRegistries.FLUID.getTag(tagKey)
                                 .map(HolderSet.ListBacked::stream)
                                 .map(holders -> holders.map(Holder::value)
-                                        .map(fluid -> new FluidStack(fluid, 1000))
+                                        .map(fluid -> FluidStack.create(fluid, 1000))
                                         .toArray(FluidStack[]::new))
                                 .orElseGet(() -> new FluidStack[0]);
                         if (fluids.length == 0) return IGuiTexture.EMPTY;

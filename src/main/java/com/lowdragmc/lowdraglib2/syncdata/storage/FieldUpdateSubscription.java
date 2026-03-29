@@ -8,6 +8,9 @@ import org.jetbrains.annotations.NotNull;
  * @author KilaBash
  * @date 2023/2/17
  * @implNote FieldUpdateSubscription
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public abstract class FieldUpdateSubscription implements ISubscription {
     @NotNull

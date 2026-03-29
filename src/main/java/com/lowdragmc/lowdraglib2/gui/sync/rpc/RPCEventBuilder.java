@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.sync.rpc;
 
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.syncdata.SyncValueHolder;
 import com.lowdragmc.lowdraglib2.utils.consumer.*;
 import com.mojang.datafixers.util.*;
@@ -12,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.*;
 
-@KJSBindings
 public class RPCEventBuilder {
     private final List<Type> args = new ArrayList<>();
     private final List<Object> initialArgs = new ArrayList<>();

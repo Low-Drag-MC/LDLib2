@@ -12,10 +12,6 @@ import lombok.experimental.Accessors;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Property for LPARect values (margin/padding shorthand properties).
- */
 @Accessors(chain = true)
 public class LPARectProperty extends Property<LPARect> {
     public LPARectProperty(String name, LPARect initialValue) {

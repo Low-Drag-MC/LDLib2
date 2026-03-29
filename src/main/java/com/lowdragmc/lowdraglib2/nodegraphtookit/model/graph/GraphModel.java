@@ -38,13 +38,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-/**
- * The model that represents a graph's structure and contents.
- *
- * <p>GraphModel manages nodes, wires, variables, and other graph elements.
- * It also tracks changes for efficient UI updates.</p>
- */
 public abstract class GraphModel extends GraphElementModel implements IGraphElementContainer {
     public final static String DEFAULT_SECTION_NAME = "";
     @Getter

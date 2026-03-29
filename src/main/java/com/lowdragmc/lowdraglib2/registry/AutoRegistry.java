@@ -18,10 +18,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-/**
- * AutoRegistry is used to register objects automatically by detecting the class with the given annotation {@link LDLRegister} and {@link LDLRegisterClient}.
- */
 public class AutoRegistry<A extends Annotation, C, V> extends LDLRegistry.String<AutoRegistry.Holder<A, C, V>> {
     public record Holder<A extends Annotation, C, V>(A annotation, Class<? extends C> clazz, V value) {
         public static <A extends Annotation, C, V> Holder<A, C, V> of(A annotation, Class<? extends C> clazz, V value) {

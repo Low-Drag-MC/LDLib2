@@ -9,15 +9,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+
+
 import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
-@RemapPrefixForJS("kjs$")
+
 @Configurable(name = "BasicStyle")
 public class BasicStyle extends Style {
     private final static Property<?>[] PROPERTIES = {
@@ -92,13 +92,13 @@ public class BasicStyle extends Style {
         return this;
     }
 
-    @HideFromJS
+    
     public BasicStyle tooltips(Component... tooltips) {
         tooltips(Tooltips.of(tooltips));
         return this;
     }
 
-    @HideFromJS
+    
     public BasicStyle tooltips(String... tooltips) {
         tooltips(Tooltips.of(tooltips));
         return this;

@@ -11,6 +11,9 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
  * @author KilaBash
  * @date 2022/05/24
  * @implNote TestBlock
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class NoRendererTestBlock extends Block {
 

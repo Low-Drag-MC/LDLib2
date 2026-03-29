@@ -4,6 +4,9 @@ package com.lowdragmc.lowdraglib2.math;
  * @author KilaBash
  * @date 2022/6/17
  * @implNote Interpolations
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class Interpolations {
     

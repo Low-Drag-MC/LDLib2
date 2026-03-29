@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -14,8 +13,8 @@ import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.gui.GuiGraphics;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
@@ -23,7 +22,6 @@ import org.joml.Vector4f;
 import java.util.ArrayList;
 import java.util.List;
 
-@KJSBindings
 @LDLRegisterClient(name = "rect_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 public class RectTexture extends TransformTexture {
@@ -149,7 +147,7 @@ public class RectTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         ensureCornerCache();
 
@@ -167,7 +165,7 @@ public class RectTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void drawFill(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
         int r = (color >> 16) & 0xFF;
         int g = (color >> 8) & 0xFF;
@@ -227,7 +225,7 @@ public class RectTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void drawBorder(VertexConsumer buffer, Matrix4f mat, float x, float y, float width, float height) {
         int r = (borderColor >> 16) & 0xFF;
         int g = (borderColor >> 8) & 0xFF;

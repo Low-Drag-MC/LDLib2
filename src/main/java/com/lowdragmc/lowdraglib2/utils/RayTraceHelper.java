@@ -16,6 +16,9 @@ import java.util.function.Predicate;
  * @author KilaBash
  * @date 2023/2/17
  * @implNote RaytraceHelper, copied from create.
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @UtilityClass
 public final class RayTraceHelper {

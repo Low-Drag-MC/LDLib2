@@ -5,11 +5,6 @@ import lombok.Getter;
 
 import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
-
-/**
- * ReadOnlyDirectField represents a reference to a read-only value, the value instance is not changeable by default.
- * If the field is marked with {@link com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged}, the value instance can be changed.
- */
 public final class ReadOnlyVar<T> implements IVar<T> {
     @Getter
     private final IVar<T> var;

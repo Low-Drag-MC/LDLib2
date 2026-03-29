@@ -9,13 +9,10 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.RegistryAccess;
 
 import javax.annotation.Nonnull;
-
-/**
- * a packet that contains payload for managed fields
- */
 @NoArgsConstructor
 public class PacketModularUISync implements CustomPacketPayload {
     public static final ResourceLocation ID = LDLib2.id("modular_ui_sync");
@@ -37,33 +34,31 @@ public class PacketModularUISync implements CustomPacketPayload {
         return new PacketModularUISync(data);
     }
 
-    public static void execute(PacketModularUISync packet, IPayloadContext context) {
-        if (context.player() instanceof ServerPlayer) {
-            executeServer(packet, context);
+    public static void handle(PacketModularUISync packet, Player player, RegistryAccess registryAccess) {
+        if (player instanceof ServerPlayer) {
+            executeServer(packet, player, registryAccess);
         } else {
-            executeClient(packet, context);
+            executeClient(packet, player, registryAccess);
         }
     }
 
-    public static void executeClient(PacketModularUISync packet, IPayloadContext context) {
-        var player = context.player();
+    public static void executeClient(PacketModularUISync packet, Player player, RegistryAccess registryAccess) {
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
             var syncManager = syncManagerHolder.getSyncManager();
             if (syncManager == null) return;
             ByteBufUtil.readCustomData(packet.data,
                     syncManager::handleSyncPacket,
-                    context.player().registryAccess());
+                    registryAccess);
         }
     }
 
-    public static void executeServer(PacketModularUISync packet, IPayloadContext context) {
-        var player = context.player();
+    public static void executeServer(PacketModularUISync packet, Player player, RegistryAccess registryAccess) {
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
             var syncManager = syncManagerHolder.getSyncManager();
             if (syncManager == null) return;
             ByteBufUtil.readCustomData(packet.data,
                     syncManager::handleSyncPacket,
-                    context.player().registryAccess());
+                    registryAccess);
         }
     }
 

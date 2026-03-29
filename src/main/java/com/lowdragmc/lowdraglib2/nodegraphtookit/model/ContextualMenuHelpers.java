@@ -2,12 +2,6 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * Helper class for contextual menu operations.
- *
- * <p>TODO: Implement these menu items for your UI framework.</p>
- */
 public final class ContextualMenuHelpers {
 
     private ContextualMenuHelpers() {

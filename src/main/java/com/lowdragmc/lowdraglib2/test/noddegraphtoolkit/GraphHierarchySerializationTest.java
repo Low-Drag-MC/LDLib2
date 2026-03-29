@@ -9,20 +9,16 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarat
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
 import java.util.Objects;
 
-@GameTestHolder(LDLib2.MOD_ID)
 public class GraphHierarchySerializationTest {
 
     /**
      * Tests that variables are correctly placed in sections after serialization round-trip.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void variableSectionHierarchy(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -75,7 +71,6 @@ public class GraphHierarchySerializationTest {
      * Tests that nested groups (section -> group -> variables) survive serialization.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void nestedGroupHierarchy(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -139,7 +134,6 @@ public class GraphHierarchySerializationTest {
      * Tests that the hierarchy survives a double round-trip (serialize -> deserialize -> serialize -> deserialize).
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void doubleRoundTripHierarchy(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();

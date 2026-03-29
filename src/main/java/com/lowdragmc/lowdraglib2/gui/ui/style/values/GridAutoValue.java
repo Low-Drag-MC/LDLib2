@@ -9,18 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-/**
- * Parses CSS grid-auto-rows and grid-auto-columns syntax.
- *
- * Supported syntax:
- * - auto
- * - min-content, max-content
- * - 100px, 50%, 1fr
- * - minmax(100px, 1fr)
- * - fit-content(200px)
- * - Multiple values: 100px 1fr auto
- */
 public class GridAutoValue extends StyleValue<GridAuto> {
 
     public GridAutoValue(String rawValue) {

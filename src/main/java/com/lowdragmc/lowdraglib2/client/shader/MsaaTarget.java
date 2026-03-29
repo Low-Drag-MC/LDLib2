@@ -5,11 +5,7 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL30;
-
-@OnlyIn(Dist.CLIENT)
 public class MsaaTarget {
     @Getter
     private final boolean useDepth;

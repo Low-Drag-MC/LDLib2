@@ -8,15 +8,6 @@ import com.lowdragmc.lowdraglib2.syncdata.var.IVar;
 import com.mojang.serialization.JavaOps;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * MutableDirectRef represents a reference to a mutable value,
- * which is updated only when the value changes (no the same instance or have internal changes).
- * <br>
- * It will store the old value mark to compare with the new value mark every update.
- * Please implement {@link IMarkFunction} for the accessor.
- * If the {@link IMarkFunction} is not implemented, it will use codec to store the mark in a type of {@link com.mojang.serialization.JavaOps}
- */
 @Getter
 @SuppressWarnings("unchecked")
 public final class MutableDirectRef<TYPE> extends DirectRef<TYPE> {

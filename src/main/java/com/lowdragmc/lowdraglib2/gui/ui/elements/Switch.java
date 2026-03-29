@@ -12,12 +12,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.Transition;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import com.lowdragmc.lowdraglib2.utils.animation.Animation;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
+
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDirection;
@@ -35,9 +34,8 @@ import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@RemapPrefixForJS("kjs$")
+
 @Accessors(chain = true)
-@KJSBindings
 @LDLRegister(name = "switch", group = "basic", registry = "ldlib2:ui_element")
 public class Switch extends BindableUIElement<Boolean> {
     @Configurable(name = "SwitchStyle")

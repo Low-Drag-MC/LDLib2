@@ -51,7 +51,7 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
     private ItemStack itemStack = ItemStack.EMPTY;
 
     public TestBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
-        super(CommonProxy.TEST_BE_TYPE.get(), pWorldPosition, pBlockState);
+        super(CommonProxy.TEST_BE_TYPE, pWorldPosition, pBlockState);
     }
 
     private void onIntValueChanged(int oldValue, int newValue) {

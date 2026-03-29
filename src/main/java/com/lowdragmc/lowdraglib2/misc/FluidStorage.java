@@ -1,11 +1,14 @@
 package com.lowdragmc.lowdraglib2.misc;
 
+import com.lowdragmc.lowdraglib2.utils.fluids.IFluidHandlerModifiable;
+import com.lowdragmc.lowdraglib2.utils.fluids.FluidAction;
+
 import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.syncdata.IContentChangeAware;
 import lombok.Getter;
 import lombok.Setter;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
+import dev.architectury.fluid.FluidStack;
+import com.lowdragmc.lowdraglib2.utils.fluids.FluidTank;
 
 import java.util.function.Predicate;
 
@@ -20,7 +23,8 @@ public class FluidStorage extends FluidTank implements IFluidHandlerModifiable, 
     }
 
     public FluidStorage(int capacity, Predicate<FluidStack> validator) {
-        super(capacity, validator);
+        super(capacity);
+        this.validator = validator;
     }
 
     @Override

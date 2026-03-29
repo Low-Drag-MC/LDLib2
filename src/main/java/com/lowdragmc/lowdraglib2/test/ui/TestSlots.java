@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import com.lowdragmc.lowdraglib2.utils.items.ItemStackHandler;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;

@@ -8,10 +8,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.PlaceholderModelHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import lombok.Getter;
 import lombok.Setter;
-
-/**
- * A model that represents the placeholder of a variable declaration.
- */
 public class VariableDeclarationPlaceholder extends VariableDeclarationModelBase implements IPlaceHolder {
     @Getter @Setter
     private VariableFlags variableFlags = VariableFlags.NONE;

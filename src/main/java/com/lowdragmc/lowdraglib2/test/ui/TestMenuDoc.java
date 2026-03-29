@@ -17,9 +17,9 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import dev.architectury.fluid.FluidStack;
+import com.lowdragmc.lowdraglib2.utils.fluids.FluidTank;
+import com.lowdragmc.lowdraglib2.utils.items.ItemStackHandler;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -80,9 +80,9 @@ public class TestMenuDoc implements IMenuTest {
                 // trigger ui events on the server side
                 new Button().addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
                     if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
-                        fluidTank.setFluid(new FluidStack(Fluids.LAVA, 1000));
+                        fluidTank.setFluid(FluidStack.create(Fluids.LAVA, 1000L));
                     } else {
-                        fluidTank.setFluid(new FluidStack(Fluids.WATER, 1000));
+                        fluidTank.setFluid(FluidStack.create(Fluids.WATER, 1000L));
                     }
                 }),
                 // you could also use button.setOnServerClick(e -> { ... })

@@ -9,6 +9,9 @@ import org.joml.Vector4f;
  * @author KilaBash
  * @date 2022/12/11
  * @implNote ColorUtils
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @UtilityClass
 public final class ColorUtils {

@@ -19,13 +19,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
-
-/**
- * Model representing a wire connection between two ports.
- *
- * <p>A wire connects an output port to an input port, allowing data or execution flow to pass between nodes.
- * Each wire has exactly two endpoints: a "from" port (typically output) and a "to" port (typically input).</p>
- */
 public class WireModel extends GraphElementModel implements IPortWireIndexModel, IGraphElementUIModel {
     @Getter @Nullable
     private PortModel fromPort;

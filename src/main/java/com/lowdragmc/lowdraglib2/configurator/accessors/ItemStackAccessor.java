@@ -64,27 +64,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
                 .setRange(0, Integer.MAX_VALUE)
                 .setWheel(1);
         group.addConfigurators(itemConfigurator, countConfigurator, componentsConfigurator);
-        if (LDLib2.isJeiLoaded()) {
-            RegistrySearchComponent.JEISupport.ghostItem(group, Predicates.alwaysTrue(), itemStack -> {
-                updater.accept(itemStack);
-                componentsConfigurator.setPrototype(itemStack.getItem().components());
-                group.notifyChanges();
-            });
-        }
-        if (LDLib2.isReiLoaded()) {
-            RegistrySearchComponent.REISupport.ghostItem(group, Predicates.alwaysTrue(), itemStack -> {
-                updater.accept(itemStack);
-                componentsConfigurator.setPrototype(itemStack.getItem().components());
-                group.notifyChanges();
-            });
-        }
-        if (LDLib2.isEmiLoaded()) {
-            RegistrySearchComponent.EMISupport.ghostItem(group, Predicates.alwaysTrue(), itemStack -> {
-                updater.accept(itemStack);
-                componentsConfigurator.setPrototype(itemStack.getItem().components());
-                group.notifyChanges();
-            });
-        }
+
         return group;
     }
 }

@@ -25,6 +25,9 @@ import java.util.UUID;
  * @author KilaBash
  * @date 2024/06/26
  * @implNote A transform that represents the position, rotation, and scale of a scene object.
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @Accessors(fluent = true)
 public final class Transform implements IPersistedSerializable, IConfigurable {

@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language;
 
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -10,7 +9,6 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 
 @Accessors(chain = true)
-@KJSBindings
 public class TokenType implements Predicate<Matcher>{
     public final String name;
     @Getter

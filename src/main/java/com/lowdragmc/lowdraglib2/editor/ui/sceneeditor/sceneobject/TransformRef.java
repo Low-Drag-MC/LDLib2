@@ -6,7 +6,7 @@ import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.StringTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import com.lowdragmc.lowdraglib2.utils.INBTSerializable;
 import org.jetbrains.annotations.UnknownNullability;
 
 import org.jetbrains.annotations.Nullable;

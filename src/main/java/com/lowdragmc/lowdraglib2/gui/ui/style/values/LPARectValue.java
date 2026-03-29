@@ -5,18 +5,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import dev.vfyjxf.taffy.geometry.TaffyRect;
 import dev.vfyjxf.taffy.style.LengthPercentageAuto;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * Parses CSS margin/padding shorthand syntax.
- *
- * Supported syntax (following CSS box model):
- * <pre>
- * margin: 10px;                     // All sides
- * margin: 10px 20px;                // Vertical Horizontal
- * margin: 10px 20px 30px;           // Top Horizontal Bottom
- * margin: 10px 20px 30px 40px;      // Top Right Bottom Left (clockwise)
- * </pre>
- */
 public class LPARectValue extends StyleValue<LPARect> {
 
     public LPARectValue(String rawValue) {

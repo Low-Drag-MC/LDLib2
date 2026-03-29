@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language;
 
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,7 +9,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Getter
-@KJSBindings
 public class LanguageDefinition implements ILanguageDefinition {
 
     private final String name;

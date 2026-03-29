@@ -5,6 +5,9 @@ import java.util.Random;
 /**
  * @author KilaBash
  * @date 2023/5/31
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class PerlinNoise {
     private double seed;

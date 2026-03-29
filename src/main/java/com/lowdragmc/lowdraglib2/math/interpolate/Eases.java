@@ -1,9 +1,4 @@
 package com.lowdragmc.lowdraglib2.math.interpolate;
-
-/**
- * Author: KilaBash
- * Date: 2022/08/26
- */
 public enum Eases implements IEase {
     LINEAR(input -> input),
     QUAD_IN(input -> input * input),

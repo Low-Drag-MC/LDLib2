@@ -25,8 +25,8 @@ import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
 import net.minecraft.world.level.entity.*;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.ticks.BlackholeTickAccess;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -63,12 +63,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
-
-/**
- * Author: KilaBash
- * Date: 2022/04/26
- * Description:
- */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class DummyWorld extends Level {
@@ -93,7 +87,7 @@ public class DummyWorld extends Level {
     protected float dayTimeFraction = 0.0f;
     @Getter @Setter
     protected float dayTimePerTick = -1.0f;
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     @Getter @Setter
     private ParticleManager particleManager;
 
@@ -300,10 +294,11 @@ public class DummyWorld extends Level {
     }
 
     public void addEntity(Entity entity) {
-        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityJoinLevelEvent(entity, this)).isCanceled()) return;
+        // Fabric equivalent would be ServerEntityEvents.ENTITY_LOAD, but this is a dummy world.
+        // Skipping NeoForge event for now.
         this.removeEntity(entity.getId(), Entity.RemovalReason.DISCARDED);
         this.entityStorage.addEntity(entity);
-        entity.onAddedToLevel();
+        // entity.onAddedToLevel();
     }
 
     public void removeEntity(int entityId, Entity.RemovalReason reason) {
@@ -335,11 +330,7 @@ public class DummyWorld extends Level {
         pEntity.setOldPosAndRot();
         pEntity.tickCount++;
         this.getProfiler().push(() -> BuiltInRegistries.ENTITY_TYPE.getKey(pEntity.getType()).toString());
-        // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
-        if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(pEntity).isCanceled()) {
-            pEntity.tick();
-            net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(pEntity);
-        }
+        pEntity.tick();
         this.getProfiler().pop();
 
         for (Entity entity : pEntity.getPassengers()) {
@@ -453,7 +444,7 @@ public class DummyWorld extends Level {
     }
 
     @Nullable
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public Particle createParticle(ParticleOptions particleData, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed) {
         var particleProvider = ClientProxy.getProvider(particleData.getType());
         if (particleProvider == null) {

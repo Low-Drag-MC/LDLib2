@@ -13,13 +13,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-/**
- * Represents a constant value embedded in a port or node option.
- *
- * <p>Constants store typed values that can be edited in the graph UI and used as default values
- * for input ports when they are not connected.</p>
- */
 public abstract class Constant {
     @Getter @Setter
     protected GraphElementModel owner;

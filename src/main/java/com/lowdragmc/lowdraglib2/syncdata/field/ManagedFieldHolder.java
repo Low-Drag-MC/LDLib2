@@ -13,14 +13,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-/**
- * This class is used to store all the fields of a class that implements {@link IManaged} and all the RPC methods{@link RPCMethodMeta}.
- * <br>
- * You don't need to create this class for all instances.
- * Create a static instance of this class in the class that implements {@link IManaged} and
- * return it in the {@link IManaged#getFieldHolder()} method.
- */
 public final class ManagedFieldHolder {
     public final static ManagedFieldHolder EMPTY = new ManagedFieldHolder();
 

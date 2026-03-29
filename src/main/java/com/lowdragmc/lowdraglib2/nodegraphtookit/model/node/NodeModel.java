@@ -32,12 +32,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeOption.PORT_ID_PREFIX;
-
-/**
- * Node model implementation for user-defined nodes.
- *
- * <p>This model backs a {@link Node} instance and provides the implementation for ports and options.</p>
- */
 public abstract class NodeModel extends InputOutputPortsNodeModel implements INodeWithOptions {
     @Getter
     protected Map<String, Constant> inputConstantsById;

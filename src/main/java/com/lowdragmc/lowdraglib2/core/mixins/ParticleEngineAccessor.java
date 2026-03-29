@@ -11,6 +11,6 @@ import java.util.Map;
 @Mixin(ParticleEngine.class)
 public interface ParticleEngineAccessor {
     @Accessor("providers")
-    Map<ResourceLocation, ParticleProvider<?>> getProviders();
+    it.unimi.dsi.fastutil.ints.Int2ObjectMap<ParticleProvider<?>> getProviders();
 
 }

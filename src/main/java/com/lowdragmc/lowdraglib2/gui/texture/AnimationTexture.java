@@ -13,7 +13,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -22,15 +21,17 @@ import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 /**
  * @author KilaBash
  * @date 2022/9/14
  * @implNote AnimationTexture
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
-@KJSBindings
 @LDLRegisterClient(name = "animation_texture", registry = "ldlib2:gui_texture")
 public class AnimationTexture extends TransformTexture {
 
@@ -114,7 +115,7 @@ public class AnimationTexture extends TransformTexture {
         return this;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {
             long tick = Minecraft.getInstance().level.getGameTime();
@@ -135,7 +136,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         updateTick();
         float cell = 1f / this.cellSize;
@@ -156,7 +157,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void createPreview(ConfiguratorGroup father) {
         super.createPreview(father);
         var configurator = new Configurator("ldlib.gui.editor.group.base_image");
@@ -190,7 +191,7 @@ public class AnimationTexture extends TransformTexture {
                 ));
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawRawTextureGuides(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         SpriteTexture.of(imageLocation.toString()).draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         float cell = 1f / this.cellSize;

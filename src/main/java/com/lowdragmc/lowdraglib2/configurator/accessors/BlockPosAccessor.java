@@ -21,6 +21,9 @@ import java.util.function.Supplier;
  * @author KilaBash
  * @date 2023/5/27
  * @implNote BlockPosAccessor
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @LDLRegisterClient(name = "block_pos", registry = "ldlib2:configurator_accessor")
 public class BlockPosAccessor extends TypesAccessor<Vec3i> {

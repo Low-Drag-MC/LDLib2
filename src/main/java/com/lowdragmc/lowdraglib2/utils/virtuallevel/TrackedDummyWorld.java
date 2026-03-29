@@ -24,12 +24,6 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Predicate;
-
-/**
- * Author: KilaBash
- * Date: 2021/08/25
- * Description: TrackedDummyWorld. Used to build a Fake World.
- */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class TrackedDummyWorld extends DummyWorld {

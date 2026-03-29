@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import com.lowdragmc.lowdraglib2.utils.INBTSerializable;
 import org.jetbrains.annotations.UnknownNullability;
 import org.joml.Vector2f;
 

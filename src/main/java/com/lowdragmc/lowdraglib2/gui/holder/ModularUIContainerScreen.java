@@ -5,12 +5,12 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIContainerMenu> {
@@ -21,12 +21,19 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
 
     @Override
     public void init() {
-        // the modular widget has already added + init by events
-        this.imageWidth = (int) getMenu().getModularUI().getWidth();
-        this.imageHeight = (int) getMenu().getModularUI().getHeight();
+        var mui = getMenu().getModularUI();
+        if (mui != null) {
+            // Initialize ModularUI with screen dimensions BEFORE super.init(), matching NeoForge's ScreenEvent.Init.Pre behavior.
+            // This ensures stylesheets and layout are resolved before the screen finalizes its state.
+            mui.setScreenAndInit(this);
+            this.imageWidth = (int) mui.getWidth();
+            this.imageHeight = (int) mui.getHeight();
+        }
         super.init();
-        // initial focus
-        setFocused(getMenu().modularUI.getWidget());
+        if (mui != null) {
+            this.addRenderableWidget(mui.getWidget());
+            setFocused(mui.getWidget());
+        }
     }
 
     @Override

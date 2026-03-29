@@ -10,6 +10,9 @@ import java.util.Optional;
  * @author KilaBash
  * @date 2023/6/13
  * @implNote ILDLRegisterClient
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public interface ILDLRegisterClient<T extends ILDLRegisterClient<T, V>, V> {
     default boolean isLDLRegister() {

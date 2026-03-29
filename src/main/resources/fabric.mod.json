@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": [
+    "KilaBash"
+  ],
+  "contact": {
+    "homepage": "${mod_url}",
+    "sources": "${mod_url}",
+    "issues": "${mod_url}/issues"
+  },
+  "license": "${mod_license}",
+  "icon": "icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.lowdragmc.lowdraglib2.LDLib2"
+    ],
+    "client": [
+      "com.lowdragmc.lowdraglib2.LDLib2Client"
+    ],
+    "fabric-datagen": []
+  },
+  "mixins": [
+    "${mod_id}.mixins.json"
+  ],
+  "accessWidener": "ldlib2.accesswidener",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21"
+  }
+}

@@ -4,7 +4,6 @@ import com.google.gson.JsonParser;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.data.EntityInfo;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -32,7 +31,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec2;
-import net.neoforged.neoforge.fluids.FluidStack;
+import dev.architectury.fluid.FluidStack;
 import org.joml.Vector3f;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -53,9 +52,11 @@ import java.util.*;
  * @author KilaBash
  * @date 2022/9/4
  * @implNote XmlUtils
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @UtilityClass
-@KJSBindings
 public class XmlUtils {
     public final static DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 
@@ -305,11 +306,11 @@ public class XmlUtils {
 
     public static FluidStack getFluidStack(Element element) {
         int amount = getAsInt(element, "amount", 1) * FluidHelper.getBucket() / 1000;
-        FluidStack fluidStack = FluidStack.EMPTY;
+        FluidStack fluidStack = FluidStack.empty();
         if (element.hasAttribute("fluid")) {
             var fluid = BuiltInRegistries.FLUID.get(ResourceLocation.parse(element.getAttribute("fluid")));
             if (fluid != Fluids.EMPTY) {
-                fluidStack = new FluidStack(fluid, amount);
+                fluidStack = FluidStack.create(fluid, amount);
                 var nodeList = element.getChildNodes();
                 for (int i = 0; i < nodeList.getLength(); i++) {
                     if (nodeList.item(i) instanceof Element subElement && subElement.getNodeName().equals("components")) {

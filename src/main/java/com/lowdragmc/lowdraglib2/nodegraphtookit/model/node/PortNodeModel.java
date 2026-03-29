@@ -12,10 +12,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-/**
- * Base class for a model of a node that has ports.
- */
 public abstract class PortNodeModel extends AbstractNodeModel {
     /**
      * {@inheritDoc}

@@ -2,12 +2,6 @@ package com.lowdragmc.lowdraglib2.utils;
 
 import java.lang.reflect.Array;
 import java.util.*;
-
-/**
- * Builder3D is used to build 3D arrays.
- * @param <T> The type of the array
- * @param <B> The type of the builder
- */
 public abstract class Builder3D<T, B extends Builder3D<T, B>> {
     protected List<String[]> shape = new ArrayList<>();
     protected Map<Character, T> symbolMap = new LinkedHashMap<>();

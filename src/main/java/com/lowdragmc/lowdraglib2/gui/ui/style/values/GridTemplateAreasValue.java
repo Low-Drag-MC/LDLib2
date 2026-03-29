@@ -8,21 +8,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-/**
- * Parses CSS grid-template-areas syntax.
- *
- * Supported syntax:
- * <pre>
- * grid-template-areas:
- *   "header header header"
- *   "nav main aside"
- *   "footer footer footer";
- * </pre>
- *
- * Each quoted string represents one row of the grid.
- * Use "." or "..." to represent empty cells.
- */
 public class GridTemplateAreasValue extends StyleValue<GridTemplateAreas> {
 
     private static final Pattern QUOTED_STRING_PATTERN = Pattern.compile("\"([^\"]*)\"");

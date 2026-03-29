@@ -6,8 +6,6 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL43;
 
@@ -15,8 +13,10 @@ import org.lwjgl.opengl.GL43;
  * @author KilaBash
  * @date 2022/12/11
  * @implNote ShaderUtils
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
-@OnlyIn(Dist.CLIENT)
 public class ShaderUtils {
 
     /**
