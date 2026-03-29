@@ -1,6 +1,7 @@
 # Gradle
 .gradle/
 build/
+.kotlin/
 
 # IDE
 .idea/
