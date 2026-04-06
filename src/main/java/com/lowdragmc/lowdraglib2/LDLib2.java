@@ -26,8 +26,7 @@ public class LDLib2 implements ModInitializer {
     @Override
     public void onInitialize() {
         LDLib2.init();
-        
-        // Track the server instance in Platform
+
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             Platform.SERVER = server;
             Platform.SERVER_REGISTRY_ACCESS = server.registryAccess();
