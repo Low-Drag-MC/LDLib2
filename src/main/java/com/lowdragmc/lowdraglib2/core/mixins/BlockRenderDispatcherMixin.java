@@ -3,18 +3,22 @@ package com.lowdragmc.lowdraglib2.core.mixins;
 import com.lowdragmc.lowdraglib2.client.model.forge.LDLRendererModel;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.data.ModelData;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * @author KilaBash
@@ -23,28 +27,34 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  */
 @Mixin(BlockRenderDispatcher.class)
 public abstract class BlockRenderDispatcherMixin {
-    @Redirect(method = "renderBreakingTexture(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/BlockAndTintGetter;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/neoforged/neoforge/client/model/data/ModelData;)V",
-            at = @At(value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/block/ModelBlockRenderer;tesselateBlock(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/client/resources/model/BakedModel;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;ZLnet/minecraft/util/RandomSource;JILnet/neoforged/neoforge/client/model/data/ModelData;Lnet/minecraft/client/renderer/RenderType;)V"),
-            remap = false)
-    private void ldlib2$injectTesselateBlock(ModelBlockRenderer instance,
-                                            BlockAndTintGetter blockAndTintGetter,
-                                            BakedModel bakedModel,
-                                            BlockState blockState,
-                                            BlockPos pos,
-                                            PoseStack poseStack,
-                                            VertexConsumer vertexConsumer,
-                                            boolean b,
-                                            RandomSource randomSource,
-                                            long l, int i,
-                                            ModelData modelData,
-                                            RenderType renderType) {
-        if (bakedModel instanceof LDLRendererModel.RendererBakedModel model) {
-            var te = blockAndTintGetter.getBlockEntity(pos);
-            instance.tesselateBlock(blockAndTintGetter, bakedModel, blockState, pos, poseStack, vertexConsumer, b, randomSource, l, i,
-                    model.getModelData(blockAndTintGetter, pos, blockState, te == null ? ModelData.EMPTY : te.getModelData()), renderType);
-        } else {
-            instance.tesselateBlock(blockAndTintGetter, bakedModel, blockState, pos, poseStack, vertexConsumer, b, randomSource, l, i, modelData, renderType);
+    @Shadow
+    @Final
+    private BlockModelShaper blockModelShaper;
+
+    @Shadow
+    @Final
+    private ModelBlockRenderer modelRenderer;
+
+    @Shadow
+    @Final
+    private RandomSource random;
+
+    @Inject(method = "renderBreakingTexture(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/BlockAndTintGetter;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/neoforged/neoforge/client/model/data/ModelData;)V", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$renderBreakingTexture(BlockState state, BlockPos pos, BlockAndTintGetter level,
+                                             PoseStack poseStack, VertexConsumer consumer,
+                                             ModelData modelData, CallbackInfo ci) {
+        if (state.getRenderShape() == RenderShape.MODEL) {
+            var bakedModel = this.blockModelShaper.getBlockModel(state);
+            if (bakedModel instanceof LDLRendererModel.RendererBakedModel model) {
+                var seed = state.getSeed(pos);
+                modelData = bakedModel.getModelData(level, pos, state, modelData);
+                this.modelRenderer.tesselateBlock(
+                        level, bakedModel, state, pos, poseStack, consumer, true, this.random, seed,
+                        OverlayTexture.NO_OVERLAY,
+                        model.getModelData(level, pos, state, modelData),
+                        null);
+                ci.cancel();
+            }
         }
     }
 }
