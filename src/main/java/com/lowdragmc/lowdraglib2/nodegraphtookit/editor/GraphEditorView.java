@@ -18,6 +18,8 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
@@ -70,7 +72,9 @@ public class GraphEditorView extends View {
 
     public CompoundTag serializeGraph() {
         if (graph == null) return new CompoundTag();
-        return graph.graphModel.serializeNBT(Platform.getFrozenRegistry());
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry());
+        graph.graphModel.serialize(output);
+        return output.buildResult();
     }
 
     public GraphEditorView clear() {

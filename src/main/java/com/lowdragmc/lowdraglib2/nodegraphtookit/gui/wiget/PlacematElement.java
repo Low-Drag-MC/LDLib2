@@ -81,7 +81,6 @@ public class PlacematElement extends GraphElement<PlacematModel> {
         }
     }
 
-    @Override
     public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {
         if (isSelected()) {
             guiContext.drawTexture(ColorPattern.BLUE.borderTexture(1),
@@ -97,6 +96,5 @@ public class PlacematElement extends GraphElement<PlacematModel> {
         if (isSelfOrChildHover()) {
             WindowDragHelper.drawResizeIcon(guiContext, this, RESIZE_BORDER);
         }
-        super.drawBackgroundOverlay(guiContext);
     }
 }

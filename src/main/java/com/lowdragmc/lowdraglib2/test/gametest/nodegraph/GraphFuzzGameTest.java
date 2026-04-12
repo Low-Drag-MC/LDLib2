@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
@@ -12,34 +12,57 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.VariableNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableScope;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.*;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector2f;
 
 import java.util.*;
 
-/**
- * Fuzz test: performs random graph operations (create/delete nodes+wires, serialize/deserialize, undo/redo snapshots)
- * and validates that all wires always have valid (non-null) ports after each round-trip.
- */
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphFuzzTest {
+public final class GraphFuzzGameTest {
+    private static final String FUZZ_PATH = "graph_fuzz_create_delete_serialize";
+    private static final String UNDO_REDO_PATH = "graph_fuzz_undo_redo_integrity";
 
     private static final int ITERATIONS = 50;
     private static final long SEED = 42L;
 
-    @GameTest(template = "empty", timeoutTicks = 600)
-    @PrefixGameTestTemplate(false)
-    public static void graphFuzzCreateDeleteSerialize(GameTestHelper helper) {
+    private GraphFuzzGameTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(FUZZ_PATH, GraphFuzzGameTest::graphFuzzCreateDeleteSerialize);
+        NodeGraphGameTests.registerFunction(UNDO_REDO_PATH, GraphFuzzGameTest::graphFuzzUndoRedoIntegrity);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, FUZZ_PATH, NodeGraphGameTests.functionKey(FUZZ_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, UNDO_REDO_PATH, NodeGraphGameTests.functionKey(UNDO_REDO_PATH), testData);
+    }
+
+    private static CompoundTag serializeGraph(CustomGraphModelImpl gm, net.minecraft.core.HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        gm.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(CustomGraphModelImpl gm, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+        gm.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
+    }
+
+    private static void graphFuzzCreateDeleteSerialize(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var rng = new Random(SEED);
         var graph = new TestGraph();
         var gm = graph.graphModel;
 
-        // Snapshot stack (simulates undo/redo)
         var snapshots = new ArrayList<CompoundTag>();
 
         for (int i = 0; i < ITERATIONS; i++) {
@@ -50,13 +73,11 @@ public class GraphFuzzTest {
                     case 2 -> createRandomWire(gm, rng);
                     case 3 -> deleteRandomNode(gm, rng);
                     case 4 -> deleteRandomWire(gm, rng);
-                    case 5 -> { // save snapshot
-                        snapshots.add(gm.serializeNBT(provider));
-                    }
-                    case 6 -> { // restore random snapshot (simulates undo/redo)
+                    case 5 -> snapshots.add(serializeGraph(gm, provider));
+                    case 6 -> {
                         if (!snapshots.isEmpty()) {
                             var snap = snapshots.get(rng.nextInt(snapshots.size()));
-                            gm.deserializeNBT(provider, snap);
+                            deserializeGraph(gm, snap, provider);
                         }
                     }
                     case 7 -> createRandomVariable(gm, rng);
@@ -70,24 +91,21 @@ public class GraphFuzzTest {
                 return;
             }
 
-            // Validate: every non-null wire must have valid ports
             String err = validateGraph(gm);
             if (err != null) {
                 helper.fail("Iteration " + i + " (action=" + action + "): " + err);
                 return;
             }
 
-            // Serialize → deserialize → validate round-trip
-            var tag = gm.serializeNBT(provider);
+            var tag = serializeGraph(gm, provider);
             var graph2 = new TestGraph();
-            graph2.graphModel.deserializeNBT(provider, tag);
+            deserializeGraph(graph2.graphModel, tag, provider);
             String err2 = validateGraph(graph2.graphModel);
             if (err2 != null) {
                 helper.fail("Iteration " + i + " round-trip: " + err2);
                 return;
             }
 
-            // Verify counts match after round-trip
             int origNodes = countNonNull(gm.getNodeModels());
             int origWires = countNonNull(gm.getWireModels());
             int origVars = countNonNull(gm.getGraphVariableModels());
@@ -112,22 +130,17 @@ public class GraphFuzzTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty", timeoutTicks = 600)
-    @PrefixGameTestTemplate(false)
-    public static void graphFuzzUndoRedoIntegrity(GameTestHelper helper) {
+    private static void graphFuzzUndoRedoIntegrity(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var rng = new Random(SEED + 1);
         var graph = new TestGraph();
         var gm = graph.graphModel;
 
-        // Build up a non-trivial graph first
         for (int i = 0; i < 8; i++) createRandomNode(gm, rng);
         for (int i = 0; i < 4; i++) createRandomVariable(gm, rng);
         for (int i = 0; i < 6; i++) createRandomWire(gm, rng);
         for (int i = 0; i < 3; i++) createVariableNodeForExisting(gm, rng);
 
-        // Now simulate undo/redo cycles:
-        // Take snapshots, do operations, restore snapshots, validate
         var undoStack = new ArrayDeque<CompoundTag>();
         var redoStack = new ArrayDeque<CompoundTag>();
 
@@ -135,8 +148,8 @@ public class GraphFuzzTest {
             int action = rng.nextInt(5);
             try {
                 switch (action) {
-                    case 0 -> { // do an operation (push undo)
-                        undoStack.push(gm.serializeNBT(provider));
+                    case 0 -> {
+                        undoStack.push(serializeGraph(gm, provider));
                         redoStack.clear();
                         int op = rng.nextInt(8);
                         switch (op) {
@@ -150,21 +163,19 @@ public class GraphFuzzTest {
                             case 7 -> wireVariableNode(gm, rng);
                         }
                     }
-                    case 1, 2 -> { // undo
+                    case 1, 2 -> {
                         if (!undoStack.isEmpty()) {
-                            redoStack.push(gm.serializeNBT(provider));
-                            gm.deserializeNBT(provider, undoStack.pop());
+                            redoStack.push(serializeGraph(gm, provider));
+                            deserializeGraph(gm, undoStack.pop(), provider);
                         }
                     }
-                    case 3 -> { // redo
+                    case 3 -> {
                         if (!redoStack.isEmpty()) {
-                            undoStack.push(gm.serializeNBT(provider));
-                            gm.deserializeNBT(provider, redoStack.pop());
+                            undoStack.push(serializeGraph(gm, provider));
+                            deserializeGraph(gm, redoStack.pop(), provider);
                         }
                     }
-                    case 4 -> { // delete multiple elements at once
-                        deleteRandomElements(gm, rng);
-                    }
+                    case 4 -> deleteRandomElements(gm, rng);
                 }
             } catch (Exception e) {
                 helper.fail("UndoRedo iteration " + i + " action " + action + " threw: " + e.getMessage());
@@ -177,10 +188,9 @@ public class GraphFuzzTest {
                 return;
             }
 
-            // Round-trip check
-            var tag = gm.serializeNBT(provider);
+            var tag = serializeGraph(gm, provider);
             var graph2 = new TestGraph();
-            graph2.graphModel.deserializeNBT(provider, tag);
+            deserializeGraph(graph2.graphModel, tag, provider);
             String err2 = validateGraph(graph2.graphModel);
             if (err2 != null) {
                 helper.fail("UndoRedo iteration " + i + " round-trip: " + err2);
@@ -200,7 +210,7 @@ public class GraphFuzzTest {
 
     private static void createRandomNode(CustomGraphModelImpl gm, Random rng) {
         var pos = new Vector2f(rng.nextFloat() * 1000, rng.nextFloat() * 1000);
-        int typeIdx = rng.nextInt(NODE_TYPES.size() + 2); // +2 for constant and variable
+        int typeIdx = rng.nextInt(NODE_TYPES.size() + 2);
         if (typeIdx < NODE_TYPES.size()) {
             try {
                 var node = NODE_TYPES.get(typeIdx).getConstructor().newInstance();
@@ -209,11 +219,9 @@ public class GraphFuzzTest {
                 LDLib2.LOGGER.warn("Failed to create node: {}", e.getMessage());
             }
         } else if (typeIdx == NODE_TYPES.size()) {
-            // constant node
             var floatType = TypeHandleHelpers.fromType(Float.class);
             gm.createConstantNode("const_" + rng.nextInt(100), pos, floatType, rng.nextFloat() * 100);
         } else {
-            // variable + variable node
             var variable = gm.createVariable("var_" + rng.nextInt(100), float.class, rng.nextFloat(), VariableKind.LOCAL);
             if (variable != null) {
                 gm.createVariableNode(
@@ -273,13 +281,10 @@ public class GraphFuzzTest {
         for (var v : gm.getGraphVariableModels()) if (v != null) all.add(v);
         if (all.isEmpty()) return;
 
-        // Delete 1-3 random elements at once
         int count = Math.min(rng.nextInt(3) + 1, all.size());
         Collections.shuffle(all, rng);
         gm.deleteElements(all.subList(0, count));
     }
-
-    // --- Variable types and kinds for fuzz ---
 
     private static final List<Class<?>> VAR_TYPES = List.of(
             float.class, int.class, boolean.class, String.class, Float.class, Integer.class
@@ -327,21 +332,13 @@ public class GraphFuzzTest {
 
         int op = rng.nextInt(3);
         switch (op) {
-            case 0 -> { // change modifiers
-                vdm.setModifiers(MODIFIER_FLAGS[rng.nextInt(MODIFIER_FLAGS.length)]);
-            }
-            case 1 -> { // change scope
-                vdm.setScope(VAR_SCOPES[rng.nextInt(VAR_SCOPES.length)]);
-            }
-            case 2 -> { // change type
-                var newType = VAR_TYPES.get(rng.nextInt(VAR_TYPES.size()));
-                vdm.setDataTypeHandle(TypeHandleHelpers.fromType(newType));
-            }
+            case 0 -> vdm.setModifiers(MODIFIER_FLAGS[rng.nextInt(MODIFIER_FLAGS.length)]);
+            case 1 -> vdm.setScope(VAR_SCOPES[rng.nextInt(VAR_SCOPES.length)]);
+            case 2 -> vdm.setDataTypeHandle(TypeHandleHelpers.fromType(VAR_TYPES.get(rng.nextInt(VAR_TYPES.size()))));
         }
     }
 
     private static void wireVariableNode(CustomGraphModelImpl gm, Random rng) {
-        // Find variable nodes and try to wire them to compatible ports
         var varOutputs = new ArrayList<PortModel>();
         var varInputs = new ArrayList<PortModel>();
         var otherOutputs = new ArrayList<PortModel>();
@@ -360,7 +357,6 @@ public class GraphFuzzTest {
             }
         }
 
-        // Try to connect variable output -> other input, or other output -> variable input
         if (!varOutputs.isEmpty() && !otherInputs.isEmpty() && rng.nextBoolean()) {
             var from = varOutputs.get(rng.nextInt(varOutputs.size()));
             var to = otherInputs.get(rng.nextInt(otherInputs.size()));
@@ -387,7 +383,6 @@ public class GraphFuzzTest {
             if (wire.getToPort() == null) {
                 return "Wire " + wire.getUid() + " has null toPort";
             }
-            // Verify ports are registered in the graph
             if (gm.getModel(wire.getFromPort().getUid()) == null) {
                 return "Wire " + wire.getUid() + " fromPort not registered in graph";
             }
@@ -395,17 +390,14 @@ public class GraphFuzzTest {
                 return "Wire " + wire.getUid() + " toPort not registered in graph";
             }
         }
-        // Verify all nodes are consistent
         for (var node : gm.getNodeModels()) {
             if (node == null) continue;
             if (gm.getModel(node.getUid()) == null) {
                 return "Node " + node.getUid() + " not registered in elementsByUID";
             }
-            // Verify variable nodes reference valid declarations
             if (node instanceof VariableNodeModel vn) {
                 var declUid = vn.getDeclarationModelUid();
                 if (declUid != null) {
-                    // The declaration should either exist in graphVariableModels or be resolvable
                     boolean found = gm.getGraphVariableModels().stream()
                             .anyMatch(v -> v != null && v.getUid().equals(declUid));
                     if (!found && gm.getModel(declUid) == null) {
@@ -414,14 +406,13 @@ public class GraphFuzzTest {
                 }
             }
         }
-        // Verify all variables are consistent
         for (var variable : gm.getGraphVariableModels()) {
             if (variable == null) continue;
             if (gm.getModel(variable.getUid()) == null) {
                 return "Variable " + variable.getName() + " (" + variable.getUid() + ") not registered in elementsByUID";
             }
         }
-        return null; // OK
+        return null;
     }
 
     private static int countNonNull(List<?> list) {

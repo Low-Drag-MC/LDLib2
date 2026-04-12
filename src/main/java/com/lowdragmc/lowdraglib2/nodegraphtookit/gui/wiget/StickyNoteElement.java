@@ -127,7 +127,6 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
         }
     }
 
-    @Override
     public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {
         if (isSelected()) {
             guiContext.drawTexture(ColorPattern.BLUE.borderTexture(1),
@@ -139,6 +138,5 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
                         getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
             }
         }
-        super.drawBackgroundOverlay(guiContext);
     }
 }

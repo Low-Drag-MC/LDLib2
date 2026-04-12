@@ -11,7 +11,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.Tuple;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +30,9 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
 
         setAddDefault(() -> {
             var graph = graphResource.createGraph();
-            return graph.graphModel.serializeNBT(Platform.getFrozenRegistry());
+            var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry());
+            graph.graphModel.serialize(output);
+            return output.buildResult();
         });
 
         setUiSupplier(path -> new UIElement().layout(layout -> {
@@ -44,7 +49,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
 
             // deserialize into a fresh graph
             var graph = graphResource.createGraph();
-            graph.graphModel.deserializeNBT(Platform.getFrozenRegistry(), tag);
+            graph.graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry(), tag));
 
             var editor = container.getEditor();
             var uuid = UUID.randomUUID();

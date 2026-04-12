@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
+package com.lowdragmc.lowdraglib2.test.gametest.registry;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import net.minecraft.core.Holder;
@@ -17,12 +17,12 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.Consumer;
 
-public final class NodeGraphGameTests {
+public final class RegistryGameTests {
     private static final DeferredRegister<Consumer<GameTestHelper>> TEST_FUNCTIONS =
             DeferredRegister.create(BuiltInRegistries.TEST_FUNCTION, LDLib2.MOD_ID);
     private static boolean initialized = false;
 
-    private NodeGraphGameTests() {
+    private RegistryGameTests() {
     }
 
     public static void init(IEventBus eventBus) {
@@ -30,13 +30,9 @@ public final class NodeGraphGameTests {
             return;
         }
         initialized = true;
-        GraphSerializationGameTest.registerFunctions();
-        GraphHierarchySerializationGameTest.registerFunctions();
-        GraphAnnotationRegistrationGameTest.registerFunctions();
-        GraphCopyPasteGameTest.registerFunctions();
-        GraphFuzzGameTest.registerFunctions();
+        RegistrationEnvironmentGameTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
-        eventBus.addListener(NodeGraphGameTests::registerGameTests);
+        eventBus.addListener(RegistryGameTests::registerGameTests);
     }
 
     static DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> registerFunction(String path, Consumer<GameTestHelper> function) {
@@ -65,14 +61,10 @@ public final class NodeGraphGameTests {
 
     private static void registerGameTests(RegisterGameTestsEvent event) {
         Holder<TestEnvironmentDefinition<?>> environment = event.registerEnvironment(
-                LDLib2.id("nodegraph"),
+                LDLib2.id("registry"),
                 new TestEnvironmentDefinition.AllOf()
         );
-        GraphSerializationGameTest.register(event, environment);
-        GraphHierarchySerializationGameTest.register(event, environment);
-        GraphAnnotationRegistrationGameTest.register(event, environment);
-        GraphCopyPasteGameTest.register(event, environment);
-        GraphFuzzGameTest.register(event, environment);
+        RegistrationEnvironmentGameTest.register(event, environment);
     }
 
     static void registerFunctionTest(

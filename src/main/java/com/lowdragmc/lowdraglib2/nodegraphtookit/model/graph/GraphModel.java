@@ -1920,7 +1920,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var placematsTag = new ListTag();
         for (var placemat : placematModels) {
             if (placemat != null) {
-                placematsTag.add(placemat.serializeNBT(provider));
+                placematsTag.add(serializeModel(placemat, provider));
             }
         }
         tag.put("placemats", placematsTag);
@@ -1929,7 +1929,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var stickyNotesTag = new ListTag();
         for (var stickyNote : stickyNoteModels) {
             if (stickyNote != null) {
-                stickyNotesTag.add(stickyNote.serializeNBT(provider));
+                stickyNotesTag.add(serializeModel(stickyNote, provider));
             }
         }
         tag.put("stickyNotes", stickyNotesTag);
@@ -2087,12 +2087,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 6. Placemats
         if (compound.contains("placemats")) {
-            var placematsTag = compound.getList("placemats", Tag.TAG_COMPOUND);
+            var placematsTag = compound.getListOrEmpty("placemats");
             for (int i = 0; i < placematsTag.size(); i++) {
-                var pmTag = placematsTag.getCompound(i);
+                var pmTag = placematsTag.getCompoundOrEmpty(i);
                 var placemat = new PlacematModel();
                 placemat.setGraphModel(this);
-                placemat.deserializeNBT(provider, pmTag);
+                deserializeModel(placemat, pmTag, provider);
                 placematModels.add(placemat);
                 registerElement(placemat);
             }
@@ -2100,12 +2100,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 7. Sticky Notes
         if (compound.contains("stickyNotes")) {
-            var stickyNotesTag = compound.getList("stickyNotes", Tag.TAG_COMPOUND);
+            var stickyNotesTag = compound.getListOrEmpty("stickyNotes");
             for (int i = 0; i < stickyNotesTag.size(); i++) {
-                var snTag = stickyNotesTag.getCompound(i);
+                var snTag = stickyNotesTag.getCompoundOrEmpty(i);
                 var stickyNote = new StickyNoteModel();
                 stickyNote.setGraphModel(this);
-                stickyNote.deserializeNBT(provider, snTag);
+                deserializeModel(stickyNote, snTag, provider);
                 stickyNoteModels.add(stickyNote);
                 registerElement(stickyNote);
             }
@@ -2192,7 +2192,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // 3. Serialize nodes
         var nodesTag = new ListTag();
         for (var node : selectedNodes) {
-            var nodeTag = node.serializeNBT(provider);
+            var nodeTag = serializeModel(node, provider);
             nodeTag.putString("_type", getNodeDiscriminator(node));
             if (node instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
                 nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
@@ -2205,9 +2205,9 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var wiresTag = new ListTag();
         for (var wire : internalWires) {
             var wireRef = new CompoundTag();
-            wireRef.putUUID("fromNodeUid", wire.getFromPort().getNodeModel().getUid());
+            wireRef.putString("fromNodeUid", wire.getFromPort().getNodeModel().getUid().toString());
             wireRef.putString("fromPortUniqueName", wire.getFromPort().getUniqueName());
-            wireRef.putUUID("toNodeUid", wire.getToPort().getNodeModel().getUid());
+            wireRef.putString("toNodeUid", wire.getToPort().getNodeModel().getUid().toString());
             wireRef.putString("toPortUniqueName", wire.getToPort().getUniqueName());
             wiresTag.add(wireRef);
         }
@@ -2220,7 +2220,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             if (node instanceof VariableNodeModel varNode && varNode.getDeclarationModelUid() != null) {
                 var declUid = varNode.getDeclarationModelUid();
                 if (seenVarUids.add(declUid) && getModel(declUid) instanceof VariableDeclarationModel vdm) {
-                    variablesTag.add(vdm.serializeNBT(provider));
+                    variablesTag.add(serializeModel(vdm, provider));
                 }
             }
         }
@@ -2233,7 +2233,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             if (node instanceof WirePortalModel portalNode && portalNode.getModelUid() != null) {
                 var modelUid = portalNode.getModelUid();
                 if (seenPortalUids.add(modelUid) && getModel(modelUid) instanceof DeclarationModel decl) {
-                    portalsTag.add(decl.serializeNBT(provider));
+                    portalsTag.add(serializeModel(decl, provider));
                 }
             }
         }
@@ -2243,7 +2243,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var placematsTag = new ListTag();
         for (var element : elements) {
             if (element instanceof PlacematModel pm) {
-                placematsTag.add(pm.serializeNBT(provider));
+                placematsTag.add(serializeModel(pm, provider));
             }
         }
         tag.put("placemats", placematsTag);
@@ -2252,7 +2252,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         var stickyNotesTag = new ListTag();
         for (var element : elements) {
             if (element instanceof StickyNoteModel sn) {
-                stickyNotesTag.add(sn.serializeNBT(provider));
+                stickyNotesTag.add(serializeModel(sn, provider));
             }
         }
         tag.put("stickyNotes", stickyNotesTag);
@@ -2271,12 +2271,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 1. Variable declarations: deserialize, reuse existing by UID or register new
         if (compound.contains("variables")) {
-            var variablesTag = compound.getList("variables", Tag.TAG_COMPOUND);
+            var variablesTag = compound.getListOrEmpty("variables");
             for (int i = 0; i < variablesTag.size(); i++) {
-                var varTag = variablesTag.getCompound(i);
+                var varTag = variablesTag.getCompoundOrEmpty(i);
                 var variable = new VariableDeclarationModel();
                 variable.setGraphModel(this);
-                variable.deserializeNBT(provider, varTag);
+                deserializeModel(variable, varTag, provider);
                 if (!hasModel(variable.getUid())) {
                     addVariableDeclaration(variable);
                 }
@@ -2285,12 +2285,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 2. Portal declarations: same logic
         if (compound.contains("portals")) {
-            var portalsTag = compound.getList("portals", Tag.TAG_COMPOUND);
+            var portalsTag = compound.getListOrEmpty("portals");
             for (int i = 0; i < portalsTag.size(); i++) {
-                var portalTag = portalsTag.getCompound(i);
+                var portalTag = portalsTag.getCompoundOrEmpty(i);
                 var portal = new DeclarationModel();
                 portal.setGraphModel(this);
-                portal.deserializeNBT(provider, portalTag);
+                deserializeModel(portal, portalTag, provider);
                 if (!hasModel(portal.getUid())) {
                     addPortal(portal);
                 }
@@ -2300,14 +2300,14 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // 3. Nodes: recreate with new UUIDs
         var oldToNewNodeMap = new HashMap<UUID, AbstractNodeModel>();
         if (compound.contains("nodes")) {
-            var nodesTag = compound.getList("nodes", Tag.TAG_COMPOUND);
+            var nodesTag = compound.getListOrEmpty("nodes");
             for (int i = 0; i < nodesTag.size(); i++) {
-                var nodeTag = nodesTag.getCompound(i);
-                var type = nodeTag.getString("_type");
+                var nodeTag = nodesTag.getCompoundOrEmpty(i);
+                var type = nodeTag.getStringOr("_type", "");
                 try {
                     var nodeModel = createNodeFromDiscriminator(type);
                     nodeModel.setGraphModel(this);
-                    nodeModel.deserializeNBT(provider, nodeTag);
+                    deserializeModel(nodeModel, nodeTag, provider);
 
                     var oldUid = nodeModel.getUid();
 
@@ -2316,7 +2316,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
                     // CustomNodeModelImpl: init node class
                     if (nodeModel instanceof CustomNodeModelImpl customNode) {
-                        var nodeClassName = nodeTag.getString("nodeClass");
+                        var nodeClassName = nodeTag.getStringOr("nodeClass", "");
                         Node node = findNodeByClassName(nodeClassName);
                         if (node != null) {
                             customNode.initCustomNode(node);
@@ -2354,13 +2354,13 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 4. Wires: reconnect using oldNodeUid→newNode mapping + portUniqueName
         if (compound.contains("wires")) {
-            var wiresTag = compound.getList("wires", Tag.TAG_COMPOUND);
+            var wiresTag = compound.getListOrEmpty("wires");
             for (int i = 0; i < wiresTag.size(); i++) {
-                var wireRef = wiresTag.getCompound(i);
-                var fromNodeUid = wireRef.getUUID("fromNodeUid");
-                var fromPortName = wireRef.getString("fromPortUniqueName");
-                var toNodeUid = wireRef.getUUID("toNodeUid");
-                var toPortName = wireRef.getString("toPortUniqueName");
+                var wireRef = wiresTag.getCompoundOrEmpty(i);
+                var fromNodeUid = UUID.fromString(wireRef.getStringOr("fromNodeUid", ""));
+                var fromPortName = wireRef.getStringOr("fromPortUniqueName", "");
+                var toNodeUid = UUID.fromString(wireRef.getStringOr("toNodeUid", ""));
+                var toPortName = wireRef.getStringOr("toPortUniqueName", "");
 
                 var newFromNode = oldToNewNodeMap.get(fromNodeUid);
                 var newToNode = oldToNewNodeMap.get(toNodeUid);
@@ -2376,12 +2376,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 5. Placemats: recreate with new UUIDs and offset
         if (compound.contains("placemats")) {
-            var placematsTag = compound.getList("placemats", Tag.TAG_COMPOUND);
+            var placematsTag = compound.getListOrEmpty("placemats");
             for (int i = 0; i < placematsTag.size(); i++) {
-                var pmTag = placematsTag.getCompound(i);
+                var pmTag = placematsTag.getCompoundOrEmpty(i);
                 var pm = new PlacematModel();
                 pm.setGraphModel(this);
-                pm.deserializeNBT(provider, pmTag);
+                deserializeModel(pm, pmTag, provider);
                 pm.setUid(UUID.randomUUID());
                 var pos = pm.getPosition();
                 pm.setPosition(new Vector2f(pos.x + positionOffset.x, pos.y + positionOffset.y));
@@ -2394,12 +2394,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 6. Sticky Notes: recreate with new UUIDs and offset
         if (compound.contains("stickyNotes")) {
-            var stickyNotesTag = compound.getList("stickyNotes", Tag.TAG_COMPOUND);
+            var stickyNotesTag = compound.getListOrEmpty("stickyNotes");
             for (int i = 0; i < stickyNotesTag.size(); i++) {
-                var snTag = stickyNotesTag.getCompound(i);
+                var snTag = stickyNotesTag.getCompoundOrEmpty(i);
                 var sn = new StickyNoteModel();
                 sn.setGraphModel(this);
-                sn.deserializeNBT(provider, snTag);
+                deserializeModel(sn, snTag, provider);
                 sn.setUid(UUID.randomUUID());
                 var pos = sn.getPosition();
                 sn.setPosition(new Vector2f(pos.x + positionOffset.x, pos.y + positionOffset.y));

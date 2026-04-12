@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public final class GraphNodeRegistry {
      * @param graphClass   the graph class to filter nodes for
      * @return a new GraphNodeRegistry
      */
-    public static GraphNodeRegistry create(ResourceLocation registryName, Class<? extends Graph> graphClass) {
+    public static GraphNodeRegistry create(Identifier registryName, Class<? extends Graph> graphClass) {
         var autoRegistry = AutoRegistry.<NodeAttribute, Node, Class<? extends Node>>create(
                 registryName,
                 NodeAttribute.class,

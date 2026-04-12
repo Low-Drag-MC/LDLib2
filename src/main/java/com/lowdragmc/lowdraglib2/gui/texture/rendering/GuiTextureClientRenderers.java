@@ -24,6 +24,8 @@ import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTextureInterpolation;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTextureInterpolationRenderer;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTextureRenderer;
+import com.lowdragmc.lowdraglib2.gui.texture.VanillaSpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.VanillaSpriteTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
@@ -243,6 +245,19 @@ public final class GuiTextureClientRenderers {
         @Override
         public void draw(SpriteTexture texture, com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext context, float x, float y, float width, float height) {
             SpriteTextureRenderer.draw(texture, context, x, y, width, height);
+        }
+    }
+
+    @LDLRegisterClient(name = "vanilla_sprite_texture", registry = "ldlib2:gui_texture_renderer")
+    public static final class RegisteredVanillaSpriteTextureRenderer implements RegisteredGuiTextureRenderer<VanillaSpriteTexture, RegisteredVanillaSpriteTextureRenderer> {
+        @Override
+        public Class<VanillaSpriteTexture> type() {
+            return VanillaSpriteTexture.class;
+        }
+
+        @Override
+        public void draw(VanillaSpriteTexture texture, com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext context, float x, float y, float width, float height) {
+            VanillaSpriteTextureRenderer.draw(texture, context, x, y, width, height);
         }
     }
 

@@ -1,39 +1,55 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.VariableNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector2f;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphCopyPasteTest {
+public final class GraphCopyPasteGameTest {
+    private static final String BASIC_PATH = "graph_copy_paste_basic";
+    private static final String PARTIAL_PATH = "graph_copy_paste_partial";
+    private static final String VARIABLE_PATH = "graph_copy_paste_variable";
+    private static final String OFFSET_PATH = "graph_copy_paste_offset";
+    private static final String DUPLICATE_PATH = "graph_copy_paste_duplicate";
 
-    /**
-     * Tests basic copy/paste of 2 connected nodes.
-     * Verifies new UUIDs are assigned and wire connects the new ports correctly.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void copyPasteBasicNodes(GameTestHelper helper) {
+    private GraphCopyPasteGameTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(BASIC_PATH, GraphCopyPasteGameTest::copyPasteBasicNodes);
+        NodeGraphGameTests.registerFunction(PARTIAL_PATH, GraphCopyPasteGameTest::copyPastePartialSelection);
+        NodeGraphGameTests.registerFunction(VARIABLE_PATH, GraphCopyPasteGameTest::copyPasteWithVariable);
+        NodeGraphGameTests.registerFunction(OFFSET_PATH, GraphCopyPasteGameTest::copyPastePositionOffset);
+        NodeGraphGameTests.registerFunction(DUPLICATE_PATH, GraphCopyPasteGameTest::duplicatePreservesConnections);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, BASIC_PATH, NodeGraphGameTests.functionKey(BASIC_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PARTIAL_PATH, NodeGraphGameTests.functionKey(PARTIAL_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, VARIABLE_PATH, NodeGraphGameTests.functionKey(VARIABLE_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, OFFSET_PATH, NodeGraphGameTests.functionKey(OFFSET_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DUPLICATE_PATH, NodeGraphGameTests.functionKey(DUPLICATE_PATH), testData);
+    }
+
+    private static void copyPasteBasicNodes(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        // Create 2 connected AddNodes
         var node1 = graphModel.createNodeModel(new TestAddNode(), new Vector2f(100, 100));
         var node2 = graphModel.createNodeModel(new TestAddNode(), new Vector2f(300, 100));
 
@@ -44,23 +60,17 @@ public class GraphCopyPasteTest {
         int origNodeCount = countNodes(graphModel);
         int origWireCount = countWires(graphModel);
 
-        // Copy both nodes
         var copyData = graphModel.copyElements(List.of(node1, node2), provider);
-
-        // Paste with offset
         var pasted = graphModel.pasteElements(copyData, new Vector2f(50, 50));
 
-        // Should have 2 new nodes
         if (pasted.size() != 2) {
             helper.fail("Expected 2 pasted elements, got " + pasted.size());
             return;
         }
 
-        // Total counts should double
         assertEq(helper, "node count after paste", origNodeCount + 2, countNodes(graphModel));
         assertEq(helper, "wire count after paste", origWireCount + 1, countWires(graphModel));
 
-        // New nodes must have different UUIDs
         for (var element : pasted) {
             if (element.getUid().equals(node1.getUid()) || element.getUid().equals(node2.getUid())) {
                 helper.fail("Pasted node has same UUID as original: " + element.getUid());
@@ -68,7 +78,6 @@ public class GraphCopyPasteTest {
             }
         }
 
-        // Verify the pasted wire connects two pasted nodes (not original nodes)
         var pastedNodeUids = pasted.stream().map(GraphElementModel::getUid).toList();
         boolean foundPastedWire = false;
         for (var wire : graphModel.getWireModels()) {
@@ -88,13 +97,7 @@ public class GraphCopyPasteTest {
         helper.succeed();
     }
 
-    /**
-     * Tests partial selection: 3 nodes A→B→C, select only A+C.
-     * Paste should produce 2 nodes with no wires (A→B and B→C are not internal).
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void copyPastePartialSelection(GameTestHelper helper) {
+    private static void copyPastePartialSelection(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
@@ -103,35 +106,25 @@ public class GraphCopyPasteTest {
         var nodeB = graphModel.createNodeModel(new TestAddNode(), new Vector2f(200, 0));
         var nodeC = graphModel.createNodeModel(new TestAddNode(), new Vector2f(400, 0));
 
-        // A.out → B.in1
         graphModel.createWire(nodeB.getInputsById().get("in1"), nodeA.getOutputsById().get("out"));
-        // B.out → C.in1
         graphModel.createWire(nodeC.getInputsById().get("in1"), nodeB.getOutputsById().get("out"));
 
         int wiresBefore = countWires(graphModel);
 
-        // Copy only A and C (not B)
         var copyData = graphModel.copyElements(List.of(nodeA, nodeC), provider);
         var pasted = graphModel.pasteElements(copyData, new Vector2f(0, 200));
 
         assertEq(helper, "pasted node count", 2, pasted.size());
-        // No new wires should be created
         assertEq(helper, "wire count unchanged", wiresBefore, countWires(graphModel));
 
         helper.succeed();
     }
 
-    /**
-     * Tests copy/paste of a VariableNode with its declaration.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void copyPasteWithVariable(GameTestHelper helper) {
+    private static void copyPasteWithVariable(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        // Create a variable and a variable node
         var variable = graphModel.createVariable("testVar", float.class, 7.5f, VariableKind.LOCAL);
         var variableNode = graphModel.createVariableNode(
                 (VariableDeclarationModel) variable,
@@ -139,16 +132,12 @@ public class GraphCopyPasteTest {
 
         int varCountBefore = countVariables(graphModel);
 
-        // Copy the variable node
         var copyData = graphModel.copyElements(List.of(variableNode), provider);
         var pasted = graphModel.pasteElements(copyData, new Vector2f(100, 0));
 
         assertEq(helper, "pasted count", 1, pasted.size());
-
-        // Variable declaration should be reused (same UID exists), not duplicated
         assertEq(helper, "variable count unchanged", varCountBefore, countVariables(graphModel));
 
-        // Pasted VariableNode should reference the same declaration
         var pastedNode = pasted.get(0);
         if (!(pastedNode instanceof VariableNodeModel pastedVarNode)) {
             helper.fail("Pasted element is not a VariableNodeModel");
@@ -166,12 +155,7 @@ public class GraphCopyPasteTest {
         helper.succeed();
     }
 
-    /**
-     * Tests that position offset is correctly applied during paste.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void copyPastePositionOffset(GameTestHelper helper) {
+    private static void copyPastePositionOffset(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
@@ -194,17 +178,11 @@ public class GraphCopyPasteTest {
         helper.succeed();
     }
 
-    /**
-     * Tests that duplicating multiple connected nodes preserves internal connections.
-     */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void duplicatePreservesConnections(GameTestHelper helper) {
+    private static void duplicatePreservesConnections(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
 
-        // Create 3 nodes all connected: A→B, A→C, B→C
         var nodeA = graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
         var nodeB = graphModel.createNodeModel(new TestAddNode(), new Vector2f(200, 0));
         var nodeC = graphModel.createNodeModel(new TestAddNode(), new Vector2f(400, 0));
@@ -215,15 +193,12 @@ public class GraphCopyPasteTest {
 
         int wiresBefore = countWires(graphModel);
 
-        // Copy all 3 (all wires are internal)
         var copyData = graphModel.copyElements(List.of(nodeA, nodeB, nodeC), provider);
         var pasted = graphModel.pasteElements(copyData, new Vector2f(0, 300));
 
         assertEq(helper, "pasted node count", 3, pasted.size());
-        // 3 new internal wires should be created
         assertEq(helper, "wire count", wiresBefore + 3, countWires(graphModel));
 
-        // All pasted wires should connect only pasted nodes
         var pastedUids = pasted.stream().map(GraphElementModel::getUid).toList();
         int pastedWireCount = 0;
         for (var wire : graphModel.getWireModels()) {

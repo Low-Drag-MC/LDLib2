@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.plugin.LDLibPlugin;
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 import com.lowdragmc.lowdraglib2.test.*;
 import com.lowdragmc.lowdraglib2.test.gametest.nodegraph.NodeGraphGameTests;
+import com.lowdragmc.lowdraglib2.test.gametest.registry.RegistryGameTests;
 import com.lowdragmc.lowdraglib2.test.gametest.ui.UIGameTests;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -64,6 +65,7 @@ public class CommonProxy {
         if (Platform.isDevEnv()) {
             UIGameTests.init(eventBus);
             NodeGraphGameTests.init(eventBus);
+            RegistryGameTests.init(eventBus);
         }
 
         BLOCKS.register(eventBus);
