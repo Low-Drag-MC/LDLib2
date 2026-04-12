@@ -285,6 +285,7 @@ public class GraphView extends UIElement {
         graph.graphModel.getCurrentGraphChangeDescription().clear();
         changeset.clear();
         inspector.clear();
+        blackboard.clear();
         buildUITree(graph.graphModel);
     }
 
