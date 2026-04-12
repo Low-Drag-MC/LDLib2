@@ -12,6 +12,9 @@ import org.joml.Vector3f;
  * @author KilaBash
  * @date 2022/6/17
  * @implNote ShapeUtils
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @UtilityClass
 public final class ShapeUtils {

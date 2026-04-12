@@ -6,11 +6,10 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapForJS;
+
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -20,15 +19,14 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.metadata.gui.GuiSpriteScaling;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * The sprite ResourceLocation should point to a registered vanilla sprite
  * (e.g. from a GUI atlas), not a raw texture file.
  */
-@KJSBindings
 @LDLRegisterClient(name = "vanilla_sprite_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 public class VanillaSpriteTexture extends TransformTexture {
@@ -52,17 +50,16 @@ public class VanillaSpriteTexture extends TransformTexture {
         this.sprite = sprite;
     }
 
-    @HideFromJS
+    
     public static VanillaSpriteTexture of(ResourceLocation sprite) {
         return new VanillaSpriteTexture(sprite);
     }
 
-    @HideFromJS
+    
     public static VanillaSpriteTexture of(String sprite) {
         return of(ResourceLocation.parse(sprite));
     }
 
-    @RemapForJS("of")
     public static VanillaSpriteTexture kjs$of(ResourceLocation sprite) {
         return of(sprite);
     }
@@ -76,7 +73,7 @@ public class VanillaSpriteTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (sprite == null || width <= 0 || height <= 0) {
             return;
@@ -94,7 +91,7 @@ public class VanillaSpriteTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private SearchComponentConfigurator.ISearchConfigurator<ResourceLocation> searchSprites() {
         return new SearchComponentConfigurator.ISearchConfigurator<>() {
             @Override
@@ -107,10 +104,10 @@ public class VanillaSpriteTexture extends TransformTexture {
             public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
                 var lowerWord = word.toLowerCase();
                 var atlas = Minecraft.getInstance().getGuiSprites().textureAtlas;
-                for (var key : atlas.getTextures().keySet()) {
+                for (var key : java.util.Collections.emptySet() /* FIXME: atlas textures */) {
                     if (Thread.currentThread().isInterrupted()) return;
                     if (key.toString().toLowerCase().contains(lowerWord)) {
-                        searchHandler.acceptResult(key);
+                        searchHandler.acceptResult((net.minecraft.resources.ResourceLocation)key);
                     }
                 }
             }
@@ -131,7 +128,7 @@ public class VanillaSpriteTexture extends TransformTexture {
     /**
      * Blit a full sprite with float coordinates (stretch mode).
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void blitSpriteFloat(GuiGraphics graphics, TextureAtlasSprite atlasSprite, float x, float y, float width, float height) {
         innerBlitFloat(graphics, atlasSprite,
                 x, x + width, y, y + height,
@@ -141,7 +138,7 @@ public class VanillaSpriteTexture extends TransformTexture {
     /**
      * Blit a sub-region of a sprite with float coordinates.
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void blitSubSpriteFloat(GuiGraphics graphics, TextureAtlasSprite sprite,
                                     int textureWidth, int textureHeight,
                                     int uPosition, int vPosition,
@@ -158,7 +155,7 @@ public class VanillaSpriteTexture extends TransformTexture {
     /**
      * Core float quad rendering.
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void innerBlitFloat(GuiGraphics graphics, TextureAtlasSprite sprite,
                                 float x1, float x2, float y1, float y2,
                                 float u0, float u1, float v0, float v1) {
@@ -175,7 +172,7 @@ public class VanillaSpriteTexture extends TransformTexture {
         buffer.addVertex(matrix, x2, y1, 0).setUv(u1, v0).setColor(r, g, b, a);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void blitTiledSpriteFloat(GuiGraphics graphics, TextureAtlasSprite sprite,
                                       float x, float y, float width, float height,
                                       int uPosition, int vPosition,
@@ -192,7 +189,7 @@ public class VanillaSpriteTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void blitNineSlicedSpriteFloat(GuiGraphics graphics, TextureAtlasSprite sprite,
                                            GuiSpriteScaling.NineSlice nineSlice,
                                            float x, float y, float width, float height) {

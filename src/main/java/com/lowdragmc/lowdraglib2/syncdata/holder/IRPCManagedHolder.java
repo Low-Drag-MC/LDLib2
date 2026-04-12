@@ -8,10 +8,11 @@ import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.network.PacketDistributor;
-
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 
@@ -43,20 +44,20 @@ public interface IRPCManagedHolder extends IManagedHolder {
         }, Platform.getFrozenRegistry());
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     default void rpcToServer(IManaged managed, String methodName, Object... args) {
         var packet = createRPCPacket(parseArgs2Bytes(managed, methodName, args));
-        PacketDistributor.sendToServer(packet);
+        ClientPlayNetworking.send(packet);
     }
 
     default void rpcToPlayer(IManaged managed, ServerPlayer player, String methodName, Object... args) {
         var packet = createRPCPacket(parseArgs2Bytes(managed, methodName, args));
-        PacketDistributor.sendToPlayer(player, packet);
+        ServerPlayNetworking.send(player, packet);
     }
 
     default void rpcToTracking(IManaged managed, String methodName, Object... args) {
         var packet = createRPCPacket(parseArgs2Bytes(managed, methodName, args));
-        PacketDistributor.sendToPlayersTrackingChunk(getServerLevel(), getTrackingPos(), packet);
+        PlayerLookup.tracking(getServerLevel(), getTrackingPos()).forEach(player -> ServerPlayNetworking.send(player, packet));
     }
 
     default void handleRPCPacket(RPCSender sender, byte[] data) {

@@ -11,11 +11,6 @@ import lombok.experimental.Accessors;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Property for CSS grid-row and grid-column.
- * Represents grid item placement using start and end lines.
- */
 @Accessors(chain = true)
 public class GridProperty extends Property<Grid> {
     public GridProperty(String name, Grid initialValue) {

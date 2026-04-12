@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.client.renderer.block;
 
+import com.lowdragmc.lowdraglib2.client.renderer.ChunkRenderTypeSet;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.renderer.ModelData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -16,10 +18,6 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.model.data.ModelData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,13 +38,11 @@ class RendererBlockRenderer implements IRenderer {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public void renderItem(ItemStack stack, ItemDisplayContext transformType, boolean leftHand, PoseStack poseStack, MultiBufferSource buffer, int combinedLight, int combinedOverlay, BakedModel model) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
         return getMachine(level, pos)
                 .map(machine -> machine.getRenderer().renderModel(level, pos, state, side, rand, data, renderType))
@@ -54,7 +50,6 @@ class RendererBlockRenderer implements IRenderer {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
         return getMachine(level, pos)
                 .map(machine -> machine.getRenderer().getRenderTypes(level, pos, state, rand, modelData))
@@ -63,7 +58,6 @@ class RendererBlockRenderer implements IRenderer {
 
     @Override
     @NotNull
-    @OnlyIn(Dist.CLIENT)
     public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
         return getMachine(level, pos)
                 .map(machine -> machine.getRenderer().getParticleTexture(level, pos, modelData))
@@ -71,25 +65,21 @@ class RendererBlockRenderer implements IRenderer {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public boolean hasBlockEntityRenderer(BlockEntity blockEntity) {
         return getMachine(blockEntity).map(machine -> machine.getRenderer().hasBlockEntityRenderer(blockEntity)).orElse(false);
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public boolean shouldRenderOffScreen(BlockEntity blockEntity) {
         return getMachine(blockEntity).map(machine -> machine.getRenderer().shouldRenderOffScreen(blockEntity)).orElse(false);
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public boolean shouldRender(BlockEntity blockEntity, Vec3 cameraPos) {
         return getMachine(blockEntity).map(machine -> machine.getRenderer().shouldRender(blockEntity, cameraPos)).orElseGet(() -> IRenderer.super.shouldRender(blockEntity, cameraPos));
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public void render(BlockEntity blockEntity, float partialTicks, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
         getMachine(blockEntity).ifPresent(machine -> machine.getRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay));
     }

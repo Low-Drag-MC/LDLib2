@@ -2,10 +2,6 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
 import java.util.Collection;
 import java.util.List;
-
-/**
- * A container for graph elements.
- */
 public interface IGraphElementContainer {
     /**
      * Gets the contained graph element models.

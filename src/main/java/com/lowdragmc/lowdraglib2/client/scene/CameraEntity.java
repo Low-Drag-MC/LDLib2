@@ -16,6 +16,9 @@ import javax.annotation.Nonnull;
  * @author KilaBash
  * @date 2022/06/05
  * @implNote CameraEntity,
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class CameraEntity extends Entity {
 

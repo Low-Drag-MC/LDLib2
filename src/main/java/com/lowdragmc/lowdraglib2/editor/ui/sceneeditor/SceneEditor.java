@@ -39,10 +39,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-/**
- * A scene which provides editable features as a unity scene.
- */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class SceneEditor extends UIElement implements IScene {

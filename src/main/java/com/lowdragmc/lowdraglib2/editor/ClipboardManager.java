@@ -1,13 +1,11 @@
 package com.lowdragmc.lowdraglib2.editor;
 
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.function.Supplier;
 
-@KJSBindings
 public final class ClipboardManager {
     public static ClipboardManager INSTANCE = new ClipboardManager();
     private ClipboardManager() {}

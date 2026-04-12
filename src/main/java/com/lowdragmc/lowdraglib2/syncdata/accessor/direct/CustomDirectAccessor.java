@@ -123,8 +123,14 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          */
         public Builder<TYPE> codecMark() {
             this.markFunction = new IMarkFunction.Simple<>(
-                    value -> codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow(),
-                    (mark, value) -> !Objects.equals(mark, codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow()));
+                    value -> {
+                        var registry = Platform.getFrozenRegistry();
+                        return codec.encodeStart(registry.createSerializationContext(JavaOps.INSTANCE), value).getOrThrow();
+                    },
+                    (mark, value) -> {
+                        var registry = Platform.getFrozenRegistry();
+                        return !Objects.equals(mark, codec.encodeStart(registry.createSerializationContext(JavaOps.INSTANCE), value).getOrThrow());
+                    });
             return this;
         }
 

@@ -8,7 +8,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.RegistryAccess;
 
 import javax.annotation.Nonnull;
 
@@ -33,14 +34,13 @@ public class SPacketUIRPCEventReturn implements CustomPacketPayload {
         return new SPacketUIRPCEventReturn(returnData);
     }
 
-    public static void execute(SPacketUIRPCEventReturn packet, IPayloadContext context) {
-        var player = context.player();
+    public static void handle(SPacketUIRPCEventReturn packet, Player player, RegistryAccess registryAccess) {
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
             var syncManager = syncManagerHolder.getSyncManager();
             if (syncManager == null) return;
             ByteBufUtil.readCustomData(packet.returnData,
                     syncManager::handEventReturn,
-                    context.player().registryAccess());
+                    registryAccess);
         }
     }
 

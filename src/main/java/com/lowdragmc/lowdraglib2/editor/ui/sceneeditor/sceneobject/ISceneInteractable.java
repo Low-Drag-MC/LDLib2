@@ -4,8 +4,8 @@ import com.lowdragmc.lowdraglib2.math.Ray;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -14,9 +14,11 @@ import org.jetbrains.annotations.Nullable;
  * @author KilaBash
  * @date 2024/06/26
  * @implNote A scene object that can be interacted in the scene editor.
-
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public interface ISceneInteractable extends ISceneObject {
 
     /**

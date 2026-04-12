@@ -12,6 +12,9 @@ import java.util.function.BiFunction;
  * @author KilaBash
  * @date 2022/12/1
  * @implNote Icons
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public class Icons {
     private static final ResourceLocation GDP_ICONS = LDLib2.id("textures/gui/icon/gdp_icons.png");

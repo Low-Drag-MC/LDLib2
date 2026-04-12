@@ -19,6 +19,9 @@ import java.util.*;
  * @author KilaBash
  * @date 2023/7/20
  * @implNote SpriteSourceListMixin
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @Mixin(SpriteSourceList.class)
 public abstract class SpriteSourceListMixin {

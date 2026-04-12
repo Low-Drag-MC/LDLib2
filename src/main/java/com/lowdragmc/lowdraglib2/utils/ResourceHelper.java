@@ -14,6 +14,9 @@ import java.net.URL;
  * @author KilaBash
  * @date 2023/2/20
  * @implNote ResourceHelper
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @UtilityClass
 public final class ResourceHelper {

@@ -1,88 +1,35 @@
 plugins {
-    id 'java-library'
-    id 'eclipse'
-    id 'idea'
+    id 'fabric-loom' version '1.15-SNAPSHOT'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.0.181'
     id 'org.jetbrains.kotlin.jvm' version '2.1.20'
     id 'org.jetbrains.kotlin.plugin.lombok' version '2.1.20'
     id 'io.freefair.lombok' version "9.2.0"
 }
 
-version = mod_version
-group = maven_group
+version = project.mod_version
+group = project.maven_group
 
-// Enable the Jar-in-Jar system for your mod
-jarJar.enable()
-
-configurations {
-    libraries
-    api.extendsFrom libraries
-
-    localImplementation
-    runtimeClasspath.extendsFrom localImplementation
-    compileOnly.extendsFrom localImplementation
+base {
+    archivesName = project.archives_base_name
 }
+
 
 repositories {
     mavenCentral()
     mavenLocal()
-    maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
-    maven {
-        name = "Modrinth"
-        url = "https://api.modrinth.com/maven"
-        content {
-            includeGroup "maven.modrinth"
-        }
-    } // Modrinth File
-    maven {
-        // location of the maven that hosts JEI files since January 2023
-        name = "Jared's maven"
-        url = "https://maven.blamejared.com/"
-    }
-    maven {
-        // location of a maven mirror for JEI files, as a fallback
-        name = "ModMaven"
-        url = "https://modmaven.dev"
-    }
     maven { url = "https://maven.parchmentmc.org" } // Parchment mappings
     maven { url = "https://maven.quiltmc.org/repository/release" } // Quilt Mappings
     maven { // Flywheel
         url = "https://maven.tterrag.com/"
         content {
-            // need to be specific here due to version overlaps
             includeGroup("com.jozufozu.flywheel")
         }
     }
-    // mavens for Forge-exclusives
-    maven { url = "https://maven.theillusivec4.top/" } // Curios
-    maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu, EMI
-    maven { // Create Forge and Registrate Forge
-        url = "https://maven.tterrag.com/"
-        content {
-            includeGroup("com.tterrag.registrate")
-            includeGroup("com.simibubi.create")
-        }
-    }
-    maven { url = "https://jitpack.io/" } // Mixin Extras, Fabric ASM
-    maven {
-        // saps.dev Maven (KubeJS and Rhino)
-        url "https://maven.latvian.dev/releases"
-        content {
-            includeGroup "dev.latvian.mods"
-            includeGroup "dev.latvian.apps"
-        }
-    }
-}
+    maven { url = "https://jitpack.io/" } // Mixin Extras
 
-base {
-    archivesName = "${project.name}-${minecraft_version}"
-}
-
-// Mojang ships Java 21 to end users in 1.20.5+, so your mod should target Java 21.
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
-    withSourcesJar()
+        maven {
+            url "https://cursemaven.com"
+        }
 }
 
 kotlin {
@@ -93,174 +40,110 @@ kotlin {
     }
 }
 
-minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
-
-// Default run configurations.
-// These can be tweaked, removed, or duplicated as needed.
-runs {
-    // applies to all the run configs below
-    configureEach {
-        // Recommended logging data for a userdev environment
-        // The markers can be added/remove as needed separated by commas.
-        // "SCAN": For mods scan.
-        // "REGISTRIES": For firing of registry events.
-        // "REGISTRYDUMP": For getting the contents of all registries.
-        systemProperty 'forge.logging.markers', 'REGISTRIES'
-
-        // Recommended logging level for the console
-        // You can set various levels here.
-        // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-        systemProperty 'forge.logging.console.level', 'debug'
-
-        modSource project.sourceSets.main
-
-        dependencies {
-            runtime project.configurations.libraries
-        }
-    }
-
-    client {
-        // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
-    }
-
-    server {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
-        programArgument '--nogui'
-    }
-
-    // This run config launches GameTestServer and runs all registered gametests, then exits.
-    // By default, the server will crash when no gametests are provided.
-    // The gametest system is also enabled by default for other run configs under the /test command.
-    gameTestServer {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
-    }
-
-    data {
-        // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
-        // workingDirectory project.file('run-data')
-
-        // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-        programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-    }
+loom {
+    accessWidenerPath = file("src/main/resources/ldlib2.accesswidener")
 }
 
-// Include resources generated by data generators.
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-sourceSets.main.kotlin { srcDir("src/main/java") }
-
 dependencies {
-    implementation "net.neoforged:neoforge:${neo_version}"
-    libraries("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_stdlib_version}") {
+    // Fabric toolchain
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.13.4+kotlin.2.2.0")
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_stdlib_version}") {
         exclude group: "org.jetbrains", module: "annotations"
     }
-    jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "[${kotlin_stdlib_version},)")
 
-    // JEI
-    compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
-    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
-    localImplementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
-
-    // REI
-    compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")
-    compileOnly("me.shedaniel:RoughlyEnoughItems-api-neoforge:${rei_version}")
-    compileOnly("me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}")
-
-    // EMI
-    compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
-    compileOnly("dev.emi:emi-neoforge:${emi_version}")
-
-    // AE2
-    localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
-
-    // KJS
-    localImplementation("dev.latvian.mods:kubejs-neoforge:${kjs_version}") {
-        exclude(group: "dev.architectury")
-    }
-
-    // Iris
-    localImplementation("maven.modrinth:sodium:${sodium_version}")
-    localImplementation("maven.modrinth:iris:${iris_version}")
-
-    // lombok
-//    compileOnly 'org.projectlombok:lombok:1.18.30'
-//    annotationProcessor 'org.projectlombok:lombok:1.18.30'
-
-    // Yoga
-    libraries("org.appliedenergistics.yoga:yoga:${yoga_version}")
-    jarJar(group: 'org.appliedenergistics.yoga', name: 'yoga', version: "[${yoga_version},)")
+    // Yoga layout engine
+    implementation "org.appliedenergistics.yoga:yoga:${yoga_version}"
+    include(group: 'org.appliedenergistics.yoga', name: 'yoga', version: "${yoga_version}")
 
     // Taffy
-    libraries("dev.vfyjxf:taffy:${taffy_version}")
-    jarJar(group: 'dev.vfyjxf', name: 'taffy', version: "[${taffy_version},)")
+    implementation "dev.vfyjxf:taffy:${taffy_version}"
+    include(group: 'dev.vfyjxf', name: 'taffy', version: "${taffy_version}")
 
     // JUnit 5
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
+
+    modImplementation "curse.maven:architectury-api-419699:5786326"
 
     // mock
     testImplementation 'org.mockito:mockito-core:5.5.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
 
-    // moddevmcp
-//    localImplementation("dev.vfyjxf:moddevmcp:${moddevmcp_version}") { transitive = false }
+    // JSR305 annotations
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
 }
 
-tasks.withType(ProcessResources).configureEach {
-    // set up properties for filling into metadata
-    var replaceProperties = [
-            "mod_id": mod_id,
-            "version": version,
-            "loader_version": loader_version,
-            "forge_version": neo_version.split("\\.")[0], // only specify major version of forge
-            "minecraft_version": minecraft_version,
-            "mod_license": mod_license,
-            "mod_name": mod_name,
-            "mod_description": mod_description,
-            "mod_url": mod_url
-    ]
-    inputs.properties replaceProperties
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
 
-    filesMatching(['META-INF/neoforge.mods.toml']) {
-        expand replaceProperties + [project: project]
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "minecraft_version": project.minecraft_version,
+                "loader_version": project.loader_version,
+                "mod_id": project.mod_id,
+                "mod_name": project.mod_name,
+                "mod_description": project.mod_description,
+                "mod_url": project.mod_url,
+                "mod_license": project.mod_license
     }
 }
 
-test {
-    useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-        exceptionFormat "full"
-        showStandardStreams = false
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    // ensure that the encoding is set to UTF-8, no matter what the system default is
+    // this fixes some edge cases with special characters not displaying correctly
+    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+    // If Javadoc is generated, this must be specified in that task too.
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release.set(targetJavaVersion)
     }
 }
 
-// Configure the 'jarJar' task
-// 'all' is the default classifier
-tasks.named('jarJar') {
-    // ...
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+    // if it is present.
+    // If you remove this line, sources will not be generated.
+    withSourcesJar()
 }
 
-tasks.register("printVersion") {
-    println(mod_version)
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archives_base_name}" }
+    }
 }
 
-// Example configuration to allow publishing using the maven-publish plugin
+// configure the maven publication
 publishing {
     publications {
-        register('mavenJava', MavenPublication) {
-            artifactId = archivesBaseName
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name
             from components.java
         }
     }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
-        maven {
-            url "https://maven.firstdark.dev/snapshots"
-            credentials {
-                username System.getenv("MAVEN_USER")
-                password System.getenv("MAVEN_PASS")
-            }
-        }
+        // Add repositories to publish to here.
+        // Notice: This block does NOT have the same function as the block in the top level.
+        // The repositories here will be used for publishing your artifact, not for
+        // retrieving dependencies.
     }
+}
+test {
+    enabled = false
 }

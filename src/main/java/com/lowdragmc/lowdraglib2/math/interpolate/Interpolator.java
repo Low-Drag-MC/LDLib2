@@ -4,11 +4,6 @@ import com.google.common.util.concurrent.Runnables;
 import lombok.Getter;
 
 import java.util.function.Consumer;
-
-/**
- * Author: KilaBash
- * Date: 2022/08/26
- */
 public class Interpolator {
     public final float from;
     public final float to;

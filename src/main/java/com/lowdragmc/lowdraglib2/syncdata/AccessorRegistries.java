@@ -45,7 +45,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.fluids.FluidStack;
+import dev.architectury.fluid.FluidStack;
 import org.joml.*;
 
 import java.lang.reflect.GenericArrayType;
@@ -331,9 +331,9 @@ public class AccessorRegistries {
                 .copyMark(BlockPos::new)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(FluidStack.class)
-                .codec(FluidStack.OPTIONAL_CODEC)
-                .streamCodec(FluidStack.OPTIONAL_STREAM_CODEC)
-                .customMark(FluidStack::copy, FluidStack::matches)
+                .codec(FluidStack.CODEC)
+                .streamCodec(FluidStack.STREAM_CODEC)
+                .customMark(FluidStack::copy, dev.architectury.fluid.FluidStack::isFluidEqual)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ItemStack.class)
                 .codec(LDLibExtraCodecs.ITEM_STACK)

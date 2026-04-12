@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -9,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -19,68 +19,47 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 public class BlockUIMenuType {
+    
+    public record BlockUIOpeningData(BlockPos pos, BlockState state) {}
     public static final StreamCodec<RegistryFriendlyByteBuf, BlockState> BLOCK_STATE_STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistries(BlockState.CODEC);
+    public static final StreamCodec<RegistryFriendlyByteBuf, BlockUIOpeningData> STREAM_CODEC = StreamCodec.of(
+        (buf, data) -> {
+            buf.writeBlockPos(data.pos());
+            BLOCK_STATE_STREAM_CODEC.encode(buf, data.state());
+        },
+        buf -> new BlockUIOpeningData(buf.readBlockPos(), BLOCK_STATE_STREAM_CODEC.decode(buf))
+    );
 
-    /**
-     * Opens a UI for the specified player at the given block position if the block at that position
-     * supports a {@link BlockUI}.
-     *
-     * @param player the {@link Player} for whom the UI should be opened.
-     * @param pos the {@link BlockPos} representing the position of the block where the UI is being opened.
-     * @return {@code true} if the UI was successfully opened, {@code false} otherwise.
-     */
     public static boolean openUI(ServerPlayer player, BlockPos pos) {
         var blockstate = player.level().getBlockState(pos);
         if (blockstate.getBlock() instanceof BlockUI blockUI) {
             var holder = blockUI.createUIHolder(player, pos, blockstate);
-            return player.openMenu(holder).isPresent();
+            player.openMenu(holder);
+            return true;
         }
         return false;
     }
 
-    public static ModularUIContainerMenu create(int windowId, Inventory inv, RegistryFriendlyByteBuf data) {
+    public static ModularUIContainerMenu create(int windowId, Inventory inv, BlockUIOpeningData data) {
         var player = inv.player;
-        var pos = data.readBlockPos();
-        var blockstate = BLOCK_STATE_STREAM_CODEC.decode(data);
+        var pos = data.pos();
+        var blockstate = data.state();
         if (blockstate.getBlock() instanceof BlockUI blockUI) {
             var holder = blockUI.createUIHolder(player, pos, blockstate);
-            return new ModularUIContainerMenu(LDMenuTypes.BLOCK_UI.get(), windowId, inv, holder);
+            return new ModularUIContainerMenu(LDMenuTypes.BLOCK_UI, windowId, inv, holder);
         }
-        throw new IllegalArgumentException("No held item ui found for block " + blockstate);
+        throw new IllegalArgumentException("No block ui found for block " + blockstate);
     }
 
     @FunctionalInterface
     public interface BlockUI {
-        /**
-         * Creates and returns the {@link ModularUI} associated with the provided {@link BlockUIHolder}.
-         *
-         * @param holder the {@link BlockUIHolder} containing contextual information for constructing the {@link ModularUI}.
-         * @return a {@link ModularUI} generated based on the given {@link BlockUIHolder}.
-         */
         ModularUI createUI(BlockUIHolder holder);
 
-        /**
-         * Creates a {@link BlockUIHolder} for handling UI interactions associated with a specific block in the world.
-         *
-         * @param player the {@link Player} interacting with the block.
-         * @param pos the {@link BlockPos} representing the position of the block in the world.
-         * @param blockState the {@link BlockState} representing the current state of the block.
-         * @return a new {@link BlockUIHolder} instance containing the provided contextual information.
-         */
         default BlockUIHolder createUIHolder(Player player, BlockPos pos, BlockState blockState) {
             return new BlockUIHolder(this, player, pos, blockState);
         }
 
-        /**
-         * Determines whether the block state associated with the given {@link BlockUIHolder}
-         * is still valid in the current game context.
-         *
-         * @param holder the {@link BlockUIHolder} that contains the block state, player, and position data.
-         * @return {@code true} if the block state in the {@link BlockUIHolder} matches the current block state at the position;
-         *         {@code false} otherwise.
-         */
         default boolean stillValid(BlockUIHolder holder) {
-            // valid if still the same block
             return holder.blockState.is(holder.player.level().getBlockState(holder.pos).getBlock());
         }
 
@@ -91,7 +70,7 @@ public class BlockUIMenuType {
 
     @ParametersAreNonnullByDefault
     @MethodsReturnNonnullByDefault
-    public static class BlockUIHolder implements MenuProvider, IContainerUIHolder {
+    public static class BlockUIHolder implements ExtendedScreenHandlerFactory<BlockUIOpeningData>, IContainerUIHolder {
         public final BlockUI blockUI;
         public final Player player;
         public final BlockPos pos;
@@ -117,14 +96,11 @@ public class BlockUIMenuType {
         @Override
         @Nullable
         public ModularUIContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-            return new ModularUIContainerMenu(LDMenuTypes.BLOCK_UI.get(), containerId, playerInventory, this);
+            return new ModularUIContainerMenu(LDMenuTypes.BLOCK_UI, containerId, playerInventory, this);
         }
 
         @Override
-        public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
-            buffer.writeBlockPos(pos);
-            BLOCK_STATE_STREAM_CODEC.encode(buffer, blockState);
-        }
+        public BlockUIOpeningData getScreenOpeningData(net.minecraft.server.level.ServerPlayer player) { return new BlockUIOpeningData(pos, blockState); }
 
         @Override
         public ModularUI createUI(Player player) {

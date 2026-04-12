@@ -5,17 +5,15 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-@KJSBindings
 @LDLRegisterClient(name = "item_stack_texture", registry = "ldlib2:gui_texture")
 public class ItemStackTexture extends TransformTexture {
     @Configurable(name = "ldlib.gui.editor.name.items")
@@ -63,7 +61,7 @@ public class ItemStackTexture extends TransformTexture {
         return copied;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {
             long tick = Minecraft.getInstance().level.getGameTime();
@@ -75,20 +73,20 @@ public class ItemStackTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     @Override
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         drawInternalWithColor(graphics, x, y, width, height, color);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     @Override
     protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         int effectiveColor = context.elementColor == -1 ? color : ColorUtils.mulColor(color, context.elementColor);
         drawInternalWithColor(context.graphics, x, y, width, height, effectiveColor);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void drawInternalWithColor(GuiGraphics graphics, float x, float y, float width, float height, int drawColor) {
         if (items.length == 0) return;
         updateTick();

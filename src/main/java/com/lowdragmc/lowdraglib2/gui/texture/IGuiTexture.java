@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -26,8 +25,8 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +36,6 @@ import java.util.function.Supplier;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX;
 
-@KJSBindings
 @FunctionalInterface
 public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDLRegisterClient<IGuiTexture, Supplier<IGuiTexture>> {
     //region builtin textures
@@ -46,7 +44,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         @Override
         public IGuiTexture copy() { return EMPTY; }
 
-        @OnlyIn(Dist.CLIENT)
+        @Environment(EnvType.CLIENT)
         @Override
         public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {}
     }
@@ -56,7 +54,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         @Override
         public IGuiTexture copy() { return MISSING_TEXTURE; }
 
-        @OnlyIn(Dist.CLIENT)
+        @Environment(EnvType.CLIENT)
         @Override
         public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
             Tesselator tessellator = Tesselator.getInstance();
@@ -148,7 +146,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     default IGuiTexture interpolate(IGuiTexture other, float lerp) {
         return new IGuiTexture() {
             @Override
-            @OnlyIn(Dist.CLIENT)
+            @Environment(EnvType.CLIENT)
             public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
                 IGuiTexture.this.getRawTexture().copy().draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
                 other.getRawTexture().copy().setColor(ColorUtils.color(lerp, lerp, lerp, lerp))
@@ -157,16 +155,16 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         };
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks);
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     default void draw(GUIContext context, float x, float y, float width, float height) {
         draw(context.graphics, context.localMouseX, context.localMouseY, x, y, width, height, context.partialTick);
     }
 
     // ***************** EDITOR  ***************** //
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     default void createPreview(ConfiguratorGroup father) {
         father.addConfigurators(new Configurator("ldlib.gui.editor.group.preview")
                 .addChild(new UIElement().layout(layout -> {
@@ -185,7 +183,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     default void buildConfigurator(ConfiguratorGroup father) {
         createPreview(father);
         IConfigurable.super.buildConfigurator(father);

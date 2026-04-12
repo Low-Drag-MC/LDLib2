@@ -26,9 +26,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import dev.architectury.fluid.FluidStack;
+import com.lowdragmc.lowdraglib2.utils.fluids.FluidTank;
+import com.lowdragmc.lowdraglib2.utils.items.ItemStackHandler;
 import org.apache.commons.lang3.function.Consumers;
 import org.appliedenergistics.yoga.YogaEdge;
 
@@ -51,7 +51,7 @@ public class TestSync implements IMenuTest {
     private Block block = null;
 
     public TestSync() {
-        fluidTank.setFluid(new FluidStack(Fluids.WATER, 1400));
+        fluidTank.setFluid(FluidStack.create(Fluids.WATER, 1400L));
         itemHandler.setStackInSlot(0, Items.STONE.getDefaultInstance().copyWithCount(10));
         itemHandler.setStackInSlot(1, Items.BAMBOO.getDefaultInstance().copyWithCount(32));
     }
@@ -74,33 +74,33 @@ public class TestSync implements IMenuTest {
                         new ItemSlot().setItem(Items.APPLE.getDefaultInstance()),
                         new ItemSlot().setItem(Items.CHEST.getDefaultInstance().copyWithCount(64)),
                         new FluidSlot(),
-                        new FluidSlot().setFluid(new FluidStack(Fluids.LAVA, 1000)),
-                        new FluidSlot().setFluid(new FluidStack(Fluids.WATER, 1000))
+                        new FluidSlot().setFluid(FluidStack.create(Fluids.LAVA, 1000L)),
+                        new FluidSlot().setFluid(FluidStack.create(Fluids.WATER, 1000L))
                 ),
                 new InventorySlots(),
                 new ItemSlot().bind(itemHandler, 0),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
                 new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 2).setCanPlace(itemStack -> itemStack.is(Items.STONE))),
                 new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
-                        new ItemSlot().xeiPhantom().bind(DataBindingBuilder.itemStack(
+                        new ItemSlot().bind(DataBindingBuilder.itemStack(
                                 () -> itemHandler.getStackInSlot(3),
                                 itemStack -> itemHandler.setStackInSlot(3, itemStack)
                         ).build()),
-                        new ItemSlot().xeiPhantom().bind(DataBindingBuilder.itemStack(
+                        new ItemSlot().bind(DataBindingBuilder.itemStack(
                                 () -> itemHandler.getStackInSlot(4),
                                 itemStack -> itemHandler.setStackInSlot(4, itemStack)
                         ).build())
                 ),
                 new FluidSlot().bind(fluidTank, 0),
                 new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
-                        new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank::getFluid, phantomTank::setFluid).build()),
-                        new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank2::getFluid, phantomTank2::setFluid).build())
+                        new FluidSlot().bind(DataBindingBuilder.fluidStack(phantomTank::getFluid, phantomTank::setFluid).build()),
+                        new FluidSlot().bind(DataBindingBuilder.fluidStack(phantomTank2::getFluid, phantomTank2::setFluid).build())
                 ),
                 new Button().addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
                     if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
-                        fluidTank.setFluid(new FluidStack(Fluids.LAVA, fluidTank.getFluid().getAmount()));
+                        fluidTank.setFluid(FluidStack.create(Fluids.LAVA, fluidTank.getFluid().getAmount()));
                     } else {
-                        fluidTank.setFluid(new FluidStack(Fluids.WATER, fluidTank.getFluid().getAmount()));
+                        fluidTank.setFluid(FluidStack.create(Fluids.WATER, fluidTank.getFluid().getAmount()));
                     }
                 }),
                 new SearchComponent<>(new SearchComponent.ISearchUI<Block>() {

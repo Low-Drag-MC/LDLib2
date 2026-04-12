@@ -20,6 +20,9 @@ import java.util.concurrent.*;
  * used for Async logic, it's world-related.
  * all logic runnable {@link IAsyncLogic} will be constantly executed in a async thread per tick.
  * warning, you have to add and remove runnable manually.
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -30,7 +33,7 @@ public class AsyncThreadData extends SavedData {
     public final ServerLevel serverLevel;
 
     public static AsyncThreadData getOrCreate(ServerLevel serverLevel) {
-        return serverLevel.getDataStorage().computeIfAbsent(new SavedData.Factory<>(() -> new AsyncThreadData(serverLevel), (tag, provider) -> new AsyncThreadData(serverLevel, tag)), LDLib2.MOD_ID);
+        return serverLevel.getDataStorage().computeIfAbsent(new SavedData.Factory<>(() -> new AsyncThreadData(serverLevel), (tag, provider) -> new AsyncThreadData(serverLevel, tag), null), LDLib2.MOD_ID);
     }
 
     private AsyncThreadData(ServerLevel serverLevel) {

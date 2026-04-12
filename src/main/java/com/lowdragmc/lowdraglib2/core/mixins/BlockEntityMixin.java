@@ -22,6 +22,9 @@ import org.jetbrains.annotations.Nullable;
  * @author KilaBash
  * @date 2022/11/27
  * @implNote BlockEntityMixin
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @Mixin(BlockEntity.class)
 public abstract class BlockEntityMixin {

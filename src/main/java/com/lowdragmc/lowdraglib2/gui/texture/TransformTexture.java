@@ -4,8 +4,8 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import lombok.Getter;
 import net.minecraft.client.gui.GuiGraphics;
 
@@ -13,6 +13,9 @@ import net.minecraft.client.gui.GuiGraphics;
  * @author KilaBash
  * @date 2022/12/5
  * @implNote TransformTexture
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @Getter
 public abstract class TransformTexture implements IGuiTexture {
@@ -57,34 +60,34 @@ public abstract class TransformTexture implements IGuiTexture {
         transform2D.copyFrom(transform);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void preDraw(GuiGraphics graphics, float x, float y, float width, float height) {
         transform2D.pushPose(graphics.pose(), x, y, width, height);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void postDraw(GuiGraphics graphics, float x, float y, float width, float height) {
         transform2D.popPose(graphics.pose());
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public final void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         preDraw(graphics, x, y, width, height);
         drawInternal(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         postDraw(graphics, x, y, width, height);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected abstract void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks);
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
         drawInternal(context.graphics, context.localMouseX, context.localMouseY, x, y, width, height, context.partialTick);
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void draw(GUIContext context, float x, float y, float width, float height) {
         preDraw(context.graphics, x, y, width, height);
         drawInternal(context, x, y, width, height);

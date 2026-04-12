@@ -2,12 +2,6 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model;
 
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * Represents an item in a contextual (right-click) menu.
- *
- * <p>TODO: Implement contextual menu system for your UI framework.</p>
- */
 public class ContextualMenuItem {
 
     /**

@@ -13,15 +13,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.row
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister
+import com.lowdragmc.lowdraglib2.utils.fluids.FluidTank
+import com.lowdragmc.lowdraglib2.utils.items.ItemStackHandler
 import lombok.NoArgsConstructor
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.material.Fluids
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank
-import net.neoforged.neoforge.items.ItemStackHandler
-
+import dev.architectury.fluid.FluidStack
 
 @LDLRegister(name = "dsl_sync", registry = "ldlib2:menu_test")
 @NoArgsConstructor
@@ -63,9 +62,9 @@ class TestMenuDSL : IMenuTest {
                     serverEvents {
                         UIEvents.MOUSE_DOWN += {
                             if (fluidTank.getFluid().fluid === Fluids.WATER) {
-                                fluidTank.setFluid(FluidStack(Fluids.LAVA, 1000))
+                                fluidTank.setFluid(FluidStack.create(Fluids.LAVA, 1000L))
                             } else {
-                                fluidTank.setFluid(FluidStack(Fluids.WATER, 1000))
+                                fluidTank.setFluid(FluidStack.create(Fluids.WATER, 1000L))
                             }
                         }
                     }

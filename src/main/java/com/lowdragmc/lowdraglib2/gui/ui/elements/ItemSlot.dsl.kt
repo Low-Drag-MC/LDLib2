@@ -4,10 +4,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.Element
 import com.lowdragmc.lowdraglib2.gui.ui.ElementSpec
 import com.lowdragmc.lowdraglib2.gui.ui.UIContainer
 import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots
-import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO
+import com.lowdragmc.lowdraglib2.utils.items.IItemHandlerModifiable
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
-import net.neoforged.neoforge.items.IItemHandlerModifiable
 
 /**
  * Extension function for ItemSlot.SlotStyle DSL
@@ -51,7 +50,13 @@ open class ItemSlotElement<T : ItemSlot>(
     spec: (ItemSlotSpec<T>.() -> Unit)? = null,
 ) : UIContainer<T, ItemSlotSpec<T>>(element, spec) {
     override fun makeSpec(): ItemSlotSpec<T>? {
-        return spec?.let { ItemSlotSpec<T>().apply(it) }
+        val s = spec
+        if (s != null) {
+            val itemSpec = ItemSlotSpec<T>()
+            s(itemSpec)
+            return itemSpec
+        }
+        return null
     }
 
     override fun build(spec: ItemSlotSpec<T>?): T {
@@ -163,27 +168,5 @@ fun <T : ItemSlot> ItemSlotElement<T>.acceptQuickMove(priority: Int = 0): ItemSl
 }
 
 // ===========================
-// XEI Integration Methods
+// XEI Integration Methods Removed
 // ===========================
-
-/**
- * Extension: Mark as JEI/REI/EMI phantom slot
- */
-fun <T : ItemSlot> ItemSlotElement<T>.asXeiPhantom(): ItemSlotElement<T> = apply {
-    element.xeiPhantom()
-}
-
-/**
- * Extension: Mark as recipe ingredient for JEI/REI/EMI
- */
-fun <T : ItemSlot> ItemSlotElement<T>.asXeiRecipeIngredient(io: IngredientIO): ItemSlotElement<T> = apply {
-    element.xeiRecipeIngredient(io)
-}
-
-/**
- * Extension: Mark as recipe slot for JEI/REI/EMI
- */
-fun <T : ItemSlot> ItemSlotElement<T>.asXeiRecipeSlot(io: IngredientIO = IngredientIO.NONE, chance: Float = 1f): ItemSlotElement<T> = apply {
-    element.xeiRecipeSlot(io, chance)
-}
-

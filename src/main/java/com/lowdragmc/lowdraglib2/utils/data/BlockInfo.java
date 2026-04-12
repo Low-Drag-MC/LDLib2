@@ -17,12 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.function.Consumer;
-
-/**
- * Author: KilaBash
- * Date: 2022/04/26
- * Description:
- */
 @NoArgsConstructor
 public class BlockInfo implements IPersistedSerializable, IConfigurable {
     public static final BlockInfo EMPTY = new BlockInfo(Blocks.AIR);

@@ -6,12 +6,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IPortWireIndexModel;
 
 import java.util.*;
-
-/**
- * Implements an index to quickly retrieve the list of wires that are connected to a port.
- * the index needs to be kept up-to-date. In addition to adding and removing wires to it,
- * it needs to be notified when any of the ports of a wire changes, so that the index can be updated.
- */
 public class PortWireIndex<TWire extends IPortWireIndexModel> {
     private final List<TWire> wireModels; // equivalent to IReadOnlyList<TWire>
     private boolean isDirty;

@@ -9,14 +9,6 @@ import lombok.Setter;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
-
-/**
- * A generic undo/redo history stack.
- * Layout:
- *   [undo ... oldest -> newest]  <current>  [redo newest <- oldest ...]
- *
- * maxSize counts current + undo entries (redo is ephemeral).
- */
 public final class HistoryStack<T> {
 
     private final Deque<T> undo = new ArrayDeque<>();

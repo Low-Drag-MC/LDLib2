@@ -3,17 +3,15 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.fluids.FluidStack;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import dev.architectury.fluid.FluidStack;
 
-@KJSBindings
 @LDLRegisterClient(name = "fluid_stack_texture", registry = "ldlib2:gui_texture")
 public class FluidStackTexture extends TransformTexture {
     @Configurable(name = "ldlib.gui.editor.name.fluids")
@@ -37,7 +35,7 @@ public class FluidStackTexture extends TransformTexture {
     public FluidStackTexture(Fluid... fluids) {
         this.fluids = new FluidStack[fluids.length];
         for(int i = 0; i < fluids.length; i++) {
-            this.fluids[i] = new FluidStack(fluids[i], 1000);
+            this.fluids[i] = FluidStack.create(fluids[i], 1000L);
         }
     }
 
@@ -61,7 +59,7 @@ public class FluidStackTexture extends TransformTexture {
         return copied;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void updateTick() {
         if (Minecraft.getInstance().level != null) {
             long tick = Minecraft.getInstance().level.getGameTime();
@@ -73,7 +71,7 @@ public class FluidStackTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     @Override
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (fluids.length == 0) return;

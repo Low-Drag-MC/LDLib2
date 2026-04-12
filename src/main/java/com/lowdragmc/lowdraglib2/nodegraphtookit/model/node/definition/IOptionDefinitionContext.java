@@ -7,14 +7,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Type;
-
-/**
- * Interface that provides methods to declare node options inside a node.
- *
- * <p>Use to add node options on nodes. Node options appear under the node header and in the inspector
- * when a node is selected. They are appropriate for parameters that affect how a node behaves or changes
- * its topology, such as modifying the number of ports.</p>
- */
 public interface IOptionDefinitionContext {
 
     /**

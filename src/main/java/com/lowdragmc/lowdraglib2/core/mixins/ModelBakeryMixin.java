@@ -6,6 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib2.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IItemRendererProvider;
 import net.minecraft.client.resources.model.ModelBakery;
@@ -16,17 +17,27 @@ import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Collection;
 
 /**
  * @author KilaBash
  * @date 2022/05/28
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @Mixin(ModelBakery.class)
 public abstract class ModelBakeryMixin {
 
     @Shadow abstract UnbakedModel getModel(ResourceLocation modelPath);
+
+    @Inject(method = "<init>", at = @At("RETURN"))
+    private void ldlib2$saveInstance(CallbackInfo ci) {
+        ModelFactory.setModelBakery((ModelBakery)(Object)this);
+    }
 
     @WrapOperation(method = "getModel",
               at = @At(value = "INVOKE",
@@ -52,7 +63,7 @@ public abstract class ModelBakeryMixin {
     protected Collection<ResourceLocation> ldlib2$changeLoadedModel(Collection<ResourceLocation> original,
                                                                    @Local(argsOnly = true) ModelResourceLocation modelResourceLocation,
                                                                    @Local(argsOnly = true) LocalRef<UnbakedModel> model) {
-        if (!modelResourceLocation.getVariant().equals(ModelResourceLocation.STANDALONE_VARIANT)) {
+        if (!modelResourceLocation.getVariant().equals("standalone")) {
             ResourceLocation resourceLocation = modelResourceLocation.id();
             var block = BuiltInRegistries.BLOCK.get(resourceLocation);
             if (block instanceof IBlockRendererProvider) {

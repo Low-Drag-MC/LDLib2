@@ -1,15 +1,11 @@
 package com.lowdragmc.lowdraglib2.core.mixins;
 
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.loading.LoadingModList;
+import net.fabricmc.loader.api.FabricLoader;
 
 public interface MixinPluginShared {
 
 	static boolean isModLoaded(String modId) {
-		if (ModList.get() == null) {
-			return LoadingModList.get().getModFileById(modId) != null;
-		}
-		return ModList.get().isLoaded(modId);
+		return FabricLoader.getInstance().isModLoaded(modId);
 	}
 
 	boolean IS_OPT_LOAD = isModLoaded("optifine");

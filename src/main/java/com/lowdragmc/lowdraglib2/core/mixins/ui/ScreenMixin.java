@@ -57,7 +57,7 @@ public abstract class ScreenMixin extends AbstractContainerEventHandler implemen
                 if (minecraft != null && mui != null) {
                     if (!mui.shouldCloseOnKeyInventory()) {
                         InputConstants.Key mouseKey = InputConstants.getKey(keyCode, scanCode);
-                        if (minecraft.options.keyInventory.isActiveAndMatches(mouseKey)) {
+                        if (minecraft.options.keyInventory.matchesMouse(mouseKey.getValue())) {
                             cir.setReturnValue(mui.getWidget().keyPressed(keyCode, scanCode, modifiers));
                         }
                     }

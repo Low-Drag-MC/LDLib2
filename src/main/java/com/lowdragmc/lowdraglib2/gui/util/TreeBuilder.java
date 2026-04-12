@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
@@ -26,7 +25,6 @@ import java.util.function.Consumer;
  * @param <K> the type of keys used in the tree
  * @param <V> the type of values associated with keys in the tree
  */
-@KJSBindings
 public class TreeBuilder<K, V> {
     protected final Stack<TreeNode<K, V>> stack = new Stack<>();
 
@@ -151,8 +149,7 @@ public class TreeBuilder<K, V> {
         return stack.peek();
     }
 
-    @KJSBindings("MenuBuilder")
-    public static class Menu extends TreeBuilder<Tuple<IGuiTexture, Component>, Runnable> {
+        public static class Menu extends TreeBuilder<Tuple<IGuiTexture, Component>, Runnable> {
         public static Tuple<IGuiTexture, Component> CROSS_LINE = new Tuple<>(IGuiTexture.EMPTY, Component.empty());
 
         private Menu(Tuple<IGuiTexture, Component> key) {

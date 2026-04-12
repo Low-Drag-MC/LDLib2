@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib2.gui.util;
 
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MouseHandlerAccessor;
 import com.mojang.blaze3d.platform.InputConstants;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.network.FriendlyByteBuf;
@@ -22,7 +22,7 @@ public class ClickData {
         this.isRemote = isRemote;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public ClickData() {
         MouseHandler mouseHelper = Minecraft.getInstance().mouseHandler;
         long id = Minecraft.getInstance().getWindow().getWindow();
@@ -32,7 +32,7 @@ public class ClickData {
         this.isRemote = true;
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void writeToBuf(FriendlyByteBuf buf) {
         buf.writeVarInt(button);
         buf.writeBoolean(isShiftClick);

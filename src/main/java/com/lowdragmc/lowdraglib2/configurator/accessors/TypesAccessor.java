@@ -8,6 +8,9 @@ import java.util.Set;
  * @author KilaBash
  * @date 2022/12/1
  * @implNote TypesAccessor
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public abstract class TypesAccessor<T> implements IConfiguratorAccessor<T> {
     public Set<Class<?>> types = new HashSet<>();

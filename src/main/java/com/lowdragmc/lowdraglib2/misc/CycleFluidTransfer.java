@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.misc;
 
-import net.neoforged.neoforge.fluids.FluidStack;
+import com.lowdragmc.lowdraglib2.utils.fluids.*;
+
+import dev.architectury.fluid.FluidStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -25,7 +27,7 @@ public class CycleFluidTransfer implements IFluidHandlerModifiable {
     @Override
     public FluidStack getFluidInTank(int tank) {
         List<FluidStack> stackList = this.stacks.get(tank);
-        return stackList != null && !stackList.isEmpty() ? stackList.get(Math.abs((int)(System.currentTimeMillis() / 1000L) % stackList.size())) : FluidStack.EMPTY;
+        return stackList != null && !stackList.isEmpty() ? stackList.get(Math.abs((int)(System.currentTimeMillis() / 1000L) % stackList.size())) : FluidStack.empty();
     }
 
     @Override
@@ -37,7 +39,7 @@ public class CycleFluidTransfer implements IFluidHandlerModifiable {
 
     @Override
     public int getTankCapacity(int tank) {
-        return this.getFluidInTank(tank).getAmount();
+        return (int) this.getFluidInTank(tank).getAmount();
     }
 
     @Override
@@ -58,12 +60,12 @@ public class CycleFluidTransfer implements IFluidHandlerModifiable {
     @NotNull
     @Override
     public FluidStack drain(FluidStack resource, FluidAction action) {
-        return FluidStack.EMPTY;
+        return FluidStack.empty();
     }
 
     @Override
     public @NotNull FluidStack drain(int maxDrain, FluidAction action) {
-        return FluidStack.EMPTY;
+        return FluidStack.empty();
     }
 
     @Override

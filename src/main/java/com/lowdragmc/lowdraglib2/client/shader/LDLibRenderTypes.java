@@ -6,13 +6,9 @@ import net.minecraft.Util;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.OptionalDouble;
 import java.util.function.Function;
-
-@OnlyIn(Dist.CLIENT)
 public class LDLibRenderTypes extends RenderType {
     private static final RenderType POSITION_COLOR_NO_DEPTH = create("position_color_no_depth",
             DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLES, 256, false, false,

@@ -10,12 +10,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-/***
- * Tree
- * @param <T> key
- * @param <K> leaf
- */
 public class TreeNode<T, K> implements ITreeNode<T, K> {
     @Nullable
     @Getter

@@ -31,10 +31,9 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec2;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
-import net.neoforged.neoforge.fluids.FluidStack;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import dev.architectury.fluid.FluidStack;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -46,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Optional;
 
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class DrawerHelper {
 
     public static void drawFluidTexture(VertexConsumer buffer, PoseStack.Pose pose, float xCoord, float yCoord, TextureAtlasSprite textureSprite, float maskTop, float maskRight, float zLevel, int fluidColor) {
@@ -70,7 +69,7 @@ public class DrawerHelper {
         if (fluidStillSprite == null) {
             fluidStillSprite = Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(MissingTextureAtlasSprite.getLocation());
             if (Platform.isDevEnv()) {
-                LDLib2.LOGGER.error("Missing fluid texture for fluid: " + contents.getHoverName().getString());
+                LDLib2.LOGGER.error("Missing fluid texture for fluid: " + contents.getFluid().toString());
             }
         }
 
@@ -169,7 +168,7 @@ public class DrawerHelper {
         graphics.pose().pushPose();
         graphics.pose().translate(0, 0, 232);
         graphics.renderItem(itemStack, x, y);
-        var font = IClientItemExtensions.of(itemStack).getFont(itemStack, IClientItemExtensions.FontContext.ITEM_COUNT);
+        var font = mc.font;
         graphics.renderItemDecorations(font == null ? mc.font : font, itemStack, x, y, altTxt);
         graphics.pose().popPose();
 
@@ -273,7 +272,7 @@ public class DrawerHelper {
     }
 
     public static void drawTooltip(GuiGraphics graphics, int mouseX, int mouseY, List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable TooltipComponent tooltipComponent, Font tooltipFont) {
-        graphics.renderTooltip(tooltipFont, tooltipTexts, Optional.ofNullable(tooltipComponent), tooltipStack, mouseX, mouseY);
+        graphics.renderTooltip(tooltipFont, tooltipTexts, Optional.ofNullable(tooltipComponent), mouseX, mouseY);
     }
 
     public static ClientTooltipComponent getClientTooltipComponent(TooltipComponent component) {

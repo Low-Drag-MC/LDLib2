@@ -20,7 +20,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
+import dev.architectury.fluid.FluidStack;
 import org.appliedenergistics.yoga.YogaJustify;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -248,7 +248,7 @@ public class TestDoc implements IScreenTest{
                 new TextField().setText("Text Field"),
                 new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW)).addChildren(
                         new ItemSlot().setItem(Items.APPLE.getDefaultInstance()),
-                        new FluidSlot().setFluid(new FluidStack(Fluids.WATER, 1000))
+                        new FluidSlot().setFluid(FluidStack.create(Fluids.WATER, 1000L))
                 ),
                 // list all stylesheets
                 new Selector<ResourceLocation>()

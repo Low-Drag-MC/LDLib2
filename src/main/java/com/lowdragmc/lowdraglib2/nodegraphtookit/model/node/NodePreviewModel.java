@@ -1,13 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
-
-/**
- * Model for node preview functionality.
- *
- * <p>Node previews allow showing a visual preview of the node's output.
- * TODO: Implement preview rendering for your UI framework.</p>
- */
 public class NodePreviewModel extends GraphElementModel {
     private AbstractNodeModel parentNode;
     private boolean isExpanded = true;

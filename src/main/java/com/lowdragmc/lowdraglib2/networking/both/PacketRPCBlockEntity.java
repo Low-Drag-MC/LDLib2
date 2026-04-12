@@ -14,14 +14,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.RegistryAccess;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
-
-/**
- * a packet that contains payload for managed fields
- */
 @NoArgsConstructor
 public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPacketPayload {
     public static final ResourceLocation ID = LDLib2.id("rpc_method_payload");
@@ -42,7 +39,7 @@ public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPac
         return new PacketRPCBlockEntity(tile.getSelf().getType(), tile.getSelf().getBlockPos(), data);
     }
 
-    public static void processPacket(@NotNull BlockEntity blockEntity, RPCSender sender, PacketRPCBlockEntity packet, IPayloadContext context) {
+    public static void processPacket(@NotNull BlockEntity blockEntity, RPCSender sender, PacketRPCBlockEntity packet, Player player, RegistryAccess registryAccess) {
         if (blockEntity.getType() != packet.blockEntityType) {
             LDLib2.LOGGER.warn("Block entity type mismatch in rpc payload packet!");
             return;
@@ -68,27 +65,26 @@ public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPac
         return new PacketRPCBlockEntity(blockEntityType, pos, data);
     }
 
-    public static void execute(PacketRPCBlockEntity packet, IPayloadContext context) {
-        if (context.player() instanceof ServerPlayer) {
-            executeServer(packet, context);
+    public static void handle(PacketRPCBlockEntity packet, Player player, RegistryAccess registryAccess) {
+        if (player instanceof ServerPlayer) {
+            executeServer(packet, player, registryAccess);
         } else {
-            executeClient(packet, context);
+            executeClient(packet, player, registryAccess);
         }
     }
 
-    public static void executeClient(PacketRPCBlockEntity packet, IPayloadContext context) {
-        if (context.player().level() == null) {
+    public static void executeClient(PacketRPCBlockEntity packet, Player player, RegistryAccess registryAccess) {
+        if (player.level() == null) {
             return;
         }
-        BlockEntity tile = context.player().level().getBlockEntity(packet.pos);
+        BlockEntity tile = player.level().getBlockEntity(packet.pos);
         if (tile == null) {
             return;
         }
-        processPacket(tile, RPCSender.ofServer(), packet, context);
+        processPacket(tile, RPCSender.ofServer(), packet, player, registryAccess);
     }
 
-    public static void executeServer(PacketRPCBlockEntity packet, IPayloadContext context) {
-        var player = context.player();
+    public static void executeServer(PacketRPCBlockEntity packet, Player player, RegistryAccess registryAccess) {
         if (!(player instanceof ServerPlayer serverPlayer)) {
             LDLib2.LOGGER.error("Received rpc payload packet from client with no server player!");
             return;
@@ -99,7 +95,7 @@ public class PacketRPCBlockEntity extends PacketIntLocation implements CustomPac
         if (tile == null) {
             return;
         }
-        processPacket(tile, RPCSender.ofClient(serverPlayer), packet, context);
+        processPacket(tile, RPCSender.ofClient(serverPlayer), packet, player, registryAccess);
     }
 
     @Override

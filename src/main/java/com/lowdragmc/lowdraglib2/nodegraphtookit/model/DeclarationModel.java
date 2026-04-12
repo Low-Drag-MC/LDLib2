@@ -6,10 +6,6 @@ import lombok.Setter;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
-
-/**
- * A model that represents a declaration (e.g. a variable) in a graph.
- */
 public class DeclarationModel extends GraphElementModel implements IHasName {
     @Persisted @Getter
     public String name = "";

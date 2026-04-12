@@ -3,14 +3,6 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-
-/**
- * Java equivalent of C# OrderedPorts.
- *
- * Supports:
- *  - lookup by uniqueName (map)
- *  - ordered (and re-orderable) list view via 'order' indirection
- */
 public final class OrderedPorts implements Iterable<PortModel> {
     private final HashMap<String, PortModel> dictionary;
     /**

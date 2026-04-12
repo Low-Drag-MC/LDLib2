@@ -8,12 +8,6 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
-
-/**
- * Concrete implementation of option builder.
- *
- * <p>Used to create and configure node options using a fluent builder pattern.</p>
- */
 public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
     protected OptionDefinitionContext context;
     protected String optionId;

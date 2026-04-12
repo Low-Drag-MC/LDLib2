@@ -1,10 +1,6 @@
 package com.lowdragmc.lowdraglib2.math;
 
 import lombok.Data;
-
-/**
- * a combination of position and size with a series of methods<br>
- */
 @Data(staticConstructor = "of")
 public final class Rect {
 	public static final Rect ZERO = new Rect(0, 0, 0, 0);

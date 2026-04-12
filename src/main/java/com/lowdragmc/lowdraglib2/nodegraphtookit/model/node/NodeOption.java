@@ -6,12 +6,6 @@ import lombok.Getter;
 import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Type;
-
-/**
- * Concrete implementation of {@link INodeOption}.
- *
- * <p>Represents a configurable option on a node, such as a dropdown, text field, or checkbox.</p>
- */
 public class NodeOption implements INodeOption {
     public static final String PORT_ID_PREFIX = "option_";
     @Getter

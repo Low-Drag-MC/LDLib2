@@ -23,6 +23,9 @@ import java.util.stream.Stream;
  * @author KilaBash
  * @date 2022/12/1
  * @implNote NumberAccessor
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @LDLRegisterClient(name = "enum", registry = "ldlib2:configurator_accessor")
 @SuppressWarnings({"rawtypes"})

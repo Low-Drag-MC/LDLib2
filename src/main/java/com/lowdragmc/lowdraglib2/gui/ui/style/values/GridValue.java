@@ -5,25 +5,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import dev.vfyjxf.taffy.geometry.TaffyLine;
 import dev.vfyjxf.taffy.style.GridPlacement;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * Parses CSS grid-row and grid-column syntax.
- *
- * Supported syntax:
- * <pre>
- * grid-row: auto;
- * grid-row: 1;                     // Line 1 (start), auto (end)
- * grid-row: 1 / 3;                 // Line 1 to line 3
- * grid-row: span 2;                // Span 2 tracks
- * grid-row: 1 / span 2;            // Start at line 1, span 2 tracks
- * grid-row: header;                // Named line (start)
- * grid-row: header / footer;       // Named lines
- * grid-row: header 2 / footer;     // 2nd occurrence of "header" line
- * grid-row: span header;           // Span until "header" line
- * grid-row: span header 2;         // Span until 2nd "header" line
- * grid-row: -1;                    // Last line (negative indexing)
- * </pre>
- */
 public class GridValue extends StyleValue<Grid> {
 
     public GridValue(String rawValue) {

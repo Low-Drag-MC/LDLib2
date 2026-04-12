@@ -11,10 +11,6 @@ import lombok.experimental.Accessors;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Property for DimensionSize values (size, min/max-size shorthand properties).
- */
 @Accessors(chain = true)
 public class DimensionSizeProperty extends Property<DimensionSize> {
     public DimensionSizeProperty(String name, DimensionSize initialValue) {

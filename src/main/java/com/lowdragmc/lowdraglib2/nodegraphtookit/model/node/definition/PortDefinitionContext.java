@@ -6,12 +6,6 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * Concrete implementation of {@link IPortDefinitionContext}.
- *
- * <p>Provides methods to define input and output ports on a node during node definition.</p>
- */
 public class PortDefinitionContext implements IPortDefinitionContext {
     // runtime
     @Getter

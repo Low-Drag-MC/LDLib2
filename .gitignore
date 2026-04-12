@@ -1,36 +1,16 @@
-# eclipse
-bin
-*.launch
-.settings
-.metadata
-.classpath
-.project
+# Gradle
+.gradle/
+build/
+.kotlin/
 
-# idea
-out
-*.ipr
-*.iws
+# IDE
+.idea/
 *.iml
-.idea
 
-# gradle
-build
-.gradle
+# Run configs
+run/
+bin/
 
-# other
-eclipse
-run
-runs
-run-data
-
-repo
-
-*.DS_Store
-*.log
-/.claude
-CLAUDE.md
-/logs
-.narrafork/
-/docs
-/.codex
-/.gradle-user-home
+# OS
+.DS_Store
+Thumbs.db

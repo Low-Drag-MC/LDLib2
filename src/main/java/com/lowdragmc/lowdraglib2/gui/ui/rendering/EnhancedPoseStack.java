@@ -70,7 +70,8 @@ public class EnhancedPoseStack {
     }
 
     public void pushTransformation(Transformation transformation) {
-        pose.pushTransformation(transformation);
+        pose.pushPose();
+        pose.last().pose().mul(transformation.getMatrix());
         onTransform.run();
     }
 }

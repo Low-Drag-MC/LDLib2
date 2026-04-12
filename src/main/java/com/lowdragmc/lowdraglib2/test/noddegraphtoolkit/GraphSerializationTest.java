@@ -13,18 +13,14 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.joml.Vector2f;
 
-@GameTestHolder(LDLib2.MOD_ID)
 public class GraphSerializationTest {
 
     /**
      * Tests basic serialization and deserialization of a graph with custom nodes, wires, constants, and variables.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void graphSerializationRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start Graph Serialization Round-Trip Test");
@@ -174,7 +170,6 @@ public class GraphSerializationTest {
      * Tests that an empty graph serializes and deserializes correctly.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void emptyGraphSerialization(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -197,7 +192,6 @@ public class GraphSerializationTest {
      * Tests that inputConstantsById (port default values) survive serialization.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portConstantsSerialization(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 

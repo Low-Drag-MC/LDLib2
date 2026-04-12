@@ -16,6 +16,9 @@ import java.util.function.Supplier;
  * @author KilaBash
  * @date 2022/12/2
  * @implNote ComponentAccessor
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @LDLRegisterClient(name = "component", registry = "ldlib2:configurator_accessor")
 public class ComponentAccessor implements IConfiguratorAccessor<Component> {

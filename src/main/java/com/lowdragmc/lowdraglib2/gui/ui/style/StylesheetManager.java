@@ -1,10 +1,11 @@
 package com.lowdragmc.lowdraglib2.gui.ui.style;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
@@ -12,10 +13,15 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-@KJSBindings
-public final class StylesheetManager implements ResourceManagerReloadListener {
+public final class StylesheetManager implements SimpleSynchronousResourceReloadListener {
     public static final StylesheetManager INSTANCE = new StylesheetManager();
     public static final String PATH = "lss";
+
+    @Override
+    public ResourceLocation getFabricId() {
+        return LDLib2.id("stylesheet_manager");
+    }
+
 
     public static final ResourceLocation GDP = LDLib2.id(PATH + "/gdp.lss");
     public static final ResourceLocation MC = LDLib2.id(PATH + "/mc.lss");

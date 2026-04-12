@@ -28,6 +28,9 @@ import java.util.stream.Collectors;
  * @author KilaBash
  * @date 2022/12/2
  * @implNote ArrayConfigurator
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault

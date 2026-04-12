@@ -8,12 +8,6 @@ import org.apache.commons.io.IOUtils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-
-/**
- * Author: KilaBash
- * Date: 2022/04/26
- * Description:
- */
 @UtilityClass
 public final class FileUtility {
     public static final Gson GSON_PRETTY = new GsonBuilder().setPrettyPrinting().create();

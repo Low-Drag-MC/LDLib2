@@ -15,8 +15,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableScope;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.joml.Vector2f;
 
 import java.util.*;
@@ -25,14 +23,12 @@ import java.util.*;
  * Fuzz test: performs random graph operations (create/delete nodes+wires, serialize/deserialize, undo/redo snapshots)
  * and validates that all wires always have valid (non-null) ports after each round-trip.
  */
-@GameTestHolder(LDLib2.MOD_ID)
 public class GraphFuzzTest {
 
     private static final int ITERATIONS = 50;
     private static final long SEED = 42L;
 
     @GameTest(template = "empty", timeoutTicks = 600)
-    @PrefixGameTestTemplate(false)
     public static void graphFuzzCreateDeleteSerialize(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var rng = new Random(SEED);
@@ -113,8 +109,7 @@ public class GraphFuzzTest {
     }
 
     @GameTest(template = "empty", timeoutTicks = 600)
-    @PrefixGameTestTemplate(false)
-    public static void graphFuzzUndoRedoIntegrity(GameTestHelper helper) {
+        public static void graphFuzzUndoRedoIntegrity(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var rng = new Random(SEED + 1);
         var graph = new TestGraph();

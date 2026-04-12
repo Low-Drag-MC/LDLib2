@@ -3,7 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.utils;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.configurator.SerializableRecordAction;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import com.lowdragmc.lowdraglib2.utils.INBTSerializable;
 
 import org.jetbrains.annotations.Nullable;
 

@@ -10,10 +10,6 @@ import lombok.experimental.Accessors;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Property for TaffyDimension values (individual size, min/max-size properties).
- */
 @Accessors(chain = true)
 public class DimensionProperty extends Property<TaffyDimension> {
     public DimensionProperty(String name, TaffyDimension initialValue) {

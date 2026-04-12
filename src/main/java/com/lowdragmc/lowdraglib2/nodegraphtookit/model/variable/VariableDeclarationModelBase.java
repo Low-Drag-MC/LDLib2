@@ -21,11 +21,6 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.stream.Stream;
-
-
-/**
- * Base class for variable declarations.
- */
 public abstract class VariableDeclarationModelBase extends DeclarationModel implements IVariable, IGroupItemModel, IFieldConstantConfigurable {
     @Getter @Setter
     protected GroupModelBase parentGroup;

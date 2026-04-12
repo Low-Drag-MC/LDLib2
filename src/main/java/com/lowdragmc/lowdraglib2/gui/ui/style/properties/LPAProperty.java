@@ -10,10 +10,6 @@ import lombok.experimental.Accessors;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Property for LengthPercentageAuto values (individual margin/padding properties).
- */
 @Accessors(chain = true)
 public class LPAProperty extends Property<LengthPercentageAuto> {
     public LPAProperty(String name, LengthPercentageAuto initialValue) {

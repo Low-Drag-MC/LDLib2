@@ -14,12 +14,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMenu> implements ContainerEventHandler {
 
     @Shadow
     public abstract T getMenu();
+    
+    @Shadow
+    protected Slot hoveredSlot;
 
     @Inject(method = "removed", at = @At(value = "RETURN"))
     private void ldlib2$removed(CallbackInfo ci) {
@@ -68,13 +73,14 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
         }
     }
 
-    @Inject(method = "renderSlotHighlight(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/inventory/Slot;IIF)V", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$renderSlotHighlight(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderSlotHighlight(Lnet/minecraft/client/gui/GuiGraphics;III)V"))
+    private void ldlib2$renderSlotHighlight(GuiGraphics guiGraphics, int x, int y, int z, Operation<Void> original) {
         if (getMenu() instanceof IItemSlotHolderMenu menu) {
-            if (menu.isItemSlot(slot)) {
-                ci.cancel();
+            if (this.hoveredSlot != null && menu.isItemSlot(this.hoveredSlot)) {
+                return;
             }
         }
+        original.call(guiGraphics, x, y, z);
     }
 
     @Inject(method = "renderSlot", at = @At(value = "HEAD"), cancellable = true)

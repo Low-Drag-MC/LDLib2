@@ -20,6 +20,9 @@ import java.util.Optional;
  * @author KilaBash
  * @date 2022/05/13
  * @implNote CustomResourcePack
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault

@@ -6,11 +6,9 @@ import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.Minecraft;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,30 +17,37 @@ import java.util.List;
  * @author KilaBash
  * @date 2023/2/9
  * @implNote ClientCommands
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
-@OnlyIn(Dist.CLIENT)
 public class ClientCommands {
 
-    public static LiteralArgumentBuilder<CommandSourceStack> createLiteral(String command) {
-        return Commands.literal(command);
+    public static LiteralArgumentBuilder<FabricClientCommandSource> createLiteral(String command) {
+        return ClientCommandManager.literal(command);
     }
 
-    public static List<LiteralArgumentBuilder<CommandSourceStack>> createClientCommands() {
-        var commands = new ArrayList<LiteralArgumentBuilder<CommandSourceStack>>();
+    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> createClientCommands() {
+        var commands = new ArrayList<LiteralArgumentBuilder<FabricClientCommandSource>>();
         commands.add(createLiteral("ldlib2_client").then(createLiteral("reload_shader")
                 .executes(context -> {
                     LDLibShaders.reload();
                     ShaderManager.getInstance().reload();
                     return 1;
                 })));
-        if (LDLib2Registries.SCREEN_TESTS != null && !LDLib2Registries.SCREEN_TESTS.values().isEmpty()) {
+        if (LDLib2Registries.SCREEN_TESTS != null) {
             commands.add(createScreenTestCommands());
         }
         return commands;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> createScreenTestCommands() {
-        var builder = Commands.literal("ldlib2_screen_test");
+    private static LiteralArgumentBuilder<FabricClientCommandSource> createScreenTestCommands() {
+        var builder = ClientCommandManager.literal("ldlib2_screen_test")
+            .executes(context -> {
+                int count = LDLib2Registries.SCREEN_TESTS == null ? -1 : LDLib2Registries.SCREEN_TESTS.values().size();
+                context.getSource().sendFeedback(Component.literal("ldlib2_screen_test registered! Test count: " + count));
+                return 1;
+            });
         if (LDLib2Registries.SCREEN_TESTS == null) {
             return builder;
         }

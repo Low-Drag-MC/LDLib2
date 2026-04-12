@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -12,7 +11,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.neoforge.fluids.FluidStack;
+import dev.architectury.fluid.FluidStack;
 import org.apache.commons.lang3.function.Consumers;
 import org.apache.commons.lang3.function.Suppliers;
 
@@ -27,7 +26,6 @@ import java.util.function.Supplier;
 @Accessors(chain = true, fluent = true)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@KJSBindings
 public class DataBindingBuilder<T> {
     @Getter @Setter
     private String name = "unknown";

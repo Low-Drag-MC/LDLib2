@@ -19,7 +19,9 @@ import java.io.IOException;
 
 @Mixin(ShaderInstance.class)
 public abstract class ShaderInstanceMixin implements ILDShaderInstance {
-    @Inject(method = "<init>(Lnet/minecraft/server/packs/resources/ResourceProvider;Lnet/minecraft/resources/ResourceLocation;Lcom/mojang/blaze3d/vertex/VertexFormat;)V",
+    
+    @SuppressWarnings("UnresolvedMixinReference")
+    @Inject(method = "<init>(Lnet/minecraft/server/packs/resources/ResourceProvider;Ljava/lang/String;Lcom/mojang/blaze3d/vertex/VertexFormat;)V",
             require = 1,
             at = {@At(
                     value = "INVOKE",
@@ -27,11 +29,26 @@ public abstract class ShaderInstanceMixin implements ILDShaderInstance {
                     ordinal = 1
             )})
     public void ldlib2$onCreateShader(ResourceProvider resourceProvider,
-                                      ResourceLocation shaderLocation,
+                                      String shaderLocation,
                                       VertexFormat vertexFormat,
                                       CallbackInfo ci,
-                                      @Local JsonObject json) throws IOException {
-        this.onCreateShader(resourceProvider, shaderLocation, vertexFormat, json);
+                                      @Local JsonObject json) {
+        this.onCreateShader(resourceProvider, ResourceLocation.parse(shaderLocation), vertexFormat, json);
+    }
+
+    @org.spongepowered.asm.mixin.injection.Redirect(method = "<init>(Lnet/minecraft/server/packs/resources/ResourceProvider;Ljava/lang/String;Lcom/mojang/blaze3d/vertex/VertexFormat;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/resources/ResourceLocation;withDefaultNamespace(Ljava/lang/String;)Lnet/minecraft/resources/ResourceLocation;"))
+    private ResourceLocation ldlib2$fixShaderLocation(String name) {
+        if (name.startsWith("shaders/core/") && name.contains(":")) {
+            String pathPart = name.substring("shaders/core/".length());
+            int colonIndex = pathPart.indexOf(':');
+            if (colonIndex != -1) {
+                String namespace = pathPart.substring(0, colonIndex);
+                String path = pathPart.substring(colonIndex + 1);
+                return ResourceLocation.fromNamespaceAndPath(namespace, "shaders/core/" + path);
+            }
+        }
+        return ResourceLocation.withDefaultNamespace(name);
     }
 
     @Inject(method = "getOrCreate", at = {@At(value = "HEAD")}, cancellable = true)

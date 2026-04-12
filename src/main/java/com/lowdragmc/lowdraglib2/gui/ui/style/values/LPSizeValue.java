@@ -5,17 +5,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.LengthPercentage;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * Parses CSS gap/size shorthand syntax using LengthPercentage.
- *
- * Supported syntax (following CSS):
- * <pre>
- * gap: 10px;              // Both dimensions
- * gap: 10px 20px;         // Width Height
- * gap: 50% 100px;         // Width Height with mixed units
- * </pre>
- */
 public class LPSizeValue extends StyleValue<LPSize> {
 
     public LPSizeValue(String rawValue) {

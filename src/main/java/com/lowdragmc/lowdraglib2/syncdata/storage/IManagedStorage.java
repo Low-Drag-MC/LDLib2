@@ -12,6 +12,9 @@ import java.util.stream.Stream;
  * @author KilaBash
  * @date 2023/2/17
  * @implNote IManagedStorage
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
 public interface IManagedStorage {
     /**

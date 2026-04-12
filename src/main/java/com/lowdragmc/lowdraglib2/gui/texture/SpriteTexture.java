@@ -16,15 +16,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import dev.latvian.mods.rhino.util.HideFromJS;
-import dev.latvian.mods.rhino.util.RemapForJS;
+
+
 import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,15 +31,14 @@ import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import org.joml.Matrix4f;
 
 import org.jetbrains.annotations.Nullable;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
 
-@KJSBindings
 @LDLRegisterClient(name = "sprite_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 public class SpriteTexture extends TransformTexture {
@@ -79,17 +77,16 @@ public class SpriteTexture extends TransformTexture {
     @Nullable
     private Size imageSizeCache;
 
-    @HideFromJS
+    
     public static SpriteTexture of(ResourceLocation imageLocation) {
         return new SpriteTexture().setImageLocation(imageLocation);
     }
 
-    @HideFromJS
+    
     public static SpriteTexture of(String imageLocation) {
         return of(ResourceLocation.parse(imageLocation));
     }
 
-    @RemapForJS("of")
     public static SpriteTexture kjs$of(ResourceLocation imageLocation) {
         return of(imageLocation);
     }
@@ -158,7 +155,7 @@ public class SpriteTexture extends TransformTexture {
         if (other.getRawTexture() instanceof SpriteTexture spriteTexture) {
             return new IGuiTexture() {
                 @Override
-                @OnlyIn(Dist.CLIENT)
+                @Environment(EnvType.CLIENT)
                 public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height,
                                  float partialTicks) {
                     SpriteTexture.this.draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
@@ -176,7 +173,7 @@ public class SpriteTexture extends TransformTexture {
         return super.interpolate(other, lerp);
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public Size getImageSize() {
         if (imageSizeCache == null) {
             try {
@@ -190,7 +187,7 @@ public class SpriteTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (width <= 0 || height <= 0) {
             return;
@@ -307,7 +304,7 @@ public class SpriteTexture extends TransformTexture {
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     private void drawQuad(VertexConsumer buffer, Matrix4f matrix,
                           float x, float y, float w, float h,
                           float u1, float v1, float u2, float v2, int color) {
@@ -323,7 +320,7 @@ public class SpriteTexture extends TransformTexture {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public void createPreview(ConfiguratorGroup father) {
         super.createPreview(father);
         var configurator = new Configurator("ldlib.gui.editor.group.base_image");
@@ -359,7 +356,7 @@ public class SpriteTexture extends TransformTexture {
                 ));
     }
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawRawTextureGuides(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         SpriteTexture.of(imageLocation.toString()).draw(graphics, mouseX, mouseY, x, y, width, height, partialTicks);
         // draw border guides

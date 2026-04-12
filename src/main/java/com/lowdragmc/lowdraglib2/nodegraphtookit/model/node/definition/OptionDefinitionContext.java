@@ -6,12 +6,6 @@ import lombok.Setter;
 
 
 import java.util.*;
-
-/**
- * Concrete implementation of {@link IOptionDefinitionContext}.
- *
- * <p>Provides methods to define node options during node definition.</p>
- */
 public class OptionDefinitionContext implements IOptionDefinitionContext {
     // runtime
     @Getter @Setter

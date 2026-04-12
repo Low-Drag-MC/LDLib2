@@ -11,10 +11,6 @@ import lombok.experimental.Accessors;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Property for LPSize values (gap shorthand properties).
- */
 @Accessors(chain = true)
 public class LPSizeProperty extends Property<LPSize> {
     public LPSizeProperty(String name, LPSize initialValue) {

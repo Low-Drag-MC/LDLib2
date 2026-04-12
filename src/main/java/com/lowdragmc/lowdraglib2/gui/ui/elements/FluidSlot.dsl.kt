@@ -3,9 +3,8 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements
 import com.lowdragmc.lowdraglib2.gui.ui.ElementSpec
 import com.lowdragmc.lowdraglib2.gui.ui.UIContainer
 import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection
-import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import dev.architectury.fluid.FluidStack
+import com.lowdragmc.lowdraglib2.utils.fluids.IFluidHandler
 import java.util.function.Consumer
 
 /**
@@ -45,7 +44,13 @@ open class FluidSlotElement<T : FluidSlot>(
     spec: (FluidSlotSpec<T>.() -> Unit)? = null,
 ) : UIContainer<T, FluidSlotSpec<T>>(element, spec) {
     override fun makeSpec(): FluidSlotSpec<T>? {
-        return spec?.let { FluidSlotSpec<T>().apply(it) }
+        val s = spec
+        if (s != null) {
+            val fluidSpec = FluidSlotSpec<T>()
+            s(fluidSpec)
+            return fluidSpec
+        }
+        return null
     }
 
     override fun build(spec: FluidSlotSpec<T>?): T {
@@ -154,26 +159,5 @@ fun <T : FluidSlot> FluidSlotElement<T>.withLabel(config: Label.() -> Unit): Flu
 }
 
 // ===========================
-// XEI Integration Methods
+// XEI Integration Methods Removed
 // ===========================
-
-/**
- * Extension: Mark as JEI/REI/EMI phantom slot
- */
-fun <T : FluidSlot> FluidSlotElement<T>.asXeiPhantom(): FluidSlotElement<T> = apply {
-    element.xeiPhantom()
-}
-
-/**
- * Extension: Mark as recipe ingredient for JEI/REI/EMI
- */
-fun <T : FluidSlot> FluidSlotElement<T>.asXeiRecipeIngredient(io: IngredientIO): FluidSlotElement<T> = apply {
-    element.xeiRecipeIngredient(io)
-}
-
-/**
- * Extension: Mark as recipe slot for JEI/REI/EMI
- */
-fun <T : FluidSlot> FluidSlotElement<T>.asXeiRecipeSlot(io: IngredientIO = IngredientIO.NONE, chance: Float = 1f): FluidSlotElement<T> = apply {
-    element.xeiRecipeSlot(io, chance)
-}

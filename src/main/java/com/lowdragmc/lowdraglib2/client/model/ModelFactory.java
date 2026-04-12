@@ -4,8 +4,6 @@ import com.google.gson.JsonParseException;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ModelBakeryAccessor;
 import com.mojang.datafixers.util.Either;
 import com.mojang.math.Transformation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BlockModel;
@@ -26,20 +24,19 @@ import org.joml.Vector3f;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Function;
-
-/**
- * Author: KilaBash
- * Date: 2022/04/24
- * Description:
- */
-@OnlyIn(Dist.CLIENT)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class ModelFactory {
     public static final ItemModelGenerator ITEM_MODEL_GENERATOR = new ItemModelGenerator();
 
+    private static ModelBakery modelBakery;
+
+    public static void setModelBakery(ModelBakery bakery) {
+        modelBakery = bakery;
+    }
+
     public static ModelBakery getModelBakery() {
-        return Minecraft.getInstance().getModelManager().getModelBakery();
+        return modelBakery;
     }
 
     public static UnbakedModel getLDLibModel(UnbakedModel vanilla) {
@@ -53,12 +50,10 @@ public class ModelFactory {
                 return getUnBakedModel(location);
             }
 
-            @Override
             public UnbakedModel getTopLevelModel(ModelResourceLocation modelResourceLocation) {
                 return ModelFactory.getTopLevelModel(modelResourceLocation);
             }
 
-            @Override
             public @Nullable BakedModel bake(ResourceLocation location, ModelState state, Function<Material, TextureAtlasSprite> sprites) {
                 UnbakedModel unbakedmodel = this.getModel(location);
                 if (unbakedmodel instanceof BlockModel blockmodel) {
@@ -69,7 +64,6 @@ public class ModelFactory {
                 return unbakedmodel.bake(this, Material::sprite, state);
             }
 
-            @Override
             public @Nullable BakedModel bakeUncached(UnbakedModel unbakedModel, ModelState modelState, Function<Material, TextureAtlasSprite> function) {
                 if (unbakedModel instanceof BlockModel blockmodel) {
                     if (blockmodel.getRootModel() == ModelBakery.GENERATION_MARKER) {
@@ -79,7 +73,6 @@ public class ModelFactory {
                 return unbakedModel.bake(this, Material::sprite, modelState);
             }
 
-            @Override
             public Function<Material, TextureAtlasSprite> getModelTextureGetter() {
                 return Material::sprite;
             }

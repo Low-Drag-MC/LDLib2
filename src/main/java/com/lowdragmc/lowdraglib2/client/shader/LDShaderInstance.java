@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.google.gson.JsonObject;
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ShaderInstanceAccessor;
 import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.vertex.*;
@@ -48,7 +47,7 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
     }
 
     private LDShaderInstance(ResourceProvider resourceProvider, ResourceLocation shaderLocation, VertexFormat vertexFormat, Set<String> defines) throws IOException {
-        super(resourceProvider, shaderLocation, vertexFormat);
+        super(resourceProvider, shaderLocation.toString(), vertexFormat);
         this.shaderLocation = shaderLocation;
         this.defines = defines;
     }

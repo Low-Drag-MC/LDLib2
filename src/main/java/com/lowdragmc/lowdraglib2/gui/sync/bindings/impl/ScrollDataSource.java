@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.gui.sync.bindings.impl;
 
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import lombok.Data;
 import lombok.Getter;
@@ -17,7 +16,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 @Data(staticConstructor = "of")
-@KJSBindings
 public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
     @Getter
     private final List<T> data;

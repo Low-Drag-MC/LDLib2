@@ -17,12 +17,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-
-/**
- * Author: KilaBash
- * Date: 2022/04/21
- * Description:
- */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class FacadeBlockAndTintGetter implements BlockAndTintGetter {

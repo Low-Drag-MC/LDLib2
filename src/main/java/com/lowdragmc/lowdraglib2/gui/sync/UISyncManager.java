@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.sync;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
 import com.lowdragmc.lowdraglib2.networking.both.PacketModularUISync;
 import com.lowdragmc.lowdraglib2.networking.c2s.CPacketUIRPCEvent;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketUIRPCEventReturn;
@@ -11,7 +12,6 @@ import com.lowdragmc.lowdraglib2.utils.IdentityMap;
 import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.apache.commons.lang3.function.Consumers;
 
 import java.util.*;
@@ -68,9 +68,9 @@ public class UISyncManager {
             writePack(buf, toSync);
         }, modularUI.player.level().registryAccess());
         if (modularUI.player.level().isClientSide) {
-            PacketDistributor.sendToServer(new PacketModularUISync(data));
+            com.lowdragmc.lowdraglib2.networking.LDLNetworking.sendToServer(new PacketModularUISync(data));
         } else if (modularUI.player instanceof ServerPlayer serverPlayer) {
-            PacketDistributor.sendToPlayer(serverPlayer, new PacketModularUISync(data));
+            com.lowdragmc.lowdraglib2.networking.LDLNetworking.sendToPlayer(serverPlayer, new PacketModularUISync(data));
         }
     }
 
@@ -153,7 +153,7 @@ public class UISyncManager {
             buf.writeVarInt(requestID);
             event.writeParametersToBuffer(buf, args);
         }, player.level().registryAccess());
-        PacketDistributor.sendToServer(new CPacketUIRPCEvent(data));
+        com.lowdragmc.lowdraglib2.networking.LDLNetworking.sendToServer(new CPacketUIRPCEvent(data));
     }
 
     public void handEvent(RegistryFriendlyByteBuf buf) {
@@ -182,7 +182,7 @@ public class UISyncManager {
                 returnBuf.writeVarInt(requestID);
                 rpcEvent.writeReturnValueToBuffer(returnBuf, returnValue);
             }, player.level().registryAccess());
-            PacketDistributor.sendToPlayer(serverPlayer, new SPacketUIRPCEventReturn(data));
+            com.lowdragmc.lowdraglib2.networking.LDLNetworking.sendToPlayer(serverPlayer, new SPacketUIRPCEventReturn(data));
         }
     }
 

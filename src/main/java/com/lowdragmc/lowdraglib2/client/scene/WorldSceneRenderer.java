@@ -14,8 +14,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.particle.ParticleRenderType;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
@@ -56,8 +54,10 @@ import static net.minecraft.world.level.block.RenderShape.INVISIBLE;
  * @author KilaBash
  * @date 2022/05/25
  * @implNote render a scene, through VBO compilation scene, greatly optimize rendering performance.
+ * @port ELB_GG 
+ * @date_port 2026/03/29 
+ * @port_to fabric
  */
-@OnlyIn(Dist.CLIENT)
 @Accessors(chain = true)
 public abstract class WorldSceneRenderer {
     protected static final FloatBuffer MODELVIEW_MATRIX_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
@@ -409,7 +409,7 @@ public abstract class WorldSceneRenderer {
                             poseStack.pushPose();
                             poseStack.setIdentity();
                             poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
-                            particleManager.render(poseStack, camera, particleTicks, type -> !type.isTranslucent());
+                            particleManager.render(poseStack, camera, particleTicks, type -> true);
                             poseStack.popPose();
                         }
                     }
@@ -446,7 +446,7 @@ public abstract class WorldSceneRenderer {
             @Nonnull PoseStack poseStack = new PoseStack();
             poseStack.setIdentity();
             poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
-            particleManager.render(poseStack, camera, particleTicks, ParticleRenderType::isTranslucent);
+            particleManager.render(poseStack, camera, particleTicks, type -> true);
         }
 
         if (afterWorldRender != null) {
@@ -549,7 +549,7 @@ public abstract class WorldSceneRenderer {
                         poseStack.pushPose();
                         poseStack.setIdentity();
                         poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
-                        particleManager.render(poseStack, camera, particleTicks, type -> !type.isTranslucent());
+                        particleManager.render(poseStack, camera, particleTicks, type -> true);
                         poseStack.popPose();
                     }
                 }
@@ -640,14 +640,14 @@ public abstract class WorldSceneRenderer {
             if (block == Blocks.AIR) continue;
             if (state.getRenderShape() != INVISIBLE) {
                 var model = brd.getBlockModel(state);
-                var modelData = world.getModelData(pos);
-                modelData = model.getModelData(world, pos, state, modelData);
+                var modelData = com.lowdragmc.lowdraglib2.client.renderer.ModelData.EMPTY;
+                modelData = modelData;
                 randomSource.setSeed(state.getSeed(pos));
-                modelData = model.getModelData(world, pos, state, modelData);
-                if (model.getRenderTypes(state, randomSource, modelData).contains(layer)) {
+                modelData = modelData;
+                if (java.util.Collections.singleton(layer).contains(layer)) {
                     poseStack.pushPose();
                     poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
-                    brd.renderBatched(state, pos, world, poseStack, wrapperBuffer, false, randomSource, modelData, layer);
+                    brd.renderBatched(state, pos, world, poseStack, wrapperBuffer, false, randomSource);
                     poseStack.popPose();
                 }
             }

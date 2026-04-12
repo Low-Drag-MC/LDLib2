@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
-import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -23,8 +22,8 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicReference;
 
-@KJSBindings
 @LDLRegisterClient(name = "shader_texture", registry = "ldlib2:gui_texture")
 public class ShaderTexture extends TransformTexture implements AutoCloseable {
     @Getter
@@ -95,7 +93,7 @@ public class ShaderTexture extends TransformTexture implements AutoCloseable {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY,
                                 float x, float y, float width, float height, float partialTicks) {
 

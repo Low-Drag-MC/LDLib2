@@ -7,8 +7,6 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
@@ -20,18 +18,6 @@ import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * Created with IntelliJ IDEA.
- *
- * @Author: KilaBash
- * @Date: 2021/08/23
- * @Description: It looks similar to {@link ImmediateWorldSceneRenderer}, but totally different.
- * It uses FBO and is more universality and efficient(X).
- * FBO can be rendered anywhere more flexibly, not just in the GUI.
- * If you have scene rendering needs, you will love this FBO renderer.
- */
-@OnlyIn(Dist.CLIENT)
 public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     @Getter
     private int resolutionWidth = 1080;

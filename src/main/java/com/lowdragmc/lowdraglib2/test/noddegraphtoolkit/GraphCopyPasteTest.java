@@ -10,8 +10,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarat
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
@@ -19,7 +17,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-@GameTestHolder(LDLib2.MOD_ID)
 public class GraphCopyPasteTest {
 
     /**
@@ -27,7 +24,6 @@ public class GraphCopyPasteTest {
      * Verifies new UUIDs are assigned and wire connects the new ports correctly.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void copyPasteBasicNodes(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -93,7 +89,6 @@ public class GraphCopyPasteTest {
      * Paste should produce 2 nodes with no wires (A→B and B→C are not internal).
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void copyPastePartialSelection(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -125,7 +120,6 @@ public class GraphCopyPasteTest {
      * Tests copy/paste of a VariableNode with its declaration.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void copyPasteWithVariable(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -170,7 +164,6 @@ public class GraphCopyPasteTest {
      * Tests that position offset is correctly applied during paste.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void copyPastePositionOffset(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -198,7 +191,6 @@ public class GraphCopyPasteTest {
      * Tests that duplicating multiple connected nodes preserves internal connections.
      */
     @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void duplicatePreservesConnections(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();

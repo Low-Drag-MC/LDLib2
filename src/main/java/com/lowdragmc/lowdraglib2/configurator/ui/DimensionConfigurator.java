@@ -11,10 +11,6 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-/**
- * Configurator for TaffyDimension values (width, height, size, min/max-size, etc.)
- */
 public class DimensionConfigurator extends ValueConfigurator<TaffyDimension> {
     public enum Unit {
         AUTO, LENGTH, PERCENT,

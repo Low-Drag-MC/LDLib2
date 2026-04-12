@@ -9,13 +9,9 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 
 import java.util.function.Consumer;
-
-@OnlyIn(Dist.CLIENT)
 public class ShaderManager {
 
 	private static final ShaderManager INSTANCE = new ShaderManager();

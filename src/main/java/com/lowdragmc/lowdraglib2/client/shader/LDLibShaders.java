@@ -7,11 +7,9 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
 import lombok.Getter;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
+
 import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
@@ -22,8 +20,6 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import static com.mojang.blaze3d.vertex.VertexFormatElement.POSITION;
-
-@OnlyIn(Dist.CLIENT)
 public class LDLibShaders {
 	public static final Pattern REGEX_VERSION = Pattern.compile(
 			"(#(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|\\h)*version(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|\\h)*(\\d+))\\b"
@@ -108,45 +104,33 @@ public class LDLibShaders {
 	/**
 	 * the vertex format for HSB color, three four of float
 	 */
-	public static final VertexFormatElement HSB_Alpha = VertexFormatElement.register(VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 4);
-	public static final VertexFormatElement AA = VertexFormatElement.register(VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 1);
+	public static final VertexFormatElement HSB_Alpha = VertexFormatElement.register(14, 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 4);
+	public static final VertexFormatElement AA = VertexFormatElement.register(15, 0, VertexFormatElement.Type.FLOAT, VertexFormatElement.Usage.COLOR, 1);
 
 	public static VertexFormat HSB_VERTEX_FORMAT = VertexFormat.builder()
 			.add("Position", POSITION)
 			.add("HSB_ALPHA", HSB_Alpha)
 			.build();
 
-    public static void registerShaders(RegisterShadersEvent registerShadersEvent) {
-		var resourceProvider = registerShadersEvent.getResourceProvider();
+    public static void registerShaders(net.fabricmc.fabric.api.resource.ResourceReloadListenerKeys registerShadersEvent) {
+		// Shaders are registered via CoreShaderRegistrationCallback in Fabric API 1.21.1
+		// This will be called via ClientProxy
+    }
+
+	public static void registerCoreShaders(net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback.RegistrationContext context) {
 		try {
-			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-							LDLib2.id("particle"), DefaultVertexFormat.PARTICLE),
-					shaderInstance -> particleShader = shaderInstance);
-			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-							LDLib2.id("fast_blit"), DefaultVertexFormat.POSITION),
-					shaderInstance -> blitShader = shaderInstance);
-            registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-                            LDLib2.id("visual_layer"), DefaultVertexFormat.POSITION_TEX),
-                    shaderInstance -> visualLayerShader = shaderInstance);
-			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-							LDLib2.id("sprite_blit"), DefaultVertexFormat.POSITION_TEX_COLOR),
-					shaderInstance -> spriteBlitShader = shaderInstance);
-			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-							LDLib2.id("hsb_block"), HSB_VERTEX_FORMAT),
-					shaderInstance -> hsbShader = shaderInstance);
-			registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-							LDLib2.id("graph_wire"), DefaultVertexFormat.POSITION_TEX_COLOR),
-					shaderInstance -> graphWireShader = shaderInstance);
-            registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-                            LDLib2.id("sdf_rect"), DefaultVertexFormat.POSITION),
-                    shaderInstance -> SDFRect = shaderInstance);
-            registerShadersEvent.registerShader(new ShaderInstance(resourceProvider,
-                            LDLib2.id("gui_texture"), DefaultVertexFormat.POSITION_TEX_COLOR),
-                    shaderInstance -> guiTexture = shaderInstance);
+			context.register(LDLib2.id("particle"), DefaultVertexFormat.PARTICLE, shaderInstance -> particleShader = shaderInstance);
+			context.register(LDLib2.id("fast_blit"), DefaultVertexFormat.POSITION, shaderInstance -> blitShader = shaderInstance);
+			context.register(LDLib2.id("visual_layer"), DefaultVertexFormat.POSITION_TEX, shaderInstance -> visualLayerShader = shaderInstance);
+			context.register(LDLib2.id("sprite_blit"), DefaultVertexFormat.POSITION_TEX_COLOR, shaderInstance -> spriteBlitShader = shaderInstance);
+			context.register(LDLib2.id("hsb_block"), HSB_VERTEX_FORMAT, shaderInstance -> hsbShader = shaderInstance);
+			context.register(LDLib2.id("graph_wire"), DefaultVertexFormat.POSITION_TEX_COLOR, shaderInstance -> graphWireShader = shaderInstance);
+			context.register(LDLib2.id("sdf_rect"), DefaultVertexFormat.POSITION, shaderInstance -> SDFRect = shaderInstance);
+			context.register(LDLib2.id("gui_texture"), DefaultVertexFormat.POSITION_TEX_COLOR, shaderInstance -> guiTexture = shaderInstance);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-    }
+	}
 
 	public static boolean supportComputeShader() {
 		return GL.getCapabilities().GL_ARB_compute_shader;

@@ -3,17 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.ui.style.values;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import dev.vfyjxf.taffy.style.TaffyDimension;
 import org.jetbrains.annotations.Nullable;
-
-/**
- * Parses CSS TaffyDimension syntax.
- *
- * Supported syntax:
- * <pre>
- * auto                  // Auto sizing
- * 100px or 100          // Absolute length
- * 50%                   // Percentage
- * </pre>
- */
 public class DimensionValue extends StyleValue<TaffyDimension> {
 
     public DimensionValue(String rawValue) {
