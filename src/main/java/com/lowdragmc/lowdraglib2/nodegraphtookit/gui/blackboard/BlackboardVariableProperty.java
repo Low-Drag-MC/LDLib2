@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorSelectorConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
@@ -174,6 +175,8 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
 
     protected IConfigurable createVariableConfigurable() {
         return IConfigurable.create(group -> {
+            var rename = new StringConfigurator("graph.variable_name", () -> getModel().getName(),
+                    name -> getModel().setName(name),  getModel().getName(), true);
             var defaultValue = new ConfiguratorGroup("graph.default_value").setCollapse(false);
             getModel().buildConfigurator(defaultValue);
             var subGraphConfigurator = new ConfiguratorSelectorConfigurator<>(
@@ -210,7 +213,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
                         }
                     }
             );
-            group.addConfigurators(defaultValue, subGraphConfigurator);
+            group.addConfigurators(rename, defaultValue, subGraphConfigurator);
         });
     }
 
