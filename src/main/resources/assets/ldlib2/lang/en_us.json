@@ -510,6 +510,7 @@
   "graph.inspector": "Inspector",
   "graph.preview": "Preview",
   "graph.variable_type": "Variable Type",
+  "graph.variable_name": "Variable Name",
   "graph.commands.change_variable_modifiers": "Change Variable Subgraph Use",
   "graph.flow_direction": "Flow Direction",
   "graph.commands.move": "Move",

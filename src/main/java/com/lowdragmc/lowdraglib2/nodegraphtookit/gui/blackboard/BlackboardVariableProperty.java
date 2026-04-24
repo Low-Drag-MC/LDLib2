@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorSelectorConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
@@ -21,7 +22,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.VariableDeclarationCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasName;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
@@ -33,7 +33,6 @@ import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.system.windows.INPUT;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Arrays;
@@ -58,6 +57,8 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
     private boolean isCollapsed = true;
     @Nullable
     private TypeHandle lastTypeHandle;
+    @Nullable
+    private IConfigurable variableConfigurable;
 
     public BlackboardVariableProperty(VariableDeclarationModelBase variableModel) {
         setModel(variableModel);
@@ -150,6 +151,10 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
     public void onResultSelected(@Nullable TypeHandle value) {
         if (value != null) {
             getModel().setDataTypeHandle(value);
+            // update inspector if necessary
+            if (graphView != null && graphView.inspector.getInspectedConfigurable() == getVariableConfigurable()) {
+                onSelectionInspect(graphView.inspector);
+            }
         }
     }
 
@@ -168,9 +173,10 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
         }
     }
 
-    @Override
-    protected void onSelectionInspect(GraphInspector inspector) {
-        inspector.inspect(IConfigurable.create(group -> {
+    protected IConfigurable createVariableConfigurable() {
+        return IConfigurable.create(group -> {
+            var rename = new StringConfigurator("graph.variable_name", () -> getModel().getName(),
+                    name -> getModel().setName(name),  getModel().getName(), true);
             var defaultValue = new ConfiguratorGroup("graph.default_value").setCollapse(false);
             getModel().buildConfigurator(defaultValue);
             var subGraphConfigurator = new ConfiguratorSelectorConfigurator<>(
@@ -207,8 +213,19 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
                         }
                     }
             );
-            group.addConfigurators(defaultValue, subGraphConfigurator);
-        }));
+            group.addConfigurators(rename, defaultValue, subGraphConfigurator);
+        });
+    }
+
+    public IConfigurable getVariableConfigurable() {
+        if (variableConfigurable == null)
+            variableConfigurable = createVariableConfigurable();
+        return variableConfigurable;
+    }
+
+    @Override
+    protected void onSelectionInspect(GraphInspector inspector) {
+        inspector.inspect(getVariableConfigurable());
     }
 
     private enum VariableType implements StringRepresentable {

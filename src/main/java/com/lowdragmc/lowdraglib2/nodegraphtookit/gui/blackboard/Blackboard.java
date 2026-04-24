@@ -85,6 +85,11 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
         updateFromModel();
     }
 
+    public void clear() {
+        treeList.setRoot(null);
+        itemUIs.clear();
+    }
+
     /**
      * Updates the treeview based on the model.
      */
