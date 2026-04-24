@@ -20,14 +20,14 @@ public abstract class DelegatingUIElementRenderer<T extends UIElement, S extends
     }
 
     protected final void drawParentContents(T element, IGUIContext context) {
-        UIElementRendererRegistry.findParentRenderer(element.getClass()).drawContents(element, context);
+        UIElementRendererRegistry.findParentRendererByType(type()).drawContents(element, context);
     }
 
     protected final void drawParentBackgroundAdditional(T element, IGUIContext context) {
-        UIElementRendererRegistry.findParentRenderer(element.getClass()).drawBackgroundAdditional(element, context);
+        UIElementRendererRegistry.findParentRendererByType(type()).drawBackgroundAdditional(element, context);
     }
 
     protected final void drawParentBackgroundOverlay(T element, IGUIContext context) {
-        UIElementRendererRegistry.findParentRenderer(element.getClass()).drawBackgroundOverlay(element, context);
+        UIElementRendererRegistry.findParentRendererByType(type()).drawBackgroundOverlay(element, context);
     }
 }

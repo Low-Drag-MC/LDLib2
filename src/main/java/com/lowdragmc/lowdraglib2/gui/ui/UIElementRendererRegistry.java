@@ -27,21 +27,20 @@ public final class UIElementRendererRegistry {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends UIElement> UIElementRenderer<? super T> findParentRenderer(Class<? extends UIElement> type) {
-        Class<?> current = type.getSuperclass();
-        while (current != null && UIElement.class.isAssignableFrom(current)) {
-            var renderer = RENDERERS.get(current);
-            if (renderer != null) {
-                return (UIElementRenderer<? super T>) renderer;
-            }
-            current = current.getSuperclass();
+    public static <T extends UIElement> UIElementRenderer<? super T> findParentRendererByType(Class<? extends UIElement> type) {
+        var current = type.getSuperclass();
+        if (UIElement.class.isAssignableFrom(current)) {
+            return findRendererByType((Class<? extends UIElement>) current);
         }
         return DEFAULT_RENDERER;
     }
 
-    @SuppressWarnings("unchecked")
     public static <T extends UIElement> UIElementRenderer<? super T> findRenderer(T element) {
-        var type = element.getClass();
+        return findRendererByType(element.getClass());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends UIElement> UIElementRenderer<? super T> findRendererByType(Class<? extends T> type) {
         var resolved = RESOLVED_RENDERERS.get(type);
         if (resolved != null) {
             return (UIElementRenderer<? super T>) resolved;
