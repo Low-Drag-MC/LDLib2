@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @UtilityClass
 public final class TypeHandleHelpers {
@@ -25,7 +26,8 @@ public final class TypeHandleHelpers {
     private static final Map<String, Integer> CUSTOM_ID_TO_COLOR = new ConcurrentHashMap<>();// customId -> Color
     // customId -> ICON
     private static final Map<String, IGuiTexture> CUSTOM_ID_TO_ICON = new ConcurrentHashMap<>();
-
+    // customId -> Default Value Supplier
+    private static final Map<String, Supplier<Object>> CUSTOM_ID_TO_DEFAULT_VALUE = new ConcurrentHashMap<>();
 
     /**
      * GenerateCustomTypeHandle(uniqueId, friendlyName)
@@ -109,6 +111,13 @@ public final class TypeHandleHelpers {
         }
     }
 
+    public static void setCustomDefaultValue(TypeHandle typeHandle, Supplier<Object> defaultValue) {
+        var id = typeHandle.getIdentification();
+        if (id != null) {
+            CUSTOM_ID_TO_DEFAULT_VALUE.put(id, defaultValue);
+        }
+    }
+
     /**
      * GenerateTypeHandle(Type t, friendlyName)
      */
@@ -181,6 +190,11 @@ public final class TypeHandleHelpers {
     static IGuiTexture resolveIcon(TypeHandle typeHandle) {
         String id = (typeHandle != null) ? typeHandle.getIdentification() : null;
         return CUSTOM_ID_TO_ICON.getOrDefault(id, IGuiTexture.EMPTY);
+    }
+
+    static Supplier<Object> resolveDefaultValue(TypeHandle typeHandle) {
+        String id = (typeHandle != null) ? typeHandle.getIdentification() : null;
+        return CUSTOM_ID_TO_DEFAULT_VALUE.getOrDefault(id, () -> null);
     }
 
     static boolean isCustomTypeHandle(TypeHandle typeHandle) {

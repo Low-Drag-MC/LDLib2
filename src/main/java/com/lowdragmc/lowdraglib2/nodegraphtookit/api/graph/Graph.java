@@ -23,8 +23,7 @@ public abstract class Graph implements IGraph {
     /**
      * Retrieves a list of supported node types in the graph.
      * <p>
-     * Typically backed by an {@link com.lowdragmc.lowdraglib2.registry.AutoRegistry} created via
-     * {@link com.lowdragmc.lowdraglib2.registry.AutoRegistry#createNodeRegistry}.
+     * Typically backed with {@link GraphNodeRegistry#getNodeClasses}
      *
      * @return a {@link List} of {@code Class} objects representing the supported node types
      */
