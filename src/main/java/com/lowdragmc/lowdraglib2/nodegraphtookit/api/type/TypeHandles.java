@@ -69,4 +69,6 @@ public class TypeHandles {
                         valueConfigurable::getValue, valueConfigurable::setValue, -1,
                         valueConfigurable.forceUpdate()))));
     }
+
+    public static void init() {}
 }

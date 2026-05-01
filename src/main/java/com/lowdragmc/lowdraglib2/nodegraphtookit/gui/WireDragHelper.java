@@ -388,7 +388,7 @@ public class WireDragHelper {
                                         List<Pair<WireModel, WireSide>> wires,
                                         Vector2f worldPosition,
                                         List<WireModel> wiresToDelete) {
-        var localPosition = graphView.getContentViewContainer().worldToLocal(worldPosition);
+        var localPosition = graphView.getContentViewContainer().worldToLocalLayoutOffset(worldPosition);
         var portModels = wires.stream().map(w -> w.left().getOtherPort(w.right())).toList();
         if (!portModels.isEmpty()) {
             if (portModels.getFirst().getDirection() == PortDirection.NONE) return;

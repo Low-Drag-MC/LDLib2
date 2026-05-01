@@ -199,6 +199,14 @@ public class GraphView extends UIElement {
         );
     }
 
+    @Override
+    protected void onLayoutChanged() {
+        super.onLayoutChanged();
+        for (var uid : modelElementsByID.keySet()) {
+            changeset.addChangedModel(uid, ChangeHintList.LAYOUT);
+        }
+    }
+
     /**
      * Sets the layer configuration for this {@code GraphEditor} instance using the specified order of layers.
      * Each layer is represented as a {@code UIElement} and will be added to the {@code graphView}.
@@ -265,9 +273,13 @@ public class GraphView extends UIElement {
         this.graph = null;
         this.modelElements.clear();
         this.modelElementsByID.clear();
+        this.modelDependencies.clear();
         this.selected.clear();
         this.layers.values().forEach(UIElement::clearAllChildren);
         this.isWireDragging = false;
+        this.changeset.clear();
+        this.inspector.clear();
+        this.blackboard.clear();
     }
 
     /**
@@ -276,16 +288,8 @@ public class GraphView extends UIElement {
      */
     public void rebuildGraphUI() {
         if (graph == null) return;
-        modelElements.clear();
-        modelElementsByID.clear();
-        modelDependencies.clear();
-        selected.clear();
-        layers.values().forEach(UIElement::clearAllChildren);
-        isWireDragging = false;
+        clearGraph();
         graph.graphModel.getCurrentGraphChangeDescription().clear();
-        changeset.clear();
-        inspector.clear();
-        blackboard.clear();
         buildUITree(graph.graphModel);
     }
 
@@ -931,7 +935,7 @@ public class GraphView extends UIElement {
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder = TreeBuilder.Menu.start();
-        var localPosition = getContentViewContainer().getLocalMouse(mouseX, mouseY);
+        var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY));
 
         // "Add Node" is always available
         menuBuilder.leaf("graph.commands.add_node", () -> {
@@ -1090,9 +1094,10 @@ public class GraphView extends UIElement {
         if (graph == null) return;
         var graphModel = graph.graphModel;
         var changes = graphModel.getCurrentGraphChangeDescription();
-        var somethingChanged = changeset.addNewModels(changes.getNewModels());
-        somethingChanged |= changeset.addChangedModels(changes.getChangedModels());
-        somethingChanged |= changeset.addDeletedModels(changes.getDeletedModels());
+        changeset.addNewModels(changes.getNewModels());
+        changeset.addChangedModels(changes.getChangedModels());
+        changeset.addDeletedModels(changes.getDeletedModels());
+        var somethingChanged = changeset.hasChanges();
         if (somethingChanged) {
             var newPlacemats = new ArrayList<GraphElement<?>>();
             var changedModels = new HashMap<UUID, ChangeHintList>();

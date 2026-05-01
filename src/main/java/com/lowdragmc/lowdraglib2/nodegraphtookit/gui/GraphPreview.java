@@ -64,16 +64,54 @@ public class GraphPreview extends UIElement implements IGraphTool {
 
         // Center the view on this world position
         var gv = graphView.graphView;
-        float newOffsetX = worldX - (gv.getContentWidth() / gv.getScale()) / 2f;
-        float newOffsetY = worldY - (gv.getContentHeight() / gv.getScale()) / 2f;
+        float vpW = gv.getContentWidth() / gv.getScale();
+        float vpH = gv.getContentHeight() / gv.getScale();
+        float newOffsetX = worldX - vpW / 2f;
+        float newOffsetY = worldY - vpH / 2f;
+
+        // Clamp so the viewport rect always intersects the nodes' bounding rect.
+        var nodes = computeNodesBounds();
+        if (nodes != null) {
+            newOffsetX = Math.max(nodes.minX - vpW, Math.min(nodes.maxX, newOffsetX));
+            newOffsetY = Math.max(nodes.minY - vpH, Math.min(nodes.maxY, newOffsetY));
+        }
+
         gv.setOffsetX(newOffsetX);
         gv.setOffsetY(newOffsetY);
         // Update the content transform to reflect the new offset
         float s = gv.getScale();
+        float tx = newOffsetX * s;
+        float ty = newOffsetY * s;
         gv.contentRoot.transform(transform -> transform
-                .translate(-(newOffsetX * s), -(newOffsetY * s))
+                .translate(-tx, -ty)
                 .scale(s)
         );
+    }
+
+    private Bounds computeNodesBounds() {
+        var nodeLayer = graphView.getLayer(NodeElement.NODE_LAYER);
+        if (nodeLayer == null || nodeLayer.getChildren().isEmpty()) return null;
+
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        boolean hasNodes = false;
+
+        for (var child : nodeLayer.getChildren()) {
+            if (child instanceof NodeElement nodeElement) {
+                var model = nodeElement.getModel();
+                float x = model.getPosition().x;
+                float y = model.getPosition().y;
+                float w = nodeElement.getSizeWidth();
+                float h = nodeElement.getSizeHeight();
+
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x + w);
+                maxY = Math.max(maxY, y + h);
+                hasNodes = true;
+            }
+        }
+        return hasNodes ? new Bounds(minX, minY, maxX, maxY) : null;
     }
 
     @Override

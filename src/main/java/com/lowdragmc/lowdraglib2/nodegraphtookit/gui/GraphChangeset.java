@@ -25,6 +25,14 @@ public class GraphChangeset {
         deletedModels.clear();
     }
 
+    public boolean isEmpty() {
+        return newModels.isEmpty() && changedModelsAndHints.isEmpty() && deletedModels.isEmpty();
+    }
+
+    public boolean hasChanges() {
+        return !isEmpty();
+    }
+
     public boolean addNewModels(Collection<UUID> models) {
         if (models == null) return false;
         var somethingChanged = false;

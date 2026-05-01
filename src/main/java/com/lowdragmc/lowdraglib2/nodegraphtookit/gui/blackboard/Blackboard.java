@@ -198,9 +198,13 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
                         }
                     }
                 });
-                lastClickTime = System.currentTimeMillis();
+                if (e.bubbleListeners.size() == 1 && e.captureListeners.isEmpty()) {
+                    lastClickTime = System.currentTimeMillis();
+                } else {
+                    lastClickTime = 0;
+                }
             }
-        }, true);
+        });
         nodeUI.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
             if (lastClickTime != 0 && isMouseDown(0) && treeList.getSelected().size() == 1
                     && node != rootNode) {
@@ -262,7 +266,7 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
         for (int i = 0; i < variables.size(); i++) {
             variablesWithInfo.add(Pair.of(
                     variables.get(i),
-                    graphView.getContentViewContainer().worldToLocal(new Vector2f(e.x, e.y).add(0, i * 30))
+                    graphView.getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(e.x, e.y).add(0, i * 30))
             ));
         }
 
