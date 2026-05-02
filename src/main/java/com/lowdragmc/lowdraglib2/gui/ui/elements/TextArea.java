@@ -416,6 +416,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void updateScrollers() {
+        if (!LDLib2.isClient()) return;
         var maxWidth = getMaxWidth();
         var maxHeight = getMaxHeight();
         var leftWidth = maxWidth - contentView.getContentWidth();
@@ -513,6 +514,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     public float scale() {
+        if (!LDLib2.isClient()) return 1f;
         return textAreaStyle.fontSize() / getFont().lineHeight;
     }
 
@@ -546,6 +548,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     private float getMaxWidth() {
+        if (!LDLib2.isClient()) return 0f;
         var font = getFont();
         var s = scale();
         var max = 0f;
@@ -707,6 +710,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     public Cursor getCursorUnderMouse(double mouseX, double mouseY) {
+        if (!LDLib2.isClient()) return new Cursor(0, 0);
         var x = contentView.getContentX();
         var y = contentView.getContentY();
         var s = scale();
