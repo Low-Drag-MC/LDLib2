@@ -29,6 +29,8 @@ import net.minecraft.network.chat.Component;
 import org.appliedenergistics.yoga.*;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2f;
+
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -197,17 +199,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                 .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new ScrollerView())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
                 .addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
-                    var mui = getModularUI();
-                    if (mui != null) {
-                        var root = mui.ui.rootElement;
-                        e.currentElement.layout(layout -> {
-                            var x = this.getPositionX();
-                            var y = this.getPositionY();
-                            layout.left(x - root.getLayoutX());
-                            layout.top(y - root.getLayoutY() + this.getSizeHeight());
-                            layout.width(this.getSizeWidth());
-                        });
-                    }
+                    this.updateDialogPosition();
                     e.currentElement.adaptPositionToScreen();
                 })
                 .stopInteractionEventsPropagation();
@@ -406,6 +398,20 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         return this.dialog.getParent() != null;
     }
 
+    protected void updateDialogPosition() {
+        var mui = getModularUI();
+        if (mui != null) {
+            var root = mui.ui.rootElement;
+            var worldPos = this.localToWorld(new Vector2f(getPositionX(), getPositionY() + getSizeHeight()));
+            var pos = root.worldToLocalLayoutOffset(worldPos);
+            this.dialog.layout(layout -> {
+                layout.left(pos.x);
+                layout.top(worldPos.y);
+                layout.width(Math.max(this.getSizeWidth(), 50));
+            });
+        }
+    }
+
     public void show() {
         if (this.isOpen()) {
             return;
@@ -413,13 +419,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         var mui = getModularUI();
         if (mui != null) {
             var root = mui.ui.rootElement;
-            root.addChild(dialog.layout(layout -> {
-                var x = this.getPositionX();
-                var y = this.getPositionY();
-                layout.left(x - root.getLayoutX());
-                layout.top(y - root.getLayoutY() + this.getSizeHeight());
-                layout.width(this.getSizeWidth());
-            }));
+            root.addChild(dialog);
+            updateDialogPosition();
         }
         preview.setDisplay(false);
         textField.setDisplay(true);

@@ -40,6 +40,7 @@ public class ConstantNodeEditorElement extends ModelElement {
         if (editor != null && constantNodeModel instanceof IFieldValueConfigurable configurable) {
             if (Objects.equals(lastConstant, constantNodeModel.getConstant())) return;
             lastConstant = constantNodeModel.getConstant();
+            if (getGraphView() != null) editor.setHistoryStack(getGraphView().getHistoryStack());
             editor.loadValueField(configurable);
         }
     }

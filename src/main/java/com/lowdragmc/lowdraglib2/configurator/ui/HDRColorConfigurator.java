@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.client.gui.GuiGraphics;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.joml.Vector2f;
 import org.joml.Vector4f;
 
 import javax.annotation.Nonnull;
@@ -68,7 +69,10 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         });
         this.dialog.setFocusable(true);
         this.dialog.setEnforceFocus(e -> hide());
-        this.dialog.addEventListener(UIEvents.LAYOUT_CHANGED, e -> dialog.adaptPositionToScreen());
+        this.dialog.addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
+            this.updateDialogPosition();
+            e.currentElement.adaptPositionToScreen();
+        });
         this.dialog.addChildren(this.colorSelector, this.intensityConfigurator);
     }
 
@@ -81,6 +85,20 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         this.intensityConfigurator.onValueUpdatePassively(newValue.w);
     }
 
+    protected void updateDialogPosition() {
+        var mui = getModularUI();
+        if (mui != null) {
+            var root = mui.ui.rootElement;
+            var worldPos = this.localToWorld(new Vector2f(getPositionX(), getPositionY() + getSizeHeight()));
+            var pos = root.worldToLocalLayoutOffset(worldPos);
+            this.dialog.layout(layout -> {
+                layout.left(pos.x);
+                layout.top(worldPos.y);
+                layout.width(Math.max(this.getSizeWidth(), 50));
+            });
+        }
+    }
+
     public void show() {
         var parent = this.dialog.getParent();
         if (parent != null) {
@@ -89,13 +107,8 @@ public class HDRColorConfigurator extends ValueConfigurator<Vector4f> {
         var mui = getModularUI();
         if (mui != null) {
             var root = mui.ui.rootElement;
-            root.addChild(dialog.layout(layout -> {
-                var x = colorPreview.getPositionX();
-                var y = colorPreview.getPositionY();
-                layout.left(x - root.getLayoutX());
-                layout.top(y - root.getLayoutY());
-                layout.width(colorPreview.getSizeWidth());
-            }));
+            root.addChild(dialog);
+            this.updateDialogPosition();
             this.dialog.focus();
         }
     }

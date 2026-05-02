@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.node;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldConstantConfigurable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.mojang.serialization.DataResult;
 
 import java.lang.reflect.Type;
@@ -37,4 +38,12 @@ public interface IConstantNode extends INode, IFieldConstantConfigurable {
      * @return the value if successfully retrieved and cast, or {@code null} if the type doesn't match
      */
     <T> DataResult<T> tryGetValue(Type type);
+
+    @Override
+    default void onValueChanged() {
+        var nodeModel = this.getNodeModel();
+        if (nodeModel.getGraphModel() != null) {
+            nodeModel.getGraphModel().getCurrentGraphChangeDescription().addChangedModel(nodeModel, ChangeHint.DATA);
+        }
+    }
 }

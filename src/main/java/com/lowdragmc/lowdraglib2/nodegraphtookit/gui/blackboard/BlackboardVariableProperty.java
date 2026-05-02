@@ -136,6 +136,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
         }
         if (!Objects.equals(lastTypeHandle, typeHandle)) {
             // there is a change here, update ui
+            if (graphView != null) valueFieldInspector.setHistoryStack(graphView.getHistoryStack());
             valueFieldInspector.loadValueField(getModel());
             lastTypeHandle = typeHandle;
             typeSearchComponent.setValue(lastTypeHandle == null ? TypeHandles.UNKNOWN : lastTypeHandle, false);

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldConstantConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.DeclarationModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
@@ -57,6 +58,13 @@ public abstract class VariableDeclarationModelBase extends DeclarationModel impl
      * Sets the {@link #getInitializationModel()} to a new {@link Constant} instance.
      */
     public abstract void createInitializationValue();
+
+    @Override
+    public void onValueChanged() {
+        if (this.graphModel != null) {
+            this.graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
+        }
+    }
 
     @Override
     public Stream<GraphElementModel> getContainedModels() {

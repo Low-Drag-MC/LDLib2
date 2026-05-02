@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
     @Nullable Constant getConfigurableConstant();
+    void onValueChanged();
 
     @Override
     default void setValue(Object value) {
@@ -36,6 +37,7 @@ public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
         if (constant != null) {
             constant.notifyListeners();
         }
+        onValueChanged();
     }
 
     @Override

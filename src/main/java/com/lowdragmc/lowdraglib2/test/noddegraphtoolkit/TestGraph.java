@@ -30,6 +30,7 @@ public class TestGraph extends Graph {
         supportTypes.add(TypeHandles.BOOL);
         supportTypes.add(TypeHandles.FLOAT);
         supportTypes.add(TypeHandles.LONG);
+        supportTypes.add(TypeHandles.DIRECTION);
 
         return List.copyOf(supportTypes);
     }

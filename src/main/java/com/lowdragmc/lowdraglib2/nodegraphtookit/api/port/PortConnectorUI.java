@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
  * The connector indicates the type or role of the port and can help users understand connection semantics.</p>
  */
 public record PortConnectorUI(IGuiTexture unconnectedIcon, IGuiTexture connectedIcon) {
-    public static final PortConnectorUI DEFAULT = new PortConnectorUI(Icons.CIRCLE, Icons.CIRCLE_CHECK);
+    public static final PortConnectorUI DEFAULT = new PortConnectorUI(Icons.RADIOBOX_BLANK, Icons.RADIOBOX_MARKED);
 
     public IGuiTexture getIcon(boolean isConnected) {
         return isConnected ? connectedIcon : unconnectedIcon;

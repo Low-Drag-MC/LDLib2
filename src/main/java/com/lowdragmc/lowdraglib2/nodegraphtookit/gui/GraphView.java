@@ -265,7 +265,6 @@ public class GraphView extends UIElement {
     }
 
     public void clearGraph() {
-        this.graph = null;
         this.modelElements.clear();
         this.modelElementsByID.clear();
         this.modelDependencies.clear();

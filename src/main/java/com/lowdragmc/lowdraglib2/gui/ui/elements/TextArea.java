@@ -460,6 +460,10 @@ public class TextArea extends BindableUIElement<String[]> {
         return Arrays.copyOf(value, value.length);
     }
 
+    public List<String> getLines() {
+        return List.of(value);
+    }
+
     public TextArea setLinesResponder(Consumer<String[]> textResponder) {
         registerValueListener(textResponder);
         return this;
