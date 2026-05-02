@@ -1,11 +1,13 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language;
 
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
 import java.util.Set;
 
 @UtilityClass
+@KJSBindings
 public final class Languages {
     public static LanguageDefinition JAVASCRIPT = new LanguageDefinition("JavaScript", List.of(
             TokenTypes.KEYWORD.createTokenType(List.of("break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "function", "if", "import", "in", "instanceof", "let", "new", "null", "return", "super", "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with", "yield")),

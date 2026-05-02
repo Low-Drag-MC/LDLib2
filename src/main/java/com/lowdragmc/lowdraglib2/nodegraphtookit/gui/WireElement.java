@@ -229,11 +229,11 @@ public class WireElement extends GraphElement<WireModel> {
                     .width(maxX - minX + 2 * border)
                     .height(maxY - minY + 2 * border);
             var offset = new Vector2f(getParent().getPositionX(), getParent().getPositionY());
-            from = from.add(offset);
-            to = to.add(offset);
+            var realFrom = from.add(offset, new Vector2f());
+            var realTo = to.add(offset, new Vector2f());
             fromPoint2 = fromPoint2.add(offset);
             toPoint2 = toPoint2.add(offset);
-            rawPoints = List.of(from, fromPoint2, toPoint2, to);
+            rawPoints = List.of(realFrom, fromPoint2, toPoint2, realTo);
             drawPoints = roundCorners(rawPoints, 6, 5);
         }
     }
@@ -315,6 +315,7 @@ public class WireElement extends GraphElement<WireModel> {
     @Override
     public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
+        updatePortPosition();
         if (drawPoints.isEmpty()) return;
         // couldn't be clicking state
         var isSelected = isSelected() || isUnderRegionSelection();

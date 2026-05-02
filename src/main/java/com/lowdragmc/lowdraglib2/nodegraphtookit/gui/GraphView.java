@@ -81,6 +81,7 @@ public class GraphView extends UIElement {
     private GraphChangeset changeset = new GraphChangeset();
     @Getter
     private final UIElement panelLayer = new UIElement();
+    public final DockManager dockManager = new DockManager(this);
     private final Map<String, UIElement> layers = new HashMap<>();
     private final UIElement fallbackLayer = new UIElement();
     @Nullable @Getter
@@ -192,19 +193,13 @@ public class GraphView extends UIElement {
     }
 
     protected void initPanels() {
-        panelLayer.addChildren(
-                new GraphPanel(this, blackboard),
-                new GraphPanel(this, inspector).layout(l -> l.left(100000)),
-                new GraphPanel(this, preview).layout(l -> l.left(100000).top(100000))
-        );
-    }
-
-    @Override
-    protected void onLayoutChanged() {
-        super.onLayoutChanged();
-        for (var uid : modelElementsByID.keySet()) {
-            changeset.addChangedModel(uid, ChangeHintList.LAYOUT);
-        }
+        var bbPanel = new GraphPanel(this, blackboard);
+        var insPanel = new GraphPanel(this, inspector);
+        var prevPanel = new GraphPanel(this, preview);
+        panelLayer.addChildren(bbPanel, insPanel, prevPanel);
+        dockManager.register(bbPanel, DockSlot.TOP_LEFT);
+        dockManager.register(insPanel, DockSlot.TOP_RIGHT);
+        dockManager.register(prevPanel, DockSlot.BOTTOM_RIGHT);
     }
 
     /**

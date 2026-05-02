@@ -9,6 +9,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -64,9 +66,18 @@ public class WindowDragHelper {
                                        @Nullable Predicate<UIEvent> resizePredicate,
                                        @Nullable BiPredicate<UIEvent, DragResize> dragResizePredicate,
                                        @Nullable Consumer<UIEvent> onFinish) {
+        setBorderResize(element, target, border, minSize, maxSize, EnumSet.allOf(ResizeHandle.class),
+                resizePredicate, dragResizePredicate, onFinish);
+    }
+
+    public static void setBorderResize(UIElement element, UIElement target, float border, Vector2f minSize, Vector2f maxSize,
+                                       Set<ResizeHandle> allowedHandles,
+                                       @Nullable Predicate<UIEvent> resizePredicate,
+                                       @Nullable BiPredicate<UIEvent, DragResize> dragResizePredicate,
+                                       @Nullable Consumer<UIEvent> onFinish) {
         element.addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (resizePredicate != null && !resizePredicate.test(e)) return;
-            var handle = detectResizeHandle(element, e.x, e.y, border);
+            var handle = detectResizeHandle(element, e.x, e.y, border, allowedHandles);
             if (handle != null) {
                 var icon = handle.icon;
                 var width = handle.icon.spriteSize.width;
@@ -165,6 +176,11 @@ public class WindowDragHelper {
 
     @Nullable
     public static ResizeHandle detectResizeHandle(UIElement element, float mouseWorldX, float mouseWorldY, float padding) {
+        return detectResizeHandle(element, mouseWorldX, mouseWorldY, padding, EnumSet.allOf(ResizeHandle.class));
+    }
+
+    @Nullable
+    public static ResizeHandle detectResizeHandle(UIElement element, float mouseWorldX, float mouseWorldY, float padding, Set<ResizeHandle> allowedHandles) {
         var local = element.getLocalMouse(mouseWorldX, mouseWorldY).sub(element.getPositionX(), element.getPositionY());
         var mx = local.x;
         var my = local.y;
@@ -177,21 +193,25 @@ public class WindowDragHelper {
         boolean top = my >= 0 && my <= padding;
         boolean bottom = my >= (h - padding) && my <= h;
 
-        if (left && top) return ResizeHandle.TOP_LEFT;
-        if (right && top) return ResizeHandle.TOP_RIGHT;
-        if (left && bottom) return ResizeHandle.BOTTOM_LEFT;
-        if (right && bottom) return ResizeHandle.BOTTOM_RIGHT;
+        if (left && top && allowedHandles.contains(ResizeHandle.TOP_LEFT)) return ResizeHandle.TOP_LEFT;
+        if (right && top && allowedHandles.contains(ResizeHandle.TOP_RIGHT)) return ResizeHandle.TOP_RIGHT;
+        if (left && bottom && allowedHandles.contains(ResizeHandle.BOTTOM_LEFT)) return ResizeHandle.BOTTOM_LEFT;
+        if (right && bottom && allowedHandles.contains(ResizeHandle.BOTTOM_RIGHT)) return ResizeHandle.BOTTOM_RIGHT;
 
-        if (left) return ResizeHandle.LEFT;
-        if (right) return ResizeHandle.RIGHT;
-        if (top) return ResizeHandle.TOP;
-        if (bottom) return ResizeHandle.BOTTOM;
+        if (left && allowedHandles.contains(ResizeHandle.LEFT)) return ResizeHandle.LEFT;
+        if (right && allowedHandles.contains(ResizeHandle.RIGHT)) return ResizeHandle.RIGHT;
+        if (top && allowedHandles.contains(ResizeHandle.TOP)) return ResizeHandle.TOP;
+        if (bottom && allowedHandles.contains(ResizeHandle.BOTTOM)) return ResizeHandle.BOTTOM;
 
         return null;
     }
 
     public static void drawResizeIcon(GUIContext guiContext, UIElement element, float padding) {
-        var handle = WindowDragHelper.detectResizeHandle(element, guiContext.mouseX, guiContext.mouseY, padding);
+        drawResizeIcon(guiContext, element, padding, EnumSet.allOf(ResizeHandle.class));
+    }
+
+    public static void drawResizeIcon(GUIContext guiContext, UIElement element, float padding, Set<ResizeHandle> allowedHandles) {
+        var handle = WindowDragHelper.detectResizeHandle(element, guiContext.mouseX, guiContext.mouseY, padding, allowedHandles);
         if (handle == null) return;
         guiContext.postRendering(ctx -> {
             // Draw in screen space: reset the pose to identity so that mouseX/mouseY
