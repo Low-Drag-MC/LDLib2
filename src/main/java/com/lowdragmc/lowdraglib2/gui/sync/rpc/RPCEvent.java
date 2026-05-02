@@ -6,7 +6,11 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.Nullable;
 import java.util.function.Function;
 
-public record RPCEvent(SyncValueHolder[] argHolders, @Nullable SyncValueHolder returnHolder, Function<Object[], Object> executor) {
+public record RPCEvent(
+        SyncValueHolder[] argHolders,
+        @Nullable SyncValueHolder returnHolder,
+        Function<Object[], Object> executor
+) {
 
     private void checkArgs(Object[] args) {
         if (args.length != argHolders.length) {

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -25,6 +26,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
@@ -96,12 +98,22 @@ public class TestSync implements IMenuTest {
                         new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank::getFluid, phantomTank::setFluid).build()),
                         new FluidSlot().xeiPhantom().bind(DataBindingBuilder.fluidStack(phantomTank2::getFluid, phantomTank2::setFluid).build())
                 ),
-                new Button().addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
-                    if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
-                        fluidTank.setFluid(new FluidStack(Fluids.LAVA, fluidTank.getFluid().getAmount()));
-                    } else {
-                        fluidTank.setFluid(new FluidStack(Fluids.WATER, fluidTank.getFluid().getAmount()));
-                    }
+                new Button().selfCall( self -> {
+                    var button = (Button)self;
+                    var s2cEvent = button.addRPCEvent(RPCEventBuilder.simple(Fluid.class, fluid -> {
+                        // execute from client
+                        assert (LDLib2.isRemote());
+                        button.setText(fluid.getFluidType().getDescription());
+                    }));
+                    button.addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
+                        if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
+                            fluidTank.setFluid(new FluidStack(Fluids.LAVA, fluidTank.getFluid().getAmount()));
+                            s2cEvent.send(Fluids.LAVA); // send to client
+                        } else {
+                            fluidTank.setFluid(new FluidStack(Fluids.WATER, fluidTank.getFluid().getAmount()));
+                            s2cEvent.send(Fluids.WATER); // send to client
+                        }
+                    });
                 }),
                 new SearchComponent<>(new SearchComponent.ISearchUI<Block>() {
                     @Override

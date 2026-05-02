@@ -4,8 +4,8 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.networking.both.PacketModularUISync;
-import com.lowdragmc.lowdraglib2.networking.c2s.CPacketUIRPCEvent;
-import com.lowdragmc.lowdraglib2.networking.s2c.SPacketUIRPCEventReturn;
+import com.lowdragmc.lowdraglib2.networking.both.PacketUIRPCEvent;
+import com.lowdragmc.lowdraglib2.networking.both.PacketUIRPCEventReturn;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import com.lowdragmc.lowdraglib2.utils.IdentityMap;
 import lombok.Getter;
@@ -153,12 +153,16 @@ public class UISyncManager {
             buf.writeVarInt(requestID);
             event.writeParametersToBuffer(buf, args);
         }, player.level().registryAccess());
-        PacketDistributor.sendToServer(new CPacketUIRPCEvent(data));
+        if (player.level().isClientSide) {
+            PacketDistributor.sendToServer(new PacketUIRPCEvent(data));
+        } else if (player instanceof ServerPlayer serverPlayer) {
+            PacketDistributor.sendToPlayer(serverPlayer, new PacketUIRPCEvent(data));
+        }
     }
 
     public void handEvent(RegistryFriendlyByteBuf buf) {
         var player = modularUI.player;
-        if (!(player instanceof ServerPlayer serverPlayer)) throw new IllegalStateException("Cannot send event to non server player");
+        if (player == null) return;
 
         var eventID = buf.readVarInt();
         var response = buf.readBoolean();
@@ -182,7 +186,11 @@ public class UISyncManager {
                 returnBuf.writeVarInt(requestID);
                 rpcEvent.writeReturnValueToBuffer(returnBuf, returnValue);
             }, player.level().registryAccess());
-            PacketDistributor.sendToPlayer(serverPlayer, new SPacketUIRPCEventReturn(data));
+            if (player.level().isClientSide) {
+                PacketDistributor.sendToServer(new PacketUIRPCEventReturn(data));
+            } else if (player instanceof ServerPlayer serverPlayer) {
+                PacketDistributor.sendToPlayer(serverPlayer, new PacketUIRPCEventReturn(data));
+            }
         }
     }
 
