@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
@@ -114,6 +115,12 @@ public class TestSync implements IMenuTest {
                             s2cEvent.send(Fluids.WATER); // send to client
                         }
                     });
+                }),
+                new Button().setOnServerClick(e -> {
+                    e.currentElement.sendMessage("test_message", TagBuilder.compound().add("text", "Message from server!").build());
+                }).onMessage("test_message", (button, message) -> {
+                    assert (LDLib2.isRemote());
+                    ((Button)button).setText(message.getString("text"));
                 }),
                 new SearchComponent<>(new SearchComponent.ISearchUI<Block>() {
                     @Override
