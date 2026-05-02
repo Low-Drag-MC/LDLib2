@@ -3,8 +3,16 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.type;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import net.minecraft.core.Direction;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class TypeHandles {
     public static final class Unknown { private Unknown() {} }
@@ -34,6 +42,12 @@ public class TypeHandles {
 
     // Minecraft
     public static final TypeHandle DIRECTION;
+    public static final TypeHandle BLOCK;
+    public static final TypeHandle ITEM;
+    public static final TypeHandle FLUID;
+    public static final TypeHandle ENTITY_TYPE;
+    public static final TypeHandle ITEM_STACK;
+    public static final TypeHandle FLUID_STACK;
 
 
     static {
@@ -79,6 +93,18 @@ public class TypeHandles {
 
         DIRECTION = TypeHandleHelpers.fromType(Direction.class);
         TypeHandleHelpers.setCustomColorAndIcon(DIRECTION, 0xFF5BFF94, Icons.MOVE.copy().setColor(0xFF5BFF94));
+        BLOCK = TypeHandleHelpers.fromType(Block.class);
+        TypeHandleHelpers.setCustomDefaultValue(BLOCK, () -> Blocks.STONE);
+        ITEM = TypeHandleHelpers.fromType(Item.class);
+        TypeHandleHelpers.setCustomDefaultValue(ITEM, () -> Items.AIR);
+        FLUID = TypeHandleHelpers.fromType(Fluid.class);
+        TypeHandleHelpers.setCustomDefaultValue(FLUID, () -> Fluids.EMPTY);
+        ENTITY_TYPE = TypeHandleHelpers.fromType(EntityType.class);
+        TypeHandleHelpers.setCustomDefaultValue(ENTITY_TYPE, () -> EntityType.PIG);
+        ITEM_STACK = TypeHandleHelpers.fromType(ItemStack.class);
+        TypeHandleHelpers.setCustomDefaultValue(ITEM_STACK, () -> ItemStack.EMPTY);
+        FLUID_STACK = TypeHandleHelpers.fromType(FluidStack.class);
+        TypeHandleHelpers.setCustomDefaultValue(FLUID_STACK, () -> FluidStack.EMPTY);
     }
 
     public static void init() {}

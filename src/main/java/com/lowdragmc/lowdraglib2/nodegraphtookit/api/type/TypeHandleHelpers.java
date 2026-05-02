@@ -121,7 +121,7 @@ public final class TypeHandleHelpers {
     /**
      * GenerateTypeHandle(Type t, friendlyName)
      */
-    public static TypeHandle fromType(Type t, String friendlyName) {
+    public static TypeHandle fromType(Type t, @Nullable String friendlyName) {
         t = convertType(t);
         Objects.requireNonNull(t, "t");
         var identification = identificationOf(t);
@@ -156,7 +156,13 @@ public final class TypeHandleHelpers {
     static Type resolveType(TypeHandle th) {
         String id = (th != null) ? th.getIdentification() : null;
         if (id == null) return TypeHandles.Unknown.class;
-        return ID_TO_TYPE.getOrDefault(id, TypeHandles.Unknown.class);
+        return ID_TO_TYPE.computeIfAbsent(id, key -> {
+            try {
+                return Class.forName(key, false, TypeHandleHelpers.class.getClassLoader());
+            } catch (ClassNotFoundException e) {
+                return TypeHandles.Unknown.class;
+            }
+        });
     }
 
     static ITypeConfigurable resolveConfigurable(TypeHandle th) {
