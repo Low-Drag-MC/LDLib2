@@ -1,2 +1,2 @@
-## v2.2.7.a
-* Fixed crash while switching variable types
+## v2.2.8
+* Added Map-Like support for ldlib2 sync / serialization
