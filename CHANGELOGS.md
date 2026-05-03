@@ -1,4 +1,7 @@
 # ChangeLogs
+## v2.2.7.a
+* Fixed crash while switching variable types
+
 ## v2.2.7
 * Added a mixin to trigger UI injection in player menus (thanks @Rimevel)
 * Added default value for some graph type (primitive, item, fluid, etc)
