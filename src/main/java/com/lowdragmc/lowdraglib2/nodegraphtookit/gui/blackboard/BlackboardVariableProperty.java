@@ -152,6 +152,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
     public void onResultSelected(@Nullable TypeHandle value) {
         if (value != null) {
             getModel().setDataTypeHandle(value);
+            valueFieldInspector.loadValueField(getModel());
             // update inspector if necessary
             if (graphView != null && graphView.inspector.getInspectedConfigurable() == getVariableConfigurable()) {
                 onSelectionInspect(graphView.inspector);
