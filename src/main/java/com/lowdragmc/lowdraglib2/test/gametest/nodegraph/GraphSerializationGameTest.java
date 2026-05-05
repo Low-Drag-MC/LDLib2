@@ -30,6 +30,11 @@ public final class GraphSerializationGameTest {
     private static final String ROUND_TRIP_PATH = "graph_serialization_round_trip";
     private static final String EMPTY_PATH = "graph_serialization_empty";
     private static final String PORT_CONSTANTS_PATH = "graph_serialization_port_constants";
+    private static final String TYPE_HANDLE_RESOLVE = "graph_serialization_type_handle_resolve";
+    private static final String VARIABLE_INITIALIZATION = "graph_serialization_variable_initialization";
+    private static final String CONSTANT_NODE_OWNER_AND_VALUE_PRESERVED = "graph_serialization_constant_node_owner_and_value_preserved";
+    private static final String OPTION_DRIVEN_PORT_COUNT = "graph_serialization_option_driven_port_count";
+
 
     private GraphSerializationGameTest() {
     }
@@ -38,6 +43,10 @@ public final class GraphSerializationGameTest {
         NodeGraphGameTests.registerFunction(ROUND_TRIP_PATH, GraphSerializationGameTest::graphSerializationRoundTrip);
         NodeGraphGameTests.registerFunction(EMPTY_PATH, GraphSerializationGameTest::emptyGraphSerialization);
         NodeGraphGameTests.registerFunction(PORT_CONSTANTS_PATH, GraphSerializationGameTest::portConstantsSerialization);
+        NodeGraphGameTests.registerFunction(TYPE_HANDLE_RESOLVE, GraphSerializationGameTest::typeHandleResolveFallsBackToClassForName);
+        NodeGraphGameTests.registerFunction(VARIABLE_INITIALIZATION, GraphSerializationGameTest::variableInitializationModelRoundTrip);
+        NodeGraphGameTests.registerFunction(CONSTANT_NODE_OWNER_AND_VALUE_PRESERVED, GraphSerializationGameTest::constantNodeOwnerAndValuePreserved);
+        NodeGraphGameTests.registerFunction(PORT_CONSTANTS_PATH, GraphSerializationGameTest::optionDrivenPortCountSurvivesRoundTrip);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
