@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.util;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -19,7 +17,6 @@ import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPosition
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -46,22 +43,17 @@ public class DrawerHelperClient {
         uMax = uMax - maskRight / 16f * (uMax - uMin);
         vMax = vMax - maskTop / 16f * (vMax - vMin);
 
-        context.blitSprite(RenderPipelines.GUI_TEXTURED, textureSprite,
-                xCoord, yCoord + maskTop, xCoord + 16 - maskRight, yCoord + 16,
-                uMin, vMin, uMax, vMax, fluidColor
-                );
+        context.innerBlit(
+                RenderPipelines.GUI_TEXTURED, textureSprite.atlasLocation(),
+                xCoord, xCoord + 16 - maskRight, yCoord + maskTop, yCoord + 16,
+                uMin, uMax, vMin, vMax,
+                fluidColor
+        );
     }
 
     public static void drawFluidForGui(@NotNull GUIContext context, FluidStack contents,
                                        float startX, float startY, float widthT, float heightT, int color) {
-        TextureAtlasSprite fluidStillSprite = FluidHelperClient.getStillTexture(contents);
-        if (fluidStillSprite == null) {
-            fluidStillSprite = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.BLOCKS).missingSprite();
-            if (Platform.isDevEnv()) {
-                LDLib2.LOGGER.error("Missing fluid texture for fluid: " + contents.getHoverName().getString());
-            }
-        }
-
+        var fluidStillSprite = FluidHelperClient.getStillMaterial(contents).sprite();
         int fluidColor = FluidHelperClient.getColor(contents) | 0xff000000;
         if (color != -1) {
             fluidColor = ColorUtils.mulColor(fluidColor, color);
@@ -110,7 +102,7 @@ public class DrawerHelperClient {
         var scaledTextWidth = center ? fontRenderer.getSplitter().stringWidth(text) * scale : 0f;
         context.pose.translate(x - scaledTextWidth / 2f, y);
         context.pose.scale(scale, scale);
-        context.graphics.drawString(fontRenderer, text, 0, 0, color, dropShadow);
+        context.graphics.text(fontRenderer, text, 0, 0, color, dropShadow);
         context.pose.popPose();
     }
 
@@ -130,14 +122,14 @@ public class DrawerHelperClient {
         context.pose.pushPose();
         context.pose.scale(scale, scale);
         float sf = 1 / scale;
-        context.graphics.drawString(fontRenderer, text, (int) (x * sf), (int) (y * sf), color, shadow);
+        context.graphics.text(fontRenderer, text, (int) (x * sf), (int) (y * sf), color, shadow);
         context.pose.popPose();
     }
 
     public static void drawItemStack(@NotNull GUIContext context, ItemStack itemStack, int x, int y, int seed) {
         if (itemStack.isEmpty()) return;
-        context.graphics.renderItem(itemStack, x, y);
-        context.graphics.renderItemDecorations(context.mc.font, itemStack, x, y);
+        context.graphics.item(itemStack, x, y);
+        context.graphics.itemDecorations(context.mc.font, itemStack, x, y);
     }
 
     public static List<Component> getItemToolTip(ItemStack itemStack) {
@@ -172,7 +164,7 @@ public class DrawerHelperClient {
 
     public static void drawLines(@NotNull GUIContext context,
                                  List<Vector2f> points, int startColor, int endColor, float width) {
-        context.submitGuiElement(new FloatLineStripRenderState(
+        context.addGuiElement(new FloatLineStripRenderState(
                 LDLibRenderPipelines.STRIP_LINES,
                 TextureSetup.noTexture(),
                 context.pose.copyPose(),
@@ -187,7 +179,7 @@ public class DrawerHelperClient {
 
     public static void drawTexLines(@NotNull GUIContext context, RenderPipeline renderPipeline, TextureSetup textureSetup,
                                     List<Vector2f> points, int startColor, int endColor, float width) {
-        context.submitGuiElement(new FloatLineStripRenderState(
+        context.addGuiElement(new FloatLineStripRenderState(
                 renderPipeline,
                 textureSetup,
                 context.pose.copyPose(),
@@ -201,7 +193,7 @@ public class DrawerHelperClient {
     }
 
     public static void drawTooltip(GUIContext context, HoverTooltips hoverTooltips) {
-        context.graphics.renderTooltip(
+        context.graphics.tooltip(
                 tooltipFont(hoverTooltips, context),
                 toClientTooltips(hoverTooltips.tooltips()),
                 (int) context.localMouseX, (int) context.localMouseY,

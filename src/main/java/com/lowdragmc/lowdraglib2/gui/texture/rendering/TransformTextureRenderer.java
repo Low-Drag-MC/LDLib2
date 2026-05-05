@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture.rendering;
 
 import com.lowdragmc.lowdraglib2.gui.texture.TransformTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -25,11 +25,11 @@ public final class TransformTextureRenderer {
         postDraw(texture, context.graphics);
     }
 
-    private static void preDraw(TransformTexture texture, GuiGraphics graphics, float x, float y, float width, float height) {
+    private static void preDraw(TransformTexture texture, GuiGraphicsExtractor graphics, float x, float y, float width, float height) {
         texture.getTransform2D().pushPose(graphics.pose(), x, y, width, height);
     }
 
-    private static void postDraw(TransformTexture texture, GuiGraphics graphics) {
+    private static void postDraw(TransformTexture texture, GuiGraphicsExtractor graphics) {
         texture.getTransform2D().popPose(graphics.pose());
     }
 

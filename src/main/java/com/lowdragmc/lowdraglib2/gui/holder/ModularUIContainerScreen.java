@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.holder;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -31,13 +31,12 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
     }
 
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
-
+    public void extractBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // todo
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-
+    protected void extractLabels(GuiGraphicsExtractor graphics, int xm, int ym) {
     }
 
 }

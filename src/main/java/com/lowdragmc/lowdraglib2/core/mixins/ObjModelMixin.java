@@ -2,13 +2,15 @@ package com.lowdragmc.lowdraglib2.core.mixins;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.ObjGeometryAccessor;
+import com.mojang.blaze3d.platform.Transparency;
 import com.mojang.math.Transformation;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.TextureSlots;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelDebugName;
-import net.minecraft.client.resources.model.ModelState;
-import net.minecraft.client.resources.model.QuadCollection;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.geometry.QuadCollection;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.client.resources.model.sprite.TextureSlots;
 import net.minecraft.core.Direction;
 import net.minecraft.util.context.ContextMap;
 import net.neoforged.neoforge.client.model.obj.ObjGeometry;
@@ -35,13 +37,20 @@ public abstract class ObjModelMixin {
     @Shadow @Nullable public ObjMaterialLibrary.@Nullable Material mat;
 
     @Inject(method = "addQuads", at = @At(value = "INVOKE",
-            target = "Lnet/neoforged/neoforge/client/model/obj/ObjGeometry;makeQuad([[IILorg/joml/Vector4f;Lorg/joml/Vector4f;Lnet/minecraft/client/renderer/block/model/BakedQuad$SpriteInfo;Lcom/mojang/math/Transformation;)Lorg/apache/commons/lang3/tuple/Pair;"))
+            target = "Lnet/neoforged/neoforge/client/model/obj/ObjGeometry;makeQuad(Lnet/minecraft/client/resources/model/ModelBaker;[[IILorg/joml/Vector4f;Lorg/joml/Vector4f;Lnet/minecraft/client/resources/model/sprite/Material$Baked;Lcom/mojang/blaze3d/platform/Transparency;Lcom/mojang/math/Transformation;)Lorg/apache/commons/lang3/tuple/Pair;")
+    )
     private void ldlib2$addQuads(
             QuadCollection.Builder builder,
-            TextureSlots slots, ModelBaker baker,
-            ModelState state, ModelDebugName debugName,
-            ContextMap additionalProperties, CallbackInfo ci,
-            @Local(name = "face") int[][] face, @Local(name = "spriteInfo") BakedQuad.SpriteInfo spriteInfo, @Local(name = "transform") Transformation transform) {
+            TextureSlots slots,
+            ModelBaker baker,
+            ModelState state,
+            ModelDebugName debugName,
+            ContextMap additionalProperties,
+            CallbackInfo ci,
+            @Local(name = "face") int[][] face,
+            @Local(name = "texture") Material.Baked texture,
+            @Local(name = "transparency") Transparency transparency,
+            @Local(name = "transform") Transformation transform) {
         if (this$0 instanceof ObjGeometryAccessor geometry) {
             var left = ldlib2$getLeftFaces(face);
             if (left.length >= 3) {
@@ -50,7 +59,7 @@ public abstract class ObjModelMixin {
                 var tintIndex = mat.diffuseTintIndex;
                 var colorTint = mat.diffuseColor;
                 for (int[][] splitFaces : ldlib2$splitFaces(left)) {
-                    Pair<BakedQuad, Direction> quad = geometry.invokeMakeQuad(splitFaces, tintIndex, colorTint, mat.ambientColor, spriteInfo, transform);
+                    Pair<BakedQuad, Direction> quad = geometry.invokeMakeQuad(baker, splitFaces, tintIndex, colorTint, mat.ambientColor, texture, transparency, transform);
                     if (quad.getRight() == null)
                         builder.addUnculledFace(quad.getLeft());
                     else

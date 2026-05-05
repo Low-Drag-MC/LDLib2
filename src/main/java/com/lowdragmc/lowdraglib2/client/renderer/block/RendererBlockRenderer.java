@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.client.renderer.block;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.BlockAndLightGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,7 +14,7 @@ class RendererBlockRenderer implements IRenderer {
         return Optional.ofNullable(blockEntity).filter(RendererBlockEntity.class::isInstance).map(RendererBlockEntity.class::cast);
     }
 
-    public Optional<RendererBlockEntity> getMachine(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos) {
+    public Optional<RendererBlockEntity> getMachine(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos) {
         if (level == null || pos == null)
             return Optional.empty();
         return getMachine(level.getBlockEntity(pos));
@@ -29,7 +29,7 @@ class RendererBlockRenderer implements IRenderer {
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
+//    public List<BakedQuad> renderModel(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
 //        return getMachine(level, pos)
 //                .map(machine -> machine.getRenderer().renderModel(level, pos, state, side, rand, data, renderType))
 //                .orElseGet(Collections::emptyList);
@@ -37,7 +37,7 @@ class RendererBlockRenderer implements IRenderer {
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+//    public ChunkRenderTypeSet getRenderTypes(BlockAndLightGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
 //        return getMachine(level, pos)
 //                .map(machine -> machine.getRenderer().getRenderTypes(level, pos, state, rand, modelData))
 //                .orElseGet(() -> IRenderer.super.getRenderTypes(level, pos, state, rand, modelData));
@@ -46,7 +46,7 @@ class RendererBlockRenderer implements IRenderer {
 //    @Override
 //    @NotNull
 //    @OnlyIn(Dist.CLIENT)
-//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
+//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, ModelData modelData) {
 //        return getMachine(level, pos)
 //                .map(machine -> machine.getRenderer().getParticleTexture(level, pos, modelData))
 //                .orElseGet(() -> IRenderer.super.getParticleTexture(level, pos, modelData));

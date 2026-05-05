@@ -21,7 +21,7 @@
 //import net.minecraft.core.BlockPos;
 //import net.minecraft.core.Direction;
 //import net.minecraft.util.RandomSource;
-//import net.minecraft.world.level.BlockAndTintGetter;
+//import net.minecraft.world.level.BlockAndLightGetter;
 //import net.minecraft.world.level.block.state.BlockState;
 //import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 //import net.neoforged.neoforge.client.model.data.ModelData;
@@ -96,7 +96,7 @@
 //        // forge
 //
 //        public static final ModelProperty<IRenderer> RENDERER = new ModelProperty<>();
-//        public static final ModelProperty<BlockAndTintGetter> WORLD = new ModelProperty<>();
+//        public static final ModelProperty<BlockAndLightGetter> WORLD = new ModelProperty<>();
 //        public static final ModelProperty<BlockPos> POS = new ModelProperty<>();
 //        public static final ModelProperty<ModelData> MODEL_DATA = new ModelProperty<>();
 //
@@ -129,7 +129,7 @@
 //
 //
 //        @Override
-//        public @NotNull ModelData getModelData(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull ModelData modelData) {
+//        public @NotNull ModelData getModelData(@NotNull BlockAndLightGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull ModelData modelData) {
 //            if (state.getBlock() instanceof IBlockRendererProvider rendererProvider) {
 //                IRenderer renderer = rendererProvider.getRenderer(state);
 //                if (renderer != null) {

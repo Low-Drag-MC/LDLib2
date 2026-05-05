@@ -4,7 +4,7 @@
 //import dev.emi.emi.api.widget.Bounds;
 //import dev.emi.emi.api.widget.Widget;
 //import lombok.Getter;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 //import net.minecraft.network.chat.Component;
 //import org.joml.Matrix4f;
@@ -39,7 +39,7 @@
 //    }
 //
 //    @Override
-//    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+//    public void render(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
 //        guiGraphics.flush();
 //        localToWorld = guiGraphics.pose().last().pose().invert(new Matrix4f());
 //        var realMouse = getWorldMouse(mouseX, mouseY);

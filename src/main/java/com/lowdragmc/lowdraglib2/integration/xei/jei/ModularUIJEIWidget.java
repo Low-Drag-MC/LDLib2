@@ -7,7 +7,7 @@
 //import mezz.jei.api.gui.widgets.IRecipeWidget;
 //import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 //import net.minecraft.client.Minecraft;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import net.minecraft.client.gui.navigation.ScreenPosition;
 //import net.minecraft.client.gui.navigation.ScreenRectangle;
 //import org.joml.Matrix4f;
@@ -37,7 +37,7 @@
 //    }
 //
 //    @Override
-//    public void drawWidget(GuiGraphics guiGraphics, double mouseX, double mouseY) {
+//    public void drawWidget(GuiGraphicsExtractor guiGraphics, double mouseX, double mouseY) {
 //        guiGraphics.flush();
 //        var partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
 //        // get real mouse

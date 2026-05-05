@@ -10,7 +10,6 @@ import javax.annotation.Nonnull;
 public class UIEditor extends Editor {
     public final static Identifier WINDOW_ID = LDLib2.id("ui_editor");
 
-
     public UIEditor() {
         this.leftWindow.setDisplay(false);
         this.leftWindow.getParentWindow().removeSplitWindow(this.leftWindow);

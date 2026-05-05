@@ -160,7 +160,7 @@ package com.lowdragmc.lowdraglib2.gui.util;
 //        return str.toString();
 //    }
 //
-//    private void renderIndicator(@Nonnull GuiGraphics graphics) {
+//    private void renderIndicator(@Nonnull GuiGraphicsExtractor graphics) {
 //
 //        var window = Minecraft.getInstance().getWindow();
 //        var scale = window.getGuiScale();

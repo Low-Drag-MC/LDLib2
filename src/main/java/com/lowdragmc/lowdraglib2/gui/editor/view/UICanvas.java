@@ -109,7 +109,7 @@ public class UICanvas extends UIElement {
 
     protected void onCharTyped(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        ModularUIClientAccess.getWidget(this.canvasModularUI).charTyped(new CharacterEvent(event.codePoint, event.modifiers));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).charTyped(new CharacterEvent(event.codePoint));
         event.stopPropagation();
     }
 
@@ -136,7 +136,7 @@ public class UICanvas extends UIElement {
 
         context.pose.translate(posX, posY);
 
-        ModularUIClientAccess.getWidget(this.canvasModularUI).render(context.graphics, context.mouseX, context.mouseY, context.partialTick);
+        ModularUIClientAccess.getWidget(this.canvasModularUI).extractRenderState(context.graphics, context.mouseX, context.mouseY, context.partialTick);
 
         context.pose.popPose();
     }

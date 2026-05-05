@@ -4,9 +4,8 @@ import lombok.experimental.UtilityClass;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.BlockAndLightGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.common.SoundActions;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
@@ -35,7 +34,7 @@ public final class FluidHelper {
         return fluidStack.getFluid().getFluidType().isLighterThanAir();
     }
 
-    public static boolean canBePlacedInWorld(FluidStack fluidStack, BlockAndTintGetter level, BlockPos pos) {
+    public static boolean canBePlacedInWorld(FluidStack fluidStack, BlockAndLightGetter level, BlockPos pos) {
         return fluidStack.getFluid().getFluidType().canBePlacedInLevel(level, pos, fluidStack);
     }
 

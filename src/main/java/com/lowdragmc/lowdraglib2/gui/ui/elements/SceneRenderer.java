@@ -57,7 +57,7 @@ public final class SceneRenderer extends DelegatingUIElementRenderer<Scene, Scen
         }
         var renderer = scene.<WorldSceneRenderer>getRenderer();
         if (renderer != null) {
-            context.submitPicturesInPictureState(new SceneRenderState(
+            context.addPicturesInPictureState(new SceneRenderState(
                     renderer,
                     x, y, width, height,
                     (int) context.localMouseX, (int) context.localMouseY,

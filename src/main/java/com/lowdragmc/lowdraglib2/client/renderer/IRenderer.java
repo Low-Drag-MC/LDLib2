@@ -77,7 +77,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
 //     * Render static block model.
 //     */
 //    @OnlyIn(Dist.CLIENT)
-//    default List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
+//    default List<BakedQuad> renderModel(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
 //        return Collections.emptyList();
 //    }
 //
@@ -88,7 +88,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
 //     * By default, defers query to {@link ItemBlockRenderTypes}.
 //     */
 //    @OnlyIn(Dist.CLIENT)
-//    default ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+//    default ChunkRenderTypeSet getRenderTypes(BlockAndLightGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
 //        return ItemBlockRenderTypes.getRenderLayers(state);
 //    }
 //
@@ -161,7 +161,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
 //     */
 //    @OnlyIn(Dist.CLIENT)
 //    @Nonnull
-//    default TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
+//    default TextureAtlasSprite getParticleTexture(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, ModelData modelData) {
 //        return Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(MissingTextureAtlasSprite.getLocation());
 //    }
 //

@@ -6,7 +6,7 @@
 //import me.shedaniel.rei.api.common.entry.EntryStack;
 //import me.shedaniel.rei.impl.client.gui.widget.EntryWidget;
 //import me.shedaniel.rei.impl.client.util.OriginalRetainingCyclingList;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import org.jetbrains.annotations.Nullable;
 //import org.joml.Matrix4f;
 //import org.joml.Vector2f;
@@ -79,7 +79,7 @@
 //    }
 //
 //    @Override
-//    protected void drawCurrentEntry(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+//    protected void drawCurrentEntry(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
 //        // do not draw entry here delegate to ldlib2
 //    }
 //

@@ -10,7 +10,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -69,11 +68,6 @@ public class WrappedClientWorld extends ClientLevel {
     @Override
     public FluidState getFluidState(BlockPos pos) {
         return world.getFluidState(pos);
-    }
-
-    @Override
-    public int getBlockTint(BlockPos p_225525_1_, ColorResolver p_225525_2_) {
-        return world.getBlockTint(p_225525_1_, p_225525_2_);
     }
 
     @Override

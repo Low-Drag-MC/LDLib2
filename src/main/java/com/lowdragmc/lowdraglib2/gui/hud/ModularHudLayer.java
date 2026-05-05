@@ -5,7 +5,7 @@
 //import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 //import net.minecraft.client.DeltaTracker;
 //import net.minecraft.client.Minecraft;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import net.minecraft.client.gui.LayeredDraw;
 //import net.neoforged.api.distmarker.Dist;
 //import net.neoforged.api.distmarker.OnlyIn;
@@ -51,7 +51,7 @@
 //    }
 //
 //    @Override
-//    default void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+//    default void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
 //        var mui = getModularUI();
 //        if (mui == null) return;
 //        if (validModularUI(mui)) {

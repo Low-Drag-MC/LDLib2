@@ -29,7 +29,7 @@
 //import net.minecraft.util.RandomSource;
 //import net.minecraft.world.item.ItemDisplayContext;
 //import net.minecraft.world.item.ItemStack;
-//import net.minecraft.world.level.BlockAndTintGetter;
+//import net.minecraft.world.level.BlockAndLightGetter;
 //import net.minecraft.world.level.block.state.BlockState;
 //import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 //import net.neoforged.neoforge.client.model.data.ModelData;
@@ -90,7 +90,7 @@
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
 //    @Nonnull
-//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
+//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, ModelData modelData) {
 //        BakedModel model = getItemBakedModel();
 //        if (model == null) {
 //            return IRenderer.super.getParticleTexture(level, pos, modelData);
@@ -145,7 +145,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
+//    public List<BakedQuad> renderModel(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
 //        var ibakedmodel = getBlockBakedModel(level, pos, state);
 //        if (ibakedmodel == null) return Collections.emptyList();
 //        return ibakedmodel.getQuads(state, side, rand, data, renderType);
@@ -153,7 +153,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+//    public ChunkRenderTypeSet getRenderTypes(BlockAndLightGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
 //        var ibakedmodel = getBlockBakedModel(level, pos, state);
 //        if (ibakedmodel != null) return ibakedmodel.getRenderTypes(state, rand, modelData);
 //        return IRenderer.super.getRenderTypes(level, pos, state, rand, modelData);
@@ -185,7 +185,7 @@
 //
 //    @OnlyIn(Dist.CLIENT)
 //    @Nullable
-//    protected BakedModel getBlockBakedModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state) {
+//    protected BakedModel getBlockBakedModel(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, @Nullable BlockState state) {
 //        if (level != null && pos != null && state != null && state.getBlock() instanceof IBlockRendererProvider provider) {
 //            var modelState = provider.getModelState(level, pos, state);
 //            if (modelState != null) {

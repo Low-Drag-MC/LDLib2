@@ -7,7 +7,6 @@ import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
@@ -106,12 +105,6 @@ public class TrackedDummyWorld extends DummyWorld {
     public FluidState getFluidState(BlockPos pPos) {
         Level proxy = proxyWorld.get();
         return proxy == null ? super.getFluidState(pPos) : proxy.getFluidState(pPos);
-    }
-
-    @Override
-    public int getBlockTint(@Nonnull BlockPos blockPos, @Nonnull ColorResolver colorResolver) {
-        Level proxy = proxyWorld.get();
-        return proxy == null ? super.getBlockTint(blockPos, colorResolver) : proxy.getBlockTint(blockPos, colorResolver);
     }
 
     @Nonnull

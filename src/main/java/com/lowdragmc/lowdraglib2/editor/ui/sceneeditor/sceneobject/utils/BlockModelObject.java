@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
@@ -21,8 +22,8 @@ public class BlockModelObject extends SceneObject implements ISceneRendering {
     @Override
     @OnlyIn(Dist.CLIENT)
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
-        var renderer = Minecraft.getInstance().getBlockRenderer();
-        poseStack.translate(-0.5, -0.5, -0.5);
-        renderer.renderSingleBlock(blockState, poseStack, bufferSource, 0xf000f0, OverlayTexture.NO_OVERLAY, net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, BlockPos.ZERO);
+//        var renderer = Minecraft.getInstance().getBlockRenderer();
+//        poseStack.translate(-0.5, -0.5, -0.5);
+//        renderer.renderSingleBlock(blockState, poseStack, bufferSource, 0xf000f0, OverlayTexture.NO_OVERLAY, net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, BlockPos.ZERO);
     }
 }

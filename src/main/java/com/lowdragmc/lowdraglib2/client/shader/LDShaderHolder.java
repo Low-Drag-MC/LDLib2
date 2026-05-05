@@ -22,7 +22,7 @@
 //import com.mojang.blaze3d.vertex.VertexFormat;
 //import dev.vfyjxf.taffy.style.AlignItems;
 //import net.minecraft.client.Minecraft;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import net.minecraft.client.renderer.GameRenderer;
 //import net.minecraft.client.renderer.ShaderInstance;
 //import net.minecraft.core.HolderLookup;

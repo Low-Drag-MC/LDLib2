@@ -59,7 +59,7 @@ public final class TextFieldRenderer extends DelegatingUIElementRenderer<TextFie
         context.pose.pushPose();
         context.pose.translate(lineX, lineY);
         context.pose.scale(scale, scale);
-        context.graphics.drawString(font, line, 0, 0, field.getRawText().isEmpty() ?
+        context.graphics.text(font, line, 0, 0, field.getRawText().isEmpty() ?
                 ColorPattern.LIGHT_GRAY.color : (field.isError() ? field.getTextFieldStyle().errorColor() : field.getTextFieldStyle().textColor()),
                 !field.getRawText().isEmpty() && field.getTextFieldStyle().textShadow());
         context.pose.popPose();

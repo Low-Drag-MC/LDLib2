@@ -22,7 +22,7 @@
 //import net.minecraft.util.RandomSource;
 //import net.minecraft.world.item.ItemDisplayContext;
 //import net.minecraft.world.item.ItemStack;
-//import net.minecraft.world.level.BlockAndTintGetter;
+//import net.minecraft.world.level.BlockAndLightGetter;
 //import net.minecraft.world.level.block.entity.BlockEntity;
 //import net.minecraft.world.level.block.state.BlockState;
 //import net.minecraft.world.phys.AABB;
@@ -72,7 +72,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand,  ModelData data, @Nullable RenderType renderType) {
+//    public List<BakedQuad> renderModel(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand,  ModelData data, @Nullable RenderType renderType) {
 //        return getInternalRenderer().renderModel(level, pos, state, side, rand, data, renderType);
 //    }
 //
@@ -121,7 +121,7 @@
 //    @NotNull
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
+//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, ModelData modelData) {
 //        return getInternalRenderer().getParticleTexture(level, pos, modelData);
 //    }
 //
@@ -163,7 +163,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+//    public ChunkRenderTypeSet getRenderTypes(BlockAndLightGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
 //        return getInternalRenderer().getRenderTypes(level, pos, state, rand, modelData);
 //    }
 //

@@ -79,7 +79,7 @@ public class AppearanceSettings implements Settings {
         }
         if (guiScale.get() != screenScale) {
             guiScale.set(screenScale);
-            Minecraft.getInstance().resizeDisplay();
+            Minecraft.getInstance().resizeGui();
         }
     }
 

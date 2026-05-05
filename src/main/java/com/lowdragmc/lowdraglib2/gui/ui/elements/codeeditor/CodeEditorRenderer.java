@@ -28,7 +28,7 @@ public final class CodeEditorRenderer {
                 context.pose.pushPose();
                 context.pose.translate(drawX, lineY);
                 context.pose.scale(scale, scale);
-                context.graphics.drawString(
+                context.graphics.text(
                         font,
                         textComponent,
                         0,

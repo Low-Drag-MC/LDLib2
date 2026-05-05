@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.renderer;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.BlockAndLightGetter;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -19,7 +19,7 @@ public interface IBlockRendererProvider {
     /**
      * Provide a way to modify the light map based on the block in the world.
      */
-    default int getLightMap(BlockAndTintGetter world, BlockState state, BlockPos pos) {
+    default int getLightMap(BlockAndLightGetter world, BlockState state, BlockPos pos) {
         if (state.emissiveRendering(world, pos)) {
             return 15728880;
         } else {

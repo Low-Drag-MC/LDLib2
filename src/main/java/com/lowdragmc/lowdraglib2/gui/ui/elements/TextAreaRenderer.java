@@ -84,7 +84,7 @@ public final class TextAreaRenderer extends DelegatingUIElementRenderer<TextArea
             context.pose.pushPose();
             context.pose.translate(drawX, lineY);
             context.pose.scale(scale, scale);
-            context.graphics.drawString(
+            context.graphics.text(
                     font,
                     textWithFont,
                     0,
@@ -104,7 +104,7 @@ public final class TextAreaRenderer extends DelegatingUIElementRenderer<TextArea
         context.pose.pushPose();
         context.pose.translate(x, y);
         context.pose.scale(scale, scale);
-        context.graphics.drawString(
+        context.graphics.text(
                 font,
                 area.getTextAreaStyle().placeholder(),
                 0,

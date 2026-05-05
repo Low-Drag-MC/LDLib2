@@ -72,7 +72,7 @@ public final class ColorSelectorClientTextures {
                 return;
             }
         }
-        context.submitGuiElement(new FloatHSBRectRenderState(
+        context.addGuiElement(new FloatHSBRectRenderState(
                 LDLibRenderPipelines.HSB, TextureSetup.noTexture(), context.pose.copyPose(),
                 x, y, x + width, y + height, tl, bl, br, tr, context.peekScissor()));
 
@@ -116,7 +116,7 @@ public final class ColorSelectorClientTextures {
                 return;
             }
         }
-        context.submitGuiElement(new FloatHSBRectRenderState(
+        context.addGuiElement(new FloatHSBRectRenderState(
                 LDLibRenderPipelines.HSB, TextureSetup.noTexture(), context.pose.copyPose(),
                 x, y, x + width, y + height, top, bottom, bottom, top, context.peekScissor()));
 

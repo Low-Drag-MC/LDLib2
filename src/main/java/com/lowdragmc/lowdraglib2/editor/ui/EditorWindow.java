@@ -218,7 +218,7 @@ public class EditorWindow extends UIElement {
                 var guiScale = minecraft.options.guiScale();
                 if (guiScale.get() != initialScreenScale) {
                     guiScale.set(initialScreenScale);
-                    minecraft.resizeDisplay();
+                    minecraft.resizeGui();
                 }
             }
 

@@ -11,7 +11,7 @@
 //import dev.emi.emi.api.stack.EmiStackInteraction;
 //import dev.emi.emi.api.widget.Bounds;
 //import lombok.experimental.UtilityClass;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import net.minecraft.client.gui.screens.Screen;
 //
 //import java.util.function.Consumer;
@@ -67,7 +67,7 @@
 //        }
 //
 //        @Override
-//        public void render(Screen screen, EmiIngredient dragged, GuiGraphics draw, int mouseX, int mouseY, float delta) {
+//        public void render(Screen screen, EmiIngredient dragged, GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {
 //            var handler = new EMIDragDropHandler(dragged);
 //            for (var child : screen.children()) {
 //                if (child instanceof IModularUIHolder holder && holder.getModularUI() != null) {

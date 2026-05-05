@@ -114,7 +114,7 @@ public final class TextElementRenderer extends DelegatingUIElementRenderer<TextE
             context.pose.pushPose();
             context.pose.translate(lineX, lineY);
             context.pose.scale(scale, scale);
-            context.graphics.drawString(font, line, 0, 0, color, dropShadow);
+            context.graphics.text(font, line, 0, 0, color, dropShadow);
             context.pose.popPose();
         }
     }

@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -26,11 +26,11 @@ public record ModularUIClientElementComponent(ModularUITooltipComponent modularU
     }
 
     @Override
-    public void renderImage(Font font, int x, int y, int w, int h, GuiGraphics graphics) {
+    public void extractImage(Font font, int x, int y, int w, int h, GuiGraphicsExtractor graphics) {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
         ModularUIClientAccess.getWidget(modularUITooltipComponent.modularUI)
-                .render(graphics, 0, 0, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
+                .extractRenderState(graphics, 0, 0, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
         graphics.pose().popMatrix();
     }
 }

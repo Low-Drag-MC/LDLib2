@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -132,7 +132,7 @@ public class DebugScreen extends ModularUIScreen {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         REAL_MOUSE_POS.set(mouseX, mouseY);
 
         var guiContext = GUIContext.of(graphics, mouseX, mouseY, partialTick);
@@ -154,7 +154,7 @@ public class DebugScreen extends ModularUIScreen {
             var font = Minecraft.getInstance().font;
             DrawerHelperClient.drawSolidRect(guiContext, 0, mouseY - 1, getModularUI().getScreenWidth(), 1, 0xffff0000);
             DrawerHelperClient.drawSolidRect(guiContext, mouseX - 1, 0, 1, getModularUI().getScreenHeight(), 0xffff0000);
-            graphics.drawString(font, "pos(%d, %d)".formatted(mouseX, mouseY), mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
+            graphics.text(font, "pos(%d, %d)".formatted(mouseX, mouseY), mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
         }
 
 
@@ -162,12 +162,12 @@ public class DebugScreen extends ModularUIScreen {
             var x = 0;
             var y = 0;
             for (var info : shapingUI.getDebugInfo()) {
-                graphics.drawString(font, info, x, y, -1, true);
+                graphics.text(font, info, x, y, -1, true);
                 y += 10;
             }
         }
 
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override

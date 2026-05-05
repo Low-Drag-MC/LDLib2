@@ -63,7 +63,7 @@ public final class TextTextureClientSupport {
                 int lineWidth = fontRenderer.width(line);
                 float drawX = x + (width - lineWidth) / 2f;
                 float drawY = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                context.graphics.drawString(fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
+                context.graphics.text(fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
             }
             return;
         }
@@ -72,7 +72,7 @@ public final class TextTextureClientSupport {
             for (int i = 0; i < texture.texts.size(); i++) {
                 String line = texture.texts.get(i);
                 float drawY = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                context.graphics.drawString(fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
+                context.graphics.text(fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
             }
             return;
         }
@@ -82,7 +82,7 @@ public final class TextTextureClientSupport {
                 String line = texture.texts.get(i);
                 int lineWidth = fontRenderer.width(line);
                 float drawY = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                context.graphics.drawString(fontRenderer, line, (int) (x + width - lineWidth), (int) drawY, texture.color, texture.dropShadow);
+                context.graphics.text(fontRenderer, line, (int) (x + width - lineWidth), (int) drawY, texture.color, texture.dropShadow);
             }
             return;
         }
@@ -109,7 +109,7 @@ public final class TextTextureClientSupport {
             } else {
                 String line = texture.texts.getFirst() + (texture.texts.size() > 1 ? ".." : "");
                 float drawY = y + (height - textH) / 2f;
-                context.graphics.drawString(fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
+                context.graphics.text(fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
             }
             return;
         }
@@ -117,7 +117,7 @@ public final class TextTextureClientSupport {
             drawRollTextLine(texture, context, x, y, width, height, fontRenderer, textH, texture.text);
         } else {
             float drawY = y + (height - textH) / 2f;
-            context.graphics.drawString(fontRenderer, texture.texts.getFirst(), (int) x, (int) drawY, texture.color, texture.dropShadow);
+            context.graphics.text(fontRenderer, texture.texts.getFirst(), (int) x, (int) drawY, texture.color, texture.dropShadow);
         }
     }
 
@@ -132,7 +132,7 @@ public final class TextTextureClientSupport {
         var realPos2 = trans.transformPosition(new Vector2f(x + width, y + height));
         context.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
         var t = texture.rollSpeed > 0 ? ((((texture.rollSpeed * Math.abs((int) (System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / totalW) : 0.5;
-        context.graphics.drawString(fontRenderer, line, (int) (from - t * totalW), (int) drawY, texture.color, texture.dropShadow);
+        context.graphics.text(fontRenderer, line, (int) (from - t * totalW), (int) drawY, texture.color, texture.dropShadow);
         context.disableScissor();
     }
 
@@ -141,6 +141,6 @@ public final class TextTextureClientSupport {
         int textW = fontRenderer.width(line);
         float drawX = x + (width - textW) / 2f;
         float drawY = y + (height - textH) / 2f;
-        context.graphics.drawString(fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
+        context.graphics.text(fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
     }
 }

@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
@@ -384,7 +384,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         if (modularUI.focusedElement != null) {
             var event = UIEvent.create(UIEvents.CHAR_TYPED);
             event.codePoint = (char) characterEvent.codepoint();
-            event.modifiers = characterEvent.modifiers();
+//            event.modifiers = characterEvent.modifiers();
             event.hasCapturePhase = false;
             event.hasBubblePhase = false;
             event.target = modularUI.focusedElement;
@@ -413,7 +413,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (modularUI.isTickWhileRending() && Minecraft.getInstance() instanceof MinecraftAccessor accessor) {
             var currentTick = accessor.ldlib2$getClientTickCount();
             if (currentTick != lastTick) {
@@ -498,7 +498,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         }
     }
 
-    public void renderUISpacing(GUIContext context, UIElement element, GuiGraphics graphics) {
+    public void renderUISpacing(GUIContext context, UIElement element, GuiGraphicsExtractor graphics) {
         var transform = element.getLocalToWorldPose();
         context.pose.pushPose();
         context.pose.setIdentity();

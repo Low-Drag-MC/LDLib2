@@ -23,7 +23,7 @@
 //import net.minecraft.ChatFormatting;
 //import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 //import net.minecraft.util.Util;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import net.minecraft.client.renderer.Rect2i;
 //import net.minecraft.network.chat.Component;
 //import org.jetbrains.annotations.Nullable;
@@ -104,12 +104,12 @@
 //    }
 //
 //    @Override
-//    public void draw(GuiGraphics guiGraphics) {
+//    public void draw(GuiGraphicsExtractor guiGraphics) {
 //
 //    }
 //
 //    @Override
-//    public void drawHoverOverlays(GuiGraphics guiGraphics) {
+//    public void drawHoverOverlays(GuiGraphicsExtractor guiGraphics) {
 //
 //    }
 //
@@ -118,7 +118,7 @@
 //    public void getTooltip(ITooltipBuilder tooltipBuilder) {}
 //
 //    @Override
-//    public void drawTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+//    public void drawTooltip(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
 //        // necessary ?
 //        JeiTooltip tooltip = new JeiTooltip();
 //        getDisplayedIngredient()
@@ -240,7 +240,7 @@
 //    }
 //
 //    @Override
-//    public void drawHighlight(GuiGraphics guiGraphics, int color) {
+//    public void drawHighlight(GuiGraphicsExtractor guiGraphics, int color) {
 //
 //    }
 //

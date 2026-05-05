@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -75,8 +75,8 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
         }
     }
 
-    @Inject(method = "renderSlotHighlightBack", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$renderSlotHighlightBack(GuiGraphics graphics, CallbackInfo ci) {
+    @Inject(method = "extractSlotHighlightBack", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$renderSlotHighlightBack(GuiGraphicsExtractor graphics, CallbackInfo ci) {
         if (getMenu() instanceof IItemSlotHolderMenu menu) {
             if (menu.isItemSlot(this.hoveredSlot)) {
                 ci.cancel();
@@ -84,8 +84,8 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
         }
     }
 
-    @Inject(method = "renderSlotHighlightFront", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$renderSlotHighlightFront(GuiGraphics graphics, CallbackInfo ci) {
+    @Inject(method = "extractSlotHighlightFront", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$renderSlotHighlightFront(GuiGraphicsExtractor graphics, CallbackInfo ci) {
         if (getMenu() instanceof IItemSlotHolderMenu menu) {
             if (menu.isItemSlot(this.hoveredSlot)) {
                 ci.cancel();
@@ -93,8 +93,8 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
         }
     }
 
-    @Inject(method = "renderSlot", at = @At(value = "HEAD"), cancellable = true)
-    private void ldlib2$renderSlot(GuiGraphics graphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+    @Inject(method = "extractSlot", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$renderSlot(GuiGraphicsExtractor graphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
         if (getMenu() instanceof IItemSlotHolderMenu menu) {
             if (menu.isItemSlot(slot)) {
                 ci.cancel();

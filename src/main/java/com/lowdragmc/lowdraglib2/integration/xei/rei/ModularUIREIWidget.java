@@ -8,7 +8,7 @@
 //import me.shedaniel.rei.api.client.gui.widgets.Tooltip;
 //import me.shedaniel.rei.api.client.gui.widgets.Widget;
 //import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-//import net.minecraft.client.gui.GuiGraphics;
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 //import net.minecraft.client.gui.components.events.GuiEventListener;
 //import net.minecraft.core.registries.BuiltInRegistries;
 //import net.minecraft.world.item.Item;
@@ -50,7 +50,7 @@
 //    }
 //
 //    @Override
-//    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+//    public void render(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
 //        guiGraphics.flush();
 //
 //        // fix transform

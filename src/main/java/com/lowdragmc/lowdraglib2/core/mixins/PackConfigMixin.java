@@ -20,11 +20,10 @@ public abstract class PackConfigMixin {
     @ModifyVariable(method = "createResourceManager",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/server/packs/resources/MultiPackResourceManager;<init>(Lnet/minecraft/server/packs/PackType;Ljava/util/List;)V",
-                    shift = At.Shift.BEFORE,
                     by = 1
-    ))
-    private List<PackResources> injectCreateReload(List<PackResources> resourcePacks) {
-        var mutableList = new ArrayList<>(resourcePacks);
+            ), name = "openedPacks")
+    private List<PackResources> injectCreateReload(List<PackResources> openedPacks) {
+        var mutableList = new ArrayList<>(openedPacks);
         mutableList.add(new CustomResourcePack(new File(Platform.getGamePath().toFile(), LDLib2.MOD_ID), LDLib2.MOD_ID, PackType.SERVER_DATA));
         return mutableList;
     }

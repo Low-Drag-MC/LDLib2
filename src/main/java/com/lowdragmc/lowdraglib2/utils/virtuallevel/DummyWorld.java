@@ -188,18 +188,6 @@ public class DummyWorld extends Level {
     }
 
     @Override
-    public float getShade(Direction direction, boolean shade) {
-        if (!shade) {
-            return 1.0F;
-        }
-        return switch (direction) {
-            case DOWN, UP -> 0.9F;
-            case NORTH, SOUTH -> 0.8F;
-            case WEST, EAST -> 0.6F;
-        };
-    }
-
-    @Override
     public Holder<Biome> getBiome(BlockPos pPos) {
         return super.getBiome(pPos.offset(Vec3i.ZERO));
     }

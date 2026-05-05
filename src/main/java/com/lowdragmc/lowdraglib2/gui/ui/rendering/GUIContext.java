@@ -21,14 +21,14 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.GuiElementRenderState;
-import net.minecraft.client.gui.render.state.GuiItemRenderState;
-import net.minecraft.client.gui.render.state.GuiRenderState;
-import net.minecraft.client.gui.render.state.GuiTextRenderState;
-import net.minecraft.client.gui.render.state.pip.PictureInPictureRenderState;
+import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
+import net.minecraft.client.renderer.state.gui.GuiItemRenderState;
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import net.minecraft.client.renderer.state.gui.GuiTextRenderState;
+import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.metadata.gui.GuiMetadataSection;
@@ -49,7 +49,7 @@ import java.util.function.Consumer;
 
 @OnlyIn(Dist.CLIENT)
 public class GUIContext implements IGUIContext {
-    public GuiGraphics graphics;
+    public GuiGraphicsExtractor graphics;
     public int mouseX, mouseY;
     public float partialTick;
     public EnhancedPoseStack pose;
@@ -68,7 +68,7 @@ public class GUIContext implements IGUIContext {
 
     private record PostCall(Consumer<GUIContext> call, Matrix3x2f pose) {}
 
-    public static GUIContext of(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public static GUIContext of(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         UIElementClientRenderers.init();
         GuiTextureClientRenderers.init();
         ColorSelectorClientTextures.init();
@@ -210,20 +210,20 @@ public class GUIContext implements IGUIContext {
         return graphics.guiRenderState;
     }
 
-    public void submitItem(GuiItemRenderState itemState) {
-        graphics.guiRenderState.submitItem(itemState);
+    public void addItem(GuiItemRenderState itemState) {
+        graphics.guiRenderState.addItem(itemState);
     }
 
-    public void submitText(GuiTextRenderState textState) {
-        graphics.guiRenderState.submitText(textState);
+    public void addText(GuiTextRenderState textState) {
+        graphics.guiRenderState.addText(textState);
     }
 
-    public void submitPicturesInPictureState(PictureInPictureRenderState picturesInPictureState) {
-        graphics.guiRenderState.submitPicturesInPictureState(picturesInPictureState);
+    public void addPicturesInPictureState(PictureInPictureRenderState picturesInPictureState) {
+        graphics.guiRenderState.addPicturesInPictureState(picturesInPictureState);
     }
 
-    public void submitGuiElement(GuiElementRenderState blitState) {
-        graphics.guiRenderState.submitGuiElement(blitState);
+    public void addGuiElement(GuiElementRenderState blitState) {
+        graphics.guiRenderState.addGuiElement(blitState);
     }
 
     public MultiBufferSource.BufferSource bufferSource() {
@@ -238,7 +238,7 @@ public class GUIContext implements IGUIContext {
             RenderPipeline renderPipeline, float x0, float y0, float x1, float y1,
             int colorU0V0, int colorU0V1, int colorU1V1, int colorU1V0
     ) {
-        this.submitGuiElement(
+        this.addGuiElement(
                 new FloatColoredRectangleRenderState(
                         renderPipeline, TextureSetup.noTexture(), this.pose.copyPose(), x0, y0, x1, y1,
                         ColorUtils.mulColor(colorU0V0, elementColor), ColorUtils.mulColor(colorU0V1, elementColor), ColorUtils.mulColor(colorU1V1, elementColor), ColorUtils.mulColor(colorU1V0, elementColor), graphics.peekScissorStack()
@@ -251,7 +251,7 @@ public class GUIContext implements IGUIContext {
             Vector2f position0, Vector2f position1, Vector2f position2,
             int color0, int color1, int color2
     ) {
-        this.submitGuiElement(
+        this.addGuiElement(
                 new FloatColoredTriangleRenderState(
                         renderPipeline, TextureSetup.noTexture(), this.pose.copyPose(),
                         position0, position1, position2,
@@ -641,7 +641,7 @@ public class GUIContext implements IGUIContext {
             float tileWidth, float tileHeight,
             float x0, float y0, float x1, float y1, float u0, float u1, float v0, float v1, int color
     ) {
-        submitGuiElement(
+        addGuiElement(
                 new FloatTiledBlitRenderState(
                         pipeline,
                         TextureSetup.singleTexture(textureView, sampler),
@@ -653,11 +653,11 @@ public class GUIContext implements IGUIContext {
         );
     }
 
-    private void innerBlit(
+    public void innerBlit(
             RenderPipeline renderPipeline, Identifier location, float x0, float x1, float y0, float y1, float u0, float u1, float v0, float v1, int color
     ) {
         var texture = mc.getTextureManager().getTexture(location);
-        submitGuiElement(
+        addGuiElement(
                 new FloatBlitRenderState(
                         renderPipeline,
                         TextureSetup.singleTexture(texture.getTextureView(), texture.getSampler()),
@@ -672,7 +672,7 @@ public class GUIContext implements IGUIContext {
     }
 
     public void fillRoundedRect(float x, float y, float w, float h, Vector4f radius, int color) {
-        this.submitGuiElement(
+        this.addGuiElement(
                 new FloatRoundedRectRenderState(
                         LDLibRenderPipelines.ROUNDED_RECT,
                         TextureSetup.noTexture(),
@@ -687,7 +687,7 @@ public class GUIContext implements IGUIContext {
     }
 
     public void borderRoundedRect(float x, float y, float w, float h, Vector4f radius, float border, int borderColor) {
-        this.submitGuiElement(
+        this.addGuiElement(
                 new FloatRoundedRectRenderState(
                         LDLibRenderPipelines.ROUNDED_RECT,
                         TextureSetup.noTexture(),
