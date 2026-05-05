@@ -3,11 +3,13 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api;
 import com.lowdragmc.lowdraglib2.configurator.ConfiguratorAccessors;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.ValueConfigurator;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import org.jetbrains.annotations.Nullable;
 
 public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
     @Nullable Constant getConfigurableConstant();
+    void onValueChanged();
 
     @Override
     default void setValue(Object value) {
@@ -35,6 +37,7 @@ public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
         if (constant != null) {
             constant.notifyListeners();
         }
+        onValueChanged();
     }
 
     @Override
@@ -51,14 +54,18 @@ public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
             } else {
                 var type = constant.getType();
                 var accessor = ConfiguratorAccessors.findByType(type);
-                group.addConfigurator(accessor.create(
+                var configurator = accessor.create(
                         "",
                         this::getValue,
                         this::setValue,
                         this.forceUpdate(),
                         this.getValueField(),
                         this.getValueOwer()
-                ));
+                );
+                if (configurator instanceof ValueConfigurator<?> valueConfigurator) {
+                    valueConfigurator.setDefaultValue(getDefaultValue());
+                }
+                group.addConfigurator(configurator);
             }
         }
         for (var configurator : group.getConfigurators()) {

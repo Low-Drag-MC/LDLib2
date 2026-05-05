@@ -1,12 +1,14 @@
 package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ConstantNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.CustomNodeModelImpl;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeOption;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.VariableNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
@@ -240,6 +242,167 @@ public final class GraphSerializationGameTest {
         } else if (restoredConstant.getValue() != null) {
             helper.fail("Input constant value type mismatch: " + restoredConstant.getValue().getClass());
             return;
+        }
+
+        helper.succeed();
+    }
+
+    /**
+     * Marker class with no explicit fromType registration, used to verify that
+     * {@code TypeHandle.resolve()} falls back to {@code Class.forName} when the identification
+     * is missing from {@code ID_TO_TYPE}.
+     */
+    public static final class TypeFallbackMarker {}
+
+    /**
+     * Tests that {@link TypeHandle#resolve()} can resolve a class by name even when no caller
+     * has registered it via {@code TypeHandleHelpers.fromType(...)}, fixing the case where
+     * mod load order or dynamic types leave {@code ID_TO_TYPE} empty for a known class.
+     */
+    public static void typeHandleResolveFallsBackToClassForName(GameTestHelper helper) {
+        var th = TypeHandle.create(TypeFallbackMarker.class.getName());
+        var resolved = th.resolve();
+        if (resolved != TypeFallbackMarker.class) {
+            helper.fail("TypeHandle.resolve did not fall back to Class.forName: got " + resolved);
+            return;
+        }
+
+        // Unknown id should still return Unknown.class without throwing.
+        var ghost = TypeHandle.create("com.example.NoSuchClass_xyz");
+        var ghostResolved = ghost.resolve();
+        if (ghostResolved == TypeFallbackMarker.class) {
+            helper.fail("Ghost id wrongly resolved to marker"); return;
+        }
+
+        helper.succeed();
+    }
+
+    /**
+     * Tests that a variable's initializationModel round-trips, preserving its value.
+     */
+    public static void variableInitializationModelRoundTrip(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+
+        var graph = new TestGraph();
+        var variable = (VariableDeclarationModel) graph.graphModel.createVariable(
+                "v", float.class, 7.5f, VariableKind.LOCAL);
+
+        CompoundTag serialized = serializeGraph(graph.graphModel, provider);
+
+        var graph2 = new TestGraph();
+        deserializeGraph(graph2.graphModel, serialized, provider);
+
+        VariableDeclarationModel restored = null;
+        for (var v : graph2.graphModel.getGraphVariableModels()) {
+            if (v != null && v.getUid().equals(variable.getUid())) {
+                restored = (VariableDeclarationModel) v;
+                break;
+            }
+        }
+        if (restored == null) { helper.fail("variable not found"); return; }
+
+        var init = restored.getInitializationModel();
+        if (init == null) { helper.fail("initializationModel is null after deserialize"); return; }
+        if (!(init.getValue() instanceof Float f) || Math.abs(f - 7.5f) > 0.001f) {
+            helper.fail("initializationModel value not preserved: " + init.getValue()); return;
+        }
+        // owner should point back to the declaration
+        if (init.getOwner() != restored) {
+            helper.fail("initializationModel owner not wired back to the declaration"); return;
+        }
+
+        helper.succeed();
+    }
+
+    /**
+     * Tests that ConstantNodeModel deserialization preserves ownership and value.
+     */
+    public static void constantNodeOwnerAndValuePreserved(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+
+        var graph = new TestGraph();
+        var floatType = TypeHandleHelpers.fromType(Float.class);
+        var constantNode = graph.graphModel.createConstantNode("c", new Vector2f(0, 0), floatType, 21.0f);
+
+        CompoundTag serialized = serializeGraph(graph.graphModel, provider);
+
+        var graph2 = new TestGraph();
+        deserializeGraph(graph2.graphModel, serialized, provider);
+
+        ConstantNodeModel restored = null;
+        for (var n : graph2.graphModel.getNodeModels()) {
+            if (n instanceof ConstantNodeModel cn && cn.getUid().equals(constantNode.getNodeModel().getUid())) {
+                restored = cn;
+                break;
+            }
+        }
+        if (restored == null) { helper.fail("constant node not found"); return; }
+        if (restored.getConstant() == null) { helper.fail("constant null after deserialize"); return; }
+        if (restored.getConstant().getOwner() != restored) {
+            helper.fail("constant owner not wired back"); return;
+        }
+        if (!(restored.getConstant().getValue() instanceof Float f) || Math.abs(f - 21.0f) > 0.001f) {
+            helper.fail("constant value not preserved: " + restored.getConstant().getValue()); return;
+        }
+
+        helper.succeed();
+    }
+
+    /**
+     * Regression: when a node's port topology depends on a NodeOption value (e.g. TestAddNode's
+     * "inputs" option drives how many input ports it has), the option value restored from NBT
+     * must be available before onDefinePorts runs, otherwise the rebuilt node only has the
+     * default-count ports and the persisted in3..inN constants get dropped.
+     */
+    public static void optionDrivenPortCountSurvivesRoundTrip(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+
+        var graph = new TestGraph();
+        var addNode = graph.graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
+
+        // Bump inputs option from default 2 to 9, then defineNode again to expand port set.
+        // NodeOption ports use the "option_" prefix in inputConstantsById.
+        var inputsConstant = addNode.getInputConstantsById().get(NodeOption.PORT_ID_PREFIX + "inputs");
+        if (inputsConstant == null) { helper.fail("inputs option constant missing"); return; }
+        inputsConstant.setValue(9);
+        addNode.defineNode();
+
+        // Set distinct values on each input port constant.
+        for (int i = 1; i <= 9; i++) {
+            var c = addNode.getInputConstantsById().get("in" + i);
+            if (c == null) { helper.fail("in" + i + " missing pre-serialize"); return; }
+            c.setValue((float) (i * 10));
+        }
+
+        CompoundTag serialized = serializeGraph(graph.graphModel, provider);
+
+        var graph2 = new TestGraph();
+        deserializeGraph(graph2.graphModel, serialized, provider);
+
+        CustomNodeModelImpl restored = null;
+        for (var n : graph2.graphModel.getNodeModels()) {
+            if (n instanceof CustomNodeModelImpl cn && cn.getUid().equals(addNode.getUid())) {
+                restored = cn;
+                break;
+            }
+        }
+        if (restored == null) { helper.fail("node not found"); return; }
+
+        var restoredInputsConstant = restored.getInputConstantsById().get(NodeOption.PORT_ID_PREFIX + "inputs");
+        if (restoredInputsConstant == null) { helper.fail("inputs option constant missing after deserialize"); return; }
+        var optValue = restoredInputsConstant.getValue();
+        if (!(optValue instanceof Integer iv) || iv != 9) {
+            helper.fail("inputs option value not preserved: " + optValue); return;
+        }
+
+        for (int i = 1; i <= 9; i++) {
+            var c = restored.getInputConstantsById().get("in" + i);
+            if (c == null) {
+                helper.fail("in" + i + " missing after deserialize (port topology not rebuilt with restored option)"); return;
+            }
+            if (!(c.getValue() instanceof Float f) || Math.abs(f - (i * 10f)) > 0.001f) {
+                helper.fail("in" + i + " value mismatch: expected " + (i * 10f) + " got " + c.getValue()); return;
+            }
         }
 
         helper.succeed();

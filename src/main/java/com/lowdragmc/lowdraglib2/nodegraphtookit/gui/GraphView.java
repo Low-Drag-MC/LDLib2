@@ -84,6 +84,7 @@ public class GraphView extends UIElement {
     private GraphChangeset changeset = new GraphChangeset();
     @Getter
     private final UIElement panelLayer = new UIElement();
+    public final DockManager dockManager = new DockManager(this);
     private final Map<String, UIElement> layers = new HashMap<>();
     private final UIElement fallbackLayer = new UIElement();
     @Nullable @Getter
@@ -195,11 +196,13 @@ public class GraphView extends UIElement {
     }
 
     protected void initPanels() {
-        panelLayer.addChildren(
-                new GraphPanel(this, blackboard),
-                new GraphPanel(this, inspector).layout(l -> l.left(100000)),
-                new GraphPanel(this, preview).layout(l -> l.left(100000).top(100000))
-        );
+        var bbPanel = new GraphPanel(this, blackboard);
+        var insPanel = new GraphPanel(this, inspector);
+        var prevPanel = new GraphPanel(this, preview);
+        panelLayer.addChildren(bbPanel, insPanel, prevPanel);
+        dockManager.register(bbPanel, DockSlot.TOP_LEFT);
+        dockManager.register(insPanel, DockSlot.TOP_RIGHT);
+        dockManager.register(prevPanel, DockSlot.BOTTOM_RIGHT);
     }
 
     /**
@@ -267,12 +270,15 @@ public class GraphView extends UIElement {
     }
 
     public void clearGraph() {
-        this.graph = null;
         this.modelElements.clear();
         this.modelElementsByID.clear();
+        this.modelDependencies.clear();
         this.selected.clear();
         this.layers.values().forEach(UIElement::clearAllChildren);
         this.isWireDragging = false;
+        this.changeset.clear();
+        this.inspector.clear();
+        this.blackboard.clear();
     }
 
     /**
@@ -281,16 +287,8 @@ public class GraphView extends UIElement {
      */
     public void rebuildGraphUI() {
         if (graph == null) return;
-        modelElements.clear();
-        modelElementsByID.clear();
-        modelDependencies.clear();
-        selected.clear();
-        layers.values().forEach(UIElement::clearAllChildren);
-        isWireDragging = false;
+        clearGraph();
         graph.graphModel.getCurrentGraphChangeDescription().clear();
-        changeset.clear();
-        inspector.clear();
-        blackboard.clear();
         buildUITree(graph.graphModel);
     }
 
@@ -936,7 +934,7 @@ public class GraphView extends UIElement {
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder = TreeBuilder.Menu.start();
-        var localPosition = getContentViewContainer().getLocalMouse(mouseX, mouseY);
+        var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY));
 
         // "Add Node" is always available
         menuBuilder.leaf("graph.commands.add_node", () -> {
@@ -1095,9 +1093,10 @@ public class GraphView extends UIElement {
         if (graph == null) return;
         var graphModel = graph.graphModel;
         var changes = graphModel.getCurrentGraphChangeDescription();
-        var somethingChanged = changeset.addNewModels(changes.getNewModels());
-        somethingChanged |= changeset.addChangedModels(changes.getChangedModels());
-        somethingChanged |= changeset.addDeletedModels(changes.getDeletedModels());
+        changeset.addNewModels(changes.getNewModels());
+        changeset.addChangedModels(changes.getChangedModels());
+        changeset.addDeletedModels(changes.getDeletedModels());
+        var somethingChanged = changeset.hasChanges();
         if (somethingChanged) {
             var newPlacemats = new ArrayList<GraphElement<?>>();
             var changedModels = new HashMap<UUID, ChangeHintList>();

@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike.ArrayAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike.CollectionAccessor;
+import com.lowdragmc.lowdraglib2.syncdata.accessor.maplike.MapAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.CustomDirectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.EnumAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.PrimitiveAccessor;
@@ -64,6 +65,8 @@ public class AccessorRegistries {
     private final static Map<Class<?>, IAccessor<?>> ACCESSOR_LOOKUP = new ConcurrentHashMap<>();
     private final static BiFunction<IAccessor, Class<?>, IAccessor<?>> ARRAY_ACCESSOR_LOOKUP = Util.memoize(ArrayAccessor::new);
     private final static BiFunction<IAccessor, Class<?>, IAccessor<?>> COLLECTION_ACCESSOR_LOOKUP = Util.memoize(CollectionAccessor::new);
+    private final static Map<MapAccessorKey, IAccessor<?>> MAP_ACCESSOR_LOOKUP = new ConcurrentHashMap<>();
+    private record MapAccessorKey(IAccessor<?> keyAccessor, Class<?> keyType, IAccessor<?> valueAccessor, Class<?> valueType) {}
     /**
      * Register an accessor with a given priority.
      * Lower priority accessors will be checked first.
@@ -144,6 +147,13 @@ public class AccessorRegistries {
         return ARRAY_ACCESSOR_LOOKUP.apply(childAccessor, child);
     }
 
+    public static IAccessor<?> findMapAccessor(IAccessor<?> keyAccessor, Class<?> keyType,
+                                               IAccessor<?> valueAccessor, Class<?> valueType) {
+        return MAP_ACCESSOR_LOOKUP.computeIfAbsent(
+                new MapAccessorKey(keyAccessor, keyType, valueAccessor, valueType),
+                k -> new MapAccessor(k.keyAccessor(), k.keyType(), k.valueAccessor(), k.valueType()));
+    }
+
     public static IAccessor<?> findByType(Type type) {
         if (type instanceof GenericArrayType array) {
             var componentType = array.getGenericComponentType();
@@ -158,6 +168,19 @@ public class AccessorRegistries {
                 var componentType = rawType.getComponentType();
                 var childAccessor = findByType(componentType);
                 return findArrayAccessor(childAccessor, componentType);
+            }
+            if (Map.class.isAssignableFrom(rawType) && type instanceof ParameterizedType parameterizedType) {
+                if (parameterizedType.getActualTypeArguments().length == 2) {
+                    var keyTypeArg = parameterizedType.getActualTypeArguments()[0];
+                    var valueTypeArg = parameterizedType.getActualTypeArguments()[1];
+                    var keyAccessor = findByType(keyTypeArg);
+                    var valueAccessor = findByType(valueTypeArg);
+                    var rawKeyType = ReflectionUtils.getRawType(keyTypeArg);
+                    var rawValueType = ReflectionUtils.getRawType(valueTypeArg);
+                    return findMapAccessor(
+                            keyAccessor, rawKeyType == null ? Object.class : rawKeyType,
+                            valueAccessor, rawValueType == null ? Object.class : rawValueType);
+                }
             }
             if (Collection.class.isAssignableFrom(rawType) && type instanceof ParameterizedType parameterizedType) {
                 if (parameterizedType.getActualTypeArguments().length == 1) {

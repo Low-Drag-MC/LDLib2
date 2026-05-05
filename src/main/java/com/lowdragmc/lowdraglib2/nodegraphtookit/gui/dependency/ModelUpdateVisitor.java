@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 @EqualsAndHashCode(callSuper = false)
 public class ModelUpdateVisitor extends ElementUpdateVisitor {
     public static final ModelUpdateVisitor UNSPECIFIED = new ModelUpdateVisitor(ChangeHintList.UNSPECIFIED);
+    public static final ModelUpdateVisitor LAYOUT = new ModelUpdateVisitor(ChangeHintList.LAYOUT);
     private @Nullable ChangeHintList changeHints;
 
     public ModelUpdateVisitor(@Nullable ChangeHintList changeHints) {

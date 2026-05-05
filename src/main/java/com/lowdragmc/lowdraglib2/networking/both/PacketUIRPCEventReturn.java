@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.networking.s2c;
+package com.lowdragmc.lowdraglib2.networking.both;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
@@ -13,14 +13,14 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import javax.annotation.Nonnull;
 
 @NoArgsConstructor
-public class SPacketUIRPCEventReturn implements CustomPacketPayload {
+public class PacketUIRPCEventReturn implements CustomPacketPayload {
     public static final Identifier ID = LDLib2.id("ui_rpc_event_return");
-    public static final Type<SPacketUIRPCEventReturn> TYPE = new Type<>(ID);
-    public static final StreamCodec<RegistryFriendlyByteBuf, SPacketUIRPCEventReturn> CODEC = StreamCodec.ofMember(SPacketUIRPCEventReturn::write, SPacketUIRPCEventReturn::decode);
+    public static final Type<PacketUIRPCEventReturn> TYPE = new Type<>(ID);
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketUIRPCEventReturn> CODEC = StreamCodec.ofMember(PacketUIRPCEventReturn::write, PacketUIRPCEventReturn::decode);
 
     public byte[] returnData;
 
-    public SPacketUIRPCEventReturn(byte[] returnData) {
+    public PacketUIRPCEventReturn(byte[] returnData) {
         this.returnData = returnData;
     }
 
@@ -28,12 +28,12 @@ public class SPacketUIRPCEventReturn implements CustomPacketPayload {
         buf.writeByteArray(returnData);
     }
 
-    public static SPacketUIRPCEventReturn decode(RegistryFriendlyByteBuf buf) {
+    public static PacketUIRPCEventReturn decode(RegistryFriendlyByteBuf buf) {
         var returnData = buf.readByteArray();
-        return new SPacketUIRPCEventReturn(returnData);
+        return new PacketUIRPCEventReturn(returnData);
     }
 
-    public static void execute(SPacketUIRPCEventReturn packet, IPayloadContext context) {
+    public static void execute(PacketUIRPCEventReturn packet, IPayloadContext context) {
         var player = context.player();
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
             var syncManager = syncManagerHolder.getSyncManager();

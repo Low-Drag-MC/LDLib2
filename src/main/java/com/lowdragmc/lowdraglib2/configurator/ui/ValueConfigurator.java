@@ -18,14 +18,14 @@ public class ValueConfigurator<T> extends Configurator {
     protected boolean forceUpdate;
     @Nullable
     protected T value;
-    @Nullable
+    @Nullable @Setter
     protected T defaultValue;
     @Setter
     protected Consumer<@Nullable T> onUpdate;
     @Setter
     protected Supplier<@Nullable T> supplier;
     @Setter
-    protected Predicate<Object> canDropPredicate = t -> defaultValue.getClass().isAssignableFrom(t.getClass());
+    protected Predicate<Object> canDropPredicate = t -> defaultValue != null && defaultValue.getClass().isAssignableFrom(t.getClass());
 
     public ValueConfigurator(String name, Supplier<@Nullable T> supplier, Consumer<@Nullable T> onUpdate, @Nullable T defaultValue, boolean forceUpdate) {
         super(name);

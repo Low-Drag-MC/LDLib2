@@ -145,4 +145,16 @@ public class Platform {
             }
         };
     }
+
+    public static void executeOnClient(Runnable runnable) {
+        if (Platform.isClient()) {
+            Minecraft.getInstance().execute(runnable);
+        }
+    }
+
+    public static void executeOnServer(Runnable runnable) {
+        if (LDLib2.isServer()) {
+            getMinecraftServer().execute(runnable);
+        }
+    }
 }

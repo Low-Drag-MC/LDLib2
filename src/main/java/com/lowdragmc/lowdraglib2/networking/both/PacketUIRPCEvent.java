@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.networking.c2s;
+package com.lowdragmc.lowdraglib2.networking.both;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
@@ -11,13 +11,13 @@ import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 @NoArgsConstructor
-public class CPacketUIRPCEvent implements CustomPacketPayload {
+public class PacketUIRPCEvent implements CustomPacketPayload {
     public static final Identifier ID = LDLib2.id("ui_rpc_event");
-    public static final Type<CPacketUIRPCEvent> TYPE = new Type<>(ID);
-    public static final StreamCodec<RegistryFriendlyByteBuf, CPacketUIRPCEvent> CODEC = StreamCodec.ofMember(CPacketUIRPCEvent::write, CPacketUIRPCEvent::decode);
+    public static final Type<PacketUIRPCEvent> TYPE = new Type<>(ID);
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketUIRPCEvent> CODEC = StreamCodec.ofMember(PacketUIRPCEvent::write, PacketUIRPCEvent::decode);
     public byte[] eventData;
 
-    public CPacketUIRPCEvent(byte[] eventData) {
+    public PacketUIRPCEvent(byte[] eventData) {
         this.eventData = eventData;
     }
 
@@ -25,12 +25,12 @@ public class CPacketUIRPCEvent implements CustomPacketPayload {
         buf.writeByteArray(eventData);
     }
 
-    public static CPacketUIRPCEvent decode(RegistryFriendlyByteBuf buf) {
+    public static PacketUIRPCEvent decode(RegistryFriendlyByteBuf buf) {
         var eventData = buf.readByteArray();
-        return new CPacketUIRPCEvent(eventData);
+        return new PacketUIRPCEvent(eventData);
     }
 
-    public static void execute(CPacketUIRPCEvent packet, IPayloadContext context) {
+    public static void execute(PacketUIRPCEvent packet, IPayloadContext context) {
         var player = context.player();
         if (player.containerMenu instanceof IUISyncManagerHolder syncManagerHolder) {
             var syncManager = syncManagerHolder.getSyncManager();

@@ -145,8 +145,11 @@ public class Icons {
     // graph view
     public static SpriteTexture RESIZE_BOTTOM_RIGHT = icon("resize_bottom_right");
     public static SpriteTexture NODE = icon("node");
-    public static SpriteTexture CIRCLE = icon("circle");
-    public static SpriteTexture CIRCLE_CHECK = icon("circle_check");
+    public static SpriteTexture BOOL = icon("bool");
+    public static SpriteTexture FLOAT = icon("float");
+    public static SpriteTexture INT = icon("int");
+    public static SpriteTexture LONG = icon("long");
+    public static SpriteTexture STRING = icon("string");
 
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");

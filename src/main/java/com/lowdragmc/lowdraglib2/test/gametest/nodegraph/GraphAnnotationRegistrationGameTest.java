@@ -59,7 +59,8 @@ public final class GraphAnnotationRegistrationGameTest {
                 TestAddNode.class,
                 TestConstantNode.class,
                 TestStringConcatNode.class,
-                TestColorBlendNode.class
+                TestColorBlendNode.class,
+                OptionTestNode.class
         );
 
         if (!supportNodes.containsAll(expectedNodes)) {

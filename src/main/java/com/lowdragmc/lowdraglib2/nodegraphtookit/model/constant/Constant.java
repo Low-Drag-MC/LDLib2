@@ -35,6 +35,9 @@ public abstract class Constant {
 
     public void init(TypeHandle typeHandle) {
         this.typeHandle = typeHandle;
+        if (typeHandle != null) {
+            setDefaultValue(typeHandle.getDefaultValue());
+        }
         setValue(getDefaultValue());
     }
 

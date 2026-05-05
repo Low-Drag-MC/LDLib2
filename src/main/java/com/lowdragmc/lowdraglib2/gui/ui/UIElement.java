@@ -60,6 +60,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.Math;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -135,6 +136,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     private final List<RPCEvent> rpcEvents = new ArrayList<>();
     private final Map<String, Pair<RPCEvent, List<UIEventListener>>> serverCaptureEventListeners = new HashMap<>();
     private final Map<String, Pair<RPCEvent, List<UIEventListener>>> serverBaubleEventListeners = new HashMap<>();
+    private final Map<String, List<Consumer<CompoundTag>>> messageHandlers = new HashMap<>();
+    @Nullable
+    private RPCEvent messageRPC;
     // runtime
     private final Supplier<String> elementName = Suppliers.memoize(() -> {
         var name = name();
@@ -1452,6 +1456,96 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return addRPCEvent(creator.apply(this));
     }
 
+    /**
+     * Retrieves the existing messageRPC instance or creates a new one if it is null.
+     * The messageRPC is initialized as an RPC event with a String name and a CompoundTag data payload.
+     * It handles registered message handlers by invoking them with the provided data.
+     *
+     * @return The existing or newly created RPCEvent instance for message handling.
+     */
+    private RPCEvent getOrCreateMessageRPC() {
+        if (messageRPC == null) {
+            messageRPC = RPCEventBuilder.simple(String.class, CompoundTag.class, (name, data) -> {
+                var handlers = messageHandlers.get(name);
+                if (handlers == null || handlers.isEmpty()) return;
+                var payload = data == null ? new CompoundTag() : data;
+                for (var handler : new ArrayList<>(handlers)) {
+                    handler.accept(payload);
+                }
+            });
+            addRPCEvent(messageRPC);
+        }
+        return messageRPC;
+    }
+
+    /**
+     * Registers a message handler for the specified message name. The handler will be invoked
+     * whenever a message with the given name is received.
+     *
+     * @param name the name of the message to listen for
+     * @param handler the function to handle the message, which receives a CompoundTag as its input
+     * @return the current instance of UIElement
+     */
+    public UIElement onMessage(String name, Consumer<CompoundTag> handler) {
+        getOrCreateMessageRPC();
+        messageHandlers.computeIfAbsent(name, k -> new ArrayList<>()).add(handler);
+        return this;
+    }
+
+    /**
+     * Registers a message handler that gets triggered when a message with the specified
+     * name is received. The handler processes the message payload and performs operations
+     * on the current {@code UIElement}.
+     *
+     * @param name the unique name of the message to register the handler for
+     * @param handler a {@code BiConsumer} accepting the current {@code UIElement}
+     *                and the {@code CompoundTag} payload that represents the message data
+     * @return the current {@code UIElement}, allowing for method chaining
+     */
+    public UIElement onMessage(String name, BiConsumer<UIElement, CompoundTag> handler) {
+        return onMessage(name, (payload) -> handler.accept(this, payload));
+    }
+
+    /**
+     * Removes the specified message handler for a given message name. If the message handler is successfully
+     * removed and no handlers remain associated with the message name, the message name is also removed from
+     * the internal registry.
+     *
+     * @param name the name of the message whose handler is to be removed
+     * @param handler the handler to be removed for the specified message name
+     * @return this UIElement instance for method chaining
+     */
+    public UIElement offMessage(String name, Consumer<CompoundTag> handler) {
+        var handlers = messageHandlers.get(name);
+        if (handlers != null) {
+            handlers.remove(handler);
+            if (handlers.isEmpty()) {
+                messageHandlers.remove(name);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Sends a message event with the provided name and data.
+     * If the data is null, an empty CompoundTag will be used.
+     *
+     * @param name the name of the message to send
+     * @param data optional CompoundTag containing the message data; if null, an empty CompoundTag will be used
+     */
+    public void sendMessage(String name, @Nullable CompoundTag data) {
+        sendEvent(getOrCreateMessageRPC(), name, data == null ? new CompoundTag() : data);
+    }
+
+    /**
+     * Sends a message with the specified name and a default compound tag.
+     *
+     * @param name the name associated with the message to be sent
+     */
+    public void sendMessage(String name) {
+        sendMessage(name, new CompoundTag());
+    }
+
     public UIElement removeRPCEvent(RPCEvent event) {
         this.rpcEvents.remove(event);
         var mui = getModularUI();
@@ -1469,7 +1563,10 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var eventListeners = useCapture ? serverCaptureEventListeners : serverBaubleEventListeners;
         eventListeners.computeIfAbsent(eventType, type -> {
             var listeners = new ArrayList<UIEventListener>();
-            var rpcEvent = RPCEventBuilder.simple(UIEvent.class, event -> listeners.forEach(e -> e.handleEvent(event)));
+            var rpcEvent = RPCEventBuilder.simple(UIEvent.class, event -> {
+                event.currentElement = this;
+                listeners.forEach(e -> e.handleEvent(event));
+            });
             addRPCEvent(rpcEvent);
             return new Pair<>(rpcEvent, listeners);
         }).getB().add(listener);

@@ -11,9 +11,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
-import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack.HistoryItem;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
@@ -34,9 +34,11 @@ public class GraphEditorView extends View {
     private Graph graph;
     @Nullable @Getter
     private Consumer<CompoundTag> onSaved;
-    /** The history item that was current at load/save time — used to detect dirtiness. */
+    /** The graph NBT captured at load/save time — used to detect dirtiness by comparison. */
     @Nullable
-    private HistoryItem savedHistoryPoint;
+    private CompoundTag savedTag;
+    // todo move to history stack
+    private IHistoryStack.HistoryItem savedHistoryPoint;
 
     public GraphEditorView() {
         super("editor.view.graph_editor");
@@ -66,7 +68,7 @@ public class GraphEditorView extends View {
         this.graph = graph;
         this.onSaved = onSaved;
         graphView.loadGraph(graph);
-        this.savedHistoryPoint = graphView.getHistoryStack().getCurrentHistory();
+        this.savedTag = serializeGraph();
         return this;
     }
 
@@ -101,7 +103,7 @@ public class GraphEditorView extends View {
         if (graph != null && onSaved != null) {
             onSaved.accept(serializeGraph());
         }
-        this.savedHistoryPoint = graphView.getHistoryStack().getCurrentHistory();
+        this.savedTag = serializeGraph();
         clearDirty();
     }
 
@@ -143,11 +145,12 @@ public class GraphEditorView extends View {
     @Override
     public void screenTick() {
         super.screenTick();
-        // auto-detect dirtiness: current history differs from saved point
+        // auto-detect dirtiness: current serialized graph differs from saved snapshot.
+        // brute-force comparison; can be optimized later if it shows up in profiling.
         if (!isDirty && graph != null) {
             var mui = getModularUI();
             if (mui != null && (mui.getTickCounter() & 20) == 0) {
-                if (graphView.getHistoryStack().getCurrentHistory() != savedHistoryPoint) {
+                if (!serializeGraph().equals(savedTag)) {
                     markAsDirty();
                 }
             }

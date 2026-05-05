@@ -60,6 +60,7 @@ public class PortConstantEditorElement extends ModelElement {
                 if (portModel.getDirection() == PortDirection.INPUT && portModel.getEmbeddedValue() != null) {
                     lastDataType = portModel.getEmbeddedValue().getTypeHandle();
                     editor = new FieldValueInspector();
+                    if (getGraphView() != null) editor.setHistoryStack(getGraphView().getHistoryStack());
                     editor.loadValueField(portModel);
                     addChild(editor);
                 }

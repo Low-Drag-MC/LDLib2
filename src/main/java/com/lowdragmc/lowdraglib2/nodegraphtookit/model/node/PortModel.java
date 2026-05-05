@@ -580,4 +580,11 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
     public @Nullable Constant getConfigurableConstant() {
         return getEmbeddedValue();
     }
+
+    @Override
+    public void onValueChanged() {
+        if (this.graphModel != null) {
+            this.graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
+        }
+    }
 }

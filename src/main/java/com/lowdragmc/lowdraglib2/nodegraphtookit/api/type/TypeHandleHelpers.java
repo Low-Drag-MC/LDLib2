@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @UtilityClass
 public final class TypeHandleHelpers {
@@ -25,7 +26,8 @@ public final class TypeHandleHelpers {
     private static final Map<String, Integer> CUSTOM_ID_TO_COLOR = new ConcurrentHashMap<>();// customId -> Color
     // customId -> ICON
     private static final Map<String, IGuiTexture> CUSTOM_ID_TO_ICON = new ConcurrentHashMap<>();
-
+    // customId -> Default Value Supplier
+    private static final Map<String, Supplier<Object>> CUSTOM_ID_TO_DEFAULT_VALUE = new ConcurrentHashMap<>();
 
     /**
      * GenerateCustomTypeHandle(uniqueId, friendlyName)
@@ -109,10 +111,17 @@ public final class TypeHandleHelpers {
         }
     }
 
+    public static void setCustomDefaultValue(TypeHandle typeHandle, Supplier<Object> defaultValue) {
+        var id = typeHandle.getIdentification();
+        if (id != null) {
+            CUSTOM_ID_TO_DEFAULT_VALUE.put(id, defaultValue);
+        }
+    }
+
     /**
      * GenerateTypeHandle(Type t, friendlyName)
      */
-    public static TypeHandle fromType(Type t, String friendlyName) {
+    public static TypeHandle fromType(Type t, @Nullable String friendlyName) {
         t = convertType(t);
         Objects.requireNonNull(t, "t");
         var identification = identificationOf(t);
@@ -147,7 +156,13 @@ public final class TypeHandleHelpers {
     static Type resolveType(TypeHandle th) {
         String id = (th != null) ? th.getIdentification() : null;
         if (id == null) return TypeHandles.Unknown.class;
-        return ID_TO_TYPE.getOrDefault(id, TypeHandles.Unknown.class);
+        return ID_TO_TYPE.computeIfAbsent(id, key -> {
+            try {
+                return Class.forName(key, false, TypeHandleHelpers.class.getClassLoader());
+            } catch (ClassNotFoundException e) {
+                return TypeHandles.Unknown.class;
+            }
+        });
     }
 
     static ITypeConfigurable resolveConfigurable(TypeHandle th) {
@@ -181,6 +196,11 @@ public final class TypeHandleHelpers {
     static IGuiTexture resolveIcon(TypeHandle typeHandle) {
         String id = (typeHandle != null) ? typeHandle.getIdentification() : null;
         return CUSTOM_ID_TO_ICON.getOrDefault(id, IGuiTexture.EMPTY);
+    }
+
+    static Supplier<Object> resolveDefaultValue(TypeHandle typeHandle) {
+        String id = (typeHandle != null) ? typeHandle.getIdentification() : null;
+        return CUSTOM_ID_TO_DEFAULT_VALUE.getOrDefault(id, () -> null);
     }
 
     static boolean isCustomTypeHandle(TypeHandle typeHandle) {

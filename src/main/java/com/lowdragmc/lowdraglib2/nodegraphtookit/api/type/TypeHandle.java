@@ -17,6 +17,7 @@ public final class TypeHandle implements Comparable<TypeHandle> {
     private transient IGuiTexture iconCache;
     private transient int colorCache;
     private transient ITypeConfigurable configurableCache;
+    private transient Object defaultValueCache;
 
     private TypeHandle(String identification) {
         this.identification = TypeHandleHelpers.convertTypeName(identification);
@@ -86,6 +87,13 @@ public final class TypeHandle implements Comparable<TypeHandle> {
             iconCache = TypeHandleHelpers.resolveIcon(this);
         }
         return iconCache;
+    }
+
+    public Object getDefaultValue() {
+        if (defaultValueCache == null) {
+            defaultValueCache = TypeHandleHelpers.resolveDefaultValue(this).get();
+        }
+        return defaultValueCache;
     }
 
     public int getTypeColor() {

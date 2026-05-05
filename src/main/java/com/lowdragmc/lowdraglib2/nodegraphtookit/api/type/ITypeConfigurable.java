@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.type;
 import com.lowdragmc.lowdraglib2.configurator.ConfiguratorAccessors;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
+import com.lowdragmc.lowdraglib2.configurator.ui.ValueConfigurator;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,7 +30,7 @@ public interface ITypeConfigurable {
         }
         // others
         var accessor = ConfiguratorAccessors.findByType(type);
-        return IConfigurable.create(father -> father.addConfigurator(accessor.create(
+        var configurator = IConfigurable.create(father -> father.addConfigurator(accessor.create(
                 "",
                 valueConfigurable::getValue,
                 valueConfigurable::setValue,
@@ -37,6 +38,10 @@ public interface ITypeConfigurable {
                 valueConfigurable.getValueField(),
                 valueConfigurable.getValueOwer()
         )));
+        if (configurator instanceof ValueConfigurator<?> valueConfigurator) {
+            valueConfigurator.setDefaultValue(valueConfigurable.getDefaultValue());
+        }
+        return configurator;
     };
 
     @Nullable

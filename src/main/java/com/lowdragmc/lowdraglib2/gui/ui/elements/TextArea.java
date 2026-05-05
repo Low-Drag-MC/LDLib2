@@ -398,6 +398,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void updateScrollers() {
+        if (!LDLib2.isClient()) return;
         var maxWidth = getMaxWidth();
         var maxHeight = getMaxHeight();
         var leftWidth = maxWidth - contentView.getContentWidth();
@@ -439,6 +440,10 @@ public class TextArea extends BindableUIElement<String[]> {
     @Override
     public String[] getValue() {
         return Arrays.copyOf(value, value.length);
+    }
+
+    public List<String> getLines() {
+        return List.of(value);
     }
 
     public TextArea setLinesResponder(Consumer<String[]> textResponder) {

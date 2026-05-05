@@ -1,4 +1,2 @@
-## v2.2.6
-* Fixed crash while changing the type of variables
-* Fixed Blackboard clear
-* Added variable rename
+## v2.2.8
+* Added Map-Like support for ldlib2 sync / serialization

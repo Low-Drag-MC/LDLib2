@@ -30,7 +30,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return BuiltInRegistries.ITEM.getValue(Identifier.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])).getDefaultInstance();
         }
-        return Items.AIR.getDefaultInstance();
+        return ItemStack.EMPTY;
     }
 
     @Override
