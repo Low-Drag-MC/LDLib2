@@ -27,6 +27,8 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2f;
+
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 import java.util.Optional;
@@ -48,11 +50,18 @@ public class LDLibJEIPlugin implements IModPlugin {
     }
 
     public static Rect2i getArea(UIElement element, boolean content) {
+        Vector2f pos;
+        Vector2f size;
         if (content) {
-            return new Rect2i((int) element.getContentX(), (int) element.getContentY(), (int) element.getContentWidth(), (int) element.getContentHeight());
+            pos = new Vector2f(element.getContentX(), element.getContentY());
+            size = new Vector2f(element.getContentWidth(), element.getContentHeight());
         } else {
-            return new Rect2i((int) element.getPositionX(), (int) element.getPositionY(), (int) element.getSizeWidth(), (int) element.getSizeHeight());
+            pos = new Vector2f(element.getPositionX(), element.getPositionY());
+            size = new Vector2f(element.getSizeWidth(), element.getSizeHeight());
         }
+        var worldPos = element.localToWorld(pos);
+        var worldSize = element.localToWorldNormal(size);
+        return new Rect2i((int) worldPos.x, (int) worldPos.y, (int) worldSize.x, (int) worldSize.y);
     }
 
     public static RecipeIngredientRole getRole(IngredientIO ingredientIO) {
