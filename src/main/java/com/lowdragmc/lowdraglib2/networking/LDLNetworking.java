@@ -22,8 +22,8 @@ public class LDLNetworking {
 
         registrar.playToClient(SPacketAutoSyncBlockEntity.TYPE, SPacketAutoSyncBlockEntity.CODEC, SPacketAutoSyncBlockEntity::execute);
 
-        registrar.playBidirectional(PacketUIRPCEvent.TYPE, PacketUIRPCEvent.CODEC, PacketUIRPCEvent::execute);
-        registrar.playBidirectional(PacketUIRPCEventReturn.TYPE, PacketUIRPCEventReturn.CODEC, PacketUIRPCEventReturn::execute);
+        registrar.playBidirectional(PacketUIRPCEvent.TYPE, PacketUIRPCEvent.CODEC, PacketUIRPCEvent::execute, PacketUIRPCEvent::execute);
+        registrar.playBidirectional(PacketUIRPCEventReturn.TYPE, PacketUIRPCEventReturn.CODEC, PacketUIRPCEventReturn::execute, PacketUIRPCEventReturn::execute);
 
         registrar.playBidirectional(PacketRPCBlockEntity.TYPE, PacketRPCBlockEntity.CODEC,
                 PacketRPCBlockEntity::executeServer, PacketRPCBlockEntity::executeClient);
