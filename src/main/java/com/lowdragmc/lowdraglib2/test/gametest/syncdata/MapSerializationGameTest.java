@@ -1,21 +1,23 @@
-package com.lowdragmc.lowdraglib2.test.syncdata;
+package com.lowdragmc.lowdraglib2.test.gametest.syncdata;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import net.minecraft.core.Direction;
-import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.minecraft.nbt.*;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector3f;
 
 import java.util.Comparator;
@@ -24,8 +26,56 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-@GameTestHolder(LDLib2.MOD_ID)
-public class MapSerializationTest {
+public final class MapSerializationGameTest {
+    private static final String DIRECT_K_DIRECT_V_NBT_PATH = "map_serialization_direct_k_direct_v_nbt";
+    private static final String DIRECT_K_CUSTOM_V_NBT_PATH = "map_serialization_direct_k_custom_v_nbt";
+    private static final String ENUM_K_VECTOR_V_NBT_PATH = "map_serialization_enum_k_vector_v_nbt";
+    private static final String DIRECT_K_READONLY_V_NBT_PATH = "map_serialization_direct_k_readonly_v_nbt";
+    private static final String READONLY_MANAGED_NBT_PATH = "map_serialization_readonly_managed_nbt";
+    private static final String BUFFER_PATH = "map_serialization_buffer";
+    private static final String EMPTY_NBT_PATH = "map_serialization_empty_nbt";
+    private static final String WIRE_FORMAT_NBT_PATH = "map_serialization_wire_format_nbt";
+    private static final String READONLY_K_DIRECT_V_NBT_PATH = "map_serialization_readonly_k_direct_v_nbt";
+    private static final String READONLY_K_READONLY_V_NBT_PATH = "map_serialization_readonly_k_readonly_v_nbt";
+    private static final String READONLY_K_DIRECT_V_BUF_PATH = "map_serialization_readonly_k_direct_v_buf";
+    private static final String READONLY_K_READONLY_V_BUF_PATH = "map_serialization_readonly_k_readonly_v_buf";
+    private static final String DIRECT_K_READONLY_V_BUF_PATH = "map_serialization_direct_k_readonly_v_buf";
+
+    private MapSerializationGameTest() {
+    }
+
+    static void registerFunctions() {
+        SyncDataGameTests.registerFunction(DIRECT_K_DIRECT_V_NBT_PATH, MapSerializationGameTest::directKDirectV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(DIRECT_K_CUSTOM_V_NBT_PATH, MapSerializationGameTest::directKCustomV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(ENUM_K_VECTOR_V_NBT_PATH, MapSerializationGameTest::enumKVectorV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(DIRECT_K_READONLY_V_NBT_PATH, MapSerializationGameTest::directKReadOnlyV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(READONLY_MANAGED_NBT_PATH, MapSerializationGameTest::readOnlyManagedMap_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(BUFFER_PATH, MapSerializationGameTest::bufferRoundTrip);
+        SyncDataGameTests.registerFunction(EMPTY_NBT_PATH, MapSerializationGameTest::emptyMap_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(WIRE_FORMAT_NBT_PATH, MapSerializationGameTest::wireFormatShape_nbt);
+        SyncDataGameTests.registerFunction(READONLY_K_DIRECT_V_NBT_PATH, MapSerializationGameTest::readOnlyKDirectV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(READONLY_K_READONLY_V_NBT_PATH, MapSerializationGameTest::readOnlyKReadOnlyV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(READONLY_K_DIRECT_V_BUF_PATH, MapSerializationGameTest::readOnlyKDirectV_bufRoundTrip);
+        SyncDataGameTests.registerFunction(READONLY_K_READONLY_V_BUF_PATH, MapSerializationGameTest::readOnlyKReadOnlyV_bufRoundTrip);
+        SyncDataGameTests.registerFunction(DIRECT_K_READONLY_V_BUF_PATH, MapSerializationGameTest::directKReadOnlyV_bufRoundTrip);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = SyncDataGameTests.defaultTestData(environment, "empty");
+        SyncDataGameTests.registerFunctionTest(event, DIRECT_K_DIRECT_V_NBT_PATH, SyncDataGameTests.functionKey(DIRECT_K_DIRECT_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, DIRECT_K_CUSTOM_V_NBT_PATH, SyncDataGameTests.functionKey(DIRECT_K_CUSTOM_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, ENUM_K_VECTOR_V_NBT_PATH, SyncDataGameTests.functionKey(ENUM_K_VECTOR_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, DIRECT_K_READONLY_V_NBT_PATH, SyncDataGameTests.functionKey(DIRECT_K_READONLY_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, READONLY_MANAGED_NBT_PATH, SyncDataGameTests.functionKey(READONLY_MANAGED_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, BUFFER_PATH, SyncDataGameTests.functionKey(BUFFER_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, EMPTY_NBT_PATH, SyncDataGameTests.functionKey(EMPTY_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, WIRE_FORMAT_NBT_PATH, SyncDataGameTests.functionKey(WIRE_FORMAT_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, READONLY_K_DIRECT_V_NBT_PATH, SyncDataGameTests.functionKey(READONLY_K_DIRECT_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, READONLY_K_READONLY_V_NBT_PATH, SyncDataGameTests.functionKey(READONLY_K_READONLY_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, READONLY_K_DIRECT_V_BUF_PATH, SyncDataGameTests.functionKey(READONLY_K_DIRECT_V_BUF_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, READONLY_K_READONLY_V_BUF_PATH, SyncDataGameTests.functionKey(READONLY_K_READONLY_V_BUF_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, DIRECT_K_READONLY_V_BUF_PATH, SyncDataGameTests.functionKey(DIRECT_K_READONLY_V_BUF_PATH), testData);
+    }
 
     public static class NestedReadOnly implements IPersistedSerializable {
         @Persisted public int counter = 0;
@@ -71,8 +121,8 @@ public class MapSerializationTest {
 
         public Map<String, NestedReadOnly> roMapDeserialize(CompoundTag c) {
             var m = new HashMap<String, NestedReadOnly>();
-            var keys = c.getList("keys", Tag.TAG_STRING);
-            for (Tag e : keys) m.put(e.getAsString(), new NestedReadOnly());
+            var keys = c.getListOrEmpty("keys");
+            for (Tag e : keys) m.put(e.asString().orElse(""), new NestedReadOnly());
             return m;
         }
 
@@ -100,10 +150,10 @@ public class MapSerializationTest {
 
         public Map<NestedReadOnly, Integer> roKDirectVDeserialize(CompoundTag tag) {
             var m = new LinkedHashMap<NestedReadOnly, Integer>();
-            var keys = tag.getList("keys", Tag.TAG_COMPOUND);
+            var keys = tag.getListOrEmpty("keys");
             for (Tag t : keys) {
                 var c = (CompoundTag) t;
-                m.put(new NestedReadOnly(c.getInt("counter"), c.getString("label")), 0);
+                m.put(new NestedReadOnly(c.getIntOr("counter", 0), c.getStringOr("label", "")), 0);
             }
             return m;
         }
@@ -123,18 +173,27 @@ public class MapSerializationTest {
 
         public Map<NestedReadOnly, NestedReadOnly> roKRoVDeserialize(CompoundTag tag) {
             var m = new LinkedHashMap<NestedReadOnly, NestedReadOnly>();
-            var keys = tag.getList("keys", Tag.TAG_COMPOUND);
+            var keys = tag.getListOrEmpty("keys");
             for (Tag t : keys) {
-                m.put(new NestedReadOnly(((CompoundTag) t).getInt("counter"), ((CompoundTag) t).getString("label")),
+                m.put(new NestedReadOnly(((CompoundTag) t).getIntOr("counter", 0), ((CompoundTag) t).getStringOr("label", "")),
                       new NestedReadOnly());
             }
             return m;
         }
+
+        public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+            var output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, provider);
+            this.serialize(output);
+            return output.buildResult();
+        }
+
+        public void deserializeNBT(RegistryAccess provider, CompoundTag nbt) {
+            var input = TagValueInput.create(ProblemReporter.DISCARDING, provider, nbt);
+            this.deserialize(input);
+        }
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void directKDirectV_nbtRoundTrip(GameTestHelper helper) {
+    private static void directKDirectV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.stringInt.put("a", 1);
@@ -153,9 +212,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void directKCustomV_nbtRoundTrip(GameTestHelper helper) {
+    private static void directKCustomV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.stringStack.put("diamond", new ItemStack(Items.DIAMOND, 7));
@@ -177,9 +234,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void enumKVectorV_nbtRoundTrip(GameTestHelper helper) {
+    private static void enumKVectorV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         for (var d : Direction.values()) {
@@ -203,9 +258,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void directKReadOnlyV_nbtRoundTrip(GameTestHelper helper) {
+    private static void directKReadOnlyV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.readOnlyValues.put("k1", new NestedReadOnly(11, "one"));
@@ -239,9 +292,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void readOnlyManagedMap_nbtRoundTrip(GameTestHelper helper) {
+    private static void readOnlyManagedMap_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.roManaged.put("alpha", new NestedReadOnly(1, "A"));
@@ -272,9 +323,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void bufferRoundTrip(GameTestHelper helper) {
+    private static void bufferRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.stringInt.put("a", 1);
@@ -303,9 +352,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void emptyMap_nbtRoundTrip(GameTestHelper helper) {
+    private static void emptyMap_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         // all maps left empty
@@ -322,9 +369,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void wireFormatShape_nbt(GameTestHelper helper) {
+    private static void wireFormatShape_nbt(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.stringInt.put("a", 1);
@@ -347,9 +392,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void readOnlyKDirectV_nbtRoundTrip(GameTestHelper helper) {
+    private static void readOnlyKDirectV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.roKDirectV.put(new NestedReadOnly(1, "alpha"), 100);
@@ -381,9 +424,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void readOnlyKReadOnlyV_nbtRoundTrip(GameTestHelper helper) {
+    private static void readOnlyKReadOnlyV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.roKRoV.put(new NestedReadOnly(1, "alpha"), new NestedReadOnly(11, "vA"));
@@ -409,9 +450,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void readOnlyKDirectV_bufRoundTrip(GameTestHelper helper) {
+    private static void readOnlyKDirectV_bufRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         // Insert in sorted order so that source/target iteration order matches via
@@ -437,9 +476,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void readOnlyKReadOnlyV_bufRoundTrip(GameTestHelper helper) {
+    private static void readOnlyKReadOnlyV_bufRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.roKRoV.put(new NestedReadOnly(1, "alpha"), new NestedReadOnly(11, "vA"));
@@ -465,9 +502,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
-    public static void directKReadOnlyV_bufRoundTrip(GameTestHelper helper) {
+    private static void directKReadOnlyV_bufRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
         src.readOnlyValues.put("k1", new NestedReadOnly(11, "one"));
@@ -487,7 +522,7 @@ public class MapSerializationTest {
         helper.succeed();
     }
 
-    // --- helpers (mirrors GraphHierarchySerializationTest) ---
+    // --- Helpers ---
 
     private static void assertNotNull(GameTestHelper helper, String label, Object value) {
         if (value == null) helper.fail(label + " is null");

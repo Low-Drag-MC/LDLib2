@@ -119,7 +119,7 @@ public class TestSync implements IMenuTest {
                     e.currentElement.sendMessage("test_message", TagBuilder.compound().add("text", "Message from server!").build());
                 }).onMessage("test_message", (button, message) -> {
                     assert (LDLib2.isRemote());
-                    ((Button)button).setText(message.getString("text"));
+                    ((Button)button).setText(message.getStringOr("text", ""));
                 }),
                 new SearchComponent<>(new SearchComponent.ISearchUI<Block>() {
                     @Override

@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class InventoryMenuMixin {
     @Inject(method = "<init>", at = @At("RETURN"))
     private void ldlib2$onInit(Inventory playerInventory, boolean active, Player owner, CallbackInfo ci) {
-        if (owner.level().isClientSide) {
+        if (owner.level().isClientSide()) {
             // Client-safe scheduling
             Platform.executeOnClient(() -> {
                 NeoForge.EVENT_BUS.post(

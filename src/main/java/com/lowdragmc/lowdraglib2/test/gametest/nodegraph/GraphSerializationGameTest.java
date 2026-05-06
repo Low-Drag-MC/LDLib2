@@ -46,7 +46,7 @@ public final class GraphSerializationGameTest {
         NodeGraphGameTests.registerFunction(TYPE_HANDLE_RESOLVE, GraphSerializationGameTest::typeHandleResolveFallsBackToClassForName);
         NodeGraphGameTests.registerFunction(VARIABLE_INITIALIZATION, GraphSerializationGameTest::variableInitializationModelRoundTrip);
         NodeGraphGameTests.registerFunction(CONSTANT_NODE_OWNER_AND_VALUE_PRESERVED, GraphSerializationGameTest::constantNodeOwnerAndValuePreserved);
-        NodeGraphGameTests.registerFunction(PORT_CONSTANTS_PATH, GraphSerializationGameTest::optionDrivenPortCountSurvivesRoundTrip);
+        NodeGraphGameTests.registerFunction(OPTION_DRIVEN_PORT_COUNT, GraphSerializationGameTest::optionDrivenPortCountSurvivesRoundTrip);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
