@@ -14,6 +14,7 @@
 //import dev.emi.emi.api.stack.EmiIngredient;
 //import dev.emi.emi.api.stack.EmiStackInteraction;
 //import dev.emi.emi.api.widget.Bounds;
+//import org.joml.Vector2f;
 //
 //import java.util.List;
 //import java.util.function.Consumer;
@@ -28,11 +29,18 @@
 //    }
 //
 //    public static Bounds getBounds(UIElement element, boolean content) {
+//        Vector2f pos;
+//        Vector2f size;
 //        if (content) {
-//            return new Bounds((int) element.getContentX(), (int) element.getContentY(), (int) element.getContentWidth(), (int) element.getContentHeight());
+//            pos = new Vector2f(element.getContentX(), element.getContentY());
+//            size = new Vector2f(element.getContentWidth(), element.getContentHeight());
 //        } else {
-//            return new Bounds((int) element.getPositionX(), (int) element.getPositionY(), (int) element.getSizeWidth(), (int) element.getSizeHeight());
+//            pos = new Vector2f(element.getPositionX(), element.getPositionY());
+//            size = new Vector2f(element.getSizeWidth(), element.getSizeHeight());
 //        }
+//        var worldPos = element.localToWorld(pos);
+//        var worldSize = element.localToWorldNormal(size);
+//        return new Bounds((int) worldPos.x, (int) worldPos.y, (int) worldSize.x, (int) worldSize.y);
 //    }
 //
 //    @Override
@@ -59,10 +67,10 @@
 //     */
 //    public static <T extends UIElement> void stackProvider(T element, Supplier<EmiStackInteraction> interaction) {
 //        element.addEventListener(EMIUIEvents.STACK_PROVIDER, event -> {
-//           if (element.isMouseOverElement(event.x, event.y)) {
-//               event.customData = interaction.get();
-//               event.stopPropagation();
-//           }
+//            if (element.isMouseOverElement(event.x, event.y)) {
+//                event.customData = interaction.get();
+//                event.stopPropagation();
+//            }
 //        });
 //    }
 //

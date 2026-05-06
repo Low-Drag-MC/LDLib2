@@ -356,7 +356,7 @@ public class Selector<T> extends BindableUIElement<T> {
             var pos = root.worldToLocalLayoutOffset(worldPos);
             this.dialog.layout(layout -> {
                 layout.left(pos.x);
-                layout.top(worldPos.y);
+                layout.top(pos.y);
                 layout.width(Math.max(this.getSizeWidth(), 50));
             });
         }
