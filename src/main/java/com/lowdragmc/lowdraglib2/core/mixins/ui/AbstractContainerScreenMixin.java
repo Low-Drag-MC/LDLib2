@@ -28,6 +28,18 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
     @Nullable
     protected Slot hoveredSlot;
 
+    @Inject(method = "mouseScrolled", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$mouseScrolled(double x, double y, double scrollX, double scrollY, CallbackInfoReturnable<Boolean> cir) {
+        for (var child : children()) {
+            if (child instanceof IModularUIHolder) {
+                if (child.mouseScrolled(x, y, scrollX, scrollY)) {
+                    cir.setReturnValue(true);
+                    return;
+                }
+            }
+        }
+    }
+
     @Inject(method = "removed", at = @At(value = "RETURN"))
     private void ldlib2$removed(CallbackInfo ci) {
         for (var child : children()) {
