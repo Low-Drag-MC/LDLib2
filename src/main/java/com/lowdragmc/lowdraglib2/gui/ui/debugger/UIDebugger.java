@@ -138,7 +138,7 @@ public class UIDebugger extends UIElement {
         this.container = new UIElement();
         this.container.getLayout().flex(1);
         this.container.getStyle().background(SDFRectTexture.of(0xdd2c2c34)
-                .setRadius(new Vector4f(4, 4, 0, 0)));
+                .setRadius(new Vector4f(0, 0, 4, 4)));
 
         this.hierarchy = new UIHierarchy();
         this.hierarchy.loadUI(modularUI.ui);

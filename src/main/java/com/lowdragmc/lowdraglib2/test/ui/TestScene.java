@@ -73,7 +73,7 @@ public class TestScene implements IScreenTest {
             layout.paddingAll(10);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
         root.addChildren(scene
-                .createScene(dummyWorld)
+                .createScene(dummyWorld, true, null)
                 .setTickWorld(true)
                 .setRenderedCore(dummyWorld.getFilledBlocks().longStream().mapToObj(BlockPos::of).toList())
                 .useCacheBuffer()

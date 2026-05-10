@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.GuiTexturePreviewHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
@@ -109,6 +111,17 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
      */
     default IGuiTexture interpolate(IGuiTexture other, float lerp) {
         return InterpolatedTexture.of(getRawTexture().copy(), other.getRawTexture().copy(), lerp);
+    }
+
+    // ***************** EDITOR  ***************** //
+    default void createPreview(ConfiguratorGroup father) {
+        GuiTexturePreviewHelper.createPreview(this, father);
+    }
+
+    @Override
+    default void buildConfigurator(ConfiguratorGroup father) {
+        createPreview(father);
+        IConfigurable.super.buildConfigurator(father);
     }
 
     @Nullable

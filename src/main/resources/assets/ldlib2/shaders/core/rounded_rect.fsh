@@ -25,8 +25,8 @@ float sdRoundedBox(vec2 p, vec2 b, vec4 r) {
 }
 
 void main() {
-    // Remap radius: vRadius = (tl, tr, br, bl) -> SDF wants (tr, br, bl, tl)
-    vec4 rad = vec4(vRadius.y, vRadius.z, vRadius.w, vRadius.x);
+    // Remap radius: vRadius = (tl, tr, br, bl) -> SDF wants (br, tr, bl, tl) for y-down
+    vec4 rad = vec4(vRadius.z, vRadius.y, vRadius.w, vRadius.x);
 
     float d = sdRoundedBox(vLocalPos, vHalfSize, rad);
     float aa = fwidth(d) * 0.75;

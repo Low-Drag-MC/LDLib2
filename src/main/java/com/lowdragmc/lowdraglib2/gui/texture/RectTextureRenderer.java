@@ -33,10 +33,10 @@ public final class RectTextureRenderer {
         float maxRadiusX = width / 2f;
         float maxRadiusY = height / 2f;
         var radius = texture.getRadius();
-        float r0 = Math.min(radius.w, Math.min(maxRadiusX, maxRadiusY));
-        float r1 = Math.min(radius.z, Math.min(maxRadiusX, maxRadiusY));
-        float r2 = Math.min(radius.y, Math.min(maxRadiusX, maxRadiusY));
-        float r3 = Math.min(radius.x, Math.min(maxRadiusX, maxRadiusY));
+        float r0 = Math.min(radius.x, Math.min(maxRadiusX, maxRadiusY));
+        float r1 = Math.min(radius.y, Math.min(maxRadiusX, maxRadiusY));
+        float r2 = Math.min(radius.z, Math.min(maxRadiusX, maxRadiusY));
+        float r3 = Math.min(radius.w, Math.min(maxRadiusX, maxRadiusY));
 
         Vector2f center = new Vector2f(x + width / 2f, y + height / 2f);
         List<Vector2f> outlineVertices = new ArrayList<>();
@@ -70,7 +70,7 @@ public final class RectTextureRenderer {
         for (int i = 0; i < vertexCount; i++) {
             Vector2f v1 = outlineVertices.get(i);
             Vector2f v2 = outlineVertices.get((i + 1) % vertexCount);
-            context.fillTriangle(LDLibRenderPipelines.GUI_TRIANGLE, center, v1, v2, texture.getColor());
+            context.fillTriangle(LDLibRenderPipelines.GUI_TRIANGLE, center, v2, v1, texture.getColor());
         }
     }
 
@@ -79,10 +79,10 @@ public final class RectTextureRenderer {
         float maxRadiusY = height / 2f;
         var radius = texture.getRadius();
         float stroke = texture.getStroke();
-        float r0 = Math.min(radius.w, Math.min(maxRadiusX, maxRadiusY));
-        float r1 = Math.min(radius.z, Math.min(maxRadiusX, maxRadiusY));
-        float r2 = Math.min(radius.y, Math.min(maxRadiusX, maxRadiusY));
-        float r3 = Math.min(radius.x, Math.min(maxRadiusX, maxRadiusY));
+        float r0 = Math.min(radius.x, Math.min(maxRadiusX, maxRadiusY));
+        float r1 = Math.min(radius.y, Math.min(maxRadiusX, maxRadiusY));
+        float r2 = Math.min(radius.z, Math.min(maxRadiusX, maxRadiusY));
+        float r3 = Math.min(radius.w, Math.min(maxRadiusX, maxRadiusY));
 
         float ir0 = Math.max(r0 - stroke, 0), or0 = r0;
         float ir1 = Math.max(r1 - stroke, 0), or1 = r1;

@@ -241,7 +241,7 @@ scroller-view {
 
 // tab
 .__tab-view_tab_header_container__{
-  background: sdf(#1e1f22,  0 0 3 3, 1, #7f8084);
+  background: sdf(#1e1f22, 3 3 0 0, 1, #7f8084);
   margin-bottom: -1;
   padding-all: 3;
 }
@@ -251,7 +251,7 @@ scroller-view {
 }
 
 .__tab-view_tab_content_container__ {
-  background: sdf(#2c2c34 , 5 5 0 0 , 1, #7f8084);
+  background: sdf(#2c2c34 , 0 0 5 5, 1, #7f8084);
 
 }
 
@@ -269,7 +269,7 @@ tab:host {
 
 // dialog
 .__dialog_title__ {
-  background: sdf(#7e56c2, 0 0 4 4, 1, #ddd);
+  background: sdf(#7e56c2, 4 4 0 0, 1, #ddd);
   transform: translateY(1);
 }
 
@@ -278,13 +278,13 @@ tab:host {
 }
 
 .__dialog_button-container__ {
-  background: sdf(#ff2c2c34, 4 4 0 0, 1, #ddd);
+  background: sdf(#ff2c2c34, 0 0 4 4, 1, #ddd);
   transform: translateY(-1);
 }
 
 // menu
 menu {
-  background: sdf(#2c2c34,  3, 1, #7f8084);
+  background: sdf(#2c2c34, 3, 1, #7f8084);
   arrow: sprite(ldlib2:textures/gui/right.png) scale(0.6);
 }
 
@@ -294,7 +294,7 @@ menu {
 }
 
 .__editor_top__ {
-  background: sdf(#7e56c2, 0 0 4 4);
+  background: sdf(#7e56c2, 4 4 0 0);
 }
 
 .__editor__ button:host {
@@ -380,7 +380,7 @@ ResourceView .__tab-view_tab_content_container__ {
 
 // configurator
 .__configurator-group__ .__configurator-group_container__ {
-  background: sdf(#363640, 4 4 4 0, 1, #7f8084);
+  background: sdf(#363640, 0 4 4 4, 1, #7f8084);
 }
 
 .__configurator-group__ > .__configurator_line__ {

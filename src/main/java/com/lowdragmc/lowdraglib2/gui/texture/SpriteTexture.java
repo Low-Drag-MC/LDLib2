@@ -5,6 +5,8 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.SpriteTextureClientSupport;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -110,5 +112,10 @@ public class SpriteTexture extends TransformTexture {
             return SpriteTextureInterpolation.of(copy(), spriteTexture.copy(), lerp);
         }
         return super.interpolate(other, lerp);
+    }
+
+    @Override
+    public void createPreview(ConfiguratorGroup father) {
+        SpriteTextureClientSupport.createPreview(this, father);
     }
 }

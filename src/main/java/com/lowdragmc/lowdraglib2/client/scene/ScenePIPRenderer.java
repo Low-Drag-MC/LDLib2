@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.client.scene;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.TextureSetup;
@@ -13,7 +12,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.lwjgl.opengl.GL11;
 
 /**
  * PictureInPicture renderer for WorldSceneRenderer.
@@ -55,44 +53,47 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
             int guiScale = Minecraft.getInstance().getWindow().getGuiScale();
             int texWidth = (state.x1() - state.x0()) * guiScale;
             int texHeight = (state.y1() - state.y0()) * guiScale;
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
-            renderer.renderDirect(texWidth, texHeight, state.mouseX(), state.mouseY());
-            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            // mouseX/Y from SceneRenderState are GUI logical px in element-local pre-pose space;
+            // sceneX/Y is the content origin in the same space. Translate to content-relative,
+            // scale to texture px, and flip Y because GL viewport origin is bottom-left while
+            // mouse Y is top-down.
+            int contentMouseX = (int) ((state.mouseX() - state.sceneX()) * guiScale);
+            int contentMouseY = texHeight - (int) ((state.mouseY() - state.sceneY()) * guiScale);
+//            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            renderer.renderDirect(texWidth, texHeight, contentMouseX, contentMouseY);
+//            GL11.glEnable(GL11.GL_SCISSOR_TEST);
         }
     }
 
     @Override
     protected void blitTexture(SceneRenderState renderState, GuiRenderState guiRenderState) {
-        GpuTextureView sceneTexture;
-
         if (renderState.sceneRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
             // Blit from FBO's own color texture
-            sceneTexture = fboRenderer.getColorTextureView();
+            var sceneTexture = fboRenderer.getColorTextureView();
             if (sceneTexture == null) return;
+
+            guiRenderState.addBlitToCurrentLayer(
+                    new BlitRenderState(
+                            RenderPipelines.GUI_TEXTURED_PREMULTIPLIED_ALPHA,
+                            TextureSetup.singleTexture(sceneTexture, RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
+                            renderState.pose(),
+                            renderState.x0(),
+                            renderState.y0(),
+                            renderState.x1(),
+                            renderState.y1(),
+                            0.0F,
+                            1.0F,
+                            1.0F,
+                            0.0F,
+                            -1,
+                            renderState.scissorArea(),
+                            null
+                    )
+            );
         } else {
             // Immediate renderer: use default PIP texture blit
             super.blitTexture(renderState, guiRenderState);
-            return;
         }
-
-        guiRenderState.addBlitToCurrentLayer(
-            new BlitRenderState(
-                RenderPipelines.GUI_TEXTURED_PREMULTIPLIED_ALPHA,
-                TextureSetup.singleTexture(sceneTexture, RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
-                renderState.pose(),
-                renderState.x0(),
-                renderState.y0(),
-                renderState.x1(),
-                renderState.y1(),
-                0.0F,
-                1.0F,
-                1.0F,
-                0.0F,
-                -1,
-                renderState.scissorArea(),
-                null
-            )
-        );
     }
 
     @Override
@@ -107,6 +108,6 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
 
     @Override
     public boolean canBeReusedFor(SceneRenderState state, int textureWidth, int textureHeight) {
-        return true;
+        return super.canBeReusedFor(state, textureWidth, textureHeight);
     }
 }

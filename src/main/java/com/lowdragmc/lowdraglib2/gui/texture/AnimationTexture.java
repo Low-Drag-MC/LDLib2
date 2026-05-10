@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.texture;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import lombok.Getter;
@@ -94,5 +95,10 @@ public class AnimationTexture extends TransformTexture {
     public AnimationTexture setColor(int color) {
         this.color = color;
         return this;
+    }
+
+    @Override
+    public void createPreview(ConfiguratorGroup father) {
+        AnimationTextureClientSupport.createPreview(this, father);
     }
 }

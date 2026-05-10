@@ -103,7 +103,7 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
 
     private void setupFBORendering() {
         ensureFBOCreated();
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+//        GL11.glDisable(GL11.GL_SCISSOR_TEST);
         RenderSystem.outputColorTextureOverride = this.colorTextureView;
         RenderSystem.outputDepthTextureOverride = this.depthTextureView;
     }
@@ -113,7 +113,7 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         RenderSystem.outputDepthTextureOverride = null;
         var mainTarget = Minecraft.getInstance().getMainRenderTarget();
         GlStateManager._viewport(0, 0, mainTarget.width, mainTarget.height);
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+//        GL11.glEnable(GL11.GL_SCISSOR_TEST);
     }
 
     private void ensureFBOCreated() {

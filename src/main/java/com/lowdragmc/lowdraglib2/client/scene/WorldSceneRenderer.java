@@ -382,11 +382,14 @@ public abstract class WorldSceneRenderer {
         GlStateManager._enableDepthTest();
         GlStateManager._enableBlend();
 
-        //setup viewport and clear GL buffers
+        //setup viewport
         GlStateManager._viewport(x, y, width, height);
 
         GlStateManager._depthMask(true);
-        clearView(x, y, width, height);
+        // NB: do NOT issue a raw glClear here. In 26.1 PIP / FBO already clear the target
+        // texture via GpuDevice.clearColorAndDepthTextures before this runs; a raw glClear
+        // would target whatever framebuffer happens to be GL-bound (often the main render
+        // target left over from a prior pass), wiping unrelated content.
 
         //setup projection matrix
         RenderSystem.backupProjectionMatrix();

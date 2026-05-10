@@ -19,13 +19,10 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.math.Size;
 import dev.vfyjxf.taffy.style.AlignItems;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.Map;
 import java.util.WeakHashMap;
 
-@OnlyIn(Dist.CLIENT)
 public final class SpriteTextureClientSupport {
     private static final Map<SpriteTexture, Size> IMAGE_SIZE_CACHE = new WeakHashMap<>();
 
