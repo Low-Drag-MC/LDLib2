@@ -1,14 +1,13 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MeshDataAccessor;
-import com.lowdragmc.lowdraglib2.client.utils.glu.Project;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.PositionedRect;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
+import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.WrappedBlockAndTintGetter;
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
@@ -21,10 +20,10 @@ import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.*;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.chunk.VisibilitySet;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -34,17 +33,15 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.textures.GpuTexture;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -60,12 +57,6 @@ import static net.minecraft.world.level.block.RenderShape.MODEL;
 @OnlyIn(Dist.CLIENT)
 @Accessors(chain = true)
 public abstract class WorldSceneRenderer {
-    protected static final FloatBuffer MODELVIEW_MATRIX_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-    protected static final FloatBuffer PROJECTION_MATRIX_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-    protected static final IntBuffer VIEWPORT_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
-    protected static final FloatBuffer PIXEL_DEPTH_BUFFER = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-    protected static final FloatBuffer OBJECT_POS_BUFFER = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-    private static final float SHEETED_DECAL_TEXTURE_SCALE = 0.0078125F;
 
     enum CacheState {
         UNCREATED,
@@ -104,7 +95,7 @@ public abstract class WorldSceneRenderer {
     /** Long-lived buffer pack backing {@link #cachedMeshes}. Closed in {@link #deleteCacheBuffer()}. */
     @Nullable
     protected SectionBufferBuilderPack cacheBuilders;
-    protected Set<BlockPos> tileEntities;
+    protected Set<BlockPos> blockEntities;
     @Getter
     protected boolean useCache;
     @Getter @Setter
@@ -116,12 +107,34 @@ public abstract class WorldSceneRenderer {
     protected Thread thread;
     @Getter
     protected ParticleManager particleManager;
-    protected final Camera camera = new Camera();
+    /** Position is forced to {@link Vec3#ZERO} so particle / entity extraction yields
+     *  world-space coords (our view matrix already includes the {@code -eyePos} translation
+     *  via {@code lookAt}). Rotation / yaw / pitch are sync'd each frame from
+     *  {@link #cameraEntity} via {@link SceneCamera#setSceneRotation}. */
+    protected final SceneCamera camera = new SceneCamera();
     protected final CameraEntity cameraEntity;
     /** The projection matrix as Matrix4f, kept for project/unProject */
     protected Matrix4f projectionMatrix = new Matrix4f();
+    /** Viewport rect set in {@link #setupCamera}; used by {@link #project} / {@link #unProject}
+     *  so we never need to read GL state via {@code glGetIntegerv(GL_VIEWPORT)}. */
+    protected int viewportX, viewportY, viewportWidth, viewportHeight;
     @Nullable
     protected ProjectionMatrixBuffer projectionMatrixBuffer;
+    /** Lazily-created 4-byte readback buffer for async depth pixel sampling. */
+    @Nullable
+    private GpuBuffer depthReadbackBuffer;
+    /** True between issuing a copyTextureToBuffer and the fence callback firing. */
+    private boolean depthReadInFlight;
+    /** Most recent completed depth sample (NDC 0..1). Lags by 1+ frames; initial value
+     *  corresponds to the far plane so first-frame unProject still yields a valid ray. */
+    private float lastDepthSample = 0.999f;
+    /** Scene-private vanilla submission pipeline (storage + dispatcher + dummy outline source),
+     *  lazily built in {@link #ensureFeatureRenderDispatcher}, closed in {@link #releaseResource}.
+     *  Used by BESR / entity / particle rendering — each call submits into {@code submitNodeStorage}
+     *  then drains via {@code featureRenderDispatcher.renderSolid/TranslucentFeatures/Particles}. */
+    @Nullable private SubmitNodeStorage submitNodeStorage;
+    @Nullable private FeatureRenderDispatcher featureRenderDispatcher;
+    @Nullable private OutlineBufferSource outlineBufferSource;
     @Setter @Nullable
     private Consumer<WorldSceneRenderer> beforeWorldRender;
     @Setter @Nullable
@@ -164,6 +177,61 @@ public abstract class WorldSceneRenderer {
             projectionMatrixBuffer.close();
             projectionMatrixBuffer = null;
         }
+        if (depthReadbackBuffer != null) {
+            depthReadbackBuffer.close();
+            depthReadbackBuffer = null;
+        }
+        // Reset in-flight flag so a future renderer reusing this slot doesn't get stuck
+        // skipping reads forever if the callback never fired (e.g. context loss).
+        depthReadInFlight = false;
+        if (featureRenderDispatcher != null) {
+            featureRenderDispatcher.close();
+            featureRenderDispatcher = null;
+        }
+        submitNodeStorage = null;
+        outlineBufferSource = null;
+    }
+
+    /**
+     * Lazy-init our own {@link SubmitNodeStorage} + {@link FeatureRenderDispatcher} pair.
+     * Vanilla's dispatcher exists on {@code GameRenderer} but its storage is private and
+     * shared with the main world; a private pair isolates scene submission state.
+     */
+    private FeatureRenderDispatcher ensureFeatureRenderDispatcher() {
+        if (featureRenderDispatcher == null) {
+            var mc = Minecraft.getInstance();
+            submitNodeStorage = new SubmitNodeStorage();
+            outlineBufferSource = new OutlineBufferSource();
+            featureRenderDispatcher = new FeatureRenderDispatcher(
+                    submitNodeStorage,
+                    mc.getModelManager(),
+                    mc.renderBuffers().bufferSource(),
+                    mc.getAtlasManager(),
+                    outlineBufferSource,
+                    mc.renderBuffers().crumblingBufferSource(),
+                    mc.font,
+                    mc.gameRenderer.getGameRenderState()
+            );
+        }
+        return featureRenderDispatcher;
+    }
+
+    /** Build a {@link CameraRenderState} positioned at {@link #eyePos}, used by every
+     *  scene submission path (BESR / entity / particle). */
+    private CameraRenderState buildCameraRenderState() {
+        var s = new CameraRenderState();
+        s.pos = new Vec3(eyePos.x(), eyePos.y(), eyePos.z());
+        s.blockPos = BlockPos.containing(eyePos.x(), eyePos.y(), eyePos.z());
+        return s;
+    }
+
+    /** Decode ARGB int into the 0..1 float multipliers used by {@link VertexConsumerWrapper#setColorMultiplier}. */
+    private static void applyArgbColorMultiplier(VertexConsumerWrapper w, int argb) {
+        float a = ((argb >> 24) & 0xFF) / 255f;
+        float r = ((argb >> 16) & 0xFF) / 255f;
+        float g = ((argb >>  8) & 0xFF) / 255f;
+        float b = ( argb        & 0xFF) / 255f;
+        w.setColorMultiplier(r, g, b, a);
     }
 
     public WorldSceneRenderer setParticleManager(ParticleManager particleManager) {
@@ -206,7 +274,7 @@ public abstract class WorldSceneRenderer {
             cacheBuilders.close();
             cacheBuilders = null;
         }
-        this.tileEntities = null;
+        this.blockEntities = null;
         cacheState.set(CacheState.UNCREATED);
         return this;
     }
@@ -379,17 +447,19 @@ public abstract class WorldSceneRenderer {
         int width = viewport.getSize().width;
         int height = viewport.getSize().height;
 
-        GlStateManager._enableDepthTest();
-        GlStateManager._enableBlend();
+        // Record viewport for {@link #project} / {@link #unProject}. We no longer touch
+        // GL_VIEWPORT directly: every RenderPass created by {@code GpuDevice.createCommandEncoder()}
+        // sets its own viewport to the bound color texture size automatically.
+        this.viewportX = x;
+        this.viewportY = y;
+        this.viewportWidth = width;
+        this.viewportHeight = height;
 
-        //setup viewport
-        GlStateManager._viewport(x, y, width, height);
-
-        GlStateManager._depthMask(true);
-        // NB: do NOT issue a raw glClear here. In 26.1 PIP / FBO already clear the target
-        // texture via GpuDevice.clearColorAndDepthTextures before this runs; a raw glClear
-        // would target whatever framebuffer happens to be GL-bound (often the main render
-        // target left over from a prior pass), wiping unrelated content.
+        // Depth test / blend / cull / depth mask are all pipeline-owned in 26.1
+        // (see RenderPipeline.{depthTestFunction, blendFunction, cullMode, ...}); legacy
+        // GlStateManager toggles are dead weight in modern render-pass dispatch. Same for
+        // raw glClear -- PIP / FBO callers already clear their target via
+        // GpuDevice.clearColorAndDepthTextures before invoking us.
 
         //setup projection matrix
         RenderSystem.backupProjectionMatrix();
@@ -410,30 +480,15 @@ public abstract class WorldSceneRenderer {
         posesStack.pushMatrix();
         posesStack.identity();
         posesStack.lookAt(eyePos.x(), eyePos.y(), eyePos.z(), lookAt.x(), lookAt.y(), lookAt.z(), worldUp.x(), worldUp.y(), worldUp.z());
-
-        GlStateManager._activeTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
-        GlStateManager._enableCull();
-    }
-
-    protected void clearView(int x, int y, int width, int height) {
-        GL11.glClearColor(0, 0, 0, 0);
-        GlStateManager._clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
     }
 
     protected void resetCamera() {
-        //reset viewport
-        Minecraft minecraft = Minecraft.getInstance();
-        GlStateManager._viewport(0, 0, minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight());
-
         //reset projection matrix
         RenderSystem.restoreProjectionMatrix();
 
         //reset modelview matrix
         Matrix4fStack posesStack = RenderSystem.getModelViewStack();
         posesStack.popMatrix();
-
-        GlStateManager._disableDepthTest();
-        GlStateManager._enableBlend();
     }
 
     protected void drawWorld() {
@@ -451,7 +506,8 @@ public abstract class WorldSceneRenderer {
             renderUncachedWorld(buffers, particleTicks);
         }
 
-        // TODO: entity rendering uses new extract+submit API, needs SubmitNodeCollector implementation
+        // Entities animate every frame — never participate in the mesh cache.
+        renderEntities(particleTicks);
 
         if (beforeBatchEnd != null) {
             beforeBatchEnd.accept(buffers, particleTicks);
@@ -459,12 +515,7 @@ public abstract class WorldSceneRenderer {
 
         buffers.endBatch();
 
-        if (particleManager != null) {
-            @Nonnull PoseStack poseStack = new PoseStack();
-            poseStack.setIdentity();
-            poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
-            particleManager.render(poseStack, camera, particleTicks, type -> true);
-        }
+        renderSceneParticles(particleTicks);
 
         if (afterWorldRender != null) {
             afterWorldRender.accept(this);
@@ -473,7 +524,7 @@ public abstract class WorldSceneRenderer {
 
     /**
      * Uncached path: per-frame compile each {@code renderedBlocks} group into per-layer meshes
-     * and immediately draw each via the corresponding {@link RenderType}. TESRs are submitted
+     * and immediately draw each via the corresponding {@link RenderType}. BESRs are submitted
      * before TRANSLUCENT so they layer correctly with translucent fluids/blocks.
      */
     private void renderUncachedWorld(MultiBufferSource.BufferSource buffers, float particleTicks) {
@@ -481,13 +532,13 @@ public abstract class WorldSceneRenderer {
         var fixedPack = mc.renderBuffers().fixedBufferPack();
         renderedBlocksMap.forEach((renderedBlocks, hook) -> {
             var region = world instanceof BlockAndTintGetter g ? g : new WrappedBlockAndTintGetter(world);
-            var results = renderBlocks(region, renderedBlocks, fixedPack);
+            var results = renderBlocks(region, renderedBlocks, hook, fixedPack);
             try {
                 for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
                     if (layer == ChunkSectionLayer.TRANSLUCENT && !results.blockEntities.isEmpty()) {
-                        var tesrPoses = new ArrayList<BlockPos>(results.blockEntities.size());
-                        for (BlockEntity be : results.blockEntities) tesrPoses.add(be.getBlockPos());
-                        renderTESR(tesrPoses, new PoseStack(), buffers, hook, particleTicks);
+                        var besrPoses = new ArrayList<BlockPos>(results.blockEntities.size());
+                        for (BlockEntity be : results.blockEntities) besrPoses.add(be.getBlockPos());
+                        renderBESR(besrPoses, new PoseStack(), hook, particleTicks);
                     }
                     MeshData mesh = results.renderedLayers.remove(layer);
                     if (mesh != null) {
@@ -555,7 +606,7 @@ public abstract class WorldSceneRenderer {
                     var region = world instanceof BlockAndTintGetter g ? g : world instanceof DummyWorld dummyWorld ? dummyWorld.getAsClientWorld().get() : new WrappedBlockAndTintGetter(world);
                     for (var entry : renderedBlocksMap.entrySet()) {
                         if (Thread.interrupted()) return;
-                        Results r = renderBlocks(region, entry.getKey(), compileBuilders);
+                        Results r = renderBlocks(region, entry.getKey(), entry.getValue(), compileBuilders);
                         r.renderedLayers.forEach((layer, mesh) ->
                                 compiled.computeIfAbsent(layer, k -> new ArrayList<>()).add(mesh));
                         // blockEntities collected separately below to keep compile-thread minimal.
@@ -582,7 +633,7 @@ public abstract class WorldSceneRenderer {
                 if (thread != null) {
                     Map<ChunkSectionLayer, List<MeshData>> oldMeshes = cachedMeshes;
                     cachedMeshes = compiled;
-                    tileEntities = poses;
+                    blockEntities = poses;
                     cacheState.set(CacheState.COMPILED);
                     thread = null;
                     if (oldMeshes != null) {
@@ -595,18 +646,13 @@ public abstract class WorldSceneRenderer {
         } else {
             var poseStack = new PoseStack();
             for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-                if (layer == ChunkSectionLayer.TRANSLUCENT && tileEntities != null) {
-                    renderTESR(tileEntities, poseStack, mc.renderBuffers().bufferSource(), null, particleTicks);
+                if (layer == ChunkSectionLayer.TRANSLUCENT && blockEntities != null) {
+                    renderBESR(blockEntities, poseStack, null, particleTicks);
                     if (!endBatchLast) {
                         buffers.endBatch();
                     }
-                    if (particleManager != null) {
-                        poseStack.pushPose();
-                        poseStack.setIdentity();
-                        poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
-                        particleManager.render(poseStack, camera, particleTicks, type -> true);
-                        poseStack.popPose();
-                    }
+                    // Particles are rendered once at the end of drawWorld via
+                    // renderSceneParticles(); no per-layer call here.
                 }
                 if (cachedMeshes == null) continue;
                 List<MeshData> meshes = cachedMeshes.get(layer);
@@ -691,6 +737,7 @@ public abstract class WorldSceneRenderer {
      */
     private Results renderBlocks(BlockAndTintGetter region,
                                  Collection<BlockPos> renderedBlocks,
+                                 @Nullable ISceneBlockRenderHook hook,
                                  SectionBufferBuilderPack builders) {
         var mc = Minecraft.getInstance();
         var modelManager = mc.getModelManager();
@@ -704,34 +751,81 @@ public abstract class WorldSceneRenderer {
         var results = new Results();
         BlockModelLighter.enableCaching();
         var startedLayers = new EnumMap<ChunkSectionLayer, BufferBuilder>(ChunkSectionLayer.class);
+
+        // Per-block hook state, captured in closures. The hook is invoked once per BlockPos
+        // inside the loop below; quadOutput / fluidOutput read these to wrap the underlying
+        // BufferBuilder when a transform is active. Zero-overhead when both are identity.
+        final float[] curOffset = new float[3];     // 0 = no offset (matches Vector3f null)
+        final int[] curColor = {-1};                // -1 = no tint
+        final boolean[] curHasTransform = {false};  // cached !(curOffset==0 && curColor==-1)
+        // One wrapper per layer, lazily created. Reused across blocks; its state is rewritten
+        // each quadOutput call (cheap: 4 float + 4 float writes).
+        final EnumMap<ChunkSectionLayer, VertexConsumerWrapper> layerWrappers =
+                new EnumMap<>(ChunkSectionLayer.class);
+
         BlockQuadOutput quadOutput = (x, y, z, quad, instance) -> {
-            var builder = this.getOrBeginLayer(startedLayers, builders, quad.materialInfo().layer());
-            builder.putBlockBakedQuad(x, y, z, quad, instance);
+            var layer = quad.materialInfo().layer();
+            var builder = this.getOrBeginLayer(startedLayers, builders, layer);
+            if (!curHasTransform[0]) {
+                builder.putBlockBakedQuad(x, y, z, quad, instance);
+                return;
+            }
+            var wrapper = layerWrappers.computeIfAbsent(layer, l -> new VertexConsumerWrapper(builder));
+            wrapper.clearOffset();
+            wrapper.addOffset(curOffset[0], curOffset[1], curOffset[2]);
+            wrapper.clearColor();
+            if (curColor[0] != -1) applyArgbColorMultiplier(wrapper, curColor[0]);
+            wrapper.putBlockBakedQuad(x, y, z, quad, instance);
         };
         BlockQuadOutput opaqueQuadOutput = (x, y, z, quad, instance) -> {
             var builder = this.getOrBeginLayer(startedLayers, builders, ChunkSectionLayer.SOLID);
-            builder.putBlockBakedQuad(x, y, z, quad, instance);
+            if (!curHasTransform[0]) {
+                builder.putBlockBakedQuad(x, y, z, quad, instance);
+                return;
+            }
+            var wrapper = layerWrappers.computeIfAbsent(ChunkSectionLayer.SOLID, l -> new VertexConsumerWrapper(builder));
+            wrapper.clearOffset();
+            wrapper.addOffset(curOffset[0], curOffset[1], curOffset[2]);
+            wrapper.clearColor();
+            if (curColor[0] != -1) applyArgbColorMultiplier(wrapper, curColor[0]);
+            wrapper.putBlockBakedQuad(x, y, z, quad, instance);
         };
         // Mutable closure used to thread the per-block section-origin offset into fluidOutput.
         final float[] fluidOffset = new float[3];
         FluidRenderer.Output fluidOutput = layer -> {
             BufferBuilder builder = this.getOrBeginLayer(startedLayers, builders, layer);
             VertexConsumerWrapper wrapper = new VertexConsumerWrapper(builder);
-            // Wrapper offset starts at 0; addOffset == set in this case.
-            wrapper.addOffset(fluidOffset[0], fluidOffset[1], fluidOffset[2]);
+            // Section origin offset first; hook offset (per-block) stacked on top.
+            wrapper.addOffset(fluidOffset[0] + curOffset[0],
+                              fluidOffset[1] + curOffset[1],
+                              fluidOffset[2] + curOffset[2]);
+            if (curColor[0] != -1) applyArgbColorMultiplier(wrapper, curColor[0]);
             return wrapper;
         };
         var vertexSorting = VertexSorting.byDistance(eyePos.x, eyePos.y, eyePos.z);
-
-        // TODO: re-integrate ISceneBlockRenderHook (apply / applyVertexConsumerWrapper) with the
-        //  new BlockQuadOutput-based per-quad dispatch. The 26.0 per-block-per-layer hook model
-        //  doesn't map directly onto the new architecture and needs a redesign.
 
         for (BlockPos pos : renderedBlocks) {
             if (blocked != null && blocked.contains(pos)) {
                 continue;
             }
             var blockState = region.getBlockState(pos);
+
+            // Refresh per-block hook state. Cheap when hook is null (skip both calls).
+            if (hook != null) {
+                Vector3f off = hook.getOffset(world, pos, blockState);
+                if (off != null) {
+                    curOffset[0] = off.x;
+                    curOffset[1] = off.y;
+                    curOffset[2] = off.z;
+                } else {
+                    curOffset[0] = curOffset[1] = curOffset[2] = 0f;
+                }
+                curColor[0] = hook.getColorMultiplier(world, pos, blockState);
+            } else {
+                curOffset[0] = curOffset[1] = curOffset[2] = 0f;
+                curColor[0] = -1;
+            }
+            curHasTransform[0] = curOffset[0] != 0f || curOffset[1] != 0f || curOffset[2] != 0f || curColor[0] != -1;
 
             if (!blockState.isAir()) {
                 // block entity
@@ -797,36 +891,127 @@ public abstract class WorldSceneRenderer {
         return results;
     }
 
-    private void renderTESR(Collection<BlockPos> poses, PoseStack poseStack, MultiBufferSource.BufferSource buffers, @Nullable ISceneBlockRenderHook hook, float partialTicks) {
-        Minecraft mc = Minecraft.getInstance();
+    /**
+     * Submit each BE's special renderer through vanilla's deferred pipeline so model parts /
+     * items / breaking overlays / name tags / ... all draw correctly (matches main-world BESR
+     * behavior). Storage is drained then cleared per call.
+     */
+    private void renderBESR(Collection<BlockPos> poses, PoseStack poseStack,
+                            @Nullable ISceneBlockRenderHook hook, float partialTicks) {
+        if (poses.isEmpty()) return;
+        var mc = Minecraft.getInstance();
         var dispatcher = mc.getBlockEntityRenderDispatcher();
         dispatcher.prepare(new Vec3(eyePos.x(), eyePos.y(), eyePos.z()));
 
-        var cameraRenderState = new CameraRenderState();
-        cameraRenderState.pos = new Vec3(eyePos.x(), eyePos.y(), eyePos.z());
-        cameraRenderState.blockPos = BlockPos.containing(eyePos.x(), eyePos.y(), eyePos.z());
+        var featureDisp = ensureFeatureRenderDispatcher();
+        var storage = submitNodeStorage;
+        var cameraRenderState = buildCameraRenderState();
 
-        var submitCollector = new ImmediateSubmitNodeCollector(buffers);
+        try {
+            for (BlockPos pos : poses) {
+                if (blocked != null && blocked.contains(pos)) continue;
+                BlockEntity be = world.getBlockEntity(pos);
+                if (be == null) continue;
+                var state = dispatcher.tryExtractRenderState(be, partialTicks, null, null);
+                if (state == null) continue;
 
-        for (BlockPos pos : poses) {
-            if (blocked != null && blocked.contains(pos)) continue;
-            BlockEntity tile = world.getBlockEntity(pos);
-            if (tile == null) continue;
-
-            var state = dispatcher.tryExtractRenderState(tile, partialTicks, null, null);
-            if (state == null) continue;
-
-            poseStack.pushPose();
-            poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
-
-            if (hook != null) {
-                hook.applyBESR(world, pos, tile, poseStack, partialTicks);
+                poseStack.pushPose();
+                poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+                if (hook != null) hook.applyBESR(world, pos, be, poseStack, partialTicks);
+                dispatcher.submit(state, poseStack, storage, cameraRenderState);
+                poseStack.popPose();
             }
-
-            dispatcher.submit(state, poseStack, submitCollector, cameraRenderState);
-            poseStack.popPose();
+            featureDisp.renderSolidFeatures();
+            featureDisp.renderTranslucentFeatures();
+            mc.renderBuffers().bufferSource().endBatch();
+        } finally {
+            storage.clear();
         }
     }
+
+    /**
+     * Render every entity in the scene's {@link TrackedDummyWorld} (other Level subclasses
+     * are skipped — no generic entity iterator). Mirrors {@link #renderBESR} for entities.
+     * <p>
+     * Coords note: we pass world coordinates straight to {@code dispatcher.submit(...)},
+     * not vanilla's {@code state.x - camX}, because our view matrix is {@code lookAt(eyePos)}
+     * which already encodes the camera translation.
+     */
+    private void renderEntities(float particleTicks) {
+        if (!(world instanceof TrackedDummyWorld tw)) return;
+        var entitiesIter = tw.getAllRenderedEntities();
+        if (!entitiesIter.iterator().hasNext()) return;
+
+        var mc = Minecraft.getInstance();
+        var dispatcher = mc.getEntityRenderDispatcher();
+        // crosshairPickEntity is @NotNull but only used for outline highlight; cameraEntity is fine.
+        dispatcher.prepare(camera, cameraEntity);
+
+        var featureDisp = ensureFeatureRenderDispatcher();
+        var storage = submitNodeStorage;
+        var cameraRenderState = buildCameraRenderState();
+
+        var poseStack = new PoseStack();
+        var hook = sceneEntityRenderHook;
+        try {
+            for (var entity : entitiesIter) {
+                if (hook != null && !hook.shouldRender(world, entity)) continue;
+                net.minecraft.client.renderer.entity.state.EntityRenderState state;
+                try {
+                    state = dispatcher.extractEntity(entity, particleTicks);
+                } catch (Throwable ignored) {
+                    continue; // a broken renderer for one entity shouldn't kill the frame
+                }
+                if (state == null) continue;
+
+                poseStack.pushPose();
+                if (hook != null) hook.applyEntity(world, entity, poseStack, particleTicks);
+                dispatcher.submit(state, cameraRenderState, state.x, state.y, state.z, poseStack, storage);
+                poseStack.popPose();
+            }
+            featureDisp.renderSolidFeatures();
+            featureDisp.renderTranslucentFeatures();
+            mc.renderBuffers().bufferSource().endBatch();
+        } finally {
+            storage.clear();
+        }
+    }
+
+    /**
+     * Drain {@link ParticleManager}'s live particles through vanilla's particle pipeline
+     * (extract → submit → drain via {@link FeatureRenderDispatcher#renderSolidFeatures()}
+     * + {@link FeatureRenderDispatcher#renderTranslucentParticles()}).
+     * <p>
+     * {@link SceneCamera#position()} returns {@code Vec3.ZERO} so extracted vertices stay in
+     * world space (our {@code lookAt} view matrix already encodes the camera translation).
+     * {@code afterRender()} must run <em>after</em> the dispatcher drains storage, otherwise
+     * the {@code particleCount=0} reset makes the stored render-state look empty.
+     */
+    private void renderSceneParticles(float partialTicks) {
+        if (particleManager == null) return;
+        var mc = Minecraft.getInstance();
+        var featureDisp = ensureFeatureRenderDispatcher();
+        var storage = submitNodeStorage;
+
+        camera.setSceneRotation(cameraEntity.getYRot(), cameraEntity.getXRot());
+
+        try {
+            particleManager.render(storage, buildCameraRenderState(), camera, NO_CULL_FRUSTUM, partialTicks);
+            featureDisp.renderSolidFeatures();
+            featureDisp.renderTranslucentParticles();
+            mc.renderBuffers().bufferSource().endBatch();
+        } finally {
+            particleManager.afterRender();
+            storage.clear();
+        }
+    }
+
+    /** Scene previews are tiny — skip frustum work entirely. */
+    private static final net.minecraft.client.renderer.culling.Frustum NO_CULL_FRUSTUM =
+            new net.minecraft.client.renderer.culling.Frustum(new Matrix4f(), new Matrix4f()) {
+                @Override
+                public boolean pointInFrustum(double x, double y, double z) { return true; }
+            };
 
     public BlockHitResult rayTrace(Vector3f hitPos) {
         var startPos = new Vec3(this.eyePos.x(), this.eyePos.y(), this.eyePos.z());
@@ -842,89 +1027,97 @@ public abstract class WorldSceneRenderer {
         }
     }
 
+    /** Combined projection * modelView, for {@link Matrix4f#project} / {@link Matrix4f#unproject}. */
+    private Matrix4f computeCombinedMatrix() {
+        return new Matrix4f(projectionMatrix).mul(RenderSystem.getModelViewMatrix());
+    }
+
+    private int[] currentViewport() {
+        return new int[] { viewportX, viewportY, viewportWidth, viewportHeight };
+    }
+
     public Vector3f project(Vector3f pos) {
-        //read current rendering parameters
-        RenderSystem.getModelViewMatrix().get(MODELVIEW_MATRIX_BUFFER);
-        projectionMatrix.get(PROJECTION_MATRIX_BUFFER);
-        GL11.glGetIntegerv(GL11.GL_VIEWPORT, VIEWPORT_BUFFER);
-
-        //rewind buffers after write by OpenGL glGet calls
-        MODELVIEW_MATRIX_BUFFER.rewind();
-        PROJECTION_MATRIX_BUFFER.rewind();
-        VIEWPORT_BUFFER.rewind();
-
-        //call gluProject with retrieved parameters
-        Project.gluProject(pos.x(), pos.y(), pos.z(), MODELVIEW_MATRIX_BUFFER, PROJECTION_MATRIX_BUFFER, VIEWPORT_BUFFER, OBJECT_POS_BUFFER);
-
-        //rewind buffers after read by gluProject
-        VIEWPORT_BUFFER.rewind();
-        PROJECTION_MATRIX_BUFFER.rewind();
-        MODELVIEW_MATRIX_BUFFER.rewind();
-
-        //rewind buffer after write by gluProject
-        OBJECT_POS_BUFFER.rewind();
-
-        //obtain position in Screen
-        float winX = OBJECT_POS_BUFFER.get();
-        float winY = OBJECT_POS_BUFFER.get();
-        float winZ = OBJECT_POS_BUFFER.get();
-
-        //rewind buffer after read
-        OBJECT_POS_BUFFER.rewind();
-
-        return new Vector3f(winX, winY, winZ);
+        Vector3f winCoords = new Vector3f();
+        computeCombinedMatrix().project(pos.x(), pos.y(), pos.z(), currentViewport(), winCoords);
+        return winCoords;
     }
 
     public Vector3f unProject(int mouseX, int mouseY) {
-        return unProject(mouseX, mouseY, true);
+        return unProject(mouseX, mouseY, false);
     }
 
     public Vector3f unProject(int mouseX, int mouseY, boolean checkDepth) {
-        var pixelDepth = 0.999f;
+        float pixelDepth = 0.999f;
         if (checkDepth) {
-            //read depth of pixel under mouse
-            GL11.glReadPixels(mouseX, mouseY, 1, 1, GL11.GL_DEPTH_COMPONENT, GL11.GL_FLOAT, PIXEL_DEPTH_BUFFER);
-
-            //rewind buffer after write by glReadPixels
-            PIXEL_DEPTH_BUFFER.rewind();
-
-            //retrieve depth from buffer (0.0-1.0f)
-            pixelDepth = PIXEL_DEPTH_BUFFER.get();
+            pixelDepth = readDepthPixelAsync(mouseX, mouseY);
         }
+        Vector3f objCoords = new Vector3f();
+        computeCombinedMatrix().unproject(mouseX, mouseY, pixelDepth, currentViewport(), objCoords);
+        return objCoords;
+    }
 
-        //rewind buffer after read
-        PIXEL_DEPTH_BUFFER.rewind();
+    /**
+     * Asynchronously schedule a 1-pixel depth read from the currently-bound depth texture
+     * (set by the PIP framework / FBOWorldSceneRenderer via {@code outputDepthTextureOverride}).
+     * Returns the most recently completed sample; first call returns the far-plane fallback.
+     * <p>
+     * The copy is encoded via {@link com.mojang.blaze3d.systems.CommandEncoder#copyTextureToBuffer
+     * copyTextureToBuffer}, which internally registers the readback callback through
+     * {@code RenderSystem.queueFencedTask}; the callback fires when the fence signals (typically
+     * the next frame) without stalling the render thread. Repeated calls within a single frame
+     * coalesce into a single in-flight task.
+     */
+    private float readDepthPixelAsync(int mouseX, int mouseY) {
+        var depthView = RenderSystem.outputDepthTextureOverride;
+        if (depthView == null) return lastDepthSample;
+        var depthTex = depthView.texture();
+        // Vanilla PictureInPictureRenderer creates its depth texture with usage flag 9
+        // (USAGE_RENDER_ATTACHMENT | USAGE_COPY_DST) -- NO USAGE_COPY_SRC. copyTextureToBuffer
+        // would throw IllegalArgumentException("Texture needs USAGE_COPY_SRC..."). When the
+        // bound depth texture isn't readable we fall back to the last completed sample
+        // (initial value: far plane). Subclasses that own their depth texture (e.g.
+        // FBOWorldSceneRenderer) should create it with USAGE_COPY_SRC included to opt in.
+        if ((depthTex.usage() & GpuTexture.USAGE_COPY_SRC) == 0) return lastDepthSample;
+        // Caller may pass a mouse outside the scene viewport (e.g. cursor outside the
+        // scene element); copyTextureToBuffer would throw "source texture not large enough"
+        // for any (x,y) that falls outside the texture. Treat out-of-bounds as "no fresh
+        // sample" and keep returning the last one.
+        int texW = depthTex.getWidth(0);
+        int texH = depthTex.getHeight(0);
+        if (mouseX < 0 || mouseY < 0 || mouseX >= texW || mouseY >= texH) return lastDepthSample;
 
-        //read current rendering parameters
-        RenderSystem.getModelViewMatrix().get(MODELVIEW_MATRIX_BUFFER);
-        projectionMatrix.get(PROJECTION_MATRIX_BUFFER);
-        GL11.glGetIntegerv(GL11.GL_VIEWPORT, VIEWPORT_BUFFER);
-
-        //rewind buffers after write by OpenGL glGet calls
-        MODELVIEW_MATRIX_BUFFER.rewind();
-        PROJECTION_MATRIX_BUFFER.rewind();
-        VIEWPORT_BUFFER.rewind();
-
-        //call gluUnProject with retrieved parameters
-        Project.gluUnProject(mouseX, mouseY, pixelDepth, MODELVIEW_MATRIX_BUFFER, PROJECTION_MATRIX_BUFFER, VIEWPORT_BUFFER, OBJECT_POS_BUFFER);
-
-        //rewind buffers after read by gluUnProject
-        VIEWPORT_BUFFER.rewind();
-        PROJECTION_MATRIX_BUFFER.rewind();
-        MODELVIEW_MATRIX_BUFFER.rewind();
-
-        //rewind buffer after write by gluUnProject
-        OBJECT_POS_BUFFER.rewind();
-
-        //obtain absolute position in world
-        float posX = OBJECT_POS_BUFFER.get();
-        float posY = OBJECT_POS_BUFFER.get();
-        float posZ = OBJECT_POS_BUFFER.get();
-
-        //rewind buffer after read
-        OBJECT_POS_BUFFER.rewind();
-
-        return new Vector3f(posX, posY, posZ);
+        if (!depthReadInFlight) {
+            var device = RenderSystem.getDevice();
+            if (depthReadbackBuffer == null) {
+                depthReadbackBuffer = device.createBuffer(
+                        () -> "scene depth readback",
+                        GpuBuffer.USAGE_MAP_READ | GpuBuffer.USAGE_COPY_DST,
+                        4L
+                );
+            }
+            // Capture the buffer locally so the callback can detect releaseResource() racing
+            // ahead of the fence signal: when the buffer instance has changed (or the
+            // renderer was disposed and depthReadbackBuffer set to null), bail out instead
+            // of dereferencing a closed buffer.
+            final GpuBuffer issuedBuf = depthReadbackBuffer;
+            depthReadInFlight = true;
+            device.createCommandEncoder().copyTextureToBuffer(
+                    depthTex, issuedBuf, 0L,
+                    () -> {
+                        try {
+                            if (issuedBuf != depthReadbackBuffer) return; // released or recreated
+                            try (var view = RenderSystem.getDevice().createCommandEncoder()
+                                    .mapBuffer(issuedBuf.slice(0, 4), true, false)) {
+                                lastDepthSample = view.data().getFloat(0);
+                            }
+                        } finally {
+                            depthReadInFlight = false;
+                        }
+                    },
+                    0, mouseX, mouseY, 1, 1
+            );
+        }
+        return lastDepthSample;
     }
 
     /***
@@ -935,7 +1128,6 @@ public abstract class WorldSceneRenderer {
      */
     protected BlockHitResult screenPos2BlockPosFace(int mouseX, int mouseY, int x, int y, int width, int height) {
         // render a frame
-        GlStateManager._enableDepthTest();
         setupCamera(getPositionedRect(x, y, width, height));
 
         drawWorld();
@@ -956,7 +1148,6 @@ public abstract class WorldSceneRenderer {
      */
     protected Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth, int x, int y, int width, int height) {
         // render a frame
-        GlStateManager._enableDepthTest();
         setupCamera(getPositionedRect(x, y, width, height));
 
         drawWorld();
@@ -967,120 +1158,6 @@ public abstract class WorldSceneRenderer {
         return winPos;
     }
 
-    /**
-     * Immediate-mode SubmitNodeCollector that renders submitted geometry directly
-     * into a MultiBufferSource instead of deferring to a later render pass.
-     */
-    static class ImmediateSubmitNodeCollector implements SubmitNodeCollector {
-        private final MultiBufferSource bufferSource;
-
-        ImmediateSubmitNodeCollector(MultiBufferSource bufferSource) {
-            this.bufferSource = bufferSource;
-        }
-
-        @Override
-        public OrderedSubmitNodeCollector order(int order) {
-            return this; // no ordering needed for immediate rendering
-        }
-
-        @Override
-        public <S> void submitModel(
-                net.minecraft.client.model.Model<? super S> model, S state, PoseStack poseStack,
-                RenderType renderType, int lightCoords, int overlayCoords, int tintedColor,
-                @Nullable net.minecraft.client.renderer.texture.TextureAtlasSprite sprite,
-                int outlineColor, net.minecraft.client.renderer.feature.ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay) {
-            // model.setupAnim is already called by the renderer before submit
-            VertexConsumer buffer = createVertexConsumer(bufferSource, renderType, sprite, poseStack.last(), false);
-            model.renderToBuffer(poseStack, buffer, lightCoords, overlayCoords, tintedColor);
-        }
-
-        @Override
-        public void submitModelPart(
-                net.minecraft.client.model.geom.ModelPart modelPart, PoseStack poseStack,
-                RenderType renderType, int lightCoords, int overlayCoords,
-                @Nullable net.minecraft.client.renderer.texture.TextureAtlasSprite sprite,
-                boolean sheeted, boolean hasFoil, int tintedColor,
-                net.minecraft.client.renderer.feature.ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay,
-                int outlineColor) {
-            VertexConsumer buffer = createVertexConsumer(bufferSource, renderType, sprite, poseStack.last(), sheeted);
-            modelPart.render(poseStack, buffer, lightCoords, overlayCoords, tintedColor);
-        }
-
-        @Override
-        public void submitCustomGeometry(PoseStack poseStack, RenderType renderType,
-                                         SubmitNodeCollector.CustomGeometryRenderer customGeometryRenderer) {
-            VertexConsumer buffer = bufferSource.getBuffer(renderType);
-            customGeometryRenderer.render(poseStack.last(), buffer);
-        }
-
-        @Override
-        public void submitBlockModel(PoseStack poseStack, RenderType renderType,
-                                     java.util.List<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart> parts,
-                                     int[] tintLayers, int lightCoords, int overlayCoords, int outlineColor) {
-            // Rarely used by BESRs; no-op in scene renderer
-        }
-
-        @Override
-        public void submitBreakingBlockModel(PoseStack poseStack,
-                                             net.minecraft.client.renderer.block.dispatch.BlockStateModel model,
-                                             long seed, int progress) {
-            // Not used in scene renderer
-        }
-
-        @Override
-        public void submitItem(PoseStack poseStack, net.minecraft.world.item.ItemDisplayContext displayContext,
-                               int lightCoords, int overlayCoords, int outlineColor, int[] tintLayers,
-                               java.util.List<net.minecraft.client.resources.model.geometry.BakedQuad> quads,
-                               net.minecraft.client.renderer.item.ItemStackRenderState.FoilType foilType) {
-            // Rarely used by BESRs; no-op in scene renderer
-        }
-
-        @Override
-        public void submitMovingBlock(PoseStack poseStack, net.minecraft.client.renderer.block.MovingBlockRenderState state) {
-            // Not applicable in scene renderer
-        }
-
-        // Entity-specific submit methods - no-ops in scene renderer
-        @Override
-        public void submitShadow(PoseStack poseStack, float radius, java.util.List<net.minecraft.client.renderer.entity.state.EntityRenderState.ShadowPiece> pieces) {}
-
-        @Override
-        public void submitNameTag(PoseStack poseStack, @Nullable Vec3 nameTagAttachment, int offset,
-                                  net.minecraft.network.chat.Component name, boolean seeThrough, int lightCoords,
-                                  double distanceToCameraSq, CameraRenderState camera) {}
-
-        @Override
-        public void submitText(PoseStack poseStack, float x, float y, net.minecraft.util.FormattedCharSequence string,
-                               boolean dropShadow, net.minecraft.client.gui.Font.DisplayMode displayMode,
-                               int lightCoords, int color, int backgroundColor, int outlineColor) {}
-
-        @Override
-        public void submitFlame(PoseStack poseStack, net.minecraft.client.renderer.entity.state.EntityRenderState renderState,
-                                org.joml.Quaternionf rotation) {}
-
-        @Override
-        public void submitLeash(PoseStack poseStack, net.minecraft.client.renderer.entity.state.EntityRenderState.LeashState leashState) {}
-
-        @Override
-        public void submitParticleGroup(SubmitNodeCollector.ParticleGroupRenderer particleGroupRenderer) {}
-    }
-
-    private static VertexConsumer createVertexConsumer(
-            MultiBufferSource bufferSource,
-            RenderType renderType,
-            @Nullable TextureAtlasSprite sprite,
-            PoseStack.Pose pose,
-            boolean sheeted
-    ) {
-        VertexConsumer consumer = bufferSource.getBuffer(renderType);
-        if (sprite != null) {
-            consumer = sprite.wrap(consumer);
-        }
-        if (sheeted) {
-            consumer = new SheetedDecalTextureGenerator(consumer, pose, SHEETED_DECAL_TEXTURE_SCALE);
-        }
-        return consumer;
-    }
 
     public static class VertexConsumerWrapper implements VertexConsumer {
 

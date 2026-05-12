@@ -1,13 +1,11 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
 import com.lowdragmc.lowdraglib2.math.PositionedRect;
-import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.platform.Window;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
-import org.lwjgl.opengl.GL11;
 
 /**
  * Created with IntelliJ IDEA.
@@ -49,14 +47,4 @@ public class ImmediateWorldSceneRenderer extends WorldSceneRenderer {
         return super.getPositionRectRevert(x, y, width, height);
     }
 
-    @Override
-    protected void clearView(int x, int y, int width, int height) {
-        GlStateManager._clear(GL11.GL_DEPTH_BUFFER_BIT);
-    }
-
-    @Override
-    protected void resetCamera() {
-        GlStateManager._clear(GL11.GL_DEPTH_BUFFER_BIT);
-        super.resetCamera();
-    }
 }

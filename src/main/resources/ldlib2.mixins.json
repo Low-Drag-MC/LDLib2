@@ -6,10 +6,13 @@
   "plugin": "com.lowdragmc.lowdraglib2.core.mixins.LDLib2MixinPlugin",
   "client": [
     "BlockEntityRendererDispatcherMixin",
+    "GlCommandEncoderMixin",
     "ObjModelMixin",
+    "ParticleFeatureRendererMixin",
     "SimpleTextureMixin",
     "SpriteSourceListMixin",
     "accessor.BufferBuilderAccessor",
+    "accessor.GlBufferAccessor",
     "accessor.MeshDataAccessor",
     "accessor.MinecraftAccessor",
     "ui.AbstractContainerScreenMixin",

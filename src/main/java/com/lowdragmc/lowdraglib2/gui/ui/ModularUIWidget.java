@@ -280,7 +280,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         var keyCode = keyEvent.key();
         var scanCode = keyEvent.scancode();
         var modifiers = keyEvent.modifiers();
-        if (modularUI.isAllowDebugMode() && keyCode == GLFW.GLFW_KEY_F3) {
+        if (modularUI.isAllowDebugMode() && keyCode == GLFW.GLFW_KEY_F12) {
             ModularUIClientAccess.enableDebugger(modularUI, !modularUI.isDebugMode());
         }
         modularUI.lastPressedKeyCode = keyCode;

@@ -1,36 +1,63 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 /**
- * Scene Render State hooks.
- * This is where you decide whether this group of pos should be rendered. What other requirements do you have for rendering.
+ * Hook for customising how a group of blocks is rendered in a {@link WorldSceneRenderer}.
+ * Each {@code renderedBlocks} group is associated with one hook (passed to
+ * {@link WorldSceneRenderer#addRenderedBlocks}). The hook is queried per block — return
+ * per-block offsets / colors / BESR transforms based on position, blockstate, or external
+ * state captured by the implementation.
  */
 public interface ISceneBlockRenderHook {
-    /**
-     * Called before rendering the given render layer
-     */
-    default void apply(RenderPipeline layer) {
 
+    /**
+     * ARGB color multiplier applied to the given block's (and its fluid's) vertices.
+     * Default {@code -1} (0xFFFFFFFF) = no tint.
+     *
+     * <p>Called once per block per frame (uncached) or per block per compile (cached).
+     * In cached mode the returned value is baked into the cached mesh; if the value depends
+     * on dynamic state, call {@link WorldSceneRenderer#needCompileCache()} after that state
+     * changes.
+     *
+     * @param world the scene's level (may be a virtual {@code DummyWorld})
+     * @param pos   the block currently being rendered
+     * @param state the block state at {@code pos}
+     */
+    default int getColorMultiplier(Level world, BlockPos pos, BlockState state) {
+        return -1;
     }
 
     /**
-     * Called before rendering the given block entity
+     * World-space offset added to the given block's (and its fluid's) vertices.
+     * Return {@code null} for no offset.
+     *
+     * <p>Called once per block per frame (uncached) or per block per compile (cached).
+     * In cached mode the returned value is baked into the cached mesh; if the value depends
+     * on dynamic state, call {@link WorldSceneRenderer#needCompileCache()} after that state
+     * changes.
+     *
+     * @param world the scene's level (may be a virtual {@code DummyWorld})
+     * @param pos   the block currently being rendered
+     * @param state the block state at {@code pos}
      */
-    default void applyBESR(Level world, BlockPos pos, BlockEntity blockEntity, PoseStack poseStack, float partialTicks) {
-
+    @Nullable
+    default Vector3f getOffset(Level world, BlockPos pos, BlockState state) {
+        return null;
     }
 
     /**
-     * Called before pushing the vertex data into the buffer during block rendering.
+     * Called once before each BESR submission in this group. The {@link PoseStack} has
+     * already been translated to the block entity's world position; mutate it here for
+     * extra transforms (rotation, scale, additional translation).
      */
-    default void applyVertexConsumerWrapper(BlockAndTintGetter world, BlockPos pos, BlockState state, WorldSceneRenderer.VertexConsumerWrapper wrapperBuffer, RenderPipeline renderPipeline, float partialTicks) {
-
+    default void applyBESR(Level world, BlockPos pos, BlockEntity blockEntity,
+                           PoseStack poseStack, float partialTicks) {
     }
 }

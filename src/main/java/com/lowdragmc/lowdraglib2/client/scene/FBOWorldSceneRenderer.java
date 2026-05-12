@@ -128,7 +128,11 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         colorTexture = device.createTexture(() -> "SceneFBO/Color", 15, TextureFormat.RGBA8, resolutionWidth, resolutionHeight, 1, 1);
         colorTextureView = device.createTextureView(colorTexture);
         TextureFormat depthFormat = Minecraft.getInstance().getMainRenderTarget().getDepthTexture().getFormat();
-        depthTexture = device.createTexture(() -> "SceneFBO/Depth", 9, depthFormat, resolutionWidth, resolutionHeight, 1, 1);
+        // 9 (RENDER_ATTACHMENT | COPY_DST) + 2 (COPY_SRC) = 11.
+        // COPY_SRC is required so WorldSceneRenderer.readDepthPixelAsync can copyTextureToBuffer
+        // for hover/pick depth read-back. Vanilla's PIP framework omits COPY_SRC, so PIP-mode
+        // depth read silently falls back to the cached sample.
+        depthTexture = device.createTexture(() -> "SceneFBO/Depth", 11, depthFormat, resolutionWidth, resolutionHeight, 1, 1);
         depthTextureView = device.createTextureView(depthTexture);
     }
 

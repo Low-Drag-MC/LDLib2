@@ -135,6 +135,8 @@ public class DummyWorld extends Level {
         this.tickRateManager = new TickRateManager();
         if (LDLib2.isClient()) {
             particleManager = new ParticleManager();
+            // ClientLevel proxy is wired lazily in tick(); asClientWorld.get() reads back
+            // `this` and would see uninitialised fields if called from this constructor.
         }
         clockManager = new ClientClockManager();
         this.environmentAttributes = EnvironmentAttributeSystem.builder().build();
@@ -352,6 +354,9 @@ public class DummyWorld extends Level {
     public void tickWorld() {
         tickEntities();
         if (LDLib2.isClient() && particleManager != null) {
+            if (particleManager.getLevel() == null) {
+                particleManager.setLevel(asClientWorld.get());
+            }
             particleManager.tick();
         }
     }

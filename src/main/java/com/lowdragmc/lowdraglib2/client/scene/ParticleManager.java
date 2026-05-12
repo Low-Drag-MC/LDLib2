@@ -1,166 +1,126 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.TrackingEmitter;
+import net.minecraft.client.particle.Particle;
+import net.minecraft.client.particle.ParticleEngine;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.state.level.ParticlesRenderState;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.ParticleRenderType;
-import net.minecraft.client.renderer.texture.TextureManager;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.Queue;
 
 /**
- * @author KilaBash
- * @date 2022/06/05
- * @implNote ParticleManager, for LParticle
+ * Thin wrapper around vanilla {@link ParticleEngine} for scene-local particle simulation —
+ * reuses every ParticleGroup / mod factory / item-pickup / elder-guardian path rather than
+ * re-implementing a SingleQuadParticle-only fork. Engine init is deferred until a
+ * {@link ClientLevel} is wired in via {@link #setLevel}; particles added before then queue
+ * up in {@link #pendingAdds} and flush on first init.
  */
 @OnlyIn(Dist.CLIENT)
 public class ParticleManager {
-    private static final List<ParticleRenderType> RENDER_ORDER = ImmutableList.of(
-            ParticleRenderType.SINGLE_QUADS, ParticleRenderType.ITEM_PICKUP, ParticleRenderType.ELDER_GUARDIANS
-    );
-    private final Queue<TrackingEmitter> trackingEmitters = Queues.newArrayDeque();
-    protected final Queue<Particle> waitToAdded = Queues.newArrayDeque();
-    protected final Map<ParticleRenderType, Queue<Particle>> particles = Maps.newTreeMap(makeParticleRenderTypeComparator(RENDER_ORDER));
-    protected final TextureManager textureManager = Minecraft.getInstance().getTextureManager();
 
-    public ClientLevel level;
+    /** Lazy-init: needs a {@link ClientLevel} which the dummy world provides asynchronously. */
+    @Nullable
+    private ParticleEngine engine;
+    @Nullable
+    @lombok.Getter
+    private ClientLevel level;
 
-    public void setLevel(ClientLevel level) {
+    /** Particles added before {@link #engine} exists; flushed on first {@link #ensureEngine()}. */
+    private final Queue<Particle> pendingAdds = Queues.newArrayDeque();
+
+    /** Reused across frames; {@link ParticlesRenderState#reset()} clears its internal list. */
+    @Nullable
+    private ParticlesRenderState renderState;
+
+    public void setLevel(@Nullable ClientLevel level) {
         this.level = level;
-    }
-
-    public void createTrackingEmitter(Entity entity, ParticleOptions particle) {
-        this.trackingEmitters.add(new TrackingEmitter(level, entity, particle));
-    }
-
-    public void createTrackingEmitter(Entity entity, ParticleOptions particle, int lifeTime) {
-        this.trackingEmitters.add(new TrackingEmitter(level, entity, particle, lifeTime));
-    }
-
-    public void clearAllParticles() {
-        synchronized (waitToAdded) {
-            waitToAdded.clear();
-            particles.clear();
-        }
+        if (engine != null) engine.setLevel(level);
+        else ensureEngine(); // eager — avoids any early addParticle / tick falling into the pending-queue path
     }
 
     public void addParticle(Particle particle) {
-        synchronized (waitToAdded) {
-            waitToAdded.add(particle);
+        if (engine != null) {
+            engine.add(particle);
+        } else {
+            synchronized (pendingAdds) {
+                pendingAdds.add(particle);
+            }
+        }
+    }
+
+    public void createTrackingEmitter(Entity entity, ParticleOptions options) {
+        ensureEngine();
+        if (engine != null) engine.createTrackingEmitter(entity, options);
+    }
+
+    public void createTrackingEmitter(Entity entity, ParticleOptions options, int lifeTime) {
+        ensureEngine();
+        if (engine != null) engine.createTrackingEmitter(entity, options, lifeTime);
+    }
+
+    public void clearAllParticles() {
+        if (engine != null) engine.clearParticles();
+        synchronized (pendingAdds) {
+            pendingAdds.clear();
         }
     }
 
     public int getParticleAmount() {
-        int amount = waitToAdded.size();
-        amount += particles.values().stream().mapToInt(Collection::size).sum();
-        return amount;
+        if (engine == null) return pendingAdds.size();
+        // ParticleEngine.countParticles() returns the count as a string ("12345").
+        try {
+            return Integer.parseInt(engine.countParticles());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     public void tick() {
-        this.particles.forEach((type, particleQueue) -> this.tickParticleList(particleQueue));
-        if (!this.trackingEmitters.isEmpty()) {
-            List<TrackingEmitter> removed = Lists.newArrayList();
+        ensureEngine();
+        if (engine != null) engine.tick();
+    }
 
-            for (TrackingEmitter emitter : this.trackingEmitters) {
-                emitter.tick();
-                if (!emitter.isAlive()) {
-                    removed.add(emitter);
-                }
-            }
-
-            this.trackingEmitters.removeAll(removed);
-        }
-
-        if (!waitToAdded.isEmpty()) {
-            synchronized (waitToAdded) {
-                for (var particle : waitToAdded) {
-                    particles.computeIfAbsent(particle.getGroup(), type -> Queues.newArrayDeque()).add(particle);
-                }
-                waitToAdded.clear();
+    private void ensureEngine() {
+        if (engine != null || level == null) return;
+        var vanillaParticleEngine = Minecraft.getInstance().particleEngine;
+        if (vanillaParticleEngine == null) return; // Minecraft still initialising
+        engine = new ParticleEngine(level, vanillaParticleEngine.resourceManager);
+        synchronized (pendingAdds) {
+            while (!pendingAdds.isEmpty()) {
+                engine.add(pendingAdds.poll());
             }
         }
     }
 
-    private void tickParticleList(Collection<Particle> pParticles) {
-        if (!pParticles.isEmpty()) {
-            var iterator = pParticles.iterator();
-            while(iterator.hasNext()) {
-                var particle = iterator.next();
-                particle.tick();
-                if (!particle.isAlive()) {
-                    iterator.remove();
-                }
-            }
-        }
+    /**
+     * Extract live particles and submit into {@code storage}. Caller must drain via
+     * {@code FeatureRenderDispatcher.renderSolidFeatures() / renderTranslucentParticles()}
+     * <strong>before</strong> calling {@link #afterRender()} — the submitted state objects
+     * are reused across frames and their {@code particleCount} is what the dispatcher sees.
+     */
+    public void render(SubmitNodeStorage storage,
+                       CameraRenderState cameraRenderState,
+                       Camera camera,
+                       Frustum frustum,
+                       float partialTicks) {
+        if (engine == null) return;
+        if (renderState == null) renderState = new ParticlesRenderState();
+        engine.extract(renderState, frustum, camera, partialTicks);
+        renderState.submit(storage, cameraRenderState);
     }
 
-    // todo particle extract
-    public void render(PoseStack pMatrixStack, Camera pActiveRenderInfo, float pPartialTicks, Predicate<ParticleRenderType> renderTypePredicate) {
-//        Minecraft.getInstance().gameRenderer.lightTexture().turnOnLightLayer();
-//        RenderSystem.enableDepthTest();
-//        RenderSystem.activeTexture(org.lwjgl.opengl.GL13.GL_TEXTURE2);
-//        RenderSystem.activeTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
-//        Matrix4fStack posestack = RenderSystem.getModelViewStack();
-//        posestack.pushMatrix();
-//        posestack.mul(pMatrixStack.last().pose());
-//        RenderSystem.applyModelViewMatrix();
-//
-//        for(ParticleRenderType particlerendertype : this.particles.keySet()) {
-//            if (particlerendertype == ParticleRenderType.NO_RENDER || !renderTypePredicate.test(particlerendertype)) continue;
-//            var iterable = this.particles.get(particlerendertype);
-//            if (iterable != null) {
-//                RenderSystem.setShader(GameRenderer::getParticleShader);
-//                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-//                var tesselator = Tesselator.getInstance();
-//                var bufferBuilder = particlerendertype.begin(tesselator, this.textureManager);
-//                if (bufferBuilder == null) continue;
-//
-//                for(var particle : iterable) {
-//                    particle.render(bufferBuilder, pActiveRenderInfo, pPartialTicks);
-//                }
-//
-//                var data = bufferBuilder.build();
-//                if (data == null) continue;
-//                BufferUploader.drawWithShader(data);
-//            }
-//        }
-//
-//        posestack.popMatrix();
-//        RenderSystem.applyModelViewMatrix();
-//        RenderSystem.depthMask(true);
-//        RenderSystem.disableBlend();
-//        Minecraft.getInstance().gameRenderer.lightTexture().turnOffLightLayer();
+    /** Release per-frame submit state. Run AFTER the dispatcher has drained the storage. */
+    public void afterRender() {
+        if (renderState != null) renderState.reset();
     }
-
-    public static Comparator<ParticleRenderType> makeParticleRenderTypeComparator(List<ParticleRenderType> renderOrder) {
-        Comparator<ParticleRenderType> vanillaComparator = Comparator.comparingInt(renderOrder::indexOf);
-        return (typeOne, typeTwo) ->
-        {
-            boolean vanillaOne = renderOrder.contains(typeOne);
-            boolean vanillaTwo = renderOrder.contains(typeTwo);
-
-            if (vanillaOne && vanillaTwo)
-            {
-                return vanillaComparator.compare(typeOne, typeTwo);
-            }
-            if (!vanillaOne && !vanillaTwo)
-            {
-                return Integer.compare(System.identityHashCode(typeOne), System.identityHashCode(typeTwo));
-            }
-            return vanillaOne ? -1 : 1;
-        };
-    }
-
 }

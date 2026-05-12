@@ -231,7 +231,7 @@ public class SceneEditor extends UIElement implements IScene {
         var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (renderer == null) return Optional.empty();
         var mouse = renderer.getPositionedRect(mouseX, mouseY, 0, 0);
-        return Optional.of(new Ray(renderer.getEyePos(), renderer.unProject(mouse.position.x, mouse.position.y, false)));
+        return Optional.of(new Ray(renderer.getEyePos(), renderer.unProject(mouse.position.x, mouse.position.y)));
     }
 
     public Optional<Vector2f> project(Vector3f pos) {
