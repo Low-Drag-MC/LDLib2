@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.gui.texture.rendering.GuiTextureClientRenderers
 import com.lowdragmc.lowdraglib2.gui.texture.rendering.GuiTextureRendererRegistry;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElementClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector.ColorSelectorClientTextures;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList.TreeListClientTextures;
@@ -45,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Consumer;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 
 public class GUIContext implements IGUIContext {
     public GuiGraphicsExtractor graphics;
@@ -193,7 +191,9 @@ public class GUIContext implements IGUIContext {
                 effectiveMask,
                 element.getPositionX(), element.getPositionY(),
                 element.getSizeWidth(), element.getSizeHeight(),
+                style.clip().isDynamicMask(),
                 new Matrix3x2f(),
+                new Matrix3x2f(frame.savedPose().pose),
                 savedScissor
         );
         this.graphics.guiRenderState.addPicturesInPictureState(pipState);

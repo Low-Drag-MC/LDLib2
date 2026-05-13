@@ -69,17 +69,18 @@ public class LDLibRenderPipelines {
             .build();
 
     /**
-     * Multiplies destination alpha by mask sample's alpha. Used by visual-layer
+     * Multiplies destination color and alpha by mask sample's factor. Used by visual-layer
      * mask baking: after a UI subtree is rendered into an off-target, draw the mask
-     * with this pipeline to punch the mask shape into the off-target's alpha channel.
-     * Blend: (ZERO, ONE, ZERO, SRC_ALPHA) → dst.rgb unchanged, dst.alpha *= src.alpha.
+     * with this pipeline to punch the mask shape into the off-target while preserving
+     * premultiplied-alpha semantics for the final GUI_TEXTURED_PREMULTIPLIED_ALPHA blit.
+     * Blend: (ZERO, SRC_ALPHA, ZERO, SRC_ALPHA) -> dst.rgba *= src.alpha.
      */
     public static final RenderPipeline MASK_ALPHA_MULTIPLY = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
             .withVertexShader(LDLib2.id("core/mask_alpha_multiply"))
             .withFragmentShader(LDLib2.id("core/mask_alpha_multiply"))
             .withSampler("Sampler0")
             .withColorTargetState(new ColorTargetState(new BlendFunction(
-                    SourceFactor.ZERO, DestFactor.ONE,
+                    SourceFactor.ZERO, DestFactor.SRC_ALPHA,
                     SourceFactor.ZERO, DestFactor.SRC_ALPHA)))
             .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)

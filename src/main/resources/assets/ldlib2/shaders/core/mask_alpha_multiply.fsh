@@ -19,6 +19,6 @@ void main() {
     vec4 m = texture(Sampler0, texCoord);
     float luma = dot(m.rgb, vec3(0.299, 0.587, 0.114));
     float factor = (m.a >= 0.999) ? luma : m.a;
-    // Blend func (ZERO, ONE, ZERO, SRC_ALPHA): dst.rgb stays, dst.alpha *= src.alpha.
+    // Blend func (ZERO, SRC_ALPHA, ZERO, SRC_ALPHA): dst.rgba *= src.alpha.
     fragColor = vec4(0.0, 0.0, 0.0, factor);
 }

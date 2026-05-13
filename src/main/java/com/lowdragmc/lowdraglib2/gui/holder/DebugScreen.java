@@ -47,7 +47,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         var keyCode = event.key();
-        if (keyCode == GLFW.GLFW_KEY_F3) {
+        if (keyCode == GLFW.GLFW_KEY_F12) {
             onClose();
             return true;
         }

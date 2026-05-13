@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.GameRendererAccessor;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.PictureInPictureRendererAccessor;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTexture;
@@ -37,7 +36,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
 
     // Mask off-target: used when state.mask() != null. Renders the mask IGuiTexture
     // into a separate FBO, then composited into the subtree off-target via
-    // MASK_ALPHA_MULTIPLY pipeline (dst.alpha *= mask.alpha).
+    // MASK_ALPHA_MULTIPLY pipeline (dst.rgba *= mask factor).
     private GpuTexture maskColorTex;
     private GpuTextureView maskColorView;
     private GpuTexture maskDepthTex;
@@ -58,6 +57,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
     @Override
     public boolean canBeReusedFor(VisualLayerPipState state, int textureWidth, int textureHeight) {
         if (inUse) return false;
+        if (state.dynamicMask()) return false;
         return super.canBeReusedFor(state, textureWidth, textureHeight);
     }
 
@@ -152,6 +152,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         var maskState = new GuiRenderState();
         var maskGraphics = new GuiGraphicsExtractor(mc, maskState, 0, 0);
         var maskCtx = GUIContext.of(maskGraphics, 0, 0, 0);
+        maskCtx.pose.pose.set(state.maskPose());
         maskCtx.drawTexture(state.mask(), state.maskX(), state.maskY(), state.maskW(), state.maskH());
 
         maskTargetWrapper.bind(maskColorView, maskColorTex, maskDepthView, maskDepthTex, width, height);
@@ -167,8 +168,8 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         }
 
         // PASS 3: full-screen quad with MASK_ALPHA_MULTIPLY pipeline, sampling the
-        // mask off-target. The blend func (ZERO, ONE, ZERO, SRC_ALPHA) multiplies
-        // subtree off-target's alpha by mask alpha; rgb stays untouched.
+        // mask off-target. The blend func (ZERO, SRC_ALPHA, ZERO, SRC_ALPHA)
+        // multiplies subtree off-target color and alpha by the mask factor.
         var compositeState = new GuiRenderState();
         compositeState.addGuiElement(new BlitRenderState(
                 LDLibRenderPipelines.MASK_ALPHA_MULTIPLY,

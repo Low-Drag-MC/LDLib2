@@ -97,6 +97,9 @@ public class ItemStackTexture extends TransformTexture {
                 return;
             }
             ItemStackTextureClientSupport.updateTick(texture);
+            if (texture.index >= texture.items.length) {
+                texture.index = 0;
+            }
             if (texture.items[texture.index].isEmpty()) {
                 return;
             }

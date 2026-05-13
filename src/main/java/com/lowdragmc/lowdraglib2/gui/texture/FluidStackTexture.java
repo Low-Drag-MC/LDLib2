@@ -97,6 +97,9 @@ public class FluidStackTexture extends TransformTexture {
                 return;
             }
             FluidStackTextureClientSupport.updateTick(texture);
+            if (texture.index >= texture.fluids.length) {
+                texture.index = 0;
+            }
             if (texture.fluids[texture.index].isEmpty()) {
                 return;
             }
