@@ -4,7 +4,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import lombok.Getter;
 import net.minecraft.server.level.ServerLevel;
@@ -28,9 +27,11 @@ import java.util.concurrent.*;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class AsyncThreadData extends SavedData {
-    public static Codec<AsyncThreadData> CODEC = MapCodec.unitCodec(() -> new AsyncThreadData(null));
     public static final SavedDataType<AsyncThreadData> TYPE = new SavedDataType<>(
-            LDLib2.id("async_thread"), AsyncThreadData::new, _ -> CODEC, DataFixTypes.LEVEL
+            LDLib2.id("async_thread"),
+            AsyncThreadData::new,
+            serverLevel -> MapCodec.unitCodec(() -> new AsyncThreadData(serverLevel)),
+            DataFixTypes.LEVEL
     );
     private static final String THREAD_NAME_FORMAT = "LDLib Async Thread-%d";
     private static final int DEFAULT_SCHEDULE_PERIOD_MS = 50;
