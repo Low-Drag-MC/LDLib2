@@ -10,19 +10,32 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.util.Mth;
+import net.minecraft.util.Tuple;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
@@ -771,7 +784,7 @@ public class TextField extends BindableUIElement<String> {
             return;
         }
         historyStack.record(getRawText());
-        if (isCtrlDown()) {
+        if (isCtrlOrCmdDown()) {
             this.deleteWords(count);
         } else {
             this.deleteChars(count);
@@ -861,7 +874,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     private void updateDisplayOffset() {
-        if (!LDLib2.isClient()) return;
+        if (!LDLib2.isRemote()) return;
         displayOffset = TextFieldClientSupport.computeDisplayOffset(this);
     }
 
@@ -1062,5 +1075,148 @@ public class TextField extends BindableUIElement<String> {
         }
         super.loadXml(element);
         afterDeserialize();
+    }
+
+    static final class TextFieldClientSupport {
+        private TextFieldClientSupport() {
+        }
+
+        static void copyHighlightedText(TextField field) {
+            ClipboardManager.INSTANCE.copyDirect(field.getClipboardSelectionText());
+        }
+
+        static String getClipboardText() {
+            var pasted = ClipboardManager.INSTANCE.paste();
+            return pasted instanceof String text ? text : "";
+        }
+
+        static float computeDisplayOffset(TextField field) {
+            var font = Minecraft.getInstance().font;
+            var scale = field.getTextFieldStyle().fontSize() / font.lineHeight;
+            var cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawPrefix(field.getCursorPos()), field.getTextFieldStyle().font())) * scale;
+            var width = field.getContentWidth();
+            float rightPad = 1f;
+            var displayOffset = field.getDisplayOffset();
+            var rel = cursorPosX - displayOffset;
+            if (rel > width - rightPad || rel < 0) {
+                return Math.max(cursorPosX - width + rightPad, 0);
+            }
+            return displayOffset;
+        }
+
+        static int getCursorUnderMouseX(TextField field, double mouseX) {
+            var x = field.getContentX();
+            var font = Minecraft.getInstance().font;
+            var textFont = field.getTextFieldStyle().font();
+            var scale = field.getTextFieldStyle().fontSize() / font.lineHeight;
+            var availableWidth = ((mouseX - x + field.getDisplayOffset()) * scale);
+
+            var lineWithFont = TextUtilities.withFont(field.getRawText(), textFont);
+            var subWithFont = font.substrByWidth(lineWithFont, (int) availableWidth);
+            float fullLength = font.getSplitter().stringWidth(lineWithFont) * scale;
+            float subLength = font.getSplitter().stringWidth(subWithFont) * scale;
+            int col;
+            if (subLength >= fullLength) {
+                col = field.getRawText().length();
+            } else {
+                var sub = subWithFont.getString();
+                float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawCharacterAt(sub.length()), textFont)) * scale;
+                col = (availableWidth - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+            }
+            return Mth.clamp(col, 0, field.getRawText().length());
+        }
+
+        static Tuple<FormattedCharSequence, Float> computeFormattedLine(TextField field) {
+            var font = field.getTextFieldStyle().font();
+            var formattedText = field.getDisplayText();
+            var textWithFont = font.equals(FontDescription.DEFAULT.id())
+                    ? formattedText
+                    : formattedText.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(new FontDescription.Resource(font)));
+            var lines = TextUtilities.computeFormattedLines(
+                    Minecraft.getInstance().font,
+                    textWithFont,
+                    field.getTextFieldStyle().fontSize(),
+                    Float.MAX_VALUE
+            );
+            if (lines.isEmpty()) {
+                return new Tuple<>(FormattedCharSequence.EMPTY, 0f);
+            }
+            return lines.getFirst();
+        }
+    }
+
+    @LDLRegisterClient(name = "text_field", registry = "ldlib2:ui_element_renderer")
+    public static final class TextFieldRenderer extends DelegatingUIElementRenderer<TextField, TextFieldRenderer> {
+        @Override
+        public Class<TextField> type() {
+            return TextField.class;
+        }
+
+        @Override
+        public void drawBackgroundOverlay(TextField field, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundOverlay(field, context);
+                return;
+            }
+            if (field.isSelfOrChildHover() || field.isFocused()) {
+                guiContext.drawTexture(field.getTextFieldStyle().focusOverlay(), field.getPositionX(), field.getPositionY(), field.getSizeWidth(), field.getSizeHeight());
+            }
+            drawParentBackgroundOverlay(field, context);
+        }
+
+        @Override
+        public void drawBackgroundAdditional(TextField field, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundAdditional(field, context);
+                return;
+            }
+            drawBackgroundAdditional(field, guiContext);
+        }
+
+        static void drawBackgroundAdditional(TextField field, GUIContext context) {
+            var x = field.getContentX();
+            var y = field.getContentY();
+            var height = field.getContentHeight();
+            var formattedLine = field.getFormattedLine();
+            Font font = Minecraft.getInstance().font;
+            var fontSize = field.getTextFieldStyle().fontSize();
+            var textFont = field.getTextFieldStyle().font();
+            var scale = fontSize / font.lineHeight;
+
+            var lineY = y + (height - fontSize) / 2;
+            var line = formattedLine.getA();
+            var lineX = x - field.getDisplayOffset();
+
+            context.pose.pushPose();
+            context.pose.translate(lineX, lineY);
+            context.pose.scale(scale, scale);
+            context.graphics.text(font, line, 0, 0, field.getRawText().isEmpty() ?
+                    ColorPattern.LIGHT_GRAY.color : (field.isError() ? field.getTextFieldStyle().errorColor() : field.getTextFieldStyle().textColor()),
+                    !field.getRawText().isEmpty() && field.getTextFieldStyle().textShadow());
+            context.pose.popPose();
+
+            if (field.isFocused() && field.getSelectionStart() != field.getSelectionEnd()) {
+                var min = Math.min(field.getSelectionStart(), field.getSelectionEnd());
+                var max = Math.max(field.getSelectionStart(), field.getSelectionEnd());
+                var minX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, min), textFont)) * scale - field.getDisplayOffset();
+                var maxX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, max), textFont)) * scale - field.getDisplayOffset();
+                DrawerHelperClient.drawSolidRect(context,
+                        RenderPipelines.GUI_TEXT_HIGHLIGHT,
+                        x + minX,
+                        lineY,
+                        maxX - minX,
+                        fontSize, -16776961);
+            }
+
+            var cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, field.getCursorPos()), textFont)) * scale;
+            if (field.isFocused() && System.currentTimeMillis() % 1000 < 500) {
+                DrawerHelperClient.drawSolidRect(context,
+                        x + cursorPosX - field.getDisplayOffset(),
+                        lineY,
+                        1,
+                        fontSize,
+                        field.getTextFieldStyle().cursorColor());
+            }
+        }
     }
 }

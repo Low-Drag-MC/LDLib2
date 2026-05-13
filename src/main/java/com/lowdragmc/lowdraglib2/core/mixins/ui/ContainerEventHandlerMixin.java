@@ -60,6 +60,18 @@ public interface ContainerEventHandlerMixin extends GuiEventListener{
         }
     }
 
+    @Inject(method = "mouseReleased", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$mouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        for (var child : children()) {
+            if (child instanceof IModularUIHolder holder) {
+                var mui = holder.getModularUI();
+                if (mui != null && ModularUIClientAccess.getWidget(mui).mouseReleased(event)) {
+                    cir.setReturnValue(true);
+                }
+            }
+        }
+    }
+
     @Inject(method = "mouseDragged", at = @At(value = "HEAD"), cancellable = true)
     private void ldlib2$mouseDragged(MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
         for (var child : children()) {

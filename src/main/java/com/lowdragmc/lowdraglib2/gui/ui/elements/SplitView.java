@@ -8,8 +8,12 @@ import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
@@ -221,6 +225,38 @@ public abstract class SplitView extends UIElement {
             var height = first.getLayout().getHeight();
             if (height.isPercent()) return height.getValue();
             return 0;
+        }
+    }
+
+    @LDLRegisterClient(name = "split_view", registry = "ldlib2:ui_element_renderer")
+    public static final class SplitViewRenderer extends DelegatingUIElementRenderer<SplitView, SplitViewRenderer> {
+        @Override
+        public Class<SplitView> type() {
+            return SplitView.class;
+        }
+
+        @Override
+        public void drawBackgroundAdditional(SplitView splitView, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundAdditional(splitView, context);
+                return;
+            }
+            drawBackgroundAdditional(splitView, guiContext);
+        }
+
+        static void drawBackgroundAdditional(SplitView splitView, GUIContext context) {
+            if (splitView.isHoverDragging(context.mouseX, context.mouseY)) {
+                context.postRendering(ctx -> {
+                    var icon = splitView.getDraggingIcon();
+                    var width = icon.spriteSize.width;
+                    var height = icon.spriteSize.height;
+                    ctx.drawTexture(icon,
+                            ctx.localMouseX - width / 2f,
+                            ctx.localMouseY - height / 2f,
+                            width,
+                            height);
+                });
+            }
         }
     }
 }

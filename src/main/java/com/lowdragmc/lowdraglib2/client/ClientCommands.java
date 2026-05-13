@@ -1,14 +1,11 @@
 package com.lowdragmc.lowdraglib2.client;
 
-import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +15,6 @@ import java.util.List;
  * @date 2023/2/9
  * @implNote ClientCommands
  */
-@OnlyIn(Dist.CLIENT)
 public class ClientCommands {
 
     public static LiteralArgumentBuilder<CommandSourceStack> createLiteral(String command) {
@@ -27,7 +23,7 @@ public class ClientCommands {
 
     public static List<LiteralArgumentBuilder<CommandSourceStack>> createClientCommands() {
         var commands = new ArrayList<LiteralArgumentBuilder<CommandSourceStack>>();
-        if (LDLib2Registries.SCREEN_TESTS != null && !LDLib2Registries.SCREEN_TESTS.values().isEmpty()) {
+        if (LDLib2ClientRegistries.SCREEN_TESTS != null && !LDLib2ClientRegistries.SCREEN_TESTS.values().isEmpty()) {
             commands.add(createScreenTestCommands());
         }
         return commands;
@@ -35,10 +31,10 @@ public class ClientCommands {
 
     private static LiteralArgumentBuilder<CommandSourceStack> createScreenTestCommands() {
         var builder = Commands.literal("ldlib2_screen_test");
-        if (LDLib2Registries.SCREEN_TESTS == null) {
+        if (LDLib2ClientRegistries.SCREEN_TESTS == null) {
             return builder;
         }
-        for (var uiTest : LDLib2Registries.SCREEN_TESTS) {
+        for (var uiTest : LDLib2ClientRegistries.SCREEN_TESTS) {
             builder = builder.then(createLiteral(uiTest.annotation().name())
                     .executes(context -> {
                         var test = uiTest.value().get();

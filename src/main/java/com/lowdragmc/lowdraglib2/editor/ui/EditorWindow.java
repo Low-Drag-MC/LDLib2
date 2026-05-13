@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import dev.vfyjxf.taffy.style.AlignItems;
@@ -24,9 +25,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 
-import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -64,11 +65,7 @@ public class EditorWindow extends UIElement {
     public static EditorWindow open(Identifier windowID, Supplier<Editor> editorCreator) {
         var editorWindow = MINIMIZED_WINDOWS.remove(windowID);
         if (editorWindow != null && LDLib2.isClient()) {
-            Minecraft.getInstance().getToastManager().addToast(new SystemToast(
-                    new SystemToast.SystemToastId(1000L),
-                    Component.translatable("editor.minimized.title"),
-                    Component.translatable("editor.minimized.tips")
-            ));
+            ClientSupport.notifyOpenToast();
             return editorWindow;
         }
         return new EditorWindow(windowID, editorCreator);
@@ -340,10 +337,22 @@ public class EditorWindow extends UIElement {
         ).addEventListener(UIEvents.MOUSE_DOWN, e -> showEditor(editor));
     }
 
-    public void drawBackgroundAdditional(@Nonnull GUIContext context) {
+    @Override
+    protected void drawBackgroundAdditional(@NotNull IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
         if (window.isSelfOrChildHover() && !isResizing && !isMaximized()) {
             WindowDragHelper.drawResizeIcon(context, window, 4);
+        }
+    }
+
+    public static class ClientSupport {
+        public static void notifyOpenToast() {
+            Minecraft.getInstance().getToastManager().addToast(new SystemToast(
+                    new SystemToast.SystemToastId(1000L),
+                    Component.translatable("editor.minimized.title"),
+                    Component.translatable("editor.minimized.tips")
+            ));
         }
     }
 }

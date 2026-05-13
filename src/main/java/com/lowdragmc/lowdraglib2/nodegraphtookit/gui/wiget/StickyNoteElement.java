@@ -5,11 +5,15 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextArea;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
@@ -128,6 +132,7 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
     }
 
     public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {
+        UIElementRendererRegistry.defaultRenderer().drawBackgroundOverlay(this, guiContext);
         if (isSelected()) {
             guiContext.drawTexture(ColorPattern.BLUE.borderTexture(1),
                     getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
@@ -137,6 +142,23 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
                 guiContext.drawTexture(ColorPattern.BLUE.borderTexture(1).setColor(0xaaffffff),
                         getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
             }
+        }
+    }
+
+    @LDLRegisterClient(name = "sticky_note_element", registry = "ldlib2:ui_element_renderer")
+    public static final class StickyNoteElementRenderer extends DelegatingUIElementRenderer<StickyNoteElement, StickyNoteElementRenderer> {
+        @Override
+        public Class<StickyNoteElement> type() {
+            return StickyNoteElement.class;
+        }
+
+        @Override
+        public void drawBackgroundOverlay(StickyNoteElement element, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundOverlay(element, context);
+                return;
+            }
+            element.drawBackgroundOverlay(guiContext);
         }
     }
 }

@@ -23,8 +23,6 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2f;
 import org.lwjgl.glfw.GLFW;
@@ -32,7 +30,6 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Arrays;
 
-@OnlyIn(Dist.CLIENT)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public final class ModularUIWidget implements GuiEventListener, NarratableEntry, Renderable, IModularUIHolder {
@@ -329,15 +326,15 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
             return CommandEvents.CUT;
         } else if (keyEvent.isSelectAll()) {
             return CommandEvents.SELECT_ALL;
-        } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
+        } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
             return CommandEvents.UNDO;
-        } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlDown() && UIElement.isShiftDown() && !UIElement.isAltDown()) {
+        } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlOrCmdDown() && UIElement.isShiftDown() && !UIElement.isAltDown()) {
             return CommandEvents.REDO;
-        } else if (keyCode == GLFW.GLFW_KEY_Y && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
+        } else if (keyCode == GLFW.GLFW_KEY_Y && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
             return CommandEvents.REDO;
-        } else if (keyCode == GLFW.GLFW_KEY_F && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
+        } else if (keyCode == GLFW.GLFW_KEY_F && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
             return CommandEvents.FIND;
-        } else if (keyCode == GLFW.GLFW_KEY_S && UIElement.isCtrlDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
+        } else if (keyCode == GLFW.GLFW_KEY_S && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
             return CommandEvents.SAVE;
         }
         return null;

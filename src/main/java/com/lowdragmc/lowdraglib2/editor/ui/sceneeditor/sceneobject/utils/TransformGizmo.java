@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils;
 
+import com.lowdragmc.lowdraglib2.client.scene.SceneRenderContext;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor;
@@ -9,10 +10,8 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInterac
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.LayeringTransform;
 import net.minecraft.client.renderer.rendertype.OutputTarget;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
@@ -20,8 +19,6 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -30,7 +27,7 @@ import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 
 public class TransformGizmo extends SceneObject implements ISceneRendering, ISceneInteractable {
-    private static final RenderType POSITION_COLOR_NO_DEPTH = RenderType.create(
+    public static final RenderType POSITION_COLOR_NO_DEPTH = RenderType.create(
             "ldlib_position_color_no_depth",
             RenderSetup.builder(LDLibRenderPipelines.POSITION_COLOR_NO_DEPTH)
                     .sortOnUpload()
@@ -162,7 +159,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public void updateFrame(float partialTicks) {
         super.updateFrame(partialTicks);
         if (getScene() instanceof SceneEditor editor && editor.getModularUI() != null) {
@@ -278,9 +274,10 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
+    public void drawInternal(SceneRenderContext ctx) {
         if (targetTransform == null) return;
+        var poseStack = ctx.poseStack();
+        var bufferSource = ctx.bufferSource();
         var buffer = bufferSource.getBuffer(NO_DEPTH_LINES);
 
         var isHoverXPlane = isHoverPlane(Direction.Axis.X);
@@ -329,24 +326,24 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             }
             // draw x axis
             RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(mode == Mode.TRANSLATE ? 1 : scale.x, 0, 0),
-                    xR, xG, xB, xA, xR, xG, xB, xA);
+                    xR, xG, xB, xA, xR, xG, xB, xA, 1, 1);
             if (isMovingX) {
                 RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(-50, 0, 0), new Vector3f(50, 0, 0),
-                        1, 1, 1, 1, 1, 1, 1, 1);
+                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
             }
             // draw y axis
             RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, mode == Mode.TRANSLATE ? 1 : scale.y, 0),
-                    yR, yG, yB, yA, yR, yG, yB, yA);
+                    yR, yG, yB, yA, yR, yG, yB, yA, 1, 1);
             if (isMovingY) {
                 RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, -50, 0), new Vector3f(0, 50, 0),
-                        1, 1, 1, 1, 1, 1, 1, 1);
+                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
             }
             // draw z axis
             RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, 0, mode == Mode.TRANSLATE ? 1 : scale.z),
-                    zR, zG, zB, zA, zR, zG, zB, zA);
+                    zR, zG, zB, zA, zR, zG, zB, zA, 1, 1);
             if (isMovingZ) {
                 RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, -50), new Vector3f(0, 0, 50),
-                        1, 1, 1, 1, 1, 1, 1, 1);
+                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
             }
 
             if (mode == Mode.TRANSLATE) {
@@ -440,15 +437,15 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             }
             // draw x ring
             RenderBufferUtils.drawCircleLine(poseStack, buffer, new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), 50,
-                    1f, xR, xG, xB, xA);
+                    1f, xR, xG, xB, xA, 1);
 
             // draw y ring
             RenderBufferUtils.drawCircleLine(poseStack, buffer, new Vector3f(0, 0, 0), new Vector3f(0, 1, 0), 50,
-                    1f, yR, yG, yB, yA);
+                    1f, yR, yG, yB, yA, 1);
 
             // draw z ring
             RenderBufferUtils.drawCircleLine(poseStack, buffer, new Vector3f(0, 0, 0), new Vector3f(0, 0, 1), 50,
-                    1f, zR, zG, zB, zA);
+                    1f, zR, zG, zB, zA, 1);
 
             // draw box
             buffer = bufferSource.getBuffer(POSITION_COLOR_NO_DEPTH);
@@ -464,9 +461,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     yR, yG, yB, yA, true);
         }
 
-        if (bufferSource instanceof MultiBufferSource.BufferSource source) {
-            source.endLastBatch();
-        }
+        bufferSource.endLastBatch();
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper.ResizeHandle;
@@ -405,7 +406,9 @@ public class GraphPanel extends UIElement {
         applySlotLayout();
     }
 
-    public void drawBackgroundAdditional(@NotNull GUIContext context) {
+    @Override
+    protected void drawBackgroundAdditional(@NotNull IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
         if (canResize() && this.isSelfOrChildHover() && !isResizing) {
             WindowDragHelper.drawResizeIcon(context, this, 2, activeHandles);

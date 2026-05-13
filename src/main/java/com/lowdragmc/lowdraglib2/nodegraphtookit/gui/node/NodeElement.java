@@ -4,8 +4,12 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
@@ -135,6 +139,7 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
     }
 
     public void drawBackgroundOverlay(@NotNull GUIContext context) {
+        UIElementRendererRegistry.defaultRenderer().drawBackgroundOverlay(this, context);
         if (isSelected()) {
             context.drawTexture(getNodeStyle().focusOverlay(),
                     getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
@@ -148,6 +153,22 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
                         getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
             }
         }
-        com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry.defaultRenderer().drawBackgroundOverlay(this, context);
+    }
+
+    @LDLRegisterClient(name = "node_element", registry = "ldlib2:ui_element_renderer")
+    public static final class NodeElementRenderer extends DelegatingUIElementRenderer<NodeElement, NodeElementRenderer> {
+        @Override
+        public Class<NodeElement> type() {
+            return NodeElement.class;
+        }
+
+        @Override
+        public void drawBackgroundOverlay(NodeElement element, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundOverlay(element, context);
+                return;
+            }
+            element.drawBackgroundOverlay(guiContext);
+        }
     }
 }

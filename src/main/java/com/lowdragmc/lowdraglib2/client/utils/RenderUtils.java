@@ -8,8 +8,6 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -18,7 +16,6 @@ import org.lwjgl.opengl.GL11;
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 
-@OnlyIn(Dist.CLIENT)
 public class RenderUtils {
     private static final RenderType BLOCK_OVERLAY = RenderType.create(
             "ldlib_block_overlay",
@@ -35,6 +32,7 @@ public class RenderUtils {
      * @param renderInMask rendering in the mask
      * @param renderMaskVisible should mask be rendered too
      */
+    @Deprecated
     public static void useStencil(Runnable mask, Runnable renderInMask, boolean renderMaskVisible) {
         GL11.glStencilMask(0xFF);
         GL11.glClearStencil(0);

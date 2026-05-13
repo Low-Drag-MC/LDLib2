@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.configurator;
 
-import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.configurator.accessors.ArrayConfiguratorAccessor;
 import com.lowdragmc.lowdraglib2.configurator.accessors.CollectionConfiguratorAccessor;
 import com.lowdragmc.lowdraglib2.configurator.accessors.IConfiguratorAccessor;
@@ -58,7 +58,7 @@ public class ConfiguratorAccessors {
 
     public static IConfiguratorAccessor<?> findByClass(Class<?> clazz) {
         return ACCESSOR_MAP.computeIfAbsent(clazz, c -> {
-            for (var holder : LDLib2Registries.CONFIGURATOR_ACCESSORS) {
+            for (var holder : LDLib2ClientRegistries.CONFIGURATOR_ACCESSORS) {
                 if (holder.value().test(c)) {
                     return holder.value();
                 }

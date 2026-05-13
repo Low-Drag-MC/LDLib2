@@ -2,8 +2,7 @@ package com.lowdragmc.lowdraglib2.client.scene;
 
 import net.minecraft.client.Camera;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Camera variant for {@link WorldSceneRenderer}. Forces {@link #position()} to
@@ -11,10 +10,9 @@ import net.neoforged.api.distmarker.OnlyIn;
  * {@code world - camera.position()} doesn't double-subtract the eye position — our view
  * matrix is {@code lookAt(eyePos, ...)} which already encodes that translation.
  */
-@OnlyIn(Dist.CLIENT)
 public class SceneCamera extends Camera {
     @Override
-    public Vec3 position() {
+    public @NotNull Vec3 position() {
         return Vec3.ZERO;
     }
 

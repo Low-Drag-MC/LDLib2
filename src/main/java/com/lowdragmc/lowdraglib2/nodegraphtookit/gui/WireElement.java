@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
@@ -313,7 +314,9 @@ public class WireElement extends GraphElement<WireModel> {
         if (mui == null) return;
     }
 
-    public void drawBackgroundAdditional(@NotNull GUIContext context) {
+    @Override
+    protected void drawBackgroundAdditional(@NotNull IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
         updatePortPosition();
         if (drawPoints.isEmpty()) return;

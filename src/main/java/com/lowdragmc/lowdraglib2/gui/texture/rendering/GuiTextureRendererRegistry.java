@@ -1,13 +1,10 @@
 package com.lowdragmc.lowdraglib2.gui.texture.rendering;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@OnlyIn(Dist.CLIENT)
 public final class GuiTextureRendererRegistry {
     private static final Map<Class<?>, GuiTextureRenderer<?>> RENDERERS = new HashMap<>();
     private static final Map<Class<?>, GuiTextureRenderer<?>> RESOLVED_RENDERERS = new HashMap<>();

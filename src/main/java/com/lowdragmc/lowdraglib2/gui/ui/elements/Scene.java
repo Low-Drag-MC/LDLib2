@@ -1,17 +1,29 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.client.scene.*;
+import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
+import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.math.interpolate.Interpolator;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -21,6 +33,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -84,6 +100,11 @@ public class Scene extends UIElement {
     protected boolean tickWorld = true;
     protected Consumer<Scene> beforeWorldRender;
     protected Consumer<Scene> afterWorldRender;
+    /** Ctx-aware overlay hook fired during the renderer's {@code afterTranslucentDispatch}.
+     *  Use this when you need to submit / draw via {@link SceneRenderContext}, e.g. gizmos. */
+    @Nullable
+    @Setter
+    protected SceneRenderHook overlay;
     // editor support
 //    @Nullable
 //    private Identifier editorStructureName = null;
@@ -435,5 +456,167 @@ public class Scene extends UIElement {
 //                }
 //            }
 //        }
+    }
+
+    @LDLRegisterClient(name = "scene", registry = "ldlib2:ui_element_renderer")
+    public static final class SceneRenderer extends DelegatingUIElementRenderer<Scene, SceneRenderer> {
+        @Override
+        public Class<Scene> type() {
+            return Scene.class;
+        }
+
+        @Override
+        public void drawBackgroundAdditional(Scene scene, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundAdditional(scene, context);
+                return;
+            }
+            drawBackgroundAdditional(scene, guiContext);
+        }
+
+        static void drawBackgroundAdditional(Scene scene, GUIContext context) {
+            var x = scene.getContentX();
+            var y = scene.getContentY();
+            var width = scene.getContentWidth();
+            var height = scene.getPaddingHeight();
+            if (scene.interpolator != null && scene.getModularUI() != null) {
+                scene.interpolator.update(scene.getModularUI().getTickCounter() + context.partialTick);
+            }
+            var renderer = scene.<WorldSceneRenderer>getRenderer();
+            if (renderer != null) {
+                context.addPicturesInPictureState(new SceneRenderState(
+                        renderer,
+                        x, y, width, height,
+                        (int) context.localMouseX, (int) context.localMouseY,
+                        context.pose.copyPose(),
+                        Mth.floor(x), Mth.floor(y),
+                        Mth.ceil(x + width), Mth.ceil(y + height),
+                        1.0f,
+                        context.graphics.peekScissorStack()
+                ));
+                if (renderer.isCompiling()) {
+                    double progress = renderer.getCompileProgress();
+                    if (progress > 0) {
+                        context.drawTexture(new TextTexture("Renderer is compiling! " + String.format("%.1f", progress * 100) + "%%")
+                                .setWidth((int) width), x, y, width, height);
+                    }
+                }
+            }
+            if (scene.isHover() && scene.showHoverBlockTips && scene.lastHoverItem != null && scene.getModularUI() != null) {
+                ModularUIClientAccess.setHoverTooltip(scene.getModularUI(), HoverTooltips.create(DrawerHelperClient.getItemToolTip(scene.lastHoverItem).toArray()).stack(scene.lastHoverItem));
+            }
+        }
+
+        public static void configureRenderer(Scene scene, WorldSceneRenderer renderer) {
+            renderer.setOnLookingAt(hit -> updateHoverState(scene, hit));
+            renderer.setAfterTranslucentDispatch(ctx -> renderOverlay(scene, ctx));
+            syncBeforeWorldRender(scene);
+        }
+
+        public static void syncBeforeWorldRender(Scene scene) {
+            var renderer = scene.<WorldSceneRenderer>getRenderer();
+            if (renderer == null) {
+                return;
+            }
+            if (scene.beforeWorldRender != null) {
+                renderer.setBeforeWorldRender(s -> scene.beforeWorldRender.accept(scene));
+            } else {
+                renderer.setBeforeWorldRender(null);
+            }
+        }
+
+        private static void updateHoverState(Scene scene, net.minecraft.world.phys.BlockHitResult hit) {
+            scene.lastHoverPosFace = null;
+            scene.lastHoverItem = null;
+            if (!scene.isHover() || scene.dummyWorld == null || scene.core == null || scene.core.isEmpty()) {
+                return;
+            }
+            var renderer = scene.<WorldSceneRenderer>getRenderer();
+            if (renderer == null) return;
+
+            if (hit != null) {
+                if (scene.core.contains(hit.getBlockPos())) {
+                    scene.lastHoverPosFace = new BlockPosFace(hit.getBlockPos(), hit.getDirection());
+                } else if (!scene.useOrtho) {
+                    Vector3f hitPos = hit.getLocation().toVector3f();
+                    Level world = renderer.world;
+                    Vec3 eyePos = new Vec3(renderer.getEyePos());
+                    hitPos.mul(2);
+                    Vec3 endPos = new Vec3((hitPos.x - eyePos.x), (hitPos.y - eyePos.y), (hitPos.z - eyePos.z));
+                    double min = Float.MAX_VALUE;
+                    for (var pos : scene.core) {
+                        BlockState blockState = world.getBlockState(pos);
+                        if (blockState.getBlock() == Blocks.AIR) continue;
+                        var coreHit = world.clipWithInteractionOverride(eyePos, endPos, pos,
+                                blockState.getShape(world, pos), blockState);
+                        if (coreHit != null && coreHit.getType() != HitResult.Type.MISS) {
+                            double dist = eyePos.distanceToSqr(coreHit.getLocation());
+                            if (dist < min) {
+                                min = dist;
+                                scene.lastHoverPosFace = new BlockPosFace(coreHit.getBlockPos(), coreHit.getDirection());
+                            }
+                        }
+                    }
+                }
+            }
+            var mui = scene.getModularUI();
+            if (scene.lastHoverPosFace != null && mui != null && mui.player != null) {
+                var state = scene.dummyWorld.getBlockState(scene.lastHoverPosFace.pos());
+                scene.lastHoverItem = state.getCloneItemStack(scene.dummyWorld, scene.lastHoverPosFace.pos(), false);
+            }
+        }
+
+        private static void renderOverlay(Scene scene, SceneRenderContext ctx) {
+            var bs = ctx.bufferSource();
+            if (scene.lastSelectedPosFace != null && scene.renderSelect) {
+                RenderUtils.renderBlockOverLay(new PoseStack(), bs, scene.lastSelectedPosFace.pos(),
+                        0.6f, 0, 0, 1.01f);
+            }
+            var tmp = scene.dragging ? scene.lastClickPosFace : scene.lastHoverPosFace;
+            if (scene.renderFacing) {
+                if (scene.lastSelectedPosFace != null) {
+                    drawFacingBorder(bs, scene.lastSelectedPosFace, 0xff00ff00);
+                }
+                if (tmp != null && !tmp.equals(scene.lastSelectedPosFace)) {
+                    drawFacingBorder(bs, tmp, 0xffffffff);
+                }
+            }
+            if (scene.afterWorldRender != null) {
+                scene.afterWorldRender.accept(scene);
+            }
+            if (scene.overlay != null) {
+                scene.overlay.apply(ctx);
+            }
+        }
+
+        private static void drawFacingBorder(net.minecraft.client.renderer.MultiBufferSource.BufferSource bs,
+                                             BlockPosFace posFace, int color) {
+            var poseStack = new PoseStack();
+            RenderUtils.moveToFace(poseStack, posFace.pos().getX(), posFace.pos().getY(), posFace.pos().getZ(), posFace.facing());
+            RenderUtils.rotateToFace(poseStack, posFace.facing(), null);
+            poseStack.scale(1f / 16, 1f / 16, 0);
+            poseStack.translate(-8, -8, 0);
+            var vc = bs.getBuffer(TransformGizmo.POSITION_COLOR_NO_DEPTH);
+            drawBorder(poseStack.last().pose(), vc, 1, 1, 14, 14, color, 1);
+        }
+
+        private static void drawBorder(org.joml.Matrix4f pose, VertexConsumer vc,
+                                       int x, int y, int width, int height, int color, int border) {
+            fill(pose, vc, x - border, y - border, x + width + border, y + 0, color);
+            fill(pose, vc, x - border, y + height, x + width + border, y + height + border, color);
+            fill(pose, vc, x - border, y, x, y + height, color);
+            fill(pose, vc, x + width, y, x + width + border, y + height, color);
+        }
+
+        private static void fill(org.joml.Matrix4f pose, VertexConsumer vc, int x1, int y1, int x2, int y2, int color) {
+            if (x1 > x2) { int t = x1; x1 = x2; x2 = t; }
+            if (y1 > y2) { int t = y1; y1 = y2; y2 = t; }
+            vc.addVertex(pose, x1, y1, 0).setColor(color);
+            vc.addVertex(pose, x1, y2, 0).setColor(color);
+            vc.addVertex(pose, x2, y2, 0).setColor(color);
+            vc.addVertex(pose, x1, y1, 0).setColor(color);
+            vc.addVertex(pose, x2, y2, 0).setColor(color);
+            vc.addVertex(pose, x2, y1, 0).setColor(color);
+        }
     }
 }

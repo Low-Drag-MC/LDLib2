@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextArea;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -11,7 +12,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -79,7 +82,7 @@ public class CodeEditor extends TextArea {
             switch (event.keyCode) {
                 case GLFW.GLFW_KEY_TAB -> insertText("  ");
                 case GLFW.GLFW_KEY_SLASH -> {
-                    if (isCtrlDown()) {
+                    if (isCtrlOrCmdDown()) {
                         toggleCommentAtBol();
                     }
                 }
@@ -204,5 +207,47 @@ public class CodeEditor extends TextArea {
             reparseAndStyle();
         }
         return styledLines;
+    }
+
+    @Override
+    protected void drawContentLines(GUIContext context, Font font, float scale, float x, float y,
+                                    int firstVisibleLine, int lastVisibleLine) {
+        var styled = getStyledLines();
+        for (int i = firstVisibleLine; i <= lastVisibleLine && i < styled.size(); i++) {
+            float lineY = y + i * lineHeight() - getScrollY();
+            StyledLine styledLine = styled.get(i);
+
+            float drawX = x - getScrollX();
+
+            for (StyledText styledText : styledLine.text()) {
+                var textComponent = Component.literal(styledText.text())
+                        .withStyle(style -> style.withFont(new FontDescription.Resource(getTextAreaStyle().font())))
+                        .withStyle(styledText.style());
+
+                context.pose.pushPose();
+                context.pose.translate(drawX, lineY);
+                context.pose.scale(scale, scale);
+                context.graphics.text(
+                        font,
+                        textComponent,
+                        0,
+                        0,
+                        -1,
+                        getTextAreaStyle().textShadow()
+                );
+                context.pose.popPose();
+
+                drawX += font.getSplitter().stringWidth(textComponent) * scale;
+            }
+        }
+        if (isContentEmpty()) {
+            drawPlaceHolder(context, font, scale, x, y);
+        }
+    }
+
+    @Override
+    protected boolean isContentEmpty() {
+        var styled = getStyledLines();
+        return styled.isEmpty() || (styled.size() == 1 && styled.getFirst().text().isEmpty());
     }
 }

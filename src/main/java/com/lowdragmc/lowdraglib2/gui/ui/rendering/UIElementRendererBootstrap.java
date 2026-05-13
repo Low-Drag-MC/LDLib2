@@ -4,10 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
 public final class UIElementRendererBootstrap {
     private UIElementRendererBootstrap() {
     }

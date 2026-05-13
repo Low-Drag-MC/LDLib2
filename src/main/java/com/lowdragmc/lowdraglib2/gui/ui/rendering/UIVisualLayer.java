@@ -1,13 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
-import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.mojang.blaze3d.pipeline.MainTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import net.minecraft.client.Minecraft;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.ArrayDeque;

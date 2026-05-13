@@ -8,12 +8,18 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import net.minecraft.client.Minecraft;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -189,7 +195,7 @@ public class TextElement extends UIElement {
     private List<Tuple<FormattedCharSequence, Float>> formattedLines = Collections.emptyList();
 
     public void recompute() {
-        if (!LDLib2.isClient()) return;
+        if (!LDLib2.isRemote()) return;
         TextElementRenderer.recompute(this);
     }
 
@@ -250,5 +256,107 @@ public class TextElement extends UIElement {
     @Override
     protected void parseXmlChildElement(Element childElement) {
         // not able to add children for text
+    }
+
+    @LDLRegisterClient(name = "text_element", registry = "ldlib2:ui_element_renderer")
+    public static final class TextElementRenderer extends DelegatingUIElementRenderer<TextElement, TextElementRenderer> {
+        @Override
+        public Class<TextElement> type() {
+            return TextElement.class;
+        }
+
+        public static void recompute(TextElement textElement) {
+            float maxWidth;
+            var wrap = textElement.getTextStyle().textWrap();
+            var font = textElement.getTextStyle().font();
+            if (textElement.getTextStyle().adaptiveWidth() || wrap == TextWrap.NONE || wrap == TextWrap.ROLL || wrap == TextWrap.HOVER_ROLL) {
+                maxWidth = Float.MAX_VALUE;
+            } else {
+                maxWidth = textElement.getContentWidth();
+            }
+            textElement.setFormattedLines(TextUtilities.computeFormattedLines(
+                    Minecraft.getInstance().font,
+                    TextUtilities.withFont(textElement.getText(), font),
+                    textElement.getTextStyle().fontSize(),
+                    maxWidth
+            ));
+            if (textElement.getTextStyle().adaptiveWidth()) {
+                Style.importantPipeline(textElement.getLayout(), layout -> layout.width(textElement.getFormattedLines().stream().findFirst().map(Tuple::getB).orElse(0f) + textElement.getSizeWidth() - textElement.getContentWidth()));
+            } else {
+                textElement.getStyleBag().removeCandidates(LayoutProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            }
+            if (textElement.getTextStyle().adaptiveHeight()) {
+                Style.importantPipeline(textElement.getLayout(), layout -> layout.height(textElement.getFormattedLines().size() * (textElement.getTextStyle().fontSize() + textElement.getTextStyle().lineSpacing()) - textElement.getTextStyle().lineSpacing() + textElement.getSizeHeight() - textElement.getContentHeight()));
+            } else {
+                textElement.getStyleBag().removeCandidates(LayoutProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
+            }
+        }
+
+        @Override
+        public void drawBackgroundAdditional(TextElement textElement, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundAdditional(textElement, context);
+                return;
+            }
+            drawBackgroundAdditional(textElement, guiContext);
+        }
+
+        static void drawBackgroundAdditional(TextElement textElement, GUIContext context) {
+            var formattedLines = textElement.getFormattedLines();
+            if (formattedLines.isEmpty()) return;
+            var font = Minecraft.getInstance().font;
+            var defaultLineHeight = font.lineHeight;
+            var x = textElement.getContentX();
+            var y = textElement.getContentY();
+            var width = textElement.getContentWidth();
+            var height = textElement.getContentHeight();
+            var hAlign = textElement.getTextStyle().textAlignHorizontal();
+            var vAlign = textElement.getTextStyle().textAlignVertical();
+            var lineHeight = textElement.getTextStyle().fontSize();
+            var lineSpacing = textElement.getTextStyle().lineSpacing();
+            var color = textElement.getTextStyle().textColor();
+            var dropShadow = textElement.getTextStyle().textShadow();
+            var scale = lineHeight / defaultLineHeight;
+
+            List<Tuple<FormattedCharSequence, Float>> displayLines = formattedLines;
+            var textWrap = textElement.getTextStyle().textWrap();
+            if (textWrap == TextWrap.HIDE) {
+                displayLines = formattedLines.subList(0, Math.min(1, formattedLines.size()));
+            }
+
+            var totalTextHeight = displayLines.size() * (lineHeight + lineSpacing) - lineSpacing;
+            var startY = switch (vAlign) {
+                case TOP -> y;
+                case CENTER -> y + (height - totalTextHeight) / 2;
+                case BOTTOM -> y + (height - totalTextHeight);
+            };
+
+            var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && textElement.isSelfOrChildHover());
+            for (int i = 0; i < displayLines.size(); i++) {
+                var tuple = displayLines.get(i);
+                var line = tuple.getA();
+                float lineWidth = tuple.getB();
+                var lineX = x;
+                if (roll && lineWidth > width) {
+                    var rollSpeed = textElement.getTextStyle().rollSpeed();
+                    float totalW = width + lineWidth + 10;
+                    var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int) (System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
+                    lineX = (float) (x + width - totalW * t);
+                } else {
+                    lineX = switch (hAlign) {
+                        case LEFT -> x;
+                        case CENTER -> (lineWidth > width) ? x : (x + (width - lineWidth) / 2);
+                        case RIGHT -> x + (width - lineWidth);
+                    };
+                }
+
+                var lineY = startY + i * (lineHeight + lineSpacing);
+                context.pose.pushPose();
+                context.pose.translate(lineX, lineY);
+                context.pose.scale(scale, scale);
+                context.graphics.text(font, line, 0, 0, color, dropShadow);
+                context.pose.popPose();
+            }
+        }
     }
 }

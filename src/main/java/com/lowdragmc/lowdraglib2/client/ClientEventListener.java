@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.EditorResourceEvent;
-import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
@@ -14,10 +13,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.commands.CommandSourceStack;
 import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
@@ -29,7 +26,6 @@ import java.util.List;
  * @implNote EventListener
  */
 @EventBusSubscriber(modid = LDLib2.MOD_ID, value = Dist.CLIENT)
-@OnlyIn(Dist.CLIENT)
 public class ClientEventListener {
 
     @SubscribeEvent
@@ -58,7 +54,7 @@ public class ClientEventListener {
             MCSprites.init((ResourceInstance<IGuiTexture>) event.resourceInstance);
         }
     }
-//
+
 //    @SubscribeEvent
 //    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
 //        // memoize and delay, to make sure ui is generated after the world loading

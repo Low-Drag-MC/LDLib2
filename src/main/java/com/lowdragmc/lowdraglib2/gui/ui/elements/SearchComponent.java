@@ -10,12 +10,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.lowdraglib2.utils.search.ISearch;
 import com.lowdragmc.lowdraglib2.utils.search.SearchEngine;
@@ -484,4 +488,27 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 //        ENTITY_TYPE,
 //        POTION,
 //    }
+
+    @LDLRegisterClient(name = "search_component", registry = "ldlib2:ui_element_renderer")
+    public static final class SearchComponentRenderer extends DelegatingUIElementRenderer<SearchComponent<?>, SearchComponentRenderer> {
+        @Override
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<SearchComponent<?>> type() {
+            return (Class<SearchComponent<?>>) (Class) SearchComponent.class;
+        }
+
+        @Override
+        public void drawBackgroundOverlay(SearchComponent<?> searchComponent, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundOverlay(searchComponent, context);
+                return;
+            }
+            if (searchComponent.isSelfOrChildHover() || searchComponent.textField.isFocused()) {
+                guiContext.drawTexture(searchComponent.getSearchStyle().focusOverlay(),
+                        searchComponent.getPositionX(), searchComponent.getPositionY(),
+                        searchComponent.getSizeWidth(), searchComponent.getSizeHeight());
+            }
+            drawParentBackgroundOverlay(searchComponent, context);
+        }
+    }
 }

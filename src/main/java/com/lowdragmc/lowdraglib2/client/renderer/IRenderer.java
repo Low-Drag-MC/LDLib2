@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib2.client.renderer;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
@@ -14,8 +14,6 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.*;
@@ -37,7 +35,7 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
 
     static Codec<IRenderer> createCodec() {
         if (LDLib2.isClient()) {
-            return LDLib2Registries.RENDERERS.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
+            return LDLib2ClientRegistries.RENDERERS.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
                     optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
                             .orElseGet(() -> MapCodec.unit(EMPTY)));
         } else {
@@ -54,7 +52,6 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
         return CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result().orElse(EMPTY);
     }
 
-    @OnlyIn(Dist.CLIENT)
     default IRenderer copy() {
         return deserializeWrapper(serializeWrapper());
     }

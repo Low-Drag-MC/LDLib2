@@ -68,14 +68,14 @@ public class BehaviorSettings implements Settings {
        }
 
        // Ctrl + SHIFT + S → save as project
-       if (UIElement.isCtrlDown()
+       if (UIElement.isCtrlOrCmdDown()
                && UIElement.isShiftDown()
                && event.keyCode == GLFW.GLFW_KEY_S) {
            editor.saveAsProject(null); // pass null
        }
 
        // Ctrl + S → save project
-       if (UIElement.isCtrlDown()
+       if (UIElement.isCtrlOrCmdDown()
                && event.keyCode == GLFW.GLFW_KEY_S) {
            editor.saveProject(null); // pass null
        }

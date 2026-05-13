@@ -204,6 +204,7 @@ public abstract class Editor extends UIElement {
     }
 
     protected void initEditorSettings() {
+        if (!LDLib2.isClient()) return;
         editorSettings.registerSettings(new AppearanceSettings(), AppearanceSettings.CODEC);
         editorSettings.registerSettings(new BehaviorSettings(), BehaviorSettings.CODEC);
     }

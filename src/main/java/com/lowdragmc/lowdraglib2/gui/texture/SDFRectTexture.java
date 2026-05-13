@@ -4,7 +4,10 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.RegisteredGuiTextureRenderer;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.TransformTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
@@ -84,5 +87,27 @@ public class SDFRectTexture extends TransformTexture {
             return blended;
         }
         return super.interpolate(other, lerp);
+    }
+
+    @LDLRegisterClient(name = "sdf_rect_texture", registry = "ldlib2:gui_texture_renderer")
+    public static final class RegisteredSDFRectTextureRenderer implements RegisteredGuiTextureRenderer<SDFRectTexture, RegisteredSDFRectTextureRenderer> {
+        @Override
+        public Class<SDFRectTexture> type() {
+            return SDFRectTexture.class;
+        }
+
+        @Override
+        public void draw(SDFRectTexture texture, GUIContext context, float x, float y, float width, float height) {
+            TransformTextureRenderer.draw(texture, context, x, y, width, height, this::drawInternal);
+        }
+
+        private void drawInternal(SDFRectTexture texture, GUIContext context, float x, float y, float width, float height) {
+            if (ColorUtils.alpha(texture.getColor()) > 0) {
+                context.fillRoundedRect(x, y, width, height, texture.getRadius(), texture.getColor());
+            }
+            if (texture.getStroke() > 0 && ColorUtils.alpha(texture.getBorderColor()) > 0) {
+                context.borderRoundedRect(x, y, width, height, texture.getRadius(), texture.getStroke(), texture.getBorderColor());
+            }
+        }
     }
 }

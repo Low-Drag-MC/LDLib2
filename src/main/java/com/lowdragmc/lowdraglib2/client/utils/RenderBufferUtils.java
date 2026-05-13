@@ -4,8 +4,6 @@ import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix3x2fc;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
@@ -17,35 +15,36 @@ import oshi.util.tuples.Pair;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-@OnlyIn(Dist.CLIENT)
 public class RenderBufferUtils {
 
     public static void drawLine(PoseStack.Pose pose, VertexConsumer buffer, Vector3f from, Vector3f to,
-                                float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
+                                float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea, float sW, float eW) {
         var normalDir = new Vector3f(to.x - from.x, to.y - from.y, to.z - from.z).normalize();
+        // 26.1's LINES_SNIPPET uses POSITION_COLOR_NORMAL_LINE_WIDTH; LineWidth must be present
+        // per vertex or BufferBuilder.endLastVertex throws "Missing elements in vertex: LineWidth".
         buffer.addVertex(pose, from.x, from.y, from.z).setColor(sr, sg, sb, sa)
-                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z);
+                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z).setLineWidth(sW);
         buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
-                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z);
+                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z).setLineWidth(eW);
         if (buffer instanceof MultiBufferSource.BufferSource source) {
             source.endLastBatch();
         }
     }
 
     public static void drawLine(Matrix4f pose, VertexConsumer buffer, Vector3f from, Vector3f to,
-                                float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
+                                float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea, float sW, float eW) {
         var normalDir = new Vector3f(to.x - from.x, to.y - from.y, to.z - from.z).normalize();
         normalDir = pose.transformDirection(normalDir);
         buffer.addVertex(pose, from.x, from.y, from.z).setColor(sr, sg, sb, sa)
-                .setNormal(normalDir.x, normalDir.y, normalDir.z);
+                .setNormal(normalDir.x, normalDir.y, normalDir.z).setLineWidth(sW);
         buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
-                .setNormal(normalDir.x, normalDir.y, normalDir.z);
+                .setNormal(normalDir.x, normalDir.y, normalDir.z).setLineWidth(eW);
         if (buffer instanceof MultiBufferSource.BufferSource source) {
             source.endLastBatch();
         }
     }
 
-    public static void drawLines(PoseStack poseStack, VertexConsumer buffer, List<Vector3f> points, int colorStart, int colorEnd) {
+    public static void drawLines(PoseStack poseStack, VertexConsumer buffer, List<Vector3f> points, int colorStart, int colorEnd, float widthStart, float widthEnd) {
         if (points.size() < 2) return;
         Vector3f lastPoint = points.getFirst();
         Vector3f point;
@@ -60,47 +59,47 @@ public class RenderBufferUtils {
             float e = i * 1f / points.size();
             point = points.get(i);
             drawLine(poseStack.last().pose(), buffer, lastPoint, point, (sr + er * s) / 255, (sg + eg * s) / 255, (sb + eb * s) / 255, (sa + ea * s) / 255,
-                    (sr + er * e) / 255, (sg + eg * e) / 255, (sb + eb * e) / 255, (sa + ea * e) / 255);
+                    (sr + er * e) / 255, (sg + eg * e) / 255, (sb + eb * e) / 255, (sa + ea * e) / 255, widthStart, widthEnd);
         }
     }
 
-    public static void drawCubeFrame(PoseStack poseStack, VertexConsumer buffer, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float r, float g, float b, float a) {
+    public static void drawCubeFrame(PoseStack poseStack, VertexConsumer buffer, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float r, float g, float b, float a, float width) {
         var mat = poseStack.last().pose();
-        buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a).setNormal(1,0,0);
-        buffer.addVertex(mat, maxX, minY, minZ).setColor(r, g, b, a).setNormal(1,0,0);
+        buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
 
-        buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a).setNormal(0,1,0);
-        buffer.addVertex(mat, minX, maxY, minZ).setColor(r, g, b, a).setNormal(0,1,0);
+        buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
 
-        buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a).setNormal(0,0,1);
-        buffer.addVertex(mat, minX, minY, maxZ).setColor(r, g, b, a).setNormal(0,0,1);
+        buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
 
-        buffer.addVertex(mat, minX, maxY, maxZ).setColor(r, g, b, a).setNormal(1,0,0);
-        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(r, g, b, a).setNormal(1,0,0);
+        buffer.addVertex(mat, minX, maxY, maxZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
 
-        buffer.addVertex(mat, maxX, minY, maxZ).setColor(r, g, b, a).setNormal(0,1,0);
-        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,1,0);
+        buffer.addVertex(mat, maxX, minY, maxZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
 
-        buffer.addVertex(mat, maxX, maxY, minZ).setColor(r, g, b, a).setNormal(0,0,1);
-        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,0,1);
+        buffer.addVertex(mat, maxX, maxY, minZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
 
-        buffer.addVertex(mat, minX, maxY, minZ).setColor(r, g, b, a).setNormal(0,0,1);
-        buffer.addVertex(mat, minX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,0,1);
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
+        buffer.addVertex(mat, minX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
 
-        buffer.addVertex(mat, minX, maxY, minZ).setColor(r, g, b, a).setNormal(1,0,0);
-        buffer.addVertex(mat, maxX, maxY, minZ).setColor(r, g, b, a).setNormal(1,0,0);
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
+        buffer.addVertex(mat, maxX, maxY, minZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
 
-        buffer.addVertex(mat, maxX, minY, minZ).setColor(r, g, b, a).setNormal(0,0,1);
-        buffer.addVertex(mat, maxX, minY, maxZ).setColor(r, g, b, a).setNormal(0,0,1);
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
+        buffer.addVertex(mat, maxX, minY, maxZ).setColor(r, g, b, a).setNormal(0,0,1).setLineWidth(width);
 
-        buffer.addVertex(mat, maxX, minY, minZ).setColor(r, g, b, a).setNormal(0,1,0);
-        buffer.addVertex(mat, maxX, maxY, minZ).setColor(r, g, b, a).setNormal(0,1,0);
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
+        buffer.addVertex(mat, maxX, maxY, minZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
 
-        buffer.addVertex(mat, minX, minY, maxZ).setColor(r, g, b, a).setNormal(1,0,0);
-        buffer.addVertex(mat, maxX, minY, maxZ).setColor(r, g, b, a).setNormal(1,0,0);
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
+        buffer.addVertex(mat, maxX, minY, maxZ).setColor(r, g, b, a).setNormal(1,0,0).setLineWidth(width);
 
-        buffer.addVertex(mat, minX, minY, maxZ).setColor(r, g, b, a).setNormal(0,1,0);
-        buffer.addVertex(mat, minX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,1,0);
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
+        buffer.addVertex(mat, minX, maxY, maxZ).setColor(r, g, b, a).setNormal(0,1,0).setLineWidth(width);
     }
 
     public static void drawCubeFace(PoseStack poseStack, VertexConsumer buffer, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float red, float green, float blue, float a, boolean shade) {
@@ -457,7 +456,7 @@ public class RenderBufferUtils {
     public static void drawCircleLine(@Nonnull PoseStack poseStack, VertexConsumer buffer,
                                       Vector3f position,
                                       Vector3f normal, int segments,
-                                      float radius, float red, float green, float blue, float alpha) {
+                                      float radius, float red, float green, float blue, float alpha, float lineWidth) {
 
         Matrix4f pose = poseStack.last().pose();
 
@@ -495,7 +494,7 @@ public class RenderBufferUtils {
                     .add(u.x * x + v.x * y, u.y * x + v.y * y, u.z * x + v.z * y);
 
             if (i > 0) {
-                drawLine(pose, buffer, prevPoint, currentPoint, red, green, blue, alpha, red, green, blue, alpha);
+                drawLine(pose, buffer, prevPoint, currentPoint, red, green, blue, alpha, red, green, blue, alpha, lineWidth, lineWidth);
             } else {
                 firstPoint.set(currentPoint);
             }
@@ -503,7 +502,7 @@ public class RenderBufferUtils {
             prevPoint.set(currentPoint);
         }
 
-        drawLine(pose, buffer, prevPoint, firstPoint, red, green, blue, alpha, red, green, blue, alpha);
+        drawLine(pose, buffer, prevPoint, firstPoint, red, green, blue, alpha, red, green, blue, alpha, lineWidth, lineWidth);
     }
 
     /**

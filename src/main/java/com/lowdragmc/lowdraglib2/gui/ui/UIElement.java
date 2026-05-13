@@ -47,7 +47,6 @@ import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.Mth;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.joml.*;
@@ -1626,8 +1625,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return UIElementInputAccess.isShiftDown();
     }
 
-    public static boolean isCtrlDown() {
+    public static boolean isControlDown() {
         return UIElementInputAccess.isCtrlDown();
+    }
+
+    public static boolean isCtrlOrCmdDown() {
+        return UIElementInputAccess.isCtrlOrCmdDown();
     }
 
     public static boolean isAltDown() {

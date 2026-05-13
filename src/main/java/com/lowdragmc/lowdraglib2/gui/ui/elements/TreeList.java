@@ -7,7 +7,9 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.GuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -551,5 +553,41 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     public static IGuiTexture createDraggingOverlay(int mode) {
         return TreeListDraggingOverlays.of(mode);
+    }
+
+    public static final class TreeListDraggingOverlays {
+        private static Provider provider = mode -> IGuiTexture.EMPTY;
+
+        private TreeListDraggingOverlays() {}
+
+        public static void register(Provider provider) {
+            TreeListDraggingOverlays.provider = provider;
+        }
+
+        public static IGuiTexture of(int mode) {
+            return DynamicTexture.of(() -> provider.overlay(mode));
+        }
+
+        public interface Provider {
+            IGuiTexture overlay(int mode);
+        }
+    }
+
+    public static final class TreeListClientTextures {
+        private static final TreeListDraggingOverlays.Provider PROVIDER = mode -> switch (mode) {
+            case 0 -> GuiTexture.of((context, x, y, width, height) ->
+                    DrawerHelperClient.drawSolidRect(context, x, y - 1, width, 1, ColorPattern.T_WHITE.color));
+            case 1 -> GuiTexture.of((context, x, y, width, height) ->
+                    DrawerHelperClient.drawSolidRect(context, x, y, width, height, ColorPattern.T_WHITE.color));
+            case 2 -> GuiTexture.of((context, x, y, width, height) ->
+                    DrawerHelperClient.drawSolidRect(context, x, y + height, width, 1, ColorPattern.T_WHITE.color));
+            default -> IGuiTexture.EMPTY;
+        };
+
+        private TreeListClientTextures() {}
+
+        public static void init() {
+            TreeListDraggingOverlays.register(PROVIDER);
+        }
     }
 }

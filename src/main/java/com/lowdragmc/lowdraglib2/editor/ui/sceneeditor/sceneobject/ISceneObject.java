@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject;
 
 import com.lowdragmc.lowdraglib2.math.Transform;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
@@ -14,7 +12,6 @@ import java.util.function.Consumer;
  * @date 2024/06/26
  * @implNote A scene object that can be placed in the scene editor.
  */
-@OnlyIn(Dist.CLIENT)
 public interface ISceneObject {
     /**
      * Get the unique id of the object.

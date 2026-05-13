@@ -4,6 +4,9 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.RegisteredGuiTextureRenderer;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.TransformTextureRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -12,11 +15,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -63,37 +65,66 @@ public class VanillaSpriteTexture extends TransformTexture {
         return copied;
     }
 
-    @OnlyIn(Dist.CLIENT)
     private SearchComponentConfigurator.ISearchConfigurator<Identifier> searchSprites() {
-        return new SearchComponentConfigurator.ISearchConfigurator<>() {
-            @Override
-            @NotNull
-            public Identifier defaultValue() {
-                return Identifier.withDefaultNamespace("toast/recipe_book");
-            }
+        return VanillaSpriteTextureClientSupport.createSearchSprites();
+    }
 
-            @Override
-            public void search(String word, IResultHandler<Identifier> searchHandler) {
-                var lowerWord = word.toLowerCase();
-                var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.GUI);
-                for (var key : atlas.getTextures().keySet()) {
-                    if (Thread.currentThread().isInterrupted()) return;
-                    if (key.toString().toLowerCase().contains(lowerWord)) {
-                        searchHandler.acceptResult(key);
+    public static final class VanillaSpriteTextureClientSupport {
+        private VanillaSpriteTextureClientSupport() {
+        }
+
+        public static SearchComponentConfigurator.ISearchConfigurator<Identifier> createSearchSprites() {
+            return new SearchComponentConfigurator.ISearchConfigurator<>() {
+                @Override
+                @NotNull
+                public Identifier defaultValue() {
+                    return Identifier.withDefaultNamespace("toast/recipe_book");
+                }
+
+                @Override
+                public void search(String word, IResultHandler<Identifier> searchHandler) {
+                    var lowerWord = word.toLowerCase();
+                    var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.GUI);
+                    for (var key : atlas.getTextures().keySet()) {
+                        if (Thread.currentThread().isInterrupted()) return;
+                        if (key.toString().toLowerCase().contains(lowerWord)) {
+                            searchHandler.acceptResult(key);
+                        }
                     }
                 }
-            }
 
-            @Override
-            @NotNull
-            public String resultText(@NotNull Identifier value) {
-                return value.toString();
-            }
+                @Override
+                @NotNull
+                public String resultText(@NotNull Identifier value) {
+                    return value.toString();
+                }
 
-            @Override
-            public UIElementProvider<Identifier> candidateUIProvider() {
-                return UIElementProvider.iconText(VanillaSpriteTexture::of, res -> Component.literal(res.toString()));
+                @Override
+                public UIElementProvider<Identifier> candidateUIProvider() {
+                    return UIElementProvider.iconText(VanillaSpriteTexture::of, res -> Component.literal(res.toString()));
+                }
+            };
+        }
+    }
+
+    @LDLRegisterClient(name = "vanilla_sprite_texture", registry = "ldlib2:gui_texture_renderer")
+    public static final class RegisteredVanillaSpriteTextureRenderer implements RegisteredGuiTextureRenderer<VanillaSpriteTexture, RegisteredVanillaSpriteTextureRenderer> {
+        @Override
+        public Class<VanillaSpriteTexture> type() {
+            return VanillaSpriteTexture.class;
+        }
+
+        @Override
+        public void draw(VanillaSpriteTexture texture, GUIContext context, float x, float y, float width, float height) {
+            TransformTextureRenderer.draw(texture, context, x, y, width, height, this::drawInternal);
+        }
+
+        private void drawInternal(VanillaSpriteTexture texture, GUIContext context, float x, float y, float width, float height) {
+            var sprite = texture.getSprite();
+            if (sprite == null || width <= 0 || height <= 0) {
+                return;
             }
-        };
+            context.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, width, height, texture.getColor());
+        }
     }
 }

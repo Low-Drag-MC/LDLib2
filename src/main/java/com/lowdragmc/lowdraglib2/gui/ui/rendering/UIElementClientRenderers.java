@@ -1,10 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
-import com.lowdragmc.lowdraglib2.LDLib2Registries;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 
-@OnlyIn(Dist.CLIENT)
 public final class UIElementClientRenderers {
     private static boolean initialized;
 
@@ -17,7 +14,7 @@ public final class UIElementClientRenderers {
         }
         initialized = true;
 
-        UIElementRendererBootstrap.applyRegistry(LDLib2Registries.UI_ELEMENT_RENDERER_ENTRIES);
+        UIElementRendererBootstrap.applyRegistry(LDLib2ClientRegistries.UI_ELEMENT_RENDERER_ENTRIES);
     }
 
 }

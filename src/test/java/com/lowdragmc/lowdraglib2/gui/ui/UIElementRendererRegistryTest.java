@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.joml.Matrix3x2f;
@@ -91,7 +92,7 @@ class UIElementRendererRegistryTest {
         private boolean additionalDrawn;
 
         @Override
-        protected void drawBackgroundAdditional(IGUIContext context) {
+        protected void drawBackgroundAdditional(@NotNull IGUIContext context) {
             additionalDrawn = true;
         }
     }

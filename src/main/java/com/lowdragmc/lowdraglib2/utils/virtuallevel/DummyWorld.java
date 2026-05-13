@@ -1,9 +1,7 @@
 package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 
-import com.google.common.base.Suppliers;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.client.ClientProxy;
 import com.lowdragmc.lowdraglib2.client.scene.ParticleManager;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -11,7 +9,9 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.ClientClockManager;
 import net.minecraft.client.particle.Particle;
+import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.core.particles.ExplosionParticleInfo;
+import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -35,6 +35,7 @@ import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
 import net.minecraft.world.level.entity.*;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.storage.LevelData;
+import net.minecraft.world.level.storage.WritableLevelData;
 import net.minecraft.world.ticks.BlackholeTickAccess;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -74,7 +75,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Author: KilaBash
@@ -99,14 +99,12 @@ public class DummyWorld extends Level {
     protected final LongSet filledBlocks;
     protected final Holder<Biome> biome;
     protected final TickRateManager tickRateManager;
-    @Getter
-    protected Supplier<ClientLevel> asClientWorld = Suppliers.memoize(() -> WrappedClientWorld.of(this));
+    private Object clientLevel;
     @Getter @Setter
     protected float dayTimeFraction = 0.0f;
     @Getter @Setter
     protected float dayTimePerTick = -1.0f;
-    @OnlyIn(Dist.CLIENT)
-    @Getter @Setter
+    @Getter @Setter @Nullable
     private ParticleManager particleManager;
     @Getter
     private final ClockManager clockManager;
@@ -119,7 +117,7 @@ public class DummyWorld extends Level {
     }
 
     public DummyWorld(RegistryAccess registryAccess) {
-        super(createLevelData(), LEVEL_ID, registryAccess,
+        super(ClientSupport.createLevelData(), LEVEL_ID, registryAccess,
                 registryAccess.lookupOrThrow(Registries.DIMENSION_TYPE).getOrThrow(BuiltinDimensionTypes.OVERWORLD),
                 true, false, 0L, 1000000);
         this.registryAccess = registryAccess;
@@ -176,12 +174,6 @@ public class DummyWorld extends Level {
     @Override
     public WorldBorder getWorldBorder() {
         return worldBorder;
-    }
-
-    private static ClientLevel.ClientLevelData createLevelData() {
-        var levelData = new ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, false);
-        levelData.setGameTime(6000L);
-        return levelData;
     }
 
     @Override
@@ -355,7 +347,7 @@ public class DummyWorld extends Level {
         tickEntities();
         if (LDLib2.isClient() && particleManager != null) {
             if (particleManager.getLevel() == null) {
-                particleManager.setLevel(asClientWorld.get());
+                particleManager.setLevel(ClientSupport.asClientWorld(this));
             }
             particleManager.tick();
         }
@@ -454,7 +446,7 @@ public class DummyWorld extends Level {
     @Override
     public void addParticle(ParticleOptions particleData, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed) {
         if (particleManager != null) {
-            var p = createParticle(particleData, x, y, z, xSpeed, ySpeed, zSpeed);
+            var p = ClientSupport.createParticle(this, particleData, x, y, z, xSpeed, ySpeed, zSpeed);
             if (p != null) {
                 particleManager.addParticle(p);
             }
@@ -486,16 +478,6 @@ public class DummyWorld extends Level {
 
     }
 
-    @Nullable
-    @OnlyIn(Dist.CLIENT)
-    public Particle createParticle(ParticleOptions particleData, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed) {
-        var particleProvider = ClientProxy.getProvider(particleData.getType());
-        if (particleProvider == null) {
-            return null;
-        }
-        return particleProvider.createParticle(particleData, asClientWorld.get(), x, y, z, xSpeed, ySpeed, zSpeed, random);
-    }
-
     private class EntityCallbacks implements LevelCallback<Entity> {
         private EntityCallbacks() {
         }
@@ -519,6 +501,37 @@ public class DummyWorld extends Level {
         }
 
         public void onSectionChange(Entity object) {
+        }
+    }
+
+    public static class ClientSupport {
+        public static ClientLevel asClientWorld(DummyWorld dummyWorld) {
+            if (dummyWorld.clientLevel instanceof ClientLevel clientLevel) {
+                return clientLevel;
+            }
+            dummyWorld.clientLevel = WrappedClientWorld.of(dummyWorld);
+            return (ClientLevel) dummyWorld.clientLevel;
+        }
+
+        private static WritableLevelData createLevelData() {
+            var levelData = new ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, false);
+            levelData.setGameTime(6000L);
+            return levelData;
+        }
+
+        @Nullable
+        public static ParticleProvider<?> getProvider(ParticleType<?> type) {
+            return Minecraft.getInstance().particleEngine.resourceManager.getProviders().get(BuiltInRegistries.PARTICLE_TYPE.getKey(type));
+        }
+
+        @Nullable
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public static Particle createParticle(DummyWorld world, ParticleOptions particleData, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed) {
+            var particleProvider = (ParticleProvider)getProvider(particleData.getType());
+            if (particleProvider == null) {
+                return null;
+            }
+            return particleProvider.createParticle(particleData, asClientWorld(world), x, y, z, xSpeed, ySpeed, zSpeed, world.random);
         }
     }
 }

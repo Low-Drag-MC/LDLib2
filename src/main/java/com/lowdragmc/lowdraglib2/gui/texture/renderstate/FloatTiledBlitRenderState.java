@@ -6,13 +6,10 @@ import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix3x2f;
 import org.jspecify.annotations.Nullable;
 
-@OnlyIn(Dist.CLIENT)
 public record FloatTiledBlitRenderState(
     RenderPipeline pipeline,
     TextureSetup textureSetup,

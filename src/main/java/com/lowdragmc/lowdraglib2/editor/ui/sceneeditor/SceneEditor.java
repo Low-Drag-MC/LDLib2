@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor;
 
+import com.lowdragmc.lowdraglib2.client.scene.SceneRenderContext;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
@@ -11,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.math.Ray;
 import com.lowdragmc.lowdraglib2.math.Transform;
@@ -19,14 +21,13 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInterac
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneObject;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Mth;
+import org.jetbrains.annotations.NotNull;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
@@ -34,6 +35,7 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
+
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.UUID;
@@ -85,11 +87,10 @@ public class SceneEditor extends UIElement implements IScene {
             layout.widthPercent(100);
             layout.flex(1);
         });
-        this.scene.setAfterWorldRender(scene -> {
-            var mc = Minecraft.getInstance();
-            var partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-            SceneEditor.this.renderAfterWorld(mc.renderBuffers().bufferSource(), partialTicks);
-        });
+        // Editor-owned scene objects (gizmo + ISceneRendering) render as no-depth overlays.
+        // Routed through Scene's overlay hook which fires with the live SceneRenderContext
+        // from inside the renderer's afterTranslucentDispatch.
+        this.scene.setOverlay(SceneEditor.this::renderAfterWorld);
 
         this.gizmoBar = new UIElement();
         gizmoBar.layout(layout -> {
@@ -383,13 +384,13 @@ public class SceneEditor extends UIElement implements IScene {
         }
     }
 
-    protected void renderAfterWorld(MultiBufferSource bufferSource, float partialTicks) {
-        var poseStack = new PoseStack();
+    protected void renderAfterWorld(SceneRenderContext ctx) {
+        var partialTicks = ctx.partialTicks();
         for (ISceneObject sceneObject : sceneObjects.values()) {
             sceneObject.executeAll(so -> so.updateFrame(partialTicks));
             sceneObject.executeAll(so -> {
                 if (so instanceof ISceneRendering sceneRendering) {
-                    sceneRendering.draw(poseStack, bufferSource, partialTicks);
+                    sceneRendering.draw(ctx);
                 }
             }, so -> { // before
                 if (so instanceof ISceneRendering sceneRendering) {
@@ -404,12 +405,14 @@ public class SceneEditor extends UIElement implements IScene {
         if (transformGizmo.hasTargetTransform() && transformGizmoMode != TransformGizmoMode.NONE) {
             transformGizmo.updateFrame(partialTicks);
             transformGizmo.preDraw(partialTicks);
-            transformGizmo.draw(poseStack, bufferSource, partialTicks);
+            transformGizmo.draw(ctx);
             transformGizmo.postDraw(partialTicks);
         }
     }
 
-    public void drawBackgroundAdditional(GUIContext context) {
+    @Override
+    protected void drawBackgroundAdditional(IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
         var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (isCameraMoving && renderer != null) {

@@ -5,14 +5,11 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix3x2f;
 import org.joml.Matrix3x2fc;
 import org.joml.Vector2f;
 import org.jspecify.annotations.Nullable;
 
-@OnlyIn(Dist.CLIENT)
 public record FloatColoredTriangleRenderState(
     RenderPipeline pipeline,
     TextureSetup textureSetup,

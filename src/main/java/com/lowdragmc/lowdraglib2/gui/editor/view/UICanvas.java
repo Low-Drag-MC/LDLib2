@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
@@ -120,7 +121,9 @@ public class UICanvas extends UIElement {
         this.canvasModularUI.tick();
     }
 
-    public void drawBackgroundAdditional(GUIContext context) {
+    @Override
+    protected void drawBackgroundAdditional(IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
         if (this.canvasModularUI == null) return;
 

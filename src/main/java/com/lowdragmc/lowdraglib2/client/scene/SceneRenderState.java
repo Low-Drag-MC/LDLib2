@@ -2,8 +2,6 @@ package com.lowdragmc.lowdraglib2.client.scene;
 
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix3x2f;
 import org.jspecify.annotations.Nullable;
 
@@ -12,7 +10,6 @@ import org.jspecify.annotations.Nullable;
  * Captures the scene renderer reference and viewport info for deferred rendering.
  * Works for both FBO and Immediate scene renderers.
  */
-@OnlyIn(Dist.CLIENT)
 public record SceneRenderState(
     WorldSceneRenderer sceneRenderer,
     float sceneX,

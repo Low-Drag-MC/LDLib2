@@ -8,13 +8,10 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent;
 
 import static net.minecraft.client.renderer.RenderPipelines.*;
 
-@OnlyIn(Dist.CLIENT)
 public class LDLibRenderPipelines {
     public static final RenderPipeline GUI_TRIANGLE = RenderPipeline.builder(GUI_SNIPPET)
             .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLES)

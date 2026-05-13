@@ -3,8 +3,6 @@ package com.lowdragmc.lowdraglib2.syncdata.holder.blockentity;
 import com.lowdragmc.lowdraglib2.syncdata.holder.IPersistManagedHolder;
 import com.lowdragmc.lowdraglib2.syncdata.storage.IManagedStorage;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 public interface ISyncPersistRPCBlockEntity extends ISyncBlockEntity, IRPCBlockEntity, IPersistManagedHolder, IBlockEntityManaged {
     @Override
@@ -22,7 +20,6 @@ public interface ISyncPersistRPCBlockEntity extends ISyncBlockEntity, IRPCBlockE
         return true;
     }
 
-    @OnlyIn(Dist.CLIENT)
     default void rpcToServer(String methodName, Object... args) {
         rpcToServer(this, methodName, args);
     }

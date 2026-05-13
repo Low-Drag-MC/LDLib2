@@ -7,14 +7,11 @@ import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import lombok.Getter;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import org.joml.Vector3f;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
@@ -24,7 +21,6 @@ import org.jetbrains.annotations.Nullable;
  * @Description: FBO-based scene renderer using GPU textures.
  * Renders scene to an offscreen texture that can be blitted into the GUI.
  */
-@OnlyIn(Dist.CLIENT)
 public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     @Getter
     private int resolutionWidth = 1080;
@@ -66,7 +62,7 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
 
     public Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth) {
         setupFBORendering();
-        Vector3f winPos = super.blockPos2ScreenPos(pos, depth, 0, 0, this.resolutionWidth, this.resolutionHeight);
+        Vector3f winPos = super.blockPos2ScreenPos(pos, 0, 0, this.resolutionWidth, this.resolutionHeight);
         teardownFBORendering();
         return winPos;
     }

@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
@@ -570,7 +571,9 @@ public class Dialog extends UIElement {
         };
     }
 
-    public void drawBackgroundAdditional(@NotNull GUIContext context) {
+    @Override
+    protected void drawBackgroundAdditional(@NotNull IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
         if (windowMode && !isResizing) {
             WindowDragHelper.drawResizeIcon(context, overlay, 2);

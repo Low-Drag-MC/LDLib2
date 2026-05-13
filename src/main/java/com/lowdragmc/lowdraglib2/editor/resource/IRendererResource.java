@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
-import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
@@ -67,7 +67,7 @@ public class IRendererResource extends Resource<IRenderer> {
 
         if (provider.supportAdd()) {
             container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
-                for (var holder : LDLib2Registries.RENDERERS) {
+                for (var holder : LDLib2ClientRegistries.RENDERERS) {
                     var name = holder.annotation().name();
                     if (name.equals("empty") || name.equals("ui_resource_renderer")) continue;
                     menu.leaf(name, () -> {

@@ -4,8 +4,6 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.function.Consumer;
 
@@ -13,7 +11,6 @@ public interface IConfigurable {
     static IConfigurable create(Consumer<ConfiguratorGroup> consumer) {
         return new IConfigurable() {
             @Override
-            @OnlyIn(Dist.CLIENT)
             public void buildConfigurator(ConfiguratorGroup father) {
                 consumer.accept(father);
             }

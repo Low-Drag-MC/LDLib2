@@ -12,8 +12,6 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.state.level.ParticlesRenderState;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Queue;
@@ -25,7 +23,6 @@ import java.util.Queue;
  * {@link ClientLevel} is wired in via {@link #setLevel}; particles added before then queue
  * up in {@link #pendingAdds} and flush on first init.
  */
-@OnlyIn(Dist.CLIENT)
 public class ParticleManager {
 
     /** Lazy-init: needs a {@link ClientLevel} which the dummy world provides asynchronously. */

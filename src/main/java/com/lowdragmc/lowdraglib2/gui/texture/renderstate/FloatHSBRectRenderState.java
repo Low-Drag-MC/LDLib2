@@ -7,8 +7,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix3x2f;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
@@ -18,7 +16,6 @@ import org.lwjgl.system.MemoryUtil;
  * hsb00 = top-left, hsb01 = bottom-left, hsb11 = bottom-right, hsb10 = top-right.
  * Each float[4] is {h, s, b, a}.
  */
-@OnlyIn(Dist.CLIENT)
 public record FloatHSBRectRenderState(
     RenderPipeline pipeline,
     TextureSetup textureSetup,

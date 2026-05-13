@@ -2,8 +2,6 @@ package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -19,7 +17,6 @@ import net.minecraft.world.level.material.FluidState;
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-@OnlyIn(Dist.CLIENT)
 @SuppressWarnings("deprecation")
 @ParametersAreNonnullByDefault
 public class WrappedClientWorld extends ClientLevel {

@@ -2,10 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.texture.rendering;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
 public final class GuiTextureRendererBootstrap {
     private GuiTextureRendererBootstrap() {
     }

@@ -10,8 +10,7 @@ import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * PictureInPicture renderer for WorldSceneRenderer.
@@ -19,7 +18,6 @@ import net.neoforged.api.distmarker.OnlyIn;
  * - FBO: renders to its own textures, blits from those
  * - Immediate: renders directly into the PIP-managed textures
  */
-@OnlyIn(Dist.CLIENT)
 public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState> {
 
     public ScenePIPRenderer(MultiBufferSource.BufferSource bufferSource) {
@@ -59,9 +57,7 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
             // mouse Y is top-down.
             int contentMouseX = (int) ((state.mouseX() - state.sceneX()) * guiScale);
             int contentMouseY = texHeight - (int) ((state.mouseY() - state.sceneY()) * guiScale);
-//            GL11.glDisable(GL11.GL_SCISSOR_TEST);
             renderer.renderDirect(texWidth, texHeight, contentMouseX, contentMouseY);
-//            GL11.glEnable(GL11.GL_SCISSOR_TEST);
         }
     }
 
@@ -97,12 +93,7 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
     }
 
     @Override
-    protected boolean textureIsReadyToBlit(SceneRenderState renderState) {
-        return false;
-    }
-
-    @Override
-    protected String getTextureLabel() {
+    protected @NotNull String getTextureLabel() {
         return "scene";
     }
 

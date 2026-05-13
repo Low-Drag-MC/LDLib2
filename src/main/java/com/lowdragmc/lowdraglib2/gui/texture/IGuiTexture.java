@@ -1,11 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.rendering.GuiTexturePreviewHelper;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.RegisteredGuiTextureRenderer;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
@@ -14,6 +15,7 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -28,12 +30,37 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     final class EmptyTexture implements IGuiTexture {
         @Override
         public IGuiTexture copy() { return EMPTY; }
+
+        @LDLRegisterClient(name = "empty", registry = "ldlib2:gui_texture_renderer")
+        public static final class EmptyTextureRenderer implements RegisteredGuiTextureRenderer<EmptyTexture, EmptyTextureRenderer> {
+            @Override
+            public Class<IGuiTexture.EmptyTexture> type() {
+                return IGuiTexture.EmptyTexture.class;
+            }
+
+            @Override
+            public void draw(IGuiTexture.EmptyTexture texture, com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext context, float x, float y, float width, float height) {
+            }
+        }
     }
 
     @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture", environment = RegistrationEnvironment.MANUAL)
     final class MissingTexture implements IGuiTexture {
         @Override
         public IGuiTexture copy() { return MISSING_TEXTURE; }
+
+        @LDLRegisterClient(name = "missing", registry = "ldlib2:gui_texture_renderer")
+        public static final class MissingTextureRenderer implements RegisteredGuiTextureRenderer<IGuiTexture.MissingTexture, MissingTextureRenderer> {
+            @Override
+            public Class<IGuiTexture.MissingTexture> type() {
+                return IGuiTexture.MissingTexture.class;
+            }
+
+            @Override
+            public void draw(IGuiTexture.MissingTexture texture, com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext context, float x, float y, float width, float height) {
+                context.blitSprite(RenderPipelines.GUI_TEXTURED, context.graphics.guiSprites.missingSprite(), x, y, width, height, -1);
+            }
+        }
     }
     //endregion
 
@@ -43,7 +70,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
     Codec<IGuiTexture> CODEC = createCodec();
     static Codec<IGuiTexture> createCodec() {
         if (LDLib2.isClient()) {
-            return LDLib2Registries.GUI_TEXTURES.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
+            return LDLib2ClientRegistries.GUI_TEXTURES.optionalCodec().dispatch(ILDLRegisterClient::getRegistryHolderOptional,
                     optional -> optional.map(holder -> PersistedParser.createCodec(holder.value()).fieldOf("data"))
                             .orElseGet(() -> MapCodec.unit(MISSING_TEXTURE)));
         } else {

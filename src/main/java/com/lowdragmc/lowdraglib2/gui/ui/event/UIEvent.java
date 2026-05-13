@@ -207,7 +207,7 @@ public class UIEvent {
     }
 
     public boolean isCtrlDown() {
-        return UIElement.isCtrlDown();
+        return UIElement.isCtrlOrCmdDown();
     }
 
     public boolean isAltDown() {

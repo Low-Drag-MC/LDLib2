@@ -3,12 +3,9 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UIVisualLayer;
 import net.minecraft.client.renderer.Rect2i;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.List;
 
-@OnlyIn(Dist.CLIENT)
 public final class UIElementClientAccess {
     private UIElementClientAccess() {
     }

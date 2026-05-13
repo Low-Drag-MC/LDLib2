@@ -3,10 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.texture.rendering;
 import com.lowdragmc.lowdraglib2.gui.texture.TransformTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
 public final class TransformTextureRenderer {
     private TransformTextureRenderer() {
     }

@@ -2,13 +2,10 @@ package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL;
 
 import static com.mojang.blaze3d.vertex.VertexFormatElement.POSITION;
 
-@OnlyIn(Dist.CLIENT)
 public class LDLibShaders {
 
 	/**
@@ -39,10 +36,12 @@ public class LDLibShaders {
 			.add("Radius", RECT_RADIUS)
 			.build();
 
+	@Deprecated
 	public static boolean supportComputeShader() {
 		return GL.getCapabilities().GL_ARB_compute_shader;
 	}
 
+	@Deprecated
 	public static boolean supportSSBO() {
 		return GL.getCapabilities().GL_ARB_shader_storage_buffer_object;
 	}

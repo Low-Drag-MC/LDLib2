@@ -6,14 +6,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-@OnlyIn(Dist.CLIENT)
 public record ModularUIClientElementComponent(ModularUITooltipComponent modularUITooltipComponent) implements ClientTooltipComponent {
     @Override
     public int getHeight(Font font) {

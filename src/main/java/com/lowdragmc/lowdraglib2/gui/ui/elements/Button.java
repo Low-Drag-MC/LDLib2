@@ -9,12 +9,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
@@ -223,5 +227,31 @@ public class Button extends UIElement {
             }
         }
         super.loadXml(element);
+    }
+
+    @LDLRegisterClient(name = "button", registry = "ldlib2:ui_element_renderer")
+    public static final class ButtonRenderer extends DelegatingUIElementRenderer<Button, ButtonRenderer> {
+        @Override
+        public Class<Button> type() {
+            return Button.class;
+        }
+
+        @Override
+        public void drawBackgroundAdditional(Button button, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundAdditional(button, context);
+                return;
+            }
+            drawBackgroundAdditional(button, guiContext);
+        }
+
+        static void drawBackgroundAdditional(Button button, GUIContext context) {
+            var texture = button.isActive() ? switch (button.getState()) {
+                case DEFAULT -> button.getButtonStyle().baseTexture();
+                case HOVERED -> button.getButtonStyle().hoverTexture();
+                case PRESSED -> button.getButtonStyle().pressedTexture();
+            } : button.getButtonStyle().baseTexture();
+            context.drawTexture(texture, button.getPositionX(), button.getPositionY(), button.getSizeWidth(), button.getSizeHeight());
+        }
     }
 }

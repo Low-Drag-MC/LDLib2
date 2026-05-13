@@ -4,8 +4,13 @@ import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Cursor;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -17,10 +22,18 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
+import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.util.Tuple;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
@@ -398,7 +411,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void updateScrollers() {
-        if (!LDLib2.isClient()) return;
+        if (!LDLib2.isRemote()) return;
         var maxWidth = getMaxWidth();
         var maxHeight = getMaxHeight();
         var leftWidth = maxWidth - contentView.getContentWidth();
@@ -494,7 +507,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     public float scale() {
-        return LDLib2.isClient() ? TextAreaClientSupport.scale(this) : 1f;
+        return LDLib2.isRemote() ? TextAreaClientSupport.scale(this) : 1f;
     }
 
     public float lineHeight() {
@@ -527,7 +540,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     private float getMaxWidth() {
-        return LDLib2.isClient() ? TextAreaClientSupport.getMaxWidth(this) : 0f;
+        return LDLib2.isRemote() ? TextAreaClientSupport.getMaxWidth(this) : 0f;
     }
 
     private float getMaxHeight() {
@@ -555,7 +568,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void ensureCursorVisible() {
-        if (!LDLib2.isClient()) return;
+        if (!LDLib2.isRemote()) return;
         var scroll = TextAreaClientSupport.computeVisibleScroll(this);
         scrollX = scroll.getA();
         scrollY = scroll.getB();
@@ -648,7 +661,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     public Cursor getCursorUnderMouse(double mouseX, double mouseY) {
-        if (!LDLib2.isClient()) {
+        if (!LDLib2.isRemote()) {
             return cursorPos();
         }
         return TextAreaClientSupport.getCursorUnderMouse(this, mouseX, mouseY);
@@ -1023,6 +1036,53 @@ public class TextArea extends BindableUIElement<String[]> {
         return isActive() && isVisible() && isFocused() && isDisplayed();
     }
 
+    /// Rendering hooks (overridable by subclasses such as CodeEditor)
+    protected void drawContentLines(GUIContext context, Font font, float scale, float x, float y,
+                                    int firstVisibleLine, int lastVisibleLine) {
+        var textFont = textAreaStyle.font();
+        for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.size(); i++) {
+            float lineY = y + i * lineHeight() - scrollY;
+            var text = lines.get(i);
+            var drawX = x - scrollX;
+            var textWithFont = Component.literal(text).withStyle(style -> style.withFont(new FontDescription.Resource(textFont)));
+
+            context.pose.pushPose();
+            context.pose.translate(drawX, lineY);
+            context.pose.scale(scale, scale);
+            context.graphics.text(
+                    font,
+                    textWithFont,
+                    0,
+                    0,
+                    isError ? textAreaStyle.errorColor() : textAreaStyle.textColor(),
+                    textAreaStyle.textShadow()
+            );
+            context.pose.popPose();
+        }
+        if (isContentEmpty()) {
+            drawPlaceHolder(context, font, scale, x, y);
+        }
+    }
+
+    protected boolean isContentEmpty() {
+        return lines.size() == 1 && lines.getFirst().isEmpty();
+    }
+
+    protected final void drawPlaceHolder(GUIContext context, Font font, float scale, float x, float y) {
+        context.pose.pushPose();
+        context.pose.translate(x, y);
+        context.pose.scale(scale, scale);
+        context.graphics.text(
+                font,
+                textAreaStyle.placeholder(),
+                0,
+                0,
+                ColorPattern.LIGHT_GRAY.color,
+                false
+        );
+        context.pose.popPose();
+    }
+
     /// Editor + Xml
     @Override
     public void loadXml(Element element) {
@@ -1047,6 +1107,243 @@ public class TextArea extends BindableUIElement<String[]> {
 
         TextArea owner() {
             return owner;
+        }
+    }
+
+    static final class TextAreaClientSupport {
+        private TextAreaClientSupport() {
+        }
+
+        static void copyHighlightedText(TextArea area) {
+            ClipboardManager.INSTANCE.copyDirect(area.getClipboardSelectionText());
+        }
+
+        static String getClipboardText() {
+            var pasted = ClipboardManager.INSTANCE.paste();
+            return pasted instanceof String text ? text : "";
+        }
+
+        static float scale(TextArea area) {
+            return area.getTextAreaStyle().fontSize() / Minecraft.getInstance().font.lineHeight;
+        }
+
+        static float getMaxWidth(TextArea area) {
+            var font = Minecraft.getInstance().font;
+            var scale = scale(area);
+            var max = 0f;
+            for (String line : area.lines) {
+                max = Math.max(font.getSplitter().stringWidth(TextUtilities.withFont(line, area.getTextAreaStyle().font())) * scale, max);
+            }
+            return max;
+        }
+
+        static Tuple<Float, Float> computeVisibleScroll(TextArea area) {
+            var width = area.contentView.getContentWidth();
+            var height = area.contentView.getContentHeight();
+            if (width == 0 || height == 0) {
+                return new Tuple<>(area.getScrollX(), area.getScrollY());
+            }
+
+            var font = Minecraft.getInstance().font;
+            var scale = scale(area);
+            var currentLine = area.lines.get(area.getCursorLine());
+            float cursorX = font.getSplitter().stringWidth(TextUtilities.withFont(currentLine.substring(0, area.getCursorCol()), area.getTextAreaStyle().font())) * scale;
+            float lineTop = area.getCursorLine() * area.lineHeight();
+            float lineBottom = lineTop + area.getTextAreaStyle().fontSize();
+
+            float scrollX = area.getScrollX();
+            float scrollY = area.getScrollY();
+            float rightPad = 1f;
+            float preferredScrollX = Math.max(0, cursorX - width + rightPad);
+
+            if (cursorX - scrollX > width - rightPad || cursorX - scrollX < 0) {
+                scrollX = preferredScrollX;
+            }
+
+            if (lineBottom - scrollY > height) {
+                scrollY = lineBottom - height;
+            } else if (lineTop - scrollY < 0) {
+                scrollY = Math.max(lineTop, 0);
+            }
+
+            float contentTotalHeight = Math.max(area.lineHeight(), area.lines.size() * area.lineHeight());
+            scrollY = Mth.clamp(Float.isNaN(scrollY) ? 0 : scrollY, 0, Math.max(0, contentTotalHeight - height));
+            scrollX = Math.max(0, Float.isNaN(scrollX) ? 0 : scrollX);
+            return new Tuple<>(scrollX, scrollY);
+        }
+
+        static Cursor getCursorUnderMouse(TextArea area, double mouseX, double mouseY) {
+            var x = area.contentView.getContentX();
+            var y = area.contentView.getContentY();
+            var scale = scale(area);
+            var font = Minecraft.getInstance().font;
+            var textFont = area.getTextAreaStyle().font();
+
+            var relY = (float) (mouseY - y + area.getScrollY()) - 2;
+            int line = Mth.clamp((int) Math.floor(relY / area.lineHeight()), 0, Math.max(0, area.lines.size() - 1));
+            var lineText = area.lines.get(line);
+            var relX = (float) (mouseX - x + area.getScrollX());
+
+            var lineWithFont = TextUtilities.withFont(lineText, textFont);
+            var subWithFont = font.substrByWidth(lineWithFont, (int) (relX / scale));
+            float fullLength = font.getSplitter().stringWidth(lineWithFont) * scale;
+            float subLength = font.getSplitter().stringWidth(subWithFont) * scale;
+            int col;
+            if (subLength >= fullLength) {
+                col = lineText.length();
+            } else {
+                var sub = subWithFont.getString();
+                float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(lineText.substring(sub.length(), sub.length() + 1), textFont)) * scale;
+                col = (relX - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+            }
+            return new Cursor(line, Mth.clamp(col, 0, lineText.length()));
+        }
+    }
+
+    @LDLRegisterClient(name = "text_area", registry = "ldlib2:ui_element_renderer")
+    public static final class TextAreaRenderer extends DelegatingUIElementRenderer<TextArea, TextAreaRenderer> {
+        @Override
+        public Class<TextArea> type() {
+            return TextArea.class;
+        }
+
+        @Override
+        public void drawBackgroundOverlay(TextArea area, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundOverlay(area, context);
+                return;
+            }
+            if (area.contentView.isSelfOrChildHover() || area.isFocused()) {
+                guiContext.drawTexture(area.getTextAreaStyle().focusOverlay(),
+                        area.contentView.getPositionX(), area.contentView.getPositionY(),
+                        area.contentView.getSizeWidth(), area.contentView.getSizeHeight());
+            }
+            drawParentBackgroundOverlay(area, context);
+        }
+
+        static void drawContentView(TextArea area, GUIContext context) {
+            drawDefaultContentView(area, context);
+        }
+
+        public static void drawContentViewElement(ContentView contentView, GUIContext context) {
+            drawContentView(contentView.owner(), context);
+        }
+
+        public static void drawDefaultContentView(TextArea area, GUIContext context) {
+            UIElementRendererRegistry.defaultRenderer().drawBackgroundAdditional(area, context);
+            var x = area.contentView.getContentX();
+            var y = area.contentView.getContentY();
+            var height = area.contentView.getContentHeight();
+
+            Font font = Minecraft.getInstance().font;
+            var textFont = area.getTextAreaStyle().font();
+            var scale = area.scale();
+
+            int firstVisibleLine = (int) Math.floor(area.getScrollY() / area.lineHeight());
+            int maxVisibleLines = (int) Math.ceil(height / area.lineHeight()) + 1;
+            int lastVisibleLine = Mth.clamp(firstVisibleLine + maxVisibleLines, 0, Math.max(area.lines.size() - 1, 0));
+
+            area.drawContentLines(context, font, scale, x, y, firstVisibleLine, lastVisibleLine);
+            drawSelection(area, context, font, textFont, scale, x, y, firstVisibleLine, lastVisibleLine);
+            drawCursor(area, context, font, textFont, scale, x, y);
+        }
+
+        private static void drawSelection(TextArea area, GUIContext context, Font font, Identifier textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
+            if (area.isFocused() && area.hasSelection()) {
+                var start = selectionMin(area);
+                var end = selectionMax(area);
+                var highlightColor = -16776961;
+                var maxWidth = getMaxWidthLocal(area, font);
+
+                for (int line = start.line(); line <= end.line(); line++) {
+                    if (line < firstVisibleLine || line > lastVisibleLine) continue;
+
+                    String text = area.lines.get(line);
+                    int from = (line == start.line()) ? start.col() : 0;
+                    int to = (line == end.line()) ? end.col() : text.length();
+
+                    from = Mth.clamp(from, 0, text.length());
+                    to = Mth.clamp(to, 0, text.length());
+
+                    float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - area.getScrollX();
+                    float maxX;
+                    if (line == end.line()) {
+                        if (from == to) continue;
+                        maxX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, to), textFont)) * scale - area.getScrollX();
+                    } else {
+                        maxX = maxWidth;
+                    }
+                    float lineY = y + line * area.lineHeight() - area.getScrollY();
+
+                    DrawerHelperClient.drawSolidRect(
+                            context,
+                            RenderPipelines.GUI_TEXT_HIGHLIGHT,
+                            x + minX,
+                            lineY,
+                            maxX - minX,
+                            area.getTextAreaStyle().fontSize(),
+                            highlightColor);
+                }
+            }
+        }
+
+        private static void drawCursor(TextArea area, GUIContext context, Font font, Identifier textFont, float scale, float x, float y) {
+            if (area.isVisible() && area.isFocused() && area.isDisplayed() && (!area.isActive() || System.currentTimeMillis() % 1000 < 500)) {
+                var current = area.lines.get(area.getCursorLine());
+                float cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(current.substring(0, area.getCursorCol()), textFont)) * scale;
+                float cursorY = y + area.getCursorLine() * area.lineHeight() - area.getScrollY();
+                DrawerHelperClient.drawSolidRect(
+                        context,
+                        x + cursorPosX - area.getScrollX(),
+                        cursorY,
+                        1,
+                        area.getTextAreaStyle().fontSize(),
+                        area.getTextAreaStyle().cursorColor()
+                );
+            }
+        }
+
+        private static Cursor selectionMin(TextArea area) {
+            var a = new Cursor(area.getSelStartLine(), area.getSelStartCol());
+            var b = new Cursor(area.getSelEndLine(), area.getSelEndCol());
+            return comparePos(a, b) <= 0 ? a : b;
+        }
+
+        private static Cursor selectionMax(TextArea area) {
+            var a = new Cursor(area.getSelStartLine(), area.getSelStartCol());
+            var b = new Cursor(area.getSelEndLine(), area.getSelEndCol());
+            return comparePos(a, b) >= 0 ? a : b;
+        }
+
+        private static int comparePos(Cursor a, Cursor b) {
+            if (a.line() != b.line()) return Integer.compare(a.line(), b.line());
+            return Integer.compare(a.col(), b.col());
+        }
+
+        private static float getMaxWidthLocal(TextArea area, Font font) {
+            var scale = area.scale();
+            var max = 0f;
+            for (String line : area.lines) {
+                max = Math.max(font.getSplitter().stringWidth(TextUtilities.withFont(line, area.getTextAreaStyle().font())) * scale, max);
+            }
+            return max;
+        }
+    }
+
+    @LDLRegisterClient(name = "text_area_content_view", registry = "ldlib2:ui_element_renderer")
+    public static final class TextAreaContentViewRenderer extends DelegatingUIElementRenderer<ContentView, TextAreaContentViewRenderer> {
+        @Override
+        public Class<ContentView> type() {
+            return ContentView.class;
+        }
+
+        @Override
+        public void drawBackgroundAdditional(ContentView element, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundAdditional(element, context);
+                return;
+            }
+            TextAreaRenderer.drawContentViewElement(element, guiContext);
         }
     }
 }

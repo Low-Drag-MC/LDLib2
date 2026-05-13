@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
@@ -30,6 +31,7 @@ import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
@@ -296,7 +298,10 @@ public class UIDebugger extends UIElement {
         });
     }
 
-    public void drawBackgroundAdditional(@Nonnull GUIContext context) {
+
+    @Override
+    protected void drawBackgroundAdditional(@NotNull IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
 
         if (isSelfOrChildHover() && !isResizing) {

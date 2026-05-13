@@ -16,8 +16,6 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 
@@ -131,7 +129,6 @@ public class DebugScreen extends ModularUIScreen {
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         REAL_MOUSE_POS.set(mouseX, mouseY);
 

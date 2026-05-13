@@ -45,7 +45,7 @@ public class CommonProxy {
         // used for forge events (ClientProxy + CommonProxy)
         eventBus.addListener(LDLNetworking::registerPayloads);
         // init common features
-        CommonProxy.init(eventBus);
+        init(eventBus);
         // load ldlib2 plugin
         ReflectionUtils.findAnnotationClasses(LDLibPlugin.class, data -> true, clazz -> {
             try {
@@ -58,7 +58,7 @@ public class CommonProxy {
         }, () -> {});
     }
 
-    public static void init(IEventBus eventBus) {
+    public void init(IEventBus eventBus) {
         LDLib2Registries.init();
         AccessorRegistries.init();
         RPCPacketDistributor.init();

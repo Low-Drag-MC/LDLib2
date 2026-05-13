@@ -12,11 +12,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.AlignItems;
@@ -372,5 +376,26 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             label.setText(element.getAttribute("text"));
         }
         super.loadXml(element);
+    }
+
+    @LDLRegisterClient(name = "progress_bar", registry = "ldlib2:ui_element_renderer")
+    public static final class ProgressBarRenderer extends DelegatingUIElementRenderer<ProgressBar, ProgressBarRenderer> {
+        @Override
+        public Class<ProgressBar> type() {
+            return ProgressBar.class;
+        }
+
+        @Override
+        public void drawBackgroundAdditional(ProgressBar progressBar, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundAdditional(progressBar, context);
+                return;
+            }
+            drawBackgroundAdditional(progressBar, guiContext);
+        }
+
+        static void drawBackgroundAdditional(ProgressBar progressBar, GUIContext context) {
+            progressBar.applyInterpolatedProgress(context.partialTick);
+        }
     }
 }

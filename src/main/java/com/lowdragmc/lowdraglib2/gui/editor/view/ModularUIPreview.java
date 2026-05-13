@@ -18,6 +18,8 @@ import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2f;
 
 import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.OptionalInt;
@@ -73,10 +75,13 @@ public class ModularUIPreview extends UIElement {
         clear();
     }
 
-    public void drawBackgroundAdditional(GUIContext context) {
+    @Override
+    protected void drawBackgroundAdditional(IGUIContext guiContext) {
+        if (!(guiContext instanceof GUIContext context)) return;
         updateSelectionBox();
         super.drawBackgroundAdditional(context);
         if (this.previewModularUI == null) return;
+
         context.pose.pushPose();
         var posX = getPositionX();
         var posY = getPositionY();

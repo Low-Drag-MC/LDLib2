@@ -13,7 +13,6 @@ import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.renderer.*;
@@ -30,8 +29,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.textures.GpuTexture;
@@ -44,7 +41,6 @@ import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static net.minecraft.world.level.block.RenderShape.MODEL;
@@ -54,7 +50,6 @@ import static net.minecraft.world.level.block.RenderShape.MODEL;
  * @author KilaBash
  * @implNote render a scene, through VBO compilation scene, greatly optimize rendering performance.
  */
-@OnlyIn(Dist.CLIENT)
 @Accessors(chain = true)
 public abstract class WorldSceneRenderer {
 
@@ -98,8 +93,6 @@ public abstract class WorldSceneRenderer {
     protected Set<BlockPos> blockEntities;
     @Getter
     protected boolean useCache;
-    @Getter @Setter
-    protected boolean endBatchLast = false;
     protected boolean ortho;
     protected AtomicReference<CacheState> cacheState;
     protected int maxProgress;
@@ -128,19 +121,23 @@ public abstract class WorldSceneRenderer {
     /** Most recent completed depth sample (NDC 0..1). Lags by 1+ frames; initial value
      *  corresponds to the far plane so first-frame unProject still yields a valid ray. */
     private float lastDepthSample = 0.999f;
-    /** Scene-private vanilla submission pipeline (storage + dispatcher + dummy outline source),
-     *  lazily built in {@link #ensureFeatureRenderDispatcher}, closed in {@link #releaseResource}.
-     *  Used by BESR / entity / particle rendering — each call submits into {@code submitNodeStorage}
-     *  then drains via {@code featureRenderDispatcher.renderSolid/TranslucentFeatures/Particles}. */
+    /** Scene-private vanilla submission pipeline, lazily built in
+     *  {@link #ensureFeatureRenderDispatcher(RenderBuffers)} and identity-cached on the
+     *  {@link RenderBuffers} passed by the caller. Closed + rebuilt only when buffers change. */
     @Nullable private SubmitNodeStorage submitNodeStorage;
     @Nullable private FeatureRenderDispatcher featureRenderDispatcher;
     @Nullable private OutlineBufferSource outlineBufferSource;
+    @Nullable private RenderBuffers cachedBuffersIdentity;
     @Setter @Nullable
     private Consumer<WorldSceneRenderer> beforeWorldRender;
     @Setter @Nullable
-    private Consumer<WorldSceneRenderer> afterWorldRender;
+    private SceneRenderHook beforeAllSubmit;
     @Setter @Nullable
-    private BiConsumer<MultiBufferSource, Float> beforeBatchEnd;
+    private SceneRenderHook afterBuiltinSubmit;
+    @Setter @Nullable
+    private SceneRenderHook afterTranslucentDispatch;
+    @Setter @Nullable
+    private SceneRenderHook afterAllDispatch;
     @Setter @Nullable
     private Consumer<BlockHitResult> onLookingAt;
     @Setter @Nullable
@@ -190,29 +187,36 @@ public abstract class WorldSceneRenderer {
         }
         submitNodeStorage = null;
         outlineBufferSource = null;
+        cachedBuffersIdentity = null;
     }
 
     /**
-     * Lazy-init our own {@link SubmitNodeStorage} + {@link FeatureRenderDispatcher} pair.
-     * Vanilla's dispatcher exists on {@code GameRenderer} but its storage is private and
-     * shared with the main world; a private pair isolates scene submission state.
+     * Identity-cached scene-private {@link FeatureRenderDispatcher}. The dispatcher captures
+     * {@code bufferSource} / {@code crumblingBufferSource} in its constructor and can't be
+     * rebound; if {@code buffers} differs from {@link #cachedBuffersIdentity} we tear down
+     * and rebuild. Same-instance buffers (the common case) hit the cache.
      */
-    private FeatureRenderDispatcher ensureFeatureRenderDispatcher() {
-        if (featureRenderDispatcher == null) {
-            var mc = Minecraft.getInstance();
-            submitNodeStorage = new SubmitNodeStorage();
-            outlineBufferSource = new OutlineBufferSource();
-            featureRenderDispatcher = new FeatureRenderDispatcher(
-                    submitNodeStorage,
-                    mc.getModelManager(),
-                    mc.renderBuffers().bufferSource(),
-                    mc.getAtlasManager(),
-                    outlineBufferSource,
-                    mc.renderBuffers().crumblingBufferSource(),
-                    mc.font,
-                    mc.gameRenderer.getGameRenderState()
-            );
+    private FeatureRenderDispatcher ensureFeatureRenderDispatcher(RenderBuffers buffers) {
+        if (featureRenderDispatcher != null && cachedBuffersIdentity == buffers) {
+            return featureRenderDispatcher;
         }
+        if (featureRenderDispatcher != null) {
+            featureRenderDispatcher.close();
+        }
+        var mc = Minecraft.getInstance();
+        submitNodeStorage = new SubmitNodeStorage();
+        outlineBufferSource = new OutlineBufferSource();
+        featureRenderDispatcher = new FeatureRenderDispatcher(
+                submitNodeStorage,
+                mc.getModelManager(),
+                buffers.bufferSource(),
+                mc.getAtlasManager(),
+                outlineBufferSource,
+                buffers.crumblingBufferSource(),
+                mc.font,
+                mc.gameRenderer.getGameRenderState()
+        );
+        cachedBuffersIdentity = buffers;
         return featureRenderDispatcher;
     }
 
@@ -324,12 +328,17 @@ public abstract class WorldSceneRenderer {
      * Used by the PIP renderer when rendering into a texture.
      */
     public void renderDirect(int viewportWidth, int viewportHeight, int mouseX, int mouseY) {
+        renderDirect(viewportWidth, viewportHeight, mouseX, mouseY, Minecraft.getInstance().renderBuffers());
+    }
+
+    public void renderDirect(int viewportWidth, int viewportHeight, int mouseX, int mouseY,
+                             RenderBuffers buffers) {
         if (Minecraft.getInstance().getOverlay() instanceof LoadingOverlay) {
             return;
         }
         PositionedRect viewport = PositionedRect.of(Position.of(0, 0), Size.of(viewportWidth, viewportHeight));
         setupCamera(viewport);
-        drawWorld();
+        drawWorld(buffers);
         this.lastTraceResult = null;
         this.lastHit = unProject(mouseX, mouseY);
         if (onLookingAt != null && mouseX > 0 && mouseX < viewportWidth
@@ -344,6 +353,11 @@ public abstract class WorldSceneRenderer {
     }
 
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY) {
+        render(poseStack, x, y, width, height, mouseX, mouseY, Minecraft.getInstance().renderBuffers());
+    }
+
+    public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY,
+                       RenderBuffers buffers) {
         // do not render if the minecraft is reloading
         if (Minecraft.getInstance().getOverlay() instanceof LoadingOverlay) {
             return;
@@ -365,7 +379,7 @@ public abstract class WorldSceneRenderer {
         mouseY = mouse.position.y;
         setupCamera(viewport);
         // render TrackedDummyWorld
-        drawWorld();
+        drawWorld(buffers);
         // check lookingAt
         this.lastTraceResult = null;
         this.lastHit = unProject(mouseX, mouseY);
@@ -491,41 +505,76 @@ public abstract class WorldSceneRenderer {
         posesStack.popMatrix();
     }
 
-    protected void drawWorld() {
+    /**
+     * Vanilla-aligned scene render. Mirrors {@code LevelRenderer.java:695-755}: one submit
+     * phase into {@link SubmitNodeStorage}, then three dispatch passes (solid / translucent /
+     * translucent particles), each followed by {@code BufferSource.endBatch()}.
+     *
+     * @param buffers RenderBuffers used for both the mesh path and the dispatcher's buffer source.
+     *                Identity-cached: same instance across frames keeps the dispatcher warm.
+     */
+    protected void drawWorld(RenderBuffers buffers) {
         if (beforeWorldRender != null) {
             beforeWorldRender.accept(this);
         }
 
-        Minecraft mc = Minecraft.getInstance();
+        var mc = Minecraft.getInstance();
+        var bs = buffers.bufferSource();
+        var crumb = buffers.crumblingBufferSource();
+        var dispatcher = ensureFeatureRenderDispatcher(buffers);
+        var storage = submitNodeStorage;
+        var cameraRenderState = buildCameraRenderState();
+        var poseStack = new PoseStack();
+        var partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        camera.setSceneRotation(cameraEntity.getYRot(), cameraEntity.getXRot());
 
-        float particleTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-        var buffers = mc.renderBuffers().bufferSource();
+        var ctx = new SceneRenderContext(this, poseStack, storage, bs, cameraRenderState, partialTicks);
+
+        // (1) Mesh pass — chunk-section style mesh draws bypass SubmitNodeStorage and write
+        //     directly to the shared BufferSource. Their queued RenderType buckets are flushed
+        //     later by the dispatch-phase endBatches.
         if (useCache) {
-            renderCacheBuffer(mc, buffers, particleTicks);
+            renderCacheBuffer(mc, bs, partialTicks);
         } else {
-            renderUncachedWorld(buffers, particleTicks);
+            renderUncachedWorld(bs, partialTicks);
         }
 
-        // Entities animate every frame — never participate in the mesh cache.
-        renderEntities(particleTicks);
+        if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
 
-        if (beforeBatchEnd != null) {
-            beforeBatchEnd.accept(buffers, particleTicks);
-        }
+        // (2) Submit phase — builtin scene geometry into the single SubmitNodeStorage.
+        submitBlockEntities(poseStack, storage, cameraRenderState, partialTicks);
+        submitEntities(poseStack, storage, cameraRenderState, partialTicks);
+        submitParticles(storage, cameraRenderState, partialTicks);
 
-        buffers.endBatch();
+        if (afterBuiltinSubmit != null) afterBuiltinSubmit.apply(ctx);
 
-        renderSceneParticles(particleTicks);
+        // (3) Dispatch phase — three endBatches mirroring LevelRenderer 695-755.
+        //     Depth copy between mainTarget/translucent/particle FBOs is skipped (PIP = single FBO).
+        try {
+            dispatcher.renderSolidFeatures();
+            bs.endBatch();
+            dispatcher.renderTranslucentFeatures();
+            bs.endBatch();
+            crumb.endBatch();
 
-        if (afterWorldRender != null) {
-            afterWorldRender.accept(this);
+            if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(ctx);
+
+            dispatcher.renderTranslucentParticles();
+            bs.endBatch();
+
+            if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
+        } finally {
+            dispatcher.clearSubmitNodes();
+            if (particleManager != null) particleManager.afterRender();
         }
     }
 
     /**
-     * Uncached path: per-frame compile each {@code renderedBlocks} group into per-layer meshes
-     * and immediately draw each via the corresponding {@link RenderType}. BESRs are submitted
-     * before TRANSLUCENT so they layer correctly with translucent fluids/blocks.
+     * Uncached mesh pass: per-frame compile each {@code renderedBlocks} group into per-layer
+     * meshes and draw each via the corresponding {@link RenderType}. BESRs are <em>not</em>
+     * drawn here — they're submitted to {@link SubmitNodeStorage} in
+     * {@link #submitBlockEntities} and drained by the dispatch phase. Final {@code endBatch}
+     * is folded into the dispatch phase's endBatches (same shared BufferSource).
      */
     private void renderUncachedWorld(MultiBufferSource.BufferSource buffers, float particleTicks) {
         var mc = Minecraft.getInstance();
@@ -535,11 +584,6 @@ public abstract class WorldSceneRenderer {
             var results = renderBlocks(region, renderedBlocks, hook, fixedPack);
             try {
                 for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-                    if (layer == ChunkSectionLayer.TRANSLUCENT && !results.blockEntities.isEmpty()) {
-                        var besrPoses = new ArrayList<BlockPos>(results.blockEntities.size());
-                        for (BlockEntity be : results.blockEntities) besrPoses.add(be.getBlockPos());
-                        renderBESR(besrPoses, new PoseStack(), hook, particleTicks);
-                    }
                     MeshData mesh = results.renderedLayers.remove(layer);
                     if (mesh != null) {
                         // RenderType.draw(MeshData) closes the mesh internally; remove() above
@@ -551,10 +595,6 @@ public abstract class WorldSceneRenderer {
                 results.release();
             }
         });
-
-        if (!endBatchLast) {
-            buffers.endBatch();
-        }
     }
 
     private BufferBuilder getOrBeginLayer(Map<ChunkSectionLayer, BufferBuilder> startedLayers, SectionBufferBuilderPack buffers, ChunkSectionLayer layer) {
@@ -603,7 +643,7 @@ public abstract class WorldSceneRenderer {
                 cacheState.set(CacheState.COMPILING);
                 EnumMap<ChunkSectionLayer, List<MeshData>> compiled = new EnumMap<>(ChunkSectionLayer.class);
                 try {
-                    var region = world instanceof BlockAndTintGetter g ? g : world instanceof DummyWorld dummyWorld ? dummyWorld.getAsClientWorld().get() : new WrappedBlockAndTintGetter(world);
+                    var region = world instanceof BlockAndTintGetter g ? g : world instanceof DummyWorld dummyWorld ? DummyWorld.ClientSupport.asClientWorld(dummyWorld) : new WrappedBlockAndTintGetter(world);
                     for (var entry : renderedBlocksMap.entrySet()) {
                         if (Thread.interrupted()) return;
                         Results r = renderBlocks(region, entry.getKey(), entry.getValue(), compileBuilders);
@@ -644,16 +684,7 @@ public abstract class WorldSceneRenderer {
             });
             thread.start();
         } else {
-            var poseStack = new PoseStack();
             for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-                if (layer == ChunkSectionLayer.TRANSLUCENT && blockEntities != null) {
-                    renderBESR(blockEntities, poseStack, null, particleTicks);
-                    if (!endBatchLast) {
-                        buffers.endBatch();
-                    }
-                    // Particles are rendered once at the end of drawWorld via
-                    // renderSceneParticles(); no per-layer call here.
-                }
                 if (cachedMeshes == null) continue;
                 List<MeshData> meshes = cachedMeshes.get(layer);
                 if (meshes == null || meshes.isEmpty()) continue;
@@ -662,6 +693,8 @@ public abstract class WorldSceneRenderer {
                     drawCachedMesh(rt, mesh);
                 }
             }
+            // BESRs are submitted by submitBlockEntities() during drawWorld's submit phase
+            // (using {@link #blockEntities} as the seed set); no inline submit/dispatch here.
         }
     }
 
@@ -892,118 +925,78 @@ public abstract class WorldSceneRenderer {
     }
 
     /**
-     * Submit each BE's special renderer through vanilla's deferred pipeline so model parts /
-     * items / breaking overlays / name tags / ... all draw correctly (matches main-world BESR
-     * behavior). Storage is drained then cleared per call.
+     * Submit phase for BlockEntity special renderers. Walks every {@code renderedBlocks} group,
+     * locates per-pos BEs (cached set in {@link #blockEntities} for the cached path, fresh lookup
+     * for the uncached path), and submits them through {@link net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher#submit}
+     * into the scene's single {@link SubmitNodeStorage}. The dispatch happens later in
+     * {@link #drawWorld(RenderBuffers)}.
      */
-    private void renderBESR(Collection<BlockPos> poses, PoseStack poseStack,
-                            @Nullable ISceneBlockRenderHook hook, float partialTicks) {
-        if (poses.isEmpty()) return;
+    private void submitBlockEntities(PoseStack poseStack, SubmitNodeStorage storage,
+                                     CameraRenderState cameraRenderState, float partialTicks) {
         var mc = Minecraft.getInstance();
-        var dispatcher = mc.getBlockEntityRenderDispatcher();
-        dispatcher.prepare(new Vec3(eyePos.x(), eyePos.y(), eyePos.z()));
+        var beDispatcher = mc.getBlockEntityRenderDispatcher();
+        beDispatcher.prepare(new Vec3(eyePos.x(), eyePos.y(), eyePos.z()));
 
-        var featureDisp = ensureFeatureRenderDispatcher();
-        var storage = submitNodeStorage;
-        var cameraRenderState = buildCameraRenderState();
-
-        try {
-            for (BlockPos pos : poses) {
+        // Iterate per-group so per-hook BESR transforms (offsets, colors) apply to the right BEs.
+        renderedBlocksMap.forEach((group, hook) -> {
+            for (BlockPos pos : group) {
                 if (blocked != null && blocked.contains(pos)) continue;
                 BlockEntity be = world.getBlockEntity(pos);
                 if (be == null) continue;
-                var state = dispatcher.tryExtractRenderState(be, partialTicks, null, null);
+                var state = beDispatcher.tryExtractRenderState(be, partialTicks, null, null);
                 if (state == null) continue;
 
                 poseStack.pushPose();
                 poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
                 if (hook != null) hook.applyBESR(world, pos, be, poseStack, partialTicks);
-                dispatcher.submit(state, poseStack, storage, cameraRenderState);
+                beDispatcher.submit(state, poseStack, storage, cameraRenderState);
                 poseStack.popPose();
             }
-            featureDisp.renderSolidFeatures();
-            featureDisp.renderTranslucentFeatures();
-            mc.renderBuffers().bufferSource().endBatch();
-        } finally {
-            storage.clear();
-        }
+        });
     }
 
     /**
-     * Render every entity in the scene's {@link TrackedDummyWorld} (other Level subclasses
-     * are skipped — no generic entity iterator). Mirrors {@link #renderBESR} for entities.
-     * <p>
-     * Coords note: we pass world coordinates straight to {@code dispatcher.submit(...)},
-     * not vanilla's {@code state.x - camX}, because our view matrix is {@code lookAt(eyePos)}
-     * which already encodes the camera translation.
+     * Submit phase for entities living in a {@link TrackedDummyWorld}. Coords are passed
+     * straight through (not vanilla's {@code state.x - camX}) because our view matrix is
+     * {@code lookAt(eyePos)} which already encodes the camera translation.
      */
-    private void renderEntities(float particleTicks) {
+    private void submitEntities(PoseStack poseStack, SubmitNodeStorage storage,
+                                CameraRenderState cameraRenderState, float partialTicks) {
         if (!(world instanceof TrackedDummyWorld tw)) return;
         var entitiesIter = tw.getAllRenderedEntities();
         if (!entitiesIter.iterator().hasNext()) return;
 
-        var mc = Minecraft.getInstance();
-        var dispatcher = mc.getEntityRenderDispatcher();
-        // crosshairPickEntity is @NotNull but only used for outline highlight; cameraEntity is fine.
-        dispatcher.prepare(camera, cameraEntity);
+        var entityDispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+        entityDispatcher.prepare(camera, cameraEntity);
 
-        var featureDisp = ensureFeatureRenderDispatcher();
-        var storage = submitNodeStorage;
-        var cameraRenderState = buildCameraRenderState();
-
-        var poseStack = new PoseStack();
         var hook = sceneEntityRenderHook;
-        try {
-            for (var entity : entitiesIter) {
-                if (hook != null && !hook.shouldRender(world, entity)) continue;
-                net.minecraft.client.renderer.entity.state.EntityRenderState state;
-                try {
-                    state = dispatcher.extractEntity(entity, particleTicks);
-                } catch (Throwable ignored) {
-                    continue; // a broken renderer for one entity shouldn't kill the frame
-                }
-                if (state == null) continue;
-
-                poseStack.pushPose();
-                if (hook != null) hook.applyEntity(world, entity, poseStack, particleTicks);
-                dispatcher.submit(state, cameraRenderState, state.x, state.y, state.z, poseStack, storage);
-                poseStack.popPose();
+        for (var entity : entitiesIter) {
+            if (hook != null && !hook.shouldRender(world, entity)) continue;
+            net.minecraft.client.renderer.entity.state.EntityRenderState state;
+            try {
+                state = entityDispatcher.extractEntity(entity, partialTicks);
+            } catch (Throwable ignored) {
+                continue; // a broken renderer for one entity shouldn't kill the frame
             }
-            featureDisp.renderSolidFeatures();
-            featureDisp.renderTranslucentFeatures();
-            mc.renderBuffers().bufferSource().endBatch();
-        } finally {
-            storage.clear();
+            if (state == null) continue;
+
+            poseStack.pushPose();
+            if (hook != null) hook.applyEntity(world, entity, poseStack, partialTicks);
+            entityDispatcher.submit(state, cameraRenderState, state.x, state.y, state.z, poseStack, storage);
+            poseStack.popPose();
         }
     }
 
     /**
-     * Drain {@link ParticleManager}'s live particles through vanilla's particle pipeline
-     * (extract → submit → drain via {@link FeatureRenderDispatcher#renderSolidFeatures()}
-     * + {@link FeatureRenderDispatcher#renderTranslucentParticles()}).
-     * <p>
-     * {@link SceneCamera#position()} returns {@code Vec3.ZERO} so extracted vertices stay in
-     * world space (our {@code lookAt} view matrix already encodes the camera translation).
-     * {@code afterRender()} must run <em>after</em> the dispatcher drains storage, otherwise
-     * the {@code particleCount=0} reset makes the stored render-state look empty.
+     * Submit phase for live particles: extract via {@link ParticleManager} and submit into
+     * {@code storage}. {@link SceneCamera#position()} returns {@link Vec3#ZERO} so extracted
+     * vertices stay in world space. {@code ParticleManager.afterRender()} runs from
+     * {@code drawWorld}'s finally block (must run <em>after</em> the dispatcher drains).
      */
-    private void renderSceneParticles(float partialTicks) {
+    private void submitParticles(SubmitNodeStorage storage, CameraRenderState cameraRenderState,
+                                 float partialTicks) {
         if (particleManager == null) return;
-        var mc = Minecraft.getInstance();
-        var featureDisp = ensureFeatureRenderDispatcher();
-        var storage = submitNodeStorage;
-
-        camera.setSceneRotation(cameraEntity.getYRot(), cameraEntity.getXRot());
-
-        try {
-            particleManager.render(storage, buildCameraRenderState(), camera, NO_CULL_FRUSTUM, partialTicks);
-            featureDisp.renderSolidFeatures();
-            featureDisp.renderTranslucentParticles();
-            mc.renderBuffers().bufferSource().endBatch();
-        } finally {
-            particleManager.afterRender();
-            storage.clear();
-        }
+        particleManager.render(storage, cameraRenderState, camera, NO_CULL_FRUSTUM, partialTicks);
     }
 
     /** Scene previews are tiny — skip frustum work entirely. */
@@ -1130,7 +1123,7 @@ public abstract class WorldSceneRenderer {
         // render a frame
         setupCamera(getPositionedRect(x, y, width, height));
 
-        drawWorld();
+        drawWorld(Minecraft.getInstance().renderBuffers());
 
         Vector3f hitPos = this.lastHit == null ? unProject(mouseX, mouseY) : this.lastHit;
         BlockHitResult result = rayTrace(hitPos);
@@ -1141,16 +1134,15 @@ public abstract class WorldSceneRenderer {
     }
 
     /***
-     * For better performance, You'd better do project in {@link #setAfterWorldRender(Consumer)}
+     * For better performance, You'd better do project in {@link #setAfterAllDispatch(SceneRenderHook)}
      * @param pos BlockPos
-     * @param depth should pass Depth Test
      * @return x, y, z
      */
-    protected Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth, int x, int y, int width, int height) {
+    protected Vector3f blockPos2ScreenPos(BlockPos pos, int x, int y, int width, int height) {
         // render a frame
         setupCamera(getPositionedRect(x, y, width, height));
 
-        drawWorld();
+        drawWorld(Minecraft.getInstance().renderBuffers());
         Vector3f winPos = project(new Vector3f(pos.getX() + 0.5f, pos.getY() + 0.5f, pos.getZ() + 0.5f));
 
         resetCamera();

@@ -7,8 +7,8 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElementClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelectorClientTextures;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeListClientTextures;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector.ColorSelectorClientTextures;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList.TreeListClientTextures;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundPlayerClient;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatBlitRenderState;
@@ -35,8 +35,6 @@ import net.minecraft.client.resources.metadata.gui.GuiMetadataSection;
 import net.minecraft.client.resources.metadata.gui.GuiSpriteScaling;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix3x2f;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
@@ -47,7 +45,6 @@ import java.util.List;
 import java.util.Stack;
 import java.util.function.Consumer;
 
-@OnlyIn(Dist.CLIENT)
 public class GUIContext implements IGUIContext {
     public GuiGraphicsExtractor graphics;
     public int mouseX, mouseY;

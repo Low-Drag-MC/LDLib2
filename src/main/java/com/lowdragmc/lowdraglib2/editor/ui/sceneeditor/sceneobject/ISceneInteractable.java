@@ -4,8 +4,6 @@ import com.lowdragmc.lowdraglib2.math.Ray;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -16,7 +14,6 @@ import org.jetbrains.annotations.Nullable;
  * @implNote A scene object that can be interacted in the scene editor.
 
  */
-@OnlyIn(Dist.CLIENT)
 public interface ISceneInteractable extends ISceneObject {
 
     /**

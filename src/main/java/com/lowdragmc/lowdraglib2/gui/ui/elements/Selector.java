@@ -9,6 +9,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -16,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.AlignContent;
@@ -437,6 +441,29 @@ public class Selector<T> extends BindableUIElement<T> {
         // default value
         if (element.hasAttribute("default-value")) {
             setDefaultValue(element.getAttribute("default-value"));
+        }
+    }
+
+    @LDLRegisterClient(name = "selector", registry = "ldlib2:ui_element_renderer")
+    public static final class SelectorRenderer extends DelegatingUIElementRenderer<Selector<?>, SelectorRenderer> {
+        @Override
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<Selector<?>> type() {
+            return (Class<Selector<?>>) (Class) Selector.class;
+        }
+
+        @Override
+        public void drawBackgroundOverlay(Selector<?> selector, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundOverlay(selector, context);
+                return;
+            }
+            if (selector.isSelfOrChildHover() || selector.isFocused()) {
+                guiContext.drawTexture(selector.getSelectorStyle().focusOverlay(),
+                        selector.getPositionX(), selector.getPositionY(),
+                        selector.getSizeWidth(), selector.getSizeHeight());
+            }
+            drawParentBackgroundOverlay(selector, context);
         }
     }
 }

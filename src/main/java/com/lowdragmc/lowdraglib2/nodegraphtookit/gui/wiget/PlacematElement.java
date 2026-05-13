@@ -2,9 +2,13 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget;
 
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
@@ -82,6 +86,7 @@ public class PlacematElement extends GraphElement<PlacematModel> {
     }
 
     public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {
+        UIElementRendererRegistry.defaultRenderer().drawBackgroundOverlay(this, guiContext);
         if (isSelected()) {
             guiContext.drawTexture(ColorPattern.BLUE.borderTexture(1),
                     getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
@@ -95,6 +100,23 @@ public class PlacematElement extends GraphElement<PlacematModel> {
         // Draw resize cursor hint
         if (isSelfOrChildHover()) {
             WindowDragHelper.drawResizeIcon(guiContext, this, RESIZE_BORDER);
+        }
+    }
+
+    @LDLRegisterClient(name = "placemat_element", registry = "ldlib2:ui_element_renderer")
+    public static final class PlacematElementRenderer extends DelegatingUIElementRenderer<PlacematElement, PlacematElementRenderer> {
+        @Override
+        public Class<PlacematElement> type() {
+            return PlacematElement.class;
+        }
+
+        @Override
+        public void drawBackgroundOverlay(PlacematElement element, IGUIContext context) {
+            if (!(context instanceof GUIContext guiContext)) {
+                drawParentBackgroundOverlay(element, context);
+                return;
+            }
+            element.drawBackgroundOverlay(guiContext);
         }
     }
 }
