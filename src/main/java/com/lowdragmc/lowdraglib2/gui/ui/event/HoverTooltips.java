@@ -1,9 +1,11 @@
 package com.lowdragmc.lowdraglib2.gui.ui.event;
 
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +33,7 @@ public record HoverTooltips(List<Object> tooltips,
         var newTooltips = new ArrayList<>();
         for (Object tooltip : tooltips) {
             if (tooltip == null) continue;
-            if (tooltip instanceof Component || tooltip instanceof FormattedCharSequence) {
+            if (tooltip instanceof Component || tooltip instanceof FormattedCharSequence || tooltip instanceof ClientTooltipComponent || tooltip instanceof TooltipComponent) {
                 newTooltips.add(tooltip);
             } else {
                 newTooltips.add(Component.literal(tooltip.toString()));

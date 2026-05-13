@@ -15,8 +15,11 @@
     "accessor.GlBufferAccessor",
     "accessor.MeshDataAccessor",
     "accessor.MinecraftAccessor",
+    "accessor.GameRendererAccessor",
+    "accessor.PictureInPictureRendererAccessor",
     "ui.AbstractContainerScreenMixin",
     "ui.ContainerEventHandlerMixin",
+    "ui.GuiRendererMixin",
     "ui.ScreenMixin",
     "accessor.ObjGeometryAccessor"
   ],

@@ -6,6 +6,8 @@ import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.CompareOp;
+import com.mojang.blaze3d.platform.DestFactor;
+import com.mojang.blaze3d.platform.SourceFactor;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent;
@@ -66,6 +68,24 @@ public class LDLibRenderPipelines {
             .withLocation(LDLib2.id("pipeline/hsb"))
             .build();
 
+    /**
+     * Multiplies destination alpha by mask sample's alpha. Used by visual-layer
+     * mask baking: after a UI subtree is rendered into an off-target, draw the mask
+     * with this pipeline to punch the mask shape into the off-target's alpha channel.
+     * Blend: (ZERO, ONE, ZERO, SRC_ALPHA) → dst.rgb unchanged, dst.alpha *= src.alpha.
+     */
+    public static final RenderPipeline MASK_ALPHA_MULTIPLY = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/mask_alpha_multiply"))
+            .withFragmentShader(LDLib2.id("core/mask_alpha_multiply"))
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(new BlendFunction(
+                    SourceFactor.ZERO, DestFactor.ONE,
+                    SourceFactor.ZERO, DestFactor.SRC_ALPHA)))
+            .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/mask_alpha_multiply"))
+            .build();
+
     public static final RenderPipeline STRIP_LINES = RenderPipeline.builder(GUI_SNIPPET)
             .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_STRIP)
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
@@ -81,6 +101,7 @@ public class LDLibRenderPipelines {
         event.registerPipeline(GRAPH_WIRE);
         event.registerPipeline(ROUNDED_RECT);
         event.registerPipeline(HSB);
+        event.registerPipeline(MASK_ALPHA_MULTIPLY);
         event.registerPipeline(STRIP_LINES);
     }
 }

@@ -40,10 +40,12 @@ import org.joml.Vector2f;
 import org.joml.Vector4f;
 
 import javax.annotation.Nullable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
-import java.util.Stack;
 import java.util.function.Consumer;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 
 public class GUIContext implements IGUIContext {
     public GuiGraphicsExtractor graphics;
@@ -60,10 +62,17 @@ public class GUIContext implements IGUIContext {
      */
     public int elementColor = -1;
     public float localMouseX, localMouseY;
-    public Stack<UIVisualLayer> visualLayers = new Stack<>();
+    private final Deque<VisualLayerFrame> visualLayers = new ArrayDeque<>();
     private final List<PostCall> postRenderingCalls = new ArrayList<>();
 
     private record PostCall(Consumer<GUIContext> call, Matrix3x2f pose) {}
+
+    private record VisualLayerFrame(
+            UIElement element,
+            GuiGraphicsExtractor savedGraphics,
+            EnhancedPoseStack savedPose,
+            GuiRenderState subState
+    ) {}
 
     public static GUIContext of(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         UIElementClientRenderers.init();
@@ -131,39 +140,63 @@ public class GUIContext implements IGUIContext {
         localMouseY = realMouse.y;
     }
 
-    public void pushVisualLayer(UIVisualLayer layer) {
-        // todo visual layer
-//        graphics.flush();
-//        if (visualLayers.isEmpty()) {
-//            int[] fbo = new int[1];
-//            GL30.glGetIntegerv(GL30.GL_FRAMEBUFFER_BINDING, fbo);
-//            lastFBO = fbo[0];
-//        }
-//        visualLayers.push(layer);
-//        layer.bind(this);
-//        layer.clear();
+    @Override
+    public void pushVisualLayer(UIElement element) {
+        // Swap in a fresh sub GuiRenderState so subsequent draws by this element's
+        // subtree accumulate in isolation. On pop, the captured state is attached
+        // to a VisualLayerPipState which renders to an off-target and composites
+        // back with opacity / mask.
+        var savedGraphics = this.graphics;
+        var savedPose = this.pose;
+
+        var subState = new GuiRenderState();
+        var subGraphics = new GuiGraphicsExtractor(mc, subState, mouseX, mouseY);
+        this.graphics = subGraphics;
+        this.pose = new EnhancedPoseStack(subGraphics.pose()).setOnTransform(this::refreshLocalMouse);
+        // Mirror the outer screen-space pose so child draws record their natural
+        // screen coords into the sub-state. The sub-renderer's ortho is set up
+        // off-target = full screen, so screen coords map straight to off-target.
+        this.pose.pose.set(savedPose.pose);
+
+        visualLayers.push(new VisualLayerFrame(element, savedGraphics, savedPose, subState));
+        refreshLocalMouse();
     }
 
+    @Override
     public void popVisualLayer() {
-        // todo visual layer
+        var frame = visualLayers.pop();
+        var savedScissor = frame.savedGraphics().peekScissorStack();
 
-//        var popped = visualLayers.pop();
-//        if (popped != null) {
-//            graphics.flush();
-//            popped.unbind();
-//            var mainTarget = Minecraft.getInstance().getMainRenderTarget();
-//            if (visualLayers.isEmpty()) {
-//                if (lastFBO == -1) {
-//                    mainTarget.bindWrite(false);
-//                } else {
-//                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, lastFBO);
-//                }
-//            } else {
-//                visualLayers.peek().bind(this);
-//            }
-//            popped.draw(this);
-//            popped.release();
-//        }
+        // Restore outer graphics + pose before attaching the PIP state
+        this.graphics = frame.savedGraphics();
+        this.pose = frame.savedPose();
+        refreshLocalMouse();
+
+        var style = frame.element().getStyle();
+        float opacity = style.opacity();
+        IGuiTexture mask = style.mask();
+        IGuiTexture effectiveMask = (style.clip().isMask() && mask != null && mask != IGuiTexture.EMPTY) ? mask : null;
+
+        // Off-target spans the full window in logical px — matches the sub
+        // GuiRenderer's main-window ortho, so recorded screen-coords render at
+        // their original positions. The outer blit is also full-screen; areas
+        // outside the element's subtree start cleared (alpha 0) and stay invisible.
+        var window = mc.getWindow();
+        int screenW = window.getGuiScaledWidth();
+        int screenH = window.getGuiScaledHeight();
+
+        var element = frame.element();
+        var pipState = new VisualLayerPipState(
+                frame.subState(),
+                0, 0, screenW, screenH,
+                opacity,
+                effectiveMask,
+                element.getPositionX(), element.getPositionY(),
+                element.getSizeWidth(), element.getSizeHeight(),
+                new Matrix3x2f(),
+                savedScissor
+        );
+        this.graphics.guiRenderState.addPicturesInPictureState(pipState);
     }
 
     public void setElementColor(int elementColor) {
@@ -174,11 +207,6 @@ public class GUIContext implements IGUIContext {
     public void resetElementColor() {
         if (this.elementColor == -1) return;
         this.elementColor = -1;
-    }
-
-    @Override
-    public void pushVisualLayer(UIElement element) {
-        UIElementClientAccess.pushVisualLayer(element, this);
     }
 
     @Override

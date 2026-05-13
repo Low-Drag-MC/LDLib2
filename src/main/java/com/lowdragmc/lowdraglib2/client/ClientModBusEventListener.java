@@ -64,6 +64,8 @@ public final class ClientModBusEventListener {
     @SubscribeEvent
     public void registerPIPRenderers(net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent event) {
         event.register(com.lowdragmc.lowdraglib2.client.scene.SceneRenderState.class, com.lowdragmc.lowdraglib2.client.scene.ScenePIPRenderer::new);
+        event.register(com.lowdragmc.lowdraglib2.gui.ui.rendering.VisualLayerPipState.class,
+                com.lowdragmc.lowdraglib2.gui.ui.rendering.VisualLayerPipRenderer::new);
     }
 
     @SubscribeEvent

@@ -28,6 +28,29 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
     @Nullable
     protected Slot hoveredSlot;
 
+    // cause forge call mouseReleased twice, ContainerEventHandlerMixin will also be called twice.
+    // we skip it in advanced
+    @Inject(method = "mouseReleased", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$mouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        for (var child : children()) {
+            if (child instanceof IModularUIHolder holder) {
+                var mui = holder.getModularUI();
+                if (mui == null) continue;
+                var widget = ModularUIClientAccess.getWidget(mui);
+                if (widget.mouseReleased(event)) {
+                    cir.setReturnValue(true);
+                    return;
+                }
+                // if mouse clicked on the widget itself, ignore the event
+                var hovered = getChildAt(event.x(), event.y());
+                if (hovered.isPresent() && hovered.get() == widget) {
+                    cir.setReturnValue(false);
+                    return;
+                }
+            }
+        }
+    }
+
     @Inject(method = "mouseScrolled", at = @At(value = "HEAD"), cancellable = true)
     private void ldlib2$mouseScrolled(double x, double y, double scrollX, double scrollY, CallbackInfoReturnable<Boolean> cir) {
         for (var child : children()) {

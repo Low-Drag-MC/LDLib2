@@ -22,6 +22,7 @@ public class BasicStyle extends Style {
             PropertyRegistry.TOOLTIPS,
             PropertyRegistry.Z_INDEX,
             PropertyRegistry.OPACITY,
+            PropertyRegistry.CLIP,
             PropertyRegistry.MASK,
             PropertyRegistry.TRANSFORM_2D,
             PropertyRegistry.TRANSITION,

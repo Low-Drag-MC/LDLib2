@@ -237,9 +237,6 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         for (var child : getSafeChildren()) {
             child.onRemoved();
         }
-        if (!LDLib2.isServer()) {
-            UIElementClientAccess.release(this);
-        }
         if (bubbleListeners.containsKey(UIEvents.REMOVED) || captureListeners.containsKey(UIEvents.REMOVED)) {
             var event = UIEvent.create(UIEvents.REMOVED);
             event.target = this;
@@ -1970,7 +1967,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 var childValue = childrenValue.addChild();
                 childValue.putInt("index", i);
                 childValue.putString("type", child.name());
-                child.serialize(childValue);
+                child.serialize(childValue.child("data"));
             }
         }
     }
