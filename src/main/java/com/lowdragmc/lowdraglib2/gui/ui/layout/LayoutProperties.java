@@ -28,7 +28,7 @@ public final class LayoutProperties {
     public static final Property<TaffyDisplay> DISPLAY = PropertyRegistry.create("display", TaffyDisplay.class, TaffyDisplay.FLEX);
     public static final Property<TaffyDirection> LAYOUT_DIRECTION = PropertyRegistry.create("layout-direction", TaffyDirection.class, TaffyDirection.INHERIT);
     public static final Property<TaffyDimension> FLEX_BASIS = create("flex-basis", TaffyDimension.auto());
-    public static final Property<Float> FLEX = PropertyRegistry.create("flex", Float.NaN);
+    public static final Property<Float> FLEX = PropertyRegistry.create(new AutoFloatProperty("flex", Float.NaN));
     public static final Property<Float> FLEX_GROW = PropertyRegistry.create("flex-grow", 0f);
     public static final Property<Float> FLEX_SHRINK = PropertyRegistry.create("flex-shrink", 0f);
     public static final Property<FlexDirection> FLEX_DIRECTION = PropertyRegistry.create("flex-direction", FlexDirection.class, FlexDirection.COLUMN).setIconProvider(FlexIcons::getFlexDirectionIcon);
@@ -72,7 +72,7 @@ public final class LayoutProperties {
     public static final Property<TaffyDimension> MAX_WIDTH = create("max-width", TaffyDimension.auto());
     public static final Property<TaffyDimension> MAX_HEIGHT = create("max-height", TaffyDimension.auto());
 
-    public static final Property<Float> ASPECT_RATE = PropertyRegistry.create("aspect-rate", Float.NaN);
+    public static final Property<Float> ASPECT_RATE = PropertyRegistry.create(new AutoFloatProperty("aspect-rate", Float.NaN));
     public static final Property<AlignItems> ALIGN_ITEMS = PropertyRegistry.create("align-items", AlignItems.class, AlignItems.STRETCH, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
     public static final Property<AlignItems> ALIGN_SELF = PropertyRegistry.create("align-self", AlignItems.class, AlignItems.AUTO, DEFAULT_ALIGN_ITEMS).setIconProvider(v -> IGuiTexture.EMPTY);
     public static final Property<AlignContent> ALIGN_CONTENT = PropertyRegistry.create("align-content", AlignContent.class, AlignContent.FLEX_START).setIconProvider(v -> IGuiTexture.EMPTY);
