@@ -24,8 +24,11 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.util.ItemTooltipTextHelper;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
@@ -46,6 +49,8 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
@@ -168,9 +173,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         addEventListener(UIEvents.MUI_CHANGED, this::onModularUIChanged);
         if (LDLib2.isClient() && !LDLib2.isServer()) {
             // todo xei
-//            if (LDLib2.isJeiLoaded()) {
-//                JEISupport.clickableIngredient(this);
-//            }
+            if (LDLib2.isJeiLoaded()) {
+                JEISupport.clickableIngredient(this);
+            }
 //            if (LDLib2.isReiLoaded()) {
 //                REISupport.focusedStack(this);
 //            }
@@ -206,9 +211,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiPhantom() {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.ghostIngredient(this);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.ghostIngredient(this);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.draggableStackBounds(this);
 //            REISupport.acceptDraggableStack(this);
@@ -222,9 +227,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiRecipeIngredient(IngredientIO io) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeIngredient(this, io);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeIngredient(this, io);
 //        }
@@ -236,9 +241,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiRecipeIngredient(IngredientIO io, Stream<ItemStack> allPossibleItems) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeIngredient(this, io, () -> allPossibleItems);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io, () -> allPossibleItems);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeIngredient(this, io, () -> allPossibleItems);
 //        }
@@ -254,9 +259,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeSlot(this);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io);
 //        }
@@ -268,9 +273,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Stream<ItemStack> allPossibleItems) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeSlot(this, () -> allPossibleItems);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this, () -> allPossibleItems);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io, () -> allPossibleItems);
 //        }
@@ -408,7 +413,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
         super.loadXml(element);
     }
-    /*
+
     // todo xei
 
     // region XEI Supports
@@ -450,6 +455,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
     }
 
+    /*
     public static class REISupport {
         public static void focusedStack(ItemSlot itemSlot) {
             LDLibREIPlugin.focusedStack(itemSlot, () -> {
@@ -543,9 +549,8 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                             .setChance(chance.get()));
         }
     }
-    // endregion
-
      */
+    // endregion
 
     @LDLRegisterClient(name = "item_slot", registry = "ldlib2:ui_element_renderer")
     public static final class ItemSlotRenderer extends DelegatingUIElementRenderer<ItemSlot, ItemSlotRenderer> {

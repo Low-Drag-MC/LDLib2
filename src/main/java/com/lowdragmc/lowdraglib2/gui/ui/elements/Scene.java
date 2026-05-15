@@ -492,7 +492,7 @@ public class Scene extends UIElement {
                         Mth.floor(x), Mth.floor(y),
                         Mth.ceil(x + width), Mth.ceil(y + height),
                         1.0f,
-                        context.graphics.peekScissorStack()
+                        null
                 ));
                 if (renderer.isCompiling()) {
                     double progress = renderer.getCompileProgress();

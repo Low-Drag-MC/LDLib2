@@ -189,10 +189,10 @@ dependencies {
 //    }
 //    jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "[${kotlin_stdlib_version},)")
 
-//    // JEI
-//    compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
-//    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
-//    localImplementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+    // JEI
+    compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
+    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
+    localImplementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 //
 //    // REI
 //    compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")

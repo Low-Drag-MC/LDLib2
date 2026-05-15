@@ -28,6 +28,7 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
@@ -39,6 +40,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -60,7 +62,10 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @MethodsReturnNonnullByDefault
@@ -170,9 +175,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         if (LDLib2.isClient() && !LDLib2.isServer()) {
             // todo xei
-//            if (LDLib2.isJeiLoaded()) {
-//                JEISupport.clickableIngredient(this);
-//            }
+            if (LDLib2.isJeiLoaded()) {
+                JEISupport.clickableIngredient(this);
+            }
 //            if (LDLib2.isReiLoaded()) {
 //                REISupport.focusedStack(this);
 //            }
@@ -244,9 +249,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public FluidSlot xeiPhantom() {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.ghostIngredient(this);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.ghostIngredient(this);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.draggableStackBounds(this);
 //            REISupport.acceptDraggableStack(this);
@@ -260,9 +265,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public FluidSlot xeiRecipeIngredient(IngredientIO io) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeIngredient(this, io);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeIngredient(this, io);
 //        }
@@ -274,9 +279,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public FluidSlot xeiRecipeIngredient(IngredientIO io, Stream<FluidStack> allPossibleFluids) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeIngredient(this, io, () -> allPossibleFluids);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeIngredient(this, io, () -> allPossibleFluids);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeIngredient(this, io, () -> allPossibleFluids);
 //        }
@@ -292,9 +297,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public FluidSlot xeiRecipeSlot(IngredientIO io, float chance) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeSlot(this);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io);
 //        }
@@ -306,9 +311,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     public FluidSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Stream<FluidStack> allPossibleFluids) {
         // todo xei
-//        if (LDLib2.isJeiLoaded()) {
-//            JEISupport.recipeSlot(this, () -> allPossibleFluids);
-//        }
+        if (LDLib2.isJeiLoaded()) {
+            JEISupport.recipeSlot(this, () -> allPossibleFluids);
+        }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io, () -> allPossibleFluids);
 //        }
@@ -535,7 +540,6 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     }
 
     // todo xei
-    /*
     // region XEI Support
     public static class JEISupport {
         public static void clickableIngredient(FluidSlot fluidSlot) {
@@ -580,6 +584,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
     }
 
+    /*
     public static class REISupport {
         public static void focusedStack(FluidSlot fluidSlot) {
             LDLibREIPlugin.focusedStack(fluidSlot, () -> {
@@ -679,8 +684,8 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
                             .setChance(chance.get()));
         }
     }
-    // endregion
     */
+    // endregion
 
     @LDLRegisterClient(name = "fluid_slot", registry = "ldlib2:ui_element_renderer")
     public static final class FluidSlotRenderer extends DelegatingUIElementRenderer<FluidSlot, FluidSlotRenderer> {

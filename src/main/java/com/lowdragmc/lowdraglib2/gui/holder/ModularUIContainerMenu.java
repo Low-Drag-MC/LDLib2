@@ -79,20 +79,6 @@ public class ModularUIContainerMenu extends AbstractContainerMenu {
 
         // If no actual targets were available, allow moving into filter slots too
         if (destinationSlots.isEmpty() && fromPlayerSide) {
-            // TODO FakeSlot
-//            for (Slot cs : this.slots) {
-//                if (cs instanceof FakeSlot && !isPlayerSideSlot(cs)) {
-//                    var destination = cs.getItem();
-//                    if (ItemStack.isSameItemSameComponents(destination, stackToMove)) {
-//                        break; // Item is already in the filter
-//                    } else if (destination.isEmpty()) {
-//                        cs.set(stackToMove.copy());
-//                        // ???
-//                        this.broadcastChanges();
-//                        break;
-//                    }
-//                }
-//            }
             return stackToMove; // Since destinationSlots was empty, nothing else to do
         }
 

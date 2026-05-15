@@ -17,8 +17,6 @@ final class ModularUIClientState {
     @Nullable
     HoverTooltips hoverTooltips;
     @Nullable
-    Font tooltipFont;
-    @Nullable
     UIDebugger uiDebuggerCache;
     @Getter
     private final ModularUIWidget widget;

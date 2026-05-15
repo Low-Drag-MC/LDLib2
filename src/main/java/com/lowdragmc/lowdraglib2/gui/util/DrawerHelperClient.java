@@ -202,17 +202,17 @@ public class DrawerHelperClient {
                 Optional.ofNullable(hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY));
     }
 
-    private static Font tooltipFont(HoverTooltips hoverTooltips, GUIContext context) {
+    public static Font tooltipFont(HoverTooltips hoverTooltips, GUIContext context) {
         return hoverTooltips.tooltipFont() instanceof Font font ? font : context.mc.font;
     }
 
-    private static ClientTooltipPositioner tooltipPositioner(HoverTooltips hoverTooltips) {
+    public static ClientTooltipPositioner tooltipPositioner(HoverTooltips hoverTooltips) {
         return hoverTooltips.positioner() instanceof ClientTooltipPositioner positioner
                 ? positioner
                 : DefaultTooltipPositioner.INSTANCE;
     }
 
-    private static List<ClientTooltipComponent> toClientTooltips(List<?> tooltips) {
+    public static List<ClientTooltipComponent> toClientTooltips(List<?> tooltips) {
         if (tooltips.isEmpty()) {
             return List.of();
         }

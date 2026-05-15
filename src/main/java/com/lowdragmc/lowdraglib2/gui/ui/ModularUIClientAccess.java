@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import org.jetbrains.annotations.Nullable;
@@ -50,11 +49,6 @@ public final class ModularUIClientAccess {
 
     public static void cleanTooltip(ModularUI modularUI) {
         getState(modularUI).hoverTooltips = null;
-    }
-
-    @Nullable
-    public static Font getTooltipFont(ModularUI modularUI) {
-        return getState(modularUI).tooltipFont;
     }
 
     public static List<Rect2i> getGuiExtraAreas(ModularUI modularUI) {

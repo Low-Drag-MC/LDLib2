@@ -7,10 +7,13 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -186,15 +189,15 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
     // todo xei
     public static class JEISupport {
         public static void ghostItem(UIElement element, Predicate<ItemStack> filter, Consumer<ItemStack> setter) {
-//            LDLibJEIPlugin.ghostIngredient(element, VanillaTypes.ITEM_STACK,
-//                    ingredient -> filter.test(ingredient.getIngredient()),
-//                    setter);
+            LDLibJEIPlugin.ghostIngredient(element, VanillaTypes.ITEM_STACK,
+                    ingredient -> filter.test(ingredient.getIngredient()),
+                    setter);
         }
 
         public static void ghostFluid(UIElement element, Predicate<FluidStack> filter, Consumer<FluidStack> setter) {
-//            LDLibJEIPlugin.ghostIngredient(element, NeoForgeTypes.FLUID_STACK,
-//                    ingredient -> filter.test(ingredient.getIngredient()),
-//                    setter);
+            LDLibJEIPlugin.ghostIngredient(element, NeoForgeTypes.FLUID_STACK,
+                    ingredient -> filter.test(ingredient.getIngredient()),
+                    setter);
         }
 
         public static void ghostBlock(UIElement element, Predicate<net.minecraft.world.level.block.Block> filter, Consumer<net.minecraft.world.level.block.Block> setter) {

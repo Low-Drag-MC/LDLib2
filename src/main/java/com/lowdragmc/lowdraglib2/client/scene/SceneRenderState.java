@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
+import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatBlitRenderState;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import org.joml.Matrix3x2f;
@@ -18,7 +19,7 @@ public record SceneRenderState(
     float sceneHeight,
     int mouseX,
     int mouseY,
-    Matrix3x2f poseMatrix,
+    Matrix3x2f pose,
     int x0,
     int y0,
     int x1,
@@ -32,18 +33,13 @@ public record SceneRenderState(
         WorldSceneRenderer sceneRenderer,
         float sceneX, float sceneY, float sceneWidth, float sceneHeight,
         int mouseX, int mouseY,
-        Matrix3x2f poseMatrix,
+        Matrix3x2f pose,
         int x0, int y0, int x1, int y1,
         float scale,
         @Nullable ScreenRectangle scissorArea
     ) {
-        this(sceneRenderer, sceneX, sceneY, sceneWidth, sceneHeight, mouseX, mouseY, poseMatrix,
+        this(sceneRenderer, sceneX, sceneY, sceneWidth, sceneHeight, mouseX, mouseY, pose,
                 x0, y0, x1, y1, scale, scissorArea,
-                PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissorArea));
-    }
-
-    @Override
-    public Matrix3x2f pose() {
-        return poseMatrix;
+                FloatBlitRenderState.getBounds(x0, y0, x1, y1, pose, scissorArea));
     }
 }

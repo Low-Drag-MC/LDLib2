@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatBlitRenderState;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
@@ -42,7 +43,7 @@ public record VisualLayerPipState(
                                boolean dynamicMask, Matrix3x2f pose, Matrix3x2f maskPose,
                                @Nullable ScreenRectangle scissorArea) {
         this(subState, x0, y0, x1, y1, opacity, mask, maskX, maskY, maskW, maskH, dynamicMask, pose, maskPose, scissorArea,
-                PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissorArea));
+                FloatBlitRenderState.getBounds(x0, y0, x1, y1, pose, scissorArea));
     }
 
     public VisualLayerPipState(GuiRenderState subState, int x0, int y0, int x1, int y1,
@@ -50,7 +51,7 @@ public record VisualLayerPipState(
                                float maskX, float maskY, float maskW, float maskH,
                                Matrix3x2f pose, @Nullable ScreenRectangle scissorArea) {
         this(subState, x0, y0, x1, y1, opacity, mask, maskX, maskY, maskW, maskH, false, pose, new Matrix3x2f(), scissorArea,
-                PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissorArea));
+                FloatBlitRenderState.getBounds(x0, y0, x1, y1, pose, scissorArea));
     }
 
     @Override

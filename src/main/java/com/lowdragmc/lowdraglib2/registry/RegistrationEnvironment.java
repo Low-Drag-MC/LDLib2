@@ -47,10 +47,6 @@ public enum RegistrationEnvironment {
         if (annotationData.get("environment") instanceof ModAnnotation.EnumHolder envHolder) {
             return RegistrationEnvironment.valueOf(envHolder.value()).shouldRegister();
         }
-        // Legacy: check deprecated manual field
-        if (annotationData.get("manual") instanceof Boolean manual && manual) {
-            return false;
-        }
         return true;
     }
 }
