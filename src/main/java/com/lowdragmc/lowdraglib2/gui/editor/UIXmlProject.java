@@ -38,7 +38,7 @@ public class UIXmlProject implements IProject {
         xml = """
                 <?xml version="1.0" encoding="UTF-8" ?>
                 <ldlib2-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                           xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Low-Drag-MC/LDLib2/refs/heads/1.21/ldlib2-ui.xsd">
+                           xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Low-Drag-MC/LDLib2/refs/heads/26.1/ldlib2-ui.xsd">
                     <stylesheet location="ldlib2:lss/mc.lss"/>
                     <style>
                         .flex-1 {
