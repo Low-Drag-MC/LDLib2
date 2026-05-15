@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 
 import com.google.common.collect.Maps;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.settings.AppearanceSettings;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -65,6 +66,7 @@ public class EditorWindow extends UIElement {
     public static EditorWindow open(Identifier windowID, Supplier<Editor> editorCreator) {
         var editorWindow = MINIMIZED_WINDOWS.remove(windowID);
         if (editorWindow != null && LDLib2.isClient()) {
+            ClientSupport.restoreGuiScale();
             ClientSupport.notifyOpenToast();
             return editorWindow;
         }
@@ -210,18 +212,7 @@ public class EditorWindow extends UIElement {
         if (editors.isEmpty()) {
             currentEditor = null;
 
-            if (LDLib2.isClient()) {
-                var minecraft = Minecraft.getInstance();
-                var guiScale = minecraft.options.guiScale();
-                if (guiScale.get() != initialScreenScale) {
-                    guiScale.set(initialScreenScale);
-                    minecraft.resizeGui();
-                }
-            }
-
-            if (getModularUI() != null && ModularUIClientAccess.getScreen(getModularUI()) != null) {
-                ModularUIClientAccess.getScreen(getModularUI()).onClose();
-            }
+            closeScreen();
         } else {
             showEditor(editors.lastEntry().getKey());
         }
@@ -248,6 +239,19 @@ public class EditorWindow extends UIElement {
     public void minimizeWindow() {
         if (EditorWindow.MINIMIZED_WINDOWS.containsKey(windowID)) return;
         EditorWindow.MINIMIZED_WINDOWS.put(windowID, this);
+        closeScreen();
+    }
+
+    private void closeScreen() {
+        if (LDLib2.isClient()) {
+            var minecraft = Minecraft.getInstance();
+            var guiScale = minecraft.options.guiScale();
+            if (guiScale.get() != initialScreenScale) {
+                guiScale.set(initialScreenScale);
+                minecraft.resizeGui();
+            }
+        }
+
         if (getModularUI() != null && ModularUIClientAccess.getScreen(getModularUI()) != null) {
             ModularUIClientAccess.getScreen(getModularUI()).onClose();
         }
@@ -353,6 +357,22 @@ public class EditorWindow extends UIElement {
                     Component.translatable("editor.minimized.title"),
                     Component.translatable("editor.minimized.tips")
             ));
+        }
+
+        public static void restoreGuiScale(EditorWindow editorWindow) {
+            if (editorWindow.currentEditor != null && LDLib2.isClient()) {
+                editorWindow.currentEditor.editorSettings.getSettings(AppearanceSettings.ID).ifPresent(settings -> {
+                    if (settings instanceof AppearanceSettings appearanceSettings) {
+                        var scale = appearanceSettings.getScreenScale();
+                        var minecraft = Minecraft.getInstance();
+                        var guiScale = minecraft.options.guiScale();
+                        if (guiScale.get() != scale) {
+                            guiScale.set(scale);
+                            minecraft.resizeGui();
+                        }
+                    }
+                });
+            }
         }
     }
 }
