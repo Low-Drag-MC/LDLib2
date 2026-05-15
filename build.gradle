@@ -291,7 +291,7 @@ tasks.register("printVersion") {
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-//            artifactId = archivesBaseName
+            artifactId = archives_name
             from components.java
         }
     }
