@@ -66,7 +66,7 @@ public class EditorWindow extends UIElement {
     public static EditorWindow open(Identifier windowID, Supplier<Editor> editorCreator) {
         var editorWindow = MINIMIZED_WINDOWS.remove(windowID);
         if (editorWindow != null && LDLib2.isClient()) {
-            ClientSupport.restoreGuiScale();
+            ClientSupport.restoreGuiScale(editorWindow);
             ClientSupport.notifyOpenToast();
             return editorWindow;
         }
