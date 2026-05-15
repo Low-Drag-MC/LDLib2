@@ -226,7 +226,7 @@ jobs:
             build/libs/!(*-@(all|dev|sources|javadoc|dev-shadow)).jar
             build/libs/*-@(sources).jar
 
-          name: LDLib2-${{ needs.validate.outputs.version }}-neoforge
+          name: LDLib2-1.21.1-${{ needs.validate.outputs.version }}-neoforge
           version: mc1.21.1-${{ needs.validate.outputs.version }}-neoforge
           version-type: ${{ inputs.versionType }}
           changelog-file: CHANGELOG.*
