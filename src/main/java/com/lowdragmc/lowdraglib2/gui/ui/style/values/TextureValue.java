@@ -255,6 +255,11 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     return new ShaderTexture(Identifier.parse(args[0]));
                 }
             }
+            case "vanilla-sprite" -> {
+                if (args.length > 0) {
+                    return VanillaSpriteTexture.of(args[0]);
+                }
+            }
             default -> {
                 if (args.length > 0) {
                     try {
