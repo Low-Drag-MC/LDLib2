@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 @KJSBindings
+@Deprecated(forRemoval = true)
 public class ItemHandlerSlot extends Slot {
     private static final Container emptyInventory = new SimpleContainer(0);
     @Getter @Setter @Accessors(chain = true)

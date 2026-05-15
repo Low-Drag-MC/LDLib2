@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
@@ -24,7 +24,7 @@ public class TestSlots implements IMenuTest {
     @Override
     public ModularUI createUI(Player player) {
         var z = 15;
-        var itemHandler = new ItemStackHandler(9 * z);
+        var itemHandler = new ItemStacksResourceHandler(9 * z);
         var scrollerView = new ScrollerView();
         var root = new UIElement().layout(layout -> layout.gapAll(3));
         for (int i = 0; i < z; i++) {

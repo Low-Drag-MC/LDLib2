@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
+import com.lowdragmc.lowdraglib2.gui.holder.IAbstractContainerScreenExt;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
@@ -118,8 +119,22 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         return false;
     }
 
+    /**
+     * Cause forge call mouseReleased twice, ContainerEventHandlerMixin will also be called twice.
+     * We should cache the result and return it. see {@link com.lowdragmc.lowdraglib2.core.mixins.ui.ContainerEventHandlerMixin}
+     * and {@link com.lowdragmc.lowdraglib2.core.mixins.ui.AbstractContainerMenuMixin}
+     */
+    private int lastMouseReleasedMark;
+    private boolean lastMouseReleasedResult;
+
     @Override
     public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
+        if (ModularUIClientAccess.getScreen(getModularUI()) instanceof IAbstractContainerScreenExt ext) {
+            if (ext.getLdlib2$mouseReleasedMark() == lastMouseReleasedMark) {
+                return lastMouseReleasedResult;
+            }
+            lastMouseReleasedMark = ext.getLdlib2$mouseReleasedMark();
+        }
         var mouseX = mouseButtonEvent.x();
         var mouseY = mouseButtonEvent.y();
         var button = mouseButtonEvent.button();
@@ -167,11 +182,11 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
             }
             modularUI.lastMouseClickButton = button;
             modularUI.lastMouseClickTime = System.currentTimeMillis();
-            return hasHandler;
+            return lastMouseReleasedResult = hasHandler;
         }
         modularUI.lastMouseClickButton = button;
         modularUI.lastMouseClickTime = System.currentTimeMillis();
-        return false;
+        return lastMouseReleasedResult = false;
     }
 
     @Override

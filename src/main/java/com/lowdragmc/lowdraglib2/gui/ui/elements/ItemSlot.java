@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
+import com.lowdragmc.lowdraglib2.gui.slot.ItemResourceHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.slot.LocalSlot;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -35,6 +36,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
@@ -183,9 +186,14 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         addSlotToTheMenu();
     }
 
-    // todo ItemStacksResourceHandler
+    @Deprecated(forRemoval = true)
     public ItemSlot bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
         bind(new ItemHandlerSlot(itemHandlerModifiable, index));
+        return this;
+    }
+
+    public ItemSlot bind(ResourceHandler<ItemResource> resourceHandler, int index) {
+        bind(new ItemResourceHandlerSlot(resourceHandler, index));
         return this;
     }
 

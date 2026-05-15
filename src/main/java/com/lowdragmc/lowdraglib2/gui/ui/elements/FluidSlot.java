@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
@@ -33,6 +34,7 @@ import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -42,9 +44,16 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.transfer.RangedResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -147,7 +156,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     private final RPCEmitter clickEvent;
 
     @Nullable
-    private IFluidHandler boundHandler;
+    private Either<IFluidHandler, ResourceHandler<FluidResource>> boundHandler;
     private int tankIndex;
     @Nullable
     private ISubscription fluidTankSubscription;
@@ -191,17 +200,27 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         return this;
     }
 
-    public FluidSlot bind(@Nullable IFluidHandler fluidTank, int tankIndex) {
+    @Deprecated(forRemoval = true)
+    protected FluidSlot bind(@Nullable Either<IFluidHandler, ResourceHandler<FluidResource>> fluidHandler, int tankIndex) {
         if (fluidTankSubscription != null) {
             fluidTankSubscription.unsubscribe();
         }
-        boundHandler = fluidTank;
+
+        this.boundHandler = fluidHandler;
         if (boundHandler == null) return this;
         this.tankIndex = tankIndex;
-        if (tankIndex < 0 || tankIndex >= boundHandler.getTanks()) throw new IllegalArgumentException("Invalid tank index: " + tankIndex);
-        var fluidBinding = DataBindingBuilder.fluidStackS2C(() -> boundHandler.getFluidInTank(this.tankIndex)).build();
-        var capacitySyncValue = DataBindingBuilder.intValS2C(() -> boundHandler.getTankCapacity(this.tankIndex))
-                .remoteSetter(this::setCapacity).build().getSyncValue();
+
+        if (tankIndex < 0 || tankIndex >= boundHandler.map(IFluidHandler::getTanks, ResourceHandler::size)) throw new IllegalArgumentException("Invalid tank index: " + tankIndex);
+        var fluidBinding = DataBindingBuilder.fluidStackS2C(() -> boundHandler.map(
+                left -> left.getFluidInTank(this.tankIndex),
+                right -> right.getResource(this.tankIndex).toStack(right.getAmountAsInt(this.tankIndex))))
+                .build();
+        var capacitySyncValue = DataBindingBuilder.intValS2C(() -> boundHandler.map(
+                left -> left.getTankCapacity(this.tankIndex),
+                right -> right.getCapacityAsInt(this.tankIndex, FluidResource.EMPTY)))
+                .remoteSetter(this::setCapacity)
+                .build()
+                .getSyncValue();
 
         bind(fluidBinding);
         addSyncValue(capacitySyncValue);
@@ -212,6 +231,15 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         };
 
         return this;
+    }
+
+    public FluidSlot bind(@Nullable ResourceHandler<FluidResource> fluidHandler, int tankIndex) {
+        return bind(fluidHandler == null ? null : Either.right(fluidHandler), tankIndex);
+    }
+
+    @Deprecated(forRemoval = true)
+    public FluidSlot bind(@Nullable IFluidHandler fluidTank, int tankIndex) {
+        return bind(fluidTank == null ? null : Either.left(fluidTank), tankIndex);
     }
 
     public FluidSlot xeiPhantom() {
@@ -292,64 +320,101 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     private void tryClickContainer(boolean isShiftKeyDown) {
         if (boundHandler == null) return;
-        if (tankIndex < 0 || tankIndex >= boundHandler.getTanks()) return;
+        if (tankIndex < 0 || tankIndex >= boundHandler.map(IFluidHandler::getTanks, ResourceHandler::size)) return;
         var mui = getModularUI();
         if (mui == null || mui.getMenu() == null) return;
         var player = mui.player;
         if (player == null) return;
         var menu = mui.getMenu();
         var carried = menu.getCarried();
-        var handler = FluidUtil.getFluidHandler(carried);
-        if (handler.isEmpty()) return;
-        int maxAttempts = isShiftKeyDown ? carried.getCount() : 1;
-        var initialFluid = boundHandler.getFluidInTank(tankIndex);
-        if (allowClickFilled && initialFluid.getAmount() > 0) {
-            var performedFill = false;
-            for (int i = 0; i < maxAttempts; i++) {
-                var result = FluidUtil.tryFillContainer(carried, boundHandler, Integer.MAX_VALUE, null, false);
-                if (!result.isSuccess()) break;
-                ItemStack remainingStack = FluidUtil.tryFillContainer(carried, boundHandler, Integer.MAX_VALUE, null, true).getResult();
-                carried.shrink(1);
-                performedFill = true;
-                if (!remainingStack.isEmpty() && !player.addItem(remainingStack)) {
-                    Block.popResource(player.level(), player.getOnPos(), remainingStack);
-                    break;
+        boundHandler.ifLeft(container -> {
+            var handler = FluidUtil.getFluidHandler(carried);
+            if (handler.isEmpty()) return;
+            int maxAttempts = isShiftKeyDown ? carried.getCount() : 1;
+            var initialFluid = container.getFluidInTank(tankIndex);
+            if (allowClickFilled && initialFluid.getAmount() > 0) {
+                var performedFill = false;
+                for (int i = 0; i < maxAttempts; i++) {
+                    var result = FluidUtil.tryFillContainer(carried, container, Integer.MAX_VALUE, null, false);
+                    if (!result.isSuccess()) break;
+                    ItemStack remainingStack = FluidUtil.tryFillContainer(carried, container, Integer.MAX_VALUE, null, true).getResult();
+                    carried.shrink(1);
+                    performedFill = true;
+                    if (!remainingStack.isEmpty() && !player.addItem(remainingStack)) {
+                        Block.popResource(player.level(), player.getOnPos(), remainingStack);
+                        break;
+                    }
+                }
+                if (performedFill) {
+                    SoundEvent soundevent = FluidHelper.getFillSound(initialFluid);
+                    if (soundevent != null) {
+                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
+                    }
+                    menu.setCarried(carried);
+                    return;
                 }
             }
-            if (performedFill) {
-                SoundEvent soundevent = FluidHelper.getFillSound(initialFluid);
-                if (soundevent != null) {
-                    player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
-                }
-                menu.setCarried(carried);
-                return;
-            }
-        }
 
-        if (allowClickDrained) {
-            var performedEmptying = false;
-            for (int i = 0; i < maxAttempts; i++) {
-                var result = FluidUtil.tryEmptyContainer(carried, boundHandler, Integer.MAX_VALUE, null, false);
-                if (!result.isSuccess()) break;
-                ItemStack remainingStack = FluidUtil.tryEmptyContainer(carried, boundHandler, Integer.MAX_VALUE, null, true).getResult();
-                carried.shrink(1);
-                performedEmptying = true;
-                if (!remainingStack.isEmpty() && !player.getInventory().add(remainingStack)) {
-                    Block.popResource(player.level(), player.getOnPos(), remainingStack);
-                    break;
+            if (allowClickDrained) {
+                var performedEmptying = false;
+                for (int i = 0; i < maxAttempts; i++) {
+                    var result = FluidUtil.tryEmptyContainer(carried, container, Integer.MAX_VALUE, null, false);
+                    if (!result.isSuccess()) break;
+                    ItemStack remainingStack = FluidUtil.tryEmptyContainer(carried, container, Integer.MAX_VALUE, null, true).getResult();
+                    carried.shrink(1);
+                    performedEmptying = true;
+                    if (!remainingStack.isEmpty() && !player.getInventory().add(remainingStack)) {
+                        Block.popResource(player.level(), player.getOnPos(), remainingStack);
+                        break;
+                    }
+                }
+                var filledFluid = container.getFluidInTank(tankIndex);
+                if (performedEmptying) {
+                    SoundEvent soundevent = FluidHelper.getEmptySound(filledFluid);
+                    if (soundevent != null) {
+                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
+                    }
+                    menu.setCarried(carried);
                 }
             }
-            var filledFluid = boundHandler.getFluidInTank(tankIndex);
-            if (performedEmptying) {
-                SoundEvent soundevent = FluidHelper.getEmptySound(filledFluid);
-                if (soundevent != null) {
-                    player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
+        }).ifRight(container -> {
+            container = RangedResourceHandler.of(container, tankIndex, tankIndex + 1);
+            var access = ItemAccess.forPlayerCursor(player, menu);
+            var handler = access.getCapability(Capabilities.Fluid.ITEM);
+            if (handler == null) return;
+            var initialFluid = handler.getResource(tankIndex).toStack(handler.getAmountAsInt(tankIndex));
+            if (allowClickFilled && container.getAmountAsInt(0) > 0) {
+                var performedFill = false;
+                try (var trans = Transaction.openRoot()) {
+                    var moved = ResourceHandlerUtil.move(container, handler, Predicates.alwaysTrue(), Integer.MAX_VALUE, trans);
+                    performedFill = moved > 0;
+                    trans.commit();
                 }
-                menu.setCarried(carried);
+                if (performedFill) {
+                    var soundevent = FluidHelper.getFillSound(initialFluid);
+                    if (soundevent != null) {
+                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
+                    }
+                    return;
+                }
             }
-        }
+
+            if (allowClickDrained) {
+                var performedEmptying = false;
+                try (var trans = Transaction.openRoot()) {
+                    var moved = ResourceHandlerUtil.move(handler, container, Predicates.alwaysTrue(), Integer.MAX_VALUE, trans);
+                    performedEmptying = moved > 0;
+                    trans.commit();
+                }
+                if (performedEmptying) {
+                    var soundevent = FluidHelper.getEmptySound(container.getResource(0).toStack(container.getAmountAsInt(0)));
+                    if (soundevent != null) {
+                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
+                    }
+                }
+            }
+        });
     }
-
 
     protected void onMouseDown(UIEvent event) {
         clickEvent.send(event.isShiftDown());

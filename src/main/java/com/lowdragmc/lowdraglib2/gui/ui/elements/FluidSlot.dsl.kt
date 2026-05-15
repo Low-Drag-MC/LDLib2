@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO
 import net.neoforged.neoforge.fluids.FluidStack
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import net.neoforged.neoforge.transfer.ResourceHandler
+import net.neoforged.neoforge.transfer.fluid.FluidResource
 import java.util.function.Consumer
 
 /**
@@ -25,13 +27,13 @@ open class FluidSlotSpec<T : FluidSlot>(
     var capacity: Int? = null,
     var allowClickFilled: Boolean? = null,
     var allowClickDrained: Boolean? = null,
-    var fluidHandler: IFluidHandler? = null,
+    var fluidHandler: ResourceHandler<FluidResource>? = null,
     var tankIndex: Int? = null,
 ) : ElementSpec<T>() {
     /**
      * Bind to fluid handler
      */
-    fun bind(handler: IFluidHandler, index: Int) = apply {
+    fun bind(handler: ResourceHandler<FluidResource>, index: Int) = apply {
         this.fluidHandler = handler
         this.tankIndex = index
     }
@@ -114,7 +116,15 @@ fun <T : FluidSlot> FluidSlotElement<T>.withCapacity(capacity: Int): FluidSlotEl
 /**
  * Extension: Bind to fluid handler
  */
+@Deprecated("Use bindTo(handler: ResourceHandler<FluidResource>, index: Int) instead")
 fun <T : FluidSlot> FluidSlotElement<T>.bindTo(handler: IFluidHandler, index: Int): FluidSlotElement<T> = apply {
+    element.bind(handler, index)
+}
+
+/**
+ * Extension: Bind to fluid handler
+ */
+fun <T : FluidSlot> FluidSlotElement<T>.bindTo(handler: ResourceHandler<FluidResource>, index: Int): FluidSlotElement<T> = apply {
     element.bind(handler, index)
 }
 

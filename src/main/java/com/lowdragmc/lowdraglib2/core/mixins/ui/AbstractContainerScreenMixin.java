@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
+import com.lowdragmc.lowdraglib2.gui.holder.IAbstractContainerScreenExt;
 import com.lowdragmc.lowdraglib2.gui.holder.IItemSlotHolderMenu;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
@@ -13,13 +14,14 @@ import net.minecraft.world.inventory.Slot;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractContainerScreen.class)
-public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMenu> implements ContainerEventHandler {
+public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMenu> implements ContainerEventHandler, IAbstractContainerScreenExt {
 
     @Shadow
     public abstract T getMenu();
@@ -28,27 +30,19 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
     @Nullable
     protected Slot hoveredSlot;
 
+    @Unique
+    private int ldlib2$mouseReleasedMark = 0;
+
+    @Override
+    public int getLdlib2$mouseReleasedMark() {
+        return ldlib2$mouseReleasedMark;
+    }
+
     // cause forge call mouseReleased twice, ContainerEventHandlerMixin will also be called twice.
-    // we skip it in advanced
-    @Inject(method = "mouseReleased", at = @At(value = "HEAD"), cancellable = true)
+    // we should cache result and return
+    @Inject(method = "mouseReleased", at = @At(value = "HEAD"))
     private void ldlib2$mouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
-        for (var child : children()) {
-            if (child instanceof IModularUIHolder holder) {
-                var mui = holder.getModularUI();
-                if (mui == null) continue;
-                var widget = ModularUIClientAccess.getWidget(mui);
-                if (widget.mouseReleased(event)) {
-                    cir.setReturnValue(true);
-                    return;
-                }
-                // if mouse clicked on the widget itself, ignore the event
-                var hovered = getChildAt(event.x(), event.y());
-                if (hovered.isPresent() && hovered.get() == widget) {
-                    cir.setReturnValue(false);
-                    return;
-                }
-            }
-        }
+        ldlib2$mouseReleasedMark++;
     }
 
     @Inject(method = "mouseScrolled", at = @At(value = "HEAD"), cancellable = true)

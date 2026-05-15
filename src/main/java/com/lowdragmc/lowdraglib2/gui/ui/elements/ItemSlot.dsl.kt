@@ -8,6 +8,8 @@ import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
 import net.neoforged.neoforge.items.IItemHandlerModifiable
+import net.neoforged.neoforge.transfer.ResourceHandler
+import net.neoforged.neoforge.transfer.item.ItemResource
 
 /**
  * Extension function for ItemSlot.SlotStyle DSL
@@ -23,14 +25,14 @@ fun <T : ItemSlot> T.slotStyleDsl(init: ItemSlot.SlotStyle.() -> Unit = {}): T {
 open class ItemSlotSpec<T : ItemSlot>(
     var slotStyle: (ItemSlot.SlotStyle.() -> Unit)? = null,
     var item: ItemStack? = null,
-    var itemHandler: IItemHandlerModifiable? = null,
+    var itemHandler: ResourceHandler<ItemResource>? = null,
     var slotIndex: Int? = null,
     var slot: Slot? = null,
 ) : ElementSpec<T>() {
     /**
      * Bind to item handler
      */
-    fun bind(handler: IItemHandlerModifiable, index: Int) = apply {
+    fun bind(handler: ResourceHandler<ItemResource>, index: Int) = apply {
         this.itemHandler = handler
         this.slotIndex = index
     }
@@ -129,7 +131,15 @@ fun <T : ItemSlot> ItemSlotElement<T>.withItem(item: ItemStack): ItemSlotElement
 /**
  * Extension: Bind to item handler
  */
+@Deprecated("Use bindTo(handler: ResourceHandler<ItemResource>, index: Int) instead")
 fun <T : ItemSlot> ItemSlotElement<T>.bindTo(handler: IItemHandlerModifiable, index: Int): ItemSlotElement<T> = apply {
+    element.bind(handler, index)
+}
+
+/**
+ * Extension: Bind to item handler
+ */
+fun <T : ItemSlot> ItemSlotElement<T>.bindTo(handler: ResourceHandler<ItemResource>, index: Int): ItemSlotElement<T> = apply {
     element.bind(handler, index)
 }
 

@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.ui
 
-import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot
+import com.lowdragmc.lowdraglib2.gui.slot.ItemResourceHandlerSlot
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.rpcEvent
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
 import com.lowdragmc.lowdraglib2.gui.ui.UI
@@ -19,8 +19,9 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.material.Fluids
 import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank
-import net.neoforged.neoforge.items.ItemStackHandler
+import net.neoforged.neoforge.transfer.fluid.FluidResource
+import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler
 
 
 @LDLRegister(name = "dsl_sync", registry = "ldlib2:menu_test")
@@ -31,8 +32,8 @@ class TestMenuDSL : IMenuTest {
     private var number = 0.5f
 
     override fun createUI(player: Player): ModularUI {
-        val itemHandler = ItemStackHandler(2)
-        val fluidTank = FluidTank(2000)
+        val itemHandler = ItemStacksResourceHandler(2)
+        val fluidTank = FluidStacksResourceHandler(1, 2000)
         // create a root element
         val root = element({
             cls = { +"panel_bg" }
@@ -43,7 +44,7 @@ class TestMenuDSL : IMenuTest {
                 layout = { gap { all(2.px) } }
             }) {
                 itemSlot({bind(itemHandler, 0)})
-                itemSlot({bind(ItemHandlerSlot(itemHandler, 1).setCanTake({false}))})
+                itemSlot({bind(ItemResourceHandlerSlot(itemHandler, 1).setCanTake({false}))})
                 fluidSlot({bind(fluidTank, 0)})
             }
             // bind value to the components
@@ -62,10 +63,10 @@ class TestMenuDSL : IMenuTest {
                 button {
                     serverEvents {
                         UIEvents.MOUSE_DOWN += {
-                            if (fluidTank.getFluid().fluid === Fluids.WATER) {
-                                fluidTank.setFluid(FluidStack(Fluids.LAVA, 1000))
+                            if (fluidTank.getResource(0).fluid === Fluids.WATER) {
+                                fluidTank.set(0, FluidResource.of(Fluids.LAVA), 1000)
                             } else {
-                                fluidTank.setFluid(FluidStack(Fluids.WATER, 1000))
+                                fluidTank.set(0, FluidResource.of(Fluids.WATER), 1000)
                             }
                         }
                     }

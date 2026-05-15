@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
-import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
+import com.lowdragmc.lowdraglib2.gui.slot.ItemResourceHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -17,9 +17,9 @@ import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -51,8 +51,8 @@ public class TestMenuDoc implements IMenuTest {
     }
 
     private ModularUI step2(Player player) {
-        ItemStackHandler itemHandler = new ItemStackHandler(2);
-        FluidTank fluidTank = new FluidTank(2000);
+        var itemHandler = new ItemStacksResourceHandler(2);
+        var fluidTank = new FluidStacksResourceHandler(1, 2000);
         // create a root element
         var root = new UIElement();
         root.addChildren(
@@ -61,7 +61,7 @@ public class TestMenuDoc implements IMenuTest {
                 // bind storage to slots
                 new UIElement().addChildren(
                         new ItemSlot().bind(itemHandler, 0),
-                        new ItemSlot().bind(new ItemHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
+                        new ItemSlot().bind(new ItemResourceHandlerSlot(itemHandler, 1).setCanTake(p -> false)),
                         new FluidSlot().bind(fluidTank, 0)
                 ).layout(l -> l.gapAll(2).flexDirection(FlexDirection.ROW)),
                 // bind value to the components
@@ -79,10 +79,10 @@ public class TestMenuDoc implements IMenuTest {
                 ).layout(l -> l.gapAll(2)),
                 // trigger ui events on the server side
                 new Button().addServerEventListener(UIEvents.MOUSE_DOWN, e -> {
-                    if (fluidTank.getFluid().getFluid() == Fluids.WATER) {
-                        fluidTank.setFluid(new FluidStack(Fluids.LAVA, 1000));
+                    if (fluidTank.getResource(0).getFluid() == Fluids.WATER) {
+                        fluidTank.set(0, FluidResource.of(Fluids.LAVA), 1000);
                     } else {
-                        fluidTank.setFluid(new FluidStack(Fluids.WATER, 1000));
+                        fluidTank.set(0, FluidResource.of(Fluids.WATER), 1000);
                     }
                 }),
                 // you could also use button.setOnServerClick(e -> { ... })
