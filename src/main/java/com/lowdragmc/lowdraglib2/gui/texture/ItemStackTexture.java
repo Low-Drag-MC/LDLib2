@@ -92,6 +92,9 @@ public class ItemStackTexture extends TransformTexture {
     private void drawInternalWithColor(GuiGraphics graphics, float x, float y, float width, float height, int drawColor) {
         if (items.length == 0) return;
         updateTick();
+        if (index >= items.length) {
+            index = 0;
+        }
         if (items[index].isEmpty()) return;
         graphics.flush();
         graphics.pose().pushPose();

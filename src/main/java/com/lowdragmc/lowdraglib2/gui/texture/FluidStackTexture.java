@@ -78,7 +78,9 @@ public class FluidStackTexture extends TransformTexture {
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         if (fluids.length == 0) return;
         updateTick();
-
+        if (index >= fluids.length) {
+            index = 0;
+        }
         if (fluids[index].isEmpty()) return;
 
         DrawerHelper.drawFluidForGui(graphics, fluids[index], x, y, width, height, color);
