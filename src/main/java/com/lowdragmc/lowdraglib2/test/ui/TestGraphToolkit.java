@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestConstantNode;
@@ -13,16 +14,17 @@ import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestStringConcatNode;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 
-@LDLRegisterClient(name="graph_toolkit", registry = "ldlib2:screen_test")
+@LDLRegister(name="graph_toolkit", registry = "ldlib2:menu_test")
 @NoArgsConstructor
-public class TestGraphToolkit implements IScreenTest {
+public class TestGraphToolkit implements IMenuTest {
     @Override
-    public ModularUI createUI(Player entityPlayer) {
+    public ModularUI createUI(@NotNull Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.widthPercent(100);
+            layout.widthPercent(50);
             layout.heightPercent(100);
             layout.paddingAll(4);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);
@@ -32,7 +34,7 @@ public class TestGraphToolkit implements IScreenTest {
             layout.heightPercent(100);
         }));
         graphEditor.loadGraph(createTestGraph());
-        return new ModularUI(UI.of(root));
+        return new ModularUI(UI.of(root), entityPlayer);
     }
 
     public static Graph createTestGraph() {

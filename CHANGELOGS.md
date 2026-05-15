@@ -1,4 +1,12 @@
 # ChangeLogs
+## v2.2.8
+* Added Map-Like support for ldlib2 sync / serialization
+* Fixed selector dialog incorrect position
+* Fixed xei drag-place feature to respect element transform
+
+## v2.2.7.a
+* Fixed crash while switching variable types
+
 ## v2.2.7
 * Added a mixin to trigger UI injection in player menus (thanks @Rimevel)
 * Added default value for some graph type (primitive, item, fluid, etc)

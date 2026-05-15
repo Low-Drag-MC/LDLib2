@@ -560,7 +560,7 @@ public class ModularUI {
             if (taffyTree.isDirty(ui.rootElement.nodeId)) {
                 taffyTree.computeLayout(ui.rootElement.nodeId, new TaffySize<>(
                         Float.isNaN(layoutWidth) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutWidth),
-                        Float.isNaN(layoutWidth) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutHeight)
+                        Float.isNaN(layoutHeight) ? AvailableSpace.MAX_CONTENT : AvailableSpace.definite(layoutHeight)
                 ));
 
                 for (var nodeId : nodesWithNewLayout) {
