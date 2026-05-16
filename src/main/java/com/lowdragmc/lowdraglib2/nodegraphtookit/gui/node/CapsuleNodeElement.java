@@ -51,13 +51,19 @@ public class CapsuleNodeElement extends NodeElement {
 
     @Override
     public boolean hasModelDependenciesChanged() {
-        return getModel() instanceof VariableNodeModel;
+        return getModel() instanceof VariableNodeModel
+                || getModel() instanceof WirePortalModel;
     }
 
     @Override
     public void addModelDependencies() {
         if (getModel() instanceof VariableNodeModel variableNodeModel) {
             getDependencies().addModelDependency(variableNodeModel.getVariableDeclarationModel());
+        } else if (getModel() instanceof WirePortalModel portalNode
+                && portalNode.getDeclarationModel() != null) {
+            // Portal title is read from the shared declaration; without this, renaming the
+            // declaration leaves the portal's title stale.
+            getDependencies().addModelDependency(portalNode.getDeclarationModel());
         }
     }
 

@@ -227,4 +227,15 @@ public class CustomGraphModelImpl extends GraphModel {
         // We want all variables to have a default value field.
         return true;
     }
+
+    @Override
+    public CustomGraphModelImpl createLocalSubgraphInstance() {
+        try {
+            var newGraph = graph.getClass().getDeclaredConstructor().newInstance();
+            return newGraph.graphModel;
+        } catch (Exception e) {
+            LDLib2.LOGGER.error("Failed to instantiate local subgraph of type {}", graph.getClass().getName(), e);
+            return null;
+        }
+    }
 }

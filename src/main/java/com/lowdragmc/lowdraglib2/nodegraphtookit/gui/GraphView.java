@@ -19,9 +19,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard.Blackboard;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateSubgraphFromSelectionCommand;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ElementRenameColorCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ImportExternalSubgraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ElementUpdateVisitor;
@@ -32,12 +37,9 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.PlacematElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.StickyNoteElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePlaceholder;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePreviewModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.PortMigrationResult;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
@@ -135,6 +137,7 @@ public class GraphView extends UIElement {
         graphView.addEventListener(UIEvents.MOUSE_UP, this::onGraphViewMouseUp);
         graphView.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onGraphViewDragSourceUpdate);
         graphView.addEventListener(UIEvents.DRAG_END, this::onGraphViewDragEnd);
+        graphView.addEventListener(UIEvents.DRAG_PERFORM, this::onGraphViewDragPerform);
         fallbackLayer.setId("fallback-layer");
         fallbackLayer.setAllowHitTest(false);
         fallbackLayer.getLayout().positionType(TaffyPosition.ABSOLUTE);
@@ -932,6 +935,41 @@ public class GraphView extends UIElement {
         }
     }
 
+    protected void onGraphViewDragPerform(UIEvent event) {
+        if (!(event.dragHandler.getDraggingObject() instanceof GraphResourceProviderContainer.DraggingGraph draggingGraph)
+                || graph == null || !graph.graphModel.allowSubgraphCreation()
+                || !graphView.isMouseOverContent(event.x, event.y)) {
+            return;
+        }
+
+        // Reject self-import: the dragged resource is the same file this editor is currently
+        // showing at its root. Anything looser (e.g. a parent file referenced from a child) would
+        // require traversing the open editor topology, which is out of scope for v1.
+        var editorView = getFirstAncestorOfType(GraphEditorView.class);
+        if (editorView != null && editorView.getRootPath() != null
+                && editorView.getRootPath().equals(draggingGraph.path())) {
+            LDLib2.LOGGER.warn("Rejected subgraph import: cannot import a graph into itself ({}).",
+                    draggingGraph.path());
+            return;
+        }
+
+        // Reject cross-GraphResource imports. Compared by resource identity — GraphResource
+        // instances are singletons that bind to a node-class registry and a path scheme, so even
+        // two resources that produce the same Graph subclass may have different node/type
+        // registries and shouldn't be interchangeable as subgraphs.
+        var resolver = graph.graphModel.getReferenceResolver();
+        var hostResource = resolver == null ? null : resolver.getSourceResource();
+        if (hostResource != null && hostResource != draggingGraph.graphResource()) {
+            LDLib2.LOGGER.warn(
+                    "Rejected subgraph import: source and host belong to different GraphResources.");
+            return;
+        }
+
+        // Validated — dispatch the actual import.
+        var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
+        dispatchCommand(new ImportExternalSubgraphCommand(draggingGraph.path(), localPosition));
+    }
+
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder = TreeBuilder.Menu.start();
         var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY));
@@ -999,45 +1037,78 @@ public class GraphView extends UIElement {
     /** Binds a runtime action to a menu item. Returns null if the item is not available. */
     private @Nullable ContextualMenuItem bindMenuItemAction(ContextualMenuItem item,
             List<GraphElementModel> selectedModels, Vector2f localPosition) {
+        // Case strings match the translation keys stored in ContextualMenuHelpers — keep them in
+        // sync if you rename either side.
         return switch (item.getName()) {
-            case "Delete" -> {
+            case "graph.delete" -> {
                 if (selectedModels.stream().allMatch(GraphElementModel::isDeletable))
                     yield item.withAction(this::deleteSelectedElements);
                 yield null;
             }
-            case "Frame Selection" -> item.withAction(this::fitGraphChildren);
-            case "Cut" -> {
+            case "graph.frame_selection" -> item.withAction(this::fitGraphChildren);
+            case "graph.cut" -> {
                 if (selectedModels.stream().allMatch(m -> m.isDeletable() && m.isCopiable()))
                     yield item.withAction(this::cutSelectedElements);
                 yield null;
             }
-            case "Copy" -> {
+            case "graph.copy" -> {
                 if (selectedModels.stream().allMatch(GraphElementModel::isCopiable))
                     yield item.withAction(this::copySelectedElements);
                 yield null;
             }
-            case "Paste" -> {
+            case "graph.paste" -> {
                 if (clipboardData != null)
                     yield item.withAction(this::pasteElements);
                 yield null;
             }
-            case "Paste as New" -> null; // TODO
-            case "Rename" -> null; // TODO
-            case "Duplicate" -> {
+            case "graph.paste_as_new" -> null; // TODO
+            case "graph.rename" -> {
+                if (selectedModels.size() == 1) {
+                    var only = selectedModels.get(0);
+                    if (only.isRenamable() && only instanceof IHasName) {
+                        yield item.withAction(() -> startInlineRenameFor(only));
+                    }
+                }
+                yield null;
+            }
+            case "graph.duplicate" -> {
                 if (selectedModels.stream().allMatch(GraphElementModel::isCopiable))
                     yield item.withAction(this::duplicateSelectedElements);
                 yield null;
             }
-            case "Color..." -> null; // TODO
-            case "Create Placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
-            case "Create Subgraph from Selection" -> null; // TODO
-            case "Align and Distribute" -> null; // TODO
+            case "graph.color_picker" -> {
+                if (selectedModels.size() == 1) {
+                    var only = selectedModels.get(0);
+                    if (only.isColorable() && only instanceof IHasElementColor colored) {
+                        yield item.withAction(() -> openColorPopup(localPosition, only, colored));
+                    }
+                }
+                yield null;
+            }
+            case "graph.create_placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
+            case "graph.create_subgraph_from_selection" -> {
+                // Wires are tolerated (filtered inside the model); nodes need to be copiable;
+                // placemats / sticky notes pass through. Final validation (e.g. placemat with
+                // non-selected contained node) happens inside extractSelectionToLocalSubgraph.
+                if (graph != null && graph.graphModel.allowSubgraphCreation()
+                        && !selectedModels.isEmpty()
+                        && selectedModels.stream().allMatch(m ->
+                                m instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel
+                                        || (m instanceof AbstractNodeModel an && an.isCopiable())
+                                        || m instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel
+                                        || m instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel)) {
+                    var selection = new ArrayList<>(selectedModels);
+                    yield item.withAction(() -> dispatchCommand(new CreateSubgraphFromSelectionCommand(selection)));
+                }
+                yield null;
+            }
+            case "graph.align_and_distribute" -> null; // TODO
             // Node-specific items
-            case "Delete and Reconnect" -> null; // TODO
-            case "Edit Subtitle" -> null; // TODO
-            case "Bypass Node" -> null; // TODO
-            case "Disable Node" -> null; // TODO
-            case "Disconnect All Wires" -> item.withAction(() -> {
+            case "graph.delete_and_reconnect" -> null; // TODO
+            case "graph.edit_subtitle" -> null; // TODO
+            case "graph.bypass_node" -> null; // TODO
+            case "graph.disable_node" -> null; // TODO
+            case "graph.disconnect_all_wires" -> item.withAction(() -> {
                 var wiresToDelete = selectedModels.stream()
                         .filter(AbstractNodeModel.class::isInstance)
                         .map(AbstractNodeModel.class::cast)
@@ -1049,7 +1120,7 @@ public class GraphView extends UIElement {
                     dispatchCommand(new GraphCommands.DeleteElementsCommand(wiresToDelete));
                 }
             });
-            case "Toggle Collapse" -> null; // TODO
+            case "graph.toggle_collapse" -> null; // TODO
             default -> {
                 // If the item already has an action, use it directly
                 if (item.getAction() != null) yield item;
@@ -1241,6 +1312,62 @@ public class GraphView extends UIElement {
 //                addElement(previewModel);
             }
         }
+    }
+
+    /**
+     * Triggers inline rename for {@code model} if its UI element supports it (NodeElement,
+     * PlacematElement). Other element types currently have no inline edit affordance, so this
+     * is a no-op for them — users can rename them via the inspector when single-selected.
+     */
+    public void startInlineRenameFor(com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel model) {
+        var element = modelElements.get(model);
+        if (element instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement nodeElement) {
+            if (nodeElement.getNodeTittle() != null) {
+                nodeElement.getNodeTittle().startInlineRename();
+            }
+        } else if (element instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.PlacematElement placematElement) {
+            placematElement.startInlineRename();
+        }
+    }
+
+    /**
+     * Opens a small floating {@link com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector} at
+     * {@code localPosition}. Color changes dispatch via {@code SetElementColorCommand} so they
+     * land on the undo stack. Loses focus → closes (mirrors the menu lifecycle).
+     */
+    protected void openColorPopup(Vector2f localPosition,
+                                  com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel target,
+                                  com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasElementColor colored) {
+        var mui = getModularUI();
+        if (mui == null) return;
+
+        var colorSelector = new com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector();
+        colorSelector.style(style -> {
+            style.setPipelineState(com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.DEFAULT);
+            style.backgroundTexture(Sprites.RECT_SOLID);
+            style.setPipelineState(com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.INLINE);
+        });
+        colorSelector.addClass("panel_bg");
+        colorSelector.layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.width(150);
+            layout.paddingAll(4);
+        });
+        colorSelector.setFocusable(true);
+        // Close on focus loss — same dismissal model the Menu uses.
+        colorSelector.setEnforceFocus(e -> colorSelector.removeSelf());
+        colorSelector.setColor(colored.getElementColor(), false);
+        colorSelector.setOnColorChangeListener(newColor ->
+                dispatchCommand(new ElementRenameColorCommands.SetElementColorCommand(target, newColor)));
+
+        var worldPos = getContentViewContainer().localToWorld(localPosition);
+        var rootOffset = mui.ui.rootElement.worldToLocalLayoutOffset(worldPos);
+        colorSelector.layout(layout -> {
+            layout.left(rootOffset.x);
+            layout.top(rootOffset.y);
+        });
+        mui.ui.rootElement.addChild(colorSelector);
+        colorSelector.focus();
     }
 
     protected boolean createWireUI(@Nullable WireModel wire) {

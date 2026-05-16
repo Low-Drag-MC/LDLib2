@@ -24,7 +24,7 @@ public class TestGraphToolkit implements IMenuTest {
     public ModularUI createUI(@NotNull Player entityPlayer) {
         var root = new UIElement();
         root.layout(layout -> {
-            layout.widthPercent(50);
+            layout.widthPercent(75);
             layout.heightPercent(100);
             layout.paddingAll(4);
         }).setId("root").getStyle().backgroundTexture(Sprites.BORDER);

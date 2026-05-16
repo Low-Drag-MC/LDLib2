@@ -15,7 +15,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.RenameColorConfigurableHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel;
 import dev.vfyjxf.taffy.style.AlignItems;
@@ -129,6 +131,15 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
                 }
             }
         }
+    }
+
+    @Override
+    protected void onSelectionInspect(GraphInspector inspector) {
+        super.onSelectionInspect(inspector);
+        if (graphView != null) inspector.setHistoryStack(graphView.getHistoryStack());
+        // StickyNote isn't renamable (its content is the body, not a name) — helper handles that
+        // automatically: only the color row will be added because Capabilities.RENAMABLE is absent.
+        inspector.inspect(RenameColorConfigurableHelper.build(getModel(), graphView));
     }
 
     public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {

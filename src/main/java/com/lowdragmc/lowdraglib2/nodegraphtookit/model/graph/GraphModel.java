@@ -1,10 +1,12 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortCapacity;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.IGraphReferenceResolver;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
@@ -81,6 +83,19 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     private Map<UUID, PlaceholderData> placeholderData;
     @Getter
     private Set<String> existingVariableNames;
+    /**
+     * Runtime parent pointer for local subgraphs — set when this GraphModel is added to a parent's
+     * {@link #localSubGraphs}. Not persisted; rebuilt during deserialization.
+     */
+    @Getter @Nullable
+    private GraphModel parentGraph;
+    /**
+     * Runtime context plugged in by the editor: provides external graph resolution and similar
+     * services that the pure model layer should not depend on directly. Null outside an editor.
+     */
+    @Getter
+    @Nullable
+    private IGraphReferenceResolver referenceResolver;
 
     /**
      * Creates a new graph model.
@@ -1471,6 +1486,13 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         if (parent instanceof GroupModel group) {
             group.removeItem(variableDeclarationModel);
         }
+
+        // exposed-variable removal must update outer subgraph node ports
+        var mods = variableDeclarationModel.getModifiers();
+        if (mods != null && mods != ModifierFlags.NONE) {
+            redefineSubgraphNodeModels();
+        }
+
         return parent;
     }
 
@@ -1741,27 +1763,365 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
     // endregion
 
+    // region subgraph extraction
+
+    /** Tracks a wire crossing the selection boundary. */
+    private record CrossingWire(WireModel wire, boolean fromSelected) {}
+
+    /**
+     * Extracts a heterogeneous selection (nodes, placemats, sticky notes — wires are ignored as
+     * they're implicit in the node selection) into a fresh local subgraph and inserts a
+     * {@link SubgraphNodeModel} at the selection's centroid that references it.
+     *
+     * <p>Selection-handling rules:</p>
+     * <ul>
+     *   <li><b>{@link WireModel}</b> — filtered out. Internal wires (both endpoints in the
+     *       selected nodes) are copied automatically by {@link #copyElements}; crossing wires
+     *       are reconnected via auto-generated variables (see below).</li>
+     *   <li><b>{@link PlacematModel}</b> — accepted only if all its currently contained nodes
+     *       are also in the selection; otherwise rejected (we'd leave dangling nodes outside).
+     *       The placemat itself is moved into the subgraph.</li>
+     *   <li><b>{@link StickyNoteModel}</b> — moved into the subgraph as-is.</li>
+     *   <li><b>{@link SubgraphNodeModel}</b> (LOCAL) — its referenced local subgraph is
+     *       transferred from this graph's {@code localSubGraphs} to the newly created one's
+     *       <em>before paste</em>, so the pasted SubgraphNodeModel can resolve to it.</li>
+     *   <li><b>{@link SubgraphNodeModel}</b> (EXTERNAL) — copy/paste handles it; only the
+     *       {@code IResourcePath} reference travels, no graph data is moved.</li>
+     * </ul>
+     *
+     * <p>Crossing wires are preserved by minting a variable inside the new subgraph for each
+     * (READ for inbound value, WRITE for outbound), wiring a {@code VariableNodeModel} to the
+     * pasted internal port, and the outer SubgraphNodeModel's auto-port to the original external
+     * port.</p>
+     *
+     * @return the newly created outer subgraph node, or {@code null} if extraction failed.
+     */
+    @Nullable
+    public SubgraphNodeModel extractSelectionToLocalSubgraph(List<? extends GraphElementModel> selection,
+                                                             HolderLookup.Provider provider) {
+        if (selection == null || selection.isEmpty()) return null;
+        if (!allowSubgraphCreation()) {
+            LDLib2.LOGGER.warn("Subgraph creation is disabled on this graph.");
+            return null;
+        }
+
+        // Partition the heterogeneous selection. Wires are filtered out — internal wires get
+        // copied implicitly by copyElements, crossing wires get reconnected via variables.
+        var selectedNodes = new ArrayList<AbstractNodeModel>();
+        var selectedPlacemats = new ArrayList<PlacematModel>();
+        var selectedStickyNotes = new ArrayList<StickyNoteModel>();
+        for (var element : selection) {
+            if (element instanceof WireModel) {
+                // ignored
+            } else if (element instanceof AbstractNodeModel n) {
+                selectedNodes.add(n);
+            } else if (element instanceof PlacematModel pm) {
+                selectedPlacemats.add(pm);
+            } else if (element instanceof StickyNoteModel sn) {
+                selectedStickyNotes.add(sn);
+            } else {
+                LDLib2.LOGGER.warn("Ignoring unsupported selection element type: {}",
+                        element.getClass().getName());
+            }
+        }
+
+        if (selectedNodes.isEmpty() && selectedPlacemats.isEmpty() && selectedStickyNotes.isEmpty()) {
+            LDLib2.LOGGER.warn("Cannot extract: selection contains no movable elements.");
+            return null;
+        }
+
+        // Copiability check on the non-wire elements
+        for (var n : selectedNodes) {
+            if (!n.isCopiable()) {
+                LDLib2.LOGGER.warn("Cannot extract: selection contains a non-copiable node {}.", n.getUid());
+                return null;
+            }
+        }
+
+        var selectedNodeUids = selectedNodes.stream()
+                .map(AbstractNodeModel::getUid)
+                .collect(Collectors.toSet());
+
+        // Placemats: every node currently inside must also be selected. We do a position-only
+        // check (matches the fallback in PlacematModel.getContainedNodes when size lookup absent)
+        // — selection-from-rectangle UI typically already selects the contained nodes.
+        for (var pm : selectedPlacemats) {
+            var contained = pm.getContainedNodes(null);
+            for (var n : contained) {
+                if (!selectedNodeUids.contains(n.getUid())) {
+                    LDLib2.LOGGER.warn(
+                            "Cannot extract: placemat {} contains a non-selected node {}; "
+                                    + "select the node or remove the placemat from the selection.",
+                            pm.getUid(), n.getUid());
+                    return null;
+                }
+            }
+        }
+
+        // Identify any LOCAL SubgraphNodeModels in the selection — their referenced local
+        // subgraph must be transplanted from this graph's localSubGraphs into the new subgraph's
+        // localSubGraphs so the pasted SubgraphNodeModel can resolve it (resolution is by uid).
+        var localSubsToTransplant = new ArrayList<GraphModel>();
+        for (var n : selectedNodes) {
+            if (n instanceof SubgraphNodeModel sub
+                    && sub.getKind() == SubgraphNodeModel.Kind.LOCAL) {
+                var target = sub.getSubgraphModel();
+                if (target != null && this.localSubGraphs != null
+                        && this.localSubGraphs.contains(target)) {
+                    localSubsToTransplant.add(target);
+                }
+            }
+        }
+
+        // Centroid for placement of the new outer SubgraphNodeModel — use only node positions
+        // for stability (placemats/sticky notes may be much larger).
+        var centroid = new Vector2f();
+        var centroidSrc = selectedNodes.isEmpty() ? (List<? extends IMovable>) selectedPlacemats : selectedNodes;
+        if (centroidSrc.isEmpty()) centroidSrc = selectedStickyNotes;
+        for (var m : centroidSrc) centroid.add(m.getPosition());
+        if (!centroidSrc.isEmpty()) centroid.div(centroidSrc.size());
+
+        // Crossing wires — only consider wires touching selected nodes (placemats/sticky notes
+        // have no ports). Wires explicitly in the selection are not relevant for boundary logic.
+        var crossing = new ArrayList<CrossingWire>();
+        for (var wire : wireModels) {
+            if (wire == null) continue;
+            var fromPort = wire.getFromPort();
+            var toPort = wire.getToPort();
+            if (fromPort == null || toPort == null) continue;
+            var fromNode = fromPort.getNodeModel();
+            var toNode = toPort.getNodeModel();
+            if (fromNode == null || toNode == null) continue;
+            boolean fromSel = selectedNodeUids.contains(fromNode.getUid());
+            boolean toSel = selectedNodeUids.contains(toNode.getUid());
+            if (fromSel == toSel) continue;
+            crossing.add(new CrossingWire(wire, fromSel));
+        }
+
+        // Build the list passed to copyElements: nodes + placemats + sticky notes
+        var elementsToCopy = new ArrayList<GraphElementModel>(selectedNodes.size()
+                + selectedPlacemats.size() + selectedStickyNotes.size());
+        elementsToCopy.addAll(selectedNodes);
+        elementsToCopy.addAll(selectedPlacemats);
+        elementsToCopy.addAll(selectedStickyNotes);
+
+        // New empty subgraph — created BEFORE copy so we can transplant local-subgraph references
+        // out of `this.localSubGraphs` ahead of time. With them gone, copyElements' local-subgraph
+        // deep-clone logic won't see them (getSubgraphModel returns null) and won't produce a
+        // redundant clone — paste leaves the pasted SubgraphNodeModel's localGraphId untouched
+        // and it resolves correctly inside newSub.
+        var sub = createLocalSubgraphInstance();
+        if (sub == null) {
+            LDLib2.LOGGER.warn("Graph type does not support inline subgraphs: {}", this.getClass().getName());
+            return null;
+        }
+        addLocalSubgraph(sub);
+
+        // Transplant any selected LOCAL subgraphs from this.localSubGraphs into sub.localSubGraphs.
+        for (var moved : localSubsToTransplant) {
+            this.localSubGraphs.remove(moved);
+            sub.addLocalSubgraph(moved);
+        }
+
+        // Snapshot the selection for copy AFTER transplant — selected SubgraphNodeModels no
+        // longer resolve their inner graph via outer, so copyElements skips them in its
+        // local-subgraph-clone pass (the transplanted graph travels via the parent-pointer
+        // reattachment instead).
+        var copyData = copyElements(elementsToCopy, provider);
+
+        // Variables inside the subgraph that mirror each crossing wire
+        var crossingVars = new HashMap<CrossingWire, VariableDeclarationModel>();
+        int inCounter = 0, outCounter = 0;
+        for (var c : crossing) {
+            ModifierFlags mod;
+            String varName;
+            TypeHandle type = c.fromSelected
+                    ? c.wire.getFromPort().getDataTypeHandle()
+                    : c.wire.getToPort().getDataTypeHandle();
+            if (c.fromSelected) {
+                mod = ModifierFlags.WRITE;
+                varName = "out" + (++outCounter);
+            } else {
+                mod = ModifierFlags.READ;
+                varName = "in" + (++inCounter);
+            }
+            var vdm = sub.createGraphVariableDeclaration(type, varName, mod,
+                    VariableScope.LOCAL, null, Integer.MAX_VALUE, null, null, null);
+            if (vdm != null) crossingVars.put(c, vdm);
+        }
+
+        // Paste copy into subgraph; offset positions so the cluster sits around (0,0) inside
+        var pasted = sub.pasteElementsWithMap(copyData, new Vector2f(-centroid.x, -centroid.y));
+        var oldToNew = pasted.oldToNewNodeMap();
+
+        // Wire each variable's VariableNodeModel to its pasted internal port
+        for (var c : crossing) {
+            var vdm = crossingVars.get(c);
+            if (vdm == null) continue;
+            var internalOldNode = c.fromSelected
+                    ? c.wire.getFromPort().getNodeModel()
+                    : c.wire.getToPort().getNodeModel();
+            var internalPortName = c.fromSelected
+                    ? c.wire.getFromPort().getUniqueName()
+                    : c.wire.getToPort().getUniqueName();
+            var pastedNode = oldToNew.get(internalOldNode.getUid());
+            if (pastedNode == null) continue;
+            var pastedPort = findPortByUniqueName(pastedNode, internalPortName);
+            if (pastedPort == null) continue;
+
+            float dx = c.fromSelected ? 80f : -80f;
+            var pos = new Vector2f(pastedNode.getPosition().x + dx, pastedNode.getPosition().y);
+            var varNode = sub.createVariableNode(vdm, pos, null, null);
+            PortModel varPort = c.fromSelected ? varNode.getInputPort() : varNode.getOutputPort();
+            if (varPort == null) continue;
+            if (c.fromSelected) {
+                sub.createWire(varPort, pastedPort);
+            } else {
+                sub.createWire(pastedPort, varPort);
+            }
+        }
+
+        // Outer SubgraphNodeModel — defineNode (via onCreateNode) builds ports from the variables
+        var subNode = createNodeWithType(
+                SubgraphNodeModel.class, "Subgraph", new Vector2f(centroid),
+                null, n -> n.setLocalSubgraph(sub), SpawnFlags.DEFAULT);
+
+        // Outer wires from external ports → the auto-generated SubgraphNodeModel ports
+        for (var c : crossing) {
+            var vdm = crossingVars.get(c);
+            if (vdm == null) continue;
+            var portId = vdm.getUid().toString();
+            PortModel subNodePort = c.fromSelected
+                    ? subNode.getOutputsById().get(portId)
+                    : subNode.getInputsById().get(portId);
+            if (subNodePort == null) continue;
+            var externalPort = c.fromSelected ? c.wire.getToPort() : c.wire.getFromPort();
+            if (externalPort == null) continue;
+            if (c.fromSelected) {
+                createWire(externalPort, subNodePort);
+            } else {
+                createWire(subNodePort, externalPort);
+            }
+        }
+
+        // Remove the originals from the outer graph. deleteNodes cascades wires.
+        deleteNodes(selectedNodes, true, true);
+        if (!selectedPlacemats.isEmpty()) deletePlacemats(selectedPlacemats);
+        if (!selectedStickyNotes.isEmpty()) deleteStickyNotes(selectedStickyNotes);
+
+        return subNode;
+    }
+
+    // endregion
+
     // region subgraph
+
+    /**
+     * Recursively propagates the editor reference resolver to all nested local subgraphs so
+     * external subgraph nodes nested inside locals can still resolve their inner graphs.
+     */
+    public void setReferenceResolver(@Nullable IGraphReferenceResolver resolver) {
+        this.referenceResolver = resolver;
+        if (localSubGraphs != null) {
+            for (var sub : localSubGraphs) {
+                if (sub != null) sub.setReferenceResolver(resolver);
+            }
+        }
+    }
+
+    /**
+     * Adds a freshly-created local subgraph to this graph and wires its parent pointer.
+     */
+    public void addLocalSubgraph(GraphModel subgraphModel) {
+        if (localSubGraphs == null) localSubGraphs = new ArrayList<>();
+        if (!localSubGraphs.contains(subgraphModel)) {
+            localSubGraphs.add(subgraphModel);
+        }
+        subgraphModel.parentGraph = this;
+        subgraphModel.setReferenceResolver(this.referenceResolver);
+    }
 
     public void removeLocalSubgraph(GraphModel subgraphModel) {
         if (localSubGraphs != null) {
             localSubGraphs.remove(subgraphModel);
-            // todo subgraph
+            if (subgraphModel != null && subgraphModel.parentGraph == this) {
+                subgraphModel.parentGraph = null;
+            }
         }
+    }
+
+    /**
+     * Looks up a local subgraph by its uid. Local subgraphs are identified by the GraphModel's own uid.
+     */
+    @Nullable
+    public GraphModel findLocalSubgraphByUid(UUID uid) {
+        if (localSubGraphs == null || uid == null) return null;
+        for (var sub : localSubGraphs) {
+            if (sub != null && uid.equals(sub.getUid())) return sub;
+        }
+        return null;
+    }
+
+    /**
+     * Factory for a new empty same-typed local subgraph. The abstract base cannot instantiate
+     * itself; concrete subclasses (e.g. {@link CustomGraphModelImpl}) override this. Returns null
+     * if the concrete type can't be instantiated — the caller must handle.
+     */
+    @Nullable
+    public GraphModel createLocalSubgraphInstance() {
+        return null;
     }
 
     /**
      * If this GraphModel is a subgraph, any subgraph nodes that reference it in the parent graph must redefine its ports whenever an input or output variable declaration is added.
      */
-    protected void redefineSubgraphNodeModels() {
-        // todo subgraph
+    public void redefineSubgraphNodeModels() {
+        if (parentGraph == null) return;
+        for (var node : parentGraph.nodeModels) {
+            if (node instanceof SubgraphNodeModel sub && sub.getSubgraphModel() == this) {
+                sub.defineNode();
+                parentGraph.getCurrentGraphChangeDescription()
+                        .addChangedModel(sub, ChangeHint.GRAPH_TOPOLOGY);
+            }
+        }
+    }
+
+    /**
+     * Redefines all subgraph nodes in any open graph that reference the given external resource path.
+     * Called when an external asset graph is saved.
+     */
+    public void redefineSubgraphNodeModelsByPath(IResourcePath path) {
+        if (path == null) return;
+        for (var node : nodeModels) {
+            if (node instanceof SubgraphNodeModel sub
+                    && sub.getKind() == SubgraphNodeModel.Kind.EXTERNAL
+                    && path.equals(sub.getExternalPath())) {
+                sub.invalidateResolvedSubgraph();
+                sub.defineNode();
+                getCurrentGraphChangeDescription().addChangedModel(sub, ChangeHint.GRAPH_TOPOLOGY);
+            }
+        }
+        if (localSubGraphs != null) {
+            for (var sub : localSubGraphs) {
+                if (sub != null) sub.redefineSubgraphNodeModelsByPath(path);
+            }
+        }
     }
 
     /**
      * Calls update recursively on all subgraph nodes in the graph.
      */
     public void updateSubGraphs() {
-        // todo subgraph
+        for (var node : nodeModels) {
+            if (node instanceof SubgraphNodeModel sub) {
+                sub.defineNode();
+            }
+        }
+        if (localSubGraphs != null) {
+            for (var sub : localSubGraphs) {
+                if (sub != null) sub.updateSubGraphs();
+            }
+        }
     }
 
 
@@ -1934,6 +2294,18 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         }
         tag.put("stickyNotes", stickyNotesTag);
 
+        // 8. Local Subgraphs — each entry is a full nested GraphModel NBT
+        if (localSubGraphs != null && !localSubGraphs.isEmpty()) {
+            var localSubGraphsTag = new ListTag();
+            for (var sub : localSubGraphs) {
+                if (sub == null) continue;
+                localSubGraphsTag.add(sub.serializeNBT(provider));
+            }
+            if (!localSubGraphsTag.isEmpty()) {
+                tag.put("localSubGraphs", localSubGraphsTag);
+            }
+        }
+
         return tag;
     }
 
@@ -1952,6 +2324,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         elementsByUID = null;
         portWireIndex = null;
         existingVariableNames.clear();
+        if (localSubGraphs != null) localSubGraphs.clear();
 
         // 1. Variables
         if (compound.contains("variables")) {
@@ -1994,6 +2367,22 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 if (sectionTag.contains("items")) {
                     deserializeGroupItems(section, sectionTag.getListOrEmpty("items"), provider);
                 }
+            }
+        }
+
+        // 3.5 Local Subgraphs — must load before nodes so SubgraphNodeModel.defineNode() can resolve them
+        if (compound.contains("localSubGraphs")) {
+            var listTag = compound.getList("localSubGraphs", Tag.TAG_COMPOUND);
+            for (int i = 0; i < listTag.size(); i++) {
+                var subTag = listTag.getCompound(i);
+                var subModel = createLocalSubgraphInstance();
+                if (subModel == null) {
+                    LDLib2.LOGGER.error("Cannot instantiate local subgraph for type {} — skipping nested graph",
+                            this.getClass().getName());
+                    continue;
+                }
+                subModel.deserializeNBT(provider, subTag);
+                addLocalSubgraph(subModel);
             }
         }
 
@@ -2257,6 +2646,30 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         }
         tag.put("stickyNotes", stickyNotesTag);
 
+        // 9. Serialize local subgraphs referenced by any selected LOCAL SubgraphNodeModel.
+        // Without this, pasting a LOCAL subgraph node either silently shares the original inner
+        // graph (in-graph paste — mutating one node's subgraph corrupts the other) or dangles
+        // (cross-graph paste — the destination has no matching localSubGraphs entry).
+        // We carry the full nested GraphModel NBT keyed by the original subgraph uid; paste maps
+        // each to a freshly-uid'd clone and rebinds the pasted SubgraphNodeModel to it.
+        var localSubgraphsTag = new ListTag();
+        var seenSubUids = new HashSet<UUID>();
+        for (var node : selectedNodes) {
+            if (node instanceof SubgraphNodeModel sub
+                    && sub.getKind() == SubgraphNodeModel.Kind.LOCAL) {
+                var inner = sub.getSubgraphModel();
+                if (inner == null) continue;
+                if (!seenSubUids.add(inner.getUid())) continue;
+                var entry = new CompoundTag();
+                entry.putUUID("oldUid", inner.getUid());
+                entry.put("graph", inner.serializeNBT(provider));
+                localSubgraphsTag.add(entry);
+            }
+        }
+        if (!localSubgraphsTag.isEmpty()) {
+            tag.put("localSubgraphs", localSubgraphsTag);
+        }
+
         return new CopyPasteData(tag, provider);
     }
 
@@ -2265,9 +2678,44 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * Returns all newly created GraphElementModels (nodes).
      */
     public List<GraphElementModel> pasteElements(CopyPasteData data, Vector2f positionOffset) {
+        return pasteElementsWithMap(data, positionOffset).elements();
+    }
+
+    /**
+     * Same as {@link #pasteElements} but additionally returns the {@code oldNodeUid → newNodeModel}
+     * mapping. Useful when callers need to reattach external state (e.g. wires from outside the
+     * selection) to the pasted nodes — see the "extract selection to subgraph" command.
+     */
+    public record PasteResult(List<GraphElementModel> elements,
+                              Map<UUID, AbstractNodeModel> oldToNewNodeMap) {}
+
+    public PasteResult pasteElementsWithMap(CopyPasteData data, Vector2f positionOffset) {
         var compound = data.tag();
         var provider = data.provider();
         var result = new ArrayList<GraphElementModel>();
+        var oldToNewNodeMapOuter = new HashMap<UUID, AbstractNodeModel>();
+        // oldSubGraphUid → freshly-cloned inner GraphModel (added to this.localSubGraphs).
+        // Built BEFORE node deserialize so SubgraphNodeModel can rebind during paste.
+        var oldToNewSubgraphUid = new HashMap<UUID, UUID>();
+        if (compound.contains("localSubgraphs")) {
+            var listTag = compound.getList("localSubgraphs", Tag.TAG_COMPOUND);
+            for (int i = 0; i < listTag.size(); i++) {
+                var entry = listTag.getCompound(i);
+                if (!entry.contains("oldUid") || !entry.contains("graph")) continue;
+                var oldUid = entry.getUUID("oldUid");
+                var clone = createLocalSubgraphInstance();
+                if (clone == null) {
+                    LDLib2.LOGGER.warn("Cannot instantiate local subgraph for paste; clone skipped");
+                    continue;
+                }
+                clone.deserializeNBT(provider, entry.getCompound("graph"));
+                // Fresh uid for the clone — uid travels via the SubgraphNodeModel.localGraphId
+                // map; nothing in the inner graph references its own outer uid.
+                clone.setUid(UUID.randomUUID());
+                addLocalSubgraph(clone);
+                oldToNewSubgraphUid.put(oldUid, clone.getUid());
+            }
+        }
 
         // 1. Variable declarations: deserialize, reuse existing by UID or register new
         if (compound.contains("variables")) {
@@ -2298,7 +2746,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         }
 
         // 3. Nodes: recreate with new UUIDs
-        var oldToNewNodeMap = new HashMap<UUID, AbstractNodeModel>();
+        var oldToNewNodeMap = oldToNewNodeMapOuter;
         if (compound.contains("nodes")) {
             var nodesTag = compound.getListOrEmpty("nodes");
             for (int i = 0; i < nodesTag.size(); i++) {
@@ -2331,6 +2779,17 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     // WirePortalModel: resolve declaration
                     if (nodeModel instanceof WirePortalModel portalNode) {
                         resolveWirePortalDeclaration(portalNode);
+                    }
+
+                    // SubgraphNodeModel LOCAL: rebind to the cloned inner graph (if we cloned one
+                    // for this oldUid above). EXTERNAL needs nothing — path-string is shared.
+                    if (nodeModel instanceof SubgraphNodeModel subNode
+                            && subNode.getKind() == SubgraphNodeModel.Kind.LOCAL
+                            && subNode.getLocalGraphId() != null) {
+                        var newSubUid = oldToNewSubgraphUid.get(subNode.getLocalGraphId());
+                        if (newSubUid != null) {
+                            subNode.rebindLocalGraphId(newSubUid);
+                        }
                     }
 
                     // defineNode → reconstructs ports with deterministic UUIDs based on new node UUID
@@ -2410,14 +2869,14 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             }
         }
 
-        return result;
+        return new PasteResult(result, oldToNewNodeMapOuter);
     }
 
     /**
      * Finds a port on a node by its unique name, searching through all ports and sub-ports.
      */
     @Nullable
-    private static PortModel findPortByUniqueName(AbstractNodeModel node, String uniqueName) {
+    public static PortModel findPortByUniqueName(AbstractNodeModel node, String uniqueName) {
         if (!(node instanceof PortNodeModel portNode)) return null;
         for (var port : portNode.getPorts()) {
             if (port.getUniqueName().equals(uniqueName)) return port;
