@@ -1,4 +1,11 @@
 # ChangeLogs
+## v2.2.9
+* Fixed kjs onMessage duplicated methods
+* Fixed EditorWindow restore gui scale
+* Added lss support for the VanillaSpriteTexture
+* Added StructuredTagEditor
+* Added subgraph system to the graph toolkit
+
 ## v2.2.8
 * Added Map-Like support for ldlib2 sync / serialization
 * Fixed selector dialog incorrect position
