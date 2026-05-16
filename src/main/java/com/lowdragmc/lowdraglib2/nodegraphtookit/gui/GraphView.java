@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard.Blackboard;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateSubgraphFromSelectionCommand;
@@ -929,13 +930,38 @@ public class GraphView extends UIElement {
     }
 
     protected void onGraphViewDragPerform(UIEvent event) {
-        if (event.dragHandler.getDraggingObject() instanceof GraphResourceProviderContainer.DraggingGraph draggingGraph
-                && graph != null && graph.graphModel.allowSubgraphCreation()
-                && graphView.isMouseOverContent(event.x, event.y)) {
-            // Resource container drop: import as external subgraph at the drop position.
-            var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
-            dispatchCommand(new ImportExternalSubgraphCommand(draggingGraph.path(), localPosition));
+        if (!(event.dragHandler.getDraggingObject() instanceof GraphResourceProviderContainer.DraggingGraph draggingGraph)
+                || graph == null || !graph.graphModel.allowSubgraphCreation()
+                || !graphView.isMouseOverContent(event.x, event.y)) {
+            return;
         }
+
+        // Reject self-import: the dragged resource is the same file this editor is currently
+        // showing at its root. Anything looser (e.g. a parent file referenced from a child) would
+        // require traversing the open editor topology, which is out of scope for v1.
+        var editorView = getFirstAncestorOfType(GraphEditorView.class);
+        if (editorView != null && editorView.getRootPath() != null
+                && editorView.getRootPath().equals(draggingGraph.path())) {
+            LDLib2.LOGGER.warn("Rejected subgraph import: cannot import a graph into itself ({}).",
+                    draggingGraph.path());
+            return;
+        }
+
+        // Reject cross-GraphResource imports. Compared by resource identity — GraphResource
+        // instances are singletons that bind to a node-class registry and a path scheme, so even
+        // two resources that produce the same Graph subclass may have different node/type
+        // registries and shouldn't be interchangeable as subgraphs.
+        var resolver = graph.graphModel.getReferenceResolver();
+        var hostResource = resolver == null ? null : resolver.getSourceResource();
+        if (hostResource != null && hostResource != draggingGraph.graphResource()) {
+            LDLib2.LOGGER.warn(
+                    "Rejected subgraph import: source and host belong to different GraphResources.");
+            return;
+        }
+
+        // Validated — dispatch the actual import.
+        var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
+        dispatchCommand(new ImportExternalSubgraphCommand(draggingGraph.path(), localPosition));
     }
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
@@ -1037,15 +1063,18 @@ public class GraphView extends UIElement {
             case "Color..." -> null; // TODO
             case "Create Placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
             case "Create Subgraph from Selection" -> {
+                // Wires are tolerated (filtered inside the model); nodes need to be copiable;
+                // placemats / sticky notes pass through. Final validation (e.g. placemat with
+                // non-selected contained node) happens inside extractSelectionToLocalSubgraph.
                 if (graph != null && graph.graphModel.allowSubgraphCreation()
-                        && selectedModels.stream().allMatch(m -> m instanceof AbstractNodeModel an
-                                && an.isCopiable()
-                                && !(an instanceof SubgraphNodeModel))) {
-                    var nodes = selectedModels.stream()
-                            .filter(AbstractNodeModel.class::isInstance)
-                            .map(AbstractNodeModel.class::cast)
-                            .toList();
-                    yield item.withAction(() -> dispatchCommand(new CreateSubgraphFromSelectionCommand(nodes)));
+                        && !selectedModels.isEmpty()
+                        && selectedModels.stream().allMatch(m ->
+                                m instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel
+                                        || (m instanceof AbstractNodeModel an && an.isCopiable())
+                                        || m instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel
+                                        || m instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel)) {
+                    var selection = new ArrayList<>(selectedModels);
+                    yield item.withAction(() -> dispatchCommand(new CreateSubgraphFromSelectionCommand(selection)));
                 }
                 yield null;
             }

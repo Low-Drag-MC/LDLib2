@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command;
 
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -14,10 +14,10 @@ import java.util.List;
 public class CreateSubgraphFromSelectionCommand extends UndoableGraphCommand {
     private final static Component NAME = Component.translatable("graph.commands.create_subgraph_from_selection");
 
-    private final List<AbstractNodeModel> selectedNodes;
+    private final List<GraphElementModel> selection;
 
-    public CreateSubgraphFromSelectionCommand(List<AbstractNodeModel> selectedNodes) {
-        this.selectedNodes = new ArrayList<>(selectedNodes);
+    public CreateSubgraphFromSelectionCommand(List<? extends GraphElementModel> selection) {
+        this.selection = new ArrayList<>(selection);
     }
 
     @Override
@@ -27,6 +27,6 @@ public class CreateSubgraphFromSelectionCommand extends UndoableGraphCommand {
 
     @Override
     public void execute() {
-        graphModel.extractSelectionToLocalSubgraph(selectedNodes, Platform.getFrozenRegistry());
+        graphModel.extractSelectionToLocalSubgraph(selection, Platform.getFrozenRegistry());
     }
 }

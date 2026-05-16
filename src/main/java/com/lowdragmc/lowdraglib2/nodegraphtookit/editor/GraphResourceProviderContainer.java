@@ -54,13 +54,32 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             // Resolver for external subgraph nodes: loads a fresh Graph snapshot for the referenced
             // resource path. Same GraphResource type assumed; cross-type subgraphs are out of scope
             // for v1.
-            IGraphReferenceResolver resolver = refPath -> {
-                if (refPath == null) return null;
-                var refTag = provider.getResource(refPath);
-                if (refTag == null) return null;
-                var refGraph = graphResource.createGraph();
-                refGraph.graphModel.deserializeNBT(Platform.getFrozenRegistry(), refTag);
-                return refGraph;
+            IGraphReferenceResolver resolver = new IGraphReferenceResolver() {
+                @Override
+                public Graph resolve(IResourcePath refPath) {
+                    if (refPath == null) return null;
+                    var refTag = provider.getResource(refPath);
+                    if (refTag == null) return null;
+                    var refGraph = graphResource.createGraph();
+                    refGraph.graphModel.deserializeNBT(Platform.getFrozenRegistry(), refTag);
+                    return refGraph;
+                }
+
+                @Override
+                public void save(IResourcePath refPath, CompoundTag refTag) {
+                    if (refPath == null || refTag == null) return;
+                    provider.addResource(refPath, refTag);
+                    container.reloadSpecificResource(refPath);
+                    // Tell every open editor that this path was just saved. Listeners may need
+                    // to refresh their subgraph nodes' ports (if they reference path) or fully
+                    // reload (if their root IS path).
+                    SubgraphRegistry.INSTANCE.notifyExternalGraphSaved(refPath);
+                }
+
+                @Override
+                public GraphResource<?> getSourceResource() {
+                    return graphResource;
+                }
             };
             graph.graphModel.setReferenceResolver(resolver);
             graph.graphModel.deserializeNBT(Platform.getFrozenRegistry(), tag);
@@ -80,6 +99,10 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
                 // broadcast: every other open editor that references this path must refresh ports
                 SubgraphRegistry.INSTANCE.notifyExternalGraphSaved(realPath);
             });
+            // Tell the editor what path it represents at the root level, so when another editor
+            // saves an external subgraph that happens to be this same path, this view can reload
+            // its root graph instead of just refreshing ports.
+            newView.setRootPath(path);
 
             // cache path for renaming cases
             AtomicReference<IResourcePath> pathCache = new AtomicReference<>(path);
@@ -111,6 +134,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
         for (var openedView : openedViews.values()) {
             if (openedView.getA().equals(oldPath)) {
                 openedView.setA(newPath);
+                openedView.getB().setRootPath(newPath);
             }
         }
     }

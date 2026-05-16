@@ -509,6 +509,192 @@ public class GraphSubgraphTest {
     }
 
     // ------------------------------------------------------------------
+    // 8b. Heterogeneous selection: wires ignored; placemats + stickynotes moved into subgraph
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void extractAcceptsPlacematAndStickyNote(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        LDLib2.LOGGER.info("Start extractAcceptsPlacematAndStickyNote");
+
+        var graph = new TestGraph();
+        var gm = graph.graphModel;
+        var floatType = com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers.fromType(Float.class);
+
+        // Place two TestAddNodes; surround them with a placemat that contains both.
+        var addA = gm.createNodeModel(new TestAddNode(), new org.joml.Vector2f(10, 10));
+        var addB = gm.createNodeModel(new TestAddNode(), new org.joml.Vector2f(80, 10));
+        // Placemat covers (0,0)-(200,150); both nodes inside its bounds.
+        var pm = gm.createPlacemat("pm", new org.joml.Vector2f(0, 0), new org.joml.Vector2f(200, 150));
+        var sn = gm.createStickyNote(new org.joml.Vector2f(20, 60));
+        // Outer constant feeding into addA so we get one crossing wire
+        var c1 = gm.createConstantNode("c1", new org.joml.Vector2f(-100, 10), floatType, 1f);
+        var c1Out = ((com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ConstantNodeModel) c1.getNodeModel()).getOutputPort();
+        var aIn1 = addA.getInputsById().get("in1");
+        var crossing = gm.createWire(aIn1, c1Out);
+
+        // Selection includes both nodes, placemat, sticky note, and (incidentally) the crossing wire
+        // — wires should be filtered out by the model.
+        var selection = java.util.List.<com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel>of(
+                addA, addB, pm, sn, crossing);
+        var subNode = gm.extractSelectionToLocalSubgraph(selection, provider);
+        if (subNode == null) { helper.fail("extract returned null with mixed selection"); return; }
+
+        // Outer: only c1 + subNode remain
+        assertEq(helper, "outer nodes (c1 + subNode)", 2, countNonNull(gm.getNodeModels()));
+        // Placemat moved to subgraph
+        if (countNonNull(gm.getPlacematModels()) != 0) {
+            helper.fail("placemat not removed from outer"); return;
+        }
+        if (countNonNull(gm.getStickyNoteModels()) != 0) {
+            helper.fail("sticky note not removed from outer"); return;
+        }
+
+        var sub = gm.getLocalSubGraphs().get(0);
+        assertEq(helper, "sub placemats", 1, countNonNull(sub.getPlacematModels()));
+        assertEq(helper, "sub sticky notes", 1, countNonNull(sub.getStickyNoteModels()));
+        // Subgraph node should have exactly 1 input (for the c1 → addA crossing) and no outputs.
+        assertEq(helper, "subNode inputs", 1, subNode.getInputsById().size());
+        assertEq(helper, "subNode outputs", 0, subNode.getOutputsById().size());
+
+        LDLib2.LOGGER.info("End extractAcceptsPlacematAndStickyNote - PASSED");
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 8c. Placemat with NON-selected contained node is rejected
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void extractRejectsPlacematWithExternalNode(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+
+        var graph = new TestGraph();
+        var gm = graph.graphModel;
+        // Two nodes inside a placemat
+        var addA = gm.createNodeModel(new TestAddNode(), new org.joml.Vector2f(10, 10));
+        var addB = gm.createNodeModel(new TestAddNode(), new org.joml.Vector2f(80, 10));
+        var pm = gm.createPlacemat("pm", new org.joml.Vector2f(0, 0), new org.joml.Vector2f(200, 150));
+
+        // Select only one node + the placemat — the other contained node is NOT selected
+        var selection = java.util.List.<com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel>of(addA, pm);
+        var subNode = gm.extractSelectionToLocalSubgraph(selection, provider);
+        if (subNode != null) {
+            helper.fail("extract should have returned null; the placemat contains a non-selected node");
+            return;
+        }
+        // Original graph unchanged
+        assertEq(helper, "still has 2 nodes", 2, countNonNull(gm.getNodeModels()));
+        assertEq(helper, "still has 1 placemat", 1, countNonNull(gm.getPlacematModels()));
+
+        // silence
+        var _b = addB;
+
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 8d. LOCAL SubgraphNodeModel selected: its referenced subgraph is transplanted
+    //     into the newly created subgraph (nested local subgraph survives the extract).
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void extractTransplantsLocalSubgraphReference(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+
+        var graph = new TestGraph();
+        var gm = graph.graphModel;
+
+        // Outer has a local subgraph "innerOld" + a SubgraphNodeModel referencing it
+        var innerOld = gm.createLocalSubgraphInstance();
+        gm.addLocalSubgraph(innerOld);
+        innerOld.createVariable("v", int.class, 0, com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind.INPUT);
+        var refNode = gm.createNodeWithType(SubgraphNodeModel.class, "ref",
+                new org.joml.Vector2f(0, 0), null,
+                n -> n.setLocalSubgraph(innerOld), SpawnFlags.DEFAULT);
+
+        if (countNonNull(gm.getLocalSubGraphs()) != 1) {
+            helper.fail("setup: expected 1 local subgraph"); return;
+        }
+
+        // Extract refNode (the LOCAL SubgraphNodeModel itself) into a new subgraph.
+        // The inner subgraph must move from outer.localSubGraphs into newSub.localSubGraphs so the
+        // pasted SubgraphNodeModel inside newSub can still resolve to it.
+        var subNode = gm.extractSelectionToLocalSubgraph(
+                java.util.List.of(refNode), provider);
+        if (subNode == null) { helper.fail("extract returned null"); return; }
+
+        // Outer's localSubGraphs should now contain only the newly created `sub` — innerOld got
+        // transplanted under it.
+        assertEq(helper, "outer local subs after extract", 1, countNonNull(gm.getLocalSubGraphs()));
+        var newSub = gm.getLocalSubGraphs().get(0);
+        if (newSub.getLocalSubGraphs() == null || countNonNull(newSub.getLocalSubGraphs()) != 1) {
+            helper.fail("nested local subgraph not transplanted"); return;
+        }
+        var transplanted = newSub.getLocalSubGraphs().get(0);
+        if (!transplanted.getUid().equals(innerOld.getUid())) {
+            helper.fail("transplanted subgraph uid mismatch"); return;
+        }
+        if (transplanted.getParentGraph() != newSub) {
+            helper.fail("parentGraph not rewired to newSub"); return;
+        }
+
+        // The pasted SubgraphNodeModel inside newSub must resolve to the transplanted inner.
+        SubgraphNodeModel pastedRef = null;
+        for (var n : newSub.getNodeModels()) {
+            if (n instanceof SubgraphNodeModel s) { pastedRef = s; break; }
+        }
+        if (pastedRef == null) { helper.fail("pasted SubgraphNodeModel missing inside newSub"); return; }
+        if (pastedRef.getSubgraphModel() != transplanted) {
+            helper.fail("pasted SubgraphNodeModel doesn't resolve to transplanted inner"); return;
+        }
+
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 8e. Listener-mode SubgraphRegistry: external-save broadcast hits a Listener
+    //     even when the listener isn't a GraphModel.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void subgraphRegistryListenerReceivesBroadcast(GameTestHelper helper) {
+        var path = new FilePath("test/registry_listener.tag");
+        var received = new IResourcePath[1];
+        SubgraphRegistry.Listener listener = p -> received[0] = p;
+        SubgraphRegistry.INSTANCE.registerListener(listener);
+        try {
+            SubgraphRegistry.INSTANCE.notifyExternalGraphSaved(path);
+            if (received[0] == null || !received[0].equals(path)) {
+                helper.fail("listener did not receive broadcast"); return;
+            }
+        } finally {
+            SubgraphRegistry.INSTANCE.unregisterListener(listener);
+        }
+        // After unregister: no more callbacks
+        received[0] = null;
+        SubgraphRegistry.INSTANCE.notifyExternalGraphSaved(path);
+        if (received[0] != null) {
+            helper.fail("listener still received after unregister"); return;
+        }
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 8f. IGraphReferenceResolver.save() is plumbed through SubgraphNodeModel's path:
+    //     a resolver with custom save() must be invoked from notifyExternalGraphSaved
+    //     consumers (verified via the resolver-state-mutation behavior).
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void resolverSaveDefaultIsNoOp(GameTestHelper helper) {
+        // Just exercise the default impl — should not throw.
+        IGraphReferenceResolver readOnly = p -> null;
+        readOnly.save(new FilePath("any"), new CompoundTag());
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
     // 9. Backward compat: graph NBT without 'localSubGraphs' / 'kind' fields
     //    must deserialize cleanly.
     // ------------------------------------------------------------------

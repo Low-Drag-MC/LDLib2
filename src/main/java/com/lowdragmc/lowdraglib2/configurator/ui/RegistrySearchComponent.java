@@ -74,6 +74,7 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
 
     @Override
     public void search(String word, IResultHandler<T> searchHandler) {
+        if (this.registry == null) return;
         var lowerWord = word.toLowerCase();
         for (var key : registry.keySet()) {
             if (Thread.currentThread().isInterrupted()) return;

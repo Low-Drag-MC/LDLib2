@@ -3,22 +3,20 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.editor;
 import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphBreadcrumb;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.SubgraphNodeModel;
-import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -30,7 +28,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class GraphEditorView extends View {
+public class GraphEditorView extends View implements SubgraphRegistry.Listener {
     /** Root graph view — owns the editor's root graph and is always at the bottom of the navigation stack. */
     public final GraphView graphView = new GraphView();
     public final Button saveButton = new Button();
@@ -47,10 +45,44 @@ public class GraphEditorView extends View {
     private CompoundTag savedTag;
     // todo move to history stack
     private IHistoryStack.HistoryItem savedHistoryPoint;
-    /** Subgraph navigation stack. Element 0 is always the root (graphView); top is current. */
-    private final Deque<GraphView> viewStack = new ArrayDeque<>();
-    /** Labels parallel to {@link #viewStack}, used to render the breadcrumb. */
-    private final List<Component> pathLabels = new ArrayList<>();
+    /**
+     * Resource path that this editor view represents at the <em>root</em> level. Set by the
+     * resource provider container when opening the view; used to recognize "another editor just
+     * saved my path" broadcasts and reload accordingly.
+     */
+    @Nullable @Getter
+    private IResourcePath rootPath;
+    /** Subgraph navigation stack. Bottom entry is always the root level. */
+    private final Deque<Level> levelStack = new ArrayDeque<>();
+    /**
+     * Set while we're driving our own save → broadcast. Lets us ignore our own
+     * {@link #onExternalGraphSaved} callback so we don't pointlessly self-reload (and lose
+     * UI state like selection and viewport).
+     */
+    private boolean isSavingSelf = false;
+
+    /**
+     * One entry in the navigation stack. The root entry has {@code externalPath == null} and
+     * {@code graphRef == null} — the root graph is held on the enclosing editor's {@link #graph}.
+     * An external dive entry holds its own {@link Graph} instance (loaded via the resolver) and
+     * the path it was loaded from.
+     */
+    private static class Level {
+        final GraphView view;
+        final Component label;
+        /** External path being edited at this level, or {@code null} for root / local-dive levels. */
+        @Nullable final IResourcePath externalPath;
+        /** Live Graph instance held by an external-dive level; {@code null} for root / local-dive. */
+        @Nullable final Graph graphRef;
+        @Nullable CompoundTag levelSavedTag;
+
+        Level(GraphView view, Component label, @Nullable IResourcePath externalPath, @Nullable Graph graphRef) {
+            this.view = view;
+            this.label = label;
+            this.externalPath = externalPath;
+            this.graphRef = graphRef;
+        }
+    }
 
     public GraphEditorView() {
         super("editor.view.graph_editor");
@@ -72,9 +104,14 @@ public class GraphEditorView extends View {
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
         dynamicName = () -> Component.translatable(getName());
         breadcrumb.setOnJump(this::popToLevel);
-        viewStack.push(graphView);
+        levelStack.push(new Level(graphView, Component.literal("root"), null, null));
         attachOverlayToHeader(graphView);
         addChildren(graphView);
+    }
+
+    /** Called by the resource container to inform the view of the path it represents. */
+    public void setRootPath(@Nullable IResourcePath path) {
+        this.rootPath = path;
     }
 
     /**
@@ -88,12 +125,16 @@ public class GraphEditorView extends View {
 
     /** Current (topmost) view in the subgraph navigation stack — always non-null after construction. */
     public GraphView getCurrentView() {
-        return viewStack.peek();
+        return levelStack.peek().view;
+    }
+
+    private Level getCurrentLevel() {
+        return levelStack.peek();
     }
 
     /**
-     * Pushes a new GraphView showing the inner graph of {@code subNode}. The current view stays in
-     * memory (its history and viewport are preserved) but is detached from the DOM.
+     * Pushes a new GraphView showing the inner graph of {@code subNode}. The previous level stays
+     * in memory (history + viewport preserved) but is detached from the DOM.
      */
     public void enterSubgraph(SubgraphNodeModel subNode) {
         if (subNode == null) return;
@@ -105,50 +146,61 @@ public class GraphEditorView extends View {
         var innerGraph = custom.getGraph();
         if (innerGraph == null) return;
 
-        var current = getCurrentView();
-        // detach old
-        removeChild(current);
-        // build new
+        // Detach old top
+        removeChild(getCurrentView());
+
+        // Build new view
         var newView = new GraphView();
         newView.layout(layout -> {
             layout.widthPercent(100);
             layout.flex(1);
         });
-        viewStack.push(newView);
         var nodeTitle = subNode.getTitle();
-        pathLabels.add(nodeTitle == null ? Component.literal("Subgraph") : nodeTitle);
+        var label = nodeTitle == null ? Component.literal("Subgraph") : nodeTitle;
+        // EXTERNAL dive: track path + graph instance so save can write back through resolver
+        var externalPath = subNode.getKind() == SubgraphNodeModel.Kind.EXTERNAL
+                ? subNode.getExternalPath() : null;
+        var graphRef = externalPath != null ? innerGraph : null;
+
+        var level = new Level(newView, label, externalPath, graphRef);
+        levelStack.push(level);
         attachOverlayToHeader(newView);
         addChildren(newView);
         newView.loadGraph(innerGraph);
+        if (externalPath != null) {
+            level.levelSavedTag = serializeLevelGraph(level);
+        }
         refreshBreadcrumb();
+        refreshSaveButton();
     }
 
     /**
      * Pops the navigation stack down to {@code level} (0 = root). No-op if already at that level.
-     * The popped GraphView instances are discarded (their HistoryStack with them).
+     * Popped levels are discarded (their HistoryStack with them).
      */
     public void popToLevel(int level) {
         if (level < 0) level = 0;
-        if (level >= viewStack.size()) return;
-        var depth = viewStack.size() - 1; // index of top
+        if (level >= levelStack.size()) return;
+        var depth = levelStack.size() - 1; // index of top
         if (level == depth) return;
-        // detach current
-        var current = getCurrentView();
-        removeChild(current);
-        while (viewStack.size() - 1 > level) {
-            viewStack.pop();
-            if (!pathLabels.isEmpty()) pathLabels.remove(pathLabels.size() - 1);
+        removeChild(getCurrentView());
+        while (levelStack.size() - 1 > level) {
+            levelStack.pop();
         }
-        var target = getCurrentView();
-        attachOverlayToHeader(target);
-        addChildren(target);
+        var target = getCurrentLevel();
+        attachOverlayToHeader(target.view);
+        addChildren(target.view);
         refreshBreadcrumb();
+        refreshSaveButton();
     }
 
     private void refreshBreadcrumb() {
         var labels = new ArrayList<Component>();
-        labels.add(Component.literal("root"));
-        labels.addAll(pathLabels);
+        // Stack iterates top→bottom; collect bottom→top
+        var snapshot = new ArrayList<>(levelStack);
+        for (int i = snapshot.size() - 1; i >= 0; i--) {
+            labels.add(snapshot.get(i).label);
+        }
         breadcrumb.setPath(labels);
     }
 
@@ -159,10 +211,13 @@ public class GraphEditorView extends View {
         // reset stack to root so a fresh open never inherits prior subgraph navigation
         popToLevel(0);
         graphView.loadGraph(graph);
-        // register the root with the broadcast registry so external-save events can find us
+        // Subscribe to external-save broadcasts. Both the GraphModel form (port refresh) and the
+        // Listener form (full reload when our root path matches) — the editor needs both.
         SubgraphRegistry.INSTANCE.register(graph.graphModel);
+        SubgraphRegistry.INSTANCE.registerListener(this);
         refreshBreadcrumb();
         this.savedTag = serializeGraph();
+        refreshSaveButton();
         return this;
     }
 
@@ -171,10 +226,16 @@ public class GraphEditorView extends View {
         return graph.graphModel.serializeNBT(Platform.getFrozenRegistry());
     }
 
+    private CompoundTag serializeLevelGraph(Level level) {
+        if (level.graphRef == null) return new CompoundTag();
+        return level.graphRef.graphModel.serializeNBT(Platform.getFrozenRegistry());
+    }
+
     public GraphEditorView clear() {
         if (this.graph != null) {
             SubgraphRegistry.INSTANCE.unregister(this.graph.graphModel);
         }
+        SubgraphRegistry.INSTANCE.unregisterListener(this);
         popToLevel(0);
         graphView.loadGraph(null);
         this.graph = null;
@@ -195,12 +256,47 @@ public class GraphEditorView extends View {
         saveButton.textStyle(style -> style.textColor(ColorPattern.GRAY.color));
     }
 
+    /**
+     * Saves the <em>current</em> level. For root / local-dive levels, that's the root graph via
+     * the {@link #onSaved} callback. For an external-dive level, the level's own graph is written
+     * back through the {@link IGraphReferenceResolver#save resolver}.
+     */
     public void notifySaved() {
-        if (graph != null && onSaved != null) {
-            onSaved.accept(serializeGraph());
+        isSavingSelf = true;
+        try {
+            var level = getCurrentLevel();
+            if (level.externalPath != null && level.graphRef != null) {
+                var resolver = graph != null ? graph.graphModel.getReferenceResolver() : null;
+                if (resolver == null) {
+                    LDLib2.LOGGER.warn("Cannot save external subgraph at {}: no resolver bound.", level.externalPath);
+                    return;
+                }
+                var tag = serializeLevelGraph(level);
+                resolver.save(level.externalPath, tag);
+                level.levelSavedTag = tag;
+                clearDirty();
+                return;
+            }
+            // root / local-dive save path
+            if (graph != null && onSaved != null) {
+                onSaved.accept(serializeGraph());
+            }
+            this.savedTag = serializeGraph();
+            clearDirty();
+        } finally {
+            isSavingSelf = false;
         }
-        this.savedTag = serializeGraph();
-        clearDirty();
+    }
+
+    /**
+     * Refreshes the save button's active/inactive state for the current level's dirty status.
+     * A level switch doesn't change dirtiness, just resets which graph we're comparing against.
+     */
+    private void refreshSaveButton() {
+        // simplest: keep current isDirty for root; for external dive, recompute against levelSavedTag
+        // (the screenTick auto-detect path keeps this fresh).
+        if (isDirty) markAsDirty();
+        else clearDirty();
     }
 
     private boolean canUndo() {
@@ -241,13 +337,21 @@ public class GraphEditorView extends View {
     @Override
     public void screenTick() {
         super.screenTick();
-        // auto-detect dirtiness: current serialized graph differs from saved snapshot.
-        // brute-force comparison; can be optimized later if it shows up in profiling.
-        if (!isDirty && graph != null) {
+        // Auto-detect dirtiness: compare the current level's graph serialization against its
+        // last-saved snapshot. Brute-force comparison; can be optimized later if it shows up.
+        if (!isDirty) {
             var mui = getModularUI();
             if (mui != null && (mui.getTickCounter() & 20) == 0) {
-                if (!serializeGraph().equals(savedTag)) {
-                    markAsDirty();
+                var level = getCurrentLevel();
+                if (level.externalPath != null && level.graphRef != null) {
+                    var tag = serializeLevelGraph(level);
+                    if (level.levelSavedTag == null || !tag.equals(level.levelSavedTag)) {
+                        markAsDirty();
+                    }
+                } else if (graph != null) {
+                    if (!serializeGraph().equals(savedTag)) {
+                        markAsDirty();
+                    }
                 }
             }
         }
@@ -276,5 +380,33 @@ public class GraphEditorView extends View {
         } else {
             removeSelf();
         }
+    }
+
+    // ---------------- SubgraphRegistry.Listener ----------------
+
+    /**
+     * Another save event just landed for {@code path}. If our root represents the same path,
+     * reload it (unless we have unsaved changes — never silently throw those away). Otherwise
+     * port refresh is already handled via the GraphModel-mode registration.
+     */
+    @Override
+    public void onExternalGraphSaved(IResourcePath path) {
+        if (isSavingSelf) return; // ignore our own broadcast
+        if (path == null || rootPath == null || graph == null) return;
+        if (!path.equals(rootPath)) return;
+        if (isDirty) {
+            LDLib2.LOGGER.warn(
+                    "External save for {} arrived but this editor has unsaved changes — skipping reload.",
+                    path);
+            return;
+        }
+        var resolver = graph.graphModel.getReferenceResolver();
+        if (resolver == null) return;
+        var fresh = resolver.resolve(path);
+        if (fresh == null) return;
+        // Preserve the save callback across reload. loadGraph re-registers listener/root,
+        // which is idempotent for the Listener set.
+        var savedCb = this.onSaved;
+        loadGraph(fresh, savedCb);
     }
 }
