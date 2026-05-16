@@ -3,9 +3,11 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.mojang.brigadier.StringReader;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.ChatFormatting;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
@@ -14,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -30,14 +33,18 @@ public class TagField extends BindableUIElement<Tag> {
     private static final ChatFormatting COMMA_COLOR = ChatFormatting.GRAY;
     private static final ChatFormatting KEY_COLOR = ChatFormatting.LIGHT_PURPLE;
     public final TextField textField = new TextField();
+    public final Button editButton = new Button();
 
-    @Setter
     private Predicate<Tag> tagValidator = Predicates.alwaysTrue();
     @Getter
     private Tag value = EndTag.INSTANCE;
 
     public TagField() {
+        getLayout().flexDirection(FlexDirection.ROW);
+        getLayout().gapAll(2);
+        getLayout().widthPercent(100);
         textField.addClass("__tag-field_text-field__");
+        textField.layout(layout -> layout.flex(1));
         textField.setFormatter(rawText -> {
             if (rawText.isEmpty()) return Component.empty();
             if (!isTagValid(rawText)) return Component.literal(rawText);
@@ -57,10 +64,43 @@ public class TagField extends BindableUIElement<Tag> {
             }
         });
 
-        addChild(textField);
-        // TODO code editor dialog
+        editButton.noText().addPreIcon(Icons.EDIT_FILE);
+        editButton.setOnClick(this::openStructuredEditor);
+
+        addChildren(textField, editButton);
 
         internalSetup();
+    }
+
+    public TagField setTagValidator(Predicate<Tag> tagValidator) {
+        this.tagValidator = tagValidator;
+        textField.setTextValidator(this::isTagValid);
+        return this;
+    }
+
+    private void openStructuredEditor(com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent event) {
+        var mui = getModularUI();
+        if (mui == null) return;
+        AtomicReference<Tag> tagRef = new AtomicReference<>(value.copy());
+        var editor = new StructuredTagEditor()
+                .setTagValidator(tagValidator)
+                .setValue(tagRef.get(), false)
+                .setTagResponder(tag -> tagRef.set(tag.copy()));
+        var dialog = new Dialog();
+        dialog.setTitle("structured_tag_editor");
+        dialog.windowMode(event.x, event.y, 360, 260);
+        dialog.addContent(editor.layout(layout -> {
+            layout.widthPercent(100);
+            layout.heightPercent(100);
+        }));
+        dialog.addButton(new Button().setOnClick(e -> {
+            if (tagValidator.test(tagRef.get())) {
+                setValue(tagRef.get());
+            }
+            dialog.close();
+        }).setText("ldlib.gui.tips.confirm"));
+        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel"));
+        dialog.show(mui);
     }
 
     private boolean isTagValid(String rawText) {

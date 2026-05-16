@@ -97,7 +97,7 @@ public class Dialog extends UIElement {
         addChild(overlay);
 
         stopInteractionEventsPropagation();
-        addEventListener(UIEvents.BLUR, this::onBlur);
+        addEventListener(UIEvents.BLUR, this::onBlur, true);
         addEventListener(UIEvents.KEY_DOWN, this::keyDown);
         addEventListener(UIEvents.MOUSE_DOWN, this::mouseDown);
 
@@ -134,6 +134,9 @@ public class Dialog extends UIElement {
 
     protected void mouseDown(UIEvent event) {
         if (clickOutsideClose && autoClose && !overlay.isSelfOrChildHover()) {
+            if (isInsideDialog()) {
+                return;
+            }
             close();
             event.stopPropagation();
         }
@@ -143,12 +146,21 @@ public class Dialog extends UIElement {
         if (event.relatedTarget != null && this.isAncestorOf(event.relatedTarget)) { // focus on children
             return;
         }
+        if (isInsideDialog()) { // focus on sibling popup/menu
+            return;
+        }
 
         if (event.target == this) { // lose focus
-            if (isSelfOrChildHover() && event.relatedTarget == null) {
+            if (event.relatedTarget != null && !this.isAncestorOf(event.relatedTarget)) {
+                if (autoClose) {
+                    close();
+                }
+                return;
+            }
+            if (isSelfOrChildHover()) {
                 focus();
             } else {
-                if(autoClose) {
+                if (autoClose) {
                     close();
                 }
             }
@@ -156,11 +168,18 @@ public class Dialog extends UIElement {
             if (event.relatedTarget == null && isSelfOrChildHover()) {
                 focus();
             } else {
-                if(autoClose) {
+                if (autoClose) {
                     close();
                 }
             }
         }
+    }
+
+    private boolean isInsideDialog() {
+        var mui = getModularUI();
+        if (mui == null) return false;
+        var localMouse = overlay.worldToLocal(new Vector2f(mui.getLastMouseX(), mui.getLastMouseY()));
+        return overlay.isIntersectWithPoint(localMouse.x, localMouse.y);
     }
 
     /**
@@ -261,8 +280,7 @@ public class Dialog extends UIElement {
                 var local = parent.worldToLocalLayoutOffset(new Vector2f(worldX, worldY));
                 overlay.getLayout().left(local.x).top(local.y);
                 e.currentElement.addEventListener(UIEvents.LAYOUT_CHANGED, e2 -> {
-                    assert e2.currentElement.getParent() != null;
-                    overlay.adaptPositionToElement(e2.currentElement.getParent());
+                    overlay.adaptPositionToScreen();
                 });
             }
             e.currentElement.removeEventListener(UIEvents.LAYOUT_CHANGED, e.currentListener);

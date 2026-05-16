@@ -516,5 +516,6 @@
   "graph.flow_direction": "Flow Direction",
   "graph.commands.move": "Move",
   "ui_editor.focus_mode.0": "focus mode",
-  "ui_editor.focus_mode.1": "enable - shift click element to focus"
+  "ui_editor.focus_mode.1": "enable - shift click element to focus",
+  "structured_tag_editor": "Structured Tag Editor"
 }
