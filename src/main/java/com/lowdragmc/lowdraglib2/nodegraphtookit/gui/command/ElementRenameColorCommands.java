@@ -67,4 +67,31 @@ public final class ElementRenameColorCommands {
             }
         }
     }
+
+    /**
+     * Reverts {@link IHasElementColor#hasUserColor()} → false and the visible color back to
+     * {@link IHasElementColor#getDefaultColor()}. Snapshot/undo restores the previous state.
+     */
+    public static class ResetElementColorCommand extends UndoableGraphCommand {
+        private static final Component NAME = Component.translatable("graph.commands.color_reset");
+        private final UUID targetUid;
+
+        public ResetElementColorCommand(GraphElementModel target) {
+            this.targetUid = target == null ? null : target.getUid();
+        }
+
+        @Override
+        public Component getCommandName() {
+            return NAME;
+        }
+
+        @Override
+        public void execute() {
+            if (targetUid == null) return;
+            var model = graphModel.getModel(targetUid);
+            if (model instanceof IHasElementColor colored) {
+                colored.resetColor();
+            }
+        }
+    }
 }

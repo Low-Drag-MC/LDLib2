@@ -1032,30 +1032,32 @@ public class GraphView extends UIElement {
     /** Binds a runtime action to a menu item. Returns null if the item is not available. */
     private @Nullable ContextualMenuItem bindMenuItemAction(ContextualMenuItem item,
             List<GraphElementModel> selectedModels, Vector2f localPosition) {
+        // Case strings match the translation keys stored in ContextualMenuHelpers — keep them in
+        // sync if you rename either side.
         return switch (item.getName()) {
-            case "Delete" -> {
+            case "graph.delete" -> {
                 if (selectedModels.stream().allMatch(GraphElementModel::isDeletable))
                     yield item.withAction(this::deleteSelectedElements);
                 yield null;
             }
-            case "Frame Selection" -> item.withAction(this::fitGraphChildren);
-            case "Cut" -> {
+            case "graph.frame_selection" -> item.withAction(this::fitGraphChildren);
+            case "graph.cut" -> {
                 if (selectedModels.stream().allMatch(m -> m.isDeletable() && m.isCopiable()))
                     yield item.withAction(this::cutSelectedElements);
                 yield null;
             }
-            case "Copy" -> {
+            case "graph.copy" -> {
                 if (selectedModels.stream().allMatch(GraphElementModel::isCopiable))
                     yield item.withAction(this::copySelectedElements);
                 yield null;
             }
-            case "Paste" -> {
+            case "graph.paste" -> {
                 if (clipboardData != null)
                     yield item.withAction(this::pasteElements);
                 yield null;
             }
-            case "Paste as New" -> null; // TODO
-            case "Rename" -> {
+            case "graph.paste_as_new" -> null; // TODO
+            case "graph.rename" -> {
                 if (selectedModels.size() == 1) {
                     var only = selectedModels.get(0);
                     if (only.isRenamable() && only instanceof IHasName) {
@@ -1064,12 +1066,12 @@ public class GraphView extends UIElement {
                 }
                 yield null;
             }
-            case "Duplicate" -> {
+            case "graph.duplicate" -> {
                 if (selectedModels.stream().allMatch(GraphElementModel::isCopiable))
                     yield item.withAction(this::duplicateSelectedElements);
                 yield null;
             }
-            case "Color..." -> {
+            case "graph.color_picker" -> {
                 if (selectedModels.size() == 1) {
                     var only = selectedModels.get(0);
                     if (only.isColorable() && only instanceof IHasElementColor colored) {
@@ -1078,8 +1080,8 @@ public class GraphView extends UIElement {
                 }
                 yield null;
             }
-            case "Create Placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
-            case "Create Subgraph from Selection" -> {
+            case "graph.create_placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
+            case "graph.create_subgraph_from_selection" -> {
                 // Wires are tolerated (filtered inside the model); nodes need to be copiable;
                 // placemats / sticky notes pass through. Final validation (e.g. placemat with
                 // non-selected contained node) happens inside extractSelectionToLocalSubgraph.
@@ -1095,13 +1097,13 @@ public class GraphView extends UIElement {
                 }
                 yield null;
             }
-            case "Align and Distribute" -> null; // TODO
+            case "graph.align_and_distribute" -> null; // TODO
             // Node-specific items
-            case "Delete and Reconnect" -> null; // TODO
-            case "Edit Subtitle" -> null; // TODO
-            case "Bypass Node" -> null; // TODO
-            case "Disable Node" -> null; // TODO
-            case "Disconnect All Wires" -> item.withAction(() -> {
+            case "graph.delete_and_reconnect" -> null; // TODO
+            case "graph.edit_subtitle" -> null; // TODO
+            case "graph.bypass_node" -> null; // TODO
+            case "graph.disable_node" -> null; // TODO
+            case "graph.disconnect_all_wires" -> item.withAction(() -> {
                 var wiresToDelete = selectedModels.stream()
                         .filter(AbstractNodeModel.class::isInstance)
                         .map(AbstractNodeModel.class::cast)
@@ -1113,7 +1115,7 @@ public class GraphView extends UIElement {
                     dispatchCommand(new GraphCommands.DeleteElementsCommand(wiresToDelete));
                 }
             });
-            case "Toggle Collapse" -> null; // TODO
+            case "graph.toggle_collapse" -> null; // TODO
             default -> {
                 // If the item already has an action, use it directly
                 if (item.getAction() != null) yield item;

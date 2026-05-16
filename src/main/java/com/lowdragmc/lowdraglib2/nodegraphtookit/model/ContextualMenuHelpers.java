@@ -14,28 +14,30 @@ public final class ContextualMenuHelpers {
         // Utility class
     }
 
-    // Placeholder menu items - implement as needed for your UI
-    public static final ContextualMenuItem CREATE_PLACEMAT_ITEM = new ContextualMenuItem("Create Placemat", 100);
-    public static final ContextualMenuItem CREATE_LOCAL_SUBGRAPH_FROM_SELECTION_ITEM = new ContextualMenuItem("Create Subgraph from Selection", 101);
-    public static final ContextualMenuItem CREATE_STICKY_NOTE_ITEM = new ContextualMenuItem("Create Sticky Note", 102);
-    public static final ContextualMenuItem CUT_ITEM = new ContextualMenuItem("Cut", 200);
-    public static final ContextualMenuItem COPY_ITEM = new ContextualMenuItem("Copy", 201);
-    public static final ContextualMenuItem PASTE_ITEM = new ContextualMenuItem("Paste", 202);
-    public static final ContextualMenuItem PASTE_AS_NEW_MENU_ITEM = new ContextualMenuItem("Paste as New", 203);
-    public static final ContextualMenuItem RENAME_ITEM = new ContextualMenuItem("Rename", 300);
-    public static final ContextualMenuItem DUPLICATE_ITEM = new ContextualMenuItem("Duplicate", 301);
-    public static final ContextualMenuItem DELETE_ITEM = new ContextualMenuItem("Delete", 400);
-    public static final ContextualMenuItem FRAME_SELECTION_ITEM = new ContextualMenuItem("Frame Selection", 500);
-    public static final ContextualMenuItem COLOR_ITEM = new ContextualMenuItem("Color...", 600);
-    public static final ContextualMenuItem ALIGN_AND_DISTRIBUTE_ELEMENTS_ITEM = new ContextualMenuItem("Align and Distribute", 700);
+    // Menu items — the names are translation keys (passed through Component.translatable). Used
+    // as identity in the bindMenuItemAction switch too, so changing one without the other breaks
+    // the binding.
+    public static final ContextualMenuItem CREATE_PLACEMAT_ITEM = new ContextualMenuItem("graph.create_placemat", 100);
+    public static final ContextualMenuItem CREATE_LOCAL_SUBGRAPH_FROM_SELECTION_ITEM = new ContextualMenuItem("graph.create_subgraph_from_selection", 101);
+    public static final ContextualMenuItem CREATE_STICKY_NOTE_ITEM = new ContextualMenuItem("graph.create_sticky_note", 102);
+    public static final ContextualMenuItem CUT_ITEM = new ContextualMenuItem("graph.cut", 200);
+    public static final ContextualMenuItem COPY_ITEM = new ContextualMenuItem("graph.copy", 201);
+    public static final ContextualMenuItem PASTE_ITEM = new ContextualMenuItem("graph.paste", 202);
+    public static final ContextualMenuItem PASTE_AS_NEW_MENU_ITEM = new ContextualMenuItem("graph.paste_as_new", 203);
+    public static final ContextualMenuItem RENAME_ITEM = new ContextualMenuItem("graph.rename", 300);
+    public static final ContextualMenuItem DUPLICATE_ITEM = new ContextualMenuItem("graph.duplicate", 301);
+    public static final ContextualMenuItem DELETE_ITEM = new ContextualMenuItem("graph.delete", 400);
+    public static final ContextualMenuItem FRAME_SELECTION_ITEM = new ContextualMenuItem("graph.frame_selection", 500);
+    public static final ContextualMenuItem COLOR_ITEM = new ContextualMenuItem("graph.color_picker", 600);
+    public static final ContextualMenuItem ALIGN_AND_DISTRIBUTE_ELEMENTS_ITEM = new ContextualMenuItem("graph.align_and_distribute", 700);
 
     // Node-specific menu items
-    public static final ContextualMenuItem deleteAndReconnectItem = new ContextualMenuItem("Delete and Reconnect", 401);
-    public static final ContextualMenuItem editSubtitleItem = new ContextualMenuItem("Edit Subtitle", 302);
-    public static final ContextualMenuItem bypassNodeItem = new ContextualMenuItem("Bypass Node", 350);
-    public static final ContextualMenuItem disableNodeItem = new ContextualMenuItem("Disable Node", 351);
-    public static final ContextualMenuItem disconnectAllWiresItem = new ContextualMenuItem("Disconnect All Wires", 360);
-    public static final ContextualMenuItem toggleCollapseItem = new ContextualMenuItem("Toggle Collapse", 370);
+    public static final ContextualMenuItem deleteAndReconnectItem = new ContextualMenuItem("graph.delete_and_reconnect", 401);
+    public static final ContextualMenuItem editSubtitleItem = new ContextualMenuItem("graph.edit_subtitle", 302);
+    public static final ContextualMenuItem bypassNodeItem = new ContextualMenuItem("graph.bypass_node", 350);
+    public static final ContextualMenuItem disableNodeItem = new ContextualMenuItem("graph.disable_node", 351);
+    public static final ContextualMenuItem disconnectAllWiresItem = new ContextualMenuItem("graph.disconnect_all_wires", 360);
+    public static final ContextualMenuItem toggleCollapseItem = new ContextualMenuItem("graph.toggle_collapse", 370);
 
     // ViewSelection menu items:
 //    internal static ContextualMenuItem cutItem = new(ContextualMenuCategory.CutCopyPaste, "Cut");

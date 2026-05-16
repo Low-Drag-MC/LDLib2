@@ -92,6 +92,15 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
         return userColor;
     }
 
+    @Override
+    public void resetColor() {
+        if (!userColor) return;
+        userColor = false;
+        elementColor = getDefaultColor();
+        GraphModel gm = getGraphModel();
+        if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.STYLE);
+    }
+
     /**
      * Gets the state of the node. Indicates whether the node is enabled or disabled.
      */

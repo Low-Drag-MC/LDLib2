@@ -176,4 +176,63 @@ public class GraphRenameColorTest {
 
         helper.succeed();
     }
+
+    // ------------------------------------------------------------------
+    // 6. resetColor clears userColor flag and reverts to the default value;
+    //    persistence and round-trip preserve the cleared state too.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void resetColorRestoresDefault(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        var graph = new TestGraph();
+
+        // Node case (AbstractNodeModel)
+        var add = graph.graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
+        var nodeDefault = add.getDefaultColor();
+        add.setColor(0xFF112233);
+        if (!add.hasUserColor() || add.getElementColor() != 0xFF112233) {
+            helper.fail("precondition: node setColor failed"); return;
+        }
+        add.resetColor();
+        if (add.hasUserColor()) {
+            helper.fail("node hasUserColor still true after resetColor"); return;
+        }
+        if (add.getElementColor() != nodeDefault) {
+            helper.fail("node elementColor not back to default after reset: 0x"
+                    + Integer.toHexString(add.getElementColor()));
+            return;
+        }
+
+        // Placemat case
+        var pm = graph.graphModel.createPlacemat("p", new Vector2f(0, 0), new Vector2f(100, 100));
+        var pmDefault = pm.getDefaultColor();
+        pm.setColor(0xFF99AA66);
+        if (!pm.hasUserColor() || pm.getElementColor() != 0xFF99AA66) {
+            helper.fail("precondition: placemat setColor failed"); return;
+        }
+        pm.resetColor();
+        if (pm.hasUserColor() || pm.getElementColor() != pmDefault) {
+            helper.fail("placemat reset did not restore defaults"); return;
+        }
+
+        // resetColor on a model that was never customized is a no-op (no exception, no STYLE).
+        pm.resetColor();
+        if (pm.hasUserColor()) { helper.fail("idempotent reset broke state"); return; }
+
+        // Round-trip after reset persists hasUserColor=false
+        var tag = graph.graphModel.serializeNBT(provider);
+        var graph2 = new TestGraph();
+        graph2.graphModel.deserializeNBT(provider, tag);
+        for (var n : graph2.graphModel.getNodeModels()) {
+            if (n != null && n.getUid().equals(add.getUid())) {
+                if (n.hasUserColor()) {
+                    helper.fail("hasUserColor leaked through round-trip after reset"); return;
+                }
+                break;
+            }
+        }
+
+        helper.succeed();
+    }
 }

@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisit
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasName;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.SubgraphNodeModel;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
@@ -38,7 +39,11 @@ public class NodeTitleElement extends ModelElement {
     @Override
     protected void buildUI() {
         setId("node-title-bar").setOverflowVisible(false);
-        getStyle().background(Sprites.BORDER_DARK);
+        if (nodeModel instanceof SubgraphNodeModel) {
+            getStyle().background(Sprites.TAB_WHITE);
+        } else {
+            getStyle().background(Sprites.BORDER_DARK);
+        }
         getLayout().paddingVertical(3).paddingHorizontal(4);
 
         colorLine = new UIElement().setId("node-title-color-line");

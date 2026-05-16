@@ -1,7 +1,10 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 
@@ -10,7 +13,7 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 /**
- * A simple horizontal breadcrumb: {@code root &gt; subA &gt; subB}. Each segment is a clickable
+ * A simple horizontal breadcrumb: {@code root > subA > subB}. Each segment is a clickable
  * {@link Button} whose action pops the editor's subgraph stack to that level. The deepest segment
  * (current level) is rendered as a plain label.
  */
@@ -47,8 +50,11 @@ public class GraphBreadcrumb extends UIElement {
                 addChild(new Button().setText(label.getString())
                         .setOnClick(e -> onJump.accept(level))
                         .layout(layout -> layout.heightPercent(100)));
-                addChild(new Button().setText(">").setActive(false)
-                        .layout(layout -> layout.width(8).heightPercent(100)));
+                addChild(new Label().setText(">").textStyle(style -> style
+                        .textAlignHorizontal(Horizontal.CENTER)
+                        .textAlignVertical(Vertical.CENTER))
+                        .layout(layout -> layout.width(9).heightPercent(100))
+                );
             } else {
                 // deepest: not clickable
                 addChild(new Button().setText(label.getString()).setActive(false)

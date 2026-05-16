@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.NodeDefinitionScope;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
@@ -140,10 +141,15 @@ public class SubgraphNodeModel extends NodeModel {
     @Nullable
     public Graph getSubgraph() {
         var model = getSubgraphModel();
-        if (model instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl custom) {
+        if (model instanceof CustomGraphModelImpl custom) {
             return custom.getGraph();
         }
         return null;
+    }
+
+    @Override
+    public Component getTooltip() {
+        return super.getTooltip().copy().append("-").append(Component.translatable("graph.breadcrumb.subgraph"));
     }
 
     // ---------------------------------------------------------------------

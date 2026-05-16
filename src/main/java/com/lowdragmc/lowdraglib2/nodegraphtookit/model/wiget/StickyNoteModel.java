@@ -87,6 +87,15 @@ public class StickyNoteModel extends GraphElementModel implements IMovable, IHas
         return userColor;
     }
 
+    @Override
+    public void resetColor() {
+        if (!userColor) return;
+        userColor = false;
+        elementColor = getDefaultColor();
+        GraphModel gm = getGraphModel();
+        if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.STYLE);
+    }
+
     public void setFontSize(int value) {
         if (fontSize == value) return;
         fontSize = value;

@@ -114,11 +114,24 @@ public abstract class WirePortalModel extends NodeModel implements IHasDeclarati
      * visible effect (getName() reads declarationModel.getName()), so we forward to the
      * declaration. All other portals that share the same declaration update together, which is
      * the intended semantics.
+     *
+     * <p>After the declaration update we explicitly mark every portal referencing this
+     * declaration as DATA-changed. The declaration is not itself a UI element (it's a sidecar
+     * model owned by the graph), so the change tracker's "update the dependent UIs" path is the
+     * only way to refresh portals — and a stale dependency wiring on the just-rebuilt rename
+     * source has bitten us in practice (renaming portal A updates B but not A until A is
+     * re-rendered for another reason). Fanning out here makes refresh deterministic regardless
+     * of dependency wiring.</p>
      */
     @Override
     public void setName(String value) {
         if (declarationModel != null) {
             declarationModel.setName(value);
+            if (graphModel != null) {
+                for (var portal : graphModel.findReferencesInGraph(WirePortalModel.class, declarationModel)) {
+                    graphModel.getCurrentGraphChangeDescription().addChangedModel(portal, ChangeHint.DATA);
+                }
+            }
         } else {
             super.setName(value);
         }

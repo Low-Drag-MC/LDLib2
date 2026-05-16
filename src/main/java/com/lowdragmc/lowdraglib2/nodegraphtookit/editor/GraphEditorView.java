@@ -104,7 +104,7 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
         dynamicName = () -> Component.translatable(getName());
         breadcrumb.setOnJump(this::popToLevel);
-        levelStack.push(new Level(graphView, Component.literal("root"), null, null));
+        levelStack.push(new Level(graphView, Component.translatable("graph.breadcrumb.root"), null, null));
         attachOverlayToHeader(graphView);
         addChildren(graphView);
     }
@@ -156,7 +156,7 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
             layout.flex(1);
         });
         var nodeTitle = subNode.getTitle();
-        var label = nodeTitle == null ? Component.literal("Subgraph") : nodeTitle;
+        var label = nodeTitle == null ? Component.translatable("graph.breadcrumb.subgraph") : nodeTitle;
         // EXTERNAL dive: track path + graph instance so save can write back through resolver
         var externalPath = subNode.getKind() == SubgraphNodeModel.Kind.EXTERNAL
                 ? subNode.getExternalPath() : null;

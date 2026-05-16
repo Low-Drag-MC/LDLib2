@@ -90,6 +90,15 @@ public class PlacematModel extends GraphElementModel implements IMovable, IHasNa
         return userColor;
     }
 
+    @Override
+    public void resetColor() {
+        if (!userColor) return;
+        userColor = false;
+        elementColor = getDefaultColor();
+        GraphModel gm = getGraphModel();
+        if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.STYLE);
+    }
+
     public void setZOrder(int value) {
         if (zOrder == value) return;
         zOrder = value;
