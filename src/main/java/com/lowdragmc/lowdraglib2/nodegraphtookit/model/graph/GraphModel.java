@@ -2299,7 +2299,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var localSubGraphsTag = new ListTag();
             for (var sub : localSubGraphs) {
                 if (sub == null) continue;
-                localSubGraphsTag.add(sub.serializeNBT(provider));
+                localSubGraphsTag.add(serializeModel(sub, provider));
             }
             if (!localSubGraphsTag.isEmpty()) {
                 tag.put("localSubGraphs", localSubGraphsTag);
@@ -2372,16 +2372,16 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // 3.5 Local Subgraphs — must load before nodes so SubgraphNodeModel.defineNode() can resolve them
         if (compound.contains("localSubGraphs")) {
-            var listTag = compound.getList("localSubGraphs", Tag.TAG_COMPOUND);
+            var listTag = compound.getListOrEmpty("localSubGraphs");
             for (int i = 0; i < listTag.size(); i++) {
-                var subTag = listTag.getCompound(i);
+                var subTag = listTag.getCompoundOrEmpty(i);
                 var subModel = createLocalSubgraphInstance();
                 if (subModel == null) {
                     LDLib2.LOGGER.error("Cannot instantiate local subgraph for type {} — skipping nested graph",
                             this.getClass().getName());
                     continue;
                 }
-                subModel.deserializeNBT(provider, subTag);
+                deserializeModel(subModel, subTag, provider);
                 addLocalSubgraph(subModel);
             }
         }
@@ -2661,8 +2661,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 if (inner == null) continue;
                 if (!seenSubUids.add(inner.getUid())) continue;
                 var entry = new CompoundTag();
-                entry.putUUID("oldUid", inner.getUid());
-                entry.put("graph", inner.serializeNBT(provider));
+                entry.putString("oldUid", inner.getUid().toString());
+                entry.put("graph", serializeModel(inner, provider));
                 localSubgraphsTag.add(entry);
             }
         }
@@ -2698,17 +2698,17 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // Built BEFORE node deserialize so SubgraphNodeModel can rebind during paste.
         var oldToNewSubgraphUid = new HashMap<UUID, UUID>();
         if (compound.contains("localSubgraphs")) {
-            var listTag = compound.getList("localSubgraphs", Tag.TAG_COMPOUND);
+            var listTag = compound.getListOrEmpty("localSubgraphs");
             for (int i = 0; i < listTag.size(); i++) {
-                var entry = listTag.getCompound(i);
+                var entry = listTag.getCompoundOrEmpty(i);
                 if (!entry.contains("oldUid") || !entry.contains("graph")) continue;
-                var oldUid = entry.getUUID("oldUid");
+                var oldUid = UUID.fromString(entry.getStringOr("oldUid", ""));
                 var clone = createLocalSubgraphInstance();
                 if (clone == null) {
                     LDLib2.LOGGER.warn("Cannot instantiate local subgraph for paste; clone skipped");
                     continue;
                 }
-                clone.deserializeNBT(provider, entry.getCompound("graph"));
+                deserializeModel(clone, entry.getCompoundOrEmpty("graph"), provider);
                 // Fresh uid for the clone — uid travels via the SubgraphNodeModel.localGraphId
                 // map; nothing in the inner graph references its own outer uid.
                 clone.setUid(UUID.randomUUID());

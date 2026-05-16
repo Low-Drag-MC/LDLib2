@@ -232,7 +232,9 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
 
     private CompoundTag serializeLevelGraph(Level level) {
         if (level.graphRef == null) return new CompoundTag();
-        return level.graphRef.graphModel.serializeNBT(Platform.getFrozenRegistry());
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry());
+        level.graphRef.graphModel.serialize(output);
+        return output.buildResult();
     }
 
     public GraphEditorView clear() {

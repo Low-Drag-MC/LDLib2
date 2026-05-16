@@ -1,35 +1,94 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.IGraphReferenceResolver;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.SubgraphRegistry;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.SpawnFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.SubgraphNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModel;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector2f;
 
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphSubgraphTest {
+public final class GraphSubgraphTest {
+    private static final String LOCAL_SUBGRAPH_SERIALIZATION_ROUND_TRIP = "graph_subgraph_local_serialization_round_trip";
+    private static final String EXTERNAL_SUBGRAPH_PORT_CACHE_SURVIVES = "graph_subgraph_external_port_cache_survives";
+    private static final String PORTS_FOLLOW_VARIABLE_MODIFIERS = "graph_subgraph_ports_follow_variable_modifiers";
+    private static final String PORTS_TRACK_VARIABLE_TYPE_CHANGES = "graph_subgraph_ports_track_variable_type_changes";
+    private static final String DELETING_EXPOSED_VARIABLE_REMOVES_OUTER_PORT = "graph_subgraph_deleting_exposed_variable_removes_outer_port";
+    private static final String NESTED_LOCAL_SUBGRAPH_SERIALIZATION = "graph_subgraph_nested_local_serialization";
+    private static final String EXTERNAL_SAVE_BROADCAST_REDEFINES_PORTS = "graph_subgraph_external_save_broadcast_redefines_ports";
+    private static final String EXTRACT_SELECTION_TO_LOCAL_SUBGRAPH = "graph_subgraph_extract_selection_to_local_subgraph";
+    private static final String EXTRACT_ACCEPTS_PLACEMAT_AND_STICKY_NOTE = "graph_subgraph_extract_accepts_placemat_and_sticky_note";
+    private static final String EXTRACT_REJECTS_PLACEMAT_WITH_EXTERNAL_NODE = "graph_subgraph_extract_rejects_placemat_with_external_node";
+    private static final String EXTRACT_TRANSPLANTS_LOCAL_SUBGRAPH_REFERENCE = "graph_subgraph_extract_transplants_local_subgraph_reference";
+    private static final String SUBGRAPH_REGISTRY_LISTENER_RECEIVES_BROADCAST = "graph_subgraph_registry_listener_receives_broadcast";
+    private static final String RESOLVER_SAVE_DEFAULT_IS_NO_OP = "graph_subgraph_resolver_save_default_is_no_op";
+    private static final String COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH = "graph_subgraph_copy_paste_local_subgraph_in_same_graph";
+    private static final String COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH = "graph_subgraph_copy_paste_local_subgraph_cross_graph";
+    private static final String PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE = "graph_subgraph_pre_subgraph_nbt_is_forward_compatible";
+
+    private GraphSubgraphTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(LOCAL_SUBGRAPH_SERIALIZATION_ROUND_TRIP, GraphSubgraphTest::localSubgraphSerializationRoundTrip);
+        NodeGraphGameTests.registerFunction(EXTERNAL_SUBGRAPH_PORT_CACHE_SURVIVES, GraphSubgraphTest::externalSubgraphPortCacheSurvives);
+        NodeGraphGameTests.registerFunction(PORTS_FOLLOW_VARIABLE_MODIFIERS, GraphSubgraphTest::portsFollowVariableModifiers);
+        NodeGraphGameTests.registerFunction(PORTS_TRACK_VARIABLE_TYPE_CHANGES, GraphSubgraphTest::portsTrackVariableTypeChanges);
+        NodeGraphGameTests.registerFunction(DELETING_EXPOSED_VARIABLE_REMOVES_OUTER_PORT, GraphSubgraphTest::deletingExposedVariableRemovesOuterPort);
+        NodeGraphGameTests.registerFunction(NESTED_LOCAL_SUBGRAPH_SERIALIZATION, GraphSubgraphTest::nestedLocalSubgraphSerialization);
+        NodeGraphGameTests.registerFunction(EXTERNAL_SAVE_BROADCAST_REDEFINES_PORTS, GraphSubgraphTest::externalSaveBroadcastReDefinesPorts);
+        NodeGraphGameTests.registerFunction(EXTRACT_SELECTION_TO_LOCAL_SUBGRAPH, GraphSubgraphTest::extractSelectionToLocalSubgraph);
+        NodeGraphGameTests.registerFunction(EXTRACT_ACCEPTS_PLACEMAT_AND_STICKY_NOTE, GraphSubgraphTest::extractAcceptsPlacematAndStickyNote);
+        NodeGraphGameTests.registerFunction(EXTRACT_REJECTS_PLACEMAT_WITH_EXTERNAL_NODE, GraphSubgraphTest::extractRejectsPlacematWithExternalNode);
+        NodeGraphGameTests.registerFunction(EXTRACT_TRANSPLANTS_LOCAL_SUBGRAPH_REFERENCE, GraphSubgraphTest::extractTransplantsLocalSubgraphReference);
+        NodeGraphGameTests.registerFunction(SUBGRAPH_REGISTRY_LISTENER_RECEIVES_BROADCAST, GraphSubgraphTest::subgraphRegistryListenerReceivesBroadcast);
+        NodeGraphGameTests.registerFunction(RESOLVER_SAVE_DEFAULT_IS_NO_OP, GraphSubgraphTest::resolverSaveDefaultIsNoOp);
+        NodeGraphGameTests.registerFunction(COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH, GraphSubgraphTest::copyPasteLocalSubgraphInSameGraph);
+        NodeGraphGameTests.registerFunction(COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH, GraphSubgraphTest::copyPasteLocalSubgraphCrossGraph);
+        NodeGraphGameTests.registerFunction(PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE, GraphSubgraphTest::preSubgraphNbtIsForwardCompatible);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, LOCAL_SUBGRAPH_SERIALIZATION_ROUND_TRIP, NodeGraphGameTests.functionKey(LOCAL_SUBGRAPH_SERIALIZATION_ROUND_TRIP), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EXTERNAL_SUBGRAPH_PORT_CACHE_SURVIVES, NodeGraphGameTests.functionKey(EXTERNAL_SUBGRAPH_PORT_CACHE_SURVIVES), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORTS_FOLLOW_VARIABLE_MODIFIERS, NodeGraphGameTests.functionKey(PORTS_FOLLOW_VARIABLE_MODIFIERS), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORTS_TRACK_VARIABLE_TYPE_CHANGES, NodeGraphGameTests.functionKey(PORTS_TRACK_VARIABLE_TYPE_CHANGES), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DELETING_EXPOSED_VARIABLE_REMOVES_OUTER_PORT, NodeGraphGameTests.functionKey(DELETING_EXPOSED_VARIABLE_REMOVES_OUTER_PORT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, NESTED_LOCAL_SUBGRAPH_SERIALIZATION, NodeGraphGameTests.functionKey(NESTED_LOCAL_SUBGRAPH_SERIALIZATION), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EXTERNAL_SAVE_BROADCAST_REDEFINES_PORTS, NodeGraphGameTests.functionKey(EXTERNAL_SAVE_BROADCAST_REDEFINES_PORTS), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EXTRACT_SELECTION_TO_LOCAL_SUBGRAPH, NodeGraphGameTests.functionKey(EXTRACT_SELECTION_TO_LOCAL_SUBGRAPH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EXTRACT_ACCEPTS_PLACEMAT_AND_STICKY_NOTE, NodeGraphGameTests.functionKey(EXTRACT_ACCEPTS_PLACEMAT_AND_STICKY_NOTE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EXTRACT_REJECTS_PLACEMAT_WITH_EXTERNAL_NODE, NodeGraphGameTests.functionKey(EXTRACT_REJECTS_PLACEMAT_WITH_EXTERNAL_NODE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EXTRACT_TRANSPLANTS_LOCAL_SUBGRAPH_REFERENCE, NodeGraphGameTests.functionKey(EXTRACT_TRANSPLANTS_LOCAL_SUBGRAPH_REFERENCE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, SUBGRAPH_REGISTRY_LISTENER_RECEIVES_BROADCAST, NodeGraphGameTests.functionKey(SUBGRAPH_REGISTRY_LISTENER_RECEIVES_BROADCAST), testData);
+        NodeGraphGameTests.registerFunctionTest(event, RESOLVER_SAVE_DEFAULT_IS_NO_OP, NodeGraphGameTests.functionKey(RESOLVER_SAVE_DEFAULT_IS_NO_OP), testData);
+        NodeGraphGameTests.registerFunctionTest(event, COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH, NodeGraphGameTests.functionKey(COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH, NodeGraphGameTests.functionKey(COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE, NodeGraphGameTests.functionKey(PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE), testData);
+    }
 
     // ------------------------------------------------------------------
     // 1. Local subgraph: full round-trip preserves structure + parent link
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void localSubgraphSerializationRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start localSubgraphSerializationRoundTrip");
@@ -55,9 +114,9 @@ public class GraphSubgraphTest {
         assertEq(helper, "outer subNode outputs", 1, subNode.getOutputsById().size());
 
         // Round-trip
-        var serialized = rootModel.serializeNBT(provider);
+        var serialized = serializeGraph(rootModel, provider);
         var root2 = new TestGraph();
-        root2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(root2.graphModel, serialized, provider);
 
         // localSubGraphs preserved + parent pointer rebuilt
         if (root2.graphModel.getLocalSubGraphs() == null
@@ -109,8 +168,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 2. External subgraph: portCache restores port shape when unresolvable
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void externalSubgraphPortCacheSurvives(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start externalSubgraphPortCacheSurvives");
@@ -137,10 +194,10 @@ public class GraphSubgraphTest {
 
         // Serialize, deserialize into a NEW root WITHOUT resolver — should still produce the same
         // port shape via portCache (with type-handles preserved).
-        var serialized = rootModel.serializeNBT(provider);
+        var serialized = serializeGraph(rootModel, provider);
         var root2 = new TestGraph();
         // explicitly do NOT set resolver
-        root2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(root2.graphModel, serialized, provider);
 
         SubgraphNodeModel restoredNode = null;
         for (var n : root2.graphModel.getNodeModels()) {
@@ -176,8 +233,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 3. Variable modifier changes drive outer port direction
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portsFollowVariableModifiers(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start portsFollowVariableModifiers");
 
@@ -225,8 +280,6 @@ public class GraphSubgraphTest {
     //    so the same variable's port survives a rename (id-stable) but changes
     //    type when the variable's data type changes.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portsTrackVariableTypeChanges(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start portsTrackVariableTypeChanges");
 
@@ -272,8 +325,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 5. Variable deletion: port disappears
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void deletingExposedVariableRemovesOuterPort(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start deletingExposedVariableRemovesOuterPort");
 
@@ -299,8 +350,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 6. Nested local subgraphs: 3 levels round-trip, parent pointers rebuilt
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void nestedLocalSubgraphSerialization(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start nestedLocalSubgraphSerialization");
@@ -322,9 +371,9 @@ public class GraphSubgraphTest {
         nodeB.defineNode();
         nodeA.defineNode();
 
-        var serialized = root.graphModel.serializeNBT(provider);
+        var serialized = serializeGraph(root.graphModel, provider);
         var root2 = new TestGraph();
-        root2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(root2.graphModel, serialized, provider);
 
         if (root2.graphModel.getLocalSubGraphs() == null
                 || countNonNull(root2.graphModel.getLocalSubGraphs()) != 1) {
@@ -352,8 +401,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 7. External save broadcast: SubgraphRegistry forwards path-save events
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void externalSaveBroadcastReDefinesPorts(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start externalSaveBroadcastReDefinesPorts");
 
@@ -398,8 +445,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 8. Extract selection to subgraph: crossing wires get auto-variables and reconnects
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void extractSelectionToLocalSubgraph(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start extractSelectionToLocalSubgraph");
@@ -492,9 +537,9 @@ public class GraphSubgraphTest {
         }
 
         // Round-trip the whole graph and confirm it deserializes
-        var serialized = gm.serializeNBT(provider);
+        var serialized = serializeGraph(gm, provider);
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
         if (graph2.graphModel.getLocalSubGraphs() == null
                 || countNonNull(graph2.graphModel.getLocalSubGraphs()) != 1) {
             helper.fail("local subgraph not restored after extract+round-trip");
@@ -511,8 +556,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 8b. Heterogeneous selection: wires ignored; placemats + stickynotes moved into subgraph
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void extractAcceptsPlacematAndStickyNote(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start extractAcceptsPlacematAndStickyNote");
@@ -564,8 +607,6 @@ public class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 8c. Placemat with NON-selected contained node is rejected
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void extractRejectsPlacematWithExternalNode(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -597,8 +638,6 @@ public class GraphSubgraphTest {
     // 8d. LOCAL SubgraphNodeModel selected: its referenced subgraph is transplanted
     //     into the newly created subgraph (nested local subgraph survives the extract).
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void extractTransplantsLocalSubgraphReference(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -656,8 +695,6 @@ public class GraphSubgraphTest {
     // 8e. Listener-mode SubgraphRegistry: external-save broadcast hits a Listener
     //     even when the listener isn't a GraphModel.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void subgraphRegistryListenerReceivesBroadcast(GameTestHelper helper) {
         var path = new FilePath("test/registry_listener.tag");
         var received = new IResourcePath[1];
@@ -685,8 +722,6 @@ public class GraphSubgraphTest {
     //     a resolver with custom save() must be invoked from notifyExternalGraphSaved
     //     consumers (verified via the resolver-state-mutation behavior).
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void resolverSaveDefaultIsNoOp(GameTestHelper helper) {
         // Just exercise the default impl — should not throw.
         IGraphReferenceResolver readOnly = p -> null;
@@ -699,8 +734,6 @@ public class GraphSubgraphTest {
     //     pasted node must have a DIFFERENT localGraphId, and mutating one side must not affect
     //     the other.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void copyPasteLocalSubgraphInSameGraph(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start copyPasteLocalSubgraphInSameGraph");
@@ -774,8 +807,6 @@ public class GraphSubgraphTest {
     //     up the cloned inner graph and the pasted node resolves into it. Without the deep-clone
     //     pipeline, the pasted node would dangle (target graph has no matching localSubGraphs entry).
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void copyPasteLocalSubgraphCrossGraph(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start copyPasteLocalSubgraphCrossGraph");
@@ -843,14 +874,12 @@ public class GraphSubgraphTest {
     // 9. Backward compat: graph NBT without 'localSubGraphs' / 'kind' fields
     //    must deserialize cleanly.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void preSubgraphNbtIsForwardCompatible(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
         var root = new TestGraph();
         // no subgraph nodes, no local subgraphs — simulates pre-subgraph era
-        var serialized = root.graphModel.serializeNBT(provider);
+        var serialized = serializeGraph(root.graphModel, provider);
         // Strip the localSubGraphs key to mimic legacy
         if (serialized.contains("localSubGraphs")) {
             serialized.remove("localSubGraphs");
@@ -858,7 +887,7 @@ public class GraphSubgraphTest {
 
         var root2 = new TestGraph();
         try {
-            root2.graphModel.deserializeNBT(provider, serialized);
+            deserializeGraph(root2.graphModel, serialized, provider);
         } catch (Exception e) {
             helper.fail("legacy NBT deserialize threw: " + e.getMessage());
             return;
@@ -877,6 +906,16 @@ public class GraphSubgraphTest {
     private static int countNonNull(java.util.List<?> list) {
         if (list == null) return 0;
         return (int) list.stream().filter(java.util.Objects::nonNull).count();
+    }
+
+    private static CompoundTag serializeGraph(CustomGraphModelImpl graphModel, net.minecraft.core.HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graphModel.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(CustomGraphModelImpl graphModel, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+        graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 
     private static void assertEq(GameTestHelper helper, String label, int expected, int actual) {

@@ -224,7 +224,7 @@ public class SubgraphNodeModel extends NodeModel {
             for (var cached : portCache) {
                 var entry = new CompoundTag();
                 entry.putString("portId", cached.portId);
-                if (cached.varUid != null) entry.putUUID("varUid", cached.varUid);
+                if (cached.varUid != null) entry.putString("varUid", cached.varUid.toString());
                 entry.putString("typeId", cached.typeId);
                 entry.putString("dir", cached.direction.name());
                 listTag.add(entry);
@@ -239,15 +239,15 @@ public class SubgraphNodeModel extends NodeModel {
         super.deserializeAdditionalNBT(tag, provider);
         portCache.clear();
         if (tag instanceof CompoundTag compound && compound.contains("portCache")) {
-            var listTag = compound.getList("portCache", Tag.TAG_COMPOUND);
+            var listTag = compound.getListOrEmpty("portCache");
             for (int i = 0; i < listTag.size(); i++) {
-                var entry = listTag.getCompound(i);
-                var portId = entry.getString("portId");
-                var typeId = entry.getString("typeId");
-                UUID varUid = entry.contains("varUid") ? entry.getUUID("varUid") : null;
+                var entry = listTag.getCompoundOrEmpty(i);
+                var portId = entry.getStringOr("portId", "");
+                var typeId = entry.getStringOr("typeId", "");
+                UUID varUid = entry.contains("varUid") ? UUID.fromString(entry.getStringOr("varUid", "")) : null;
                 PortDirection dir;
                 try {
-                    dir = PortDirection.valueOf(entry.getString("dir"));
+                    dir = PortDirection.valueOf(entry.getStringOr("dir", ""));
                 } catch (IllegalArgumentException e) {
                     continue;
                 }

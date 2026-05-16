@@ -1,18 +1,25 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasElementColor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasName;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.SpawnFlags;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.SubgraphNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector2f;
 
 /**
@@ -20,14 +27,39 @@ import org.joml.Vector2f;
  * surfaces (right-click menu, inline TextField, color popup) are user-verified; the model layer
  * lives here.
  */
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphRenameColorTest {
+public final class GraphRenameColorTest {
+    private static final String ABSTRACT_NODE_COLOR_STORAGE_PERSISTED = "graph_rename_color_abstract_node_color_storage_persisted";
+    private static final String RENAMABLE_JUDGMENT = "graph_rename_color_renamable_judgment";
+    private static final String SUBGRAPH_NODE_TITLE_FOLLOWS_NAME = "graph_rename_color_subgraph_node_title_follows_name";
+    private static final String COLORABLE_SETTERS_ROUND_TRIP = "graph_rename_color_colorable_setters_round_trip";
+    private static final String WIRE_IS_NEITHER_RENAMABLE_NOR_COLORABLE = "graph_rename_color_wire_is_neither_renamable_nor_colorable";
+    private static final String RESET_COLOR_RESTORES_DEFAULT = "graph_rename_color_reset_color_restores_default";
+
+    private GraphRenameColorTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(ABSTRACT_NODE_COLOR_STORAGE_PERSISTED, GraphRenameColorTest::abstractNodeModelColorStoragePersisted);
+        NodeGraphGameTests.registerFunction(RENAMABLE_JUDGMENT, GraphRenameColorTest::renamableJudgmentRespectsCapabilityAndInterface);
+        NodeGraphGameTests.registerFunction(SUBGRAPH_NODE_TITLE_FOLLOWS_NAME, GraphRenameColorTest::subgraphNodeTitleFollowsName);
+        NodeGraphGameTests.registerFunction(COLORABLE_SETTERS_ROUND_TRIP, GraphRenameColorTest::colorableSettersRoundTrip);
+        NodeGraphGameTests.registerFunction(WIRE_IS_NEITHER_RENAMABLE_NOR_COLORABLE, GraphRenameColorTest::wireIsNeitherRenamableNorColorable);
+        NodeGraphGameTests.registerFunction(RESET_COLOR_RESTORES_DEFAULT, GraphRenameColorTest::resetColorRestoresDefault);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, ABSTRACT_NODE_COLOR_STORAGE_PERSISTED, NodeGraphGameTests.functionKey(ABSTRACT_NODE_COLOR_STORAGE_PERSISTED), testData);
+        NodeGraphGameTests.registerFunctionTest(event, RENAMABLE_JUDGMENT, NodeGraphGameTests.functionKey(RENAMABLE_JUDGMENT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, SUBGRAPH_NODE_TITLE_FOLLOWS_NAME, NodeGraphGameTests.functionKey(SUBGRAPH_NODE_TITLE_FOLLOWS_NAME), testData);
+        NodeGraphGameTests.registerFunctionTest(event, COLORABLE_SETTERS_ROUND_TRIP, NodeGraphGameTests.functionKey(COLORABLE_SETTERS_ROUND_TRIP), testData);
+        NodeGraphGameTests.registerFunctionTest(event, WIRE_IS_NEITHER_RENAMABLE_NOR_COLORABLE, NodeGraphGameTests.functionKey(WIRE_IS_NEITHER_RENAMABLE_NOR_COLORABLE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, RESET_COLOR_RESTORES_DEFAULT, NodeGraphGameTests.functionKey(RESET_COLOR_RESTORES_DEFAULT), testData);
+    }
 
     // ------------------------------------------------------------------
     // 1. Color storage on AbstractNodeModel: setColor → getElementColor + persistence
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void abstractNodeModelColorStoragePersisted(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -44,9 +76,9 @@ public class GraphRenameColorTest {
         }
 
         // Persist + reload
-        var tag = graph.graphModel.serializeNBT(provider);
+        var tag = serializeGraph(graph.graphModel, provider);
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, tag);
+        deserializeGraph(graph2.graphModel, tag, provider);
 
         com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel restored = null;
         for (var n : graph2.graphModel.getNodeModels()) {
@@ -66,8 +98,6 @@ public class GraphRenameColorTest {
     // ------------------------------------------------------------------
     // 2. Renamable judgment: capability + IHasName combined
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void renamableJudgmentRespectsCapabilityAndInterface(GameTestHelper helper) {
         var graph = new TestGraph();
         var gm = graph.graphModel;
@@ -97,8 +127,6 @@ public class GraphRenameColorTest {
     // ------------------------------------------------------------------
     // 3. SubgraphNodeModel title follows name (no more hard-coded setTitle)
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void subgraphNodeTitleFollowsName(GameTestHelper helper) {
         var graph = new TestGraph();
         var sub = graph.graphModel.createLocalSubgraphInstance();
@@ -128,8 +156,6 @@ public class GraphRenameColorTest {
     // 4. IHasElementColor setters round-trip
     //    (Placemat already had storage; this verifies the contract uniformly)
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void colorableSettersRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -142,9 +168,9 @@ public class GraphRenameColorTest {
         }
         if (!pm.hasUserColor()) { helper.fail("placemat userColor flag not raised"); return; }
 
-        var tag = graph.graphModel.serializeNBT(provider);
+        var tag = serializeGraph(graph.graphModel, provider);
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, tag);
+        deserializeGraph(graph2.graphModel, tag, provider);
         var restored = graph2.graphModel.getPlacematModels().get(0);
         if (restored.getElementColor() != 0xFFAA5500 || !restored.hasUserColor()) {
             helper.fail("placemat color not preserved across round-trip");
@@ -157,8 +183,6 @@ public class GraphRenameColorTest {
     // ------------------------------------------------------------------
     // 5. WireModel should be neither renamable nor colorable
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void wireIsNeitherRenamableNorColorable(GameTestHelper helper) {
         var graph = new TestGraph();
         var floatType = com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers.fromType(Float.class);
@@ -181,8 +205,6 @@ public class GraphRenameColorTest {
     // 6. resetColor clears userColor flag and reverts to the default value;
     //    persistence and round-trip preserve the cleared state too.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void resetColorRestoresDefault(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var graph = new TestGraph();
@@ -221,9 +243,9 @@ public class GraphRenameColorTest {
         if (pm.hasUserColor()) { helper.fail("idempotent reset broke state"); return; }
 
         // Round-trip after reset persists hasUserColor=false
-        var tag = graph.graphModel.serializeNBT(provider);
+        var tag = serializeGraph(graph.graphModel, provider);
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, tag);
+        deserializeGraph(graph2.graphModel, tag, provider);
         for (var n : graph2.graphModel.getNodeModels()) {
             if (n != null && n.getUid().equals(add.getUid())) {
                 if (n.hasUserColor()) {
@@ -234,5 +256,15 @@ public class GraphRenameColorTest {
         }
 
         helper.succeed();
+    }
+
+    private static CompoundTag serializeGraph(CustomGraphModelImpl graphModel, net.minecraft.core.HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graphModel.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(CustomGraphModelImpl graphModel, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+        graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 }
