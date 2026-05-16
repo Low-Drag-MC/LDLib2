@@ -1,5 +1,5 @@
 # ChangeLogs
-## v3.2.9
+## v26.1.2.9
 * Fixed kjs onMessage duplicated methods
 * Fixed EditorWindow restore gui scale
 * Added lss support for the VanillaSpriteTexture
