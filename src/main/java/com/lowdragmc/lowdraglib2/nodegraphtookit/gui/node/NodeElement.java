@@ -11,7 +11,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.RenameColorConfigurableHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Model;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
@@ -148,6 +150,13 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
             }
         }
         return false;
+    }
+
+    @Override
+    protected void onSelectionInspect(GraphInspector inspector) {
+        super.onSelectionInspect(inspector);
+        if (graphView != null) inspector.setHistoryStack(graphView.getHistoryStack());
+        inspector.inspect(RenameColorConfigurableHelper.build(getModel(), graphView));
     }
 
     @Override

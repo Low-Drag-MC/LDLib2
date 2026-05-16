@@ -109,6 +109,22 @@ public abstract class WirePortalModel extends NodeModel implements IHasDeclarati
     }
 
     /**
+     * Portals are views into a shared {@link DeclarationModel} — the displayed name lives on the
+     * declaration, not on the individual portal node. Writing to {@code name} on the node has no
+     * visible effect (getName() reads declarationModel.getName()), so we forward to the
+     * declaration. All other portals that share the same declaration update together, which is
+     * the intended semantics.
+     */
+    @Override
+    public void setName(String value) {
+        if (declarationModel != null) {
+            declarationModel.setName(value);
+        } else {
+            super.setName(value);
+        }
+    }
+
+    /**
      * Indicates whether there can be one portal that has the same declaration and direction.
      */
     public boolean canHaveAnotherPortalWithSameDirectionAndDeclaration() {

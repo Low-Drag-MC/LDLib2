@@ -695,6 +695,151 @@ public class GraphSubgraphTest {
     }
 
     // ------------------------------------------------------------------
+    // 8g. Same-graph copy/paste of a LOCAL SubgraphNodeModel deep-clones the inner graph —
+    //     pasted node must have a DIFFERENT localGraphId, and mutating one side must not affect
+    //     the other.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void copyPasteLocalSubgraphInSameGraph(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        LDLib2.LOGGER.info("Start copyPasteLocalSubgraphInSameGraph");
+
+        var graph = new TestGraph();
+        var gm = graph.graphModel;
+
+        var inner = gm.createLocalSubgraphInstance();
+        gm.addLocalSubgraph(inner);
+        inner.createVariable("v", int.class, 0, com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind.INPUT);
+        var origNode = gm.createNodeWithType(SubgraphNodeModel.class, "n",
+                new org.joml.Vector2f(0, 0), null,
+                n -> n.setLocalSubgraph(inner), SpawnFlags.DEFAULT);
+
+        if (countNonNull(gm.getLocalSubGraphs()) != 1) {
+            helper.fail("setup: expected 1 local subgraph"); return;
+        }
+
+        // Copy + paste in the same graph
+        var copyData = gm.copyElements(java.util.List.of(origNode), provider);
+        var pasted = gm.pasteElementsWithMap(copyData, new org.joml.Vector2f(50, 50));
+        SubgraphNodeModel pastedNode = null;
+        for (var n : pasted.elements()) {
+            if (n instanceof SubgraphNodeModel s && !s.getUid().equals(origNode.getUid())) {
+                pastedNode = s; break;
+            }
+        }
+        if (pastedNode == null) { helper.fail("pasted node not found"); return; }
+
+        // Outer graph now has 2 local subgraphs (the original and the clone)
+        assertEq(helper, "local subgraphs after paste", 2, countNonNull(gm.getLocalSubGraphs()));
+
+        // localGraphId differs between original and pasted
+        if (origNode.getLocalGraphId() == null || pastedNode.getLocalGraphId() == null) {
+            helper.fail("localGraphId should not be null"); return;
+        }
+        if (origNode.getLocalGraphId().equals(pastedNode.getLocalGraphId())) {
+            helper.fail("pasted SubgraphNodeModel still shares localGraphId with original — deep clone failed");
+            return;
+        }
+
+        // Both nodes resolve their inner graphs, and the two inner graphs are different instances.
+        var origInner = origNode.getSubgraphModel();
+        var pastedInner = pastedNode.getSubgraphModel();
+        if (origInner == null || pastedInner == null) {
+            helper.fail("one of the inner graphs failed to resolve"); return;
+        }
+        if (origInner == pastedInner) {
+            helper.fail("inner graphs are the same instance — deep clone failed");
+            return;
+        }
+
+        // Mutating the pasted inner graph must not affect the original.
+        ((CustomGraphModelImpl) pastedInner).createVariable("v2", int.class, 0,
+                com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind.LOCAL);
+        if (countNonNull(origInner.getGraphVariableModels()) != 1) {
+            helper.fail("original inner graph leaked the new variable from the clone");
+            return;
+        }
+        if (countNonNull(pastedInner.getGraphVariableModels()) != 2) {
+            helper.fail("clone inner graph did not receive its new variable");
+            return;
+        }
+
+        LDLib2.LOGGER.info("End copyPasteLocalSubgraphInSameGraph - PASSED");
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 8h. Cross-graph paste of a LOCAL SubgraphNodeModel: the destination's localSubGraphs picks
+    //     up the cloned inner graph and the pasted node resolves into it. Without the deep-clone
+    //     pipeline, the pasted node would dangle (target graph has no matching localSubGraphs entry).
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void copyPasteLocalSubgraphCrossGraph(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        LDLib2.LOGGER.info("Start copyPasteLocalSubgraphCrossGraph");
+
+        // Source graph with a LOCAL SubgraphNodeModel
+        var src = new TestGraph();
+        var inner = src.graphModel.createLocalSubgraphInstance();
+        src.graphModel.addLocalSubgraph(inner);
+        inner.createVariable("v", int.class, 0,
+                com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind.INPUT);
+        var srcNode = src.graphModel.createNodeWithType(SubgraphNodeModel.class, "n",
+                new org.joml.Vector2f(0, 0), null,
+                n -> n.setLocalSubgraph(inner), SpawnFlags.DEFAULT);
+
+        // Empty destination graph
+        var dst = new TestGraph();
+        if (dst.graphModel.getLocalSubGraphs() != null
+                && countNonNull(dst.graphModel.getLocalSubGraphs()) != 0) {
+            helper.fail("dst should start with no local subgraphs"); return;
+        }
+
+        var copyData = src.graphModel.copyElements(java.util.List.of(srcNode), provider);
+        var pasted = dst.graphModel.pasteElementsWithMap(copyData, new org.joml.Vector2f(0, 0));
+
+        // Destination now has 1 local subgraph
+        if (dst.graphModel.getLocalSubGraphs() == null
+                || countNonNull(dst.graphModel.getLocalSubGraphs()) != 1) {
+            helper.fail("dst.localSubGraphs not populated by paste"); return;
+        }
+        var dstInner = dst.graphModel.getLocalSubGraphs().get(0);
+        if (dstInner == inner) {
+            helper.fail("dst received the original inner graph instance — should be a clone");
+            return;
+        }
+        if (countNonNull(dstInner.getGraphVariableModels()) != 1) {
+            helper.fail("cloned inner graph did not preserve variables"); return;
+        }
+        if (dstInner.getParentGraph() != dst.graphModel) {
+            helper.fail("cloned inner graph's parentGraph not wired to dst"); return;
+        }
+
+        // The pasted SubgraphNodeModel resolves to the dst clone
+        SubgraphNodeModel pastedNode = null;
+        for (var n : pasted.elements()) {
+            if (n instanceof SubgraphNodeModel s) { pastedNode = s; break; }
+        }
+        if (pastedNode == null) { helper.fail("pasted SubgraphNodeModel not in result"); return; }
+        if (pastedNode.getSubgraphModel() != dstInner) {
+            helper.fail("pasted node does not resolve to the dst clone");
+            return;
+        }
+
+        // Source is untouched
+        if (src.graphModel.getLocalSubGraphs() == null
+                || countNonNull(src.graphModel.getLocalSubGraphs()) != 1
+                || src.graphModel.getLocalSubGraphs().get(0) != inner) {
+            helper.fail("src local subgraph mutated by cross-graph paste"); return;
+        }
+
+        LDLib2.LOGGER.info("End copyPasteLocalSubgraphCrossGraph - PASSED");
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
     // 9. Backward compat: graph NBT without 'localSubGraphs' / 'kind' fields
     //    must deserialize cleanly.
     // ------------------------------------------------------------------

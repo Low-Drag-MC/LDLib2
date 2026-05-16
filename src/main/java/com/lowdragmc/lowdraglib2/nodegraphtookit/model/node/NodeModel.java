@@ -787,26 +787,6 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
     }
 
     @Override
-    public int getElementColor() {
-        return 0xFFFFFF; // Default white
-    }
-
-    @Override
-    public void setColor(int color) {
-        // TODO: Implement color support
-    }
-
-    @Override
-    public int getDefaultColor() {
-        return 0xFFFFFF;
-    }
-
-    @Override
-    public boolean hasUserColor() {
-        return false;
-    }
-
-    @Override
     public boolean hasNodePreview() {
         return false;
     }

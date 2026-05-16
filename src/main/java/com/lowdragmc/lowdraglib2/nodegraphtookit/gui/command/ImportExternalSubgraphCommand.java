@@ -50,10 +50,11 @@ public class ImportExternalSubgraphCommand extends UndoableGraphCommand {
         }
 
         var nodeName = path.getResourceName();
+        // Set only the name — getTitle() falls back to translatable(name), so rename drives the
+        // displayed title without us pinning a hard-coded Component here.
         var node = graphModel.createNodeWithType(
                 SubgraphNodeModel.class, nodeName, position, nodeUid,
                 n -> n.setExternalSubgraph(path), SpawnFlags.DEFAULT);
-        node.setTitle(Component.literal(nodeName));
         node.defineNode();
     }
 }

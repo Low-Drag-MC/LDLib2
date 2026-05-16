@@ -28,6 +28,12 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
     protected Component title;
     @Nullable
     protected Component tooltip;
+    /** User-chosen color; meaningful only when {@link #userColor} is true. */
+    @Persisted
+    protected int elementColor = 0xFFFFFFFF;
+    /** Whether the user has explicitly chosen a color via setColor(). */
+    @Persisted
+    protected boolean userColor = false;
 
     private SpawnFlags spawnFlags = SpawnFlags.DEFAULT;
 
@@ -62,13 +68,29 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
      */
     public abstract IGuiTexture getNodeIcon();
 
-    public abstract int getElementColor();
+    @Override
+    public int getElementColor() {
+        return userColor ? elementColor : getDefaultColor();
+    }
 
-    public abstract void setColor(int color);
+    @Override
+    public void setColor(int color) {
+        if (userColor && elementColor == color) return;
+        elementColor = color;
+        userColor = true;
+        GraphModel gm = getGraphModel();
+        if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.STYLE);
+    }
 
-    public abstract int getDefaultColor();
+    @Override
+    public int getDefaultColor() {
+        return 0xFFFFFFFF;
+    }
 
-    public abstract boolean hasUserColor();
+    @Override
+    public boolean hasUserColor() {
+        return userColor;
+    }
 
     /**
      * Gets the state of the node. Indicates whether the node is enabled or disabled.

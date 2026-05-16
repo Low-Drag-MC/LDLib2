@@ -23,6 +23,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard.Blackboard;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateSubgraphFromSelectionCommand;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ElementRenameColorCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ImportExternalSubgraphCommand;
@@ -1054,13 +1055,29 @@ public class GraphView extends UIElement {
                 yield null;
             }
             case "Paste as New" -> null; // TODO
-            case "Rename" -> null; // TODO
+            case "Rename" -> {
+                if (selectedModels.size() == 1) {
+                    var only = selectedModels.get(0);
+                    if (only.isRenamable() && only instanceof IHasName) {
+                        yield item.withAction(() -> startInlineRenameFor(only));
+                    }
+                }
+                yield null;
+            }
             case "Duplicate" -> {
                 if (selectedModels.stream().allMatch(GraphElementModel::isCopiable))
                     yield item.withAction(this::duplicateSelectedElements);
                 yield null;
             }
-            case "Color..." -> null; // TODO
+            case "Color..." -> {
+                if (selectedModels.size() == 1) {
+                    var only = selectedModels.get(0);
+                    if (only.isColorable() && only instanceof IHasElementColor colored) {
+                        yield item.withAction(() -> openColorPopup(localPosition, only, colored));
+                    }
+                }
+                yield null;
+            }
             case "Create Placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
             case "Create Subgraph from Selection" -> {
                 // Wires are tolerated (filtered inside the model); nodes need to be copiable;
@@ -1288,6 +1305,62 @@ public class GraphView extends UIElement {
 //                addElement(previewModel);
             }
         }
+    }
+
+    /**
+     * Triggers inline rename for {@code model} if its UI element supports it (NodeElement,
+     * PlacematElement). Other element types currently have no inline edit affordance, so this
+     * is a no-op for them — users can rename them via the inspector when single-selected.
+     */
+    public void startInlineRenameFor(com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel model) {
+        var element = modelElements.get(model);
+        if (element instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement nodeElement) {
+            if (nodeElement.getNodeTittle() != null) {
+                nodeElement.getNodeTittle().startInlineRename();
+            }
+        } else if (element instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.PlacematElement placematElement) {
+            placematElement.startInlineRename();
+        }
+    }
+
+    /**
+     * Opens a small floating {@link com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector} at
+     * {@code localPosition}. Color changes dispatch via {@code SetElementColorCommand} so they
+     * land on the undo stack. Loses focus → closes (mirrors the menu lifecycle).
+     */
+    protected void openColorPopup(Vector2f localPosition,
+                                  com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel target,
+                                  com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasElementColor colored) {
+        var mui = getModularUI();
+        if (mui == null) return;
+
+        var colorSelector = new com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector();
+        colorSelector.style(style -> {
+            style.setPipelineState(com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.DEFAULT);
+            style.backgroundTexture(Sprites.RECT_SOLID);
+            style.setPipelineState(com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.INLINE);
+        });
+        colorSelector.addClass("panel_bg");
+        colorSelector.layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.width(150);
+            layout.paddingAll(4);
+        });
+        colorSelector.setFocusable(true);
+        // Close on focus loss — same dismissal model the Menu uses.
+        colorSelector.setEnforceFocus(e -> colorSelector.removeSelf());
+        colorSelector.setColor(colored.getElementColor(), false);
+        colorSelector.setOnColorChangeListener(newColor ->
+                dispatchCommand(new ElementRenameColorCommands.SetElementColorCommand(target, newColor)));
+
+        var worldPos = getContentViewContainer().localToWorld(localPosition);
+        var rootOffset = mui.ui.rootElement.worldToLocalLayoutOffset(worldPos);
+        colorSelector.layout(layout -> {
+            layout.left(rootOffset.x);
+            layout.top(rootOffset.y);
+        });
+        mui.ui.rootElement.addChild(colorSelector);
+        colorSelector.focus();
     }
 
     protected boolean createWireUI(@Nullable WireModel wire) {

@@ -48,10 +48,11 @@ public class CreateLocalSubgraphCommand extends UndoableGraphCommand {
         }
         graphModel.addLocalSubgraph(sub);
 
+        // Set only the name — getTitle() falls back to translatable(name), so rename drives the
+        // displayed title without us pinning a hard-coded Component here.
         var node = graphModel.createNodeWithType(
                 SubgraphNodeModel.class, "Subgraph", position, nodeUid,
                 n -> n.setLocalSubgraph(sub), SpawnFlags.DEFAULT);
-        node.setTitle(Component.literal("Subgraph"));
         node.defineNode();
     }
 }

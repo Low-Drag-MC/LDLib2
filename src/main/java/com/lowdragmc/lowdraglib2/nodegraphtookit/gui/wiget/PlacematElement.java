@@ -3,16 +3,23 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphInspector;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ElementRenameColorCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.RenameColorConfigurableHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
+import org.lwjgl.glfw.GLFW;
 
 public class PlacematElement extends GraphElement<PlacematModel> {
     public static final String PLACEMAT_LAYER = "Placemat";
@@ -21,6 +28,8 @@ public class PlacematElement extends GraphElement<PlacematModel> {
     private static final Vector2f MAX_SIZE = new Vector2f(4000, 4000);
 
     private Label titleLabel;
+    /** Inline edit field shown in place of the title label during rename. */
+    private TextField inlineRenameField;
 
     public PlacematElement(PlacematModel model) {
         super(model);
@@ -46,6 +55,14 @@ public class PlacematElement extends GraphElement<PlacematModel> {
         titleLabel.getLayout().widthPercent(100).height(14).marginAll(2);
         titleLabel.getTextStyle().textColor(0xFFFFFFFF);
         addChild(titleLabel);
+
+        // Inline rename on title double-click — placemats are always renamable per Capabilities.
+        if (model.isRenamable()) {
+            titleLabel.addEventListener(UIEvents.DOUBLE_CLICK, e -> {
+                startInlineRename();
+                e.stopPropagation();
+            });
+        }
 
         // Border resize support
         WindowDragHelper.setBorderResize(this, this, RESIZE_BORDER, MIN_SIZE, MAX_SIZE,
@@ -79,6 +96,70 @@ public class PlacematElement extends GraphElement<PlacematModel> {
                 titleLabel.setText(Component.literal(model.getName()));
             }
         }
+    }
+
+    @Override
+    protected void onSelectionInspect(GraphInspector inspector) {
+        super.onSelectionInspect(inspector);
+        if (graphView != null) inspector.setHistoryStack(graphView.getHistoryStack());
+        inspector.inspect(RenameColorConfigurableHelper.build(getModel(), graphView));
+    }
+
+    /**
+     * Replaces the title label with a {@link TextField}. Enter / focus loss commit; Escape cancels.
+     * Public so the right-click menu can trigger the same flow.
+     */
+    public void startInlineRename() {
+        if (inlineRenameField != null) return;
+        if (!getModel().isRenamable()) return;
+        var initial = getModel().getName();
+        titleLabel.setDisplay(false);
+        inlineRenameField = new TextField();
+        inlineRenameField.setText(initial == null ? "" : initial);
+        inlineRenameField.layout(layout -> layout.widthPercent(100).height(14).marginAll(2));
+
+        final boolean[] done = {false};
+        Runnable commit = () -> {
+            if (done[0]) return;
+            done[0] = true;
+            var newName = inlineRenameField.getValue();
+            var gv = getFirstAncestorOfType(GraphView.class);
+            if (newName != null && !newName.equals(initial)) {
+                if (gv != null) {
+                    gv.dispatchCommand(new ElementRenameColorCommands.RenameElementCommand(getModel(), newName));
+                } else {
+                    getModel().setName(newName);
+                }
+            }
+            endInlineRename();
+        };
+        Runnable cancel = () -> {
+            if (done[0]) return;
+            done[0] = true;
+            endInlineRename();
+        };
+
+        inlineRenameField.addEventListener(UIEvents.KEY_DOWN, e -> {
+            if (e.keyCode == GLFW.GLFW_KEY_ENTER || e.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                commit.run();
+                e.stopPropagation();
+            } else if (e.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                cancel.run();
+                e.stopPropagation();
+            }
+        });
+        inlineRenameField.addEventListener(UIEvents.BLUR, e -> commit.run());
+
+        addChild(inlineRenameField);
+        inlineRenameField.focus();
+    }
+
+    private void endInlineRename() {
+        if (inlineRenameField != null) {
+            inlineRenameField.removeSelf();
+            inlineRenameField = null;
+        }
+        if (titleLabel != null) titleLabel.setDisplay(true);
     }
 
     @Override

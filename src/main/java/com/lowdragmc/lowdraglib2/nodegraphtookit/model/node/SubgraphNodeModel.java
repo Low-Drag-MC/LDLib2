@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.NodeDefinitionScope;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
@@ -60,6 +61,10 @@ public class SubgraphNodeModel extends NodeModel {
     @Nullable
     private transient GraphModel resolvedExternal;
 
+    public SubgraphNodeModel() {
+        capabilities.add(Capabilities.RENAMABLE);
+    }
+
     /** A row in {@link #portCache}: enough to recreate a port that wires can still resolve to. */
     private record CachedPort(String portId, @Nullable UUID varUid, String typeId, PortDirection direction) {}
 
@@ -73,6 +78,17 @@ public class SubgraphNodeModel extends NodeModel {
         this.localGraphId = localGraph == null ? null : localGraph.getUid();
         this.externalPathString = null;
         this.resolvedExternal = null;
+    }
+
+    /**
+     * Rebinds this LOCAL subgraph reference to a different inner-graph uid <em>without</em>
+     * needing a {@link GraphModel} reference. Used by the copy/paste pipeline: the cloned inner
+     * graph has been deserialized and added to the new parent under a fresh uid, and we need to
+     * point this pasted node at that fresh uid. No-op if the node is not in LOCAL kind.
+     */
+    public void rebindLocalGraphId(UUID newUid) {
+        if (kind != Kind.LOCAL) return;
+        this.localGraphId = newUid;
     }
 
     /** Bind this node to an external graph resource. */
