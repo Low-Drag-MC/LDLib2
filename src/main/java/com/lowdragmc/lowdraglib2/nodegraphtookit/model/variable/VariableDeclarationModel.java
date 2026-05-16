@@ -58,6 +58,8 @@ public class VariableDeclarationModel extends VariableDeclarationModelBase {
                 }
             }
             graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
+            // outer subgraph nodes that reference this graph must mirror the modifier change as port direction
+            graphModel.redefineSubgraphNodeModels();
         }
     }
 
@@ -93,6 +95,20 @@ public class VariableDeclarationModel extends VariableDeclarationModelBase {
             for (var usage : variableRefs) {
                 usage.updateTypeFromDeclaration();
             }
+            // type change on an exposed variable changes the outer subgraph node's port type
+            if (modifiers != null && modifiers != ModifierFlags.NONE) {
+                graphModel.redefineSubgraphNodeModels();
+            }
+        }
+    }
+
+    @Override
+    public void setName(String name) {
+        if (getName().equals(name)) return;
+        super.setName(name);
+        // port title on the outer subgraph node mirrors the variable name
+        if (graphModel != null && modifiers != null && modifiers != ModifierFlags.NONE) {
+            graphModel.redefineSubgraphNodeModels();
         }
     }
 

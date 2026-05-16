@@ -19,9 +19,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard.Blackboard;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateSubgraphFromSelectionCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ImportExternalSubgraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ElementUpdateVisitor;
@@ -32,12 +35,9 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.PlacematElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.StickyNoteElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePlaceholder;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePreviewModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.PortMigrationResult;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
@@ -132,6 +132,7 @@ public class GraphView extends UIElement {
         graphView.addEventListener(UIEvents.MOUSE_UP, this::onGraphViewMouseUp);
         graphView.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onGraphViewDragSourceUpdate);
         graphView.addEventListener(UIEvents.DRAG_END, this::onGraphViewDragEnd);
+        graphView.addEventListener(UIEvents.DRAG_PERFORM, this::onGraphViewDragPerform);
         fallbackLayer.setId("fallback-layer");
         fallbackLayer.setAllowHitTest(false);
         fallbackLayer.getLayout().positionType(TaffyPosition.ABSOLUTE);
@@ -927,6 +928,16 @@ public class GraphView extends UIElement {
         }
     }
 
+    protected void onGraphViewDragPerform(UIEvent event) {
+        if (event.dragHandler.getDraggingObject() instanceof GraphResourceProviderContainer.DraggingGraph draggingGraph
+                && graph != null && graph.graphModel.allowSubgraphCreation()
+                && graphView.isMouseOverContent(event.x, event.y)) {
+            // Resource container drop: import as external subgraph at the drop position.
+            var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
+            dispatchCommand(new ImportExternalSubgraphCommand(draggingGraph.path(), localPosition));
+        }
+    }
+
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder = TreeBuilder.Menu.start();
         var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY));
@@ -1025,7 +1036,19 @@ public class GraphView extends UIElement {
             }
             case "Color..." -> null; // TODO
             case "Create Placemat" -> item.withAction(() -> createPlacematFromSelection(localPosition));
-            case "Create Subgraph from Selection" -> null; // TODO
+            case "Create Subgraph from Selection" -> {
+                if (graph != null && graph.graphModel.allowSubgraphCreation()
+                        && selectedModels.stream().allMatch(m -> m instanceof AbstractNodeModel an
+                                && an.isCopiable()
+                                && !(an instanceof SubgraphNodeModel))) {
+                    var nodes = selectedModels.stream()
+                            .filter(AbstractNodeModel.class::isInstance)
+                            .map(AbstractNodeModel.class::cast)
+                            .toList();
+                    yield item.withAction(() -> dispatchCommand(new CreateSubgraphFromSelectionCommand(nodes)));
+                }
+                yield null;
+            }
             case "Align and Distribute" -> null; // TODO
             // Node-specific items
             case "Delete and Reconnect" -> null; // TODO

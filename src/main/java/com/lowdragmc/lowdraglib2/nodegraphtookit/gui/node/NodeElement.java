@@ -4,10 +4,12 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
@@ -88,6 +90,20 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
 
         addChildren(nodeTittle, nodeOptionContainer, portContainerElement);
         internalSetup();
+
+        // Double-click on a subgraph node enters its inner graph. View-level navigation —
+        // intentionally not routed through the command/history system so per-level history is kept
+        // independent and clean.
+        if (getModel() instanceof SubgraphNodeModel) {
+            addEventListener(UIEvents.DOUBLE_CLICK, event -> {
+                if (!(getModel() instanceof SubgraphNodeModel subNode)) return;
+                var editorView = getFirstAncestorOfType(GraphEditorView.class);
+                if (editorView != null) {
+                    editorView.enterSubgraph(subNode);
+                    event.stopPropagation();
+                }
+            });
+        }
     }
 
     // endregion
