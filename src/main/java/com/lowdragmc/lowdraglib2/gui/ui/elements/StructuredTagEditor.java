@@ -196,7 +196,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
         rows.addChild(createRow(tag, key, keyParent, depth, path, setter, remover, root));
         if (!expandedPaths.contains(path)) return;
         if (tag instanceof CompoundTag compoundTag) {
-            for (var childKey : compoundTag.getAllKeys()) {
+            for (var childKey : compoundTag.keySet()) {
                 var childPath = path + "." + childKey;
                 var childTag = compoundTag.get(childKey);
                 if (childTag == null) continue;
@@ -558,47 +558,47 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
             return new Label().setText(tagSummary(tag), false).textStyle(style -> style.textAlignVertical(Vertical.CENTER));
         }
         if (tag instanceof StringTag stringTag) {
-            return new TextField().setText(stringTag.getAsString(), false)
+            return new TextField().setText(stringTag.asString().orElse(""), false)
                     .setTextResponder(text -> setter.set(StringTag.valueOf(text), false));
         }
         if (tag instanceof ByteTag byteTag) {
             if (kindOf(byteTag) == TagKind.BOOLEAN) {
                 return new Switch()
-                        .setOn(byteTag.getAsByte() != 0, false)
+                        .setOn(byteTag.asByte().orElse((byte) 0) != 0, false)
                         .setOnSwitchChanged(value -> setter.set(ByteTag.valueOf(value), false));
             }
             var field = new TextField().setNumbersOnlyByte(Byte.MIN_VALUE, Byte.MAX_VALUE);
-            field.setText(Byte.toString(byteTag.getAsByte()), false);
+            field.setText(Byte.toString(byteTag.asByte().orElse((byte) 0)), false);
             field.setTextResponder(text -> parseByte(text, value -> setter.set(ByteTag.valueOf(value), false)));
             return field;
         }
         if (tag instanceof ShortTag shortTag) {
             var field = new TextField().setNumbersOnlyShort(Short.MIN_VALUE, Short.MAX_VALUE);
-            field.setText(Short.toString(shortTag.getAsShort()), false);
+            field.setText(Short.toString(shortTag.asShort().orElse((short) 0)), false);
             field.setTextResponder(text -> parseShort(text, value -> setter.set(ShortTag.valueOf(value), false)));
             return field;
         }
         if (tag instanceof IntTag intTag) {
             var field = new TextField().setNumbersOnlyInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
-            field.setText(Integer.toString(intTag.getAsInt()), false);
+            field.setText(Integer.toString(intTag.asInt().orElse(0)), false);
             field.setTextResponder(text -> parseInt(text, value -> setter.set(IntTag.valueOf(value), false)));
             return field;
         }
         if (tag instanceof LongTag longTag) {
             var field = new TextField().setNumbersOnlyLong(Long.MIN_VALUE, Long.MAX_VALUE);
-            field.setText(Long.toString(longTag.getAsLong()), false);
+            field.setText(Long.toString(longTag.asLong().orElse(0L)), false);
             field.setTextResponder(text -> parseLong(text, value -> setter.set(LongTag.valueOf(value), false)));
             return field;
         }
         if (tag instanceof FloatTag floatTag) {
             var field = new TextField().setNumbersOnlyFloat(-Float.MAX_VALUE, Float.MAX_VALUE);
-            field.setText(Float.toString(floatTag.getAsFloat()), false);
+            field.setText(Float.toString(floatTag.asFloat().orElse(0.0f)), false);
             field.setTextResponder(text -> parseFloat(text, value -> setter.set(FloatTag.valueOf(value), false)));
             return field;
         }
         if (tag instanceof DoubleTag doubleTag) {
             var field = new TextField().setNumbersOnlyDouble(-Double.MAX_VALUE, Double.MAX_VALUE);
-            field.setText(Double.toString(doubleTag.getAsDouble()), false);
+            field.setText(Double.toString(doubleTag.asDouble().orElse(0.0)), false);
             field.setTextResponder(text -> parseDouble(text, value -> setter.set(DoubleTag.valueOf(value), false)));
             return field;
         }
@@ -745,7 +745,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     }
 
     public static Tag convertTag(Tag source, TagKind kind) {
-        if (kind == TagKind.BOOLEAN) return ByteTag.valueOf(source instanceof ByteTag byteTag && byteTag.getAsByte() != 0);
+        if (kind == TagKind.BOOLEAN) return ByteTag.valueOf(source instanceof ByteTag byteTag && byteTag.asByte().orElse((byte) 0) != 0);
         if (kindOf(source) == kind) return source.copy();
         return defaultTag(kind);
     }
@@ -771,7 +771,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
 
     private static TagKind kindOf(Tag tag) {
         if (tag instanceof ByteTag byteTag) {
-            return byteTag.getAsByte() == 0 || byteTag.getAsByte() == 1 ? TagKind.BOOLEAN : TagKind.BYTE;
+            return byteTag.asByte().orElse((byte) 0) == 0 || byteTag.asByte().orElse((byte) 0) == 1 ? TagKind.BOOLEAN : TagKind.BYTE;
         }
         if (tag instanceof ShortTag) return TagKind.SHORT;
         if (tag instanceof IntTag) return TagKind.INT;
@@ -866,7 +866,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     }
 
     private static Number numberValue(Tag tag) {
-        if (tag instanceof NumericTag numericTag) return numericTag.getAsNumber();
+        if (tag instanceof NumericTag numericTag) return numericTag.asNumber().orElse(0);
         return 0;
     }
 
