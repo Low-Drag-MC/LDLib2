@@ -29,7 +29,11 @@ import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.ByteArrayTag;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -97,6 +101,7 @@ public class TestComponentExamples implements IScreenTest {
         addExample.accept("scroller", this::scrollerExample);
         addExample.accept("text-field", this::textFieldExample);
         addExample.accept("tag-field", this::tagFieldExample);
+        addExample.accept("structured-tag-editor", this::structuredTagEditorExample);
         addExample.accept("tree-list", this::treeListExample);
         addExample.accept("code-editor", this::codeEditorExample);
         addExample.accept("scene", this::sceneExample);
@@ -242,6 +247,24 @@ public class TestComponentExamples implements IScreenTest {
                 new Label().setText("list tag only"),
                 new TagField().setListOnly().setValue(new ListTag())
         );
+    }
+
+    private UIElement structuredTagEditorExample() {
+        var root = new CompoundTag();
+        root.putString("name", "LDLib2");
+        root.putInt("count", 3);
+        root.put("bytes", new ByteArrayTag(new byte[] {1, 2, 3}));
+        root.put("ints", new IntArrayTag(new int[] {10, 20, 30}));
+        var list = new ListTag();
+        list.add(StringTag.valueOf("first"));
+        list.add(StringTag.valueOf("second"));
+        root.put("list", list);
+        return new StructuredTagEditor()
+                .setValue(root, false)
+                .layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.heightPercent(100);
+                });
     }
 
     private UIElement treeListExample() {
