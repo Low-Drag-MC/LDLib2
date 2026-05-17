@@ -432,6 +432,25 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     /**
+     * Registers a block node (and recursively its ports) in the graph's UID map. Called by
+     * {@link com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel#insertBlock}
+     * after the block has been attached to its parent context. Blocks are <em>not</em> added
+     * to {@link #nodeModels} — they remain reachable only through their parent context.
+     */
+    public void registerBlockNode(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel block) {
+        if (block == null) return;
+        registerElement(block);
+    }
+
+    /**
+     * Unregisters a block node (and recursively its ports) from the graph's UID map.
+     */
+    public void unregisterBlockNode(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel block) {
+        if (block == null) return;
+        unregisterElement(block);
+    }
+
+    /**
      * Registers a node preview model.
      *
      * @param previewModel the preview model
@@ -538,9 +557,15 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 case WireModel wireModel:
                     removeWire(wireModel);
                     break;
-//                case BlockNodeModel blockNodeModel:
-//                    UnregisterBlockNode(blockNodeModel);
-//                    break;
+                case com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel blockNodeModel:
+                    // Blocks live inside a context, not in the top-level nodeModels list.
+                    // Route through the parent so its block list and wires stay consistent.
+                    if (blockNodeModel.getContextNodeModel() != null) {
+                        blockNodeModel.getContextNodeModel().removeBlock(blockNodeModel);
+                    } else {
+                        unregisterBlockNode(blockNodeModel);
+                    }
+                    break;
                 case AbstractNodeModel nodeModel:
                     removeNode(nodeModel);
                     break;
@@ -2130,6 +2155,9 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * Gets a type discriminator string for the given node model.
      */
     protected String getNodeDiscriminator(AbstractNodeModel node) {
+        // Order matters: CustomContextNodeModelImpl is a NodeModel and also an ICustomNodeModel —
+        // check the context branch before the generic custom branch.
+        if (node instanceof ContextNodeModel) return "context";
         if (node instanceof CustomNodeModelImpl) return "custom";
         if (node instanceof VariableNodeModelImpl) return "variable";
         if (node instanceof ConstantNodeModelImpl) return "constant";
@@ -2145,6 +2173,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     protected AbstractNodeModel createNodeFromDiscriminator(String type) {
         return switch (type) {
             case "custom" -> new CustomNodeModelImpl();
+            case "context" -> new CustomContextNodeModelImpl();
             case "variable" -> new VariableNodeModelImpl();
             case "constant" -> new ConstantNodeModelImpl();
             case "subgraph" -> new SubgraphNodeModel();
@@ -2247,7 +2276,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             if (nodeModel == null) continue;
             var nodeTag = nodeModel.serializeNBT(provider);
             nodeTag.putString("_type", getNodeDiscriminator(nodeModel));
-            if (nodeModel instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
+            if (nodeModel instanceof ICustomNodeModel customNode && customNode.getNode() != null) {
                 nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
             }
             nodesTag.add(nodeTag);
@@ -2384,8 +2413,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     nodeModel.setGraphModel(this);
                     nodeModel.deserializeNBT(provider, nodeTag);
 
-                    // CustomNodeModelImpl: look up node class and init
-                    if (nodeModel instanceof CustomNodeModelImpl customNode) {
+                    // ICustomNodeModel: look up node class and init (covers CustomNodeModelImpl
+                    // and ContextNodeModel — blocks inside a context are restored by the
+                    // context itself during its own deserialize).
+                    if (nodeModel instanceof ICustomNodeModel customNode) {
                         var nodeClassName = nodeTag.getString("nodeClass");
                         Node node = findNodeByClassName(nodeClassName);
                         if (node != null) {
@@ -2489,10 +2520,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     /**
-     * Finds a Node instance by its class name from the supported nodes list.
+     * Finds a Node instance by its class name from the supported nodes list. Public so that
+     * nested-element models (e.g. {@code ContextNodeModel}) can resolve user-node classes
+     * during their own deserialization.
      */
     @Nullable
-    protected Node findNodeByClassName(String className) {
+    public Node findNodeByClassName(String className) {
         if (className == null || className.isEmpty()) return null;
         for (var nodeClass : getSupportNodes()) {
             if (nodeClass.getName().equals(className)) {
@@ -2570,7 +2603,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         for (var node : selectedNodes) {
             var nodeTag = node.serializeNBT(provider);
             nodeTag.putString("_type", getNodeDiscriminator(node));
-            if (node instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
+            if (node instanceof ICustomNodeModel customNode && customNode.getNode() != null) {
                 nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
             }
             nodesTag.add(nodeTag);
@@ -2749,8 +2782,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     // Assign new UUID
                     nodeModel.setUid(UUID.randomUUID());
 
-                    // CustomNodeModelImpl: init node class
-                    if (nodeModel instanceof CustomNodeModelImpl customNode) {
+                    // ICustomNodeModel: init node class (covers CustomNodeModelImpl + ContextNodeModel)
+                    if (nodeModel instanceof ICustomNodeModel customNode) {
                         var nodeClassName = nodeTag.getString("nodeClass");
                         Node node = findNodeByClassName(nodeClassName);
                         if (node != null) {

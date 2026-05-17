@@ -367,6 +367,7 @@ public class GraphView extends UIElement {
 //        ContentViewContainer.Add(m_MarkersParent);
 //        m_MarkersParent.Clear();
 
+        // nodes
         for (var nodeModel : graphModel.getNodeModels()) {
             var nodeUI = createAndAddModelElement(nodeModel);
             if (nodeUI != null) {
@@ -1015,7 +1016,61 @@ public class GraphView extends UIElement {
             appendWireMenuItems(menuBuilder, selectedModels);
         }
 
+        // Context/Block items
+        appendContextBlockMenuItems(menuBuilder, selectedModels);
+
         return menuBuilder;
+    }
+
+    /**
+     * Appends "Add Block" (when a single ContextNodeModel is selected) and
+     * "Delete Block" / "Move Up" / "Move Down" (when only sibling BlockNodeModels are selected).
+     */
+    private void appendContextBlockMenuItems(com.lowdragmc.lowdraglib2.gui.util.TreeBuilder.Menu menuBuilder,
+                                             List<GraphElementModel> selectedModels) {
+        // Add Block: shown when the selection is a single context node with at least one
+        // compatible block type. The submenu lists block classes by their simple name.
+        if (selectedModels.size() == 1
+                && selectedModels.get(0) instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel ctxModel) {
+            var supported = ctxModel.getSupportBlockClasses();
+            if (!supported.isEmpty()) {
+                menuBuilder.branch("graph.add_block", sub -> {
+                    for (var blockClass : supported) {
+                        sub.leaf(blockClass.getSimpleName(), () ->
+                                dispatchCommand(new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.InsertBlockCommand(
+                                        ctxModel, blockClass, -1)));
+                    }
+                });
+            }
+        }
+
+        // Block-only selection: support Delete / Move within parent context.
+        if (!selectedModels.isEmpty()
+                && selectedModels.stream().allMatch(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel.class::isInstance)) {
+            var blocks = selectedModels.stream()
+                    .map(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel.class::cast)
+                    .toList();
+            menuBuilder.leaf("graph.delete_block", () -> {
+                for (var block : blocks) dispatchCommand(
+                        new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.RemoveBlockCommand(block));
+            });
+            // Move up/down only when one block is selected (multi-move is ambiguous)
+            if (blocks.size() == 1) {
+                var block = blocks.get(0);
+                var parent = block.getContextNodeModel();
+                if (parent != null) {
+                    int idx = parent.indexOf(block);
+                    if (idx > 0) {
+                        menuBuilder.leaf("graph.move_block_up", () -> dispatchCommand(
+                                new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.MoveBlockCommand(parent, idx, idx - 1)));
+                    }
+                    if (idx >= 0 && idx < parent.getBlockCount() - 1) {
+                        menuBuilder.leaf("graph.move_block_down", () -> dispatchCommand(
+                                new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.MoveBlockCommand(parent, idx, idx + 1)));
+                    }
+                }
+            }
+        }
     }
 
     /** Gets the intersection of menu items from all selected models, sorted by priority. */
@@ -1279,6 +1334,7 @@ public class GraphView extends UIElement {
                     || model instanceof PortModel
                     || model instanceof DeclarationModel
                     || model instanceof NodePreviewModel
+                    || model instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel
             ) continue;
 
             if (model.getContainer() != graph.graphModel) continue;

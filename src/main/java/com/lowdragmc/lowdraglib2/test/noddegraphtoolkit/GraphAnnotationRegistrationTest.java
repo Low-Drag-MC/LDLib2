@@ -45,7 +45,11 @@ public class GraphAnnotationRegistrationTest {
                 TestConstantNode.class,
                 TestStringConcatNode.class,
                 TestColorBlendNode.class,
-                OptionTestNode.class
+                OptionTestNode.class,
+                TestContextNode.class,
+                TestBlockA.class,
+                TestBlockB.class,
+                TestUnrelatedBlock.class
         );
 
         if (!supportNodes.containsAll(expectedNodes)) {

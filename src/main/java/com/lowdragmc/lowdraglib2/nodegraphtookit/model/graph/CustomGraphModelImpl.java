@@ -64,15 +64,11 @@ public class CustomGraphModelImpl extends GraphModel {
     public static List<TypeHandle> detectSupportedTypes(GraphModel graphModel) {
         var foundTypes = new HashSet<TypeHandle>();
         var nodeCreationData = GraphNodeCreationData.ofOrphan(graphModel);
-        // load nodes
+        // Iterate every registered node type (regular, context, AND block) — getNodeImplType
+        // selects the right model class per nodeType, and we harvest port types uniformly.
+        // Block classes appear here too because they're @NodeAttribute-registered, so their
+        // port types are picked up automatically without a special context-traversal step.
         for (var nodeType : graphModel.getSupportNodes()) {
-            // todo context node
-//            if (typeof(ContextNode).IsAssignableFrom(type))
-//            {
-//                InitializeSupportedTypesFromContextNodeType(m_Graph.GetType(), nodeCreationData, type, supportedTypes);
-//                createdElement = (IUserNodeModelImp)(CreateContextNodeFromData(nodeCreationData, type) as ContextNodeModel);
-//            }
-//            else
             var createdElement = createNodeFromData(nodeCreationData, nodeType);
             if (createdElement instanceof ICustomNodeModel customNodeModel) {
                 getPortTypesFromNode(customNodeModel.getNode(), foundTypes);
@@ -123,12 +119,14 @@ public class CustomGraphModelImpl extends GraphModel {
         });
     }
 
+    @SuppressWarnings("unchecked")
     public static <T extends AbstractNodeModel & ICustomNodeModel> Class<T> getNodeImplType(Class<? extends Node> nodeType) {
-//        if (ContextNode.IsAssignableFrom(nodeType)) {
-//            return typeof(UserContextNodeModelImp);
-//        } if (typeof(BlockNode).IsAssignableFrom(nodeType)) {
-//            return typeof(UserBlockNodeModelImp);
-//        }
+        if (ContextNode.class.isAssignableFrom(nodeType)) {
+            return (Class<T>) CustomContextNodeModelImpl.class;
+        }
+        if (BlockNode.class.isAssignableFrom(nodeType)) {
+            return (Class<T>) CustomBlockNodeModelImpl.class;
+        }
         return (Class<T>) CustomNodeModelImpl.class;
     }
 

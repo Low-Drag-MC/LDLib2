@@ -23,6 +23,22 @@ public class ProjectType {
     }
 
     /**
+     * Retrieves the root save path for the given project.
+     *
+     * This method determines and returns the root directory where the project data
+     * will be saved or accessed during operations.
+     *
+     * @param project The {@link IProject} instance for which the root save path is to be determined.
+     *                This project should provide relevant information for path resolution.
+     * @param projectRoot The {@link File} instance representing the root directory of the project.
+     *                    Must be a valid directory and accessible.
+     * @return The {@link File} instance representing the resolved root save path for the given project.
+     */
+    public File getRootSavePath(IProject project, File projectRoot) {
+        return projectRoot;
+    }
+
+    /**
      * Loads a project from the specified file.
      * The method reads serialized project data from the provided file, creates an instance of the project using the
      * {@link #getProjectCreator()} supplier, and deserializes the data into the project object.

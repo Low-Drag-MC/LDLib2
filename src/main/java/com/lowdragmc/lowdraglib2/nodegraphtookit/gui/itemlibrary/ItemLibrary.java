@@ -18,6 +18,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.BlockNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.SpawnFlags;
@@ -173,6 +174,8 @@ public class ItemLibrary extends UIElement {
                 .setIcon(Icons.NODE)
                 .setDisplayName(Component.translatable("graph.library.nodes")));
         for (var nodeType : graphModel.getSupportNodes()) {
+            // skip block node
+            if (BlockNode.class.isAssignableFrom(nodeType)) continue;
             nodesBuilder.leaf(new NodeModelLibraryItem(nodeType.getSimpleName(),
                     data -> CustomGraphModelImpl.createNodeFromData(data, nodeType)), null);
         }
