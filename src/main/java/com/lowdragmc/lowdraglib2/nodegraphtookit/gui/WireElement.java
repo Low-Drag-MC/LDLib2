@@ -9,7 +9,9 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.PortElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import dev.vfyjxf.taffy.style.TaffyPosition;
@@ -18,23 +20,22 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class WireElement extends GraphElement<WireModel> {
     public final static String WIRE_LAYER = "Wire";
     // runtime
     @Getter
-    private Vector2f from = new Vector2f();
+    protected Vector2f from = new Vector2f();
     @Getter
-    private Vector2f to = new Vector2f();
-    private List<Vector2f> rawPoints = Collections.emptyList();
-    private List<Vector2f> drawPoints = Collections.emptyList();
-    private ModelElement lastUsedFromPort;
-    private ModelElement lastUsedToPort;
-    private WireModel lastWireModel;
+    protected Vector2f to = new Vector2f();
+    protected float fromOffset = 15;
+    protected float toOffset = 15;
+    protected List<Vector2f> rawPoints = Collections.emptyList();
+    protected List<Vector2f> drawPoints = Collections.emptyList();
+    protected ModelElement lastUsedFromPort;
+    protected ModelElement lastUsedToPort;
+    protected WireModel lastWireModel;
 
     public WireElement(WireModel wireModel) {
         super(wireModel);
@@ -206,10 +207,20 @@ public class WireElement extends GraphElement<WireModel> {
             dirty = true;
             this.to = toPos;
         }
+        var fromPortOffset = Optional.ofNullable(fromPort).map(PortModel::getNodeModel).map(PortNodeModel::getPortWireOffset).orElse(15F);
+        if (fromPortOffset != fromOffset) {
+            dirty = true;
+            this.fromOffset = fromPortOffset;
+        }
+        var toPortOffset = Optional.ofNullable(toPort).map(PortModel::getNodeModel).map(PortNodeModel::getPortWireOffset).orElse(15F);
+        if (toPortOffset != toOffset) {
+            dirty = true;
+            this.toOffset = toPortOffset;
+        }
 
         if (dirty) {
-            var fromPoint2 = from.add(15, 0, new Vector2f());
-            var toPoint2 = to.add(-15, 0, new Vector2f());
+            var fromPoint2 = from.add(fromOffset, 0, new Vector2f());
+            var toPoint2 = to.add(-toOffset, 0, new Vector2f());
 
             var minX = Math.min(from.x, to.x);
             var minY = Math.min(from.y, to.y);
@@ -234,7 +245,7 @@ public class WireElement extends GraphElement<WireModel> {
             fromPoint2 = fromPoint2.add(offset);
             toPoint2 = toPoint2.add(offset);
             rawPoints = List.of(realFrom, fromPoint2, toPoint2, realTo);
-            drawPoints = roundCorners(rawPoints, 6, 5);
+            drawPoints = roundCorners(rawPoints, 6, 8);
         }
     }
 

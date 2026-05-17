@@ -6,6 +6,9 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.CollapsibleInOutNodeElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.SubgraphNodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
@@ -150,6 +153,11 @@ public class SubgraphNodeModel extends NodeModel {
     @Override
     public Component getTooltip() {
         return super.getTooltip().copy().append("-").append(Component.translatable("graph.breadcrumb.subgraph"));
+    }
+
+    @Override
+    public @Nullable GraphElement<?> createElementUI() {
+        return new SubgraphNodeElement(this);
     }
 
     // ---------------------------------------------------------------------

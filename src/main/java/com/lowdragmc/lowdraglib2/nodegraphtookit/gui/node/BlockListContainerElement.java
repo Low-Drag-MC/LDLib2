@@ -1,13 +1,19 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.BlockLibraryItem;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
 import dev.vfyjxf.taffy.style.FlexDirection;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -15,16 +21,21 @@ import java.util.List;
  * child {@link BlockNodeElement}s when the parent context emits a topology change (block added,
  * removed, or reordered).
  *
- * <p>This element <em>owns</em> the lifecycle of every {@link BlockNodeElement} it creates:
- * on rebuild it calls {@code setGraphView(null)} on the old elements before clearing them so
- * they unregister cleanly from the graph view's model→element map. Top-level
- * {@code GraphView.createAndAddModelElement} never sees blocks (see
- * {@link BlockNodeModel#createElementUI()} which returns null).</p>
+ * <p>Existing {@link BlockNodeElement} instances are reused across rebuilds whenever their
+ * backing model is still present — including reorders. Only elements whose model has been
+ * removed are torn down (setGraphView(null) so they unregister from the graph view); only new
+ * models get fresh elements.</p>
+ *
+ * <p>Top-level {@code GraphView.createAndAddModelElement} never sees blocks (see
+ * {@link BlockNodeModel#createElementUI()} which returns null), so this container is the sole
+ * owner of every block element's lifecycle.</p>
  */
 public class BlockListContainerElement extends ModelElement {
     public final ContextNodeModel contextNodeModel;
-    /** Block UI elements currently in the tree, paired with their backing models. */
-    private final List<BlockNodeElement> blockElements = new ArrayList<>();
+    /** Block UI elements currently in the tree, ordered to match {@code contextNodeModel.getBlocks()}. */
+    protected final List<BlockNodeElement> blockElements = new ArrayList<>();
+    protected UIElement blockContainer;
+    protected Button addBlockButton;
 
     public BlockListContainerElement(ContextNodeModel contextNodeModel) {
         this.contextNodeModel = contextNodeModel;
@@ -33,9 +44,35 @@ public class BlockListContainerElement extends ModelElement {
     @Override
     protected void buildUI() {
         setId("block-list-container");
-        getLayout().flexDirection(FlexDirection.COLUMN).gapAll(2).paddingAll(2);
-        // Initial population — buildUI runs once the graphView is set.
+        getLayout().gapAll(1).paddingAll(2).marginAll(4);
+        getStyle().background(Sprites.RECT_DARK);
+        // Initial population — buildUI runs after the graphView is set.
+        blockContainer = new UIElement();
+        blockContainer.getLayout().gapAll(1);
+        addBlockButton = new Button().setText("graph.add_block");
+        addBlockButton.getLayout().marginAll(5);
+        // Opens the ItemLibrary scoped to compatible blocks; selection dispatches an
+        // InsertBlockCommand against this container's parent context.
+        addBlockButton.setOnClick(e -> {
+            var graphView = getGraphView();
+            if (graphView == null) return;
+            graphView.itemLibrary.showBlocksForContext(e.x, e.y, contextNodeModel, item -> {
+                if (item instanceof BlockLibraryItem blockItem) {
+                    graphView.dispatchCommand(new BlockCommands.InsertBlockCommand(
+                            contextNodeModel, blockItem.getBlockClass(), -1));
+                }
+            });
+        });
+        addChildren(blockContainer, addBlockButton);
+        applyAddButtonVisibility();
         rebuildBlocks();
+        internalSetup();
+    }
+
+    /** Hide the Add Block button entirely when the context accepts no block types. */
+    private void applyAddButtonVisibility() {
+        if (addBlockButton == null) return;
+        addBlockButton.setDisplay(!contextNodeModel.getSupportBlockClasses().isEmpty());
     }
 
     @Override
@@ -55,27 +92,44 @@ public class BlockListContainerElement extends ModelElement {
     }
 
     private void rebuildBlocks() {
-        // Tear down the previous BlockNodeElements properly: setGraphView(null) unregisters
-        // them from the graph view's modelElements map (otherwise selection/hit-testing would
-        // still see stale elements). clearAllChildren only detaches them from the UI tree.
-        for (var old : blockElements) {
-            old.setGraphView(null);
-        }
-        blockElements.clear();
-        clearAllChildren();
-
-        // When unmounted (graphView == null, e.g. ContextNodeElement was just removed),
-        // skip rebuilding — there's no live tree to attach to and no graphView to register
-        // with. Mount-time setGraphView will call buildUI again with a real graphView.
         var graphView = getGraphView();
+        var newBlocks = contextNodeModel.getBlocks();
+
+        // Index existing elements by model so we can recognise reuses, including pure reorders.
+        var existingByModel = new HashMap<BlockNodeModel, BlockNodeElement>(blockElements.size());
+        for (var el : blockElements) existingByModel.put((BlockNodeModel) el.getModel(), el);
+
+        // Tear down only blocks no longer present. setGraphView(null) unregisters them from the
+        // graph view's modelElements map — without this, selection/hit-testing would still find
+        // stale references after a block is removed.
+        for (var el : blockElements) {
+            if (!newBlocks.contains(el.getModel())) {
+                el.setGraphView(null);
+            }
+        }
+
+        // Detach all children from the UI tree. Children we still want will be re-attached below;
+        // setGraphView is sticky, so reused elements keep their graphView registration.
+        blockContainer.clearAllChildren();
+        blockElements.clear();
+
+        // When unmounted (e.g. ContextNodeElement was just removed), skip — buildUI will rebuild
+        // when the element is remounted to a graphView.
         if (graphView == null) return;
 
-        for (var blockModel : contextNodeModel.getBlocks()) {
-            var blockElement = new BlockNodeElement(blockModel);
-            blockElement.setGraphView(graphView);
-            addChild(blockElement);
+        for (var blockModel : newBlocks) {
+            var blockElement = existingByModel.get(blockModel);
+            if (blockElement == null) {
+                blockElement = new BlockNodeElement(blockModel);
+                blockElement.setGraphView(graphView);
+                // Wire MOUSE_DOWN selection (otherwise blocks are unselectable — they don't go
+                // through GraphView.addElement). Done once at create time; reused elements
+                // already have it.
+                graphView.wireSelectableElement(blockElement);
+                blockElement.doCompleteUpdate();
+            }
+            blockContainer.addChild(blockElement);
             blockElements.add(blockElement);
-            blockElement.doCompleteUpdate();
         }
     }
 }

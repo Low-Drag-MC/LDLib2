@@ -14,15 +14,16 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisit
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.IHasName;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.SubgraphNodeModel;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import org.lwjgl.glfw.GLFW;
 
 public class NodeTitleElement extends ModelElement {
     public final AbstractNodeModel nodeModel;
+    @Getter
+    protected UIElement titleContainer;
     @Getter
     protected UIElement colorLine;
     @Getter
@@ -39,17 +40,13 @@ public class NodeTitleElement extends ModelElement {
     @Override
     protected void buildUI() {
         setId("node-title-bar").setOverflowVisible(false);
-        if (nodeModel instanceof SubgraphNodeModel) {
-            getStyle().background(Sprites.TAB_WHITE);
-        } else {
-            getStyle().background(Sprites.BORDER_DARK);
-        }
+        getStyle().background(Sprites.BORDER_DARK);
         getLayout().paddingVertical(3).paddingHorizontal(4);
 
         colorLine = new UIElement().setId("node-title-color-line");
         colorLine.getLayout().height(2).widthPercent(100).marginBottom(2);
 
-        var titleContainer = new UIElement();
+        titleContainer = new UIElement();
         titleContainer.getLayout().alignItems(AlignItems.CENTER).minWidthAuto().minHeightAuto()
                 .gapAll(2).flexDirection(FlexDirection.ROW);
 
@@ -160,12 +157,9 @@ public class NodeTitleElement extends ModelElement {
         if (colorLine == null) return;
 
         if (visitor.hasHint(ChangeHint.STYLE)) {
-            if (nodeModel.hasUserColor()) {
-                colorLine.getStyle().background(new ColorRectTexture(nodeModel.getElementColor()));
-                colorLine.setDisplay(true);
-            } else {
-                colorLine.setDisplay(false);
-            }
+            var color = nodeModel.getElementColor();
+            colorLine.getStyle().background(new ColorRectTexture(color));
+            colorLine.setDisplay(ColorUtils.alpha(color) > 0.01f);
         }
     }
 }

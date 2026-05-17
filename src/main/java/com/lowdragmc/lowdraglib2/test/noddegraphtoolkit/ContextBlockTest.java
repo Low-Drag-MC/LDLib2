@@ -185,6 +185,112 @@ public class ContextBlockTest {
         helper.succeed();
     }
 
+    /**
+     * Copy/paste a context that owns two blocks plus an internal wire between them. Verifies:
+     * <ul>
+     *   <li>The pasted context and its blocks all receive fresh UIDs (no collision with originals).</li>
+     *   <li>Both original and pasted UIDs resolve via {@code graphModel.getModel(uid)} — no overwrite.</li>
+     *   <li>The internal block-to-block wire is reproduced against the new ports (not the originals).</li>
+     * </ul>
+     * Regression for the duplicate-element-UID issue.
+     */
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void contextWithBlocksCopyPaste(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+
+        var graph = new TestGraph();
+        var graphModel = graph.graphModel;
+        var ctxModel = createContext(graphModel, new Vector2f(0, 0));
+        var blockA = makeBlock(graphModel, TestBlockA.class);
+        var blockB = makeBlock(graphModel, TestBlockB.class);
+        ctxModel.insertBlock(blockA, -1);
+        ctxModel.insertBlock(blockB, -1);
+
+        // Internal wire: blockA.out -> blockB.inA — must survive copy/paste, hooked to the new blocks.
+        var aOut = blockA.getOutputsById().get("out");
+        var bInA = blockB.getInputsById().get("inA");
+        if (aOut == null || bInA == null) { helper.fail("pre-wire port lookup failed"); return; }
+        var originalWire = graphModel.createWire(bInA, aOut);
+        if (originalWire == null) { helper.fail("internal wire creation failed"); return; }
+
+        var originalCtxUid = ctxModel.getUid();
+        var originalBlockAUid = blockA.getUid();
+        var originalBlockBUid = blockB.getUid();
+        int originalNodeCount = graphModel.getNodeModels().size();
+        int originalWireCount = graphModel.getWireModels().size();
+
+        // Copy + paste (positionOffset chosen to keep the pasted context distinct in space).
+        var clipboard = graphModel.copyElements(java.util.List.of(ctxModel), provider);
+        var pasted = graphModel.pasteElements(clipboard, new Vector2f(200, 0));
+
+        // Exactly one new context, with two new blocks inside.
+        if (pasted.size() != 1) { helper.fail("Expected 1 pasted top-level model, got " + pasted.size()); return; }
+        if (!(pasted.get(0) instanceof ContextNodeModel pastedCtx)) {
+            helper.fail("Pasted element is not a ContextNodeModel"); return;
+        }
+        if (pastedCtx.getUid().equals(originalCtxUid)) {
+            helper.fail("Pasted context kept the original UID — re-uid is missing"); return;
+        }
+        if (pastedCtx.getBlockCount() != 2) {
+            helper.fail("Pasted context should have 2 blocks, got " + pastedCtx.getBlockCount()); return;
+        }
+        var pastedA = pastedCtx.getBlocks().get(0);
+        var pastedB = pastedCtx.getBlocks().get(1);
+        if (pastedA.getUid().equals(originalBlockAUid) || pastedB.getUid().equals(originalBlockBUid)) {
+            helper.fail("Pasted blocks kept original UIDs — block re-uid is missing"); return;
+        }
+
+        // Both the originals and the copies must resolve through elementsByUID — no overwrite.
+        if (graphModel.getModel(originalCtxUid) != ctxModel) {
+            helper.fail("Original context lookup was clobbered by paste"); return;
+        }
+        if (graphModel.getModel(originalBlockAUid) != blockA) {
+            helper.fail("Original blockA lookup was clobbered by paste"); return;
+        }
+        if (graphModel.getModel(pastedCtx.getUid()) != pastedCtx) {
+            helper.fail("Pasted context not registered under its new UID"); return;
+        }
+        if (graphModel.getModel(pastedA.getUid()) != pastedA) {
+            helper.fail("Pasted blockA not registered under its new UID"); return;
+        }
+
+        // Node-list count: original context still there + one new pasted context. Blocks don't
+        // appear in nodeModels (they're dependents of the context).
+        if (graphModel.getNodeModels().size() != originalNodeCount + 1) {
+            helper.fail("Unexpected nodeModels count after paste: " + graphModel.getNodeModels().size());
+            return;
+        }
+
+        // Internal wire reproduced and pinned to the NEW block ports, not the originals.
+        if (graphModel.getWireModels().size() != originalWireCount + 1) {
+            helper.fail("Expected one new wire after paste, got "
+                    + (graphModel.getWireModels().size() - originalWireCount)); return;
+        }
+        var pastedAOut = pastedA.getOutputsById().get("out");
+        var pastedBInA = pastedB.getInputsById().get("inA");
+        if (pastedAOut == null || pastedBInA == null) {
+            helper.fail("pasted ports not found by id"); return;
+        }
+        boolean foundPastedWire = false;
+        for (var wire : graphModel.getWireModels()) {
+            if (wire == null) continue;
+            if (wire.getFromPort() == pastedAOut && wire.getToPort() == pastedBInA) {
+                foundPastedWire = true;
+                break;
+            }
+        }
+        if (!foundPastedWire) {
+            helper.fail("Internal wire was not reproduced against pasted block ports"); return;
+        }
+        // And the original wire still hits the original block ports.
+        if (originalWire.getFromPort() != aOut || originalWire.getToPort() != bInA) {
+            helper.fail("Original wire endpoints corrupted after paste"); return;
+        }
+
+        helper.succeed();
+    }
+
     // --- helpers ---
 
     private static ContextNodeModel createContext(CustomGraphModelImpl graphModel, Vector2f position) {

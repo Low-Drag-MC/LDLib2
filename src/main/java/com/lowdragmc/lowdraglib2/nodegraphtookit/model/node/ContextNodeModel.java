@@ -227,15 +227,30 @@ public abstract class ContextNodeModel extends NodeModel {
                     continue;
                 }
                 blockModel.initCustomNode(blockUserNode);
-                blockModel.defineNode();
                 blockModel.setContextNodeModel(this);
                 blocks.add(blockModel);
-                // Block registration with the graph happens later: registerElement(context) is
-                // called by GraphModel after this method returns, and it recurses into
-                // getDependentModels() — which now includes the blocks we just added.
+                // defineNode is intentionally NOT called here. The caller (GraphModel deserialize
+                // or paste) calls defineNode on the context AFTER any UID re-assignment, and our
+                // overridden defineNode cascades to each block. Defining ports here would compute
+                // port UIDs from the block's current UID — which is the original UID, leading to
+                // duplicate-UID errors when the paste path subsequently re-uids the context.
             } catch (Exception e) {
                 LDLib2.LOGGER.error("Failed to deserialize block: {}", e.getMessage(), e);
             }
+        }
+    }
+
+    /**
+     * Defines the context's own ports/options, then cascades to each contained block so its
+     * ports are computed from the block's current UID. The cascade matters for the paste path:
+     * paste re-uids each block before calling defineNode here, and the block's port UIDs are
+     * derived from that fresh UID — preventing UID collisions with the source-graph originals.
+     */
+    @Override
+    public void defineNode() {
+        super.defineNode();
+        for (var block : blocks) {
+            if (block != null) block.defineNode();
         }
     }
 

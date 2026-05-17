@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.data.LengthPercent;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Pivot;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Translate2D;
@@ -388,6 +389,10 @@ public class AccessorRegistries {
         registerAccessor(CustomDirectAccessor.builder(IResourcePath.class)
                 .codec(IResourcePath.CODEC)
                 .streamCodec(ByteBufCodecs.fromCodec(IResourcePath.CODEC))
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(UITemplate.class)
+                .codec(UITemplate.CODEC)
+                .streamCodec(UITemplate.STREAM_CODEC)
                 .build());
 
 

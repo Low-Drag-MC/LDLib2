@@ -369,6 +369,8 @@ public class GraphView extends UIElement {
 
         // nodes
         for (var nodeModel : graphModel.getNodeModels()) {
+            // skip nodes that require container, e.g., BlockNodeModel
+            if (nodeModel.needsContainer()) continue;
             var nodeUI = createAndAddModelElement(nodeModel);
             if (nodeUI != null) {
                 var previewModel = nodeModel.getNodePreviewModel();
@@ -529,47 +531,61 @@ public class GraphView extends UIElement {
         var model = element.getModel();
         element.setGraphView(this);
         layer.addChild(element);
-        if (element.isSelectable()) {
-            element.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-                if (element.allowGraphMouseDown(event)) {
-                    var tagetWasSelected = isSelected(model);
-                    batchSelection(() -> {
-                        // select node
-                        if (!event.isCtrlDown() && !isSelected(model)) {
-                            clearAllSelected();
-                        }
-                        addSelected(model);
-                        moveElementTop(element);
-                    });
-
-                    // drag movable — include fully contained nodes when dragging a placemat
-                    var movablesList = new ArrayList<>(selected.stream().filter(m -> m instanceof IMovable).toList());
-                    for (var sel : new ArrayList<>(movablesList)) {
-                        if (sel instanceof PlacematModel pm) {
-                            java.util.function.Function<com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel, Vector2f> sizeLookup = node -> {
-                                var nodeEl = getModelElement(node);
-                                return nodeEl != null ? new Vector2f(nodeEl.getSizeWidth(), nodeEl.getSizeHeight()) : null;
-                            };
-                            for (var contained : pm.getContainedNodes(sizeLookup)) {
-                                if (contained instanceof IMovable && !movablesList.contains(contained)) {
-                                    movablesList.add(contained);
-                                }
-                            }
-                        }
-                    }
-                    var movables = List.copyOf(movablesList);
-                    if (movables.isEmpty()) return;
-                    var width = 12;
-                    var height = 12;
-                    startDrag(new DragMove(tagetWasSelected, model, movables), Icons.MOVE).setDragTexture(- width / 2f, -height / 2f, width, height);
-                }
-            }, element.isGraphMouseDownCaptured());
-        }
+        wireSelectableElement(element);
         if (model instanceof IMovable movable) {
             // position
             element.getLayout().positionType(TaffyPosition.ABSOLUTE).left(movable.getPosition().x).top(movable.getPosition().y);
         }
         return true;
+    }
+
+    /**
+     * Wires MOUSE_DOWN selection + drag-to-move for a {@link ModelElement}. Called automatically
+     * by {@link #addElement} for top-level graph elements; nested elements (e.g. block nodes
+     * inside a context) must call it explicitly because they are not added to a layer.
+     */
+    public void wireSelectableElement(@Nullable ModelElement element) {
+        if (element == null || !element.isSelectable() || element.getModel() == null) return;
+        var model = element.getModel();
+        element.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (element.allowGraphMouseDown(event)) {
+                var tagetWasSelected = isSelected(model);
+                batchSelection(() -> {
+                    // select node
+                    if (!event.isCtrlDown() && !isSelected(model)) {
+                        clearAllSelected();
+                    }
+                    addSelected(model);
+                    moveElementTop(element);
+                });
+
+                // drag movable — include fully contained nodes when dragging a placemat. Filter
+                // by the MOVABLE capability so non-movable nodes (e.g. BlockNodeModel) don't
+                // start a DragMove that would preempt their own drag-reorder handlers.
+                var movablesList = new ArrayList<>(selected.stream()
+                        .filter(m -> m instanceof IMovable
+                                && (!(m instanceof GraphElementModel gem) || gem.isMovable()))
+                        .toList());
+                for (var sel : new ArrayList<>(movablesList)) {
+                    if (sel instanceof PlacematModel pm) {
+                        java.util.function.Function<com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel, Vector2f> sizeLookup = node -> {
+                            var nodeEl = getModelElement(node);
+                            return nodeEl != null ? new Vector2f(nodeEl.getSizeWidth(), nodeEl.getSizeHeight()) : null;
+                        };
+                        for (var contained : pm.getContainedNodes(sizeLookup)) {
+                            if (contained != null && !movablesList.contains(contained)) {
+                                movablesList.add(contained);
+                            }
+                        }
+                    }
+                }
+                var movables = List.copyOf(movablesList);
+                if (movables.isEmpty()) return;
+                var width = 12;
+                var height = 12;
+                startDrag(new DragMove(tagetWasSelected, model, movables), Icons.MOVE).setDragTexture(- width / 2f, -height / 2f, width, height);
+            }
+        }, element.isGraphMouseDownCaptured());
     }
 
     /**
@@ -1017,7 +1033,7 @@ public class GraphView extends UIElement {
         }
 
         // Context/Block items
-        appendContextBlockMenuItems(menuBuilder, selectedModels);
+        appendContextBlockMenuItems(menuBuilder, selectedModels, mouseX, mouseY);
 
         return menuBuilder;
     }
@@ -1027,47 +1043,39 @@ public class GraphView extends UIElement {
      * "Delete Block" / "Move Up" / "Move Down" (when only sibling BlockNodeModels are selected).
      */
     private void appendContextBlockMenuItems(com.lowdragmc.lowdraglib2.gui.util.TreeBuilder.Menu menuBuilder,
-                                             List<GraphElementModel> selectedModels) {
+                                             List<GraphElementModel> selectedModels,
+                                             float mouseX, float mouseY) {
         // Add Block: shown when the selection is a single context node with at least one
-        // compatible block type. The submenu lists block classes by their simple name.
+        // compatible block type. Opens the ItemLibrary in block-only mode targeting this context.
         if (selectedModels.size() == 1
                 && selectedModels.get(0) instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel ctxModel) {
             var supported = ctxModel.getSupportBlockClasses();
             if (!supported.isEmpty()) {
-                menuBuilder.branch("graph.add_block", sub -> {
-                    for (var blockClass : supported) {
-                        sub.leaf(blockClass.getSimpleName(), () ->
+                menuBuilder.leaf("graph.add_block", () ->
+                        itemLibrary.showBlocksForContext(mouseX, mouseY, ctxModel, item -> {
+                            if (item instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.BlockLibraryItem blockItem) {
                                 dispatchCommand(new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.InsertBlockCommand(
-                                        ctxModel, blockClass, -1)));
-                    }
-                });
+                                        ctxModel, blockItem.getBlockClass(), -1));
+                            }
+                        }));
             }
         }
 
-        // Block-only selection: support Delete / Move within parent context.
-        if (!selectedModels.isEmpty()
-                && selectedModels.stream().allMatch(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel.class::isInstance)) {
-            var blocks = selectedModels.stream()
-                    .map(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel.class::cast)
-                    .toList();
-            menuBuilder.leaf("graph.delete_block", () -> {
-                for (var block : blocks) dispatchCommand(
-                        new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.RemoveBlockCommand(block));
-            });
-            // Move up/down only when one block is selected (multi-move is ambiguous)
-            if (blocks.size() == 1) {
-                var block = blocks.get(0);
-                var parent = block.getContextNodeModel();
-                if (parent != null) {
-                    int idx = parent.indexOf(block);
-                    if (idx > 0) {
-                        menuBuilder.leaf("graph.move_block_up", () -> dispatchCommand(
-                                new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.MoveBlockCommand(parent, idx, idx - 1)));
-                    }
-                    if (idx >= 0 && idx < parent.getBlockCount() - 1) {
-                        menuBuilder.leaf("graph.move_block_down", () -> dispatchCommand(
-                                new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.MoveBlockCommand(parent, idx, idx + 1)));
-                    }
+        // Block-only single-selection: offer Move Up / Move Down. (Standard "Delete" already
+        // routes through removeBlock via GraphModel.removeElements, and the standard menu items
+        // — Copy/Cut/Duplicate/Delete — are emitted by the common-items path above.)
+        if (selectedModels.size() == 1
+                && selectedModels.get(0) instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel block) {
+            var parent = block.getContextNodeModel();
+            if (parent != null) {
+                int idx = parent.indexOf(block);
+                if (idx > 0) {
+                    menuBuilder.leaf("graph.move_block_up", () -> dispatchCommand(
+                            new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.MoveBlockCommand(parent, idx, idx - 1)));
+                }
+                if (idx >= 0 && idx < parent.getBlockCount() - 1) {
+                    menuBuilder.leaf("graph.move_block_down", () -> dispatchCommand(
+                            new com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands.MoveBlockCommand(parent, idx, idx + 1)));
                 }
             }
         }

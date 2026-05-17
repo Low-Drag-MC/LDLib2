@@ -84,7 +84,7 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
 
     @Override
     public int getDefaultColor() {
-        return 0xFFFFFFFF;
+        return 0;
     }
 
     @Override

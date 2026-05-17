@@ -2573,16 +2573,32 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * Only nodes are copied; wires whose both endpoints belong to the selected set are included automatically.
      */
     public CopyPasteData copyElements(List<? extends GraphElementModel> elements, HolderLookup.Provider provider) {
-        // 1. Filter to AbstractNodeModel
+        // 1. Filter to AbstractNodeModel. Block nodes are excluded — they can't be pasted as
+        // top-level nodes (they need a parent context), and a block's data already travels with
+        // its parent context via ContextNodeModel.serializeAdditionalNBT, so copying the context
+        // is the supported path. TODO: standalone block copy that pastes into a selected context.
         var selectedNodes = elements.stream()
                 .filter(e -> e instanceof AbstractNodeModel)
                 .map(e -> (AbstractNodeModel) e)
+                .filter(n -> !(n instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel))
                 .toList();
         var selectedNodeUids = selectedNodes.stream()
                 .map(GraphElementModel::getUid)
                 .collect(Collectors.toSet());
 
-        // 2. Collect internal wires (both ports belong to selected nodes)
+        // Wires touching a block belong to the block's node, not the context. Cover block UIDs of
+        // any selected context so a wire between two blocks inside the same selected context (or
+        // between a selected top-level node and a block of a selected context) survives the copy.
+        var coveredNodeUids = new HashSet<>(selectedNodeUids);
+        for (var node : selectedNodes) {
+            if (node instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel ctx) {
+                for (var block : ctx.getBlocks()) {
+                    if (block != null) coveredNodeUids.add(block.getUid());
+                }
+            }
+        }
+
+        // 2. Collect internal wires (both ports belong to selected nodes or their blocks)
         var internalWires = new ArrayList<WireModel>();
         for (var wire : wireModels) {
             if (wire == null) continue;
@@ -2590,8 +2606,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var toPort = wire.getToPort();
             if (fromPort == null || toPort == null) continue;
             if (fromPort.getNodeModel() == null || toPort.getNodeModel() == null) continue;
-            if (selectedNodeUids.contains(fromPort.getNodeModel().getUid())
-                    && selectedNodeUids.contains(toPort.getNodeModel().getUid())) {
+            if (coveredNodeUids.contains(fromPort.getNodeModel().getUid())
+                    && coveredNodeUids.contains(toPort.getNodeModel().getUid())) {
                 internalWires.add(wire);
             }
         }
@@ -2781,6 +2797,21 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
                     // Assign new UUID
                     nodeModel.setUid(UUID.randomUUID());
+
+                    // ContextNodeModel: also re-uid nested blocks BEFORE defineNode rebuilds
+                    // ports. Blocks were just restored with their source-graph UIDs; defining
+                    // ports against those would compute colliding port UIDs (same-graph paste)
+                    // and prevent wires from resolving against the pasted copy instead of the
+                    // original. Recording the old→new block UID mapping also lets the wire
+                    // reconnect step find ports on the new block.
+                    if (nodeModel instanceof ContextNodeModel ctx) {
+                        for (var block : ctx.getBlocks()) {
+                            if (block == null) continue;
+                            var oldBlockUid = block.getUid();
+                            block.setUid(UUID.randomUUID());
+                            oldToNewNodeMap.put(oldBlockUid, block);
+                        }
+                    }
 
                     // ICustomNodeModel: init node class (covers CustomNodeModelImpl + ContextNodeModel)
                     if (nodeModel instanceof ICustomNodeModel customNode) {
