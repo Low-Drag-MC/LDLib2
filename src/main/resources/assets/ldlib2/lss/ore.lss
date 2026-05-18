@@ -27,6 +27,7 @@ button:host > element { //icon?
 
 button:host .__button_text__ {
   color: #222;
+  text-color: #222;
   text-shadow: false;
 }
 
@@ -47,6 +48,7 @@ tag-field:host button {
 
 .__confirm-button__ text {
   color: #fff;
+  text-color: #fff;
 }
 
 .__reject-button__ {
@@ -57,6 +59,7 @@ tag-field:host button {
 
 .__reject-button__ text {
   color: #fff;
+  text-color: #fff;
 }
 
 button:disabled:host {
@@ -106,6 +109,7 @@ selector:host {
 
 .__selector_preview__ label {
   text-color: #222;
+  color: #222;
   text-shadow: false;
 }
 
@@ -435,6 +439,7 @@ ResourceView .__tab-view_tab_content_container__ {
 
 .__configurator-group__ > .__configurator_line__ > .__configurator_label__ {
   color: #222;
+  text-color: #222;
   text-shadow: false;
 }
 
@@ -448,6 +453,7 @@ ToggleSelectorConfigurator toggle:on .__icon__ {
 
 .__array-configurator_button-group__ button > text {
   color: #222;
+  text-color: #222;
   top: 1;
   left: 0.5;
 }

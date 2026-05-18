@@ -37,6 +37,7 @@ public final class NodeGraphGameTests {
         GraphFuzzGameTest.registerFunctions();
         GraphRenameColorTest.registerFunctions();
         GraphSubgraphTest.registerFunctions();
+        ContextBlockTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
         eventBus.addListener(NodeGraphGameTests::registerGameTests);
     }
@@ -77,6 +78,7 @@ public final class NodeGraphGameTests {
         GraphFuzzGameTest.register(event, environment);
         GraphRenameColorTest.register(event, environment);
         GraphSubgraphTest.register(event, environment);
+        ContextBlockTest.register(event, environment);
     }
 
     static void registerFunctionTest(

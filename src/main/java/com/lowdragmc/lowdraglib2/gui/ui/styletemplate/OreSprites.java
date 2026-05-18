@@ -7,12 +7,12 @@ import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.lang.reflect.Modifier;
 
 public class OreSprites {
-    public static ResourceLocation ORE = LDLib2.id("textures/gui/ore_styles.png");
+    public static Identifier ORE = LDLib2.id("textures/gui/ore_styles.png");
 
     public static IGuiTexture BTN_DEFAULT = SpriteTexture.of(ORE).setSprite(0, 0, 5, 7).setBorder(2, 2, 2, 4);
     public static IGuiTexture BTN_PRESSED = SpriteTexture.of(ORE).setSprite(5, 0, 5, 7).setBorder(2, 2, 2, 4);

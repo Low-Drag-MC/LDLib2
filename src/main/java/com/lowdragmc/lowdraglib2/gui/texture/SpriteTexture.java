@@ -252,10 +252,22 @@ public class SpriteTexture extends TransformTexture {
             float uEnd = (texture.spritePosition.getX() * 1f + spriteSize.getWidth()) / imageSize.getWidth();
             float vEnd = (texture.spritePosition.getY() * 1f + spriteSize.getHeight()) / imageSize.getHeight();
 
-            float borderLeft = Math.min(texture.borderLT.getX(), spriteSize.getWidth() / 2f);
-            float borderRight = Math.min(texture.borderRB.getX(), spriteSize.getWidth() / 2f);
-            float borderTop = Math.min(texture.borderLT.getY(), spriteSize.getHeight() / 2f);
-            float borderBottom = Math.min(texture.borderRB.getY(), spriteSize.getHeight() / 2f);
+            float borderLeft = Math.max(0, texture.borderLT.getX());
+            float borderRight = Math.max(0, texture.borderRB.getX());
+            float borderTop = Math.max(0, texture.borderLT.getY());
+            float borderBottom = Math.max(0, texture.borderRB.getY());
+            float horizBorderSum = borderLeft + borderRight;
+            if (horizBorderSum > spriteSize.getWidth() && horizBorderSum > 0) {
+                float scale = spriteSize.getWidth() / horizBorderSum;
+                borderLeft *= scale;
+                borderRight *= scale;
+            }
+            float vertBorderSum = borderTop + borderBottom;
+            if (vertBorderSum > spriteSize.getHeight() && vertBorderSum > 0) {
+                float scale = spriteSize.getHeight() / vertBorderSum;
+                borderTop *= scale;
+                borderBottom *= scale;
+            }
 
             float centerWidth = width - borderLeft - borderRight;
             float centerHeight = height - borderTop - borderBottom;

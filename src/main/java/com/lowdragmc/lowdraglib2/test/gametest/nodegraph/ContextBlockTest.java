@@ -1,29 +1,60 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.GraphNodeCreationData;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.SpawnFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.CustomBlockNodeModelImpl;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.GraphNodeCreationData;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestBlockA;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestBlockB;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestContextNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestUnrelatedBlock;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector2f;
 
 import java.util.UUID;
 
-@GameTestHolder(LDLib2.MOD_ID)
-public class ContextBlockTest {
+public final class ContextBlockTest {
+    private static final String BASIC_OPERATIONS = "context_block_basic_operations";
+    private static final String INCOMPATIBLE_BLOCK_REJECTED = "context_block_incompatible_block_rejected";
+    private static final String SERIALIZATION_ROUND_TRIP = "context_block_serialization_round_trip";
+    private static final String DELETION_CASCADES_BLOCKS = "context_block_deletion_cascades_blocks";
+    private static final String COPY_PASTE = "context_block_copy_paste";
+
+    private ContextBlockTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(BASIC_OPERATIONS, ContextBlockTest::contextBlockBasicOperations);
+        NodeGraphGameTests.registerFunction(INCOMPATIBLE_BLOCK_REJECTED, ContextBlockTest::incompatibleBlockRejected);
+        NodeGraphGameTests.registerFunction(SERIALIZATION_ROUND_TRIP, ContextBlockTest::contextBlockSerializationRoundTrip);
+        NodeGraphGameTests.registerFunction(DELETION_CASCADES_BLOCKS, ContextBlockTest::contextDeletionCascadesBlocks);
+        NodeGraphGameTests.registerFunction(COPY_PASTE, ContextBlockTest::contextWithBlocksCopyPaste);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, BASIC_OPERATIONS, NodeGraphGameTests.functionKey(BASIC_OPERATIONS), testData);
+        NodeGraphGameTests.registerFunctionTest(event, INCOMPATIBLE_BLOCK_REJECTED, NodeGraphGameTests.functionKey(INCOMPATIBLE_BLOCK_REJECTED), testData);
+        NodeGraphGameTests.registerFunctionTest(event, SERIALIZATION_ROUND_TRIP, NodeGraphGameTests.functionKey(SERIALIZATION_ROUND_TRIP), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DELETION_CASCADES_BLOCKS, NodeGraphGameTests.functionKey(DELETION_CASCADES_BLOCKS), testData);
+        NodeGraphGameTests.registerFunctionTest(event, COPY_PASTE, NodeGraphGameTests.functionKey(COPY_PASTE), testData);
+    }
 
     /**
      * Basic flow: create a context, insert two blocks, reorder, remove. Verifies the in-memory
      * model state (block count, parent links, indices, registration with the graph).
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void contextBlockBasicOperations(GameTestHelper helper) {
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
@@ -72,8 +103,6 @@ public class ContextBlockTest {
      * A BlockNode without {@code @UseWithContext} (or any other compatibility opt-in) must be
      * rejected when inserted into a context.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void incompatibleBlockRejected(GameTestHelper helper) {
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
@@ -98,8 +127,6 @@ public class ContextBlockTest {
      * must serialize and deserialize losslessly — blocks preserved in order with their parent
      * links restored and port-level constants intact.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void contextBlockSerializationRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -120,11 +147,11 @@ public class ContextBlockTest {
         var originalBlockAUid = blockA.getUid();
         var originalBlockBUid = blockB.getUid();
 
-        var serialized = graphModel.serializeNBT(provider);
+        var serialized = serializeGraph(graphModel, provider);
 
         var graph2 = new TestGraph();
         var graphModel2 = graph2.graphModel;
-        graphModel2.deserializeNBT(provider, serialized);
+        deserializeGraph(graphModel2, serialized, provider);
 
         // Find the restored context.
         ContextNodeModel restoredCtx = null;
@@ -164,8 +191,6 @@ public class ContextBlockTest {
      * Deleting the context must cascade to its blocks — they should no longer be registered in
      * the graph's UID map, and their parent links should be cleared.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void contextDeletionCascadesBlocks(GameTestHelper helper) {
         var graph = new TestGraph();
         var graphModel = graph.graphModel;
@@ -194,8 +219,6 @@ public class ContextBlockTest {
      * </ul>
      * Regression for the duplicate-element-UID issue.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void contextWithBlocksCopyPaste(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -296,6 +319,16 @@ public class ContextBlockTest {
     private static ContextNodeModel createContext(CustomGraphModelImpl graphModel, Vector2f position) {
         var data = new GraphNodeCreationData(graphModel, position, null, null);
         return (ContextNodeModel) CustomGraphModelImpl.createNodeFromData(data, TestContextNode.class);
+    }
+
+    private static CompoundTag serializeGraph(CustomGraphModelImpl graphModel, net.minecraft.core.HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graphModel.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(CustomGraphModelImpl graphModel, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+        graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 
     /**

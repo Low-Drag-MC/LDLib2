@@ -13,6 +13,9 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -188,7 +191,7 @@ public abstract class ContextNodeModel extends NodeModel {
             var listTag = new ListTag();
             for (var block : blocks) {
                 if (block == null) continue;
-                var blockTag = block.serializeNBT(provider);
+                var blockTag = serializeBlock(block, provider);
                 // Mirrors the GraphModel.serialize loop for top-level custom nodes: ICustomNodeModel
                 // blocks carry their user-node class name so deserialize can rebuild the right one.
                 if (block instanceof ICustomNodeModel custom && custom.getNode() != null) {
@@ -210,17 +213,17 @@ public abstract class ContextNodeModel extends NodeModel {
             LDLib2.LOGGER.warn("Cannot deserialize blocks: context model has no graph model.");
             return;
         }
-        var listTag = compound.getList("blocks", Tag.TAG_COMPOUND);
+        var listTag = compound.getListOrEmpty("blocks");
         for (int i = 0; i < listTag.size(); i++) {
-            var blockTag = listTag.getCompound(i);
+            var blockTag = listTag.getCompoundOrEmpty(i);
             try {
                 // Concrete block model: today only the user-node-backed impl. If future block
                 // model variants are introduced, swap this for a discriminator switch.
                 var blockModel = new CustomBlockNodeModelImpl();
                 blockModel.setGraphModel(graphModel);
-                blockModel.deserializeNBT(provider, blockTag);
+                deserializeBlock(blockModel, blockTag, provider);
 
-                var nodeClassName = blockTag.getString("nodeClass");
+                var nodeClassName = blockTag.getStringOr("nodeClass", "");
                 var blockUserNode = graphModel.findNodeByClassName(nodeClassName);
                 if (blockUserNode == null) {
                     LDLib2.LOGGER.warn("Could not find block node class: {}", nodeClassName);
@@ -238,6 +241,16 @@ public abstract class ContextNodeModel extends NodeModel {
                 LDLib2.LOGGER.error("Failed to deserialize block: {}", e.getMessage(), e);
             }
         }
+    }
+
+    private static CompoundTag serializeBlock(BlockNodeModel block, HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        block.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeBlock(BlockNodeModel block, CompoundTag tag, HolderLookup.Provider provider) {
+        block.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 
     /**
