@@ -257,6 +257,7 @@ public class ScrollerView extends UIElement {
     }
 
     private void updateScrollers() {
+        if (!isDisplayed()) return;   // avoid adaptive broken
         var lastContainerWidth = getContainerWidth();
         var lastContainerHeight = getContainerHeight();
         var mode = scrollerViewStyle.mode();

@@ -29,6 +29,7 @@ public class VariableNodeElement extends CapsuleNodeElement {
         scopeImage = new UIElement();
         scopeImage.getLayout().width(2).height(12);
         addChildAt(scopeImage, 0);
+        internalSetup();
     }
 
     @Override

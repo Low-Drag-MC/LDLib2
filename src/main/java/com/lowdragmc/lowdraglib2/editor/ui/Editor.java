@@ -316,7 +316,7 @@ public abstract class Editor extends UIElement {
                     }
                     dialog.close();
                 })
-                .setText("ldlib.gui.tips.confirm"));
+                .setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
         dialog.addButton(new Button()
                 .setOnClick(e -> {
                     editorSettings.restoreSettings();
@@ -429,7 +429,9 @@ public abstract class Editor extends UIElement {
     public void saveAsProject(@Nullable Runnable onFinish) {
         if (currentProject != null) {
             String suffix = currentProject.getSuffix();
-            Dialog.showFileDialog("ldlib.gui.editor.tips.save_as", LDLib2.getAssetsDir(), false,
+            Dialog.showFileDialog("ldlib.gui.editor.tips.save_as",
+                    currentProject.getProjectType().getRootSavePath(currentProject, LDLib2.getAssetsDir()),
+                    false,
                     Dialog.suffixFilter(suffix), file -> {
                         if (file != null && !file.isDirectory()) {
                             if (!file.getName().endsWith(suffix)) {

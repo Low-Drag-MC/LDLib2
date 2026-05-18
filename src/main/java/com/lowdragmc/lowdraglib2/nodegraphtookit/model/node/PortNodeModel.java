@@ -137,4 +137,12 @@ public abstract class PortNodeModel extends AbstractNodeModel {
         TypeHandle previousType,
         TypeHandle dataTypeHandle
     );
+
+    /**
+     * Gets the offset for wire connection from this port.
+     * @return the offset value
+     */
+    public float getPortWireOffset() {
+        return 15;
+    }
 }

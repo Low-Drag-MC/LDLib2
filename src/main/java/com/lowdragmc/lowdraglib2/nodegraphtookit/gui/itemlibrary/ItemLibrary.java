@@ -18,11 +18,14 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.BlockNode;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.ContextNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.SpawnFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
@@ -58,7 +61,10 @@ public class ItemLibrary extends UIElement {
     public final TreeList<TreeNode<ItemLibraryItem, Void>> searchTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> recommendationTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> constantTree = new TreeList<>();
+    public final TreeList<TreeNode<ItemLibraryItem, Void>> contextTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> nodeTree = new TreeList<>();
+    /** Hidden by default. Populated and shown only when {@link #showBlocksForContext} is called. */
+    public final TreeList<TreeNode<ItemLibraryItem, Void>> blockTree = new TreeList<>();
     // runtime
     @Nullable
     protected GraphModel graphModel;
@@ -72,6 +78,8 @@ public class ItemLibrary extends UIElement {
     protected Consumer<@Nullable ItemLibraryItem> onFinished;
     @Nullable
     protected List<ItemLibraryItem> searchCandidates;
+    /** True while the library is in "pick a block for context X" mode (see {@link #showBlocksForContext}). */
+    protected boolean blockOnlyMode = false;
 
     public ItemLibrary(GraphView graphView) {
         this.graphView = graphView;
@@ -92,7 +100,9 @@ public class ItemLibrary extends UIElement {
         searchTree.setStaticTree(false);
         recommendationTree.setStaticTree(false);
         constantTree.setStaticTree(false);
+        contextTree.setStaticTree(false);
         nodeTree.setStaticTree(false);
+        blockTree.setStaticTree(false);
 
         searchField.setTextResponder(this::onSearchWordChanged);
         searchTree.setDisplay(false);
@@ -102,7 +112,12 @@ public class ItemLibrary extends UIElement {
         recommendationTree.setDisplay(false);
         initTreeList(recommendationTree, treeContainer);
         initTreeList(constantTree, treeContainer);
+        initTreeList(contextTree, treeContainer);
         initTreeList(nodeTree, treeContainer);
+        // Block tree shares the same container slot; only one of {nodeTree+constantTree+contextTree}
+        // and {blockTree} is visible at a time — see applyTreeVisibility.
+        blockTree.setDisplay(false);
+        initTreeList(blockTree, treeContainer);
 
         resultContainer.addScrollViewChildren(searchTree, treeContainer);
 
@@ -168,15 +183,26 @@ public class ItemLibrary extends UIElement {
 
     public void onLoadGraph(GraphModel graphModel) {
         this.graphModel = graphModel;
-        // tree
+        // Regular nodes go to nodeTree, context nodes to contextTree, blocks are excluded —
+        // block-only mode populates blockTree on demand per parent context.
         var nodesBuilder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
                 .setIcon(Icons.NODE)
                 .setDisplayName(Component.translatable("graph.library.nodes")));
+        var contextsBuilder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
+                .setIcon(Icons.NODE)
+                .setDisplayName(Component.translatable("graph.library.contexts")));
         for (var nodeType : graphModel.getSupportNodes()) {
-            nodesBuilder.leaf(new NodeModelLibraryItem(nodeType.getSimpleName(),
-                    data -> CustomGraphModelImpl.createNodeFromData(data, nodeType)), null);
+            if (BlockNode.class.isAssignableFrom(nodeType)) continue;
+            if (ContextNode.class.isAssignableFrom(nodeType)) {
+                contextsBuilder.leaf(new NodeModelLibraryItem(nodeType.getSimpleName(),
+                        data -> CustomGraphModelImpl.createNodeFromData(data, nodeType)), null);
+            } else {
+                nodesBuilder.leaf(new NodeModelLibraryItem(nodeType.getSimpleName(),
+                        data -> CustomGraphModelImpl.createNodeFromData(data, nodeType)), null);
+            }
         }
         nodeTree.setRoot(nodesBuilder.build());
+        contextTree.setRoot(contextsBuilder.build());
         // load constants
         var constantsBuilder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
                 .setIcon(Icons.NODE)
@@ -190,7 +216,14 @@ public class ItemLibrary extends UIElement {
     }
 
     public Stream<ItemLibraryItem> getAllItems() {
-        return Stream.concat(getTreeItems(constantTree), getTreeItems(nodeTree));
+        // Search is scoped to whatever's currently visible. In block-only mode that's only the
+        // compatible blocks; otherwise it's the regular nodes + contexts + constants.
+        if (blockOnlyMode) {
+            return getTreeItems(blockTree);
+        }
+        return Stream.concat(
+                Stream.concat(getTreeItems(constantTree), getTreeItems(nodeTree)),
+                getTreeItems(contextTree));
     }
 
     protected Stream<ItemLibraryItem> getTreeItems(TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
@@ -260,6 +293,51 @@ public class ItemLibrary extends UIElement {
 
     public void show(float mouseX, float mouseY, Consumer<@Nullable ItemLibraryItem> onFinished) {
         title.setText("graph.commands.add_node");
+        tailLabel.setText("graph.double_click_add");
+        this.blockOnlyMode = false;
+        applyTreeVisibility();
+        positionAndShow(mouseX, mouseY, onFinished);
+    }
+
+    /**
+     * Opens the library in block-only mode for the given context. The block tree is rebuilt
+     * from {@code context.getSupportBlockClasses()}; all other trees are hidden.
+     *
+     * <p>The {@code onFinished} consumer receives a {@link BlockLibraryItem} on selection (or
+     * {@code null} on dismiss). Callers should dispatch
+     * {@code BlockCommands.InsertBlockCommand} using {@code item.getBlockClass()}.</p>
+     */
+    public void showBlocksForContext(float mouseX, float mouseY, ContextNodeModel context,
+                                     Consumer<@Nullable ItemLibraryItem> onFinished) {
+        if (context == null) return;
+        title.setText("graph.add_block");
+        tailLabel.setText("graph.double_click_add");
+        this.blockOnlyMode = true;
+
+        var builder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
+                .setIcon(Icons.NODE)
+                .setDisplayName(Component.translatable("graph.library.blocks")));
+        for (var blockClass : context.getSupportBlockClasses()) {
+            builder.leaf(new BlockLibraryItem(blockClass), null);
+        }
+        var root = builder.build();
+        blockTree.setRoot(root);
+        blockTree.expandNode(root);
+
+        applyTreeVisibility();
+        positionAndShow(mouseX, mouseY, onFinished);
+    }
+
+    /** Toggles tree visibility based on {@link #blockOnlyMode}. */
+    protected void applyTreeVisibility() {
+        constantTree.setDisplay(!blockOnlyMode);
+        contextTree.setDisplay(!blockOnlyMode);
+        nodeTree.setDisplay(!blockOnlyMode);
+        blockTree.setDisplay(blockOnlyMode);
+    }
+
+    /** Shared positioning + focus path for both show variants. */
+    private void positionAndShow(float mouseX, float mouseY, Consumer<@Nullable ItemLibraryItem> onFinished) {
         var parent = getParent();
         var localMouse = getLocalMouse(mouseX, mouseY);
         var offset = new Vector2f(
@@ -323,6 +401,10 @@ public class ItemLibrary extends UIElement {
         this.onFinished = null;
         this.recommendationTree.setRoot(null);
         this.recommendationTree.setDisplay(false);
+        // Clear block-mode state so the next show() starts fresh in default-tree mode.
+        this.blockOnlyMode = false;
+        this.blockTree.setRoot(null);
+        this.blockTree.setDisplay(false);
         setDisplay(false);
         blur();
     }

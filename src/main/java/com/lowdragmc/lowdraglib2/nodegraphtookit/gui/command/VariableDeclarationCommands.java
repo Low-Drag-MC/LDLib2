@@ -2,6 +2,8 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.GroupModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.GroupModelBase;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.IGroupItemModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.*;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -105,6 +107,36 @@ public final class VariableDeclarationCommands {
             while (current != null) {
                 view.blackboard.setGroupModelExpanded(current, true);
                 current = current.getParentGroup();
+            }
+        }
+
+        @Override
+        public Component getCommandName() {
+            return NAME;
+        }
+    }
+
+    /**
+     * Moves a Blackboard item (variable or group) into a target group at a given index. Handles
+     * both reorder-within-group and move-between-groups in one call — {@link GroupModel#insertItem}
+     * removes from the previous parent automatically.
+     */
+    public static class MoveGroupItemCommand extends UndoableGraphCommand {
+        public static final Component NAME = Component.translatable("graph.commands.move_group_item");
+        private final IGroupItemModel item;
+        private final GroupModelBase targetGroup;
+        private final int index;
+
+        public MoveGroupItemCommand(IGroupItemModel item, GroupModelBase targetGroup, int index) {
+            this.item = item;
+            this.targetGroup = targetGroup;
+            this.index = index;
+        }
+
+        @Override
+        public void execute() {
+            if (targetGroup instanceof GroupModel g) {
+                g.insertItem(item, index);
             }
         }
 

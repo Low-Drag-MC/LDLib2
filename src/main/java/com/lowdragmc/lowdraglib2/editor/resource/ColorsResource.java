@@ -79,8 +79,8 @@ public class ColorsResource extends Resource<Integer> {
                                     container.reloadSpecificResource(path);
                                 }));
                                 dialog.close();
-                            }).setText("ldlib.gui.tips.confirm"))
-                            .addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel"))
+                            }).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"))
+                            .addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel").addClass("__cancel-button__"))
                             .show(container.getModularUI());
                 })
                 .setOnMenu((container, menu) -> {

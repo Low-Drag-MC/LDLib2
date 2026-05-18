@@ -13,6 +13,9 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.Event;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.storage.TagValueInput;
@@ -27,15 +30,34 @@ import java.util.Optional;
 
 @EqualsAndHashCode
 public class UITemplate {
-    private static final UITemplate MISSING = UITemplate.of(new Label().setText("Missing")
-            .textStyle(textStyle -> textStyle.textColor(ColorPattern.RED.color)));
+    private static UITemplate MISSING = null;
 
     public static final Codec<UITemplate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            CompoundTag.CODEC.fieldOf("template").forGetter(range -> range.data),
+            CompoundTag.CODEC.fieldOf("template").forGetter(value -> value.data),
             Codec.STRING.optionalFieldOf("builtin_styles").forGetter(ui -> Optional.ofNullable((ui.builtinStyles == null || ui.builtinStyles.isBlank()) ? null : ui.builtinStyles)),
             Identifier.CODEC.listOf().optionalFieldOf("stylesheets").forGetter(ui -> Optional.ofNullable(ui.stylesheets.isEmpty() ? null : ui.stylesheets))
     ).apply(instance, (template, customStyles, stylesheets) ->
             new UITemplate(template, customStyles.orElse(""), stylesheets.orElseGet(Collections::emptyList))));
+    public static final StreamCodec<FriendlyByteBuf, UITemplate> STREAM_CODEC = StreamCodec.of((buffer, value) -> {
+        buffer.writeNbt(value.data);
+        buffer.writeUtf((value.builtinStyles == null || value.builtinStyles.isBlank()) ? "" : value.builtinStyles);
+        buffer.writeVarInt(value.stylesheets.size());
+        for (var stylesheet : value.stylesheets) {
+            buffer.writeIdentifier(stylesheet);
+        }
+    }, buffer -> {
+        var data = buffer.readNbt();
+        var builtinStyles = buffer.readUtf();
+        if (builtinStyles.isBlank()) {
+            builtinStyles = null;
+        }
+        var stylesheets = new ArrayList<Identifier>();
+        var size = buffer.readVarInt();
+        for (int i = 0; i < size; i++) {
+            stylesheets.add(buffer.readIdentifier());
+        }
+        return new UITemplate(data, builtinStyles, stylesheets);
+    });
 
     @Setter
     @Getter
@@ -119,6 +141,10 @@ public class UITemplate {
     }
 
     public static UITemplate missing() {
+        if (MISSING == null) {
+            MISSING = UITemplate.of(new Label().setText("Missing")
+                    .textStyle(textStyle -> textStyle.textColor(ColorPattern.RED.color)));
+        }
         return MISSING;
     }
 

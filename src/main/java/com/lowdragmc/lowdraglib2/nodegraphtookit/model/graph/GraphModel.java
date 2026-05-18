@@ -435,6 +435,25 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     /**
+     * Registers a block node (and recursively its ports) in the graph's UID map. Called by
+     * {@link com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel#insertBlock}
+     * after the block has been attached to its parent context. Blocks are <em>not</em> added
+     * to {@link #nodeModels} — they remain reachable only through their parent context.
+     */
+    public void registerBlockNode(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel block) {
+        if (block == null) return;
+        registerElement(block);
+    }
+
+    /**
+     * Unregisters a block node (and recursively its ports) from the graph's UID map.
+     */
+    public void unregisterBlockNode(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel block) {
+        if (block == null) return;
+        unregisterElement(block);
+    }
+
+    /**
      * Registers a node preview model.
      *
      * @param previewModel the preview model
@@ -541,9 +560,15 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 case WireModel wireModel:
                     removeWire(wireModel);
                     break;
-//                case BlockNodeModel blockNodeModel:
-//                    UnregisterBlockNode(blockNodeModel);
-//                    break;
+                case BlockNodeModel blockNodeModel:
+                    // Blocks live inside a context, not in the top-level nodeModels list.
+                    // Route through the parent so its block list and wires stay consistent.
+                    if (blockNodeModel.getContextNodeModel() != null) {
+                        blockNodeModel.getContextNodeModel().removeBlock(blockNodeModel);
+                    } else {
+                        unregisterBlockNode(blockNodeModel);
+                    }
+                    break;
                 case AbstractNodeModel nodeModel:
                     removeNode(nodeModel);
                     break;
@@ -2133,6 +2158,9 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * Gets a type discriminator string for the given node model.
      */
     protected String getNodeDiscriminator(AbstractNodeModel node) {
+        // Order matters: CustomContextNodeModelImpl is a NodeModel and also an ICustomNodeModel —
+        // check the context branch before the generic custom branch.
+        if (node instanceof ContextNodeModel) return "context";
         if (node instanceof CustomNodeModelImpl) return "custom";
         if (node instanceof VariableNodeModelImpl) return "variable";
         if (node instanceof ConstantNodeModelImpl) return "constant";
@@ -2148,6 +2176,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     protected AbstractNodeModel createNodeFromDiscriminator(String type) {
         return switch (type) {
             case "custom" -> new CustomNodeModelImpl();
+            case "context" -> new CustomContextNodeModelImpl();
             case "variable" -> new VariableNodeModelImpl();
             case "constant" -> new ConstantNodeModelImpl();
             case "subgraph" -> new SubgraphNodeModel();
@@ -2260,7 +2289,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             if (nodeModel == null) continue;
             var nodeTag = serializeModel(nodeModel, provider);
             nodeTag.putString("_type", getNodeDiscriminator(nodeModel));
-            if (nodeModel instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
+            if (nodeModel instanceof ICustomNodeModel customNode && customNode.getNode() != null) {
                 nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
             }
             nodesTag.add(nodeTag);
@@ -2397,8 +2426,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     nodeModel.setGraphModel(this);
                     deserializeModel(nodeModel, nodeTag, provider);
 
-                    // CustomNodeModelImpl: look up node class and init
-                    if (nodeModel instanceof CustomNodeModelImpl customNode) {
+                    // ICustomNodeModel: look up node class and init (covers CustomNodeModelImpl
+                    // and ContextNodeModel — blocks inside a context are restored by the
+                    // context itself during its own deserialize).
+                    if (nodeModel instanceof ICustomNodeModel customNode) {
                         var nodeClassName = nodeTag.getStringOr("nodeClass", "");
                         Node node = findNodeByClassName(nodeClassName);
                         if (node != null) {
@@ -2502,10 +2533,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     /**
-     * Finds a Node instance by its class name from the supported nodes list.
+     * Finds a Node instance by its class name from the supported nodes list. Public so that
+     * nested-element models (e.g. {@code ContextNodeModel}) can resolve user-node classes
+     * during their own deserialization.
      */
     @Nullable
-    protected Node findNodeByClassName(String className) {
+    public Node findNodeByClassName(String className) {
         if (className == null || className.isEmpty()) return null;
         for (var nodeClass : getSupportNodes()) {
             if (nodeClass.getName().equals(className)) {
@@ -2553,16 +2586,32 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * Only nodes are copied; wires whose both endpoints belong to the selected set are included automatically.
      */
     public CopyPasteData copyElements(List<? extends GraphElementModel> elements, HolderLookup.Provider provider) {
-        // 1. Filter to AbstractNodeModel
+        // 1. Filter to AbstractNodeModel. Block nodes are excluded — they can't be pasted as
+        // top-level nodes (they need a parent context), and a block's data already travels with
+        // its parent context via ContextNodeModel.serializeAdditionalNBT, so copying the context
+        // is the supported path. TODO: standalone block copy that pastes into a selected context.
         var selectedNodes = elements.stream()
                 .filter(e -> e instanceof AbstractNodeModel)
                 .map(e -> (AbstractNodeModel) e)
+                .filter(n -> !(n instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel))
                 .toList();
         var selectedNodeUids = selectedNodes.stream()
                 .map(GraphElementModel::getUid)
                 .collect(Collectors.toSet());
 
-        // 2. Collect internal wires (both ports belong to selected nodes)
+        // Wires touching a block belong to the block's node, not the context. Cover block UIDs of
+        // any selected context so a wire between two blocks inside the same selected context (or
+        // between a selected top-level node and a block of a selected context) survives the copy.
+        var coveredNodeUids = new HashSet<>(selectedNodeUids);
+        for (var node : selectedNodes) {
+            if (node instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel ctx) {
+                for (var block : ctx.getBlocks()) {
+                    if (block != null) coveredNodeUids.add(block.getUid());
+                }
+            }
+        }
+
+        // 2. Collect internal wires (both ports belong to selected nodes or their blocks)
         var internalWires = new ArrayList<WireModel>();
         for (var wire : wireModels) {
             if (wire == null) continue;
@@ -2570,8 +2619,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var toPort = wire.getToPort();
             if (fromPort == null || toPort == null) continue;
             if (fromPort.getNodeModel() == null || toPort.getNodeModel() == null) continue;
-            if (selectedNodeUids.contains(fromPort.getNodeModel().getUid())
-                    && selectedNodeUids.contains(toPort.getNodeModel().getUid())) {
+            if (coveredNodeUids.contains(fromPort.getNodeModel().getUid())
+                    && coveredNodeUids.contains(toPort.getNodeModel().getUid())) {
                 internalWires.add(wire);
             }
         }
@@ -2583,7 +2632,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         for (var node : selectedNodes) {
             var nodeTag = serializeModel(node, provider);
             nodeTag.putString("_type", getNodeDiscriminator(node));
-            if (node instanceof CustomNodeModelImpl customNode && customNode.getNode() != null) {
+            if (node instanceof ICustomNodeModel customNode && customNode.getNode() != null) {
                 nodeTag.putString("nodeClass", customNode.getNode().getClass().getName());
             }
             nodesTag.add(nodeTag);
@@ -2762,8 +2811,23 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     // Assign new UUID
                     nodeModel.setUid(UUID.randomUUID());
 
-                    // CustomNodeModelImpl: init node class
-                    if (nodeModel instanceof CustomNodeModelImpl customNode) {
+                    // ContextNodeModel: also re-uid nested blocks BEFORE defineNode rebuilds
+                    // ports. Blocks were just restored with their source-graph UIDs; defining
+                    // ports against those would compute colliding port UIDs (same-graph paste)
+                    // and prevent wires from resolving against the pasted copy instead of the
+                    // original. Recording the old→new block UID mapping also lets the wire
+                    // reconnect step find ports on the new block.
+                    if (nodeModel instanceof ContextNodeModel ctx) {
+                        for (var block : ctx.getBlocks()) {
+                            if (block == null) continue;
+                            var oldBlockUid = block.getUid();
+                            block.setUid(UUID.randomUUID());
+                            oldToNewNodeMap.put(oldBlockUid, block);
+                        }
+                    }
+
+                    // ICustomNodeModel: init node class (covers CustomNodeModelImpl + ContextNodeModel)
+                    if (nodeModel instanceof ICustomNodeModel customNode) {
                         var nodeClassName = nodeTag.getStringOr("nodeClass", "");
                         Node node = findNodeByClassName(nodeClassName);
                         if (node != null) {

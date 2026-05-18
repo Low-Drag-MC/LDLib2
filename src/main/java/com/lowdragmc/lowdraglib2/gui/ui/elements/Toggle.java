@@ -290,6 +290,11 @@ public class Toggle extends BindableUIElement<Boolean> {
         if (value == null) value = false;
         if (value == isOn) return this;
         isOn = value;
+        if (isOn) {
+            addClass("__on__");
+        } else {
+            removeClass("__on__");
+        }
         Style.importantPipeline(this.markIcon.getStyle(), style ->
             style.backgroundTexture(isOn ? toggleStyle.markTexture() : toggleStyle.unmarkTexture())
         );
@@ -344,6 +349,16 @@ public class Toggle extends BindableUIElement<Boolean> {
         // is on
         if (element.hasAttribute("is-on")) {
             setOn(XmlUtils.getAsBoolean(element, "is-on", isOn));
+        }
+    }
+
+    @Override
+    public void afterDeserialize() {
+        super.afterDeserialize();
+        if (isOn) {
+            addClass("__on__");
+        } else {
+            removeClass("__on__");
         }
     }
 }

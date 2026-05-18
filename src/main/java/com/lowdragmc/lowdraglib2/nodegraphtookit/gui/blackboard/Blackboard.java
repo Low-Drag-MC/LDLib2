@@ -244,9 +244,73 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
         nodeUI.addEventListener(UIEvents.DRAG_PERFORM, e -> {
             e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
             if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
-                // todo move into group
+                performGroupItemDrop(dragged, node, e);
             }
         });
+    }
+
+    /**
+     * Reorders or re-parents a Blackboard item in response to a successful drag-and-drop.
+     * The hover region within the target row decides the semantics:
+     * <ul>
+     *   <li>top third &rarr; insert <em>before</em> target, into target's parent group</li>
+     *   <li>middle third &rarr; insert <em>into</em> target (only when target is a group)</li>
+     *   <li>bottom third &rarr; insert <em>after</em> target, into target's parent group</li>
+     * </ul>
+     * Routed through {@link VariableDeclarationCommands.MoveGroupItemCommand} so the snapshot-based
+     * undo/redo system records the change.
+     */
+    protected void performGroupItemDrop(GroupItemTreeNode dragged, GroupItemTreeNode target, UIEvent e) {
+        if (dragged == target) return;
+        var draggedItem = dragged.getKey();
+        var targetItem = target.getKey();
+
+        var mode = TreeList.isMouseOverNodeAbove(e) ? 0
+                : TreeList.isMouseOverNodeCenter(e) ? 1
+                : TreeList.isMouseOverNodeBelow(e) ? 2 : -1;
+        if (mode < 0) return;
+
+        GroupModelBase targetGroup;
+        int insertIdx;
+        if (mode == 1) {
+            // Drop INTO target — only meaningful when target is a group.
+            if (!(targetItem instanceof GroupModelBase tg)) return;
+            // Don't drop a group into itself or one of its descendants — that would create a cycle.
+            if (isAncestorOrSelf(draggedItem, tg)) return;
+            targetGroup = tg;
+            insertIdx = tg.getItems().size();
+        } else {
+            // Drop above / below — sibling-level insertion in the target's parent group.
+            var parent = target.getParent();
+            if (parent == null || !(parent.getKey() instanceof GroupModelBase parentGroup)) return;
+            int targetIdx = parentGroup.getItems().indexOf(targetItem);
+            if (targetIdx < 0) return;
+            insertIdx = mode == 0 ? targetIdx : targetIdx + 1;
+            // Same-parent reorder going forward: removal shifts the list — compensate so the
+            // user-visible drop position matches.
+            if (draggedItem.getParentGroup() == parentGroup) {
+                int fromIdx = parentGroup.getItems().indexOf(draggedItem);
+                if (fromIdx >= 0 && fromIdx < insertIdx) insertIdx -= 1;
+            }
+            targetGroup = parentGroup;
+        }
+
+        // Final cycle-guard for the above/below path: don't insert a group into its own subtree.
+        if (isAncestorOrSelf(draggedItem, targetGroup)) return;
+
+        graphView.dispatchCommand(new VariableDeclarationCommands.MoveGroupItemCommand(
+                draggedItem, targetGroup, insertIdx));
+    }
+
+    /** True when {@code candidate} is {@code target} itself or any ancestor of it. */
+    private static boolean isAncestorOrSelf(IGroupItemModel candidate, GroupModelBase target) {
+        if (!(candidate instanceof GroupModelBase candidateGroup)) return false;
+        GroupModelBase current = target;
+        while (current != null) {
+            if (current == candidateGroup) return true;
+            current = current.getParentGroup();
+        }
+        return false;
     }
 
     @Override

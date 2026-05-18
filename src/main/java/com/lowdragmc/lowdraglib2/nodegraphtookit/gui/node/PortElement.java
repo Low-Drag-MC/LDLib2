@@ -53,7 +53,10 @@ public class PortElement extends GraphElement<PortModel> {
     @Override
     protected void buildUI() {
         super.buildUI();
-        getLayout().flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2);
+        getLayout().flexDirection(FlexDirection.ROW)
+                .alignItems(AlignItems.CENTER)
+                .gapAll(2)
+                .minHeight(14);
         connector.getWireDragParts().forEach(p -> p.addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown));
         connector.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
         connector.addEventListener(UIEvents.DRAG_END, this::onDragEnd);

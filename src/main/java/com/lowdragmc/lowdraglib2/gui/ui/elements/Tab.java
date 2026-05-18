@@ -199,9 +199,11 @@ public class Tab extends UIElement {
         this.isSelected = selected;
         if (selected) {
             addClass("__tab_selected__");
+            addClass("__selected__");
             onTabSelected.run();
         } else {
             removeClass("_tab_selected_");
+            removeClass("__selected__");
             onTabUnselected.run();
         }
     }

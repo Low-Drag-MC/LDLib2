@@ -552,5 +552,8 @@
   "graph.bypass_node": "Bypass Node",
   "graph.disable_node": "Disable Node",
   "graph.disconnect_all_wires": "Disconnect All Wires",
-  "graph.toggle_collapse": "Toggle Collapse"
+  "graph.toggle_collapse": "Toggle Collapse",
+  "graph.add_block": "Add Block",
+  "graph.double_click_add": "Double Click to Add",
+  "graph.library.blocks": "Blocks"
 }

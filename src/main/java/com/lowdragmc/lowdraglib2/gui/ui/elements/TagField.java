@@ -87,6 +87,7 @@ public class TagField extends BindableUIElement<Tag> {
                 .setValue(tagRef.get(), false)
                 .setTagResponder(tag -> tagRef.set(tag.copy()));
         var dialog = new Dialog();
+        dialog.setAutoClose(false);
         dialog.setTitle("structured_tag_editor");
         dialog.windowMode(event.x, event.y, 360, 260);
         dialog.addContent(editor.layout(layout -> {
@@ -98,8 +99,8 @@ public class TagField extends BindableUIElement<Tag> {
                 setValue(tagRef.get());
             }
             dialog.close();
-        }).setText("ldlib.gui.tips.confirm"));
-        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel"));
+        }).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
+        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.cancel").addClass("__cancel-button__"));
         dialog.show(mui);
     }
 
