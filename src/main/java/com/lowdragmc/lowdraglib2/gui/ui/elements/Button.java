@@ -172,14 +172,16 @@ public class Button extends UIElement {
 
     public Button addPreIcon(IGuiTexture icon) {
         addChildAt(new UIElement().layout(layout -> layout.heightPercent(100).setAspectRatio(1f))
-                .style(style -> style.backgroundTexture(icon)),
+                .style(style -> style.backgroundTexture(icon)).addClasses("__icon__","__button_pre-icon__"),
                 0);
         return this;
     }
 
     public Button addPostIcon(IGuiTexture icon) {
         addChild(new UIElement().layout(layout -> layout.heightPercent(100).setAspectRatio(1f))
-                        .style(style -> style.backgroundTexture(icon)));
+                .style(style -> style.backgroundTexture(icon))
+                .addClasses("__icon__","__button_post-icon__")
+        );
         return this;
     }
 

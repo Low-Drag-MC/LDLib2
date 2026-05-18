@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.OreSprites;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -53,6 +54,7 @@ public class ClientEventListener {
         if (event.resourceInstance.resource == TexturesResource.INSTANCE) {
             Sprites.init((ResourceInstance<IGuiTexture>) event.resourceInstance);
             MCSprites.init((ResourceInstance<IGuiTexture>) event.resourceInstance);
+            OreSprites.init((ResourceInstance<IGuiTexture>) event.resourceInstance);
         }
     }
 //

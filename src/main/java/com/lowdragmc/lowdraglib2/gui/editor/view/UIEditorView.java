@@ -95,7 +95,6 @@ public class UIEditorView extends View {
                 }).addChildren(
                         saveButton.setOnClick(e -> notifySaved())
                                 .setText("ldlib.gui.editor.menu.save")
-                                .textStyle(style -> style.textColor(ColorPattern.GRAY.color))
                 ),
                 // center
                 new UIElement().layout(layout -> layout.heightPercent(100))
@@ -540,13 +539,11 @@ public class UIEditorView extends View {
     public void markAsDirty() {
         isDirty = true;
         saveButton.setActive(true);
-        saveButton.textStyle(style -> style.textColor(ColorPattern.WHITE.color));
     }
 
     public void clearDirty() {
         isDirty = false;
         saveButton.setActive(false);
-        saveButton.textStyle(style -> style.textColor(ColorPattern.GRAY.color));
     }
 
     public void focusElement(UIElement element) {

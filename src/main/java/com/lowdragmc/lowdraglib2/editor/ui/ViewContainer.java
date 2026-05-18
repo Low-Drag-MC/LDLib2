@@ -61,7 +61,7 @@ public class ViewContainer extends UIElement {
                 .layout(layout -> layout.width(10).height(10))
                 .style(style -> style.backgroundTexture(Icons.COLLAPSE_HORIZONTAL).tooltips("collapse_or_expand"))
         );
-        collapseButton.layout(layout -> layout.width(14).height(14).alignItems(AlignItems.CENTER).justifyContent(AlignContent.CENTER));
+        collapseButton.layout(layout -> Style.defaultPipeline(layout, s -> s.width(14).height(14).alignItems(AlignItems.CENTER).justifyContent(AlignContent.CENTER)));
         collapseButton.setDisplay(false);
         collapseButton.setOnClick(e -> {
             if (isCollapse) {
@@ -70,6 +70,7 @@ public class ViewContainer extends UIElement {
                 collapse();
             }
         });
+        collapseButton.addClass("__view-container_collapse-button__");
 
 
         tabView.tabScroller.getLayout().flex(1);
@@ -108,13 +109,13 @@ public class ViewContainer extends UIElement {
         assert splitView != null;
         var isFirst = parentWindow.getFirst() == this.window;
         var isVertical = splitView instanceof SplitView.Vertical;
-        this.collapseButton.layout(layout -> {
+        this.collapseButton.layout(layout -> Style.importantPipeline(layout, s -> {
             if (isVertical) {
-                layout.widthPercent(100);;
+                s.widthPercent(100);;
             } else {
-                layout.heightPercent(100);
+                s.heightPercent(100);
             }
-        });
+        }));
         this.tabView.tabHeaderContainer.layout(layout -> Style.importantPipeline(layout,
                 s -> s.paddingHorizontal(0)));
         if (!isVertical) {
@@ -155,13 +156,13 @@ public class ViewContainer extends UIElement {
         assert splitView != null;
         var isFirst = parentWindow.getFirst() == this.window;
         var isVertical = splitView instanceof SplitView.Vertical;
-        this.collapseButton.layout(layout -> {
+        this.collapseButton.layout(layout -> Style.importantPipeline(layout, s -> {
             if (isVertical) {
-                layout.width(14);;
+                s.set(LayoutProperties.WIDTH, null);
             } else {
-                layout.height(14);
+                s.set(LayoutProperties.HEIGHT, null);
             }
-        });
+        }));
         this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.PADDING_HORIZONTAL, slot -> slot.origin() == StyleOrigin.IMPORTANT);
         if (!isVertical) {
             this.tabView.tabHeaderContainer.getStyleBag().removeCandidates(LayoutProperties.HEIGHT, slot -> slot.origin() == StyleOrigin.IMPORTANT);
@@ -177,6 +178,7 @@ public class ViewContainer extends UIElement {
                 Icons.COLLAPSE_VERTICAL :
                 Icons.COLLAPSE_HORIZONTAL));
         isCollapse = false;
+
     }
 
     protected void onTabHeaderDragEnter(UIEvent event) {

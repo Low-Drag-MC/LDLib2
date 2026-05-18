@@ -315,7 +315,7 @@ public abstract class Editor extends UIElement {
                     }
                     dialog.close();
                 })
-                .setText("ldlib.gui.tips.confirm"));
+                .setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
         dialog.addButton(new Button()
                 .setOnClick(e -> {
                     editorSettings.restoreSettings();

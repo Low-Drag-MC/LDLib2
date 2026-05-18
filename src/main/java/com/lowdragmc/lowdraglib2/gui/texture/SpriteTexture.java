@@ -209,11 +209,23 @@ public class SpriteTexture extends TransformTexture {
         float uEnd = (spritePosition.getX() * 1f + spriteSize.getWidth()) / imageSize.getWidth();
         float vEnd = (spritePosition.getY() * 1f + spriteSize.getHeight()) / imageSize.getHeight();
 
-        // border size
-        float borderLeft = Math.min(borderLT.getX(), spriteSize.getWidth() / 2f);
-        float borderRight = Math.min(borderRB.getX(), spriteSize.getWidth() / 2f);
-        float borderTop = Math.min(borderLT.getY(), spriteSize.getHeight() / 2f);
-        float borderBottom = Math.min(borderRB.getY(), spriteSize.getHeight() / 2f);
+        // border size — only scale down when the two opposing borders together exceed the sprite dimension
+        float borderLeft = borderLT.getX();
+        float borderRight = borderRB.getX();
+        float borderTop = borderLT.getY();
+        float borderBottom = borderRB.getY();
+        float hSum = borderLeft + borderRight;
+        if (hSum > spriteSize.getWidth() && hSum > 0) {
+            float s = spriteSize.getWidth() / hSum;
+            borderLeft *= s;
+            borderRight *= s;
+        }
+        float vSum = borderTop + borderBottom;
+        if (vSum > spriteSize.getHeight() && vSum > 0) {
+            float s = spriteSize.getHeight() / vSum;
+            borderTop *= s;
+            borderBottom *= s;
+        }
 
         // center area size
         float centerWidth = width - borderLeft - borderRight;

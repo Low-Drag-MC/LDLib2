@@ -49,7 +49,7 @@ public abstract class ContextNode extends Node implements IContextNode {
             var annotation = blockClass.getAnnotation(UseWithContext.class);
             if (annotation == null) continue;
             for (var ctx : annotation.value()) {
-                if (ctx.isAssignableFrom(getClass())) {
+                if (ctx.isInstance(this)) {
                     result.add(blockClass);
                     break;
                 }
@@ -66,7 +66,7 @@ public abstract class ContextNode extends Node implements IContextNode {
         var annotation = blockType.getAnnotation(UseWithContext.class);
         if (annotation != null) {
             for (var ctx : annotation.value()) {
-                if (ctx.isAssignableFrom(getClass())) return true;
+                if (ctx.isInstance(this)) return true;
             }
         }
         return getSupportBlocks().contains(blockType);

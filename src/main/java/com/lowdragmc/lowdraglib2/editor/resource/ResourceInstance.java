@@ -200,13 +200,13 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                 .windowMode(mouseX, mouseY)
                 .setTitle("select texture")
                 .addContent(resourceContainer);
-        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm"));
+        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
         dialog.addButton(new Button().setOnClick(e -> {
             if (onCancel != null) {
                 onCancel.run();
             }
             dialog.close();
-        }).setText("ldlib.gui.tips.cancel"));
+        }).setText("ldlib.gui.tips.cancel").addClass("__cancel-button__"));
         return dialog;
     }
 

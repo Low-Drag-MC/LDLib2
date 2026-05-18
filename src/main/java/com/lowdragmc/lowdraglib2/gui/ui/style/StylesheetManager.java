@@ -18,6 +18,7 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
     public static final String PATH = "lss";
 
     public static final ResourceLocation GDP = LDLib2.id(PATH + "/gdp.lss");
+    public static final ResourceLocation ORE = LDLib2.id(PATH + "/ore.lss");
     public static final ResourceLocation MC = LDLib2.id(PATH + "/mc.lss");
     public static final ResourceLocation MODERN = LDLib2.id(PATH + "/modern.lss");
 

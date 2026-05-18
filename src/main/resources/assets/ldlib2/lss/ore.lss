@@ -1,0 +1,457 @@
+// panel
+.panel_bg {
+  background: built-in(ui-ore:BORDER_7);
+  padding-all: 5;
+  padding-bottom: 7;
+  gap-all: 4;
+}
+
+.preview_bg {
+  background: built-in(ui-ore:BORDER_5);
+  padding-all: 4;
+}
+
+.configurator_preview_bg {
+  background: built-in(ui-mc:RECT_BLACK);
+  padding-all: 3;
+}
+
+// button
+button:host > element { //icon?
+  color: #222;
+}
+
+.__icon__ {
+  color: #222;
+}
+
+button:host .__button_text__ {
+  color: #222;
+  text-shadow: false;
+}
+
+button:host,
+tag-field:host button {
+  base-background: built-in(ui-ore:BTN_DEFAULT);
+  hover-background: built-in(ui-ore:BTN_PRESSED);
+  pressed-background: built-in(ui-ore:BTN_PRESSED) color(#dddddd);
+  padding-all: 2;
+  padding-bottom: 4;
+}
+
+.__confirm-button__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT_GREEN);
+  hover-background: built-in(ui-ore:BTN_PRESSED_GREEN);
+  pressed-background: built-in(ui-ore:BTN_PRESSED_GREEN) color(#dddddd);
+}
+
+.__confirm-button__ text {
+  color: #fff;
+}
+
+.__reject-button__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT_RED);
+  hover-background: built-in(ui-ore:BTN_PRESSED_RED);
+  pressed-background: built-in(ui-ore:BTN_PRESSED_RED) color(#dddddd);
+}
+
+.__reject-button__ text {
+  color: #fff;
+}
+
+button:disabled:host {
+  base-background: built-in(ui-ore:BTN_DISABLED);
+}
+
+button:disabled:host .__button_text__ {
+  color: #666;
+  text-shadow: false;
+}
+
+// text-field
+text-field:host,
+.__tag-field_text-field__,
+.__search-component_text-field__ {
+  background: built-in(ui-ore:RECT2);
+  focus-overlay: built-in(ui-ore:WHITE_BORDER);
+  padding-all: 2;
+  padding-top: 3;
+}
+
+// search-component
+search-component:host {
+  background: built-in(ui-ore:RECT2);
+  height: 16;
+  focus-overlay: built-in(ui-ore:WHITE_BORDER);
+}
+
+// switch
+switch:host {
+  base-background: built-in(ui-ore:SWITCH_OFF);
+  pressed-background: built-in(ui-ore:SWITCH_ON);
+  unmark-background: built-in(ui-ore:BTN_DEFAULT);
+  mark-background: built-in(ui-ore:BTN_PRESSED);
+  padding-all: 0;
+  height: 14;
+  width: 25;
+}
+
+// selector
+selector:host {
+  background: built-in(ui-ore:BTN_DEFAULT);
+  focus-overlay: empty;
+  padding-bottom: 2;
+  // height: 16;
+}
+
+.__selector_preview__ label {
+  text-color: #222;
+  text-shadow: false;
+}
+
+selector:host:hovered {
+  background: built-in(ui-ore:BTN_PRESSED);
+}
+
+.__selector_button__ {
+  background: built-in(ui-ore:DOWN) scale(0.8) color(#444);
+}
+
+.__selector_button-icon__ {
+  background: built-in(ui-ore:DOWN) scale(0.8) color(#444);
+}
+
+.__selector_dialog__, .__search-component_dialog__ {
+  background: built-in(ui-ore:RECT2);
+}
+
+// progress-bar
+progress-bar:host {
+  height: 7;
+}
+
+.__progress-bar_bar-container__ {
+  background: built-in(ui-ore:BTN_HOVER_SMALL);
+  padding-all: 0;
+}
+
+.__progress-bar_bar__ {
+  background: built-in(ui-ore:BTN_DEFAULT_SMALL_GREEN);
+}
+
+// slot
+item-slot {
+  background: built-in(ui-ore:SLOT_LIGHT);
+}
+
+fluid-slot {
+  background: built-in(ui-ore:SLOT_GRAY);
+}
+
+// color-selector
+color-selector:host text-field {
+  background: built-in(ui-ore:RECT2);
+  focus-overlay: built-in(ui-ore:WHITE_BORDER);
+  height: 16;
+  padding-all: 2;
+}
+
+color-selector:host button {
+  base-background: built-in(ui-ore:BTN_DEFAULT);
+  hover-background: built-in(ui-ore:BTN_PRESSED);
+  pressed-background: built-in(ui-ore:BTN_PRESSED) color(#ddd);
+  padding-bottom: 4;
+}
+
+color-selector:host .__color-selector_alpha-slider__ {
+  background: built-in(ui-ore:SLOT_LIGHT);
+  margin-right: 2;
+  padding-all: 1;
+}
+
+color-selector:host .__color-selector_color-slider__ {
+  background: built-in(ui-ore:SLOT_LIGHT);
+  margin-bottom: 2;
+  padding-all: 1;
+}
+
+color-selector:host .__color-selector_color-preview__ {
+  background: built-in(ui-ore:SLOT_LIGHT);
+  margin-right: 2;
+  margin-bottom: 2;
+  padding-all: 1;
+}
+
+// toggle
+toggle {
+  mark-background: built-in(ui-ore:CHECK);
+}
+
+.__toggle_button__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT_SMALL);
+  pressed-background: built-in(ui-ore:BTN_PRESSED_SMALL);
+  hover-background: built-in(ui-ore:BTN_HOVER_SMALL);
+  padding-all: 1;
+}
+
+toggle:on .__toggle_button__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT_SMALL_GREEN);
+  pressed-background: built-in(ui-ore:BTN_PRESSED_SMALL_GREEN);
+  hover-background: built-in(ui-ore:BTN_HOVER_SMALL_GREEN);
+}
+
+// text-area
+text-area {
+  scroller-view-margin: 10;
+}
+
+text-area:host {
+  focus-overlay: built-in(ui-mc:RECT_6);
+}
+
+.__text-area_content-view__ {
+  background: built-in(ui-ore:RECT2);
+  padding-all: 2;
+}
+
+.__text-area_horizontal-scroller__ {
+  height: 8;
+  margin-top: 2;
+}
+
+.__text-area_vertical-scroller__ {
+  width: 8;
+  margin-left: 2;
+}
+
+// scroller
+scroller-horizontal:host {
+  height: 14;
+}
+
+scroller-vertical:host {
+  width: 14;
+}
+
+.__scroller_scroll_container__ {
+  background: built-in(ui-ore:RECT2);
+}
+
+scroller-horizontal .__scroller_scroll_bar__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT);
+  hover-background: built-in(ui-ore:BTN_PRESSED);
+  pressed-background: built-in(ui-ore:BTN_PRESSED) color(#ddd);
+}
+
+scroller-vertical .__scroller_scroll_bar__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT);
+  hover-background: built-in(ui-ore:BTN_PRESSED);
+  pressed-background: built-in(ui-ore:BTN_PRESSED) color(#ddd);
+}
+
+.__scroller_head_button__ {
+  display: none;
+}
+
+.__scroller_tail_button__ {
+  display: none;
+}
+
+
+scroller-view {
+  scroller-view-margin: 10;
+}
+
+.__scroller_view_view-port__ {
+  background: built-in(ui-ore:RECT);
+  padding-all: 2;
+  padding-bottom: 3;
+}
+
+.__scroller_view_horizontal-scroller__ {
+  height: 8;
+  margin-top: 2;
+}
+
+.__scroller_view_vertical-scroller__ {
+  width: 8;
+  margin-left: 2;
+}
+
+// tab
+.__tab-view_tab_content_container__ {
+  background: built-in(ui-ore:RECT);
+  padding-bottom: 6;
+}
+
+tab-view .__tab-view_tab_scroller__ {
+  margin-bottom: -4;
+}
+
+tab:host {
+  base-background: built-in(ui-ore:TAB_OFF_DEFAULT_GREEN);
+  hover-background: built-in(ui-ore:TAB_OFF_HOVER_GREEN);
+  pressed-background: built-in(ui-ore:TAB_ON_DEFAULT_GREEN);
+  padding-all: 3;
+  padding-bottom: 5;
+  height: 18;
+}
+
+tab:host:selected {
+  base-background: built-in(ui-ore:TAB_OFF_DEFAULT_GREEN);
+  hover-background: built-in(ui-ore:TAB_OFF_HOVER_GREEN);
+  pressed-background: built-in(ui-ore:TAB_ON_DEFAULT_GREEN);
+  padding-top: 5;
+  padding-bottom: 3;
+}
+
+// dialog
+.__dialog_title__ {
+  background: built-in(ui-ore:BTN_DEFAULT);
+  padding-bottom: 7;
+}
+
+.__dialog_content-container__ {
+  background: built-in(ui-ore:TAB_OFF_DEFAULT);
+  padding-bottom: 6;
+}
+
+.__dialog_button-container__ {
+  background: built-in(ui-ore:BTN_DEFAULT);
+  padding-bottom: 6;
+}
+
+// menu
+menu {
+  background: built-in(ui-ore:RECT);
+  padding-bottom: 3;
+}
+
+// for editor
+.__editor__ code-editor {
+  background: built-in(ui-ore:RECT2);
+}
+
+.__editor_top__ {
+  background: built-in(ui-ore:RECT);
+  padding-bottom: 1;
+  height: 16;
+}
+
+.__view-container__ {
+  background: built-in(ui-mc:RECT_2);
+}
+
+.__view-container_collapse-button__ {
+  height: 16;
+  width: 16;
+}
+
+ResourceView tab:host {
+  base-background: empty;
+  hover-background: built-in(ui-ore:BTN_DEFAULT);
+  pressed-background: built-in(ui-ore:BTN_PRESSED);
+  width: 16;
+  height: 18;
+  padding-all: 2;
+  padding-bottom: 4;
+  margin-all: 0;
+}
+
+ResourceView .__tab-view_tab_header_container__ {
+  background: empty;
+  padding-vertical: 4;
+  padding-horizontal: 2;
+  left: -1;
+}
+
+ResourceView .__tab-view_tab_content_container__ {
+  padding-vertical: 0;
+  padding-bottom: 0;
+  background: empty;
+}
+
+.__ui-editor-view__ graph-view {
+  background: built-in(ui-mc:RECT_1);
+}
+
+.__ui-editor-view__ {
+  gap-all: 3;
+  padding-all: 1;
+}
+
+.__ui-editor-view_header__ {
+  background: built-in(ui-ore:RECT2);
+  padding-all: 2;
+  padding-top: 3;
+  height: 20;
+}
+
+.__ui-editor-view_header__ button {
+  height: 15;
+}
+
+.__ui-editor-view_canvas__ {
+  background: built-in(ui-ore:RECT);
+}
+
+.__ui-editor-view_builtin-styles-toggle__ {
+  padding-all: 0;
+  mark-background: empty;
+}
+
+.__ui-editor-view_style-view__ {
+  background: empty;
+  padding-all: 3;
+  gap-all: 1;
+}
+
+.__editor-window_active__ {
+  background: built-in(ui-ore:TAB_ON_DEFAULT)
+}
+
+.__editor-window_inactive__ {
+  background: built-in(ui-ore:TAB_OFF_DEFAULT)
+}
+
+.__editor-window_editor-button-container__ {
+  height:16;
+}
+
+// configurator
+.__configurator-group__ .__configurator-group_container__ {
+  background: built-in(ui-ore:RECT);
+  padding-all: 4;
+  padding-bottom: 5;
+}
+
+.__configurator-group__ > .__configurator_line__ {
+  background: built-in(ui-ore:BTN_DEFAULT);
+}
+
+.__configurator-group__ > .__configurator_line__:hovered:not(:disabled) {
+  background: built-in(ui-ore:BTN_PRESSED);
+}
+
+.__configurator-group__ > .__configurator_line__ > .__configurator_label__ {
+  color: #222;
+  text-shadow: false;
+}
+
+ToggleSelectorConfigurator toggle:on .__icon__ {
+  color: #fff;
+}
+
+.__array-configurator_button-group__ {
+  background: built-in(ui-ore:RECT);
+}
+
+.__array-configurator_button-group__ button > text {
+  color: #222;
+  top: 1;
+  left: 0.5;
+}
+
+.__array-configurator_item_selected__ {
+  background: built-in(ui-ore:BTN_DEFAULT_GREEN);
+}

@@ -62,6 +62,7 @@ public class TestComponentExamples implements IScreenTest {
                 .map(UITemplate::createUI)
                 .orElseGet(UI::empty);
         toggleStylesheets(ui, "#gdp-toggle", StylesheetManager.GDP);
+        toggleStylesheets(ui, "#ore-toggle", StylesheetManager.ORE);
         toggleStylesheets(ui, "#mc-toggle", StylesheetManager.MC);
         toggleStylesheets(ui, "#modern-toggle", StylesheetManager.MODERN);
         var scrollerView = ui.select("#example-list", ScrollerView.class).findFirst().orElseThrow();

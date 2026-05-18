@@ -376,10 +376,12 @@ public class Dialog extends UIElement {
                     result.accept(textField.getText());
                     dialog.close();
                 })
-                .setText("ldlib.gui.tips.confirm"));
+                .setText("ldlib.gui.tips.confirm")
+                .addClass("__confirm-button__"));
         dialog.addButton(new Button()
                 .setOnClick(e -> dialog.close())
-                .setText("ldlib.gui.tips.cancel"));
+                .setText("ldlib.gui.tips.cancel")
+                .addClass("__cancel-button__"));
         return dialog;
     }
 
@@ -433,7 +435,7 @@ public class Dialog extends UIElement {
         dialog.setTitle(title);
         dialog.addContent(new Label().textStyle(textStyle -> textStyle.textWrap(TextWrap.WRAP).adaptiveHeight(true))
                 .setText(info).layout(layout -> layout.widthPercent(100)));
-        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm"));
+        dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
         return dialog;
     }
 
@@ -457,7 +459,7 @@ public class Dialog extends UIElement {
                     }
                     dialog.close();
                 })
-                .setText("ldlib.gui.tips.confirm"));
+                .setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
         dialog.addButton(new Button()
                 .setOnClick(e -> {
                     if (onClosed != null) {
@@ -465,7 +467,8 @@ public class Dialog extends UIElement {
                     }
                     dialog.close();
                 })
-                .setText("ldlib.gui.tips.reject"));
+                .setText("ldlib.gui.tips.reject")
+                .addClass("__reject-button__"));
         return dialog;
     }
 
@@ -478,7 +481,8 @@ public class Dialog extends UIElement {
                     }
                     dialog.close();
                 })
-                .setText("ldlib.gui.tips.cancel"));
+                .setText("ldlib.gui.tips.cancel")
+                .addClass("__cancel-button__"));
         return dialog;
     }
 
@@ -575,10 +579,12 @@ public class Dialog extends UIElement {
                         }
                     }
                 })
-                .setText("ldlib.gui.tips.confirm"));
+                .setText("ldlib.gui.tips.confirm")
+                .addClass("__confirm-button__"));
         dialog.addButton(new Button()
                 .setOnClick(e -> dialog.close())
-                .setText("ldlib.gui.tips.cancel"));
+                .setText("ldlib.gui.tips.cancel")
+                .addClass("__cancel-button__"));
         return dialog;
     }
 
