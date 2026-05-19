@@ -305,6 +305,12 @@ tab:host:selected {
   padding-bottom: 3;
 }
 
+
+tab:host:not(tab:selected) label {
+  text-color: #222;
+  text-shadow: false;
+}
+
 // dialog
 .__dialog_title__ {
   background: built-in(ui-ore:BTN_DEFAULT);

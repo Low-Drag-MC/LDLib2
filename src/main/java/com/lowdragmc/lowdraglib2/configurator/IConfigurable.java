@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.util.INBTSerializable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 
@@ -37,6 +39,22 @@ public interface IConfigurable {
         var group = new ConfiguratorGroup();
         buildConfigurator(group);
         return group;
+    }
+
+    /**
+     * Creates a history recorder for this configurable. Returning {@code null} disables
+     * history tracking for this configurable in the inspector.
+     * <p>
+     * Default implementation returns {@link IConfigurableHistory#ofSerializable(INBTSerializable)}
+     * when this instance implements {@link INBTSerializable}, otherwise {@code null}.
+     */
+    @OnlyIn(Dist.CLIENT)
+    @Nullable
+    default IConfigurableHistory createHistoryRecorder() {
+        if (this instanceof INBTSerializable<?> serializable) {
+            return IConfigurableHistory.ofSerializable(serializable);
+        }
+        return null;
     }
 
     /**

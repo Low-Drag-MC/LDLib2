@@ -43,7 +43,7 @@ public class InspectorView extends View {
         return inspect(configurable, listener, onClose, null);
     }
 
-    public <T extends IConfigurable> ConfiguratorGroup inspect(T configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose, @Nullable Consumer<T> historyAction) {
+    public <T extends IConfigurable> ConfiguratorGroup inspect(T configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose, @Nullable Runnable historyAction) {
         return inspector.inspect(configurable, listener, onClose, historyAction);
     }
 
