@@ -4,12 +4,25 @@ import com.lowdragmc.lowdraglib2.configurator.ConfiguratorAccessors;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.ValueConfigurator;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import org.jetbrains.annotations.Nullable;
 
 public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
     @Nullable Constant getConfigurableConstant();
     void onValueChanged();
+
+    /**
+     * Per-instance override for {@link #buildConfigurator}. Returning a non-null value bypasses
+     * the {@code TypeHandle}-based resolution and uses the supplied configurable instead. Used
+     * to plug in custom configurators for individual options/ports without having to register a
+     * new {@code ITypeConfigurable} against the type identification — useful when two ports
+     * share the same {@code TypeHandle} but want different UIs.
+     */
+    @Nullable
+    default ITypeConfigurable getCustomTypeConfigurable() {
+        return null;
+    }
 
     @Override
     default void setValue(Object value) {
@@ -46,8 +59,14 @@ public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
         var group = new ConfiguratorGroup();
         if (constant != null) {
             var typeHandle = constant.getTypeHandle();
-            if (typeHandle != null) {
-                var configurable = typeHandle.resolveConfigurable().createConfigurable(this, typeHandle);
+            // Per-instance override takes precedence over typeHandle-based resolution. This lets
+            // two ports/options that share a TypeHandle use different configurator UIs.
+            ITypeConfigurable resolved = getCustomTypeConfigurable();
+            if (resolved == null && typeHandle != null) {
+                resolved = typeHandle.resolveConfigurable();
+            }
+            if (resolved != null) {
+                var configurable = resolved.createConfigurable(this, typeHandle);
                 if (configurable != null) {
                     configurable.buildConfigurator(group);
                 }

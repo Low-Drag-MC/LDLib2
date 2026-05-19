@@ -262,7 +262,7 @@ public class AccessorRegistries {
                 .codec(Range.CODEC)
                 .streamCodec(Range.STREAM_CODEC)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(ResourceLocation.class, true)
+        registerAccessor(CustomDirectAccessor.builder(ResourceLocation.class)
                 .codec(ResourceLocation.CODEC)
                 .streamCodec(ResourceLocation.STREAM_CODEC)
                 .build());
@@ -365,28 +365,26 @@ public class AccessorRegistries {
                 .customMark(ItemStack::copy, ItemStack::matches)
                 .build());
         if (LDLib2.isClient()) {
-            registerAccessor(CustomDirectAccessor.builder(IGuiTexture.class)
+            registerAccessor(CustomDirectAccessor.builder(IGuiTexture.class, true)
                     .codec(IGuiTexture.CODEC)
                     .streamCodec(ByteBufCodecs.fromCodec(IGuiTexture.CODEC))
                     .copyMark(IGuiTexture::copy)
                     .build());
-            registerAccessor(CustomDirectAccessor.builder(IRenderer.class)
+            registerAccessor(CustomDirectAccessor.builder(IRenderer.class, true)
                     .codec(IRenderer.CODEC)
                     .streamCodec(ByteBufCodecs.fromCodec(IRenderer.CODEC))
                     .build());
         }
+        // we only sync recipe holder id here
         registerAccessor(CustomDirectAccessor.builder(RecipeHolder.class)
-                .codec(RecordCodecBuilder.create(instance -> instance.group(
-                        ResourceLocation.CODEC.fieldOf("id").forGetter(RecipeHolder::id),
-                        Recipe.CODEC.fieldOf("recipe").forGetter(RecipeHolder::value)
-                ).apply(instance, RecipeHolder::new)))
-                .streamCodec((StreamCodec<RegistryFriendlyByteBuf, RecipeHolder>) (Object)RecipeHolder.STREAM_CODEC)
+                .codec(LDLibExtraCodecs.RECIPE_HOLDER_ID)
+                .streamCodec(ByteBufCodecs.fromCodec(LDLibExtraCodecs.RECIPE_HOLDER_ID))
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Recipe.class)
+        registerAccessor(CustomDirectAccessor.builder(Recipe.class, true)
                 .codec((Codec<Recipe>) (Object) Recipe.CODEC)
                 .streamCodec((StreamCodec<RegistryFriendlyByteBuf, Recipe>) (Object)Recipe.STREAM_CODEC)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(IResourcePath.class)
+        registerAccessor(CustomDirectAccessor.builder(IResourcePath.class, true)
                 .codec(IResourcePath.CODEC)
                 .streamCodec(ByteBufCodecs.fromCodec(IResourcePath.CODEC))
                 .build());

@@ -413,7 +413,7 @@ public abstract class Editor extends UIElement {
                         Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
                                 .show(this.getModularUI());
                     } else {
-                        Dialog.showNotification("ldlib.gui.compass.save_success", 2)
+                        Dialog.showNotification("ldlib.gui.editor.menu.save_success", 2)
                                 .show(this.getModularUI());
                     }
                 }

@@ -1,8 +1,11 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.node;
 
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.IOptionDefinitionContext;
 import net.minecraft.network.chat.Component;
+
+import java.lang.reflect.Field;
 
 
 public interface IOptionBuilder<T extends IOptionBuilder<T>> {
@@ -56,4 +59,26 @@ public interface IOptionBuilder<T extends IOptionBuilder<T>> {
      * @return the current builder instance for method chaining
      */
     T showInInspectorOnly();
+
+    /**
+     * Overrides the configurator used to edit this option's value. By default the configurator
+     * is resolved from the option's {@code TypeHandle}; setting this lets two options that
+     * share a {@code TypeHandle} present different UIs.
+     *
+     * @param configurable the per-option configurator override
+     * @return the current builder instance for method chaining
+     */
+    T withConfigurable(ITypeConfigurable configurable);
+
+    /**
+     * Supplies the {@link Field} + owner used by the default configurator accessor for
+     * annotation lookup (e.g. {@code @ConfigNumber} for value ranges). Use this when you want
+     * annotated-field behavior on the option without registering a new
+     * {@code ITypeConfigurable} against its type.
+     *
+     * @param field reflection field that mirrors this option's value
+     * @param owner instance that owns {@code field}
+     * @return the current builder instance for method chaining
+     */
+    T withFieldContext(Field field, Object owner);
 }

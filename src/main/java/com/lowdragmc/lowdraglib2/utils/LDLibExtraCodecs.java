@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.utils;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
@@ -9,13 +8,13 @@ import com.mojang.serialization.codecs.PrimitiveCodec;
 import lombok.experimental.UtilityClass;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.*;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
-import org.joml.Vector3f;
 import org.joml.Vector3i;
 
 import java.util.Arrays;
@@ -45,6 +44,17 @@ public final class LDLibExtraCodecs {
     public final static Codec<UUID> UUID = Codec.STRING.xmap(java.util.UUID::fromString, java.util.UUID::toString);
 
     public final static Codec<Tag> TAG = ExtraCodecs.converter(NbtOps.INSTANCE);
+
+    public final static Codec<RecipeHolder> RECIPE_HOLDER_ID = ResourceLocation.CODEC.flatXmap(id -> {
+        if (Platform.getMinecraftServer() != null) {
+            return Platform.getMinecraftServer().getRecipeManager().byKey(id).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown recipe: " + id));
+        } else if (Platform.isClient()){
+            var level = Minecraft.getInstance().level;
+            if (level == null) return DataResult.error(() -> "No recipe manager available");
+            return level.getRecipeManager().byKey(id).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown recipe: " + id));
+        }
+        return DataResult.error(() -> "No recipe manager available");
+    }, recipeHolder -> DataResult.success(recipeHolder.id()));
 
     public final static PrimitiveCodec<Character> CHAR = new PrimitiveCodec<>() {
         public <T> DataResult<Character> read(DynamicOps<T> ops, T input) {

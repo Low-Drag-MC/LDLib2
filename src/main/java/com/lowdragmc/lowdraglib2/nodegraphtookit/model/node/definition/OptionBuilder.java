@@ -2,11 +2,13 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition;
 
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.function.Consumer;
 
 /**
@@ -23,6 +25,12 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
     protected boolean showInInspectorOnly;
     protected int order;
     protected Object defaultValue;
+    @Nullable
+    protected ITypeConfigurable customTypeConfigurable;
+    @Nullable
+    protected Field valueField;
+    @Nullable
+    protected Object valueOwer;
 
     /**
      * Creates a new option builder.
@@ -41,6 +49,9 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
         showInInspectorOnly = false;
         order = 0;
         defaultValue = null;
+        customTypeConfigurable = null;
+        valueField = null;
+        valueOwer = null;
     }
 
     public OptionBuilder addOption(OptionDefinitionContext context, String optionId, TypeHandle dataType) {
@@ -75,6 +86,19 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
     }
 
     @Override
+    public OptionBuilder withConfigurable(ITypeConfigurable configurable) {
+        this.customTypeConfigurable = configurable;
+        return this;
+    }
+
+    @Override
+    public OptionBuilder withFieldContext(Field field, Object owner) {
+        this.valueField = field;
+        this.valueOwer = owner;
+        return this;
+    }
+
+    @Override
     public INodeOption build() {
         if (context == null) throw new IllegalStateException("Option definition context is not set.");
 
@@ -95,6 +119,13 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
         if (displayName != null) {
             result.getPortModel().setTitle(displayName);
         }
+        // Reapply configurator overrides every build — the underlying PortModel may be reused
+        // across defineNode passes, so overwrite (including with null) to avoid inheriting stale
+        // state from a previous definition.
+        var portModel = result.getPortModel();
+        portModel.setCustomTypeConfigurable(customTypeConfigurable);
+        portModel.setValueField(valueField);
+        portModel.setValueOwer(valueOwer);
         context.freeBuilder(this);
         return result;
     }

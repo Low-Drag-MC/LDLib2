@@ -53,7 +53,9 @@ public class FluidStorage extends FluidTank implements INBTSerializable<Compound
     @Override
     public CompoundTag serializeNBT(@NotNull HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        tag.put("fluid", fluid.save(provider));
+        if (!fluid.isEmpty()) {
+            tag.put("fluid", fluid.save(provider));
+        }
         tag.putInt("capacity", capacity);
         return tag;
     }
@@ -61,6 +63,10 @@ public class FluidStorage extends FluidTank implements INBTSerializable<Compound
     @Override
     public void deserializeNBT(@NotNull HolderLookup.Provider provider, CompoundTag nbt) {
         capacity = nbt.getInt("capacity");
-        setFluid(FluidStack.parseOptional(provider, nbt.getCompound("fluid")));
+        if (nbt.contains("fluid")) {
+            setFluid(FluidStack.parseOptional(provider, nbt.getCompound("fluid")));
+        } else {
+            setFluid(FluidStack.EMPTY);
+        }
     }
 }
