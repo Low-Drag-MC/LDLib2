@@ -189,6 +189,7 @@ public class UIEditorView extends View {
                 )
         );
         header.addClass("__ui-editor-view_header__").moveInlineAsDefault();
+        header.setOverflowVisible(false);
 
         saveButton.setActive(false);
 
@@ -305,6 +306,7 @@ public class UIEditorView extends View {
                             toggleStyle.setPipelineState(StyleOrigin.INLINE);
                         })
                         .toggleButton(button -> button.setText("builtin_styles")
+                                .setOverflowVisible(false)
                                 .layout(layout -> layout.setAspectRatioAuto().widthPercent(100)))
                         .toggleButton(button -> button.text
                                 .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.LEFT))

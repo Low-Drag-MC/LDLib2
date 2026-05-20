@@ -127,6 +127,14 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     @Setter
     protected boolean staticTree = false;
     protected boolean flattenRoot = false;
+    /**
+     * When true, the TreeList and each row size to their content's max width instead of stretching
+     * to the parent. Useful when embedded in a {@link ScrollerView} with horizontal scrolling so
+     * that deeply-indented rows or long node labels can push the scroll container wider.
+     * <p>Default {@code false} preserves the previous full-width behavior.
+     */
+    @Getter
+    protected boolean widthFitsContent = false;
 
     // runtime
     @Nullable
@@ -183,6 +191,31 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     public TreeList<NODE> setFlattenRoot(boolean flattenRoot) {
         this.flattenRoot = flattenRoot;
+        reloadList();
+        return this;
+    }
+
+    /**
+     * Toggle whether the TreeList sizes to its content (and each row sizes to its own content)
+     * instead of stretching to the parent's width. See {@link #widthFitsContent} for details.
+     * <p>Callers' node UIs should also let their text label use {@code adaptiveWidth(true)} on
+     * its text style so the label reports its natural width to the layout engine.
+     */
+    public TreeList<NODE> setWidthFitsContent(boolean v) {
+        this.widthFitsContent = v;
+        if (v) {
+            // Auto width + min-width 100% of parent: TreeList fills the parent when content is
+            // narrow, but grows beyond it when the widest row is wider (horizontal scroll case).
+            // alignSelf FLEX_START prevents the parent's stretch from short-circuiting auto-width;
+            // alignItems FLEX_START prevents row children from auto-stretching to TreeList width
+            // (rows manage their own minWidthPercent(100) — see createNodeUI).
+            getLayout().widthAuto();
+            getLayout().minWidthPercent(100);
+            getLayout().alignSelf(AlignItems.FLEX_START);
+            getLayout().alignItems(AlignItems.FLEX_START);
+        } else {
+            getLayout().widthPercent(100);
+        }
         reloadList();
         return this;
     }
@@ -417,7 +450,15 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         var container = new UIElement().layout(layout -> {
             layout.flexDirection(FlexDirection.ROW);
             layout.alignItems(AlignItems.CENTER);
-            layout.widthPercent(100);
+            if (widthFitsContent) {
+                // Row sizes to its own content, but at least the full TreeList width — which
+                // itself auto-sizes to the widest row's content. Net effect: every row ends up
+                // as wide as the widest row, so the selection/hover background spans full width
+                // and horizontal scrolling exposes the whole tree.
+                layout.minWidthPercent(100);
+            } else {
+                layout.widthPercent(100);
+            }
             layout.gapAll(2);
         }).style(style -> {
             style.backgroundTexture(DynamicTexture.of(() -> isNodeSelected(node) ? treeListStyle.hoverTexture() : treeListStyle.nodeTexture()));
