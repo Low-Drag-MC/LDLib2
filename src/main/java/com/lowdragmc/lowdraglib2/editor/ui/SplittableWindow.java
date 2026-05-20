@@ -93,6 +93,12 @@ public class SplittableWindow extends UIElement {
     protected SplittableWindow parentWindow;
     @Getter @Setter
     protected boolean immortal = false;
+    /**
+     * Optional stable identifier so this window can be located after a layout reload.
+     * Used by {@link com.lowdragmc.lowdraglib2.editor.ui.Editor} to rebind named anchor windows.
+     */
+    @Nullable @Getter @Setter
+    protected String anchorId;
 
     // runtime
     @Nullable
@@ -138,7 +144,12 @@ public class SplittableWindow extends UIElement {
     }
 
     public LayoutConfig getLayoutConfig() {
-        return new LayoutConfig(splitStyle.percentage(),
+        boolean vertical = splitView instanceof SplitView.Vertical;
+        // Note: user-dragged percentages are not currently restored. SplitView mutates its own layout
+        // on drag but does not update splitStyle, so persisting splitView.getPercentage() and replaying
+        // it via the layout-restore path produces visually broken sizes. We save the construction-time
+        // default so reload is a no-op for sizes; view placement still restores correctly.
+        return new LayoutConfig(anchorId, vertical, splitStyle.percentage(),
                 first != null ? first.getLayoutConfig() : null,
                 second != null ? second.getLayoutConfig() : null);
     }
@@ -154,6 +165,88 @@ public class SplittableWindow extends UIElement {
             }
         }
         return this;
+    }
+
+    /**
+     * Tear down this window's children/splits and rebuild its substructure from the given LayoutConfig.
+     * Anchor windows referenced by the supplied {@code anchorRegistry} are reused when an {@code anchorId}
+     * appears in {@code config}; otherwise plain new windows are created. Leaves end up with empty
+     * {@link ViewContainer}s. After rebuild, the {@code anchorRegistry} reflects the surviving anchors
+     * found in the new tree (entries whose ID is absent from {@code config} are dropped).
+     *
+     * @param config         the target layout shape; if {@code null} the window is reset to a single empty container
+     * @param anchorRegistry mutable map (id → window) consulted before creating new SplittableWindows;
+     *                       updated in place to reflect the rebuilt tree (only ids present in config survive)
+     */
+    public void rebuildFromLayoutConfig(@Nullable LayoutConfig config, Map<String, SplittableWindow> anchorRegistry) {
+        Map<String, SplittableWindow> survivors = new HashMap<>();
+        rebuildInternal(config, anchorRegistry, survivors);
+        anchorRegistry.clear();
+        anchorRegistry.putAll(survivors);
+    }
+
+    private void rebuildInternal(@Nullable LayoutConfig config, Map<String, SplittableWindow> anchorRegistry, Map<String, SplittableWindow> survivors) {
+        // detach all existing children/splits
+        if (splitView != null) {
+            splitView.removeSelf();
+            splitView = null;
+        }
+        if (viewContainer != null) {
+            viewContainer.removeSelf();
+            viewContainer = null;
+        }
+        first = null;
+        second = null;
+
+        if (config == null) {
+            setViewContainer(new ViewContainer());
+            return;
+        }
+
+        // rebind this node's anchor id from the config
+        this.anchorId = config.anchorId();
+        if (config.anchorId() != null) {
+            survivors.put(config.anchorId(), this);
+        }
+        splitStyle.percentage(config.percentage());
+
+        boolean isLeaf = config.first() == null && config.second() == null;
+        if (isLeaf) {
+            setViewContainer(new ViewContainer());
+            return;
+        }
+
+        // reconstruct as a split window
+        var firstChild = createChildForConfig(config.first(), anchorRegistry, survivors);
+        var secondChild = createChildForConfig(config.second(), anchorRegistry, survivors);
+        firstChild.parentWindow = this;
+        secondChild.parentWindow = this;
+        this.first = firstChild;
+        this.second = secondChild;
+
+        if (config.vertical()) {
+            this.splitView = new SplitView.Vertical().top(firstChild).bottom(secondChild);
+        } else {
+            this.splitView = new SplitView.Horizontal().left(firstChild).right(secondChild);
+        }
+        this.splitView.setPercentage(splitStyle.percentage());
+        this.splitView.setMinPercentage(splitStyle.minPercentage());
+        this.splitView.setMaxPercentage(splitStyle.maxPercentage());
+        addChild(splitView);
+    }
+
+    private SplittableWindow createChildForConfig(@Nullable LayoutConfig childConfig, Map<String, SplittableWindow> anchorRegistry, Map<String, SplittableWindow> survivors) {
+        SplittableWindow window = null;
+        if (childConfig != null && childConfig.anchorId() != null) {
+            window = anchorRegistry.get(childConfig.anchorId());
+        }
+        if (window == null) {
+            window = new SplittableWindow(this);
+        } else {
+            window.parentWindow = this;
+        }
+        window.rebuildInternal(childConfig, anchorRegistry, survivors);
+        return window;
     }
 
     public List<View> getAllViews() {
@@ -447,9 +540,12 @@ public class SplittableWindow extends UIElement {
     }
 
 
-    public record LayoutConfig(float percentage, @Nullable LayoutConfig first, @Nullable LayoutConfig second) {
+    public record LayoutConfig(@Nullable String anchorId, boolean vertical, float percentage,
+                               @Nullable LayoutConfig first, @Nullable LayoutConfig second) {
         public CompoundTag serialize() {
             var tag = new CompoundTag();
+            if (anchorId != null) tag.putString("anchorId", anchorId);
+            tag.putBoolean("vertical", vertical);
             tag.putFloat("percentage", percentage);
             if (first != null) tag.put("first", first.serialize());
             if (second != null) tag.put("second", second.serialize());
@@ -457,10 +553,12 @@ public class SplittableWindow extends UIElement {
         }
 
         public static LayoutConfig deserialize(CompoundTag tag) {
+            var anchorId = tag.contains("anchorId") ? tag.getString("anchorId") : null;
+            var vertical = tag.getBoolean("vertical");
             var percentage = tag.getFloat("percentage");
             var first = tag.contains("first") ? deserialize(tag.getCompound("first")) : null;
             var second = tag.contains("second") ? deserialize(tag.getCompound("second")) : null;
-            return new LayoutConfig(percentage, first, second);
+            return new LayoutConfig(anchorId, vertical, percentage, first, second);
         }
     }
 

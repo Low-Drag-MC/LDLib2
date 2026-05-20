@@ -40,7 +40,12 @@ import org.appliedenergistics.yoga.*;
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 @Getter
 @ParametersAreNonnullByDefault
@@ -59,11 +64,17 @@ public abstract class Editor extends UIElement {
 
     public final UIElement mainView;
 
+    public static final String ANCHOR_ROOT = "root";
+    public static final String ANCHOR_LEFT = "left";
+    public static final String ANCHOR_RIGHT = "right";
+    public static final String ANCHOR_CENTER = "center";
+    public static final String ANCHOR_BOTTOM = "bottom";
+
     public final SplittableWindow rootWindow;
-    public final SplittableWindow leftWindow;
-    public final SplittableWindow rightWindow;
-    public final SplittableWindow centerWindow;
-    public final SplittableWindow bottomWindow;
+    public SplittableWindow leftWindow;
+    public SplittableWindow rightWindow;
+    public SplittableWindow centerWindow;
+    public SplittableWindow bottomWindow;
 
     public final InspectorView inspectorView;
     public final ResourceView resourceView;
@@ -81,6 +92,18 @@ public abstract class Editor extends UIElement {
     @Getter
     @Nullable
     protected File currentProjectFile;
+
+    /**
+     * Tracks the fallback location for each view added via {@link #placeView}, so the editor can
+     * re-place views during layout restoration.
+     */
+    protected final Map<View, Supplier<ViewContainer>> viewFallbacks = new LinkedHashMap<>();
+    /**
+     * Last loaded layout for the current project type. Consulted by {@link #placeView} so that
+     * runtime additions after the initial restore also land in their saved slots when possible.
+     */
+    @Nullable
+    protected EditorLayout savedLayout;
 
     public Editor() {
         getLayout().widthPercent(100);
@@ -112,19 +135,24 @@ public abstract class Editor extends UIElement {
         this.editorSettings = createSettings();
 
         rootWindow = new SplittableWindow().setImmortal(true);
+        rootWindow.setAnchorId(ANCHOR_ROOT);
         var split1 = rootWindow
                 .splitStyle(style -> style.percentage(80).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.LEFT);
         rightWindow = split1.getSecond().setImmortal(true);
+        rightWindow.setAnchorId(ANCHOR_RIGHT);
         var split2 = split1.getFirst()
                 .splitStyle(style -> style.percentage(75).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.TOP);
         bottomWindow = split2.getSecond().setImmortal(true);
+        bottomWindow.setAnchorId(ANCHOR_BOTTOM);
         var split3 = split2.getFirst()
                 .splitStyle(style -> style.percentage(28).minPercentage(5).maxPercentage(95))
                 .splitNew(YogaEdge.LEFT);
         centerWindow = split3.getSecond().setImmortal(true);
+        centerWindow.setAnchorId(ANCHOR_CENTER);
         leftWindow = split3.getFirst().setImmortal(true);
+        leftWindow.setAnchorId(ANCHOR_LEFT);
 
         addChildren(
                 top.layout(layout -> {
@@ -209,15 +237,186 @@ public abstract class Editor extends UIElement {
     }
 
     protected void onPrepareInspectorView() {
-        rightWindow.getRightTop().addView(inspectorView);
+        placeView(inspectorView, () -> rightWindow.getRightTop());
     }
 
     protected void onPrepareHistoryView() {
-        rightWindow.getRightTop().addViews(historyView);
+        placeView(historyView, () -> rightWindow.getRightTop());
     }
 
     protected void onPrepareResourceView() {
-        bottomWindow.getLeftBottom().addView(resourceView);
+        placeView(resourceView, () -> bottomWindow.getLeftBottom());
+    }
+
+    /**
+     * Place a view, remembering its code-supplied fallback {@link ViewContainer}.
+     * If a saved layout is loaded and assigns this view (by name) to a still-existing slot,
+     * the view goes there; otherwise it goes to the fallback.
+     *
+     * @param view     the view to place
+     * @param fallback supplier of the default container, evaluated lazily against the current tree
+     */
+    public void placeView(View view, Supplier<ViewContainer> fallback) {
+        viewFallbacks.put(view, fallback);
+        ViewContainer target = null;
+        if (savedLayout != null) {
+            target = locateSavedSlot(view.getName());
+        }
+        if (target == null) {
+            target = fallback.get();
+        }
+        target.addView(view);
+    }
+
+    /**
+     * Find the {@link ViewContainer} in the current tree at the saved slot path for the given view name.
+     * Returns null if the view isn't in the saved layout, or if the saved path no longer resolves
+     * (e.g., the slot was pruned).
+     */
+    @Nullable
+    protected ViewContainer locateSavedSlot(String viewName) {
+        if (savedLayout == null) return null;
+        var slot = savedLayout.findSlotForView(viewName);
+        if (slot == null) return null;
+        var window = navigatePath(rootWindow, slot.path());
+        if (window == null) return null;
+        if (window.getViewContainer() != null) {
+            return window.getViewContainer();
+        }
+        // Path resolved to an interior node — fall back to its top-left leaf.
+        return window.getLeftTop();
+    }
+
+    @Nullable
+    private static SplittableWindow navigatePath(SplittableWindow root, String path) {
+        SplittableWindow cur = root;
+        for (int i = 0; i < path.length(); i++) {
+            if (cur == null) return null;
+            char c = path.charAt(i);
+            cur = c == 'f' ? cur.getFirst() : cur.getSecond();
+        }
+        return cur;
+    }
+
+    /**
+     * Capture the current editor layout: split tree + per-leaf view contents and selection.
+     */
+    public EditorLayout captureLayout() {
+        var slots = new ArrayList<EditorLayout.SlotEntry>();
+        collectSlots(rootWindow, "", slots);
+        return new EditorLayout(rootWindow.getLayoutConfig(), slots);
+    }
+
+    private static void collectSlots(SplittableWindow window, String path, List<EditorLayout.SlotEntry> out) {
+        var container = window.getViewContainer();
+        if (container != null) {
+            var names = new ArrayList<String>();
+            String selected = null;
+            for (var v : container.getAllViews()) {
+                names.add(v.getName());
+                if (container.isViewSelected(v)) {
+                    selected = v.getName();
+                }
+            }
+            if (!names.isEmpty()) {
+                out.add(new EditorLayout.SlotEntry(path, names, selected));
+            }
+            return;
+        }
+        if (window.getFirst() != null) {
+            collectSlots(window.getFirst(), path + "f", out);
+        }
+        if (window.getSecond() != null) {
+            collectSlots(window.getSecond(), path + "s", out);
+        }
+    }
+
+    /**
+     * Reshape the current editor tree from a saved layout, relocating known views to their saved
+     * slots. Views added through the legacy {@code container.addView(view)} path (without going
+     * through {@link #placeView}) are also picked up by walking the live tree, so they survive
+     * the rebuild.
+     */
+    public void applyLayout(EditorLayout layout) {
+        this.savedLayout = layout;
+
+        // Collect all views currently in the tree (including ones added via raw addView).
+        // untrackedAnchors remembers the nearest named-anchor each untracked view was living under,
+        // so we can best-effort restore it if the saved layout doesn't mention that view.
+        var liveViews = new LinkedHashMap<String, View>();
+        var untrackedAnchors = new HashMap<View, SplittableWindow>();
+        collectViewsInTree(rootWindow, null, liveViews, untrackedAnchors);
+
+        // Rebuild rootWindow's subtree to match the saved shape, rebinding anchor references.
+        var anchorRegistry = new HashMap<String, SplittableWindow>();
+        anchorRegistry.put(ANCHOR_ROOT, rootWindow);
+        anchorRegistry.put(ANCHOR_LEFT, leftWindow);
+        anchorRegistry.put(ANCHOR_RIGHT, rightWindow);
+        anchorRegistry.put(ANCHOR_CENTER, centerWindow);
+        anchorRegistry.put(ANCHOR_BOTTOM, bottomWindow);
+
+        rootWindow.rebuildFromLayoutConfig(layout.layoutConfig(), anchorRegistry);
+
+        // Refresh anchor references from survivors (entries whose id wasn't in the saved layout are dropped).
+        leftWindow = anchorRegistry.getOrDefault(ANCHOR_LEFT, leftWindow);
+        rightWindow = anchorRegistry.getOrDefault(ANCHOR_RIGHT, rightWindow);
+        centerWindow = anchorRegistry.getOrDefault(ANCHOR_CENTER, centerWindow);
+        bottomWindow = anchorRegistry.getOrDefault(ANCHOR_BOTTOM, bottomWindow);
+
+        // Place views into saved slots.
+        var placed = new java.util.HashSet<View>();
+        for (var slot : layout.slots()) {
+            var window = navigatePath(rootWindow, slot.path());
+            if (window == null) continue;
+            ViewContainer container = window.getViewContainer();
+            if (container == null) {
+                container = window.getLeftTop();
+            }
+            View selected = null;
+            for (var name : slot.viewNames()) {
+                var view = liveViews.get(name);
+                if (view == null) continue;
+                container.addView(view);
+                placed.add(view);
+                if (name.equals(slot.selectedViewName())) {
+                    selected = view;
+                }
+            }
+            if (selected != null) {
+                container.selectView(selected);
+            }
+        }
+
+        // Place any view that wasn't in the saved layout:
+        // - via placeView-tracked fallback when available;
+        // - otherwise restore into the same named anchor it was living under (best effort).
+        for (var view : liveViews.values()) {
+            if (placed.contains(view)) continue;
+            var fallback = viewFallbacks.get(view);
+            ViewContainer target;
+            if (fallback != null) {
+                target = fallback.get();
+            } else {
+                var anchor = untrackedAnchors.get(view);
+                target = (anchor != null) ? anchor.getLeftTop() : rootWindow.getLeftTop();
+            }
+            target.addView(view);
+        }
+    }
+
+    private static void collectViewsInTree(SplittableWindow window, @Nullable SplittableWindow currentAnchor,
+                                           Map<String, View> outViews, Map<View, SplittableWindow> outAnchors) {
+        if (window.getAnchorId() != null) currentAnchor = window;
+        var container = window.getViewContainer();
+        if (container != null) {
+            for (var view : container.getAllViews()) {
+                outViews.put(view.getName(), view);
+                if (currentAnchor != null) outAnchors.put(view, currentAnchor);
+            }
+            return;
+        }
+        if (window.getFirst() != null) collectViewsInTree(window.getFirst(), currentAnchor, outViews, outAnchors);
+        if (window.getSecond() != null) collectViewsInTree(window.getSecond(), currentAnchor, outViews, outAnchors);
     }
 
     public Component getTitle() {
@@ -283,6 +482,9 @@ public abstract class Editor extends UIElement {
      */
     public void exit(@Nullable Runnable onFinish) {
         askToSaveProject(() -> {
+            if (currentProject != null) {
+                EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
+            }
             if (window != null) {
                 window.removeEditor(this);
             } else {
@@ -476,6 +678,8 @@ public abstract class Editor extends UIElement {
         resourceView.loadResources(project.getResources());
         historyView.recordSerializableObject(Component.translatable("editor.open"), currentProject);
         project.onLoad(this);
+        // Apply saved per-project-type layout (if any) now that all project-specific views are registered.
+        EditorLayoutStore.load(project.getProjectType().getName()).ifPresent(this::applyLayout);
     }
 
 
@@ -502,6 +706,7 @@ public abstract class Editor extends UIElement {
 
     protected void closeCurrentProject() {
         if (currentProject != null) {
+            EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
             currentProject.onClosed(this);
             currentProject = null;
             currentProjectFile = null;
