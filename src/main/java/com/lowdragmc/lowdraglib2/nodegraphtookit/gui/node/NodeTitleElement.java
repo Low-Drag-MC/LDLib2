@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
@@ -17,6 +18,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import org.lwjgl.glfw.GLFW;
 
@@ -35,27 +37,27 @@ public class NodeTitleElement extends ModelElement {
 
     public NodeTitleElement(AbstractNodeModel nodeModel) {
         this.nodeModel = nodeModel;
+        addClass("__node-title-element__");
     }
 
     @Override
     protected void buildUI() {
-        setId("node-title-bar").setOverflowVisible(false);
-        getStyle().background(Sprites.BORDER_DARK);
-        getLayout().paddingVertical(3).paddingHorizontal(4);
+        Style.defaultPipeline(getStyle(), style -> style.background(Sprites.BORDER_DARK).overflowVisible(false));
+        Style.defaultPipeline(getLayout(), layout -> layout.paddingVertical(3).paddingHorizontal(4));
 
-        colorLine = new UIElement().setId("node-title-color-line");
-        colorLine.getLayout().height(2).widthPercent(100).marginBottom(2);
+        colorLine = new UIElement().addClass("__node-title_color-line__");
+        Style.defaultPipeline(colorLine.getLayout(), layout -> layout.height(2).widthPercent(100).marginBottom(2));
 
-        titleContainer = new UIElement();
-        titleContainer.getLayout().alignItems(AlignItems.CENTER).minWidthAuto().minHeightAuto()
-                .gapAll(2).flexDirection(FlexDirection.ROW);
+        titleContainer = new UIElement().addClass("__node-title_title-container__");
+        Style.defaultPipeline(titleContainer.getLayout(), layout -> layout.alignItems(AlignItems.CENTER).minWidthAuto().minHeightAuto()
+                .gapAll(2).flexDirection(FlexDirection.ROW));
 
-        this.nodeIcon = new UIElement().setId("node-title-icon");
-        this.nodeIcon.getLayout().aspectRatio(1).width(10);
+        this.nodeIcon = new UIElement().addClass("__node-title-icon__");
+        Style.defaultPipeline(nodeIcon.getLayout(), layout -> layout.aspectRatio(1).width(10));
 
         this.nodeTittle = new Label();
-        this.nodeTittle.setId("node-title");
-        this.nodeTittle.getTextStyle().adaptiveWidth(true).adaptiveHeight(true);
+        this.nodeTittle.addClass("__node-title__");
+        Style.defaultPipeline(this.nodeTittle.getTextStyle(), style -> style.adaptiveWidth(true).adaptiveHeight(true));
 
         titleContainer.addChildren(nodeIcon, nodeTittle);
 
@@ -83,11 +85,11 @@ public class NodeTitleElement extends ModelElement {
         if (!(nodeModel instanceof IHasName named) || !nodeModel.isRenamable()) return;
 
         var initial = named.getName();
-        nodeTittle.setDisplay(false);
+        Style.importantPipeline(nodeTittle.getLayout(), layout -> layout.display(TaffyDisplay.NONE));
         inlineRenameField = new TextField();
         inlineRenameField.setText(initial == null ? "" : initial);
-        inlineRenameField.layout(layout -> layout.minWidth(40));
-        inlineRenameField.setId("node-title-rename");
+        Style.defaultPipeline(inlineRenameField.getLayout(), layout -> layout.minWidth(40));
+        inlineRenameField.addClass("__node-title-rename__");
 
         // Use an array-wrapped boolean to ensure commit-or-cancel runs exactly once. Both ENTER
         // and BLUR will fire; whichever comes first wins.
@@ -132,7 +134,8 @@ public class NodeTitleElement extends ModelElement {
             inlineRenameField.removeSelf();
             inlineRenameField = null;
         }
-        nodeTittle.setDisplay(true);
+        // remove display:none {important} from title label
+        Style.importantPipeline(nodeTittle.getLayoutStyle(), layout -> layout.display((TaffyDisplay) null));
     }
 
     @Override
@@ -145,10 +148,10 @@ public class NodeTitleElement extends ModelElement {
         if (visitor.hasHint(ChangeHint.STYLE)) {
             // icon
             var icon = nodeModel.getNodeIcon();
-            nodeIcon.setDisplay(icon != null && icon != IGuiTexture.EMPTY);
-            nodeIcon.getStyle().background(icon);
+            Style.importantPipeline(nodeIcon.getLayout(), layout -> layout.display(icon != null && icon != IGuiTexture.EMPTY ? TaffyDisplay.FLEX : TaffyDisplay.NONE));
+            Style.importantPipeline(nodeIcon.getStyle(), style -> style.background(icon));
             // tooltip
-            nodeTittle.getStyle().tooltips(nodeModel.getTooltip());
+            Style.importantPipeline(nodeTittle.getStyle(), style -> style.tooltips(nodeModel.getTooltip()));
         }
         updateLineColorFromModel(visitor);
     }
@@ -158,8 +161,8 @@ public class NodeTitleElement extends ModelElement {
 
         if (visitor.hasHint(ChangeHint.STYLE)) {
             var color = nodeModel.getElementColor();
-            colorLine.getStyle().background(new ColorRectTexture(color));
-            colorLine.setDisplay(ColorUtils.alpha(color) > 0.01f);
+            Style.importantPipeline(colorLine.getStyle(), style -> style.background(new ColorRectTexture(color)));
+            Style.importantPipeline(colorLine.getLayout(), layout -> layout.display(ColorUtils.alpha(color) > 0.01f ? TaffyDisplay.FLEX : TaffyDisplay.NONE));
         }
     }
 }

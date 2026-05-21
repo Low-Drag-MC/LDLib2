@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -32,6 +33,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -83,19 +85,24 @@ public class ItemLibrary extends UIElement {
 
     public ItemLibrary(GraphView graphView) {
         this.graphView = graphView;
-        getLayout().positionType(TaffyPosition.ABSOLUTE)
-                .gapAll(2)
-                .paddingAll(5)
+        addClass("__item-library__");
+        // ABSOLUTE positioning + width/height are popup-driven (resize, show-at-mouse) — pin via IMPORTANT.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
                 .width(150)
-                .height(200);
-        getStyle().background(Sprites.BORDER1_RT1);
+                .height(200));
+        Style.defaultPipeline(getLayout(), l -> l.gapAll(2).paddingAll(5));
+        Style.defaultPipeline(getStyle(), s -> s.background(Sprites.BORDER1_RT1));
 
-        headBar.getLayout().flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2);
-        title.getTextStyle().textWrap(TextWrap.HOVER_ROLL);
-        title.setOverflowVisible(false);
-        title.getLayout().flex(1);
+        headBar.addClass("__item-library_head-bar__");
+        Style.defaultPipeline(headBar.getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2));
+        title.addClass("__item-library_title__");
+        Style.defaultPipeline(title.getTextStyle(), s -> s.textWrap(TextWrap.HOVER_ROLL));
+        Style.defaultPipeline(title.getStyle(), s -> s.overflowVisible(false));
+        Style.defaultPipeline(title.getLayout(), l -> l.flex(1));
 
-        resultContainer.getLayout().flex(1);
+        searchField.addClass("__item-library_search-field__");
+        resultContainer.addClass("__item-library_result-container__");
+        Style.defaultPipeline(resultContainer.getLayout(), l -> l.flex(1));
 
         searchTree.setStaticTree(false);
         recommendationTree.setStaticTree(false);
@@ -104,31 +111,43 @@ public class ItemLibrary extends UIElement {
         nodeTree.setStaticTree(false);
         blockTree.setStaticTree(false);
 
+        searchTree.addClass("__item-library_search-tree__");
+        recommendationTree.addClass("__item-library_recommend-tree__");
+        constantTree.addClass("__item-library_constant-tree__");
+        contextTree.addClass("__item-library_context-tree__");
+        nodeTree.addClass("__item-library_node-tree__");
+        blockTree.addClass("__item-library_block-tree__");
+        treeContainer.addClass("__item-library_tree-container__");
+
         searchField.setTextResponder(this::onSearchWordChanged);
-        searchTree.setDisplay(false);
+        // Initial tree visibility is mode-driven — pin via IMPORTANT.
+        Style.importantPipeline(searchTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
         searchTree.setFlattenRoot(true);
         initTreeList(searchTree, null);
 
-        recommendationTree.setDisplay(false);
+        Style.importantPipeline(recommendationTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
         initTreeList(recommendationTree, treeContainer);
         initTreeList(constantTree, treeContainer);
         initTreeList(contextTree, treeContainer);
         initTreeList(nodeTree, treeContainer);
         // Block tree shares the same container slot; only one of {nodeTree+constantTree+contextTree}
         // and {blockTree} is visible at a time — see applyTreeVisibility.
-        blockTree.setDisplay(false);
+        Style.importantPipeline(blockTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
         initTreeList(blockTree, treeContainer);
 
         resultContainer.addScrollViewChildren(searchTree, treeContainer);
 
-        tailBar.getLayout().flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2);
+        tailBar.addClass("__item-library_tail-bar__");
+        Style.defaultPipeline(tailBar.getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2));
+        tailLabel.addClass("__item-library_tail-label__");
         tailLabel.setText("Double click to add a node");
-        tailLabel.getTextStyle().textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER).fontSize(4.5f);
-        tailLabel.setOverflowVisible(false);
-        tailLabel.getLayout().flex(1);
-        resizeButton.getLayout().width(9).height(9);
-        resizeButton.getStyle().background(DynamicTexture.of(() -> resizeButton.isHover() ?
-                Icons.RESIZE_BOTTOM_RIGHT : Icons.RESIZE_BOTTOM_RIGHT.copy().setColor(ColorPattern.LIGHT_GRAY.color)));
+        Style.defaultPipeline(tailLabel.getTextStyle(), s -> s.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER).fontSize(4.5f));
+        Style.defaultPipeline(tailLabel.getStyle(), s -> s.overflowVisible(false));
+        Style.defaultPipeline(tailLabel.getLayout(), l -> l.flex(1));
+        resizeButton.addClass("__item-library_resize-button__");
+        Style.defaultPipeline(resizeButton.getLayout(), l -> l.width(9).height(9));
+        Style.defaultPipeline(resizeButton.getStyle(), s -> s.background(DynamicTexture.of(() -> resizeButton.isHover() ?
+                Icons.RESIZE_BOTTOM_RIGHT : Icons.RESIZE_BOTTOM_RIGHT.copy().setColor(ColorPattern.LIGHT_GRAY.color))));
 
         addChildren(
                 headBar.addChildren(title),
@@ -139,7 +158,6 @@ public class ItemLibrary extends UIElement {
         setFocusable(true);
         setEnforceFocus(e -> this.hide());
         addEventListener(UIEvents.LAYOUT_CHANGED, e -> adaptPositionToScreen());
-        internalSetup();
 
         // drag
         WindowDragHelper.setDragMove(headBar, this, null, null);
@@ -154,9 +172,10 @@ public class ItemLibrary extends UIElement {
         resizeButton.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, e -> {
             if (e.dragHandler.draggingObject instanceof DragResize(var oSize)) {
                 var normalSizeOffset = getLocalMouseNormal(e.x - e.dragStartX, e.y - e.dragStartY);
-                this.getLayout()
+                // Live resize — width/height are data-driven and must outrank stylesheet defaults.
+                Style.importantPipeline(getLayout(), l -> l
                         .width(Math.max(oSize.x + normalSizeOffset.x, 50))
-                        .height(Math.max(oSize.y + normalSizeOffset.y, 70));
+                        .height(Math.max(oSize.y + normalSizeOffset.y, 70)));
             }
         });
     }
@@ -255,15 +274,15 @@ public class ItemLibrary extends UIElement {
                 .forEach(item -> {
                     builder.leaf(item, null);
                 });
-        searchTree.setDisplay(true);
+        Style.importantPipeline(searchTree.getLayout(), l -> l.display(TaffyDisplay.FLEX));
         searchTree.setRoot(builder.build());
-        treeContainer.setDisplay(false);
+        Style.importantPipeline(treeContainer.getLayout(), l -> l.display(TaffyDisplay.NONE));
     }
 
     protected void clearSearchResult() {
-        searchTree.setDisplay(false);
+        Style.importantPipeline(searchTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
         searchTree.setRoot(null);
-        treeContainer.setDisplay(true);
+        Style.importantPipeline(treeContainer.getLayout(), l -> l.display(TaffyDisplay.FLEX));
         searchCandidates = null;
     }
 
@@ -328,12 +347,14 @@ public class ItemLibrary extends UIElement {
         positionAndShow(mouseX, mouseY, onFinished);
     }
 
-    /** Toggles tree visibility based on {@link #blockOnlyMode}. */
+    /** Toggles tree visibility based on {@link #blockOnlyMode}. State-driven, pin via IMPORTANT. */
     protected void applyTreeVisibility() {
-        constantTree.setDisplay(!blockOnlyMode);
-        contextTree.setDisplay(!blockOnlyMode);
-        nodeTree.setDisplay(!blockOnlyMode);
-        blockTree.setDisplay(blockOnlyMode);
+        var normalDisplay = blockOnlyMode ? TaffyDisplay.NONE : TaffyDisplay.FLEX;
+        var blockDisplay = blockOnlyMode ? TaffyDisplay.FLEX : TaffyDisplay.NONE;
+        Style.importantPipeline(constantTree.getLayout(), l -> l.display(normalDisplay));
+        Style.importantPipeline(contextTree.getLayout(), l -> l.display(normalDisplay));
+        Style.importantPipeline(nodeTree.getLayout(), l -> l.display(normalDisplay));
+        Style.importantPipeline(blockTree.getLayout(), l -> l.display(blockDisplay));
     }
 
     /** Shared positioning + focus path for both show variants. */
@@ -347,7 +368,7 @@ public class ItemLibrary extends UIElement {
         this.getLayout()
                 .left(offset.x)
                 .top(offset.y);
-        setDisplay(true);
+        Style.importantPipeline(getLayout(), l -> l.display(TaffyDisplay.FLEX));
         focus();
         this.onFinished = onFinished;
     }
@@ -359,7 +380,7 @@ public class ItemLibrary extends UIElement {
         if (recommendationBuilder.isEmpty()) return;
         recommendationTree.setRoot(recommendationBuilder.build());
         recommendationTree.expandNode(recommendationTree.getRoot());
-        recommendationTree.setDisplay(true);
+        Style.importantPipeline(recommendationTree.getLayout(), l -> l.display(TaffyDisplay.FLEX));
     }
 
     public void setPortRecommendation(PortModel sourcePort) {
@@ -400,12 +421,12 @@ public class ItemLibrary extends UIElement {
         this.portModels = null;
         this.onFinished = null;
         this.recommendationTree.setRoot(null);
-        this.recommendationTree.setDisplay(false);
+        Style.importantPipeline(this.recommendationTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
         // Clear block-mode state so the next show() starts fresh in default-tree mode.
         this.blockOnlyMode = false;
         this.blockTree.setRoot(null);
-        this.blockTree.setDisplay(false);
-        setDisplay(false);
+        Style.importantPipeline(this.blockTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
+        Style.importantPipeline(getLayout(), l -> l.display(TaffyDisplay.NONE));
         blur();
     }
 

@@ -12,9 +12,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
@@ -77,47 +82,59 @@ public class Inspector extends UIElement {
      * This method allows observing changes in the configurators, managing history actions,
      * and handling closure of the inspection.
      *
+     * <p>History recording is delegated to {@link IConfigurable#createHistoryRecorder()}; if it
+     * returns {@code null} no history entries are pushed for this configurable.
+     *
+     * <p>When switching from a previously inspected configurable, group expansion/collapse state
+     * is preserved across matching paths (groups with identical name path and {@code canCollapse}).
+     *
      * @param <T>           the type of the configurable instance, which must extend {@link IConfigurable}
      * @param configurable  the configurable instance to inspect
      * @param listener      an optional {@link Consumer} that is triggered whenever a configurator's value changes,
      *                      providing the changed configurator as its argument
      * @param onClose       an optional {@link Runnable} that is executed when the inspection session is closed
-     * @param historyAction an optional {@link Consumer} for handling undo/redo operations during history actions,
-     *                      receiving configurable instances when executed
+     * @param historyAction an optional callback invoked when an undo/redo restores this configurable
      * @return a {@link ConfiguratorGroup} representing the configurable instance's structure and properties
      */
-    public <T extends IConfigurable> ConfiguratorGroup inspect(T configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose, @Nullable Consumer<T> historyAction) {
+    public <T extends IConfigurable> ConfiguratorGroup inspect(T configurable, @Nullable Consumer<Configurator> listener, @Nullable Runnable onClose, @Nullable Runnable historyAction) {
+        Map<List<String>, Boolean> savedStates = inspectedConfigurable != null ? captureGroupStates() : Map.of();
         clear();
         this.inspectedConfigurable = configurable;
         this.onClose = onClose;
         var group = inspectInternal(configurable);
+        if (!savedStates.isEmpty()) {
+            restoreGroupStates(group, savedStates);
+        }
+
+        var recorder = configurable.createHistoryRecorder();
         group.addEventListener(Configurator.CHANGE_EVENT, e -> {
             if (e.target instanceof Configurator configurator) {
                 if (listener != null) {
                     listener.accept(configurator);
                 }
-                if (historyStack != null && configurable instanceof ValueIOSerializable serializable) {
+                if (historyStack != null && recorder != null) {
                     var notifyName = configurator.getNotifyName();
-                    var recordHistory = historyStack.recordSerializableObject(notifyName.getString().isEmpty() ?
-                                    Component.literal(configurable.getConfigurableName()) : notifyName,
-                            serializable, configurator);
+                    var handle = recorder.record(historyStack,
+                            notifyName.getString().isEmpty() ? Component.literal(configurable.getConfigurableName()) : notifyName,
+                            configurator);
                     if (historyAction != null) {
-                        recordHistory.setOnExecute(value -> historyAction.accept((T) value));
-                        recordHistory.setOnUndo(value -> historyAction.accept((T) value));
+                        handle.setOnExecute(historyAction).setOnUndo(historyAction);
                     }
                 }
             }
         });
 
-        if (historyStack != null && configurable instanceof ValueIOSerializable serializable) {
-            historyStack.recordSerializableObject(Component.translatable("editor.inspector.history", configurable.getConfigurableName()), serializable, configurable)
-                    .setOnExecute(value -> {
+        if (historyStack != null && recorder != null) {
+            recorder.record(historyStack,
+                            Component.translatable("editor.inspector.history", configurable.getConfigurableName()),
+                            configurable)
+                    .setOnExecute(() -> {
                         clear();
                         scrollerView.addScrollViewChild(group);
                         inspectedConfigurable = configurable;
                         this.onClose = onClose;
                     })
-                    .setOnUndo(value -> clear());
+                    .setOnUndo(this::clear);
         }
         return group;
     }
@@ -132,5 +149,49 @@ public class Inspector extends UIElement {
         configurable.buildConfigurator(group);
         scrollerView.addScrollViewChild(group);
         return group;
+    }
+
+    private Map<List<String>, Boolean> captureGroupStates() {
+        Map<List<String>, Boolean> states = new HashMap<>();
+        for (UIElement child : scrollerView.viewContainer.getChildren()) {
+            if (child instanceof ConfiguratorGroup root) {
+                captureRecursive(root, new ArrayDeque<>(), states);
+            }
+        }
+        return states;
+    }
+
+    private void captureRecursive(ConfiguratorGroup group, Deque<String> path, Map<List<String>, Boolean> states) {
+        boolean pushed = !path.isEmpty() || group.isCanCollapse();
+        if (group.isCanCollapse() && !path.isEmpty()) {
+            states.put(new ArrayList<>(path), group.isCollapse());
+        }
+        for (Configurator c : group.getConfigurators()) {
+            if (c instanceof ConfiguratorGroup sub) {
+                path.addLast(sub.getLabel().getString());
+                captureRecursive(sub, path, states);
+                path.removeLast();
+            }
+        }
+    }
+
+    private void restoreGroupStates(ConfiguratorGroup root, Map<List<String>, Boolean> states) {
+        restoreRecursive(root, new ArrayDeque<>(), states);
+    }
+
+    private void restoreRecursive(ConfiguratorGroup group, Deque<String> path, Map<List<String>, Boolean> states) {
+        if (group.isCanCollapse() && !path.isEmpty()) {
+            Boolean saved = states.get(new ArrayList<>(path));
+            if (saved != null) {
+                group.setCollapse(saved);
+            }
+        }
+        for (Configurator c : group.getConfigurators()) {
+            if (c instanceof ConfiguratorGroup sub) {
+                path.addLast(sub.getLabel().getString());
+                restoreRecursive(sub, path, states);
+                path.removeLast();
+            }
+        }
     }
 }

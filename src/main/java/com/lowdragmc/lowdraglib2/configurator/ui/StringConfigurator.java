@@ -17,6 +17,7 @@ public class StringConfigurator extends ValueConfigurator<String> {
     public StringConfigurator(String name, Supplier<String> supplier, Consumer<String> onUpdate, @Nonnull String defaultValue, boolean forceUpdate) {
         super(name, supplier, onUpdate, defaultValue, forceUpdate);
         setCopiable(value -> value);
+        setCopyDirect(true);
 
         if (value == null) value = defaultValue;
         inlineContainer.addChild(textField = new TextField());

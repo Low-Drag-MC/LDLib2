@@ -64,7 +64,7 @@ public class TagField extends BindableUIElement<Tag> {
             }
         });
 
-        editButton.noText().addPreIcon(Icons.EDIT_FILE);
+        editButton.noText().addPreIcon(Icons.EDIT_FILE).addClass("__white_icon__");
         editButton.setOnClick(this::openStructuredEditor);
 
         addChildren(textField, editButton);

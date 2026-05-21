@@ -8,10 +8,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.*;
 import com.lowdragmc.lowdraglib2.gui.editor.view.UIHierarchy;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
@@ -1870,7 +1867,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }, (getter, setter) -> {
             var value = getter.get();
             if (value.startsWith("__") && value.endsWith("__")) {
-                return new Configurator(value);
+                return new Configurator(value).setCopiableDirect(value);
             }
             return new StringConfigurator("", getter, setter, "", true);
         }, true);

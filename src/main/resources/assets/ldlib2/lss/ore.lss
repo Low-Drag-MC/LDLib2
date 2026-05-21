@@ -17,11 +17,11 @@
 }
 
 // button
-button:host > element { //icon?
+button:host > .__white_icon__ { //icon?
   color: #222;
 }
 
-.__icon__ {
+button.__white_icon__ > .__icon__ { //icon?
   color: #222;
 }
 
@@ -187,7 +187,7 @@ color-selector:host .__color-selector_color-preview__ {
 }
 
 // toggle
-toggle {
+toggle:host {
   mark-background: built-in(ui-ore:CHECK);
 }
 
@@ -307,6 +307,12 @@ tab:host:selected {
   pressed-background: built-in(ui-ore:TAB_ON_DEFAULT_GREEN);
   padding-top: 5;
   padding-bottom: 3;
+}
+
+
+tab:host:not(tab:selected) label {
+  text-color: #222;
+  text-shadow: false;
 }
 
 // dialog
@@ -447,6 +453,10 @@ ToggleSelectorConfigurator toggle:on .__icon__ {
   color: #fff;
 }
 
+ToggleSelectorConfigurator toggle {
+  mark-background: empty;
+}
+
 .__array-configurator_button-group__ {
   background: built-in(ui-ore:RECT);
 }
@@ -460,4 +470,77 @@ ToggleSelectorConfigurator toggle:on .__icon__ {
 
 .__array-configurator_item_selected__ {
   background: built-in(ui-ore:BTN_DEFAULT_GREEN);
+}
+
+// node graph editor
+.__blackboard-var-prop_title-bar__ {
+  background: built-in(ui-ore:BTN_RECT_HOVER);
+}
+
+.__blackboard-var-prop_content__ {
+  background: built-in(ui-ore:RECT);
+}
+
+.__node-title-element__ {
+  background: built-in(ui-ore:TAB_OFF_HOVER);
+  padding-bottom: 4;
+}
+
+.__node-graph-view_canvas__ {
+  background: #191919;
+}
+
+.__node-port-container__ {
+  background: built-in(ui-ore:TAB_OFF_PRESSED);
+}
+
+.__in-out-port-container_input__ {
+  background: built-in(ui-ore:RECT);
+}
+
+.__in-out-port-container_output__ {
+  background: built-in(ui-ore:RECT2)
+}
+
+.__node-element__ {
+  background: built-in(ui-ore:RECT);
+}
+
+.__capsule-node__ .__node-title-element__ {
+  background: empty;
+  padding-bottom: 0;
+}
+
+.__capsule-node__ .__node-port-container__ {
+  background: empty;
+}
+
+.__context-node__ > .__node-title-element__ {
+
+  background: built-in(ui-ore:BTN_DEFAULT) color(#677);
+}
+
+.__block-node__ > .__node-title-element__ {
+  background: built-in(ui-ore:BTN_DEFAULT) color(#787);
+}
+
+.__block-list-container__ {
+  background: built-in(ui-ore:RECT2);
+}
+
+.__subgraph-node__ .__node-title-element__ {
+  background: built-in(ui-ore:BTN_PRESSED);
+}
+
+.__item-library__ {
+  background: built-in(ui-ore:BTN_RECT_DEFAULT);
+}
+
+.__node-graph-view_canvas-view__ {
+  color: #555;
+}
+
+.__node-title_collapse-toggle__ {
+  width: 10;
+  height: 10;
 }

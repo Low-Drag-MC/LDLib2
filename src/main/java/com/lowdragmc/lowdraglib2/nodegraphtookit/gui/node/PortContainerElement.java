@@ -26,6 +26,7 @@ public class PortContainerElement extends ModelElement {
     public PortContainerElement(PortNodeModel portNodeModel, Predicate<PortModel> portFilter) {
         this.portNodeModel = portNodeModel;
         this.portFilter = portFilter;
+        addClass("__port-container__");
     }
 
     @Override

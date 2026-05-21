@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -11,6 +12,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,18 +41,19 @@ public class BlockListContainerElement extends ModelElement {
 
     public BlockListContainerElement(ContextNodeModel contextNodeModel) {
         this.contextNodeModel = contextNodeModel;
+        addClass("__block-list-container__");
     }
 
     @Override
     protected void buildUI() {
-        setId("block-list-container");
-        getLayout().gapAll(1).paddingAll(2).marginAll(4);
-        getStyle().background(Sprites.RECT_DARK);
+        Style.defaultPipeline(getLayout(), l -> l.gapAll(1).paddingAll(2).marginAll(4));
+        Style.defaultPipeline(getStyle(), s -> s.background(Sprites.RECT_DARK));
         // Initial population — buildUI runs after the graphView is set.
-        blockContainer = new UIElement();
-        blockContainer.getLayout().gapAll(1);
+        blockContainer = new UIElement().addClass("__block-list-container_blocks__");
+        Style.defaultPipeline(blockContainer.getLayout(), l -> l.gapAll(1));
         addBlockButton = new Button().setText("graph.add_block");
-        addBlockButton.getLayout().marginAll(5);
+        addBlockButton.addClass("__block-list-container_add-button__");
+        Style.defaultPipeline(addBlockButton.getLayout(), l -> l.marginAll(5));
         // Opens the ItemLibrary scoped to compatible blocks; selection dispatches an
         // InsertBlockCommand against this container's parent context.
         addBlockButton.setOnClick(e -> {
@@ -66,13 +69,13 @@ public class BlockListContainerElement extends ModelElement {
         addChildren(blockContainer, addBlockButton);
         applyAddButtonVisibility();
         rebuildBlocks();
-        internalSetup();
     }
 
-    /** Hide the Add Block button entirely when the context accepts no block types. */
+    /** Hide the Add Block button entirely when the context accepts no block types. Data-driven. */
     private void applyAddButtonVisibility() {
         if (addBlockButton == null) return;
-        addBlockButton.setDisplay(!contextNodeModel.getSupportBlockClasses().isEmpty());
+        var hasSupport = !contextNodeModel.getSupportBlockClasses().isEmpty();
+        Style.importantPipeline(addBlockButton.getLayout(), l -> l.display(hasSupport ? TaffyDisplay.FLEX : TaffyDisplay.NONE));
     }
 
     @Override

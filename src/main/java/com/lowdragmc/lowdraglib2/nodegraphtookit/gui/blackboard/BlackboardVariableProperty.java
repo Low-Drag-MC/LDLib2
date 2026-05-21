@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
@@ -28,6 +29,7 @@ import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -62,10 +64,14 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
 
     public BlackboardVariableProperty(VariableDeclarationModelBase variableModel) {
         setModel(variableModel);
-        getLayout().flexGrow(1).marginAll(2);
+        addClass("__blackboard-var-prop__");
+        Style.defaultPipeline(getLayout(), l -> l.flexGrow(1).marginAll(2));
 
-        icon.getLayout().aspectRatio(1).height(9);
-        label.getTextStyle().adaptiveWidth(true);
+        icon.addClass("__blackboard-var-prop_icon__");
+        Style.defaultPipeline(icon.getLayout(), l -> l.aspectRatio(1).height(9));
+        label.addClass("__blackboard-var-prop_label__");
+        Style.defaultPipeline(label.getTextStyle(), s -> s.adaptiveWidth(true));
+        collapseToggle.addClass("__blackboard-var-prop_collapse-toggle__");
         collapseToggle.getLayout().height(9);
         collapseToggle.noText().setOnToggleChanged(this::setCollapsed);
         collapseToggle.setOn(isCollapsed, false).toggleStyle(toggleStyle -> toggleStyle
@@ -73,48 +79,54 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
                 .hoverTexture(IGuiTexture.EMPTY)
                 .markTexture(Icons.RIGHT_ARROW_NO_BAR_S_WHITE)
                 .unmarkTexture(Icons.DOWN_ARROW_NO_BAR_S_WHITE));
-        titleBar.getLayout().flexDirection(FlexDirection.ROW)
+        titleBar.addClass("__blackboard-var-prop_title-bar__");
+        Style.defaultPipeline(titleBar.getLayout(), l -> l.flexDirection(FlexDirection.ROW)
                 .paddingAll(4)
                 .gapAll(2)
-                .alignItems(AlignItems.CENTER);
-        titleBar.getStyle().background(Sprites.RECT_LIGHT);
+                .alignItems(AlignItems.CENTER));
+        Style.defaultPipeline(titleBar.getStyle(), s -> s.background(Sprites.RECT_LIGHT));
         titleBar.addChildren(icon, label, collapseToggle);
 
+        typeLabel.addClass("__blackboard-var-prop_type-label__");
         typeLabel.setText("graph.type");
-        typeLabel.getTextStyle().adaptiveWidth(true);
+        Style.defaultPipeline(typeLabel.getTextStyle(), s -> s.adaptiveWidth(true));
 
-        typeSearchComponent.getLayout().flexGrow(1).minWidth(55);
+        typeSearchComponent.addClass("__blackboard-var-prop_type-search__");
+        Style.defaultPipeline(typeSearchComponent.getLayout(), l -> l.flexGrow(1).minWidth(55));
         typeSearchComponent.setSearchUI(this);
         typeSearchComponent.setCandidateUIProvider(UIElementProvider.text(value -> value == null ?
                 Component.translatable("text_field.empty").withColor(ColorPattern.LIGHT_GRAY.color) :
                 Component.translatable(value.getFriendlyName())));
 
+        valueFieldInspector.addClass("__blackboard-var-prop_value-inspector__");
         valueFieldInspector.setFieldName(Component.translatable("graph.default_value"));
 
-        contentContainer.setDisplay(false);
-        contentContainer.getLayout().paddingAll(3).gapAll(2);
-        contentContainer.getStyle().background(Sprites.RECT_SOLID);
-        contentContainer.addChildren(new UIElement().layout(layout -> layout
-                        .alignItems(AlignItems.CENTER).flexDirection(FlexDirection.ROW).gapAll(2))
-                .addChildren(typeLabel, typeSearchComponent), valueFieldInspector);
+        contentContainer.addClass("__blackboard-var-prop_content__");
+        // Initial collapsed state hides the content panel — pin via IMPORTANT because it is state-driven.
+        Style.importantPipeline(contentContainer.getLayout(), l -> l.display(TaffyDisplay.NONE));
+        Style.defaultPipeline(contentContainer.getLayout(), l -> l.paddingAll(3).gapAll(2));
+        Style.defaultPipeline(contentContainer.getStyle(), s -> s.background(Sprites.RECT_SOLID));
 
+        var typeRow = new UIElement().addClass("__blackboard-var-prop_type-row__");
+        Style.defaultPipeline(typeRow.getLayout(), l -> l.alignItems(AlignItems.CENTER).flexDirection(FlexDirection.ROW).gapAll(2));
+        typeRow.addChildren(typeLabel, typeSearchComponent);
+        contentContainer.addChildren(typeRow, valueFieldInspector);
     }
 
     @Override
     protected void buildUI() {
         super.buildUI();
-        addChildren(
-                new UIElement().layout(layout -> layout.flexDirection(FlexDirection.ROW))
-                        .addChild(titleBar),
-                contentContainer
-        );
-        internalSetup();
+        var titleRow = new UIElement().addClass("__blackboard-var-prop_title-row__");
+        Style.defaultPipeline(titleRow.getLayout(), l -> l.flexDirection(FlexDirection.ROW));
+        titleRow.addChild(titleBar);
+        addChildren(titleRow, contentContainer);
     }
 
     public void setCollapsed(boolean isCollapsed) {
         if (this.isCollapsed == isCollapsed) return;
         this.isCollapsed = isCollapsed;
-        contentContainer.setDisplay(!isCollapsed);
+        // Collapse state drives content panel visibility.
+        Style.importantPipeline(contentContainer.getLayout(), l -> l.display(isCollapsed ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
     }
 
     @Override

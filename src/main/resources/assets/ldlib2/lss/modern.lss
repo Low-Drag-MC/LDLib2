@@ -313,6 +313,11 @@ menu {
   padding-all: 3
 }
 
+.__view-container_collapse-button__ {
+  height: 14;
+  width: 14;
+}
+
 ResourceView .__tab-view_tab_header_container__ .__scroller_view_view-container__{
   gap-all: 0;
 }
@@ -405,3 +410,79 @@ ToggleSelectorConfigurator .__toggle_button__ {
 .__array-configurator_item_selected__ {
   background: sdf(#71a4f4, 3);
 }
+
+// node graph
+
+.__blackboard-var-prop_title-bar__ {
+  background: sdf(#1e1f22, 4, 1, #7f8084);
+}
+
+.__blackboard-var-prop_content__ {
+  background: sdf(#363640, 4, 1, #7f8084);
+}
+
+.__node-title-element__ {
+  background: sdf(#383838, 0 0 4 4, 1, #7f8084);
+  padding-bottom: 4;
+}
+
+.__node-graph-view_canvas__ {
+  background: #191919;
+}
+
+.__node-port-container__ {
+  background: sdf(#383838, 0, 0.5, #7f8084);
+}
+
+.__in-out-port-container_input__ {
+  background: sdf(#383838);
+  margin-all: 1;
+}
+
+.__in-out-port-container_output__ {
+  background: sdf(#303030, 0,);
+  margin-all: 1;
+}
+
+.__node-element__ {
+  background: sdf(#383838, 4, 0.5, #7f8084);
+}
+
+.__capsule-node__ {
+  background: sdf(#383838, 4, 1, #7f8084)
+}
+
+.__capsule-node__ .__node-title-element__ {
+  background: empty;
+  padding-bottom: 0;
+}
+
+.__capsule-node__ .__node-port-container__ {
+  background: empty;
+}
+
+.__context-node__ > .__node-title-element__ {
+  height: 30;
+  gap-all: 5;
+}
+
+.__block-node__ > .__node-title-element__ {
+  background: sdf(#787, 0 0 4 4, 1, #7f8084);
+}
+
+.__block-list-container__ {
+  background: sdf(#222, 4);
+}
+
+.__subgraph-node__ .__node-title-element__ {
+  background: sdf(#999, 0 0 4 4, 1, #7f8084);
+}
+
+.__item-library__ {
+  background: sdf(#383838, 4, 1, #71a4f4);
+}
+
+.__node-graph-view_canvas-view__ {
+  color: #555;
+}
+

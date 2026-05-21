@@ -50,7 +50,9 @@ public final class GraphCommands {
         public void execute() {
             for (var model : movables) {
                 if (model instanceof IMovable movable) {
-                    movable.setPosition(localOffset.add(movable.getPosition(), new Vector2f()));
+                    var newPos = localOffset.add(movable.getPosition(), new Vector2f());
+                    if (view != null) newPos = view.snapPosition(newPos);
+                    movable.setPosition(newPos);
                 }
             }
         }

@@ -75,6 +75,7 @@ public class TabView extends UIElement {
 
         this.tabContentContainer.layout(layout -> {
             layout.paddingAll(5);
+            layout.flexGrow(1);
         }).style(style -> style.backgroundTexture(Sprites.BORDER_THICK_RT1));
 
         addChildren(tabContentContainer, tabHeaderContainer);

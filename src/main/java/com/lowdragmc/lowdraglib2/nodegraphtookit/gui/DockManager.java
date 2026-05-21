@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,10 +31,12 @@ public class DockManager {
 
     public DockManager(GraphView graphView) {
         this.graphView = graphView;
-        highlightOverlay.getLayout().positionType(TaffyPosition.ABSOLUTE);
-        highlightOverlay.getStyle().background(new ColorRectTexture(HIGHLIGHT_COLOR));
+        highlightOverlay.addClass("__dock-manager_highlight__");
+        Style.defaultPipeline(highlightOverlay.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
+        Style.defaultPipeline(highlightOverlay.getStyle(), s -> s.background(new ColorRectTexture(HIGHLIGHT_COLOR)));
         highlightOverlay.setAllowHitTest(false);
-        highlightOverlay.setDisplay(false);
+        // Highlight is hidden by default — visibility is state-driven during dock drag.
+        Style.importantPipeline(highlightOverlay.getLayout(), l -> l.display(TaffyDisplay.NONE));
         graphView.getPanelLayer().addChild(highlightOverlay);
     }
 
@@ -130,8 +134,10 @@ public class DockManager {
             float top = cy + inset;
             float w = Math.max(0f, cw - inset * 2);
             float h = Math.max(0f, ch - inset * 2);
-            highlightOverlay.getLayout().left(left).top(top).width(w).height(h);
-            highlightOverlay.setDisplay(true);
+            // Position and visibility during dock-target highlight — state-driven.
+            float fLeft = left, fTop = top, fW = w, fH = h;
+            Style.importantPipeline(highlightOverlay.getLayout(),
+                    l -> l.left(fLeft).top(fTop).width(fW).height(fH).display(TaffyDisplay.FLEX));
             return;
         }
 
@@ -157,12 +163,13 @@ public class DockManager {
             default -> { return; }
         }
 
-        highlightOverlay.getLayout().left(left).top(top).width(w).height(h);
-        highlightOverlay.setDisplay(true);
+        float fLeft = left, fTop = top, fW = w, fH = h;
+        Style.importantPipeline(highlightOverlay.getLayout(),
+                l -> l.left(fLeft).top(fTop).width(fW).height(fH).display(TaffyDisplay.FLEX));
     }
 
     public void hideDockHighlight() {
-        highlightOverlay.setDisplay(false);
+        Style.importantPipeline(highlightOverlay.getLayout(), l -> l.display(TaffyDisplay.NONE));
     }
 
     @Nullable

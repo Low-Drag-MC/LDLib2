@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
@@ -8,6 +9,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisit
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import dev.vfyjxf.taffy.style.TaffyDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,6 +25,7 @@ public class PortConnectorWithIconElement extends PortConnectorElement {
 
     public PortConnectorWithIconElement(PortModel portModel) {
         super(portModel);
+        addClass("__port-connector-with-icon__");
     }
 
     @Override
@@ -33,8 +36,8 @@ public class PortConnectorWithIconElement extends PortConnectorElement {
     @Override
     protected void buildUI() {
         super.buildUI();
-        portIcon = new UIElement();
-        portIcon.getLayout().aspectRatio(1).width(9);
+        portIcon = new UIElement().addClass("__port-connector-with-icon_icon__");
+        Style.defaultPipeline(portIcon.getLayout(), l -> l.aspectRatio(1).width(9));
         addChildAt(portIcon, 1);
     }
 
@@ -44,12 +47,13 @@ public class PortConnectorWithIconElement extends PortConnectorElement {
         if (!Objects.equals(lastTypeHandle, portModel.getDataTypeHandle())) {
             this.lastTypeHandle = portModel.getDataTypeHandle();
             var icon = portModel.getDataTypeHandle().getIcon();
-            portIcon.getStyle().background(icon);
-            portIcon.setDisplay(icon != IGuiTexture.EMPTY);
+            // Type icon is model data — pin via IMPORTANT.
+            Style.importantPipeline(portIcon.getStyle(), s -> s.background(icon));
+            Style.importantPipeline(portIcon.getLayout(), l -> l.display(icon == IGuiTexture.EMPTY ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
         }
         if (visitor.hasHint(ChangeHint.DATA)) {
-            getLayout().direction(portModel.getDirection() == PortDirection.INPUT ? TaffyDirection.LTR :
-                    portModel.getDirection() == PortDirection.OUTPUT ? TaffyDirection.RTL : TaffyDirection.INHERIT);
+            Style.importantPipeline(getLayout(), l -> l.direction(portModel.getDirection() == PortDirection.INPUT ? TaffyDirection.LTR :
+                    portModel.getDirection() == PortDirection.OUTPUT ? TaffyDirection.RTL : TaffyDirection.INHERIT));
         }
     }
 }

@@ -158,11 +158,13 @@ public class EditorWindow extends UIElement {
                         maximizeWindow();
                     }
                 })
+                .addClass("__white_icon__")
                 .layout(layout -> layout.height(12)), 0);
         if (windowID != null) {
             newEditor.buttonContainer.addChildAt(new Button().noText()
                     .addPreIcon(Icons.WINDOW_MINIMIZE)
                     .setOnClick(e -> minimizeWindow())
+                    .addClass("__white_icon__")
                     .layout(layout -> layout.height(12)), 0);
         }
         newEditor.topPlaceholder.addEventListener(UIEvents.DOUBLE_CLICK, e -> {

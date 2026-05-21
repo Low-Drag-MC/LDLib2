@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextArea;
@@ -22,6 +23,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,6 +37,7 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
 
     public StickyNoteElement(StickyNoteModel model) {
         super(model);
+        addClass("__sticky-note__");
     }
 
     @Override
@@ -45,20 +48,21 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
     @Override
     protected void buildUI() {
         var model = getModel();
-        getLayout().positionType(TaffyPosition.ABSOLUTE)
+        // Position / width / background color come from the model — pin via IMPORTANT.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
                 .left(model.getPosition().x)
                 .top(model.getPosition().y)
-                .width(model.getSize().x);
-        getStyle().background(SDFRectTexture.of(model.getElementColor()));
+                .width(model.getSize().x));
+        Style.importantPipeline(getStyle(), s -> s.background(SDFRectTexture.of(model.getElementColor())));
 
         // Header bar
-        header = new UIElement();
-        header.getLayout().widthPercent(100).height(HEADER_HEIGHT)
+        header = new UIElement().addClass("__sticky-note_header__");
+        Style.defaultPipeline(header.getLayout(), l -> l.widthPercent(100).height(HEADER_HEIGHT)
                 .flexDirection(FlexDirection.ROW)
-                .alignItems(AlignItems.CENTER);
+                .alignItems(AlignItems.CENTER));
 
-        folderIcon = new UIElement();
-        folderIcon.getLayout().width(8).height(8).marginAll(2);
+        folderIcon = new UIElement().addClass("__sticky-note_folder-icon__");
+        Style.defaultPipeline(folderIcon.getLayout(), l -> l.width(8).height(8).marginAll(2));
         folderIcon.addEventListener(UIEvents.MOUSE_DOWN, this::onHeaderClick);
         header.addChild(folderIcon);
 
@@ -66,14 +70,18 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
 
         // Text area
         textArea = new TextArea();
+        textArea.addClass("__sticky-note_text-area__");
         textArea.setValue(model.getContent().split("\n", -1));
-        textArea.getLayout().widthPercent(100).flexGrow(1);
+        Style.defaultPipeline(textArea.getLayout(), l -> l.widthPercent(100).flexGrow(1));
         textArea.textAreaStyle(style -> {
-            style.textColor(0xFF000000);
-            style.textShadow(false);
-            style.fontSize(model.getFontSize());
+            Style.importantPipeline(style, s -> {
+                s.textColor(0xFF000000);
+                s.textShadow(false);
+            });
+            // fontSize is read from the model — data-driven.
+            Style.importantPipeline(style, s -> s.fontSize(model.getFontSize()));
         });
-        textArea.contentView.getStyle().background(IGuiTexture.EMPTY);
+        Style.importantPipeline(textArea.contentView.getStyle(), s -> s.background(IGuiTexture.EMPTY));
         textArea.setLinesResponder(lines -> {
             var content = String.join("\n", lines);
             model.setContent(content);
@@ -81,8 +89,6 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
         addChild(textArea);
 
         applyCollapsedState(model.isCollapsed());
-
-        internalSetup();
     }
 
     private void onHeaderClick(UIEvent event) {
@@ -97,30 +103,27 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
 
     private void applyCollapsedState(boolean collapsed) {
         var model = getModel();
-        folderIcon.getStyle().backgroundTexture(collapsed
+        // Arrow icon, text-area visibility, and height all flip with collapse state — pin via IMPORTANT.
+        Style.importantPipeline(folderIcon.getStyle(), s -> s.backgroundTexture(collapsed
                 ? Icons.RIGHT_ARROW_NO_BAR_S_LIGHT
-                : Icons.DOWN_ARROW_NO_BAR_S_LIGHT);
-        textArea.setDisplay(!collapsed);
-        if (collapsed) {
-            getLayout().height(HEADER_HEIGHT);
-        } else {
-            getLayout().height(model.getSize().y);
-        }
+                : Icons.DOWN_ARROW_NO_BAR_S_LIGHT));
+        Style.importantPipeline(textArea.getLayout(), l -> l.display(collapsed ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
+        Style.importantPipeline(getLayout(), l -> l.height(collapsed ? HEADER_HEIGHT : model.getSize().y));
     }
 
     @Override
     public void updateUIFromModel(ModelUpdateVisitor visitor) {
         var model = getModel();
         if (visitor.hasHint(ChangeHint.LAYOUT)) {
-            getLayout().left(model.getPosition().x)
+            Style.importantPipeline(getLayout(), l -> l.left(model.getPosition().x)
                     .top(model.getPosition().y)
-                    .width(model.getSize().x);
+                    .width(model.getSize().x));
             applyCollapsedState(model.isCollapsed());
         }
         if (visitor.hasHint(ChangeHint.STYLE)) {
-            getStyle().background(SDFRectTexture.of(model.getElementColor()));
+            Style.importantPipeline(getStyle(), s -> s.background(SDFRectTexture.of(model.getElementColor())));
             if (textArea != null) {
-                textArea.textAreaStyle(style -> style.fontSize(model.getFontSize()));
+                textArea.textAreaStyle(style -> Style.importantPipeline(style, s -> s.fontSize(model.getFontSize())));
             }
         }
         if (visitor.hasHint(ChangeHint.DATA)) {

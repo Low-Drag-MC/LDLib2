@@ -138,7 +138,7 @@ public class UIEditorView extends View {
                                 new UIElement().layout(layout -> {
                                     layout.heightPercent(100);
                                     layout.setAspectRatio(1);
-                                }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
+                                }).style(style -> style.backgroundTexture(Icons.PAGE_FIT)).addClasses("__white_icon__")),
                         // selection box toggle
                         new Toggle()
                                 .setText("")
@@ -189,6 +189,7 @@ public class UIEditorView extends View {
                 )
         );
         header.addClass("__ui-editor-view_header__").moveInlineAsDefault();
+        header.setOverflowVisible(false);
 
         saveButton.setActive(false);
 
@@ -305,6 +306,7 @@ public class UIEditorView extends View {
                             toggleStyle.setPipelineState(StyleOrigin.INLINE);
                         })
                         .toggleButton(button -> button.setText("builtin_styles")
+                                .setOverflowVisible(false)
                                 .layout(layout -> layout.setAspectRatioAuto().widthPercent(100)))
                         .toggleButton(button -> button.text
                                 .textStyle(textStyle -> textStyle.textAlignHorizontal(Horizontal.LEFT))

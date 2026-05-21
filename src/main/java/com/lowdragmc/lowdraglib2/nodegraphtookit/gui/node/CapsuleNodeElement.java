@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Model;
@@ -25,6 +26,7 @@ public class CapsuleNodeElement extends NodeElement {
 
     public CapsuleNodeElement(AbstractNodeModel nodeModel) {
         super(nodeModel);
+        addClass("__capsule-node__");
     }
 
     @Override
@@ -37,16 +39,18 @@ public class CapsuleNodeElement extends NodeElement {
 
     @Override
     protected void buildUI() {
-        getLayout().positionType(TaffyPosition.ABSOLUTE).flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER)
+        // ABSOLUTE positioning is data-driven (node coordinates) — pin via IMPORTANT.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
+        Style.defaultPipeline(getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER)
                 .gapAll(2)
-                .paddingAll(2);
-        getStyle().background(Sprites.RECT_SOLID);
+                .paddingAll(2));
+        Style.defaultPipeline(getStyle(), s -> s.background(Sprites.RECT_SOLID));
         if (nodeTittle != null) {
-            nodeTittle.getStyle().background(IGuiTexture.EMPTY);
-            nodeTittle.getLayout().flexGrow(1).paddingVertical(0).paddingHorizontal(0);
+            // Capsule design says the title has no background and zero padding — DEFAULT override of the title's own design.
+            Style.defaultPipeline(nodeTittle.getStyle(), s -> s.background(IGuiTexture.EMPTY));
+            Style.defaultPipeline(nodeTittle.getLayout(), l -> l.flexGrow(1).paddingVertical(0).paddingHorizontal(0));
         }
         addChildren(nodeTittle, constant);
-        internalSetup();
     }
 
     @Override
@@ -77,8 +81,8 @@ public class CapsuleNodeElement extends NodeElement {
             inputPortContainer = new SinglePortContainerElement(inputPort);
             parts.add(inputPortContainer);
             inputPortContainer.setGraphView(getGraphView());
-            inputPortContainer.getPortContainer().getStyle().background(IGuiTexture.EMPTY);
-            inputPortContainer.getPortContainer().getLayout().paddingAll(0);
+            Style.defaultPipeline(inputPortContainer.getPortContainer().getStyle(), s -> s.background(IGuiTexture.EMPTY));
+            Style.defaultPipeline(inputPortContainer.getPortContainer().getLayout(), l -> l.paddingAll(0));
             addChild(inputPortContainer);
         } else if (inputPort == null && inputPortContainer != null) {
             parts.remove(inputPortContainer);
@@ -92,8 +96,8 @@ public class CapsuleNodeElement extends NodeElement {
             outputPortContainer = new SinglePortContainerElement(outputPort);
             parts.add(outputPortContainer);
             outputPortContainer.setGraphView(getGraphView());
-            outputPortContainer.getPortContainer().getStyle().background(IGuiTexture.EMPTY);
-            outputPortContainer.getPortContainer().getLayout().paddingAll(0);
+            Style.defaultPipeline(outputPortContainer.getPortContainer().getStyle(), s -> s.background(IGuiTexture.EMPTY));
+            Style.defaultPipeline(outputPortContainer.getPortContainer().getLayout(), l -> l.paddingAll(0));
             addChild(outputPortContainer);
         } else if (outputPort == null && outputPortContainer != null) {
             parts.remove(outputPortContainer);
@@ -102,7 +106,8 @@ public class CapsuleNodeElement extends NodeElement {
             outputPortContainer = null;
         }
 
-        getLayout().direction(outputPort != null ? TaffyDirection.LTR : TaffyDirection.RTL);
+        // direction depends on which side the port is on — data-driven.
+        Style.importantPipeline(getLayout(), l -> l.direction(outputPort != null ? TaffyDirection.LTR : TaffyDirection.RTL));
     }
 
     protected static PortModel extractInputPortModel(Model model) {

@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 
@@ -23,10 +23,8 @@ public class GraphBreadcrumb extends UIElement {
     private IntConsumer onJump = level -> {};
 
     public GraphBreadcrumb() {
-        layout(layout -> {
-            layout.flexDirection(FlexDirection.ROW);
-            layout.heightPercent(100);
-        });
+        addClass("__graph-breadcrumb__");
+        Style.defaultPipeline(getLayout(), l -> l.flexDirection(FlexDirection.ROW).heightPercent(100));
     }
 
     /** Wires the click handler. The argument passed is the depth (0 = root). */
@@ -47,18 +45,25 @@ public class GraphBreadcrumb extends UIElement {
             final int level = i;
             var label = labels.get(i);
             if (i < labels.size() - 1) {
-                addChild(new Button().setText(label.getString())
-                        .setOnClick(e -> onJump.accept(level))
-                        .layout(layout -> layout.heightPercent(100)));
-                addChild(new Label().setText(">").textStyle(style -> style
-                        .textAlignHorizontal(Horizontal.CENTER)
-                        .textAlignVertical(Vertical.CENTER))
-                        .layout(layout -> layout.width(9).heightPercent(100))
-                );
+                var segment = new Button();
+                segment.setText(label.getString()).setOnClick(e -> onJump.accept(level));
+                segment.addClass("__graph-breadcrumb_segment__");
+                Style.defaultPipeline(segment.getLayout(), l -> l.heightPercent(100));
+                addChild(segment);
+
+                var separator = new UIElement();
+                separator.addClass("__graph-breadcrumb_separator__");
+                Style.defaultPipeline(separator.getLayout(), l -> l.width(9).heightPercent(100).justifyContent(AlignContent.CENTER));
+                addChild(separator.addChild(new UIElement().addClass("__graph-breadcrumb_separator-icon__")
+                        .layout(l -> l.width(9).aspectRatio(1))
+                        .style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT)))));
             } else {
                 // deepest: not clickable
-                addChild(new Button().setText(label.getString()).setActive(false)
-                        .layout(layout -> layout.heightPercent(100)));
+                var current = new Button();
+                current.setText(label.getString()).setActive(false);
+                current.addClass("__graph-breadcrumb_current__");
+                Style.defaultPipeline(current.getLayout(), l -> l.heightPercent(100));
+                addChild(current);
             }
         }
     }

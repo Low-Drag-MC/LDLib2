@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -19,6 +20,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisit
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.RenameColorConfigurableHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
@@ -37,6 +39,7 @@ public class PlacematElement extends GraphElement<PlacematModel> {
 
     public PlacematElement(PlacematModel model) {
         super(model);
+        addClass("__placemat__");
     }
 
     @Override
@@ -47,17 +50,19 @@ public class PlacematElement extends GraphElement<PlacematModel> {
     @Override
     protected void buildUI() {
         var model = getModel();
-        getLayout().positionType(TaffyPosition.ABSOLUTE)
+        // Position / size / background color come from the model — pin via IMPORTANT.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
                 .left(model.getPosition().x)
                 .top(model.getPosition().y)
                 .width(model.getSize().x)
-                .height(model.getSize().y);
-        getStyle().background(SDFRectTexture.of(model.getElementColor()));
+                .height(model.getSize().y));
+        Style.importantPipeline(getStyle(), s -> s.background(SDFRectTexture.of(model.getElementColor())));
 
         titleLabel = new Label();
+        titleLabel.addClass("__placemat_title__");
         titleLabel.setText(Component.literal(model.getName()));
-        titleLabel.getLayout().widthPercent(100).height(14).marginAll(2);
-        titleLabel.getTextStyle().textColor(0xFFFFFFFF);
+        Style.defaultPipeline(titleLabel.getLayout(), l -> l.widthPercent(100).height(14).marginAll(2));
+        Style.defaultPipeline(titleLabel.getTextStyle(), s -> s.textColor(0xFFFFFFFF));
         addChild(titleLabel);
 
         // Inline rename on title double-click — placemats are always renamable per Capabilities.
@@ -79,21 +84,19 @@ public class PlacematElement extends GraphElement<PlacematModel> {
                     model.setPosition(new Vector2f(getLayoutX(), getLayoutY()));
                     model.setSize(new Vector2f(getSizeWidth(), getSizeHeight()));
                 });
-
-        internalSetup();
     }
 
     @Override
     public void updateUIFromModel(ModelUpdateVisitor visitor) {
         var model = getModel();
         if (visitor.hasHint(ChangeHint.LAYOUT)) {
-            getLayout().left(model.getPosition().x)
+            Style.importantPipeline(getLayout(), l -> l.left(model.getPosition().x)
                     .top(model.getPosition().y)
                     .width(model.getSize().x)
-                    .height(model.getSize().y);
+                    .height(model.getSize().y));
         }
         if (visitor.hasHint(ChangeHint.STYLE)) {
-            getStyle().background(SDFRectTexture.of(model.getElementColor()));
+            Style.importantPipeline(getStyle(), s -> s.background(SDFRectTexture.of(model.getElementColor())));
         }
         if (visitor.hasHint(ChangeHint.DATA)) {
             if (titleLabel != null) {
@@ -117,10 +120,12 @@ public class PlacematElement extends GraphElement<PlacematModel> {
         if (inlineRenameField != null) return;
         if (!getModel().isRenamable()) return;
         var initial = getModel().getName();
-        titleLabel.setDisplay(false);
+        // Force-hide the title label while the inline edit field is in place.
+        Style.importantPipeline(titleLabel.getLayout(), l -> l.display(TaffyDisplay.NONE));
         inlineRenameField = new TextField();
+        inlineRenameField.addClass("__placemat_title-rename__");
         inlineRenameField.setText(initial == null ? "" : initial);
-        inlineRenameField.layout(layout -> layout.widthPercent(100).height(14).marginAll(2));
+        Style.defaultPipeline(inlineRenameField.getLayout(), l -> l.widthPercent(100).height(14).marginAll(2));
 
         final boolean[] done = {false};
         Runnable commit = () -> {
@@ -163,7 +168,10 @@ public class PlacematElement extends GraphElement<PlacematModel> {
             inlineRenameField.removeSelf();
             inlineRenameField = null;
         }
-        if (titleLabel != null) titleLabel.setDisplay(true);
+        // Clear the IMPORTANT display override applied in startInlineRename so the title is visible again.
+        if (titleLabel != null) {
+            Style.importantPipeline(titleLabel.getLayoutStyle(), l -> l.display((TaffyDisplay) null));
+        }
     }
 
     public void drawBackgroundOverlay(@NotNull GUIContext guiContext) {

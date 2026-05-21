@@ -15,7 +15,7 @@ open class InspectorSpec<T : Inspector>(
     var initialConfigurable: IConfigurable? = null,
     var configuratorListener: Consumer<Configurator>? = null,
     var onClose: Runnable? = null,
-    var historyAction: Consumer<IConfigurable>? = null,
+    var historyAction: Runnable? = null,
 ) : ElementSpec<T>() {
     /**
      * Set history stack for undo/redo
@@ -62,15 +62,15 @@ open class InspectorSpec<T : Inspector>(
     /**
      * Set history action callback
      */
-    fun onHistoryAction(action: Consumer<IConfigurable>) = apply {
+    fun onHistoryAction(action: Runnable) = apply {
         this.historyAction = action
     }
 
     /**
      * Set history action callback (Kotlin lambda)
      */
-    fun onHistoryAction(action: (IConfigurable) -> Unit) = apply {
-        this.historyAction = Consumer { action(it) }
+    fun onHistoryAction(action: () -> Unit) = apply {
+        this.historyAction = Runnable { action() }
     }
 }
 
@@ -101,7 +101,7 @@ open class InspectorElement<T : Inspector>(
                 spec.initialConfigurable!!,
                 spec.configuratorListener,
                 spec.onClose,
-                spec.historyAction as? Consumer<IConfigurable>
+                spec.historyAction
             )
         }
     }
@@ -165,13 +165,13 @@ fun <T : Inspector, C : IConfigurable> InspectorElement<T>.inspect(
     configurable: C,
     listener: ((Configurator) -> Unit)? = null,
     onClose: (() -> Unit)? = null,
-    historyAction: ((C) -> Unit)? = null
+    historyAction: (() -> Unit)? = null
 ): InspectorElement<T> = apply {
     element.inspect(
         configurable,
         listener?.let { Consumer { listener(it) } },
         onClose?.let { Runnable { it() } },
-        historyAction?.let { Consumer { historyAction(it as C) } }
+        historyAction?.let { Runnable { historyAction() } }
     )
 }
 

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.IResizeWidth;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
@@ -19,7 +20,7 @@ import java.util.stream.Stream;
  * Base class for a model that represents a node in a graph.
  */
 public abstract class AbstractNodeModel extends GraphElementModel implements IHasName, IHasDisplayName, IMovable,
-        IHasElementColor, IHasContextualMenuItems, IGraphElementUIModel {
+        IHasElementColor, IHasContextualMenuItems, IGraphElementUIModel, IResizeWidth {
     @Persisted
     private Vector2f position = new Vector2f(0);
     @Persisted @Getter
@@ -42,6 +43,20 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
     @Persisted
     private ModelState state;
 
+    /**
+     * Floor for the auto-computed width. {@code 0} (default) means no floor — width is whatever
+     * children compute. Edited via the inspector when {@link Capabilities#RESIZABLE} is on.
+     */
+    @Persisted
+    protected float minWidth = 0f;
+
+    /**
+     * Whether the node UI is collapsed to title-only. Element subclasses decide which parts to
+     * hide; wires connected to hidden ports re-route to the title bar (see {@link com.lowdragmc.lowdraglib2.nodegraphtookit.gui.WireElement}).
+     */
+    @Persisted @Getter
+    protected boolean collapsed = false;
+
     protected AbstractNodeModel() {
         capabilities.addAll(List.of(
                 Capabilities.DELETABLE,
@@ -52,7 +67,8 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
                 Capabilities.COLLAPSIBLE,
                 Capabilities.COLORABLE,
                 Capabilities.ASCENDABLE,
-                Capabilities.DISABLEABLE
+                Capabilities.DISABLEABLE,
+                Capabilities.RESIZABLE
         ));
     }
 
@@ -153,6 +169,29 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
         if (!isMovable()) return;
         if (Objects.equals(position, value)) return;
         position = value;
+        GraphModel gm = getGraphModel();
+        if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.LAYOUT);
+    }
+
+    @Override
+    public float getMinWidth() {
+        return minWidth;
+    }
+
+    @Override
+    public void setMinWidth(float value) {
+        if (!isResizable()) return;
+        if (value < 0) value = 0;
+        if (minWidth == value) return;
+        minWidth = value;
+        GraphModel gm = getGraphModel();
+        if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.LAYOUT);
+    }
+
+    public void setCollapsed(boolean value) {
+        if (!isCollapsible()) return;
+        if (collapsed == value) return;
+        collapsed = value;
         GraphModel gm = getGraphModel();
         if (gm != null) gm.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.LAYOUT);
     }

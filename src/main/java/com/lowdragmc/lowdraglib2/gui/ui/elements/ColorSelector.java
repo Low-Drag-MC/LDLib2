@@ -120,7 +120,7 @@ public class ColorSelector extends BindableUIElement<Integer> {
                     layout.flexDirection(FlexDirection.ROW);
                 }).addChildren(colorPreview.layout(layout -> {
                     layout.flex(1);
-                    layout.paddingAll(4);
+                    layout.paddingAll(5);
                 }).style(style -> style.backgroundTexture(Sprites.BORDER1_THICK_RT1)).addChild(
                         new UIElement().layout(layout -> layout.flex(1))
                                 .addEventListener(UIEvents.MOUSE_DOWN, this::onAdjustHsbContext)

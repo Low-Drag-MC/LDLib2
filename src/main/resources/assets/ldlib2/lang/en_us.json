@@ -159,6 +159,7 @@
   "ldlib.gui.editor.menu.new": "New",
   "ldlib.gui.editor.menu.open": "Open",
   "ldlib.gui.editor.menu.save": "Save",
+  "ldlib.gui.editor.menu.save_success": "Save Success!",
   "ldlib.gui.editor.menu.import": "Import",
   "ldlib.gui.editor.menu.export": "Export",
   "ldlib.gui.editor.menu.resource": "Resource",
@@ -435,8 +436,8 @@
   "view.close.info": "Close view",
   "view.save_before_close.info": "Save before close",
   "TextStyle": "Text Style",
-  "GraphView.fit": "Fit View",
-  "UIEditor.selection_box": "Show/Hide Selection Box",
+  "GraphView.": "Fit View",
+  "UIEditfitor.selection_box": "Show/Hide Selection Box",
   "UIEditor.simulation": "Simulation",
   "builtin_styles": "Builtin Styles",
   "UIElement.class": "Class",
@@ -555,5 +556,8 @@
   "graph.toggle_collapse": "Toggle Collapse",
   "graph.add_block": "Add Block",
   "graph.double_click_add": "Double Click to Add",
-  "graph.library.blocks": "Blocks"
+  "graph.library.blocks": "Blocks",
+  "graph.library.contexts": "Contexts",
+  "graph.min_width": "Min Width",
+  "graph.snap_to_grid": "Snap to Grid"
 }

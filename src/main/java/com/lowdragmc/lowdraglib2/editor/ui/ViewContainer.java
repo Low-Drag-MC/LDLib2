@@ -58,6 +58,7 @@ public class ViewContainer extends UIElement {
         });
 
         collapseButton.addChild(buttonIcon = new UIElement()
+                .addClass("__white_icon__")
                 .layout(layout -> layout.width(10).height(10))
                 .style(style -> style.backgroundTexture(Icons.COLLAPSE_HORIZONTAL).tooltips("collapse_or_expand"))
         );

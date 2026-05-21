@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldConstantConfigurable;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.utils.ReorderType;
@@ -61,6 +61,25 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
     // runtime
     @Nullable
     protected Type dataTypeCache;
+
+    /**
+     * Optional per-port configurator override. When non-null, this is used by
+     * {@link #buildConfigurator} instead of resolving from {@code dataTypeHandle}. Set via
+     * {@code IInputPortBuilder.withConfigurable} or {@code IOptionBuilder.withConfigurable}.
+     * Not persisted — reapplied on every {@code defineNode} call.
+     */
+    @Setter @Nullable
+    protected ITypeConfigurable customTypeConfigurable;
+    /**
+     * Optional reflection field this port maps to. Surfaced by {@link #getValueField()} so the
+     * default configurator accessor can read annotations such as {@code @ConfigNumber}. Not
+     * persisted — reapplied on every {@code defineNode} call.
+     */
+    @Setter @Nullable
+    protected java.lang.reflect.Field valueField;
+    /** Object owner paired with {@link #valueField} for reflective annotation access. */
+    @Setter @Nullable
+    protected Object valueOwer;
 
     public PortModel(PortNodeModel nodeModel,
                      PortDirection direction,
@@ -586,5 +605,20 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
         if (this.graphModel != null) {
             this.graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.DATA);
         }
+    }
+
+    @Override
+    public @Nullable ITypeConfigurable getCustomTypeConfigurable() {
+        return customTypeConfigurable;
+    }
+
+    @Override
+    public java.lang.reflect.Field getValueField() {
+        return valueField;
+    }
+
+    @Override
+    public Object getValueOwer() {
+        return valueOwer;
     }
 }

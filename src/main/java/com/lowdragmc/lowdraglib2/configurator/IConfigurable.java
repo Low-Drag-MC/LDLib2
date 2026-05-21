@@ -35,6 +35,21 @@ public interface IConfigurable {
     }
 
     /**
+     * Creates a history recorder for this configurable. Returning {@code null} disables
+     * history tracking for this configurable in the inspector.
+     * <p>
+     * Default implementation returns {@link IConfigurableHistory#ofSerializable(INBTSerializable)}
+     * when this instance implements {@link INBTSerializable}, otherwise {@code null}.
+     */
+    @Nullable
+    default IConfigurableHistory createHistoryRecorder() {
+        if (this instanceof INBTSerializable<?> serializable) {
+            return IConfigurableHistory.ofSerializable(serializable);
+        }
+        return null;
+    }
+
+    /**
      * Obtain the name of this configurable
      */
     default String getConfigurableName() {

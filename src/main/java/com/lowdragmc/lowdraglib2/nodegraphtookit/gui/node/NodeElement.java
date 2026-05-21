@@ -67,6 +67,7 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
 
     public NodeElement(AbstractNodeModel nodeModel) {
         super(nodeModel);
+        addClass("__node-element__");
     }
 
     @Override
@@ -89,11 +90,11 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
 
     @Override
     protected void buildUI() {
-        getLayout().positionType(TaffyPosition.ABSOLUTE);
-        getStyle().background(Sprites.RECT_SOLID);
+        // Node uses ABSOLUTE positioning so position can be driven by model coordinates — pin via IMPORTANT.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
+        Style.defaultPipeline(getStyle(), s -> s.background(Sprites.RECT_SOLID));
 
         addChildren(nodeTittle, nodeOptionContainer, portContainerElement);
-        internalSetup();
     }
 
     // endregion
@@ -116,9 +117,13 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
     @Override
     public void updateUIFromModel(ModelUpdateVisitor visitor) {
         var model = getModel();
-        // update layout
+        // update layout — node position is model data, so write at IMPORTANT.
         if (visitor.hasHint(ChangeHint.LAYOUT)) {
-            getLayout().left(model.getPosition().x).top(model.getPosition().y);
+            Style.importantPipeline(getLayout(), l -> l.left(model.getPosition().x).top(model.getPosition().y));
+            // Per-instance min-width floor — only applied when the model opts into resizing.
+            if (model.isResizable()) {
+                Style.importantPipeline(getLayout(), l -> l.minWidth(model.getMinWidth()));
+            }
         }
     }
 

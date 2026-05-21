@@ -35,6 +35,9 @@ public abstract class BlockNodeModel extends NodeModel {
         setCapability(Capabilities.MOVABLE, false);
         setCapability(Capabilities.ASCENDABLE, false);
         setCapability(Capabilities.NEEDS_CONTAINER, true);
+        // Blocks size to their parent context's column; user-resizable min-width would fight
+        // that layout.
+        setCapability(Capabilities.RESIZABLE, false);
     }
 
     /** Convenience: returns the user-facing block node, if this model wraps one. */

@@ -23,6 +23,7 @@ public class ConstantNodeEditorElement extends ModelElement {
 
     public ConstantNodeEditorElement(ConstantNodeModel constantNodeModel) {
         this.constantNodeModel = constantNodeModel;
+        addClass("__constant-node-editor__");
         editor = new FieldValueInspector();
         addChild(editor);
     }

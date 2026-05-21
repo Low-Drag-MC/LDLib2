@@ -92,7 +92,6 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
 
         saveButton.setOnClick(e -> notifySaved());
         saveButton.setText("ldlib.gui.editor.menu.save");
-        saveButton.textStyle(style -> style.textColor(ColorPattern.GRAY.color));
         saveButton.setActive(false);
 
         // graphView fills remaining space
@@ -121,8 +120,8 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
      * auto-removes them from any previous parent when re-parented.
      */
     private void attachOverlayToHeader(GraphView view) {
-        view.header.select("#header-left").findFirst().ifPresent(e -> e.addChildAt(saveButton, 0));
-        view.header.select("#header-center").findFirst().ifPresent(e -> e.addChild(breadcrumb));
+        view.header.select(".__node-graph-view_header-left__").findFirst().ifPresent(e -> e.addChildAt(saveButton, 0));
+        view.header.select(".__node-graph-view_header-center__").findFirst().ifPresent(e -> e.addChild(breadcrumb));
     }
 
     /** Current (topmost) view in the subgraph navigation stack — always non-null after construction. */
@@ -253,13 +252,11 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
     public void markAsDirty() {
         isDirty = true;
         saveButton.setActive(true);
-        saveButton.textStyle(style -> style.textColor(ColorPattern.WHITE.color));
     }
 
     public void clearDirty() {
         isDirty = false;
         saveButton.setActive(false);
-        saveButton.textStyle(style -> style.textColor(ColorPattern.GRAY.color));
     }
 
     /**
