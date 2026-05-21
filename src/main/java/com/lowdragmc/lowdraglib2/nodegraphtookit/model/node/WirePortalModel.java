@@ -39,6 +39,9 @@ public abstract class WirePortalModel extends NodeModel implements IHasDeclarati
         capabilities.add(Capabilities.RENAMABLE);
         capabilities.remove(Capabilities.COLLAPSIBLE);
         capabilities.remove(Capabilities.COLORABLE);
+        // Portals are compact capsule-shaped nodes; a user min-width floor would distort the
+        // capsule shape with no useful payload inside.
+        capabilities.remove(Capabilities.RESIZABLE);
     }
 
     public DeclarationModel getDeclarationModel() {

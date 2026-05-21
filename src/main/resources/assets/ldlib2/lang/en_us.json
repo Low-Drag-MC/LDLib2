@@ -435,8 +435,8 @@
   "view.close.info": "Close view",
   "view.save_before_close.info": "Save before close",
   "TextStyle": "Text Style",
-  "GraphView.fit": "Fit View",
-  "UIEditor.selection_box": "Show/Hide Selection Box",
+  "GraphView.": "Fit View",
+  "UIEditfitor.selection_box": "Show/Hide Selection Box",
   "UIEditor.simulation": "Simulation",
   "builtin_styles": "Builtin Styles",
   "UIElement.class": "Class",
@@ -556,5 +556,7 @@
   "graph.add_block": "Add Block",
   "graph.double_click_add": "Double Click to Add",
   "graph.library.blocks": "Blocks",
-  "graph.library.contexts": "Contexts"
+  "graph.library.contexts": "Contexts",
+  "graph.min_width": "Min Width",
+  "graph.snap_to_grid": "Snap to Grid"
 }

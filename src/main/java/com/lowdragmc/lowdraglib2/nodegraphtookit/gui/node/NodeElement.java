@@ -116,6 +116,10 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
         // update layout — node position is model data, so write at IMPORTANT.
         if (visitor.hasHint(ChangeHint.LAYOUT)) {
             Style.importantPipeline(getLayout(), l -> l.left(model.getPosition().x).top(model.getPosition().y));
+            // Per-instance min-width floor — only applied when the model opts into resizing.
+            if (model.isResizable()) {
+                Style.importantPipeline(getLayout(), l -> l.minWidth(model.getMinWidth()));
+            }
         }
     }
 

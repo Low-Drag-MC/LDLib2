@@ -8,9 +8,11 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.PortElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
@@ -159,6 +161,40 @@ public class WireElement extends GraphElement<WireModel> {
         }).filter(Objects::nonNull).toList();
     }
 
+    /**
+     * Resolves a port's wire-endpoint position in world coordinates. Normally projects to the
+     * port connector's centre; when the owning node is collapsed, projects to the node title
+     * bar's edge instead (left edge for INPUT, right edge for OUTPUT) so wires stay visually
+     * attached after the port row is hidden.
+     *
+     * <p>Note: {@code getWorldMouse} expects <em>absolute</em> layout coords (the cumulative sum
+     * up the parent chain that {@link com.lowdragmc.lowdraglib2.gui.ui.UIElement#getPositionX()}
+     * returns) — not coords local to the element. Passing local coords here would make the wire
+     * land near the global origin.</p>
+     */
+    private Vector2f resolvePortEndpoint(PortModel port) {
+        var graphView = getGraphView();
+        if (graphView == null) return new Vector2f();
+        var nodeModel = port.getNodeModel();
+        boolean collapsed = nodeModel instanceof AbstractNodeModel anm && anm.isCollapsed();
+        if (collapsed && graphView.getModelElement(nodeModel) instanceof NodeElement nodeElement
+                && nodeElement.getNodeTittle() != null) {
+            var title = nodeElement.getNodeTittle();
+            boolean isOutput = port.getDirection() == PortDirection.OUTPUT;
+            float absX = title.getPositionX() + (isOutput ? title.getSizeWidth() : 0f);
+            float absY = title.getPositionY() + title.getSizeHeight() / 2f;
+            return title.getWorldMouse(absX, absY);
+        }
+        if (graphView.getModelElement(port) instanceof PortElement portElement) {
+            var portConnector = portElement.getConnector().getConnectorIcon();
+            return portElement.getWorldMouse(
+                    portConnector.getPositionX() + portConnector.getSizeWidth() / 2,
+                    portConnector.getPositionY() + portConnector.getSizeHeight() / 2
+            );
+        }
+        return new Vector2f();
+    }
+
     protected void updatePortPosition() {
         var graphView = getGraphView();
         if (graphView == null) return;
@@ -173,13 +209,7 @@ public class WireElement extends GraphElement<WireModel> {
                 fromWorldPos = ghostWire.getFromWorldPoint();
             }
         } else {
-            if (graphView.getModelElement(fromPort) instanceof PortElement portElement) {
-                var portConnector = portElement.getConnector().getConnectorIcon();
-                fromWorldPos = portElement.getWorldMouse(
-                        portConnector.getPositionX() + portConnector.getSizeWidth() / 2,
-                        portConnector.getPositionY() + portConnector.getSizeHeight() / 2
-                );
-            }
+            fromWorldPos = resolvePortEndpoint(fromPort);
         }
 
         Vector2f toWorldPos = new Vector2f();
@@ -188,13 +218,7 @@ public class WireElement extends GraphElement<WireModel> {
                 toWorldPos = ghostWire.getToWorldPoint();
             }
         } else {
-            if (graphView.getModelElement(toPort) instanceof PortElement portElement) {
-                var portConnector = portElement.getConnector().getConnectorIcon();
-                toWorldPos = portElement.getWorldMouse(
-                        portConnector.getPositionX() + portConnector.getSizeWidth() / 2,
-                        portConnector.getPositionY() + portConnector.getSizeHeight() / 2
-                );
-            }
+            toWorldPos = resolvePortEndpoint(toPort);
         }
 
         if (getParent() == null) return;

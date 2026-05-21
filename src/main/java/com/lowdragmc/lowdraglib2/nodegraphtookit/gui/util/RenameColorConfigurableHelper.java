@@ -1,11 +1,14 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util;
 
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.IResizeWidth;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ElementRenameColorCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
@@ -71,12 +74,24 @@ public final class RenameColorConfigurableHelper {
                                     layout.heightPercent(100);
                                     layout.setAspectRatio(1);
                                 })
+                                .addClass("__white_icon__")
                                 .style(style -> style.backgroundTexture(Icons.REPLAY)));
                 resetBtn.setActive(colored.hasUserColor());
                 colorConfigurator.inlineContainer.getLayout().flexDirection(FlexDirection.ROW);
                 colorConfigurator.colorPreview.getLayout().flex(1);
                 colorConfigurator.inlineContainer.addChild(resetBtn);
                 group.addConfigurator(colorConfigurator);
+            }
+            if (model.isResizable() && model instanceof IResizeWidth resizable) {
+                group.addConfigurator(new NumberConfigurator(
+                        "graph.min_width",
+                        resizable::getMinWidth,
+                        v -> resizable.setMinWidth(v.floatValue()),
+                        0f,
+                        true)
+                        .setRange(0, 2000)
+                        .setWheel(1)
+                        .setType(ConfigNumber.Type.FLOAT));
             }
         });
     }

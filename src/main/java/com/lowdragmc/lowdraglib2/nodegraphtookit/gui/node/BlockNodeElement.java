@@ -10,8 +10,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.BlockCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 
 /**
@@ -24,7 +22,7 @@ import dev.vfyjxf.taffy.style.TaffyPosition;
  * {@code Blackboard.onItemNodeCreated} — top/bottom-half hover decides the insertion side, the
  * overlay shown comes from {@link TreeList#createDraggingOverlay}.</p>
  */
-public class BlockNodeElement extends NodeElement {
+public class BlockNodeElement extends CollapsibleInOutNodeElement {
     /** Drag payload — identifies the block being reordered. */
     public record DraggingBlock(BlockNodeModel block) {}
 
@@ -39,17 +37,6 @@ public class BlockNodeElement extends NodeElement {
     @Override
     public BlockNodeModel getModel() {
         return (BlockNodeModel) super.getModel();
-    }
-
-    @Override
-    protected void buildPartList() {
-        parts.add(this.nodeTittle = new NodeTitleElement(getModel()));
-        if (getModel() instanceof NodeModel nodeModel) {
-            parts.add(this.nodeOptionContainer = new NodeOptionsInspector(nodeModel));
-        }
-        if (getModel() instanceof PortNodeModel portNodeNode) {
-            parts.add(this.portContainerElement = new InOutPortContainerElement(portNodeNode, PortContainerElement.HORIZONTAL_PORT_FILTER));
-        }
     }
 
     @Override

@@ -422,3 +422,8 @@ ToggleSelectorConfigurator toggle {
 .__node-graph-view_canvas-view__ {
   color: #555;
 }
+
+.__node-title_collapse-toggle__ {
+  width: 10;
+  height: 10;
+}

@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -49,6 +50,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.function.Consumers;
@@ -113,6 +115,13 @@ public class GraphView extends UIElement {
     protected boolean isWireDragging = false;
     @Getter
     protected HistoryStack historyStack = new HistoryStack();
+
+    /** When true, drag-moved and newly-created elements snap their positions to {@link #gridSnapSize}. */
+    @Getter @Setter
+    private boolean snapToGrid = false;
+    /** Pixel granularity for snap-to-grid alignment. Runtime-mutable; default 16. */
+    @Getter @Setter
+    private float gridSnapSize = 16f;
 
 
     public GraphView() {
@@ -193,14 +202,28 @@ public class GraphView extends UIElement {
         rightSection.addClass("__node-graph-view_header-right__");
         Style.defaultPipeline(rightSection.getLayout(), l -> l.flexDirection(FlexDirection.ROW)
                 .justifyContent(AlignContent.FLEX_END)
+                .gapAll(2)
                 .heightPercent(100)
                 .flex(1));
+        var snapToggle = new Toggle();
+        snapToggle.addClass("__node-graph-view_header-snap-toggle__");
+        snapToggle.noText()
+                .setOn(snapToGrid, false)
+                .setOnToggleChanged(this::setSnapToGrid);
+        Style.defaultPipeline(snapToggle.getToggleStyle(), style -> style.baseTexture(Sprites.BORDER1_RT1_DARK)
+                .hoverTexture(Sprites.BORDER1_RT1)
+                .markTexture(Icons.GRID)
+                .unmarkTexture(Icons.GRID.copy().setColor(ColorPattern.GRAY.color)));
+        Style.defaultPipeline(snapToggle.getLayout(), l -> l.width(14).heightPercent(100));
+        Style.defaultPipeline(snapToggle.getStyle(), s -> s.tooltips("graph.snap_to_grid"));
+        rightSection.addChild(snapToggle);
+
         var fitBtn = new Button();
         fitBtn.noText().setOnClick(event -> fitGraphChildren());
         fitBtn.addClass("__node-graph-view_header-fit-button__");
         Style.defaultPipeline(fitBtn.getLayout(), l -> l.width(14));
         Style.defaultPipeline(fitBtn.getStyle(), s -> s.tooltips("GraphView.fit"));
-        var fitIcon = new UIElement();
+        var fitIcon = new UIElement().addClass("__white_icon__");
         fitIcon.addClass("__node-graph-view_header-fit-icon__");
         Style.defaultPipeline(fitIcon.getLayout(), l -> l.heightPercent(100).setAspectRatio(1));
         Style.defaultPipeline(fitIcon.getStyle(), s -> s.backgroundTexture(Icons.PAGE_FIT));
@@ -800,6 +823,17 @@ public class GraphView extends UIElement {
         return !isMenuOpen && super.isSelfOrChildHover();
     }
 
+    /**
+     * Rounds a canvas-local position to the snap grid. Returns the input unchanged when snap is
+     * disabled. Returns a new {@link Vector2f}; the input is not mutated.
+     */
+    public Vector2f snapPosition(Vector2f pos) {
+        if (!snapToGrid || gridSnapSize <= 0) return new Vector2f(pos);
+        return new Vector2f(
+                Math.round(pos.x / gridSnapSize) * gridSnapSize,
+                Math.round(pos.y / gridSnapSize) * gridSnapSize);
+    }
+
     protected void onDragSourceUpdate(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof DragMove dragMove) {
             var offset = new Vector2f(event.x - event.dragStartX, event.y - event.dragStartY);
@@ -816,7 +850,7 @@ public class GraphView extends UIElement {
             for (var model : dragMove.movables) {
                 var ele = modelElements.get(model);
                 if (ele != null && model instanceof IMovable movable) {
-                    var newPos = localOffset.add(movable.getPosition(), new Vector2f());
+                    var newPos = snapPosition(localOffset.add(movable.getPosition(), new Vector2f()));
                     Style.importantPipeline(ele.getLayout(), l -> l.left(newPos.x).top(newPos.y));
                 }
             }
@@ -1002,13 +1036,17 @@ public class GraphView extends UIElement {
         }
 
         // Validated — dispatch the actual import.
-        var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
+        var localPosition = snapPosition(
+                getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(event.x, event.y)));
         dispatchCommand(new ImportExternalSubgraphCommand(draggingGraph.path(), localPosition));
     }
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder = TreeBuilder.Menu.start();
-        var localPosition = getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY));
+        // Newly-created elements align to the snap grid the same way drag-moved ones do, so the
+        // canvas stays grid-consistent regardless of how the user adds content.
+        var localPosition = snapPosition(
+                getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY)));
 
         // "Add Node" is always available
         menuBuilder.leaf("graph.commands.add_node", () -> {
@@ -1202,7 +1240,18 @@ public class GraphView extends UIElement {
                     dispatchCommand(new GraphCommands.DeleteElementsCommand(wiresToDelete));
                 }
             });
-            case "graph.toggle_collapse" -> null; // TODO
+            case "graph.toggle_collapse" -> {
+                var nodes = selectedModels.stream()
+                        .filter(AbstractNodeModel.class::isInstance)
+                        .map(AbstractNodeModel.class::cast)
+                        .filter(GraphElementModel::isCollapsible)
+                        .toList();
+                if (nodes.isEmpty()) yield null;
+                // Target state mirrors the first node — collapse the whole batch when the first
+                // is expanded, expand when the first is already collapsed.
+                var target = !nodes.get(0).isCollapsed();
+                yield item.withAction(() -> nodes.forEach(n -> n.setCollapsed(target)));
+            }
             default -> {
                 // If the item already has an action, use it directly
                 if (item.getAction() != null) yield item;

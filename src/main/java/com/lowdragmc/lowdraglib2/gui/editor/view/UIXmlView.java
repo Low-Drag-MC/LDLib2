@@ -108,7 +108,7 @@ public class UIXmlView extends View {
                                 new UIElement().layout(layout -> {
                                     layout.heightPercent(100);
                                     layout.setAspectRatio(1);
-                                }).style(style -> style.backgroundTexture(Icons.PAGE_FIT))),
+                                }).style(style -> style.backgroundTexture(Icons.PAGE_FIT)).addClass("__white_icon__")),
                         // selection box toggle
                         new Toggle()
                                 .setText("")

@@ -17,11 +17,11 @@
 }
 
 // button
-button:host > element { //icon?
+button:host > .__white_icon__ { //icon?
   color: #222;
 }
 
-.__icon__ {
+button.__white_icon__ > .__icon__ { //icon?
   color: #222;
 }
 
@@ -532,4 +532,9 @@ ToggleSelectorConfigurator toggle {
 
 .__node-graph-view_canvas-view__ {
   color: #555;
+}
+
+.__node-title_collapse-toggle__ {
+  width: 10;
+  height: 10;
 }

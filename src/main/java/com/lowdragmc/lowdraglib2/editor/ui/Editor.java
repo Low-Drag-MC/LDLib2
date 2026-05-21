@@ -183,6 +183,7 @@ public abstract class Editor extends UIElement {
                             layout.marginRight(1);
                         }).addChildren(
                                 closeButton.noText().addPreIcon(Icons.WINDOW_CLOSE).layout(layout -> layout.height(12))
+                                        .addClass("__white_icon__")
                         ).addClass("__editor_top_button-container__")
                 ),
                 mainView.layout(layout -> {
