@@ -60,7 +60,7 @@ public class CollapsibleInOutNodeElement extends NodeElement {
                     l -> l.display(collapsed ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
         }
         if (portContainerElement != null) {
-            StylemportantPipeline(portContainerElement.getLayout(),
+            Style.importantPipeline(portContainerElement.getLayout(),
                     l -> l.display(collapsed ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
         }
     }
