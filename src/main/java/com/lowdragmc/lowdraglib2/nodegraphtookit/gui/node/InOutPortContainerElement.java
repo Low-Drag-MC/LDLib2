@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.InputOutputPortsNodeModel;
@@ -22,15 +23,18 @@ public class InOutPortContainerElement extends PortContainerElement {
 
     public InOutPortContainerElement(PortNodeModel portNodeModel, Predicate<PortModel> portFilter) {
         super(portNodeModel, portFilter);
+        addClass("__in-out-port-container__");
     }
 
     @Override
     protected void buildUI() {
-        getLayout().flexDirection(FlexDirection.ROW);
+        Style.defaultPipeline(getLayout(), l -> l.flexDirection(FlexDirection.ROW));
 
         inputPortContainer = new PortContainer();
-        inputPortContainer.getStyle().background(Sprites.RECT_LIGHT);
+        inputPortContainer.addClass("__in-out-port-container_input__");
+        Style.defaultPipeline(inputPortContainer.getStyle(), s -> s.background(Sprites.RECT_LIGHT));
         outputPortContainer = new PortContainer();
+        outputPortContainer.addClass("__in-out-port-container_output__");
         addChildren(inputPortContainer, outputPortContainer);
     }
 

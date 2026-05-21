@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -32,6 +33,7 @@ public class BlockNodeElement extends NodeElement {
 
     public BlockNodeElement(BlockNodeModel blockNodeModel) {
         super(blockNodeModel);
+        addClass("__block-node__");
     }
 
     @Override
@@ -54,14 +56,13 @@ public class BlockNodeElement extends NodeElement {
     protected void buildUI() {
         super.buildUI();
         if (nodeTittle != null) {
-            nodeTittle.getStyle().background(Sprites.RECT_RD_T);
+            Style.defaultPipeline(nodeTittle.getStyle(), s -> s.background(Sprites.RECT_RD_T));
         }
-        // Override the ABSOLUTE positioning that NodeElement sets — blocks flow inside their
-        // parent's vertical container, not at canvas-absolute coordinates.
-        getLayout().positionType(TaffyPosition.RELATIVE).left(0).top(0);
+        // Override the parent's IMPORTANT ABSOLUTE positioning — blocks flow inside their parent's
+        // vertical container. Must also be IMPORTANT to outrank the inherited absolute pin.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.RELATIVE).left(0).top(0));
         // Subtle visual differentiation so blocks read as nested inside the context.
         wireDragReorder();
-        internalSetup();
     }
 
     private void wireDragReorder() {
@@ -79,27 +80,28 @@ public class BlockNodeElement extends NodeElement {
         }, true);
 
         // Highlight insertion point — top half of target = insert before, bottom half = insert after.
+        // Drag-overlay feedback must outrank stylesheet to remain visible during drag, hence IMPORTANT.
         addEventListener(UIEvents.DRAG_ENTER, e -> {
             if (e.dragHandler.getDraggingObject() instanceof DraggingBlock(var dragged)
                     && isSameContextSibling(dragged)) {
-                e.currentElement.style(s -> s.overlayTexture(TreeList.createDraggingOverlay(insertMode(e))));
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(TreeList.createDraggingOverlay(insertMode(e))));
             }
         }, true);
         addEventListener(UIEvents.DRAG_UPDATE, e -> {
             if (e.dragHandler.getDraggingObject() instanceof DraggingBlock(var dragged)
                     && isSameContextSibling(dragged)) {
-                e.currentElement.style(s -> s.overlayTexture(TreeList.createDraggingOverlay(insertMode(e))));
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(TreeList.createDraggingOverlay(insertMode(e))));
             } else {
-                e.currentElement.style(s -> s.overlayTexture(IGuiTexture.EMPTY));
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY));
             }
         });
         addEventListener(UIEvents.DRAG_LEAVE, e ->
-                e.currentElement.style(s -> s.overlayTexture(IGuiTexture.EMPTY)), true);
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY)), true);
         addEventListener(UIEvents.DRAG_END, e ->
-                e.currentElement.style(s -> s.overlayTexture(IGuiTexture.EMPTY)));
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY)));
 
         addEventListener(UIEvents.DRAG_PERFORM, e -> {
-            e.currentElement.style(s -> s.overlayTexture(IGuiTexture.EMPTY));
+            Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY));
             if (!(e.dragHandler.getDraggingObject() instanceof DraggingBlock(var dragged))) return;
             var target = getModel();
             var parent = target.getContextNodeModel();

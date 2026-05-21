@@ -1,11 +1,13 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,13 +21,13 @@ public class NodeOptionsInspector extends ModelElement {
 
     public NodeOptionsInspector(NodeModel nodeModel) {
         this.nodeModel = nodeModel;
+        addClass("__node-option-container__");
     }
 
     @Override
     protected void buildUI() {
         super.buildUI();
-        this.setId("node-option-container");
-        this.getLayout().paddingAll(3).gapAll(2).flexGrow(1);
+        Style.defaultPipeline(getLayout(), l -> l.paddingAll(3).gapAll(2).flexGrow(1));
     }
 
     @Override
@@ -33,7 +35,8 @@ public class NodeOptionsInspector extends ModelElement {
         if (shouldRebuildFields()) {
             buildFields();
         }
-        setDisplay(!mutableFieldInfos.isEmpty());
+        // Hide entire inspector when no field rows exist — data-driven.
+        Style.importantPipeline(getLayout(), l -> l.display(mutableFieldInfos.isEmpty() ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
     }
 
     protected boolean shouldRebuildFields() {

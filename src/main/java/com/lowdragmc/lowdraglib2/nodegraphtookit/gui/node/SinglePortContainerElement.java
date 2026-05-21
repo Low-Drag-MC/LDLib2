@@ -27,6 +27,7 @@ public class SinglePortContainerElement extends ModelElement {
 
     public SinglePortContainerElement(PortModel portModel) {
         this.portModel = portModel;
+        addClass("__single-port-container__");
     }
 
     @Override

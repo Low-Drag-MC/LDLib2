@@ -555,5 +555,6 @@
   "graph.toggle_collapse": "Toggle Collapse",
   "graph.add_block": "Add Block",
   "graph.double_click_add": "Double Click to Add",
-  "graph.library.blocks": "Blocks"
+  "graph.library.blocks": "Blocks",
+  "graph.library.contexts": "Contexts"
 }

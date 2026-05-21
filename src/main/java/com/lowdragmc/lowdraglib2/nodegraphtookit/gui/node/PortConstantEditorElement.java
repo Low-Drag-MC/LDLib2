@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
@@ -7,6 +8,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.WirePortalModel;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,6 +25,7 @@ public class PortConstantEditorElement extends ModelElement {
 
     public PortConstantEditorElement(PortModel portModel) {
         this.portModel = portModel;
+        addClass("__port-constant-editor__");
     }
 
     /**
@@ -36,7 +39,7 @@ public class PortConstantEditorElement extends ModelElement {
     @Override
     protected void buildUI() {
         super.buildUI();
-        getLayout().flexGrow(1);
+        Style.defaultPipeline(getLayout(), l -> l.flexGrow(1));
         if (isPortRequireEditor()) {
             buildConstantEditor();
         }
@@ -109,9 +112,10 @@ public class PortConstantEditorElement extends ModelElement {
                 }
                 editor.setActive(!ancestorIsConnected && !allSubPortsConnected);
             }
-            this.setDisplay(!hideEditor);
+            // Hide editor when port is connected (data-driven) — pin via IMPORTANT.
+            Style.importantPipeline(getLayout(), l -> l.display(hideEditor ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
         } else {
-            this.setDisplay(false);
+            Style.importantPipeline(getLayout(), l -> l.display(TaffyDisplay.NONE));
         }
     }
 }

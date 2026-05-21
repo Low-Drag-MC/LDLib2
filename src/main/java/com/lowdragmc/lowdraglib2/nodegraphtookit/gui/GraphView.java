@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
@@ -45,6 +46,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -114,30 +116,36 @@ public class GraphView extends UIElement {
 
 
     public GraphView() {
-        this.graphView.getLayout().widthPercent(100).heightPercent(100);
-        this.panelLayer.getLayout().positionType(TaffyPosition.ABSOLUTE).width(0).height(0);
+        addClass("__node-graph-view__");
+
+        graphView.addClass("__node-graph-view_canvas-view__");
+        Style.defaultPipeline(this.graphView.getLayout(), l -> l.widthPercent(100).heightPercent(100));
+
+        panelLayer.addClass("__node-graph-view_panel-layer__");
+        Style.defaultPipeline(this.panelLayer.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE).width(0).height(0));
+
         // header initial
-        header.layout(layout -> {
-            layout.widthPercent(100);
-            layout.height(16);
-            layout.paddingAll(1);
-            layout.flexDirection(FlexDirection.ROW);
-        });
-        header.style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
         header.addClass("__ui-editor-view_header__");
+        Style.defaultPipeline(header.getLayout(), l -> l
+                .widthPercent(100)
+                .height(16)
+                .paddingAll(1)
+                .flexDirection(FlexDirection.ROW));
+        Style.defaultPipeline(header.getStyle(), s -> s.backgroundTexture(Sprites.RECT_SOLID));
         initHeaders();
 
         // canvas
-        canvas.getLayout().widthPercent(100).flex(1);
+        canvas.addClass("__node-graph-view_canvas__");
+        Style.defaultPipeline(canvas.getLayout(), l -> l.widthPercent(100).flex(1));
 
         graphView.addEventListener(UIEvents.MOUSE_DOWN, this::onGraphViewMouseDown);
         graphView.addEventListener(UIEvents.MOUSE_UP, this::onGraphViewMouseUp);
         graphView.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onGraphViewDragSourceUpdate);
         graphView.addEventListener(UIEvents.DRAG_END, this::onGraphViewDragEnd);
         graphView.addEventListener(UIEvents.DRAG_PERFORM, this::onGraphViewDragPerform);
-        fallbackLayer.setId("fallback-layer");
+        fallbackLayer.addClass("__node-graph-view_fallback-layer__");
         fallbackLayer.setAllowHitTest(false);
-        fallbackLayer.getLayout().positionType(TaffyPosition.ABSOLUTE);
+        Style.defaultPipeline(fallbackLayer.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
         graphView.addContentChild(fallbackLayer);
         setLayers(List.of(PlacematElement.PLACEMAT_LAYER, WireElement.WIRE_LAYER, NodeElement.NODE_LAYER, StickyNoteElement.STICKY_NOTE_LAYER));
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSourceUpdate);
@@ -148,7 +156,8 @@ public class GraphView extends UIElement {
 
         setEnforceFocus(Consumers.nop());
 
-        itemLibrary.setDisplay(false);
+        // ItemLibrary is hidden until explicitly shown — popup visibility is state-driven.
+        Style.importantPipeline(itemLibrary.getLayout(), l -> l.display(TaffyDisplay.NONE));
         inspector.setHistoryStack(historyStack);
 
         initPanels();
@@ -158,41 +167,47 @@ public class GraphView extends UIElement {
 
 
     protected void initHeaders() {
-        header.addChildren(
-                // left
-                new UIElement().setId("header-left").layout(layout -> {
-                    layout.flexDirection(FlexDirection.ROW);
-                    layout.heightPercent(100);
-                    layout.flex(1);
-                }).addChildren(
-                        new Button().setText("Undo")
-                                .setOnClick(event -> historyStack.undo())
-                                .layout(layout -> layout.width(30))
-                                .style(style -> style.tooltips("Ctrl+Z")),
-                        new Button().setText("Redo")
-                                .setOnClick(event -> historyStack.redo())
-                                .layout(layout -> layout.width(30))
-                                .style(style -> style.tooltips("Ctrl+Y / Ctrl+Shift+Z"))
-                ),
-                // center
-                new UIElement().setId("header-center").layout(layout -> layout.heightPercent(100)),
-                // right
-                new UIElement().setId("header-right").layout(layout -> {
-                    layout.flexDirection(FlexDirection.ROW);
-                    layout.justifyContent(AlignContent.FLEX_END);
-                    layout.heightPercent(100);
-                    layout.flex(1);
-                }).addChildren(
-                        // page fit button
-                        new Button().noText().setOnClick(event -> fitGraphChildren())
-                                .layout(layout -> layout.width(14))
-                                .style(style -> style.tooltips("GraphView.fit")).addChild(
-                                        new UIElement().layout(layout -> {
-                                            layout.heightPercent(100);
-                                            layout.setAspectRatio(1);
-                                        }).style(style -> style.backgroundTexture(Icons.PAGE_FIT)))
-                )
-        );
+        // left section
+        var leftSection = new UIElement();
+        leftSection.addClass("__node-graph-view_header-left__");
+        Style.defaultPipeline(leftSection.getLayout(), l -> l.flexDirection(FlexDirection.ROW).heightPercent(100).flex(1));
+        var undoBtn = new Button();
+        undoBtn.setText("Undo").setOnClick(event -> historyStack.undo());
+        undoBtn.addClass("__node-graph-view_header-undo__");
+        Style.defaultPipeline(undoBtn.getLayout(), l -> l.width(30));
+        Style.defaultPipeline(undoBtn.getStyle(), s -> s.tooltips("Ctrl+Z"));
+        var redoBtn = new Button();
+        redoBtn.setText("Redo").setOnClick(event -> historyStack.redo());
+        redoBtn.addClass("__node-graph-view_header-redo__");
+        Style.defaultPipeline(redoBtn.getLayout(), l -> l.width(30));
+        Style.defaultPipeline(redoBtn.getStyle(), s -> s.tooltips("Ctrl+Y / Ctrl+Shift+Z"));
+        leftSection.addChildren(undoBtn, redoBtn);
+
+        // center section
+        var centerSection = new UIElement();
+        centerSection.addClass("__node-graph-view_header-center__");
+        Style.defaultPipeline(centerSection.getLayout(), l -> l.heightPercent(100));
+
+        // right section
+        var rightSection = new UIElement();
+        rightSection.addClass("__node-graph-view_header-right__");
+        Style.defaultPipeline(rightSection.getLayout(), l -> l.flexDirection(FlexDirection.ROW)
+                .justifyContent(AlignContent.FLEX_END)
+                .heightPercent(100)
+                .flex(1));
+        var fitBtn = new Button();
+        fitBtn.noText().setOnClick(event -> fitGraphChildren());
+        fitBtn.addClass("__node-graph-view_header-fit-button__");
+        Style.defaultPipeline(fitBtn.getLayout(), l -> l.width(14));
+        Style.defaultPipeline(fitBtn.getStyle(), s -> s.tooltips("GraphView.fit"));
+        var fitIcon = new UIElement();
+        fitIcon.addClass("__node-graph-view_header-fit-icon__");
+        Style.defaultPipeline(fitIcon.getLayout(), l -> l.heightPercent(100).setAspectRatio(1));
+        Style.defaultPipeline(fitIcon.getStyle(), s -> s.backgroundTexture(Icons.PAGE_FIT));
+        fitBtn.addChild(fitIcon);
+        rightSection.addChild(fitBtn);
+
+        header.addChildren(leftSection, centerSection, rightSection);
     }
 
     protected void initPanels() {
@@ -218,9 +233,13 @@ public class GraphView extends UIElement {
         layers.clear();
         for (var layerName : layerOrder) {
             var layer = new UIElement();
+            // setId is preserved here because getLayer() looks layers up by id-as-key, but we also
+            // expose an internal class so stylesheets can target each layer.
             layer.setId(layerName);
+            layer.addClass("__node-graph-view_layer__");
+            layer.addClass("__node-graph-view_layer-" + layerName.toLowerCase() + "__");
             layer.setAllowHitTest(false);
-            layer.getLayout().positionType(TaffyPosition.ABSOLUTE);
+            Style.defaultPipeline(layer.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
             graphView.addContentChild(layer);
             layers.put(layerName, layer);
         }
@@ -533,8 +552,10 @@ public class GraphView extends UIElement {
         layer.addChild(element);
         wireSelectableElement(element);
         if (model instanceof IMovable movable) {
-            // position
-            element.getLayout().positionType(TaffyPosition.ABSOLUTE).left(movable.getPosition().x).top(movable.getPosition().y);
+            // position is driven by the model — pin via IMPORTANT.
+            Style.importantPipeline(element.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
+                    .left(movable.getPosition().x)
+                    .top(movable.getPosition().y));
         }
         return true;
     }
@@ -786,7 +807,7 @@ public class GraphView extends UIElement {
                 for (var model : dragMove.movables) {
                     var ele = modelElements.get(model);
                     if (ele != null && model instanceof IMovable movable) {
-                        ele.getLayout().left(movable.getPosition().x).top(movable.getPosition().y);
+                        Style.importantPipeline(ele.getLayout(), l -> l.left(movable.getPosition().x).top(movable.getPosition().y));
                     }
                 }
                 return;
@@ -796,7 +817,7 @@ public class GraphView extends UIElement {
                 var ele = modelElements.get(model);
                 if (ele != null && model instanceof IMovable movable) {
                     var newPos = localOffset.add(movable.getPosition(), new Vector2f());
-                    ele.getLayout().left(newPos.x).top(newPos.y);
+                    Style.importantPipeline(ele.getLayout(), l -> l.left(newPos.x).top(newPos.y));
                 }
             }
         }
@@ -872,15 +893,16 @@ public class GraphView extends UIElement {
             if (event.bubbleListeners.size() == 1) {
                 // clear selection if click on empty space
                 clearAllSelected();
-                // start drag selection
+                // start drag selection — transient drag-rect feedback, pinned via IMPORTANT.
                 var selectionRect = new UIElement();
-                selectionRect.getLayout().positionType(TaffyPosition.ABSOLUTE)
+                selectionRect.addClass("__node-graph-view_drag-selection__");
+                Style.importantPipeline(selectionRect.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
                         .width(0)
-                        .height(0);
-                selectionRect.getStyle().background(new SDFRectTexture().setStroke(0.5f)
+                        .height(0));
+                Style.importantPipeline(selectionRect.getStyle(), s -> s.background(new SDFRectTexture().setStroke(0.5f)
                         .setColor(ColorPattern.T_LIGHT_BLUE.color)
                         .setBorderColor(ColorPattern.LIGHT_BLUE.color)
-                );
+                ));
                 graphView.startDrag(new DragRegionSelection(selectionRect), null);
                 graphView.addChild(selectionRect);
             }
@@ -897,14 +919,13 @@ public class GraphView extends UIElement {
                 if (menu.isEmpty()) return;
                 isMenuOpen = true;
                 var layoutOffset = mui.ui.rootElement.worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
-                mui.ui.rootElement.addChildren(new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
+                var contextMenu = new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
                         .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
                         .setOnNodeClicked(TreeBuilder.Menu::handle)
-                        .setOnClose(() -> isMenuOpen = false)
-                        .layout(layout -> {
-                            layout.left(layoutOffset.x);
-                            layout.top(layoutOffset.y);
-                        }));
+                        .setOnClose(() -> isMenuOpen = false);
+                contextMenu.addClass("__node-graph-view_context-menu__");
+                Style.importantPipeline(contextMenu.getLayout(), l -> l.left(layoutOffset.x).top(layoutOffset.y));
+                mui.ui.rootElement.addChild(contextMenu);
             }
         }
     }
@@ -917,11 +938,14 @@ public class GraphView extends UIElement {
             var width = Math.abs(event.dragStartX - event.x);
             var height = Math.abs(event.dragStartY - event.y);
             var localSize = graphView.getLocalMouseNormal(width, height);
-            selectionRect.getLayout()
-                    .left(localMouse.x - graphView.getContentX())
-                    .top(localMouse.y - graphView.getContentY())
+            // Live drag-rect geometry — data-driven.
+            float rectLeft = localMouse.x - graphView.getContentX();
+            float rectTop = localMouse.y - graphView.getContentY();
+            Style.importantPipeline(selectionRect.getLayout(), l -> l
+                    .left(rectLeft)
+                    .top(rectTop)
                     .width(localSize.x)
-                    .height(localSize.y);
+                    .height(localSize.y));
             var localGraphMouse = getContentViewContainer().getLocalMouse(minX, minY);
             var localGraphSize = getContentViewContainer().getLocalMouseNormal(width, height);
             dragRegionSelection = new Vector4f(localGraphMouse.x, localGraphMouse.y, localGraphSize.x, localGraphSize.y);
@@ -1401,17 +1425,12 @@ public class GraphView extends UIElement {
         if (mui == null) return;
 
         var colorSelector = new com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector();
-        colorSelector.style(style -> {
-            style.setPipelineState(com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.DEFAULT);
-            style.backgroundTexture(Sprites.RECT_SOLID);
-            style.setPipelineState(com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.INLINE);
-        });
+        colorSelector.addClass("__node-graph-view_color-popup__");
         colorSelector.addClass("panel_bg");
-        colorSelector.layout(layout -> {
-            layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.width(150);
-            layout.paddingAll(4);
-        });
+        Style.defaultPipeline(colorSelector.getStyle(), s -> s.backgroundTexture(Sprites.RECT_SOLID));
+        Style.defaultPipeline(colorSelector.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
+                .width(150)
+                .paddingAll(4));
         colorSelector.setFocusable(true);
         // Close on focus loss — same dismissal model the Menu uses.
         colorSelector.setEnforceFocus(e -> colorSelector.removeSelf());
@@ -1421,10 +1440,8 @@ public class GraphView extends UIElement {
 
         var worldPos = getContentViewContainer().localToWorld(localPosition);
         var rootOffset = mui.ui.rootElement.worldToLocalLayoutOffset(worldPos);
-        colorSelector.layout(layout -> {
-            layout.left(rootOffset.x);
-            layout.top(rootOffset.y);
-        });
+        // Popup position is data-driven by mouse — pin via IMPORTANT.
+        Style.importantPipeline(colorSelector.getLayout(), l -> l.left(rootOffset.x).top(rootOffset.y));
         mui.ui.rootElement.addChild(colorSelector);
         colorSelector.focus();
     }

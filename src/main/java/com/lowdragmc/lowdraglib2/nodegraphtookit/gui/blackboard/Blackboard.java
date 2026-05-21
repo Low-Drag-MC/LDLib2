@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard;
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
@@ -57,11 +58,13 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
 
     public Blackboard(GraphView graphView) {
         this.graphView = graphView;
-        this.getLayout().widthPercent(100).heightPercent(100);
+        addClass("__blackboard__");
+        Style.defaultPipeline(getLayout(), l -> l.widthPercent(100).heightPercent(100));
 
-        scrollerView.viewPort.getLayout().paddingAll(0);
+        scrollerView.addClass("__blackboard_scroller__");
+        Style.defaultPipeline(scrollerView.viewPort.getLayout(), l -> l.paddingAll(0));
         scrollerView.viewPort.getStyle().background(IGuiTexture.EMPTY);
-        scrollerView.getLayout().widthPercent(100).heightPercent(100);
+        Style.defaultPipeline(scrollerView.getLayout(), l -> l.widthPercent(100).heightPercent(100));
 
         treeList.setStaticTree(true);
         treeList.setFlattenRoot(true);
@@ -218,14 +221,14 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
         nodeUI.addEventListener(UIEvents.DRAG_ENTER, e -> {
             if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
                 var mode = TreeList.isMouseOverNodeAbove(e) ? 0 : TreeList.isMouseOverNodeCenter(e) ? 1 : TreeList.isMouseOverNodeBelow(e) ? 2 : -1;
-                e.currentElement.style(style -> style.overlayTexture(TreeList.createDraggingOverlay(mode)));
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(TreeList.createDraggingOverlay(mode)));
             }
         }, true);
         nodeUI.addEventListener(UIEvents.DRAG_LEAVE, e -> {
-            e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+            Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY));
         }, true);
         nodeUI.addEventListener(UIEvents.DRAG_END, e -> {
-            e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+            Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY));
             if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && graphView != null && graphView.graphView.isSelfOrChildHover()) {
                 // drag into graph view
                 if (dragged.getKey() instanceof VariableDeclarationModelBase variableModel) {
@@ -236,13 +239,13 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
         nodeUI.addEventListener(UIEvents.DRAG_UPDATE, e -> {
             if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
                 var mode = TreeList.isMouseOverNodeAbove(e) ? 0 : TreeList.isMouseOverNodeCenter(e) ? 1 : TreeList.isMouseOverNodeBelow(e) ? 2 : -1;
-                e.currentElement.style(style -> style.overlayTexture(TreeList.createDraggingOverlay(mode)));
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(TreeList.createDraggingOverlay(mode)));
             } else {
-                e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+                Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY));
             }
         });
         nodeUI.addEventListener(UIEvents.DRAG_PERFORM, e -> {
-            e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+            Style.importantPipeline(e.currentElement.getStyle(), s -> s.overlayTexture(IGuiTexture.EMPTY));
             if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
                 performGroupItemDrop(dragged, node, e);
             }
@@ -358,13 +361,12 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
                 var menu = createMenu();
                 if (menu.isEmpty()) return;
                 var layoutOffset = mui.ui.rootElement.worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
-                mui.ui.rootElement.addChildren(new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
+                var contextMenu = new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
                         .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
-                        .setOnNodeClicked(TreeBuilder.Menu::handle)
-                        .layout(layout -> {
-                            layout.left(layoutOffset.x);
-                            layout.top(layoutOffset.y);
-                        }));
+                        .setOnNodeClicked(TreeBuilder.Menu::handle);
+                contextMenu.addClass("__blackboard_context-menu__");
+                Style.importantPipeline(contextMenu.getLayout(), l -> l.left(layoutOffset.x).top(layoutOffset.y));
+                mui.ui.rootElement.addChild(contextMenu);
             }
         }
     }

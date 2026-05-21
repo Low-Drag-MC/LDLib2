@@ -40,6 +40,8 @@ public class Configurator extends UIElement {
 
     @Nullable
     protected Supplier<Supplier<?>> copyFunction;
+    @Setter
+    protected boolean copyDirect = false;
     @Nullable
     protected Predicate<Class<?>> canPaste;
     @Nullable
@@ -165,6 +167,11 @@ public class Configurator extends UIElement {
         return this;
     }
 
+    public Configurator setCopiableDirect(Object value) {
+        this.copyDirect = true;
+        return setCopiable(() -> () -> value);
+    }
+
     public Configurator setPastable(Predicate<Class<?>> canPaste, Consumer<?> onPaste) {
         this.canPaste = canPaste;
         this.onPaste = onPaste;
@@ -201,9 +208,14 @@ public class Configurator extends UIElement {
     protected TreeBuilder.Menu createMenu() {
         var menu = TreeBuilder.Menu.start();
         if (copyFunction != null) {
-            menu.leaf(Icons.COPY, Component.translatable("ldlib.gui.editor.menu.copy.type", copyFunction.get().get().getClass().getSimpleName()), () -> {
+            var copyValue = copyFunction.get().get();
+            menu.leaf(Icons.COPY, Component.translatable("ldlib.gui.editor.menu.copy.type", copyValue.getClass().getSimpleName()), () -> {
                 try {
-                    ClipboardManager.INSTANCE.copy(copyFunction.get());
+                    if (copyDirect) {
+                        ClipboardManager.INSTANCE.copyDirect(copyValue);
+                    } else {
+                        ClipboardManager.INSTANCE.copy(copyFunction.get());
+                    }
                 } catch (Exception ignored) {}
             });
         }

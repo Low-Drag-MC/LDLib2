@@ -35,7 +35,7 @@ public class AppearanceSettings implements Settings {
     @Configurable
     @ConfigSearch(searchConfiguratorMethod = "searchStyles")
     @Getter @Setter
-    private ResourceLocation stylesheet = StylesheetManager.GDP;
+    private ResourceLocation stylesheet = StylesheetManager.ORE;
     @Persisted(key = "windowSize")
     @Getter @Setter
     private int screenScale = -1;

@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper.ResizeHandle;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -62,12 +63,15 @@ public class GraphPanel extends UIElement {
 
     public GraphPanel(GraphView graphView, IGraphTool initial) {
         this.graphView = graphView;
+        addClass("__graph-panel__");
 
-        getLayout().positionType(TaffyPosition.ABSOLUTE)
-                .width(DEFAULT_PANEL_W).height(DEFAULT_PANEL_H).paddingAll(2);
-        getStyle().background(new ColorRectTexture(0xAA000000));
+        // Panel is positioned absolutely by the dock manager — pin via IMPORTANT.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
+        Style.defaultPipeline(getLayout(), l -> l.width(DEFAULT_PANEL_W).height(DEFAULT_PANEL_H).paddingAll(2));
+        Style.defaultPipeline(getStyle(), s -> s.background(new ColorRectTexture(0xAA000000)));
 
-        collapseToggle.getLayout().height(9);
+        collapseToggle.addClass("__graph-panel_collapse-toggle__");
+        Style.inlinePipeline(collapseToggle.getLayout(), l -> l.height(9));
         collapseToggle.noText().setOnToggleChanged(this::setCollapsed);
         collapseToggle.toggleStyle(toggleStyle -> toggleStyle
                 .baseTexture(IGuiTexture.EMPTY)
@@ -75,18 +79,22 @@ public class GraphPanel extends UIElement {
                 .markTexture(Icons.RIGHT_ARROW_NO_BAR_S_WHITE)
                 .unmarkTexture(Icons.DOWN_ARROW_NO_BAR_S_WHITE));
 
-        title.getLayout().flexGrow(1);
-        title.setOverflowVisible(false);
+        title.addClass("__graph-panel_title__");
+        Style.defaultPipeline(title.getLayout(), l -> l.flexGrow(1));
+        Style.defaultPipeline(title.getStyle(), s -> s.overflowVisible(false));
 
-        titleBar.getLayout().flexDirection(FlexDirection.ROW);
+        titleBar.addClass("__graph-panel_title-bar__");
+        Style.defaultPipeline(titleBar.getLayout(), l -> l.flexDirection(FlexDirection.ROW));
         titleBar.addChildren(collapseToggle, title);
 
-        tabView.layout(layout -> layout.widthPercent(100).heightPercent(100));
+        tabView.addClass("__graph-panel_tab-view__");
+        Style.defaultPipeline(tabView.getLayout(), l -> l.widthPercent(100).heightPercent(100));
         tabView.setOnTabSelected(t -> updateTitleFromActiveTab());
         tabView.tabContentContainer.getStyle().background(IGuiTexture.EMPTY);
-        tabView.tabContentContainer.getLayout().flex(1);
+        Style.defaultPipeline(tabView.tabContentContainer.getLayout(), l -> l.flex(1));
 
-        content.getLayout().flex(1);
+        content.addClass("__graph-panel_content__");
+        Style.defaultPipeline(content.getLayout(), l -> l.flex(1));
         content.addChild(tabView);
 
         addChildren(titleBar, content);
@@ -114,7 +122,6 @@ public class GraphPanel extends UIElement {
         applySlotLayout();
 
         setFocusable(true);
-        internalSetup();
     }
 
     // region tools
@@ -123,10 +130,10 @@ public class GraphPanel extends UIElement {
         if (toolTabs.containsKey(tool)) return this;
         tools.add(tool);
         var tab = new Tab();
-        tab.getTabStyle()
+        Style.defaultPipeline(tab.getTabStyle(), s -> s
                 .baseTexture(IGuiTexture.EMPTY)
                 .hoverTexture(new ColorRectTexture(0x22ffffff))
-                .selectedTexture(new ColorRectTexture(0x44ffffff));
+                .selectedTexture(new ColorRectTexture(0x44ffffff)));
         tab.text.setText(tool.getTitle());
         tabView.addTab(tab, tool.getUIElement());
         toolTabs.put(tool, tab);
@@ -160,8 +167,10 @@ public class GraphPanel extends UIElement {
     }
 
     private void updateTabHeaderVisibility() {
-        // Hide the tab header strip when only a single tool is present — the GraphPanel's own title bar suffices.
-        tabView.tabHeaderContainer.setDisplay(tools.size() > 1);
+        // Hide the tab header strip when only a single tool is present — state-driven by tool count.
+        var visible = tools.size() > 1;
+        Style.importantPipeline(tabView.tabHeaderContainer.getLayout(),
+                l -> l.display(visible ? TaffyDisplay.FLEX : TaffyDisplay.NONE));
     }
 
     private void updateTitleFromActiveTab() {
@@ -197,7 +206,8 @@ public class GraphPanel extends UIElement {
             if (size != null) {
                 getStyleBag().removeCandidates(LayoutProperties.WIDTH, s -> s.origin() == StyleOrigin.IMPORTANT);
                 getStyleBag().removeCandidates(LayoutProperties.HEIGHT, s -> s.origin() == StyleOrigin.IMPORTANT);
-                getLayout().width(Math.max(20f, size.x)).height(Math.max(20f, size.y));
+                // Per-slot remembered size — write as DEFAULT so subsequent user resize via IMPORTANT can override.
+                Style.defaultPipeline(getLayout(), l -> l.width(Math.max(20f, size.x)).height(Math.max(20f, size.y)));
             }
         }
         applySlotLayout();
@@ -244,7 +254,9 @@ public class GraphPanel extends UIElement {
             case BOTTOM_RIGHT -> { left = cx + cw - w;    top = cy + ch - h; }
             default -> { return; }
         }
-        getLayout().left(left).top(top);
+        // Slot anchoring — position is data-driven by the dock manager.
+        float fLeft = left, fTop = top;
+        Style.importantPipeline(getLayout(), l -> l.left(fLeft).top(fTop));
     }
 
     // endregion
@@ -319,11 +331,11 @@ public class GraphPanel extends UIElement {
         graphView.getPanelLayer().addChild(newPanel);
 
         if (target == DockSlot.CENTER) {
-            // Land at the drop point (panelLayer-local coordinates).
+            // Land at the drop point (panelLayer-local coordinates). Data-driven drop position.
             var layer = graphView.getPanelLayer();
             float lx = e.x - layer.getPositionX() - 30f;
             float ly = e.y - layer.getPositionY() - 8f;
-            newPanel.getLayout().left(lx).top(ly);
+            Style.importantPipeline(newPanel.getLayout(), l -> l.left(lx).top(ly));
         }
         graphView.dockManager.dock(newPanel, target);
     }
@@ -354,7 +366,8 @@ public class GraphPanel extends UIElement {
         if (target == DockSlot.CENTER) {
             // Drop IMPORTANT width/height left over from collapse so left/top take effect.
             var off = titleBar.getLocalMouseNormal(e.x - e.dragStartX, e.y - e.dragStartY);
-            getLayout().left(dp.startLeft + off.x).top(dp.startTop + off.y);
+            float nx = dp.startLeft + off.x, ny = dp.startTop + off.y;
+            Style.importantPipeline(getLayout(), l -> l.left(nx).top(ny));
         }
     }
 
@@ -376,13 +389,14 @@ public class GraphPanel extends UIElement {
     public void setCollapsed(boolean collapsed) {
         if (this.isCollapsed == collapsed) return;
         if (collapsed) {
-            content.setDisplay(false);
-            title.getTextStyle().adaptiveWidth(true);
+            // Collapse hides content and shrinks the panel to fit its title — state-driven.
+            Style.importantPipeline(content.getLayout(), l -> l.display(TaffyDisplay.NONE));
+            Style.importantPipeline(title.getTextStyle(), s -> s.adaptiveWidth(true));
             Style.importantPipeline(getLayout(), l -> l.widthAuto().heightAuto());
         } else {
-            content.setDisplay(true);
-            title.getLayout().widthAuto();
-            title.getTextStyle().adaptiveWidth(false);
+            Style.importantPipeline(content.getLayout(), l -> l.display(TaffyDisplay.FLEX));
+            Style.importantPipeline(title.getLayout(), l -> l.widthAuto());
+            Style.importantPipeline(title.getTextStyle(), s -> s.adaptiveWidth(false));
             getStyleBag().removeCandidates(LayoutProperties.WIDTH, s -> s.origin() == StyleOrigin.IMPORTANT);
             getStyleBag().removeCandidates(LayoutProperties.HEIGHT, s -> s.origin() == StyleOrigin.IMPORTANT);
         }

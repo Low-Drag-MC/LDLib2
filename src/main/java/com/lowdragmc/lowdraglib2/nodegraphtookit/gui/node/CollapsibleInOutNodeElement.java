@@ -8,6 +8,7 @@ public class CollapsibleInOutNodeElement extends NodeElement {
 
     public CollapsibleInOutNodeElement(AbstractNodeModel nodeModel) {
         super(nodeModel);
+        addClass("__collapsible-in-out-node__");
     }
 
     @Override

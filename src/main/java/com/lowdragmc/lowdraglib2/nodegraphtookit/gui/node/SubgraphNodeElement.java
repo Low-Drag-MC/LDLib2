@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
@@ -9,6 +10,7 @@ public class SubgraphNodeElement extends CollapsibleInOutNodeElement {
 
     public SubgraphNodeElement(SubgraphNodeModel nodeModel) {
         super(nodeModel);
+        addClass("__subgraph-node__");
 
         // Double-click on a subgraph node enters its inner graph. View-level navigation —
         // intentionally not routed through the command/history system so per-level history is kept
@@ -30,8 +32,7 @@ public class SubgraphNodeElement extends CollapsibleInOutNodeElement {
     protected void buildUI() {
         super.buildUI();
         if (nodeTittle != null) {
-            nodeTittle.getStyle().background(Sprites.TAB_WHITE);
+            Style.defaultPipeline(nodeTittle.getStyle(), s -> s.background(Sprites.TAB_WHITE));
         }
-        internalSetup();
     }
 }

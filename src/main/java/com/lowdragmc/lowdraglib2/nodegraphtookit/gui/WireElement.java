@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
@@ -39,6 +40,7 @@ public class WireElement extends GraphElement<WireModel> {
 
     public WireElement(WireModel wireModel) {
         super(wireModel);
+        addClass("__wire__");
     }
 
     @Override
@@ -51,8 +53,8 @@ public class WireElement extends GraphElement<WireModel> {
     @Override
     protected void buildUI() {
         super.buildUI();
-        getLayout().positionType(TaffyPosition.ABSOLUTE);
-        internalSetup();
+        // Wire is absolutely positioned at coordinates computed from connected port positions — IMPORTANT.
+        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
     }
 
     // endregion
@@ -234,11 +236,13 @@ public class WireElement extends GraphElement<WireModel> {
 
             var x = minX - border;
             var y = minY - border;
-            getLayout()
-                    .left(x)
-                    .top(y)
-                    .width(maxX - minX + 2 * border)
-                    .height(maxY - minY + 2 * border);
+            float fX = x, fY = y, fW = maxX - minX + 2 * border, fH = maxY - minY + 2 * border;
+            // Wire bounds computed from connected port positions — pin via IMPORTANT.
+            Style.importantPipeline(getLayout(), l -> l
+                    .left(fX)
+                    .top(fY)
+                    .width(fW)
+                    .height(fH));
             var offset = new Vector2f(getParent().getPositionX(), getParent().getPositionY());
             var realFrom = from.add(offset, new Vector2f());
             var realTo = to.add(offset, new Vector2f());

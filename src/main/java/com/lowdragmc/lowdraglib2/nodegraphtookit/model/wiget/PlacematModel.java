@@ -22,7 +22,7 @@ public class PlacematModel extends GraphElementModel implements IMovable, IHasNa
     @Persisted @Getter
     private String name = "Placemat";
     @Persisted @Getter
-    private int elementColor = 0xaa2E2E2E;
+    private int elementColor = 0x90606aee;
     @Persisted @Getter
     private boolean userColor = false;
     @Persisted @Getter

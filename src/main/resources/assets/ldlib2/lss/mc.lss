@@ -347,3 +347,78 @@ ToggleSelectorConfigurator toggle {
 .__array-configurator_item_selected__ {
   background: built-in(ui-mc:RECT_BORDER);
 }
+
+// node graph
+
+.__blackboard-var-prop_title-bar__ {
+  background: built-in(ui-mc:RECT_BORDER);
+}
+
+.__blackboard-var-prop_content__ {
+  background: built-in(ui-mc:BORDER);
+  padding-all: 6;
+}
+
+.__node-title-element__ {
+  background: built-in(ui-mc:BORDER_4);
+  padding-vertical: 5;
+  padding-horizontal: 5;
+}
+
+.__node-graph-view_canvas__ {
+  background: #191919;
+}
+
+.__node-port-container__ {
+  background: built-in(ui-mc:RECT_3);
+}
+
+.__in-out-port-container_input__ {
+  background: built-in(ui-mc:RECT_THIN);
+}
+
+.__in-out-port-container_output__ {
+  background: built-in(ui-mc:RECT_BORDER)
+}
+
+.__node-element__ {
+  background: built-in(ui-mc:RECT_THIN);
+}
+
+.__capsule-node__ {
+  background: built-in(ui-mc:RECT_BORDER);
+  height: 18;
+}
+
+.__capsule-node__ .__node-title-element__ {
+  background: empty;
+}
+
+.__capsule-node__ .__node-port-container__ {
+  background: empty;
+}
+
+.__context-node__ > .__node-title-element__ {
+  background: built-in(ui-mc:BORDER_2);
+  height: 29;
+}
+
+.__block-node__ > .__node-title-element__ {
+  background: built-in(ui-mc:BORDER);
+}
+
+.__block-list-container__ {
+  background: built-in(ui-mc:RECT_2);
+}
+
+.__subgraph-node__ .__node-title-element__ {
+  background: built-in(ui-mc:RECT_BLACK);
+}
+
+.__item-library__ {
+  background: built-in(ui-mc:RECT);
+}
+
+.__node-graph-view_canvas-view__ {
+  color: #555;
+}

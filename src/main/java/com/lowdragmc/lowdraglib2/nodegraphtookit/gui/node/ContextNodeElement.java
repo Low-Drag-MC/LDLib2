@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
 import dev.vfyjxf.taffy.style.AlignContent;
@@ -17,6 +18,7 @@ public class ContextNodeElement extends CollapsibleInOutNodeElement {
 
     public ContextNodeElement(ContextNodeModel nodeModel) {
         super(nodeModel);
+        addClass("__context-node__");
     }
 
     @Override
@@ -29,7 +31,7 @@ public class ContextNodeElement extends CollapsibleInOutNodeElement {
         parts.add(this.nodeTittle = new NodeTitleElement(getModel()));
         var model = getModel();
         parts.add(this.nodeOptionContainer = new NodeOptionsInspector(model));
-        parts.add(this.portContainerElement = new PortContainerElement(model, PortContainerElement.HORIZONTAL_PORT_FILTER));
+        parts.add(this.portContainerElement = new InOutPortContainerElement(model, PortContainerElement.HORIZONTAL_PORT_FILTER));
         parts.add(this.blockListContainer = new BlockListContainerElement(model));
     }
 
@@ -37,13 +39,13 @@ public class ContextNodeElement extends CollapsibleInOutNodeElement {
     protected void buildUI() {
         super.buildUI();
         if (nodeTittle != null) {
-            nodeTittle.getStyle().background(Sprites.BORDER1_THICK_RT1);
-            nodeTittle.getLayout().justifyContent(AlignContent.CENTER).height(25);
+            Style.defaultPipeline(nodeTittle.getStyle(), s -> s.background(Sprites.BORDER1_THICK_RT1));
+            Style.defaultPipeline(nodeTittle.getLayout(), l -> l.justifyContent(AlignContent.CENTER).height(25));
             if (nodeTittle.titleContainer != null) {
-                nodeTittle.titleContainer.getLayout().justifyContent(AlignContent.CENTER);
+                Style.defaultPipeline(nodeTittle.titleContainer.getLayout(), l -> l.justifyContent(AlignContent.CENTER));
             }
             if (nodeTittle.nodeTittle != null) {
-                nodeTittle.nodeTittle.getTextStyle().fontSize(12);
+                Style.defaultPipeline(nodeTittle.nodeTittle.getTextStyle(), s -> s.fontSize(12));
             }
         }
         if (blockListContainer != null) addChild(blockListContainer);
