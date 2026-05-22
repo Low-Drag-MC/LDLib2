@@ -201,7 +201,11 @@ public class ModularUI {
         element.nodeId = taffyTree.newLeaf(element.getTaffyStyle().style);
         elementByNode.put(element.nodeId, element);
         if (element.getParent() != null) {
-            taffyTree.insertChildAtIndex(element.getParent().nodeId, element.getSiblingIndex(), element.nodeId);
+            var parentID = element.getParent().nodeId;
+            // parent may belong to another tree is invalid
+            if (taffyTree.containsNode(parentID)) {
+                taffyTree.insertChildAtIndex(parentID, element.getSiblingIndex(), element.nodeId);
+            }
         }
 
         // Register by ID if present and not empty

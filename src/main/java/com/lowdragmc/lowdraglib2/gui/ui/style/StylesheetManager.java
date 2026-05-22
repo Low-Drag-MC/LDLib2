@@ -56,6 +56,10 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
         rebuildMergedStylesheets();
     }
 
+    public Collection<ResourceLocation> getAllBuiltinStylesheets() {
+        return builtinStylesheets.keySet();
+    }
+
     /**
      * Returns all stylesheets loaded from resource packs, keyed by their exact resource location.
      * Built-in and merged stylesheet names are not included.
