@@ -81,11 +81,11 @@ progress-bar:host {
 }
 
 // slot
-item-slot {
+item-slot, .item-slot_bg {
   background: built-in(ui-mc:RECT_1);
 }
 
-fluid-slot {
+fluid-slot, .fluid-slot_bg {
   background: built-in(ui-mc:RECT_2);
 }
 

@@ -140,11 +140,11 @@ progress-bar:host {
 }
 
 // slot
-item-slot {
+item-slot, .item-slot_bg {
   background: built-in(ui-ore:SLOT_LIGHT);
 }
 
-fluid-slot {
+fluid-slot, .fluid-slot_bg {
   background: built-in(ui-ore:SLOT_GRAY);
 }
 

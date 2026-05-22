@@ -35,7 +35,7 @@ public class AppearanceSettings implements Settings {
     @Configurable
     @ConfigSearch(searchConfiguratorMethod = "searchStyles")
     @Getter @Setter
-    private ResourceLocation stylesheet = StylesheetManager.ORE;
+    private ResourceLocation stylesheet = StylesheetManager.ORE_MERGED;
     @Persisted(key = "windowSize")
     @Getter @Setter
     private int screenScale = -1;
@@ -106,7 +106,7 @@ public class AppearanceSettings implements Settings {
             @Override
             @Nonnull
             public ResourceLocation defaultValue() {
-                return StylesheetManager.GDP;
+                return StylesheetManager.ORE_MERGED;
             }
 
             @Override
@@ -115,6 +115,9 @@ public class AppearanceSettings implements Settings {
                 for (var key : StylesheetManager.INSTANCE.getAllPackStylesheets()) {
                     if (Thread.currentThread().isInterrupted()) return;
                     if (key.toString().toLowerCase().contains(lowerWord)) {
+                        if (key.getPath().endsWith(StylesheetManager.PATH)) {
+                            key = key.withPath(key.getPath().substring(0, key.getPath().length() - StylesheetManager.PATH.length() - 1));
+                        }
                         searchHandler.acceptResult(key);
                     }
                 }

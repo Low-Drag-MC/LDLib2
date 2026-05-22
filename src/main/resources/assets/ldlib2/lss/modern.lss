@@ -99,12 +99,12 @@ progress-bar:host label {
 }
 
 // slot
-item-slot {
+item-slot, .item-slot_bg {
   background: sdf(#55565b, 3, 1, #00ffffff);
   hover-overlay: sdf(#80FFFFFF, 2);
 }
 
-fluid-slot {
+fluid-slot, .fluid-slot_bg {
   background: sdf(#3a3a3F, 0, 1, #55565b);
 }
 
