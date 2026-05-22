@@ -48,7 +48,6 @@ public interface IConfigurable {
      * Default implementation returns {@link IConfigurableHistory#ofSerializable(INBTSerializable)}
      * when this instance implements {@link INBTSerializable}, otherwise {@code null}.
      */
-    @OnlyIn(Dist.CLIENT)
     @Nullable
     default IConfigurableHistory createHistoryRecorder() {
         if (this instanceof INBTSerializable<?> serializable) {

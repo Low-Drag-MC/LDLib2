@@ -2,8 +2,6 @@ package com.lowdragmc.lowdraglib2.configurator;
 
 import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,7 +11,6 @@ import org.jetbrains.annotations.Nullable;
  * Returned by {@link IConfigurable#createHistoryRecorder()}; if a configurable returns {@code null}
  * the inspector skips history recording for it.
  */
-@OnlyIn(Dist.CLIENT)
 public interface IConfigurableHistory {
 
     /**
