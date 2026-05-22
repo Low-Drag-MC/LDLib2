@@ -156,7 +156,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * Whether it is allowed to create {@link VariableDeclarationModelBase} and add them to the graph.
      */
     public boolean allowExposedVariableCreation() {
-        return false;
+        return true;
     }
 
     /**
