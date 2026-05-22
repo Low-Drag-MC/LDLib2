@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -36,13 +35,13 @@ public record EditorLayout(SplittableWindow.LayoutConfig layoutConfig, List<Slot
         }
 
         public static SlotEntry deserialize(CompoundTag tag) {
-            var path = tag.getString("path");
+            var path = tag.getStringOr("path", "");
             var names = new ArrayList<String>();
-            var list = tag.getList("viewNames", Tag.TAG_STRING);
+            var list = tag.getListOrEmpty("viewNames");
             for (int i = 0; i < list.size(); i++) {
-                names.add(list.getString(i));
+                names.add(list.getStringOr(i, ""));
             }
-            var selected = tag.contains("selected") ? tag.getString("selected") : null;
+            var selected = tag.getString("selected").orElse(null);
             return new SlotEntry(path, names, selected);
         }
     }
@@ -59,11 +58,11 @@ public record EditorLayout(SplittableWindow.LayoutConfig layoutConfig, List<Slot
     }
 
     public static EditorLayout deserialize(CompoundTag tag) {
-        var layout = SplittableWindow.LayoutConfig.deserialize(tag.getCompound("layout"));
-        var list = tag.getList("slots", Tag.TAG_COMPOUND);
+        var layout = SplittableWindow.LayoutConfig.deserialize(tag.getCompound("layout").orElseGet(CompoundTag::new));
+        var list = tag.getListOrEmpty("slots");
         var slots = new ArrayList<SlotEntry>();
         for (int i = 0; i < list.size(); i++) {
-            slots.add(SlotEntry.deserialize(list.getCompound(i)));
+            slots.add(SlotEntry.deserialize(list.getCompound(i).orElseGet(CompoundTag::new)));
         }
         return new EditorLayout(layout, slots);
     }

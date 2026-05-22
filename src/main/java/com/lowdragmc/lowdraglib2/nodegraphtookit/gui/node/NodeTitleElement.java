@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Clip;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -42,7 +43,7 @@ public class NodeTitleElement extends ModelElement {
 
     @Override
     protected void buildUI() {
-        Style.defaultPipeline(getStyle(), style -> style.background(Sprites.BORDER_DARK).overflowVisible(false));
+        Style.defaultPipeline(getStyle(), style -> style.background(Sprites.BORDER_DARK).clip(Clip.SCISSOR));
         Style.defaultPipeline(getLayout(), layout -> layout.paddingVertical(3).paddingHorizontal(4));
 
         colorLine = new UIElement().addClass("__node-title_color-line__");

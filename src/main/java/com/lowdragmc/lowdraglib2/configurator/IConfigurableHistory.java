@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.configurator;
 
 import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -31,7 +31,7 @@ public interface IConfigurableHistory {
     /**
      * Default snapshot-based recorder backed by {@link SerializableRecordAction}.
      */
-    static <T extends INBTSerializable<?>> IConfigurableHistory ofSerializable(T serializable) {
+    static <T extends ValueIOSerializable> IConfigurableHistory ofSerializable(T serializable) {
         return (stack, name, source) -> {
             var action = stack.recordSerializableObject(name, serializable, source);
             return new Handle() {

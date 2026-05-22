@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Clip;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
@@ -27,7 +28,7 @@ public class BlackboardGroup extends BlackboardElement {
         Style.defaultPipeline(label.getTextStyle(), s -> s.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER));
         label.setText(groupModel.getName());
         Style.defaultPipeline(label.getLayout(), l -> l.heightPercent(100).flex(1));
-        Style.defaultPipeline(label.getStyle(), s -> s.overflowVisible(false));
+        Style.defaultPipeline(label.getStyle(), s -> s.clip(Clip.SCISSOR));
     }
 
     @Override

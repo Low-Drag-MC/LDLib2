@@ -377,10 +377,12 @@ public class AccessorRegistries {
                     .streamCodec(ByteBufCodecs.fromCodec(IRenderer.CODEC))
                     .build());
         }
-        // we only sync recipe holder id here
         registerAccessor(CustomDirectAccessor.builder(RecipeHolder.class)
-                .codec(LDLibExtraCodecs.RECIPE_HOLDER_ID)
-                .streamCodec(ByteBufCodecs.fromCodec(LDLibExtraCodecs.RECIPE_HOLDER_ID))
+                .codec(RecordCodecBuilder.create(instance -> instance.group(
+                        ResourceKey.codec(Registries.RECIPE).fieldOf("id").forGetter(RecipeHolder::id),
+                        Recipe.CODEC.fieldOf("recipe").forGetter(RecipeHolder::value)
+                ).apply(instance, RecipeHolder::new)))
+                .streamCodec((StreamCodec<RegistryFriendlyByteBuf, RecipeHolder>) (Object)RecipeHolder.STREAM_CODEC)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(Recipe.class, true)
                 .codec((Codec<Recipe>) (Object) Recipe.CODEC)

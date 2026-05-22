@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Clip;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
@@ -82,7 +83,7 @@ public class GraphPanel extends UIElement {
 
         title.addClass("__graph-panel_title__");
         Style.defaultPipeline(title.getLayout(), l -> l.flexGrow(1));
-        Style.defaultPipeline(title.getStyle(), s -> s.overflowVisible(false));
+        Style.defaultPipeline(title.getStyle(), s -> s.clip(Clip.SCISSOR));
 
         titleBar.addClass("__graph-panel_title-bar__");
         Style.defaultPipeline(titleBar.getLayout(), l -> l.flexDirection(FlexDirection.ROW));
