@@ -12,6 +12,14 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeOption;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.VariableNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.CustomCodecTestNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.EvAccessorFloatNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.EvCodecFloatNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.EvCodecValueANode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.EvCodecValueBNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.EvNoCodecNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.EvWithoutSerializationNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.SchemaEvolutionTestNodes;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestStringConcatNode;
@@ -20,6 +28,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.TestData;
 import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
@@ -34,6 +43,19 @@ public final class GraphSerializationGameTest {
     private static final String VARIABLE_INITIALIZATION = "graph_serialization_variable_initialization";
     private static final String CONSTANT_NODE_OWNER_AND_VALUE_PRESERVED = "graph_serialization_constant_node_owner_and_value_preserved";
     private static final String OPTION_DRIVEN_PORT_COUNT = "graph_serialization_option_driven_port_count";
+    private static final String PORT_CUSTOM_CODEC_ROUND_TRIP = "graph_serialization_port_custom_codec_round_trip";
+    private static final String PORT_WITHOUT_SERIALIZATION_RESETS_TO_DEFAULT = "graph_serialization_port_without_serialization_resets_to_default";
+    private static final String PORT_MISSING_ACCESSOR_SERIALIZES_GRACEFULLY = "graph_serialization_port_missing_accessor_serializes_gracefully";
+    private static final String PORT_WITHOUT_CONFIGURATOR_FLAGS_MODEL = "graph_serialization_port_without_configurator_flags_model";
+    private static final String EVOLUTION_CODEC_TO_NO_CODEC = "graph_serialization_evolution_codec_to_no_codec";
+    private static final String EVOLUTION_CODEC_TO_WITHOUT_SERIALIZATION = "graph_serialization_evolution_codec_to_without_serialization";
+    private static final String EVOLUTION_WITHOUT_SERIALIZATION_TO_CODEC = "graph_serialization_evolution_without_serialization_to_codec";
+    private static final String EVOLUTION_ACCESSOR_TO_CODEC = "graph_serialization_evolution_accessor_to_codec";
+    private static final String EVOLUTION_CODEC_TO_DIFFERENT_CODEC = "graph_serialization_evolution_codec_to_different_codec";
+    private static final String EVOLUTION_CORRUPT_VALUE_TAG = "graph_serialization_evolution_corrupt_value_tag";
+    private static final String CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE = "graph_serialization_codec_port_survives_multiple_define_node";
+    private static final String PORT_MISSING_ACCESSOR_WARNS_ONCE = "graph_serialization_port_missing_accessor_warns_once";
+    private static final String BACKWARD_COMPAT_LEGACY_NBT = "graph_serialization_backward_compat_legacy_nbt";
 
 
     private GraphSerializationGameTest() {
@@ -47,6 +69,19 @@ public final class GraphSerializationGameTest {
         NodeGraphGameTests.registerFunction(VARIABLE_INITIALIZATION, GraphSerializationGameTest::variableInitializationModelRoundTrip);
         NodeGraphGameTests.registerFunction(CONSTANT_NODE_OWNER_AND_VALUE_PRESERVED, GraphSerializationGameTest::constantNodeOwnerAndValuePreserved);
         NodeGraphGameTests.registerFunction(OPTION_DRIVEN_PORT_COUNT, GraphSerializationGameTest::optionDrivenPortCountSurvivesRoundTrip);
+        NodeGraphGameTests.registerFunction(PORT_CUSTOM_CODEC_ROUND_TRIP, GraphSerializationGameTest::portCustomCodecRoundTrip);
+        NodeGraphGameTests.registerFunction(PORT_WITHOUT_SERIALIZATION_RESETS_TO_DEFAULT, GraphSerializationGameTest::portWithoutSerializationResetsToDefault);
+        NodeGraphGameTests.registerFunction(PORT_MISSING_ACCESSOR_SERIALIZES_GRACEFULLY, GraphSerializationGameTest::portMissingAccessorSerializesGracefully);
+        NodeGraphGameTests.registerFunction(PORT_WITHOUT_CONFIGURATOR_FLAGS_MODEL, GraphSerializationGameTest::portWithoutConfiguratorFlagsModel);
+        NodeGraphGameTests.registerFunction(EVOLUTION_CODEC_TO_NO_CODEC, GraphSerializationGameTest::evolutionCodecToNoCodec);
+        NodeGraphGameTests.registerFunction(EVOLUTION_CODEC_TO_WITHOUT_SERIALIZATION, GraphSerializationGameTest::evolutionCodecToWithoutSerialization);
+        NodeGraphGameTests.registerFunction(EVOLUTION_WITHOUT_SERIALIZATION_TO_CODEC, GraphSerializationGameTest::evolutionWithoutSerializationToCodec);
+        NodeGraphGameTests.registerFunction(EVOLUTION_ACCESSOR_TO_CODEC, GraphSerializationGameTest::evolutionAccessorToCodec);
+        NodeGraphGameTests.registerFunction(EVOLUTION_CODEC_TO_DIFFERENT_CODEC, GraphSerializationGameTest::evolutionCodecToDifferentCodec);
+        NodeGraphGameTests.registerFunction(EVOLUTION_CORRUPT_VALUE_TAG, GraphSerializationGameTest::evolutionCorruptValueTag);
+        NodeGraphGameTests.registerFunction(CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE, GraphSerializationGameTest::codecPortSurvivesMultipleDefineNode);
+        NodeGraphGameTests.registerFunction(PORT_MISSING_ACCESSOR_WARNS_ONCE, GraphSerializationGameTest::portMissingAccessorWarnsOnce);
+        NodeGraphGameTests.registerFunction(BACKWARD_COMPAT_LEGACY_NBT, GraphSerializationGameTest::backwardCompatLegacyNbt);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
@@ -54,6 +89,23 @@ public final class GraphSerializationGameTest {
         NodeGraphGameTests.registerFunctionTest(event, ROUND_TRIP_PATH, NodeGraphGameTests.functionKey(ROUND_TRIP_PATH), testData);
         NodeGraphGameTests.registerFunctionTest(event, EMPTY_PATH, NodeGraphGameTests.functionKey(EMPTY_PATH), testData);
         NodeGraphGameTests.registerFunctionTest(event, PORT_CONSTANTS_PATH, NodeGraphGameTests.functionKey(PORT_CONSTANTS_PATH), testData);
+        NodeGraphGameTests.registerFunctionTest(event, TYPE_HANDLE_RESOLVE, NodeGraphGameTests.functionKey(TYPE_HANDLE_RESOLVE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, VARIABLE_INITIALIZATION, NodeGraphGameTests.functionKey(VARIABLE_INITIALIZATION), testData);
+        NodeGraphGameTests.registerFunctionTest(event, CONSTANT_NODE_OWNER_AND_VALUE_PRESERVED, NodeGraphGameTests.functionKey(CONSTANT_NODE_OWNER_AND_VALUE_PRESERVED), testData);
+        NodeGraphGameTests.registerFunctionTest(event, OPTION_DRIVEN_PORT_COUNT, NodeGraphGameTests.functionKey(OPTION_DRIVEN_PORT_COUNT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORT_CUSTOM_CODEC_ROUND_TRIP, NodeGraphGameTests.functionKey(PORT_CUSTOM_CODEC_ROUND_TRIP), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORT_WITHOUT_SERIALIZATION_RESETS_TO_DEFAULT, NodeGraphGameTests.functionKey(PORT_WITHOUT_SERIALIZATION_RESETS_TO_DEFAULT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORT_MISSING_ACCESSOR_SERIALIZES_GRACEFULLY, NodeGraphGameTests.functionKey(PORT_MISSING_ACCESSOR_SERIALIZES_GRACEFULLY), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORT_WITHOUT_CONFIGURATOR_FLAGS_MODEL, NodeGraphGameTests.functionKey(PORT_WITHOUT_CONFIGURATOR_FLAGS_MODEL), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EVOLUTION_CODEC_TO_NO_CODEC, NodeGraphGameTests.functionKey(EVOLUTION_CODEC_TO_NO_CODEC), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EVOLUTION_CODEC_TO_WITHOUT_SERIALIZATION, NodeGraphGameTests.functionKey(EVOLUTION_CODEC_TO_WITHOUT_SERIALIZATION), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EVOLUTION_WITHOUT_SERIALIZATION_TO_CODEC, NodeGraphGameTests.functionKey(EVOLUTION_WITHOUT_SERIALIZATION_TO_CODEC), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EVOLUTION_ACCESSOR_TO_CODEC, NodeGraphGameTests.functionKey(EVOLUTION_ACCESSOR_TO_CODEC), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EVOLUTION_CODEC_TO_DIFFERENT_CODEC, NodeGraphGameTests.functionKey(EVOLUTION_CODEC_TO_DIFFERENT_CODEC), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EVOLUTION_CORRUPT_VALUE_TAG, NodeGraphGameTests.functionKey(EVOLUTION_CORRUPT_VALUE_TAG), testData);
+        NodeGraphGameTests.registerFunctionTest(event, CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE, NodeGraphGameTests.functionKey(CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PORT_MISSING_ACCESSOR_WARNS_ONCE, NodeGraphGameTests.functionKey(PORT_MISSING_ACCESSOR_WARNS_ONCE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, BACKWARD_COMPAT_LEGACY_NBT, NodeGraphGameTests.functionKey(BACKWARD_COMPAT_LEGACY_NBT), testData);
     }
 
     private static void graphSerializationRoundTrip(GameTestHelper helper) {
@@ -433,8 +485,6 @@ public final class GraphSerializationGameTest {
      * Builder hook: {@code withCodec(...)} on a port whose value type has no registered accessor
      * must round-trip the value entirely through the supplied Mojang Codec.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portCustomCodecRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -445,10 +495,10 @@ public final class GraphSerializationGameTest {
         if (codecConstant == null) { helper.fail("codec_port constant missing pre-serialize"); return; }
         codecConstant.setValue(new CustomCodecTestNode.CodecValue(42, "hello"));
 
-        CompoundTag serialized = graph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graph.graphModel, provider);
 
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
 
         CustomNodeModelImpl restored = null;
         for (var n : graph2.graphModel.getNodeModels()) {
@@ -476,8 +526,6 @@ public final class GraphSerializationGameTest {
      * write, so a restored port has its constant re-initialised to the builder default rather
      * than the runtime-mutated value.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portWithoutSerializationResetsToDefault(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -489,10 +537,10 @@ public final class GraphSerializationGameTest {
         // Builder default is 1.0f; mutate to 99 to detect persistence.
         noSerConstant.setValue(99.0f);
 
-        CompoundTag serialized = graph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graph.graphModel, provider);
 
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
 
         CustomNodeModelImpl restored = null;
         for (var n : graph2.graphModel.getNodeModels()) {
@@ -520,8 +568,6 @@ public final class GraphSerializationGameTest {
      * throwing — the value is silently dropped (warn-once is logged elsewhere). Other ports on
      * the same node must still serialize normally.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portMissingAccessorSerializesGracefully(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -538,14 +584,14 @@ public final class GraphSerializationGameTest {
         // construction inside the no-accessor branch. Now it must complete normally.
         CompoundTag serialized;
         try {
-            serialized = graph.graphModel.serializeNBT(provider);
+            serialized = serializeGraph(graph.graphModel, provider);
         } catch (Exception e) {
             helper.fail("serializeNBT threw for a port without accessor or codec: " + e.getMessage());
             return;
         }
 
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
 
         CustomNodeModelImpl restored = null;
         for (var n : graph2.graphModel.getNodeModels()) {
@@ -572,8 +618,6 @@ public final class GraphSerializationGameTest {
      * Builder hook: {@code withoutConfigurator()} must propagate to the PortModel as
      * {@code configuratorEnabled == false}, so the inspector skips building a UI row for it.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portWithoutConfiguratorFlagsModel(GameTestHelper helper) {
         var graph = new TestGraph();
         var node = graph.graphModel.createNodeModel(new CustomCodecTestNode(), new Vector2f(0, 0));
@@ -603,8 +647,6 @@ public final class GraphSerializationGameTest {
      * codec → no-codec, no-accessor: load side has lost the codec; the encoded value can't decode.
      * Must: not throw, mark constant as deserializeFailed, drop incoming wires.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void evolutionCodecToNoCodec(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -620,13 +662,13 @@ public final class GraphSerializationGameTest {
         if (codecConst == null) { helper.fail("port constant missing pre-serialize"); return; }
         codecConst.setValue(new SchemaEvolutionTestNodes.EvCodecValueA(7, "saved"));
 
-        CompoundTag serialized = saveGraph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(saveGraph.graphModel, provider);
         // Swap nodeClass discriminator: load as EvNoCodecNode instead of EvCodecValueANode.
         rewriteNodeClass(serialized, EvCodecValueANode.class.getName(), EvNoCodecNode.class.getName());
 
         var loadGraph = new TestGraph();
         try {
-            loadGraph.graphModel.deserializeNBT(provider, serialized);
+            deserializeGraph(loadGraph.graphModel, serialized, provider);
         } catch (Exception e) {
             helper.fail("deserializeNBT threw for codec → no-codec evolution: " + e.getMessage());
             return;
@@ -656,8 +698,6 @@ public final class GraphSerializationGameTest {
      * codec → withoutSerialization: load side explicitly opts out. The saved value must be IGNORED
      * (not a failure). Constant should hold the load-side builder default, deserializeFailed=false.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void evolutionCodecToWithoutSerialization(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -669,12 +709,12 @@ public final class GraphSerializationGameTest {
         if (codecConst == null) { helper.fail("port constant missing pre-serialize"); return; }
         codecConst.setValue(123.0f);
 
-        CompoundTag serialized = saveGraph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(saveGraph.graphModel, provider);
         rewriteNodeClass(serialized, EvCodecFloatNode.class.getName(), EvWithoutSerializationNode.class.getName());
 
         var loadGraph = new TestGraph();
         try {
-            loadGraph.graphModel.deserializeNBT(provider, serialized);
+            deserializeGraph(loadGraph.graphModel, serialized, provider);
         } catch (Exception e) {
             helper.fail("deserializeNBT threw for codec → withoutSerialization evolution: " + e.getMessage());
             return;
@@ -700,8 +740,6 @@ public final class GraphSerializationGameTest {
      * withoutSerialization → codec: saved tag has only `type`, no value. Codec on load side has
      * nothing to decode. Constant should hold load-side default, deserializeFailed=false.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void evolutionWithoutSerializationToCodec(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -711,12 +749,12 @@ public final class GraphSerializationGameTest {
         if (c == null) { helper.fail("port constant missing pre-serialize"); return; }
         c.setValue(99.0f); // ignored by save side because withoutSerialization
 
-        CompoundTag serialized = saveGraph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(saveGraph.graphModel, provider);
         rewriteNodeClass(serialized, EvWithoutSerializationNode.class.getName(), EvCodecFloatNode.class.getName());
 
         var loadGraph = new TestGraph();
         try {
-            loadGraph.graphModel.deserializeNBT(provider, serialized);
+            deserializeGraph(loadGraph.graphModel, serialized, provider);
         } catch (Exception e) {
             helper.fail("deserializeNBT threw: " + e.getMessage());
             return;
@@ -743,8 +781,6 @@ public final class GraphSerializationGameTest {
      * that expects a specific shape. The codec will likely fail to decode the accessor format →
      * deserializeFailed=true, constant resets to load-side default.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void evolutionAccessorToCodec(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -752,12 +788,12 @@ public final class GraphSerializationGameTest {
         var node = saveGraph.graphModel.createNodeModel(new EvAccessorFloatNode(), new Vector2f(0, 0));
         node.getInputConstantsById().get("port").setValue(50.0f);
 
-        CompoundTag serialized = saveGraph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(saveGraph.graphModel, provider);
         rewriteNodeClass(serialized, EvAccessorFloatNode.class.getName(), EvCodecFloatNode.class.getName());
 
         var loadGraph = new TestGraph();
         try {
-            loadGraph.graphModel.deserializeNBT(provider, serialized);
+            deserializeGraph(loadGraph.graphModel, serialized, provider);
         } catch (Exception e) {
             helper.fail("deserializeNBT threw: " + e.getMessage());
             return;
@@ -786,8 +822,6 @@ public final class GraphSerializationGameTest {
      * codec A → codec B: load codec has a different structural shape and will fail to parse the
      * saved record-shaped NBT. Must mark failed and reset to load-side default.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void evolutionCodecToDifferentCodec(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -795,12 +829,12 @@ public final class GraphSerializationGameTest {
         var node = saveGraph.graphModel.createNodeModel(new EvCodecValueANode(), new Vector2f(0, 0));
         node.getInputConstantsById().get("port").setValue(new SchemaEvolutionTestNodes.EvCodecValueA(11, "saved-A"));
 
-        CompoundTag serialized = saveGraph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(saveGraph.graphModel, provider);
         rewriteNodeClass(serialized, EvCodecValueANode.class.getName(), EvCodecValueBNode.class.getName());
 
         var loadGraph = new TestGraph();
         try {
-            loadGraph.graphModel.deserializeNBT(provider, serialized);
+            deserializeGraph(loadGraph.graphModel, serialized, provider);
         } catch (Exception e) {
             helper.fail("deserializeNBT threw for codec-vs-codec mismatch: " + e.getMessage());
             return;
@@ -827,8 +861,6 @@ public final class GraphSerializationGameTest {
      * Corrupt NBT: manually overwrite a port's value tag with garbage, then load. Must not throw,
      * must mark failed.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void evolutionCorruptValueTag(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -836,14 +868,14 @@ public final class GraphSerializationGameTest {
         var node = saveGraph.graphModel.createNodeModel(new EvCodecFloatNode(), new Vector2f(0, 0));
         node.getInputConstantsById().get("port").setValue(33.0f);
 
-        CompoundTag serialized = saveGraph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(saveGraph.graphModel, provider);
         // Surgically replace the value entry with a structurally-invalid tag — a string where
         // Codec.FLOAT expects a number.
         corruptPortValue(serialized, EvCodecFloatNode.class.getName(), "port", "garbage");
 
         var loadGraph = new TestGraph();
         try {
-            loadGraph.graphModel.deserializeNBT(provider, serialized);
+            deserializeGraph(loadGraph.graphModel, serialized, provider);
         } catch (Exception e) {
             helper.fail("deserializeNBT threw for corrupt value: " + e.getMessage());
             return;
@@ -869,8 +901,6 @@ public final class GraphSerializationGameTest {
      * The codec port's value must survive a subsequent in-session defineNode call — the reuse
      * path must NOT clobber the live value when there's no pending tag.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void codecPortSurvivesMultipleDefineNode(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -880,10 +910,10 @@ public final class GraphSerializationGameTest {
         if (c == null) { helper.fail("codec_port constant missing pre-serialize"); return; }
         c.setValue(new CustomCodecTestNode.CodecValue(77, "round1"));
 
-        CompoundTag serialized = graph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graph.graphModel, provider);
 
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
 
         com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.CustomNodeModelImpl restored = null;
         for (var n : graph2.graphModel.getNodeModels()) {
@@ -912,8 +942,6 @@ public final class GraphSerializationGameTest {
      * Warn-once: serializing N nodes that share an unserializable type produces exactly ONE
      * warning entry per unique type (not N).
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void portMissingAccessorWarnsOnce(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.TypeConstant.clearWarnedTypesForTesting();
@@ -925,7 +953,7 @@ public final class GraphSerializationGameTest {
             n.getInputConstantsById().get("missing_port").setValue(new CustomCodecTestNode.CodecValue(i, "x" + i));
         }
         try {
-            graph.graphModel.serializeNBT(provider);
+            serializeGraph(graph.graphModel, provider);
         } catch (Exception e) {
             helper.fail("serialize threw: " + e.getMessage());
             return;
@@ -950,8 +978,6 @@ public final class GraphSerializationGameTest {
      * round-trip through the FIXED deserialize path identically to before. Existing tests cover
      * this implicitly; this is the explicit named regression label.
      */
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void backwardCompatLegacyNbt(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
 
@@ -960,10 +986,10 @@ public final class GraphSerializationGameTest {
         add.getInputConstantsById().get("in1").setValue(11.5f);
         add.getInputConstantsById().get("in2").setValue(22.5f);
 
-        CompoundTag serialized = graph.graphModel.serializeNBT(provider);
+        CompoundTag serialized = serializeGraph(graph.graphModel, provider);
 
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
 
         var restored = findRestoredNode(graph2, add.getUid());
         if (restored == null) { helper.fail("legacy TestAddNode not found after round-trip"); return; }
@@ -996,17 +1022,17 @@ public final class GraphSerializationGameTest {
         // level below the top of {@code serializeNBT}'s output, not directly at the root.
         var inner = unwrapAdditional(graphTag);
         if (!inner.contains("nodes")) return;
-        var nodesTag = inner.getList("nodes", Tag.TAG_COMPOUND);
+        var nodesTag = inner.getListOrEmpty("nodes");
         for (int i = 0; i < nodesTag.size(); i++) {
-            var nodeTag = nodesTag.getCompound(i);
-            if (nodeTag.contains("nodeClass") && oldClassName.equals(nodeTag.getString("nodeClass"))) {
+            var nodeTag = nodesTag.getCompoundOrEmpty(i);
+            if (nodeTag.contains("nodeClass") && oldClassName.equals(nodeTag.getStringOr("nodeClass", ""))) {
                 nodeTag.putString("nodeClass", newClassName);
             }
         }
     }
 
     private static CompoundTag unwrapAdditional(CompoundTag graphTag) {
-        return graphTag.contains("_additional") ? graphTag.getCompound("_additional") : graphTag;
+        return graphTag.contains("_additional") ? graphTag.getCompoundOrEmpty("_additional") : graphTag;
     }
 
     /**
@@ -1021,16 +1047,16 @@ public final class GraphSerializationGameTest {
     private static void corruptPortValue(CompoundTag graphTag, String nodeClassName, String portId, String garbageValue) {
         var inner = unwrapAdditional(graphTag);
         if (!inner.contains("nodes")) return;
-        var nodesTag = inner.getList("nodes", Tag.TAG_COMPOUND);
+        var nodesTag = inner.getListOrEmpty("nodes");
         for (int i = 0; i < nodesTag.size(); i++) {
-            var nodeTag = nodesTag.getCompound(i);
-            if (!nodeClassName.equals(nodeTag.getString("nodeClass"))) continue;
+            var nodeTag = nodesTag.getCompoundOrEmpty(i);
+            if (!nodeClassName.equals(nodeTag.getStringOr("nodeClass", ""))) continue;
             if (!nodeTag.contains("_additional")) continue;
-            var additional = nodeTag.getCompound("_additional");
+            var additional = nodeTag.getCompoundOrEmpty("_additional");
             if (!additional.contains("inputConstants")) continue;
-            var constantsTag = additional.getCompound("inputConstants");
+            var constantsTag = additional.getCompoundOrEmpty("inputConstants");
             if (!constantsTag.contains(portId)) continue;
-            var portTag = constantsTag.getCompound(portId);
+            var portTag = constantsTag.getCompoundOrEmpty(portId);
             portTag.putString("value", garbageValue);
         }
     }
