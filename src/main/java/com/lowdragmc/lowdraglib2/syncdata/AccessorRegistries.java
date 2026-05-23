@@ -49,6 +49,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
 import java.lang.reflect.GenericArrayType;
@@ -122,7 +123,23 @@ public class AccessorRegistries {
     }
 
     public static IAccessor<?> findByClass(Class<?> clazz) {
-        IAccessor<?> result = ACCESSOR_LOOKUP.computeIfAbsent(clazz, c -> {
+        var result = findByClassOrNull(clazz);
+        if (result == null) {
+            throw new IllegalArgumentException("No payload found for class " + clazz.getName());
+        }
+        return result;
+    }
+
+    /**
+     * Non-throwing variant of {@link #findByClass}. Returns {@code null} when no accessor matches,
+     * letting the caller decide whether the absence is fatal or expected. Use this in optional /
+     * data-driven paths (e.g. node-graph constant serialization where missing accessors should
+     * gracefully degrade) — internal contracts that require an accessor should keep calling the
+     * throwing variant.
+     */
+    @Nullable
+    public static IAccessor<?> findByClassOrNull(Class<?> clazz) {
+        return ACCESSOR_LOOKUP.computeIfAbsent(clazz, c -> {
             synchronized (ACCESSOR_HOLDERS) {
                 for (AccessorHolder holder : ACCESSOR_HOLDERS) {
                     if (holder.accessor.test(c)) {
@@ -132,11 +149,6 @@ public class AccessorRegistries {
             }
             return null;
         });
-
-        if (result == null) {
-            throw new IllegalArgumentException("No payload found for class " + clazz.getName());
-        }
-        return result;
     }
 
     public static IAccessor<?> findCollectionAccessor(IAccessor<?> childAccessor, Class<?> child) {
@@ -155,26 +167,44 @@ public class AccessorRegistries {
     }
 
     public static IAccessor<?> findByType(Type type) {
+        var result = findByTypeOrNull(type);
+        if (result == null) {
+            throw new IllegalArgumentException("No payload found for class " + type.getTypeName());
+        }
+        return result;
+    }
+
+    /**
+     * Non-throwing variant of {@link #findByType}. Returns {@code null} when no accessor matches
+     * the type (or any element of a container type) — caller decides whether the absence is
+     * fatal. Container types (array/map/collection) cascade: if any element type can't be
+     * resolved, the whole call returns {@code null} rather than constructing a partially-typed
+     * accessor.
+     */
+    @Nullable
+    public static IAccessor<?> findByTypeOrNull(Type type) {
         if (type instanceof GenericArrayType array) {
             var componentType = array.getGenericComponentType();
-            var childAccessor = findByType(componentType);
+            var childAccessor = findByTypeOrNull(componentType);
+            if (childAccessor == null) return null;
             var rawType = ReflectionUtils.getRawType(componentType);
-
             return findArrayAccessor(childAccessor, rawType == null ? Object.class : rawType);
         }
         var rawType = ReflectionUtils.getRawType(type);
         if (rawType != null) {
             if (rawType.isArray()) {
                 var componentType = rawType.getComponentType();
-                var childAccessor = findByType(componentType);
+                var childAccessor = findByTypeOrNull(componentType);
+                if (childAccessor == null) return null;
                 return findArrayAccessor(childAccessor, componentType);
             }
             if (Map.class.isAssignableFrom(rawType) && type instanceof ParameterizedType parameterizedType) {
                 if (parameterizedType.getActualTypeArguments().length == 2) {
                     var keyTypeArg = parameterizedType.getActualTypeArguments()[0];
                     var valueTypeArg = parameterizedType.getActualTypeArguments()[1];
-                    var keyAccessor = findByType(keyTypeArg);
-                    var valueAccessor = findByType(valueTypeArg);
+                    var keyAccessor = findByTypeOrNull(keyTypeArg);
+                    var valueAccessor = findByTypeOrNull(valueTypeArg);
+                    if (keyAccessor == null || valueAccessor == null) return null;
                     var rawKeyType = ReflectionUtils.getRawType(keyTypeArg);
                     var rawValueType = ReflectionUtils.getRawType(valueTypeArg);
                     return findMapAccessor(
@@ -185,16 +215,16 @@ public class AccessorRegistries {
             if (Collection.class.isAssignableFrom(rawType) && type instanceof ParameterizedType parameterizedType) {
                 if (parameterizedType.getActualTypeArguments().length == 1) {
                     var componentType = parameterizedType.getActualTypeArguments()[0];
-                    var childAccessor = findByType(componentType);
+                    var childAccessor = findByTypeOrNull(componentType);
+                    if (childAccessor == null) return null;
                     var rawComponentType = ReflectionUtils.getRawType(componentType);
 
                     return findCollectionAccessor(childAccessor, rawComponentType == null ? Object.class : rawComponentType);
                 }
             }
-            return findByClass(rawType);
+            return findByClassOrNull(rawType);
         }
-
-        throw new IllegalArgumentException("No payload found for class " + type.getTypeName());
+        return null;
     }
 
     /**

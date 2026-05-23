@@ -411,6 +411,10 @@ public class GraphView extends UIElement {
 
         // nodes
         for (var nodeModel : graphModel.getNodeModels()) {
+            // GraphModel.removeNode replaces the slot with null instead of compacting the list
+            // (so indices stay stable across edits) — same null-slot pattern as wireModels. Skip
+            // those gaps before touching the model.
+            if (nodeModel == null) continue;
             // skip nodes that require container, e.g., BlockNodeModel
             if (nodeModel.needsContainer()) continue;
             var nodeUI = createAndAddModelElement(nodeModel);

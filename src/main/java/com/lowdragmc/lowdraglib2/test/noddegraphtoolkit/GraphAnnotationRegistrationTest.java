@@ -49,7 +49,14 @@ public class GraphAnnotationRegistrationTest {
                 TestContextNode.class,
                 TestBlockA.class,
                 TestBlockB.class,
-                TestUnrelatedBlock.class
+                TestUnrelatedBlock.class,
+                CustomCodecTestNode.class,
+                EvAccessorFloatNode.class,
+                EvCodecFloatNode.class,
+                EvCodecValueANode.class,
+                EvCodecValueBNode.class,
+                EvNoCodecNode.class,
+                EvWithoutSerializationNode.class
         );
 
         if (!supportNodes.containsAll(expectedNodes)) {

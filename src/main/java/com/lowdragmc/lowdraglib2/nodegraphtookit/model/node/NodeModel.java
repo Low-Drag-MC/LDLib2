@@ -52,6 +52,21 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
     @Nullable
     private SubPortDefinitionScope<? extends NodeModel> subPortDefinitionScope;
 
+    /**
+     * Raw NBT tags captured by {@link #deserializeAdditionalNBT} so that constant values can be
+     * re-decoded after {@link #defineNode()} runs and the builder's {@code initializationCallback}
+     * has installed the per-port {@code customCodec} / {@code serializationEnabled} on each
+     * Constant. Without this second pass, codec-encoded values from disk would never decode
+     * (phase 1 has no codec context) and {@code withoutSerialization} ports would retain
+     * the typeHandle default instead of the builder default.
+     *
+     * <p>Entries are removed as they are consumed in {@link #updateConstantForInput}, and the
+     * whole map is cleared at the end of {@code defineNode} so subsequent in-session
+     * {@code defineNode} calls don't re-apply stale tags.</p>
+     */
+    @Nullable
+    protected transient Map<String, CompoundTag> pendingConstantTags;
+
     protected NodeModel() {
         inputPortInfos = new PortInfos();
         outputPortInfos = new PortInfos();
@@ -76,8 +91,17 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
     public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
         if (tag instanceof CompoundTag compound && compound.contains("inputConstants")) {
             var constantsTag = compound.getCompound("inputConstants");
-            for (var key : constantsTag.getAllKeys()) {
-                var constant = TypeConstant.deserializeConstant(constantsTag.getCompound(key), provider);
+            var allKeys = constantsTag.getAllKeys();
+            if (allKeys.isEmpty()) return;
+            // Phase 1 (legacy, best-effort): produce fresh constants so option values are
+            // available to onDefinePorts. Phase 2 runs after defineNode and re-decodes only the
+            // constants whose builder has codec / withoutSerialization / explicit default — for
+            // stateless ports Phase 1's result is final (see updateConstantForInput).
+            pendingConstantTags = new HashMap<>(allKeys.size() * 2);
+            for (var key : allKeys) {
+                var perConstantTag = constantsTag.getCompound(key);
+                pendingConstantTags.put(key, perConstantTag);
+                var constant = TypeConstant.deserializeConstant(perConstantTag, provider);
                 if (constant != null) {
                     inputConstantsById.put(key, constant);
                 }
@@ -158,6 +182,11 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
 
         removeObsoleteNodeOptionPorts();
         removeObsoleteWiresAndConstants();
+
+        // Drop any pending tags that defineNode didn't consume — e.g. saved ports that no longer
+        // exist in the current node definition. Leaving them would cause stale re-decode on the
+        // next in-session defineNode.
+        pendingConstantTags = null;
 
         isCurrentlyDefiningNode = false;
     }
@@ -559,6 +588,32 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
                 existingConstant.clearListeners();
                 if (setterAction != null) {
                     existingConstant.addListener(setterAction);
+                }
+                // Phase 2 of constant deserialize: re-apply the builder's initializationCallback
+                // (installs customCodec, serializationEnabled, defaultValue and resets value to
+                // builder default) then re-decode the saved tag into the existing constant using
+                // the now-installed codec. Without this, codec-encoded values from disk would
+                // never decode (phase 1 has no codec) and withoutSerialization ports would keep
+                // the typeHandle default instead of the builder default.
+                //
+                // Skipped when there's no pending tag — i.e., this is an in-session defineNode
+                // call rather than the post-deserialize one. In that case the constant already
+                // holds the live value and we'd otherwise clobber it with the builder default.
+                if (pendingConstantTags != null && pendingConstantTags.containsKey(id)) {
+                    // Skip Phase 2 entirely when the builder has no state worth applying — Phase 1's
+                    // accessor decode (run during deserializeAdditionalNBT) already produced the right
+                    // value and set the deserializeFailed flag if anything went wrong.
+                    if (initializationCallback == null) {
+                        pendingConstantTags.remove(id);
+                    } else {
+                        try {
+                            initializationCallback.accept(existingConstant);
+                        } catch (Exception e) {
+                            LDLib2.LOGGER.error("Builder initializationCallback threw for port {} of node {}", id, this.getClass().getSimpleName(), e);
+                        }
+                        var pendingTag = pendingConstantTags.remove(id);
+                        TypeConstant.deserializeIntoConstant(existingConstant, pendingTag);
+                    }
                 }
                 return;
             }

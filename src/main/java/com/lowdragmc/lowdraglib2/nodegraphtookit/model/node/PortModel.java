@@ -17,6 +17,7 @@ import lombok.Setter;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 
 import java.util.*;
@@ -71,12 +72,19 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
     @Setter @Nullable
     protected ITypeConfigurable customTypeConfigurable;
     /**
+     * Per-port toggle for the inspector field. When {@code false}, {@link #buildConfigurator}
+     * (inherited from {@link IFieldConstantConfigurable}) is a no-op. Reapplied on every
+     * {@code defineNode} call, mirroring the {@link #customTypeConfigurable} lifecycle.
+     */
+    @Setter @Getter
+    protected boolean configuratorEnabled = true;
+    /**
      * Optional reflection field this port maps to. Surfaced by {@link #getValueField()} so the
      * default configurator accessor can read annotations such as {@code @ConfigNumber}. Not
      * persisted — reapplied on every {@code defineNode} call.
      */
     @Setter @Nullable
-    protected java.lang.reflect.Field valueField;
+    protected Field valueField;
     /** Object owner paired with {@link #valueField} for reflective annotation access. */
     @Setter @Nullable
     protected Object valueOwer;

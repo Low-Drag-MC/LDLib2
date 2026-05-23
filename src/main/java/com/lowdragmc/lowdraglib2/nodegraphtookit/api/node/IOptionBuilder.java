@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.node;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.IOptionDefinitionContext;
+import com.mojang.serialization.Codec;
 import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Field;
@@ -81,4 +82,33 @@ public interface IOptionBuilder<T extends IOptionBuilder<T>> {
      * @return the current builder instance for method chaining
      */
     T withFieldContext(Field field, Object owner);
+
+    /**
+     * Installs a Mojang {@link Codec} as the serializer for this option's embedded constant.
+     * Wins over the default {@code AccessorRegistries} lookup — useful when the value type has
+     * no registered accessor, or when you want a different on-disk shape.
+     *
+     * <p>Ignored if {@link #withoutSerialization()} is also set.</p>
+     *
+     * @param codec the codec used to encode/decode the option's value and default value
+     * @return the current builder instance for method chaining
+     */
+    T withCodec(Codec<?> codec);
+
+    /**
+     * Marks the option as non-persistent. The option's type identifier still survives the
+     * round-trip but its value and default value are skipped during serialization. Use for
+     * runtime-computed values that have no meaningful saved state.
+     *
+     * @return the current builder instance for method chaining
+     */
+    T withoutSerialization();
+
+    /**
+     * Suppresses the inspector field for this option. {@code buildConfigurator} becomes a no-op
+     * so the option produces no UI row, even though its value/default still live on the model.
+     *
+     * @return the current builder instance for method chaining
+     */
+    T withoutConfigurator();
 }

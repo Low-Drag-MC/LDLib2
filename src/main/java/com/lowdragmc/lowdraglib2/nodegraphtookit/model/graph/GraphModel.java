@@ -2517,6 +2517,44 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 registerElement(stickyNote);
             }
         }
+
+        // 8. Failed-constant sweep — for each input constant whose decode failed (codec
+        // mismatch, missing codec/accessor, corrupt NBT...), drop wires terminating at that
+        // port. The saved snapshot's behaviour relied on a value we couldn't reproduce, so
+        // leaving the wire connected would let an upstream node feed a value that doesn't
+        // match the saved state, silently corrupting downstream computation. Surface the
+        // event by dropping the wire so the user can investigate.
+        //
+        // Output-side wires are left alone — output ports have no constant, so a decode
+        // failure isn't a meaningful event for them. Type-mismatch port-drops are already
+        // handled by step 5 above (the wire's referenced port UID no longer resolves).
+        dropWiresOnFailedInputConstants();
+    }
+
+    private void dropWiresOnFailedInputConstants() {
+        for (var nodeModel : nodeModels) {
+            // removeNode leaves null slots in the list (stable-index pattern); skip them.
+            if (nodeModel == null) continue;
+            if (!(nodeModel instanceof NodeModel nm)) continue;
+            for (var entry : nm.getInputConstantsById().entrySet()) {
+                var constant = entry.getValue();
+                if (constant == null || !constant.isDeserializeFailed()) continue;
+                var portUniqueName = entry.getKey();
+                var inputPort = nm.getInputsById().get(portUniqueName);
+                if (inputPort == null) continue;
+                var connectedWires = new ArrayList<>(inputPort.getConnectedWires());
+                if (connectedWires.isEmpty()) {
+                    LDLib2.LOGGER.error("Constant for port '{}' on node {} failed to deserialize — no wires connected, value will fall back to default.",
+                            portUniqueName, nodeModel.getClass().getSimpleName());
+                    continue;
+                }
+                LDLib2.LOGGER.error("Constant for port '{}' on node {} failed to deserialize — dropping {} wire(s) terminating at this port to surface the data-loss event.",
+                        portUniqueName, nodeModel.getClass().getSimpleName(), connectedWires.size());
+                for (var wire : connectedWires) {
+                    removeWire(wire);
+                }
+            }
+        }
     }
 
     /**
