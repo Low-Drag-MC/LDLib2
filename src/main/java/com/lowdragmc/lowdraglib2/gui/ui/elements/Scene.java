@@ -95,6 +95,8 @@ public class Scene extends UIElement {
     @Getter
     protected boolean useCache;
     @Getter
+    protected boolean syncCompile;
+    @Getter
     protected boolean useOrtho = false;
     @Getter
     protected boolean autoReleased = true;
@@ -132,6 +134,23 @@ public class Scene extends UIElement {
         useCache = cacheBuffer;
         if (renderer != null) {
             renderer.useCacheBuffer(true);
+        }
+        return this;
+    }
+
+    public Scene syncCompile() {
+        return syncCompile(true);
+    }
+
+    /**
+     * Compile the cached vertex buffers incrementally on the main/render thread instead of on a
+     * background thread. Use this when the backing {@link Level} doesn't tolerate off-thread access.
+     * Has no effect unless {@link #useCacheBuffer(boolean)} is also enabled.
+     */
+    public Scene syncCompile(boolean syncCompile) {
+        this.syncCompile = syncCompile;
+        if (renderer != null) {
+            renderer.syncCompile(syncCompile);
         }
         return this;
     }
@@ -237,6 +256,7 @@ public class Scene extends UIElement {
         }
         renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         renderer.useCacheBuffer(useCache);
+        renderer.syncCompile(syncCompile);
         if (dummyWorld.getParticleManager() != null) {
             renderer.setParticleManager(dummyWorld.getParticleManager());
         }

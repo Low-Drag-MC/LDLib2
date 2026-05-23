@@ -65,6 +65,7 @@ public abstract class WorldSceneRenderer {
     protected static final IntBuffer VIEWPORT_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
     protected static final FloatBuffer PIXEL_DEPTH_BUFFER = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asFloatBuffer();
     protected static final FloatBuffer OBJECT_POS_BUFFER = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+
     enum CacheState {
         UNCREATED,
         NEED,
@@ -73,7 +74,16 @@ public abstract class WorldSceneRenderer {
     }
 
     public final Level world;
-    public final Map<Collection<BlockPos>, ISceneBlockRenderHook> renderedBlocksMap;
+    /**
+     * Identity-keyed map: the caller's {@link Collection} reference is the handle used by
+     * {@link #removeRenderedBlocks(Collection)}, while {@link RenderedBlocksEntry#snapshot} holds an
+     * immutable copy that the (possibly background) compile and render code iterates safely.
+     */
+    public final Map<Collection<BlockPos>, RenderedBlocksEntry> renderedBlocksMap;
+
+    public record RenderedBlocksEntry(Set<BlockPos> snapshot, @Nullable ISceneBlockRenderHook hook) {
+    }
+
     @Nullable
     protected VertexBuffer[] vertexBuffers;
     @Nullable
@@ -81,7 +91,31 @@ public abstract class WorldSceneRenderer {
     protected Set<BlockPos> tileEntities;
     @Getter
     protected boolean useCache;
-    @Getter @Setter
+    /**
+     * When {@link #useCache} is on, prefer running the cache compile on the main/render thread,
+     * spread across multiple frames, instead of on a background thread. Useful when the backing
+     * {@link Level} doesn't support off-thread access.
+     */
+    @Getter
+    protected boolean syncCompile;
+    /**
+     * Per-frame time budget for {@link #syncCompile} mode, in nanoseconds. Default 2ms.
+     * The compile loop always processes at least one block per frame to make forward progress.
+     */
+    @Getter
+    @Setter
+    protected long syncCompileTimeBudgetNanos = 2_000_000L;
+    /**
+     * Hard cap on blocks processed per frame in {@link #syncCompile} mode. Acts as a safety net
+     * when individual blocks render extremely fast.
+     */
+    @Getter
+    @Setter
+    protected int syncCompileMaxBlocksPerFrame = 200;
+    @Nullable
+    protected SyncCompileState syncCompileState;
+    @Getter
+    @Setter
     protected boolean endBatchLast = false;// if true, endBatch will be called after all rendering
     protected boolean ortho;
     protected AtomicReference<CacheState> cacheState;
@@ -92,15 +126,20 @@ public abstract class WorldSceneRenderer {
     protected ParticleManager particleManager;
     protected final Camera camera = new Camera();
     protected final CameraEntity cameraEntity;
-    @Setter @Nullable
+    @Setter
+    @Nullable
     private Consumer<WorldSceneRenderer> beforeWorldRender;
-    @Setter @Nullable
+    @Setter
+    @Nullable
     private Consumer<WorldSceneRenderer> afterWorldRender;
-    @Setter @Nullable
+    @Setter
+    @Nullable
     private BiConsumer<MultiBufferSource, Float> beforeBatchEnd;
-    @Setter @Nullable
+    @Setter
+    @Nullable
     private Consumer<BlockHitResult> onLookingAt;
-    @Setter @Nullable
+    @Setter
+    @Nullable
     private ISceneEntityRenderHook sceneEntityRenderHook;
     @Getter
     private Vector3f lastHit;
@@ -114,13 +153,14 @@ public abstract class WorldSceneRenderer {
     private Vector3f lookAt = new Vector3f(0, 0, 0);
     @Getter
     private Vector3f worldUp = new Vector3f(0, 1, 0);
-    @Getter @Setter
+    @Getter
+    @Setter
     private float fov = 60f;
     private float minX, maxX, minY, maxY, minZ, maxZ;
 
     public WorldSceneRenderer(Level world) {
         this.world = world;
-        renderedBlocksMap = new LinkedHashMap<>();
+        renderedBlocksMap = new IdentityHashMap<>();
         cacheState = new AtomicReference<>(CacheState.UNCREATED);
         cameraEntity = new CameraEntity(world);
     }
@@ -150,6 +190,43 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
+    /**
+     * Toggle the incremental main-thread cache compile path. Triggers a recompile so the new
+     * mode takes effect on the next render.
+     */
+    public WorldSceneRenderer syncCompile(boolean syncCompile) {
+        if (this.syncCompile == syncCompile) return this;
+        this.syncCompile = syncCompile;
+        needCompileCache();
+        return this;
+    }
+
+    /**
+     * Per-frame, incrementally advanced state for sync-compile mode. Lives only while a sync
+     * compile is in flight; cleared by {@link #cancelCompile()} and replaced on next compile.
+     */
+    protected static class SyncCompileState {
+        final List<RenderType> layers;
+        final List<RenderedBlocksEntry> entries;
+        final PoseStack matrixStack = new PoseStack();
+        final RandomSource randomSource = RandomSource.createNewThreadLocalInstance();
+        // block phase
+        int layerIndex = 0;
+        @Nullable BufferBuilder currentBuffer;
+        int entryIndex = 0;
+        @Nullable Iterator<BlockPos> blockIter;
+        // tile-entity scan phase
+        boolean tilePhase = false;
+        int tileEntryIndex = 0;
+        @Nullable Iterator<BlockPos> tileBlockIter;
+        final Set<BlockPos> collectedTiles = new HashSet<>();
+
+        SyncCompileState(List<RenderType> layers, List<RenderedBlocksEntry> entries) {
+            this.layers = layers;
+            this.entries = entries;
+        }
+    }
+
     public WorldSceneRenderer useOrtho(boolean ortho) {
         this.ortho = ortho;
         return this;
@@ -162,10 +239,7 @@ public abstract class WorldSceneRenderer {
                     this.vertexBuffers[i].close();
                 }
             }
-            if (thread != null) {
-                thread.interrupt();
-                thread = null;
-            }
+            cancelCompile();
             this.vertexBuffers = null;
             this.vertexBuffersUsingMark = null;
         }
@@ -182,38 +256,64 @@ public abstract class WorldSceneRenderer {
             for (int j = 0; j < layers.size(); ++j) {
                 this.vertexBuffers[j] = new VertexBuffer(VertexBuffer.Usage.STATIC);
             }
-            if (thread != null) {
-                thread.interrupt();
-                thread = null;
-            }
+            cancelCompile();
             cacheState.set(CacheState.NEED);
         }
     }
 
     public WorldSceneRenderer needCompileCache() {
-        if (thread != null) {
-            thread.interrupt();
-            thread = null;
-        }
+        cancelCompile();
         cacheState.set(CacheState.NEED);
         return this;
     }
 
+    /**
+     * Cancels any in-flight compile, whether async (background thread) or sync (cursor on main thread).
+     * For async, interrupts and joins the thread briefly so subsequent map mutations cannot race
+     * with an in-flight iteration of {@link #renderedBlocksMap}.
+     */
+    private void cancelCompile() {
+        var t = thread;
+        if (t != null) {
+            thread = null;
+            t.interrupt();
+            try {
+                t.join(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        // Discard any in-flight sync cursor; the partially-filled BufferBuilder is dropped
+        // (its underlying ByteBuffer will be GC'd along with the state object).
+        if (syncCompileState != null && syncCompileState.currentBuffer != null) {
+            try {
+                MeshData leftover = syncCompileState.currentBuffer.build();
+                if (leftover != null) leftover.close();
+            } catch (Throwable ignored) {
+            }
+        }
+        syncCompileState = null;
+    }
+
     public WorldSceneRenderer addRenderedBlocks(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook) {
         if (blocks != null) {
-            this.renderedBlocksMap.put(blocks, renderHook);
+            cancelCompile();
+            // Snapshot so later mutations to the caller's collection don't race with the compile thread.
+            this.renderedBlocksMap.put(blocks, new RenderedBlocksEntry(Set.copyOf(blocks), renderHook));
         }
         return this;
     }
 
     public WorldSceneRenderer removeRenderedBlocks(Collection<BlockPos> blocks) {
         if (blocks != null) {
+            cancelCompile();
             this.renderedBlocksMap.remove(blocks);
         }
         return this;
     }
 
     public WorldSceneRenderer removeAllRenderedBlocks() {
+        cancelCompile();
         this.renderedBlocksMap.clear();
         return this;
     }
@@ -391,10 +491,11 @@ public abstract class WorldSceneRenderer {
             var bsr = mc.getBlockRenderer();
             var randomSource = RandomSource.createNewThreadLocalInstance();
             // render the blocks in each layer
-            renderedBlocksMap.forEach((renderedBlocks, hook) -> {
+            renderedBlocksMap.forEach((key, entry) -> {
+                var renderedBlocks = entry.snapshot();
+                var hook = entry.hook();
                 for (RenderType layer : RenderType.chunkBufferLayers()) {
                     layer.setupRenderState();
-                    Random random = new Random();
                     PoseStack poseStack = new PoseStack();
 
                     if (layer == RenderType.translucent()) { // render tesr and particle before translucent
@@ -467,200 +568,344 @@ public abstract class WorldSceneRenderer {
 
     private void renderCacheBuffer(Minecraft mc, MultiBufferSource.BufferSource buffers, float particleTicks) {
         List<RenderType> layers = RenderType.chunkBufferLayers();
-        if (cacheState.get() == CacheState.NEED || cacheState.get() == CacheState.UNCREATED) {
+        CacheState state = cacheState.get();
+        if (state == CacheState.NEED || state == CacheState.UNCREATED) {
             makeSureCacheBufferCreated();
             progress = 0;
-            maxProgress = renderedBlocksMap.keySet().stream().map(Collection::size).reduce(0, Integer::sum) * (layers.size() + 1);
-            thread = new Thread(() -> {
-                cacheState.set(CacheState.COMPILING);
-                BlockRenderDispatcher blockrendererdispatcher = mc.getBlockRenderer();
-                var randomSource = RandomSource.createNewThreadLocalInstance();
-                try { // render the blocks in each layer
-                    ModelBlockRenderer.enableCaching();
-                    PoseStack matrixstack = new PoseStack();
-                    for (int i = 0; i < layers.size(); i++) {
-                        if (Thread.interrupted())
-                            return;
-                        RenderType layer = layers.get(i);
-                        BufferBuilder buffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
-                        renderedBlocksMap.forEach((renderedBlocks, hook) -> {
-                            renderBlocks(matrixstack, blockrendererdispatcher, layer, new VertexConsumerWrapper(buffer), renderedBlocks, randomSource, hook, 0);
-                        });
-                        MeshData data = buffer.build();
-                        if (data == null) {
-                            vertexBuffersUsingMark[i] = false;
-                            continue;
-                        }
-
-                        vertexBuffersUsingMark[i] = true;
-                        var vertexBuffer = vertexBuffers[i];
-                        Runnable toUpload = () -> {
-                            if (!vertexBuffer.isInvalid()) {
-                                vertexBuffer.bind();
-                                vertexBuffer.upload(data);
-                                VertexBuffer.unbind();
-                            }
-                        };
-                        CompletableFuture.runAsync(toUpload, runnable -> {
-                            RenderSystem.recordRenderCall(runnable::run);
-                        });
-                    }
-                    ModelBlockRenderer.clearCache();
-                } finally {
-                }
-                Set<BlockPos> poses = new HashSet<>();
-                renderedBlocksMap.forEach((renderedBlocks, hook) -> {
-                    for (BlockPos pos : renderedBlocks) {
-                        progress++;
-                        if (Thread.interrupted())
-                            return;
-                        BlockEntity tile = world.getBlockEntity(pos);
-                        if (tile != null) {
-                            if (mc.getBlockEntityRenderDispatcher().getRenderer(tile) != null) {
-                                poses.add(pos);
-                            }
-                        }
-                    }
-                });
-                if (Thread.interrupted())
-                    return;
-                tileEntities = poses;
-                if (thread != null) {
-                    cacheState.set(CacheState.COMPILED);
-                    thread = null;
-                }
-                maxProgress = -1;
-            });
-            thread.start();
-        } else {
-            var poseStack = new PoseStack();
-            for (int i = 0; i < layers.size(); i++) {
-                var layer = layers.get(i);
-                if (layer == RenderType.translucent() && tileEntities != null) { // render tesr before translucent
-                    if (world instanceof TrackedDummyWorld level) {
-                        renderEntities(level, poseStack, buffers, sceneEntityRenderHook, particleTicks);
-                    }
-                    renderTESR(tileEntities, poseStack, mc.renderBuffers().bufferSource(), null, particleTicks);
-                    if (!endBatchLast) {
-                        buffers.endBatch();
-                    }
-
-                    if (particleManager != null) {
-                        poseStack.pushPose();
-                        poseStack.setIdentity();
-                        poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
-                        particleManager.render(poseStack, camera, particleTicks, type -> !type.isTranslucent());
-                        poseStack.popPose();
-                    }
-                }
-
-                var vertexbuffer = vertexBuffers[i];
-                if (vertexbuffer == null || !vertexBuffersUsingMark[i] || vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
-
-                layer.setupRenderState();
-
-                poseStack.pushPose();
-
-                ShaderInstance shaderInstance = RenderSystem.getShader();
-
-                for (int j = 0; j < 12; ++j) {
-                    int k = RenderSystem.getShaderTexture(j);
-                    shaderInstance.setSampler("Sampler" + j, k);
-                }
-
-                // setup shader uniform
-                if (shaderInstance.MODEL_VIEW_MATRIX != null) {
-                    shaderInstance.MODEL_VIEW_MATRIX.set(RenderSystem.getModelViewMatrix());
-                }
-
-                if (shaderInstance.PROJECTION_MATRIX != null) {
-                    shaderInstance.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
-                }
-
-                if (shaderInstance.COLOR_MODULATOR != null) {
-                    shaderInstance.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
-                }
-
-                if (shaderInstance.FOG_START != null) {
-                    shaderInstance.FOG_START.set(RenderSystem.getShaderFogStart());
-                }
-
-                if (shaderInstance.FOG_END != null) {
-                    shaderInstance.FOG_END.set(RenderSystem.getShaderFogEnd());
-                }
-
-                if (shaderInstance.FOG_COLOR != null) {
-                    shaderInstance.FOG_COLOR.set(RenderSystem.getShaderFogColor());
-                }
-
-                if (shaderInstance.FOG_SHAPE != null) {
-                    shaderInstance.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
-                }
-
-                if (shaderInstance.TEXTURE_MATRIX != null) {
-                    shaderInstance.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
-                }
-
-                if (shaderInstance.GAME_TIME != null) {
-                    shaderInstance.GAME_TIME.set(RenderSystem.getShaderGameTime());
-                }
-
-                RenderSystem.setupShaderLights(shaderInstance);
-                shaderInstance.apply();
-
-                setDefaultRenderLayerState(layer);
-
-                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-
-                vertexbuffer.bind();
-                vertexbuffer.draw();
-
-                poseStack.popPose();
-
-                shaderInstance.clear();
-                VertexBuffer.unbind();
-                layer.clearRenderState();
+            maxProgress = renderedBlocksMap.values().stream().map(e -> e.snapshot().size()).reduce(0, Integer::sum) * (layers.size() + 1);
+            if (syncCompile) {
+                startSyncCompile(layers);
+                // fall through and render whatever (if any) is currently uploaded
+            } else {
+                startAsyncCompile(mc, layers);
+                return;
             }
+        }
+        if (syncCompile && cacheState.get() == CacheState.COMPILING && syncCompileState != null) {
+            tickSyncCompile(mc);
+        }
+        renderUploadedBuffers(mc, buffers, particleTicks, layers);
+    }
+
+    private void startAsyncCompile(Minecraft mc, List<RenderType> layers) {
+        thread = new Thread(() -> {
+            cacheState.set(CacheState.COMPILING);
+            BlockRenderDispatcher blockrendererdispatcher = mc.getBlockRenderer();
+            var randomSource = RandomSource.createNewThreadLocalInstance();
+            try { // render the blocks in each layer
+                ModelBlockRenderer.enableCaching();
+                PoseStack matrixstack = new PoseStack();
+                for (int i = 0; i < layers.size(); i++) {
+                    if (Thread.interrupted())
+                        return;
+                    RenderType layer = layers.get(i);
+                    BufferBuilder buffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                    renderedBlocksMap.forEach((key, entry) -> {
+                        renderBlocks(matrixstack, blockrendererdispatcher, layer, new VertexConsumerWrapper(buffer), entry.snapshot(), randomSource, entry.hook(), 0);
+                    });
+                    MeshData data = buffer.build();
+                    if (data == null) {
+                        vertexBuffersUsingMark[i] = false;
+                        continue;
+                    }
+
+                    vertexBuffersUsingMark[i] = true;
+                    var vertexBuffer = vertexBuffers[i];
+                    Runnable toUpload = () -> {
+                        if (!vertexBuffer.isInvalid()) {
+                            vertexBuffer.bind();
+                            vertexBuffer.upload(data);
+                            VertexBuffer.unbind();
+                        }
+                    };
+                    CompletableFuture.runAsync(toUpload, runnable -> {
+                        RenderSystem.recordRenderCall(runnable::run);
+                    });
+                }
+                ModelBlockRenderer.clearCache();
+            } finally {
+            }
+            Set<BlockPos> poses = new HashSet<>();
+            renderedBlocksMap.forEach((key, entry) -> {
+                for (BlockPos pos : entry.snapshot()) {
+                    progress++;
+                    if (Thread.interrupted())
+                        return;
+                    BlockEntity tile = world.getBlockEntity(pos);
+                    if (tile != null) {
+                        if (mc.getBlockEntityRenderDispatcher().getRenderer(tile) != null) {
+                            poses.add(pos);
+                        }
+                    }
+                }
+            });
+            if (Thread.interrupted())
+                return;
+            tileEntities = poses;
+            if (thread != null) {
+                cacheState.set(CacheState.COMPILED);
+                thread = null;
+            }
+            maxProgress = -1;
+        });
+        thread.start();
+    }
+
+    private void startSyncCompile(List<RenderType> layers) {
+        // Snapshot entries up front so later add/remove calls don't disturb the in-flight cursor
+        // (and don't need to walk renderedBlocksMap concurrently).
+        var entriesSnapshot = List.copyOf(renderedBlocksMap.values());
+        syncCompileState = new SyncCompileState(layers, entriesSnapshot);
+        cacheState.set(CacheState.COMPILING);
+    }
+
+    /**
+     * Advances the sync-mode compile by up to {@link #syncCompileMaxBlocksPerFrame} blocks or
+     * {@link #syncCompileTimeBudgetNanos} of wall time, whichever comes first. Guarantees forward
+     * progress of at least one step per call.
+     */
+    private void tickSyncCompile(Minecraft mc) {
+        var s = syncCompileState;
+        if (s == null) return;
+        long deadline = System.nanoTime() + syncCompileTimeBudgetNanos;
+        BlockRenderDispatcher bsr = mc.getBlockRenderer();
+        ModelBlockRenderer.enableCaching();
+        try {
+            int processed = 0;
+            while (processed < syncCompileMaxBlocksPerFrame) {
+                boolean advanced;
+                if (!s.tilePhase) {
+                    advanced = stepSyncBlockPhase(s, bsr);
+                    if (!advanced) {
+                        // block phase fully done; switch to tile-entity scan
+                        s.tilePhase = true;
+                        continue;
+                    }
+                } else {
+                    advanced = stepSyncTilePhase(s, mc);
+                    if (!advanced) {
+                        // tile phase fully done — compile complete
+                        tileEntities = s.collectedTiles;
+                        syncCompileState = null;
+                        cacheState.set(CacheState.COMPILED);
+                        maxProgress = -1;
+                        return;
+                    }
+                }
+                processed++;
+                if (System.nanoTime() >= deadline) break;
+            }
+        } finally {
+            ModelBlockRenderer.clearCache();
+        }
+    }
+
+    /**
+     * Processes one block in the current layer/entry. Returns true if a step happened (caller
+     * should keep going within budget); false when there is nothing left in the block phase.
+     */
+    private boolean stepSyncBlockPhase(SyncCompileState s, BlockRenderDispatcher bsr) {
+        while (s.layerIndex < s.layers.size()) {
+            RenderType layer = s.layers.get(s.layerIndex);
+            if (s.currentBuffer == null) {
+                s.currentBuffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                s.entryIndex = 0;
+                s.blockIter = null;
+            }
+            while (s.entryIndex < s.entries.size()) {
+                RenderedBlocksEntry entry = s.entries.get(s.entryIndex);
+                if (s.blockIter == null) {
+                    s.blockIter = entry.snapshot().iterator();
+                }
+                if (s.blockIter.hasNext()) {
+                    BlockPos pos = s.blockIter.next();
+                    renderSingleBlock(s.matrixStack, bsr, layer, new VertexConsumerWrapper(s.currentBuffer), pos, entry.hook(), s.randomSource, 0);
+                    if (maxProgress > 0) progress++;
+                    return true;
+                }
+                s.blockIter = null;
+                s.entryIndex++;
+            }
+            // current layer is fully traversed — build + upload (we're on the render thread)
+            finalizeSyncLayer(s);
+            s.currentBuffer = null;
+            s.layerIndex++;
+        }
+        return false;
+    }
+
+    private boolean stepSyncTilePhase(SyncCompileState s, Minecraft mc) {
+        while (s.tileEntryIndex < s.entries.size()) {
+            RenderedBlocksEntry entry = s.entries.get(s.tileEntryIndex);
+            if (s.tileBlockIter == null) {
+                s.tileBlockIter = entry.snapshot().iterator();
+            }
+            if (s.tileBlockIter.hasNext()) {
+                BlockPos pos = s.tileBlockIter.next();
+                if (maxProgress > 0) progress++;
+                BlockEntity tile = world.getBlockEntity(pos);
+                if (tile != null && mc.getBlockEntityRenderDispatcher().getRenderer(tile) != null) {
+                    s.collectedTiles.add(pos);
+                }
+                return true;
+            }
+            s.tileBlockIter = null;
+            s.tileEntryIndex++;
+        }
+        return false;
+    }
+
+    private void finalizeSyncLayer(SyncCompileState s) {
+        if (s.currentBuffer == null) return;
+        int idx = s.layerIndex;
+        MeshData data = s.currentBuffer.build();
+        if (data == null) {
+            vertexBuffersUsingMark[idx] = false;
+            return;
+        }
+        vertexBuffersUsingMark[idx] = true;
+        VertexBuffer vb = vertexBuffers[idx];
+        if (vb != null && !vb.isInvalid()) {
+            vb.bind();
+            vb.upload(data);
+            VertexBuffer.unbind();
+        } else {
+            data.close();
+        }
+    }
+
+    private void renderUploadedBuffers(Minecraft mc, MultiBufferSource.BufferSource buffers, float particleTicks, List<RenderType> layers) {
+        var poseStack = new PoseStack();
+        for (int i = 0; i < layers.size(); i++) {
+            var layer = layers.get(i);
+            if (layer == RenderType.translucent() && tileEntities != null) { // render tesr before translucent
+                if (world instanceof TrackedDummyWorld level) {
+                    renderEntities(level, poseStack, buffers, sceneEntityRenderHook, particleTicks);
+                }
+                renderTESR(tileEntities, poseStack, mc.renderBuffers().bufferSource(), null, particleTicks);
+                if (!endBatchLast) {
+                    buffers.endBatch();
+                }
+
+                if (particleManager != null) {
+                    poseStack.pushPose();
+                    poseStack.setIdentity();
+                    poseStack.translate(cameraEntity.getX(), cameraEntity.getY(), cameraEntity.getZ());
+                    particleManager.render(poseStack, camera, particleTicks, type -> !type.isTranslucent());
+                    poseStack.popPose();
+                }
+            }
+
+            var vertexbuffer = vertexBuffers[i];
+            if (vertexbuffer == null || !vertexBuffersUsingMark[i] || vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null)
+                continue;
+
+            layer.setupRenderState();
+
+            poseStack.pushPose();
+
+            ShaderInstance shaderInstance = RenderSystem.getShader();
+
+            for (int j = 0; j < 12; ++j) {
+                int k = RenderSystem.getShaderTexture(j);
+                shaderInstance.setSampler("Sampler" + j, k);
+            }
+
+            // setup shader uniform
+            if (shaderInstance.MODEL_VIEW_MATRIX != null) {
+                shaderInstance.MODEL_VIEW_MATRIX.set(RenderSystem.getModelViewMatrix());
+            }
+
+            if (shaderInstance.PROJECTION_MATRIX != null) {
+                shaderInstance.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
+            }
+
+            if (shaderInstance.COLOR_MODULATOR != null) {
+                shaderInstance.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
+            }
+
+            if (shaderInstance.FOG_START != null) {
+                shaderInstance.FOG_START.set(RenderSystem.getShaderFogStart());
+            }
+
+            if (shaderInstance.FOG_END != null) {
+                shaderInstance.FOG_END.set(RenderSystem.getShaderFogEnd());
+            }
+
+            if (shaderInstance.FOG_COLOR != null) {
+                shaderInstance.FOG_COLOR.set(RenderSystem.getShaderFogColor());
+            }
+
+            if (shaderInstance.FOG_SHAPE != null) {
+                shaderInstance.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
+            }
+
+            if (shaderInstance.TEXTURE_MATRIX != null) {
+                shaderInstance.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
+            }
+
+            if (shaderInstance.GAME_TIME != null) {
+                shaderInstance.GAME_TIME.set(RenderSystem.getShaderGameTime());
+            }
+
+            RenderSystem.setupShaderLights(shaderInstance);
+            shaderInstance.apply();
+
+            setDefaultRenderLayerState(layer);
+
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+
+            vertexbuffer.bind();
+            vertexbuffer.draw();
+
+            poseStack.popPose();
+
+            shaderInstance.clear();
+            VertexBuffer.unbind();
+            layer.clearRenderState();
         }
     }
 
     private void renderBlocks(PoseStack poseStack, BlockRenderDispatcher brd, RenderType layer, VertexConsumerWrapper wrapperBuffer, Collection<BlockPos> renderedBlocks, RandomSource randomSource, @Nullable ISceneBlockRenderHook hook, float partialTicks) {
         for (BlockPos pos : renderedBlocks) {
-            if (blocked != null && blocked.contains(pos)) {
-                continue;
-            }
-            var state = world.getBlockState(pos);
-            var fluidState = state.getFluidState();
-            var block = state.getBlock();
-
-            if (hook != null) {
-                hook.applyVertexConsumerWrapper(world, pos, state, wrapperBuffer, layer, partialTicks);
-            }
-
-            if (block == Blocks.AIR) continue;
-            if (state.getRenderShape() != INVISIBLE) {
-                var model = brd.getBlockModel(state);
-                var modelData = world.getModelData(pos);
-                modelData = model.getModelData(world, pos, state, modelData);
-                randomSource.setSeed(state.getSeed(pos));
-                modelData = model.getModelData(world, pos, state, modelData);
-                if (model.getRenderTypes(state, randomSource, modelData).contains(layer)) {
-                    poseStack.pushPose();
-                    poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
-                    brd.renderBatched(state, pos, world, poseStack, wrapperBuffer, false, randomSource, modelData, layer);
-                    poseStack.popPose();
-                }
-            }
-            if (!fluidState.isEmpty() && ItemBlockRenderTypes.getRenderLayer(fluidState) == layer) {
-                wrapperBuffer.addOffset((pos.getX() - (pos.getX() & 15)), (pos.getY() - (pos.getY() & 15)), (pos.getZ() - (pos.getZ() & 15)));
-                brd.renderLiquid(pos, world, wrapperBuffer, state, fluidState);
-            }
-            wrapperBuffer.clearOffset();
-            wrapperBuffer.clearColor();
+            renderSingleBlock(poseStack, brd, layer, wrapperBuffer, pos, hook, randomSource, partialTicks);
             if (maxProgress > 0) {
                 progress++;
             }
         }
+    }
+
+    private void renderSingleBlock(PoseStack poseStack, BlockRenderDispatcher brd, RenderType layer, VertexConsumerWrapper wrapperBuffer, BlockPos pos, @Nullable ISceneBlockRenderHook hook, RandomSource randomSource, float partialTicks) {
+        if (blocked != null && blocked.contains(pos)) {
+            return;
+        }
+        var state = world.getBlockState(pos);
+        var fluidState = state.getFluidState();
+        var block = state.getBlock();
+
+        if (hook != null) {
+            hook.applyVertexConsumerWrapper(world, pos, state, wrapperBuffer, layer, partialTicks);
+        }
+
+        if (block != Blocks.AIR && state.getRenderShape() != INVISIBLE) {
+            var model = brd.getBlockModel(state);
+            var modelData = world.getModelData(pos);
+            modelData = model.getModelData(world, pos, state, modelData);
+            randomSource.setSeed(state.getSeed(pos));
+            modelData = model.getModelData(world, pos, state, modelData);
+            if (model.getRenderTypes(state, randomSource, modelData).contains(layer)) {
+                poseStack.pushPose();
+                poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+                brd.renderBatched(state, pos, world, poseStack, wrapperBuffer, false, randomSource, modelData, layer);
+                poseStack.popPose();
+            }
+        }
+        if (!fluidState.isEmpty() && ItemBlockRenderTypes.getRenderLayer(fluidState) == layer) {
+            wrapperBuffer.addOffset((pos.getX() - (pos.getX() & 15)), (pos.getY() - (pos.getY() & 15)), (pos.getZ() - (pos.getZ() & 15)));
+            brd.renderLiquid(pos, world, wrapperBuffer, state, fluidState);
+        }
+        wrapperBuffer.clearOffset();
+        wrapperBuffer.clearColor();
     }
 
     private void renderTESR(Collection<BlockPos> poses, PoseStack poseStack, MultiBufferSource.BufferSource buffers, @Nullable ISceneBlockRenderHook hook, float partialTicks) {
