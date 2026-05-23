@@ -85,6 +85,16 @@ public abstract class WorldSceneRenderer {
      * Underlying {@link ByteBufferBuilder}s live in {@link #cacheBuilders} and must remain open
      * while these meshes are referenced.
      */
+    /**
+     * Identity-keyed map: the caller's {@link Collection} reference is the handle used by
+     * {@link #removeRenderedBlocks(Collection)}, while {@link RenderedBlocksEntry#snapshot} holds an
+     * immutable copy that the (possibly background) compile and render code iterates safely.
+     */
+    public final Map<Collection<BlockPos>, RenderedBlocksEntry> renderedBlocksMap;
+
+    public record RenderedBlocksEntry(Set<BlockPos> snapshot, @Nullable ISceneBlockRenderHook hook) {
+    }
+
     @Nullable
     protected Map<ChunkSectionLayer, List<MeshData>> cachedMeshes;
     /** Long-lived buffer pack backing {@link #cachedMeshes}. Closed in {@link #deleteCacheBuffer()}. */
@@ -93,6 +103,32 @@ public abstract class WorldSceneRenderer {
     protected Set<BlockPos> blockEntities;
     @Getter
     protected boolean useCache;
+    /**
+     * When {@link #useCache} is on, prefer running the cache compile on the main/render thread,
+     * spread across multiple frames, instead of on a background thread. Useful when the backing
+     * {@link Level} doesn't support off-thread access.
+     */
+    @Getter
+    protected boolean syncCompile;
+    /**
+     * Per-frame time budget for {@link #syncCompile} mode, in nanoseconds. Default 2ms.
+     * The compile loop always processes at least one block per frame to make forward progress.
+     */
+    @Getter
+    @Setter
+    protected long syncCompileTimeBudgetNanos = 2_000_000L;
+    /**
+     * Hard cap on blocks processed per frame in {@link #syncCompile} mode. Acts as a safety net
+     * when individual blocks render extremely fast.
+     */
+    @Getter
+    @Setter
+    protected int syncCompileMaxBlocksPerFrame = 200;
+    @Nullable
+    protected SyncCompileState syncCompileState;
+    @Getter
+    @Setter
+    protected boolean endBatchLast = false;// if true, endBatch will be called after all rendering
     protected boolean ortho;
     protected AtomicReference<CacheState> cacheState;
     protected int maxProgress;
@@ -160,7 +196,7 @@ public abstract class WorldSceneRenderer {
 
     public WorldSceneRenderer(Level world) {
         this.world = world;
-        renderedBlocksMap = new LinkedHashMap<>();
+        renderedBlocksMap = new IdentityHashMap<>();
         cacheState = new AtomicReference<>(CacheState.UNCREATED);
         cameraEntity = new CameraEntity(world);
     }
@@ -256,6 +292,43 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
+    /**
+     * Toggle the incremental main-thread cache compile path. Triggers a recompile so the new
+     * mode takes effect on the next render.
+     */
+    public WorldSceneRenderer syncCompile(boolean syncCompile) {
+        if (this.syncCompile == syncCompile) return this;
+        this.syncCompile = syncCompile;
+        needCompileCache();
+        return this;
+    }
+
+    /**
+     * Per-frame, incrementally advanced state for sync-compile mode. Lives only while a sync
+     * compile is in flight; cleared by {@link #cancelCompile()} and replaced on next compile.
+     */
+    protected static class SyncCompileState {
+        final List<RenderType> layers;
+        final List<RenderedBlocksEntry> entries;
+        final PoseStack matrixStack = new PoseStack();
+        final RandomSource randomSource = RandomSource.createNewThreadLocalInstance();
+        // block phase
+        int layerIndex = 0;
+        @Nullable BufferBuilder currentBuffer;
+        int entryIndex = 0;
+        @Nullable Iterator<BlockPos> blockIter;
+        // tile-entity scan phase
+        boolean tilePhase = false;
+        int tileEntryIndex = 0;
+        @Nullable Iterator<BlockPos> tileBlockIter;
+        final Set<BlockPos> collectedTiles = new HashSet<>();
+
+        SyncCompileState(List<RenderType> layers, List<RenderedBlocksEntry> entries) {
+            this.layers = layers;
+            this.entries = entries;
+        }
+    }
+
     public WorldSceneRenderer useOrtho(boolean ortho) {
         this.ortho = ortho;
         return this;
@@ -304,21 +377,53 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
+    /**
+     * Cancels any in-flight compile, whether async (background thread) or sync (cursor on main thread).
+     * For async, interrupts and joins the thread briefly so subsequent map mutations cannot race
+     * with an in-flight iteration of {@link #renderedBlocksMap}.
+     */
+    private void cancelCompile() {
+        var t = thread;
+        if (t != null) {
+            thread = null;
+            t.interrupt();
+            try {
+                t.join(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        // Discard any in-flight sync cursor; the partially-filled BufferBuilder is dropped
+        // (its underlying ByteBuffer will be GC'd along with the state object).
+        if (syncCompileState != null && syncCompileState.currentBuffer != null) {
+            try {
+                MeshData leftover = syncCompileState.currentBuffer.build();
+                if (leftover != null) leftover.close();
+            } catch (Throwable ignored) {
+            }
+        }
+        syncCompileState = null;
+    }
+
     public WorldSceneRenderer addRenderedBlocks(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook) {
         if (blocks != null) {
-            this.renderedBlocksMap.put(blocks, renderHook);
+            cancelCompile();
+            // Snapshot so later mutations to the caller's collection don't race with the compile thread.
+            this.renderedBlocksMap.put(blocks, new RenderedBlocksEntry(Set.copyOf(blocks), renderHook));
         }
         return this;
     }
 
     public WorldSceneRenderer removeRenderedBlocks(Collection<BlockPos> blocks) {
         if (blocks != null) {
+            cancelCompile();
             this.renderedBlocksMap.remove(blocks);
         }
         return this;
     }
 
     public WorldSceneRenderer removeAllRenderedBlocks() {
+        cancelCompile();
         this.renderedBlocksMap.clear();
         return this;
     }

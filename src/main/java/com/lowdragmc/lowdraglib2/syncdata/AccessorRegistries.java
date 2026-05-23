@@ -43,6 +43,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -355,6 +356,11 @@ public class AccessorRegistries {
                 .codec(BlockPos.CODEC)
                 .streamCodec(BlockPos.STREAM_CODEC)
                 .copyMark(BlockPos::new)
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(ChunkPos.class)
+                .codec(Codec.LONG.xmap(ChunkPos::new, ChunkPos::toLong))
+                .streamCodec(ByteBufCodecs.VAR_LONG.map(ChunkPos::new, ChunkPos::toLong))
+                .copyMark(chunkPos -> new ChunkPos(chunkPos.x(), chunkPos.z()))
                 .build());
         registerAccessor(CustomDirectAccessor.builder(FluidStack.class)
                 .codec(FluidStack.OPTIONAL_CODEC)

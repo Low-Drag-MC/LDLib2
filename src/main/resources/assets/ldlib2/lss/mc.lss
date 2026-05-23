@@ -81,11 +81,11 @@ progress-bar:host {
 }
 
 // slot
-item-slot {
+item-slot, .item-slot_bg {
   background: built-in(ui-mc:RECT_1);
 }
 
-fluid-slot {
+fluid-slot, .fluid-slot_bg {
   background: built-in(ui-mc:RECT_2);
 }
 
@@ -254,6 +254,13 @@ menu {
 
 .__view-container__ {
   background: built-in(ui-mc:RECT_2);
+}
+
+.__editor-gizmo-bar__ {
+  background: built-in(ui-mc:BORDER);
+  width: 22;
+  padding-all: 4;
+  top: 24;
 }
 
 ResourceView tab:host {

@@ -40,10 +40,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 import java.util.function.Consumer;
 
 public class UIEditorView extends View {
@@ -257,12 +255,21 @@ public class UIEditorView extends View {
             @Override
             public void search(String word, IResultHandler<Identifier> searchHandler) {
                 var lowerWord = word.toLowerCase();
+                var candidates = new HashSet<ResourceLocation>();
                 for (var key : StylesheetManager.INSTANCE.getAllPackStylesheets()) {
                     if (Thread.currentThread().isInterrupted()) return;
-                    // TODO skip existing stylesheets. thread unsafe here,
-//                            if (template != null && template.getStylesheets().contains(key)) continue;
-                    if (key.toString().toLowerCase().contains(lowerWord)) {
-                        searchHandler.acceptResult(key);
+                    candidates.add(key);
+                }
+                for (var key : StylesheetManager.INSTANCE.getAllBuiltinStylesheets()) {
+                    if (Thread.currentThread().isInterrupted()) return;
+                    candidates.add(key);
+                }
+                for (var candidate : candidates) {
+                    if (candidate.toString().toLowerCase().contains(lowerWord)) {
+                        if (candidate.getPath().endsWith(".lss")) {
+                            searchHandler.acceptResult(candidate.withPath(candidate.getPath().substring(0, candidate.getPath().length() - 4)));
+                        }
+                        searchHandler.acceptResult(candidate);
                     }
                 }
             }

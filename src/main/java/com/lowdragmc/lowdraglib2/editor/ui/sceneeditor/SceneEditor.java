@@ -78,7 +78,7 @@ public class SceneEditor extends UIElement implements IScene {
             layout.height(16);
             layout.paddingAll(1);
             layout.gapAll(1);
-        }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
+        }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).moveInlineAsDefault().addClass("__ui-editor-view_header__");
 
         this.scene = new Scene();
         this.scene.setRenderFacing(false);
@@ -99,7 +99,7 @@ public class SceneEditor extends UIElement implements IScene {
             layout.width(20);
             layout.paddingAll(3);
             layout.gapAll(1);
-        }).style(style -> style.backgroundTexture(Sprites.BORDER_RT0));
+        }).style(style -> style.backgroundTexture(Sprites.BORDER_RT0)).moveInlineAsDefault().addClass("__editor-gizmo-bar__");
 
         this.screenTips = new TextElement();
         screenTips.textStyle(style -> {
@@ -109,7 +109,7 @@ public class SceneEditor extends UIElement implements IScene {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.widthPercent(100);
             layout.heightPercent(100);
-        });
+        }).moveInlineAsDefault();
 //        this.scene.addChild(screenTips);
 
         transformGizmo = new TransformGizmo();
@@ -169,8 +169,10 @@ public class SceneEditor extends UIElement implements IScene {
                                 .textAlignVertical(Vertical.CENTER))
                         .setText(candidate == null ? "---" : candidate ? "editor.camera.ortho" : "editor.camera.prospective"))
                 .layout(layout -> layout.width(50))
-                .style(style -> style.tooltips("editor.camera.mode")));
-
+                .style(style -> style.tooltips("editor.camera.mode"))
+                .moveInlineAsDefault()
+                .addClass("__ui-editor-view_header-projection-mode__")
+        );
     }
 
     public void initGizmos() {
@@ -212,7 +214,7 @@ public class SceneEditor extends UIElement implements IScene {
                             toggle.setValue(transformGizmoMode == mode, false);
                         }
                     }
-                });
+                }).addClass("__editor-gizmo-bar-toggle__");
     }
 
 
