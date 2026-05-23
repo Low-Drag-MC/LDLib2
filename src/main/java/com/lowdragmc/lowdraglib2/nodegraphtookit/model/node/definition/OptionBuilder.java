@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
+import com.mojang.serialization.Codec;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,6 +32,10 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
     protected Field valueField;
     @Nullable
     protected Object valueOwer;
+    @Nullable
+    protected Codec<?> customCodec;
+    protected boolean noSerialization;
+    protected boolean noConfigurator;
 
     /**
      * Creates a new option builder.
@@ -52,6 +57,9 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
         customTypeConfigurable = null;
         valueField = null;
         valueOwer = null;
+        customCodec = null;
+        noSerialization = false;
+        noConfigurator = false;
     }
 
     public OptionBuilder addOption(OptionDefinitionContext context, String optionId, TypeHandle dataType) {
@@ -98,17 +106,56 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
         return this;
     }
 
+    /**
+     * Returns a callback to install builder-side Constant state, or {@code null} if the builder
+     * has no state worth applying — in which case Phase 1 of deserialization already produced
+     * the correct constant and {@link com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel}'s
+     * reuse path skips the redundant Phase 2.
+     */
+    @Nullable
+    private Consumer<Constant> buildInitializationCallback() {
+        if (defaultValue == null && customCodec == null && !noSerialization) return null;
+        // Snapshot fields so the lambda isn't bound to the live builder (reset() runs after
+        // build() returns and would clear them otherwise).
+        var snapshotDefault = defaultValue;
+        var snapshotCodec = customCodec;
+        var snapshotSerializeDisabled = noSerialization;
+        return constant -> {
+            if (snapshotDefault != null) {
+                constant.setDefaultValue(snapshotDefault);
+                constant.setValue(snapshotDefault);
+            }
+            constant.setCustomCodec(snapshotCodec);
+            constant.setSerializationEnabled(!snapshotSerializeDisabled);
+        };
+    }
+
+    @Override
+    public OptionBuilder withCodec(Codec<?> codec) {
+        this.customCodec = codec;
+        return this;
+    }
+
+    @Override
+    public OptionBuilder withoutSerialization() {
+        this.noSerialization = true;
+        return this;
+    }
+
+    @Override
+    public OptionBuilder withoutConfigurator() {
+        this.noConfigurator = true;
+        return this;
+    }
+
     @Override
     public INodeOption build() {
         if (context == null) throw new IllegalStateException("Option definition context is not set.");
 
-        Consumer<Constant> initializationCallback = null;
-        if (defaultValue != null) {
-            initializationCallback = constant -> {
-                constant.setDefaultValue(defaultValue);
-                constant.setValue(defaultValue);
-            };
-        }
+        // Only generate a callback when the builder actually has state to apply. For the common
+        // "no defaultValue, no codec, no withoutSerialization" case Phase 1 already produced the
+        // correct constant — Phase 2's reset-and-redecode would be redundant work.
+        Consumer<Constant> initializationCallback = buildInitializationCallback();
         var nodeModel = context.getScope().nodeModel;
         var result = nodeModel.addNodeOption(optionId, dataType, tooltip, showInInspectorOnly, order, initializationCallback, __ -> {
             // schedule defines while the option value changed
@@ -126,6 +173,7 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
         portModel.setCustomTypeConfigurable(customTypeConfigurable);
         portModel.setValueField(valueField);
         portModel.setValueOwer(valueOwer);
+        portModel.setConfiguratorEnabled(!noConfigurator);
         context.freeBuilder(this);
         return result;
     }

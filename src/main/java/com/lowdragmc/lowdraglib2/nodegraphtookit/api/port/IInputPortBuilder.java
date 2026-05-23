@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.api.port;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
+import com.mojang.serialization.Codec;
 
 import java.lang.reflect.Field;
 
@@ -32,4 +33,34 @@ public interface IInputPortBuilder<T extends IInputPortBuilder<T>> extends IPort
      * @return the current builder instance for method chaining
      */
     T withFieldContext(Field field, Object owner);
+
+    /**
+     * Installs a Mojang {@link Codec} as the serializer for this port's embedded constant. Wins
+     * over the default {@code AccessorRegistries} lookup — useful when the value type has no
+     * registered accessor, or when you want a different on-disk shape.
+     *
+     * <p>Ignored if {@link #withoutSerialization()} is also set.</p>
+     *
+     * @param codec the codec used to encode/decode the port's value and default value
+     * @return the current builder instance for method chaining
+     */
+    T withCodec(Codec<?> codec);
+
+    /**
+     * Marks the port as non-persistent. The port's type identifier still survives the round-trip
+     * (so the port can be reconstructed), but its value and default value are skipped during
+     * serialization. Use for runtime-computed values that have no meaningful saved state.
+     *
+     * @return the current builder instance for method chaining
+     */
+    T withoutSerialization();
+
+    /**
+     * Suppresses the inspector field for this port. {@code buildConfigurator} becomes a no-op so
+     * the port produces no UI row, even though its value/default still live on the model. Useful
+     * for purely structural ports whose value the user shouldn't edit.
+     *
+     * @return the current builder instance for method chaining
+     */
+    T withoutConfigurator();
 }

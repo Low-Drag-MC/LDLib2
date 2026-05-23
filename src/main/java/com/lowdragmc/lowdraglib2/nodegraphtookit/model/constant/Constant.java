@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.utils.TypeUtils;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,30 @@ public abstract class Constant {
     protected GraphElementModel owner;
     @Getter
     protected @Nullable TypeHandle typeHandle;
+    /**
+     * Per-instance Mojang {@link Codec} override used by {@code TypeConstant.serializeConstant}
+     * when present — takes precedence over the default {@code AccessorRegistries}-based path.
+     * Set by the port/option builder; not persisted (reapplied on every {@code defineNode}).
+     */
+    @Getter @Setter @Nullable
+    protected Codec<?> customCodec;
+    /**
+     * When {@code false}, the constant's value and default value are skipped during serialization
+     * — only the type identifier survives the round-trip. Useful for transient / runtime-computed
+     * port values. Not persisted (reapplied on every {@code defineNode}).
+     */
+    @Getter @Setter
+    protected boolean serializationEnabled = true;
+    /**
+     * Transient flag set by {@code TypeConstant.deserializeIntoConstant} when the saved NBT
+     * contained a value (and/or default value) that could not be decoded into a runtime value via
+     * either the custom codec or the {@code AccessorRegistries} fallback. Higher-level code (e.g.
+     * {@code GraphModel.deserializeNBT}) consults this flag to disconnect wires terminating at
+     * the affected port, surfacing the data-loss event rather than silently using the builder
+     * default. Cleared on {@link #init(TypeHandle)} and never persisted.
+     */
+    @Getter @Setter
+    protected transient boolean deserializeFailed = false;
     protected final List<Consumer<Object>> listeners = new ArrayList<>();
 
     /**
@@ -35,6 +60,9 @@ public abstract class Constant {
 
     public void init(TypeHandle typeHandle) {
         this.typeHandle = typeHandle;
+        // Stale failure state from a previous deserialize must not leak into a freshly-init'd
+        // constant — e.g. when the builder re-uses a Constant slot across defineNode passes.
+        this.deserializeFailed = false;
         if (typeHandle != null) {
             setDefaultValue(typeHandle.getDefaultValue());
         }

@@ -24,6 +24,15 @@ public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
         return null;
     }
 
+    /**
+     * Hard opt-out for the inspector field. When {@code false}, {@link #buildConfigurator} is a
+     * no-op — no UI row is generated for this port/option even though its underlying value still
+     * exists on the model. Default {@code true} keeps every existing call site behaving as today.
+     */
+    default boolean isConfiguratorEnabled() {
+        return true;
+    }
+
     @Override
     default void setValue(Object value) {
         var constant = getConfigurableConstant();
@@ -55,6 +64,7 @@ public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
 
     @Override
     default void buildConfigurator(ConfiguratorGroup father) {
+        if (!isConfiguratorEnabled()) return;
         var constant = getConfigurableConstant();
         var group = new ConfiguratorGroup();
         if (constant != null) {

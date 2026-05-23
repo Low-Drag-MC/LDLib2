@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModelImpl;
+import com.mojang.serialization.Codec;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,6 +29,10 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
     protected Field valueField;
     @Nullable
     protected Object valueOwer;
+    @Nullable
+    protected Codec<?> customCodec;
+    protected boolean noSerialization;
+    protected boolean noConfigurator;
 
     public void reset() {
         portId = null;
@@ -40,6 +45,9 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
         customTypeConfigurable = null;
         valueField = null;
         valueOwer = null;
+        customCodec = null;
+        noSerialization = false;
+        noConfigurator = false;
     }
 
     public PortBuilder addInputPort(PortDefinitionContext context, String portId, TypeHandle typeHandle) {
@@ -89,6 +97,41 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
         return this;
     }
 
+    /** Mirror of {@code OptionBuilder.buildInitializationCallback} — see that for the rationale. */
+    @Nullable
+    private Consumer<Constant> buildInitializationCallback() {
+        if (defaultValue == null && customCodec == null && !noSerialization) return null;
+        var snapshotDefault = defaultValue;
+        var snapshotCodec = customCodec;
+        var snapshotSerializeDisabled = noSerialization;
+        return constant -> {
+            if (snapshotDefault != null) {
+                constant.setDefaultValue(snapshotDefault);
+                constant.setValue(snapshotDefault);
+            }
+            constant.setCustomCodec(snapshotCodec);
+            constant.setSerializationEnabled(!snapshotSerializeDisabled);
+        };
+    }
+
+    @Override
+    public PortBuilder withCodec(Codec<?> codec) {
+        this.customCodec = codec;
+        return this;
+    }
+
+    @Override
+    public PortBuilder withoutSerialization() {
+        this.noSerialization = true;
+        return this;
+    }
+
+    @Override
+    public PortBuilder withoutConfigurator() {
+        this.noConfigurator = true;
+        return this;
+    }
+
     @Override
     public PortModel build() {
         if (context == null) throw new IllegalStateException("Option definition context is not set.");
@@ -96,13 +139,10 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
         PortModel result;
         var nodeModel = context.getScope().nodeModel;
         if (portDirection == PortDirection.INPUT) {
-            Consumer<Constant> initializationCallback = null;
-            if (defaultValue != null) {
-                initializationCallback = constant -> {
-                    constant.setDefaultValue(defaultValue);
-                    constant.setValue(defaultValue);
-                };
-            }
+            // Only generate a callback when the builder actually has state to apply. For the
+            // common "no defaultValue, no codec, no withoutSerialization" case Phase 1 already
+            // produced the correct constant — Phase 2's reset-and-redecode would be redundant.
+            Consumer<Constant> initializationCallback = buildInitializationCallback();
             result = nodeModel.addInputPort(portId, dataType, null,
                     portOrientation, null, initializationCallback, null);
         } else {
@@ -123,6 +163,9 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
             result.setValueField(valueField);
             result.setValueOwer(valueOwer);
         }
+        // Configurator opt-out applies to both directions — output ports also descend from
+        // IFieldConstantConfigurable via PortModel and should be silenced if requested.
+        result.setConfiguratorEnabled(!noConfigurator);
         context.freeBuilder(this);
         return result;
     }
