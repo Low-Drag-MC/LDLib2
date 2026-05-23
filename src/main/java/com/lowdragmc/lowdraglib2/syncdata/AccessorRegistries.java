@@ -358,8 +358,8 @@ public class AccessorRegistries {
                 .copyMark(BlockPos::new)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ChunkPos.class)
-                .codec(Codec.LONG.xmap(ChunkPos::new, ChunkPos::toLong))
-                .streamCodec(ByteBufCodecs.VAR_LONG.map(ChunkPos::new, ChunkPos::toLong))
+                .codec(ChunkPos.CODEC)
+                .streamCodec(ChunkPos.STREAM_CODEC)
                 .copyMark(chunkPos -> new ChunkPos(chunkPos.x(), chunkPos.z()))
                 .build());
         registerAccessor(CustomDirectAccessor.builder(FluidStack.class)

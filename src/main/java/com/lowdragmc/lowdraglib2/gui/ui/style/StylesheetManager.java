@@ -221,9 +221,9 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
         mergedStylesheets.keySet().removeIf(key -> !newSheets.containsKey(key));
     }
 
-    private void mergeStylesheetsByPath(Map<String, Stylesheet> merged, Map<ResourceLocation, Stylesheet> source) {
+    private void mergeStylesheetsByPath(Map<String, Stylesheet> merged, Map<Identifier, Stylesheet> source) {
         source.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey(Comparator.comparing(ResourceLocation::toString)))
+                .sorted(Map.Entry.comparingByKey(Comparator.comparing(Identifier::toString)))
                 .forEach(entry -> {
                     var path = entry.getKey().getPath();
                     var stylesheet = merged.computeIfAbsent(path, key -> {

@@ -255,7 +255,7 @@ public class UIEditorView extends View {
             @Override
             public void search(String word, IResultHandler<Identifier> searchHandler) {
                 var lowerWord = word.toLowerCase();
-                var candidates = new HashSet<ResourceLocation>();
+                var candidates = new HashSet<Identifier>();
                 for (var key : StylesheetManager.INSTANCE.getAllPackStylesheets()) {
                     if (Thread.currentThread().isInterrupted()) return;
                     candidates.add(key);

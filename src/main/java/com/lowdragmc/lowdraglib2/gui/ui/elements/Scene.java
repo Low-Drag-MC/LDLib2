@@ -153,6 +153,7 @@ public class Scene extends UIElement {
     public Scene syncCompile(boolean syncCompile) {
         this.syncCompile = syncCompile;
         if (renderer != null) {
+            var renderer = this.<WorldSceneRenderer>getRenderer();
             renderer.syncCompile(syncCompile);
         }
         return this;
