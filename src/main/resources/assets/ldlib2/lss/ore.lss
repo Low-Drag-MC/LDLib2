@@ -9,6 +9,7 @@
 .preview_bg {
   background: built-in(ui-ore:BORDER_5);
   padding-all: 4;
+  padding-bottom: 6;
 }
 
 .configurator_preview_bg {
@@ -317,6 +318,11 @@ tab:host:not(tab:selected) label {
   padding-bottom: 7;
 }
 
+.__dialog_title__ > label {
+    text-color: #222;
+    text-shadow: false;
+}
+
 .__dialog_content-container__ {
   background: built-in(ui-ore:TAB_OFF_DEFAULT);
   padding-bottom: 6;
@@ -410,6 +416,11 @@ ResourceView .__tab-view_tab_content_container__ {
   background: empty;
   padding-all: 3;
   gap-all: 1;
+}
+
+.__editor-gizmo-bar__ {
+  background: built-in(ui-ore:TAB_OFF_DISABLED);
+  top: 25;
 }
 
 .__editor-window_active__ {

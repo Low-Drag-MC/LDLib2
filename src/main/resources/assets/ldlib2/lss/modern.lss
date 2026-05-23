@@ -305,6 +305,10 @@ menu {
   height: 14;
 }
 
+.__editor-gizmo-bar__ {
+  background: sdf(#1e1f22, 4, 2, #7f8084);
+}
+
 .__view-container__ {
   background: sdf(#1e1f22);
 }

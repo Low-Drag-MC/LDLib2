@@ -436,7 +436,7 @@
   "view.save_before_close.info": "Save before close",
   "TextStyle": "Text Style",
   "GraphView.": "Fit View",
-  "UIEditfitor.selection_box": "Show/Hide Selection Box",
+  "UIEditor.selection_box": "Show/Hide Selection Box",
   "UIEditor.simulation": "Simulation",
   "builtin_styles": "Builtin Styles",
   "UIElement.class": "Class",

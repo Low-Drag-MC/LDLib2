@@ -256,6 +256,13 @@ menu {
   background: built-in(ui-mc:RECT_2);
 }
 
+.__editor-gizmo-bar__ {
+  background: built-in(ui-mc:BORDER);
+  width: 22;
+  padding-all: 4;
+  top: 24;
+}
+
 ResourceView tab:host {
   base-background: empty;
   hover-background: built-in(ui-mc:RECT_THIN);
