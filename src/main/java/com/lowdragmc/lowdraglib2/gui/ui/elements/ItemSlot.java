@@ -233,15 +233,15 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         return this;
     }
 
-    public ItemSlot xeiRecipeIngredient(IngredientIO io, Stream<ItemStack> allPossibleItems) {
+    public ItemSlot xeiRecipeIngredient(IngredientIO io, Supplier<Stream<ItemStack>> allPossibleItems) {
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeIngredient(this, io, () -> allPossibleItems);
+            JEISupport.recipeIngredient(this, io, allPossibleItems);
         }
         if (LDLib2.isReiLoaded()) {
-            REISupport.recipeIngredient(this, io, () -> allPossibleItems);
+            REISupport.recipeIngredient(this, io, allPossibleItems);
         }
         if (LDLib2.isEmiLoaded()) {
-            EMISupport.recipeIngredient(this, io, () -> allPossibleItems);
+            EMISupport.recipeIngredient(this, io, allPossibleItems);
         }
         return this;
     }
@@ -263,15 +263,15 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         return this;
     }
 
-    public ItemSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Stream<ItemStack> allPossibleItems) {
+    public ItemSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Supplier<Stream<ItemStack>> allPossibleItems) {
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this, () -> allPossibleItems);
+            JEISupport.recipeSlot(this, allPossibleItems);
         }
         if (LDLib2.isReiLoaded()) {
-            REISupport.recipeSlot(this, io, () -> allPossibleItems);
+            REISupport.recipeSlot(this, io, allPossibleItems);
         }
         if (LDLib2.isEmiLoaded()) {
-            EMISupport.recipeSlot(this, () -> chance, () -> amount, () -> allPossibleItems);
+            EMISupport.recipeSlot(this, () -> chance, () -> amount, allPossibleItems);
         }
         return this;
     }
