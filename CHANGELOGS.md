@@ -1,4 +1,7 @@
 # ChangeLogs
+## v26.1.2.12.a
+* Fixed ModularHudLayer screen size to respect scale
+
 ## v26.1.2.12
 * Improved ngt to support custom serialization / configurator during option/port definition
 * Improved WorldSceneRenderer to support sync compilation
