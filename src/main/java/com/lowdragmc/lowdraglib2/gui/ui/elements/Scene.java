@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.scene.*;
 import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
@@ -9,6 +10,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.rei.LDLibREIPlugin;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases;
 import com.lowdragmc.lowdraglib2.math.interpolate.Interpolator;
@@ -17,9 +21,13 @@ import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -103,6 +111,8 @@ public class Scene extends UIElement {
     protected ClipContext.Block clipBlock = ClipContext.Block.OUTLINE;
     @Getter
     protected ClipContext.Fluid clipFluid = ClipContext.Fluid.NONE;
+    @Getter @Setter
+    protected boolean allowXEILookup = true;
     @Getter
     protected boolean autoReleased = true;
     @Getter @Setter
@@ -339,6 +349,26 @@ public class Scene extends UIElement {
         if (renderer != null) {
             renderer.setClipBlock(block);
             renderer.setClipFluid(fluid);
+        }
+        return this;
+    }
+
+    /**
+     * Enable XEI (JEI/REI/EMI) lookup for the currently hovered block. Once enabled,
+     * the hovered block's {@link #lastHoverItem} becomes the ingredient under the cursor
+     * for XEI recipe lookup (R/U keys). Runtime toggle via {@link #setAllowXEILookup(boolean)}.
+     */
+    public Scene xeiLookup() {
+        if (LDLib2.isClient() && !LDLib2.isServer()) {
+            if (LDLib2.isJeiLoaded()) {
+                JEISupport.clickableIngredient(this);
+            }
+            if (LDLib2.isReiLoaded()) {
+                REISupport.focusedStack(this);
+            }
+            if (LDLib2.isEmiLoaded()) {
+                EMISupport.stackProvider(this);
+            }
         }
         return this;
     }
@@ -651,4 +681,39 @@ public class Scene extends UIElement {
 //            }
 //        }
     }
+
+    // region XEI Supports
+    public static class JEISupport {
+        public static void clickableIngredient(Scene scene) {
+            LDLibJEIPlugin.clickableIngredient(scene, () -> {
+                if (!scene.allowXEILookup) return null;
+                var current = scene.lastHoverItem;
+                if (current == null || current.isEmpty()) return null;
+                return TypedItemStack.create(current);
+            });
+        }
+    }
+
+    public static class REISupport {
+        public static void focusedStack(Scene scene) {
+            LDLibREIPlugin.focusedStack(scene, () -> {
+                if (!scene.allowXEILookup) return null;
+                var current = scene.lastHoverItem;
+                if (current == null || current.isEmpty()) return null;
+                return EntryStacks.of(current);
+            });
+        }
+    }
+
+    public static class EMISupport {
+        public static void stackProvider(Scene scene) {
+            LDLibEMIPlugin.stackProvider(scene, () -> {
+                if (!scene.allowXEILookup) return null;
+                var current = scene.lastHoverItem;
+                if (current == null || current.isEmpty()) return null;
+                return new EmiStackInteraction(EmiStack.of(current), null, false);
+            });
+        }
+    }
+    // endregion
 }
