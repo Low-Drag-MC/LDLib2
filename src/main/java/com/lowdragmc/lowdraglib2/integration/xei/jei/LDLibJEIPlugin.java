@@ -78,7 +78,17 @@ public class LDLibJEIPlugin implements IModPlugin {
     }
 
     public static <V> Optional<ITypedIngredient<V>> createTypedIngredient(IIngredientType<V> ingredientType, V ingredient, boolean normalize) {
-        var manager = ingredientManager == null ? Internal.getJeiRuntime().getIngredientManager() : ingredientManager;
+        IIngredientManager manager = ingredientManager;
+        if (manager == null) {
+            // JEI runtime isn't created until all plugin registration phases finish, so
+            // Internal.getJeiRuntime() throws if another plugin reaches us during its own
+            // registerRecipes before LDLib2's registerCategories had a chance to cache it.
+            try {
+                manager = Internal.getJeiRuntime().getIngredientManager();
+            } catch (Throwable ignored) {
+                return Optional.empty();
+            }
+        }
         return manager.createTypedIngredient(ingredientType, ingredient, normalize);
     }
 
@@ -102,6 +112,10 @@ public class LDLibJEIPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
+        // Cache the IngredientManager as early as possible. registerCategories runs to
+        // completion across all plugins before any plugin's registerRecipes, so other mods
+        // that call into LDLib2 helpers from their registerRecipes will find it ready.
+        ingredientManager = registration.getJeiHelpers().getIngredientManager();
         if (Platform.isDevEnv()) {
             TestJEIPlugin.registerCategories(registration);
         }
@@ -109,7 +123,6 @@ public class LDLibJEIPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        ingredientManager = registration.getIngredientManager();
         if (Platform.isDevEnv()) {
             TestJEIPlugin.registerRecipes(registration);
         }
