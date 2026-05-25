@@ -126,7 +126,7 @@
   "editor.view.ui_editor": "UI Editor",
   "editor.view.ui_xml_editor": "UI Xml Editor",
   "editor.camera.mode": "Camera Mode",
-  "editor.camera.prospective": "Pros",
+  "editor.camera.perspective": "Persp",
   "editor.camera.ortho": "Ortho",
   "editor.inspector.history": "Inspect (%s)",
   "editor.edit_color": "Edit Color",

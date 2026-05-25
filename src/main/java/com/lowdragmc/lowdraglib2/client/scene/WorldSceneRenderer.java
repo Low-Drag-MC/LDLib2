@@ -127,6 +127,10 @@ public abstract class WorldSceneRenderer {
     protected final Camera camera = new Camera();
     protected final CameraEntity cameraEntity;
     @Setter
+    protected ClipContext.Block clipBlock = ClipContext.Block.OUTLINE;
+    @Setter
+    protected ClipContext.Fluid clipFluid = ClipContext.Fluid.NONE;
+    @Setter
     @Nullable
     private Consumer<WorldSceneRenderer> beforeWorldRender;
     @Setter
@@ -975,7 +979,7 @@ public abstract class WorldSceneRenderer {
         hitPos = hitPos.mul(2, new Vector3f()); // Double view range to ensure pos can be seen.
         var endPos = new Vec3((hitPos.x() - startPos.x), (hitPos.y() - startPos.y), (hitPos.z() - startPos.z));
         try {
-            return this.world.clip(new ClipContext(startPos, endPos, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, cameraEntity));
+            return this.world.clip(new ClipContext(startPos, endPos, clipBlock, clipFluid, cameraEntity));
         } catch (Exception e) {
             return null;
         }

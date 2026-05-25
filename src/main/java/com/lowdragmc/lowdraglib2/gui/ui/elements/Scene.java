@@ -28,6 +28,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -98,6 +99,10 @@ public class Scene extends UIElement {
     protected boolean syncCompile;
     @Getter
     protected boolean useOrtho = false;
+    @Getter
+    protected ClipContext.Block clipBlock = ClipContext.Block.OUTLINE;
+    @Getter
+    protected ClipContext.Fluid clipFluid = ClipContext.Fluid.NONE;
     @Getter
     protected boolean autoReleased = true;
     @Getter @Setter
@@ -257,6 +262,8 @@ public class Scene extends UIElement {
         renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         renderer.useCacheBuffer(useCache);
         renderer.syncCompile(syncCompile);
+        renderer.setClipBlock(clipBlock);
+        renderer.setClipFluid(clipFluid);
         if (dummyWorld.getParticleManager() != null) {
             renderer.setParticleManager(dummyWorld.getParticleManager());
         }
@@ -323,6 +330,17 @@ public class Scene extends UIElement {
 
     public Scene setRenderedCore(Collection<BlockPos> blocks) {
         return setRenderedCore(blocks, null);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public Scene setClipContext(ClipContext.Block block, ClipContext.Fluid fluid) {
+        this.clipBlock = block;
+        this.clipFluid = fluid;
+        if (renderer != null) {
+            renderer.setClipBlock(block);
+            renderer.setClipFluid(fluid);
+        }
+        return this;
     }
 
     @OnlyIn(Dist.CLIENT)

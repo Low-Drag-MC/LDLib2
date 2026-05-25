@@ -167,7 +167,7 @@ public class SceneEditor extends UIElement implements IScene {
                         .textStyle(style -> style
                                 .textAlignHorizontal(Horizontal.LEFT)
                                 .textAlignVertical(Vertical.CENTER))
-                        .setText(candidate == null ? "---" : candidate ? "editor.camera.ortho" : "editor.camera.prospective"))
+                        .setText(candidate == null ? "---" : candidate ? "editor.camera.ortho" : "editor.camera.perspective"))
                 .layout(layout -> layout.width(50))
                 .style(style -> style.tooltips("editor.camera.mode"))
                 .moveInlineAsDefault()

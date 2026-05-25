@@ -48,7 +48,6 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -409,7 +408,7 @@ public class DummyWorld extends Level {
 
     @Override
     public FluidState getFluidState(BlockPos pPos) {
-        return Fluids.EMPTY.defaultFluidState();
+        return getBlockState(pPos).getFluidState();
     }
 
     @Override

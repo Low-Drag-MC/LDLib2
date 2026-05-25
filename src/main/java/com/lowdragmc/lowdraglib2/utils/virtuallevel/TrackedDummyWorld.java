@@ -103,12 +103,6 @@ public class TrackedDummyWorld extends DummyWorld {
     }
 
     @Override
-    public FluidState getFluidState(BlockPos pPos) {
-        Level proxy = proxyWorld.get();
-        return proxy == null ? super.getFluidState(pPos) : proxy.getFluidState(pPos);
-    }
-
-    @Override
     public int getBlockTint(@Nonnull BlockPos blockPos, @Nonnull ColorResolver colorResolver) {
         Level proxy = proxyWorld.get();
         return proxy == null ? super.getBlockTint(blockPos, colorResolver) : proxy.getBlockTint(blockPos, colorResolver);
