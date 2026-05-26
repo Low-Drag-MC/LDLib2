@@ -24,13 +24,18 @@ public class ModularUITooltipComponent implements TooltipComponent {
 
     public ModularUITooltipComponent(UIElement element) {
         this(new ModularUI(UI.of(element)));
-        var width = Optional.ofNullable(element.getStyleBag().computeCandidate(LayoutProperties.WIDTH))
-                .orElseGet(TaffyDimension::auto)
-                .getValue();
-        var height = Optional.ofNullable(element.getStyleBag().computeCandidate(LayoutProperties.HEIGHT))
-                .orElseGet(TaffyDimension::auto)
-                .getValue();
-        this.modularUI.init((int) width, (int) height);
+        var widthDim = Optional.ofNullable(element.getStyleBag().computeCandidate(LayoutProperties.WIDTH))
+                .orElseGet(TaffyDimension::auto);
+        var heightDim = Optional.ofNullable(element.getStyleBag().computeCandidate(LayoutProperties.HEIGHT))
+                .orElseGet(TaffyDimension::auto);
+        this.modularUI.init((int) widthDim.getValue(), (int) heightDim.getValue());
+        // If the root is auto-sized, screenWidth/screenHeight passed above is 0,
+        // which makes ModularUI.init compute leftPos = (0 - width) / 2 (i.e. -width/2)
+        // due to the relative-root centering logic. Re-init with the now-known
+        // content size so leftPos/topPos collapse back to 0.
+        if (widthDim.isAuto() || heightDim.isAuto()) {
+            this.modularUI.init((int) this.modularUI.getWidth(), (int) this.modularUI.getHeight());
+        }
     }
 
 }
