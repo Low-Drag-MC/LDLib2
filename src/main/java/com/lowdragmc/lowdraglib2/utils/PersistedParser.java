@@ -535,7 +535,7 @@ public final class PersistedParser {
 
         if (root && object instanceof IPersistedSerializable serializable) {
             if (buf.readBoolean()) {
-                var tag = buf.readNbt();
+                var tag = buf.readNbt(NbtAccounter.unlimitedHeap());
                 if (tag == null) return;
                 serializable.deserializeAdditionalNBT(tag, provider);
             }
