@@ -24,6 +24,10 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -33,7 +37,10 @@ import org.appliedenergistics.yoga.YogaEdge;
 import org.appliedenergistics.yoga.YogaGutter;
 import org.appliedenergistics.yoga.YogaJustify;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlockEntity {
@@ -50,6 +57,14 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
     @DropSaved
     private ItemStack itemStack = ItemStack.EMPTY;
 
+    // Exercises the @ReadOnlyManaged path on Map<String, List<BlockPos>> (the
+    // case where ReadOnlyRef#oldValueMark used to be left null, NPE-ing inside
+    // MapAccessor#areDifferent on the next sync tick).
+    @Persisted
+    @DescSynced
+    @ReadOnlyManaged(serializeMethod = "roListMapSerialize", deserializeMethod = "roListMapDeserialize")
+    public final Map<String, List<BlockPos>> roListManaged = new HashMap<>();
+
     public TestBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(CommonProxy.TEST_BE_TYPE.get(), pWorldPosition, pBlockState);
     }
@@ -60,6 +75,21 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
 
     private boolean shouldSyncIntValue(int value) {
         return value > 0;
+    }
+
+    public CompoundTag roListMapSerialize(Map<String, List<BlockPos>> m) {
+        var keys = new ListTag();
+        m.keySet().stream().sorted().forEach(k -> keys.add(StringTag.valueOf(k)));
+        var c = new CompoundTag();
+        c.put("keys", keys);
+        return c;
+    }
+
+    public Map<String, List<BlockPos>> roListMapDeserialize(CompoundTag c) {
+        var m = new HashMap<String, List<BlockPos>>();
+        var keys = c.getList("keys", Tag.TAG_STRING);
+        for (Tag e : keys) m.put(e.getAsString(), new ArrayList<>());
+        return m;
     }
 
     public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
@@ -83,6 +113,30 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
         );
         root.addChild(new ItemSlot().slotStyle(slotStyle -> slotStyle.slotOverlay(FlexIcons.ALIGN_CONTENTS_CENTER_ROW)).bindDataSource(SupplierDataSource.of(() -> itemStack)));
         root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> Component.literal(String.valueOf(intValue)))));
+
+        // --- @ReadOnlyManaged Map<String, List<BlockPos>> exercise ---
+        root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> {
+            int total = roListManaged.values().stream().mapToInt(List::size).sum();
+            return Component.literal("roListManaged: " + roListManaged.size() + " keys, " + total + " positions");
+        })));
+        root.addChild(
+                new UIElement().layout(layout -> layout.widthPercent(100).flexDirection(FlexDirection.ROW))
+                        .addChildren(
+                                new Button().setText("Add key").setOnServerClick(e -> {
+                                    String k = "k" + roListManaged.size();
+                                    roListManaged.put(k, new ArrayList<>(List.of(getBlockPos())));
+                                }).layout(l -> l.flex(1)),
+                                new Button().setText("Append pos").setOnServerClick(e -> {
+                                    if (roListManaged.isEmpty()) {
+                                        roListManaged.put("k0", new ArrayList<>());
+                                    }
+                                    var first = roListManaged.values().iterator().next();
+                                    first.add(getBlockPos().offset((int)(Math.random()*8), 0, (int)(Math.random()*8)));
+                                }).layout(l -> l.flex(1)),
+                                new Button().setText("Clear").setOnServerClick(e -> roListManaged.clear()).layout(l -> l.flex(1))
+                        )
+        );
+
         root.addChild(new Button().setText("Test C2S RPC").setOnClick(e -> rpcToServer("rpcTest", "Hello from client!")));
         root.addChild(new Button().setText("Test C2S RPC").setOnServerClick(e -> rpcToTracking("rpcTest", "Hello from server!")));
         root.addChild(new Button().setText("Test C2S RPC Packet").setOnClick(e -> RPCPacketDistributor.rpcToServer("rpcPacketTest", "Hello from client!", true)));

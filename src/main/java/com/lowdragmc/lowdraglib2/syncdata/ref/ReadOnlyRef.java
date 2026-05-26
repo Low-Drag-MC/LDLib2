@@ -7,6 +7,8 @@ import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.mojang.serialization.JavaOps;
 
+import java.util.Objects;
+
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -24,11 +26,10 @@ public class ReadOnlyRef<TYPE> extends ReadOnlyManagedRef<TYPE> {
         super(field, key, accessor);
         var value = field.value();
         if (value != null) {
-            if (!isReadOnlyManaged()) {
-                this.oldValueMark = accessor instanceof IMarkFunction markFunction ?
-                        markFunction.obtainManagedMark(value) :
-                        accessor.readReadOnlyValue(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value);
-            }
+            // Always compute oldValueMark — readOnlyManagedUpdate() falls back to readOnlyUpdate()
+            // when the UID is unchanged and the managedVar has no dirty checker, and that path
+            // dereferences oldValueMark.
+            this.oldValueMark = obtainValueMark(accessor, value);
             if (isReadOnlyManaged()) {
                 assert field.getManagedVar() != null;
                 oldUid = field.getManagedVar().serializeUid(value);
@@ -43,8 +44,26 @@ public class ReadOnlyRef<TYPE> extends ReadOnlyManagedRef<TYPE> {
         }
     }
 
+    private static <T> Object obtainValueMark(IReadOnlyAccessor<T> accessor, T value) {
+        return accessor instanceof IMarkFunction markFunction ?
+                markFunction.obtainManagedMark(value) :
+                accessor.readReadOnlyValue(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value);
+    }
+
     public IReadOnlyAccessor<TYPE> getAccessor() {
         return (IReadOnlyAccessor<TYPE>) super.getAccessor();
+    }
+
+    @Override
+    public void readOnlyManagedUpdate() {
+        var prevUid = oldUid;
+        super.readOnlyManagedUpdate();
+        // Keep oldValueMark in sync with the current value when the UID changed; otherwise the
+        // next readOnlyUpdate() would compare against a snapshot from before the structure change.
+        if (!Objects.equals(prevUid, oldUid)) {
+            var value = readRaw();
+            oldValueMark = value == null ? null : obtainValueMark(getAccessor(), value);
+        }
     }
 
     public void readOnlyUpdate() {
