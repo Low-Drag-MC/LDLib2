@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.IDirectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.IReadOnlyAccessor;
+import com.lowdragmc.lowdraglib2.syncdata.utils.TypeFabricator;
 import com.lowdragmc.lowdraglib2.syncdata.var.ManagedHolderVar;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
@@ -13,6 +14,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.function.Supplier;
 
 public class CollectionAccessor<TYPE> implements
         IReadOnlyAccessor<Collection<TYPE>>,
@@ -73,7 +75,24 @@ public class CollectionAccessor<TYPE> implements
         } else if (childAccessor instanceof IReadOnlyAccessor<TYPE> readOnlyAccessor) {
             var list = stream.toList();
             if (list.size() != value.size()) {
-                throw new IllegalArgumentException("Stream size of a read-only accessor is not equal to the collection size");
+                @SuppressWarnings("unchecked")
+                var fabricator = (Supplier<TYPE>) TypeFabricator.fabricator(childType);
+                if (fabricator == null) {
+                    throw new IllegalArgumentException("Stream size " + list.size() + " != collection size " + value.size()
+                            + " for read-only-child collection; type " + childType.getName()
+                            + " has no accessible no-arg constructor and is not a known interface (List/Set/Map/Queue/Deque)."
+                            + " Add a no-arg ctor or use @ReadOnlyManaged.");
+                }
+                value.clear();
+                for (var p : list) {
+                    if (LDLibExtraCodecs.isEmptyOrStringNull(op, p)) {
+                        throw new IllegalArgumentException("Empty value in the stream of a read-only accessor");
+                    }
+                    var fresh = fabricator.get();
+                    readOnlyAccessor.writeReadOnlyValue(op, fresh, p);
+                    value.add(fresh);
+                }
+                return;
             }
             var iterValue = value.iterator();
             var iterPayload = list.iterator();
@@ -128,14 +147,27 @@ public class CollectionAccessor<TYPE> implements
             }
         } else if (childAccessor instanceof IReadOnlyAccessor<TYPE> readOnlyAccessor) {
             if (size != value.size()) {
-                throw new IllegalArgumentException("Stream size of a read-only accessor is not equal to the collection size");
-            }
-            for (int i = 0; i < size; i++) {
-                if (buffer.readBoolean()) {
-                    throw new IllegalArgumentException("Empty value in the stream of a read-only accessor");
+                @SuppressWarnings("unchecked")
+                var fabricator = (Supplier<TYPE>) TypeFabricator.fabricator(childType);
+                if (fabricator == null) {
+                    throw new IllegalArgumentException("Stream size " + size + " != collection size " + value.size()
+                            + " for read-only-child collection; type " + childType.getName()
+                            + " has no accessible no-arg constructor and is not a known interface (List/Set/Map/Queue/Deque)."
+                            + " Add a no-arg ctor or use @ReadOnlyManaged.");
                 }
-                var v = value.iterator().next();
-                readOnlyAccessor.writeReadOnlyValueFromStream(buffer, v);
+                value.clear();
+                for (int i = 0; i < size; i++) {
+                    // Writer (readReadOnlyValueToStream) does NOT prefix a null-flag boolean for
+                    // the read-only-child branch, so we must not read one here.
+                    var fresh = fabricator.get();
+                    readOnlyAccessor.writeReadOnlyValueFromStream(buffer, fresh);
+                    value.add(fresh);
+                }
+                return;
+            }
+            var iter = value.iterator();
+            for (int i = 0; i < size; i++) {
+                readOnlyAccessor.writeReadOnlyValueFromStream(buffer, iter.next());
             }
         } else {
             throw new IllegalArgumentException("Child accessor %s is not managed for collection accessor".formatted(childAccessor));
