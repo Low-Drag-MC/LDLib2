@@ -84,8 +84,8 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
 
     public Map<String, List<BlockPos>> roListMapDeserialize(CompoundTag c) {
         var m = new HashMap<String, List<BlockPos>>();
-        var keys = c.getList("keys", Tag.TAG_STRING);
-        for (Tag e : keys) m.put(e.getAsString(), new ArrayList<>());
+        var keys = c.getListOrEmpty("keys");
+        for (Tag e : keys) m.put(e.asString().orElse(""), new ArrayList<>());
         return m;
     }
 

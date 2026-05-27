@@ -30,6 +30,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -336,6 +337,7 @@ public class Scene extends UIElement {
         this.clipBlock = block;
         this.clipFluid = fluid;
         if (renderer != null) {
+            var renderer = this.<WorldSceneRenderer>getRenderer();
             renderer.setClipBlock(block);
             renderer.setClipFluid(fluid);
         }

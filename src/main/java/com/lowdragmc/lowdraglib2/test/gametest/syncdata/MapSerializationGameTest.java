@@ -37,6 +37,15 @@ public final class MapSerializationGameTest {
     private static final String READONLY_K_DIRECT_V_BUF_PATH = "map_serialization_readonly_k_direct_v_buf";
     private static final String READONLY_K_READONLY_V_BUF_PATH = "map_serialization_readonly_k_readonly_v_buf";
     private static final String DIRECT_K_READONLY_V_BUF_PATH = "map_serialization_direct_k_readonly_v_buf";
+    private static final String READONLY_MANAGED_LIST_MAP_NBT_PATH = "map_serialization_readonly_managed_list_map_nbt";
+    private static final String READONLY_MANAGED_LIST_MAP_BUF_PATH = "map_serialization_readonly_managed_list_map_buf";
+    private static final String AUTO_FABRICATE_DIRECT_K_READONLY_V_NBT_PATH = "map_serialization_auto_fabricate_direct_k_readonly_v_nbt";
+    private static final String AUTO_FABRICATE_DIRECT_K_READONLY_V_BUF_PATH = "map_serialization_auto_fabricate_direct_k_readonly_v_buf";
+    private static final String AUTO_FABRICATE_DIRECT_K_LIST_V_NBT_PATH = "map_serialization_auto_fabricate_direct_k_list_v_nbt";
+    private static final String AUTO_FABRICATE_DIRECT_K_LIST_V_BUF_PATH = "map_serialization_auto_fabricate_direct_k_list_v_buf";
+    private static final String AUTO_FABRICATE_COLLECTION_READONLY_CHILD_NBT_PATH = "map_serialization_auto_fabricate_collection_readonly_child_nbt";
+    private static final String AUTO_FABRICATE_COLLECTION_READONLY_CHILD_BUF_PATH = "map_serialization_auto_fabricate_collection_readonly_child_buf";
+    private static final String AUTO_FABRICATE_NO_CTOR_ERROR_PATH = "map_serialization_auto_fabricate_no_ctor_error";
 
     private MapSerializationGameTest() {
     }
@@ -55,6 +64,15 @@ public final class MapSerializationGameTest {
         SyncDataGameTests.registerFunction(READONLY_K_DIRECT_V_BUF_PATH, MapSerializationGameTest::readOnlyKDirectV_bufRoundTrip);
         SyncDataGameTests.registerFunction(READONLY_K_READONLY_V_BUF_PATH, MapSerializationGameTest::readOnlyKReadOnlyV_bufRoundTrip);
         SyncDataGameTests.registerFunction(DIRECT_K_READONLY_V_BUF_PATH, MapSerializationGameTest::directKReadOnlyV_bufRoundTrip);
+        SyncDataGameTests.registerFunction(READONLY_MANAGED_LIST_MAP_NBT_PATH, MapSerializationGameTest::readOnlyManagedListMap_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(READONLY_MANAGED_LIST_MAP_BUF_PATH, MapSerializationGameTest::readOnlyManagedListMap_bufRoundTrip);
+        SyncDataGameTests.registerFunction(AUTO_FABRICATE_DIRECT_K_READONLY_V_NBT_PATH, MapSerializationGameTest::autoFabricate_directKReadOnlyV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(AUTO_FABRICATE_DIRECT_K_READONLY_V_BUF_PATH, MapSerializationGameTest::autoFabricate_directKReadOnlyV_bufRoundTrip);
+        SyncDataGameTests.registerFunction(AUTO_FABRICATE_DIRECT_K_LIST_V_NBT_PATH, MapSerializationGameTest::autoFabricate_directKListV_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(AUTO_FABRICATE_DIRECT_K_LIST_V_BUF_PATH, MapSerializationGameTest::autoFabricate_directKListV_bufRoundTrip);
+        SyncDataGameTests.registerFunction(AUTO_FABRICATE_COLLECTION_READONLY_CHILD_NBT_PATH, MapSerializationGameTest::autoFabricate_collection_readOnlyChild_nbtRoundTrip);
+        SyncDataGameTests.registerFunction(AUTO_FABRICATE_COLLECTION_READONLY_CHILD_BUF_PATH, MapSerializationGameTest::autoFabricate_collection_readOnlyChild_bufRoundTrip);
+        SyncDataGameTests.registerFunction(AUTO_FABRICATE_NO_CTOR_ERROR_PATH, MapSerializationGameTest::autoFabricate_fallsBackToError_whenNoCtor);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
@@ -72,6 +90,15 @@ public final class MapSerializationGameTest {
         SyncDataGameTests.registerFunctionTest(event, READONLY_K_DIRECT_V_BUF_PATH, SyncDataGameTests.functionKey(READONLY_K_DIRECT_V_BUF_PATH), testData);
         SyncDataGameTests.registerFunctionTest(event, READONLY_K_READONLY_V_BUF_PATH, SyncDataGameTests.functionKey(READONLY_K_READONLY_V_BUF_PATH), testData);
         SyncDataGameTests.registerFunctionTest(event, DIRECT_K_READONLY_V_BUF_PATH, SyncDataGameTests.functionKey(DIRECT_K_READONLY_V_BUF_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, READONLY_MANAGED_LIST_MAP_NBT_PATH, SyncDataGameTests.functionKey(READONLY_MANAGED_LIST_MAP_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, READONLY_MANAGED_LIST_MAP_BUF_PATH, SyncDataGameTests.functionKey(READONLY_MANAGED_LIST_MAP_BUF_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, AUTO_FABRICATE_DIRECT_K_READONLY_V_NBT_PATH, SyncDataGameTests.functionKey(AUTO_FABRICATE_DIRECT_K_READONLY_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, AUTO_FABRICATE_DIRECT_K_READONLY_V_BUF_PATH, SyncDataGameTests.functionKey(AUTO_FABRICATE_DIRECT_K_READONLY_V_BUF_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, AUTO_FABRICATE_DIRECT_K_LIST_V_NBT_PATH, SyncDataGameTests.functionKey(AUTO_FABRICATE_DIRECT_K_LIST_V_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, AUTO_FABRICATE_DIRECT_K_LIST_V_BUF_PATH, SyncDataGameTests.functionKey(AUTO_FABRICATE_DIRECT_K_LIST_V_BUF_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, AUTO_FABRICATE_COLLECTION_READONLY_CHILD_NBT_PATH, SyncDataGameTests.functionKey(AUTO_FABRICATE_COLLECTION_READONLY_CHILD_NBT_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, AUTO_FABRICATE_COLLECTION_READONLY_CHILD_BUF_PATH, SyncDataGameTests.functionKey(AUTO_FABRICATE_COLLECTION_READONLY_CHILD_BUF_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, AUTO_FABRICATE_NO_CTOR_ERROR_PATH, SyncDataGameTests.functionKey(AUTO_FABRICATE_NO_CTOR_ERROR_PATH), testData);
     }
 
     public static class NestedReadOnly implements IPersistedSerializable {
@@ -341,8 +368,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void readOnlyManagedListMap_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
@@ -384,8 +409,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void readOnlyManagedListMap_bufRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
@@ -417,8 +440,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void bufferRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new MapHolder();
@@ -635,10 +656,19 @@ public final class MapSerializationGameTest {
         @Persisted public final List<NestedReadOnly> autoList = new ArrayList<>();
         // V has no no-arg ctor → fabrication should fail with helpful message
         @Persisted public final Map<String, NoCtorNested> autoNoCtor = new HashMap<>();
+
+        public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+            var output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, provider);
+            this.serialize(output);
+            return output.buildResult();
+        }
+
+        public void deserializeNBT(RegistryAccess provider, CompoundTag nbt) {
+            var input = TagValueInput.create(ProblemReporter.DISCARDING, provider, nbt);
+            this.deserialize(input);
+        }
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void autoFabricate_directKReadOnlyV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new AutoFabHolder();
@@ -665,8 +695,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void autoFabricate_directKReadOnlyV_bufRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new AutoFabHolder();
@@ -690,8 +718,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void autoFabricate_directKListV_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new AutoFabHolder();
@@ -726,8 +752,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void autoFabricate_directKListV_bufRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new AutoFabHolder();
@@ -754,8 +778,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void autoFabricate_collection_readOnlyChild_nbtRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new AutoFabHolder();
@@ -778,8 +800,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void autoFabricate_collection_readOnlyChild_bufRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new AutoFabHolder();
@@ -799,8 +819,6 @@ public final class MapSerializationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void autoFabricate_fallsBackToError_whenNoCtor(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         var src = new AutoFabHolder();
