@@ -341,6 +341,7 @@ ResourceView .__tab-view_tab_content_container__ {
 
 .__configurator-group__ > .__configurator_line__ {
   background: built-in(ui-mc:RECT_THIN);
+  padding-bottom: 4;
 }
 
 ToggleSelectorConfigurator toggle {
