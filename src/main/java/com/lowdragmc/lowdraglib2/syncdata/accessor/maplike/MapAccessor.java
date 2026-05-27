@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.IDirectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.IReadOnlyAccessor;
+import com.lowdragmc.lowdraglib2.syncdata.utils.TypeFabricator;
 import com.lowdragmc.lowdraglib2.syncdata.var.ManagedHolderVar;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
@@ -13,8 +14,11 @@ import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
@@ -87,16 +91,51 @@ public class MapAccessor<K, V> implements
             return;
         }
 
-        // At least one of K/V is read-only: structure must already match (use @ReadOnlyManaged on the
-        // field to rebuild structure when keys change). Match entries by serialized K.
+        @SuppressWarnings("unchecked")
+        IReadOnlyAccessor<V> roVAccessor = vDirect ? null : (IReadOnlyAccessor<V>) valueAccessor;
+
+        // K direct + V read-only: support auto-fabrication of fresh V instances when structure differs.
+        // Existing V instances are mutated in-place when their K is still present (preserves identity);
+        // entries whose K disappeared are dropped; entries whose K is new get a fabricated V.
+        if (kDirect && !vDirect) {
+            var payloadEntries = new LinkedHashMap<K, T>(pairs);
+            for (int i = 0; i < pairs; i++) {
+                K k = deserializeForCreate(op, keyAccessor, keyType, list.get(i * 2), "key");
+                payloadEntries.put(k, list.get(i * 2 + 1));
+            }
+            value.keySet().removeIf(k -> !payloadEntries.containsKey(k));
+            @SuppressWarnings("unchecked")
+            Supplier<V> vFabricator = (Supplier<V>) TypeFabricator.fabricator(valueType);
+            for (var entry : payloadEntries.entrySet()) {
+                K k = entry.getKey();
+                T vPayload = entry.getValue();
+                if (LDLibExtraCodecs.isEmptyOrStringNull(op, vPayload)) {
+                    throw new IllegalArgumentException("Null value in read-only-V map payload");
+                }
+                V existing = value.get(k);
+                if (existing == null) {
+                    if (vFabricator == null) {
+                        throw new IllegalArgumentException("No existing entry for key " + k
+                                + " in read-only-V map and value type " + valueType.getName()
+                                + " has no accessible no-arg constructor and is not a known interface (List/Set/Map/Queue/Deque)."
+                                + " Add a no-arg ctor or use @ReadOnlyManaged.");
+                    }
+                    existing = vFabricator.get();
+                    value.put(k, existing);
+                }
+                roVAccessor.writeReadOnlyValue(op, existing, vPayload);
+            }
+            return;
+        }
+
+        // K read-only (with V direct or read-only): structure must already match (use @ReadOnlyManaged
+        // on the field to rebuild structure when keys change). Match entries by serialized K.
         if (pairs != value.size()) {
             throw new IllegalArgumentException(
                     "Stream entry count " + pairs + " != map size " + value.size()
-                            + " for read-only-K/V map; use @ReadOnlyManaged on the field"
+                            + " for read-only-K map; use @ReadOnlyManaged on the field"
                             + " to rebuild structure when keys change");
         }
-        @SuppressWarnings("unchecked")
-        IReadOnlyAccessor<V> roVAccessor = vDirect ? null : (IReadOnlyAccessor<V>) valueAccessor;
         for (int i = 0; i < pairs; i++) {
             T kPayload = list.get(i * 2);
             T vPayload = list.get(i * 2 + 1);
@@ -155,26 +194,40 @@ public class MapAccessor<K, V> implements
             return;
         }
 
-        if (size != value.size()) {
-            throw new IllegalArgumentException(
-                    "Stream entry count " + size + " != map size " + value.size()
-                            + " for read-only-K/V map; use @ReadOnlyManaged on the field"
-                            + " to rebuild structure when keys change");
-        }
-
         if (kDirect) {
-            // K direct, V read-only: deserialize K to look up existing entry; mutate V in place.
+            // K direct, V read-only: diff-and-rebuild with auto-fabrication.
+            // Existing V instances whose K is still in the stream are mutated in place; entries
+            // whose K disappeared are dropped; entries whose K is new get a fabricated V.
             @SuppressWarnings("unchecked")
             IReadOnlyAccessor<V> roVAccessor = (IReadOnlyAccessor<V>) valueAccessor;
+            @SuppressWarnings("unchecked")
+            Supplier<V> vFabricator = (Supplier<V>) TypeFabricator.fabricator(valueType);
+            var seen = new HashSet<K>(size);
             for (int i = 0; i < size; i++) {
                 K k = readChildFromStreamForCreate(buffer, keyAccessor, keyType, "key");
+                seen.add(k);
                 V existing = value.get(k);
                 if (existing == null) {
-                    throw new IllegalArgumentException("No existing entry for stream key " + k);
+                    if (vFabricator == null) {
+                        throw new IllegalArgumentException("No existing entry for stream key " + k
+                                + " in read-only-V map and value type " + valueType.getName()
+                                + " has no accessible no-arg constructor and is not a known interface (List/Set/Map/Queue/Deque)."
+                                + " Add a no-arg ctor or use @ReadOnlyManaged.");
+                    }
+                    existing = vFabricator.get();
+                    value.put(k, existing);
                 }
                 roVAccessor.writeReadOnlyValueFromStream(buffer, existing);
             }
+            value.keySet().removeIf(k -> !seen.contains(k));
             return;
+        }
+
+        if (size != value.size()) {
+            throw new IllegalArgumentException(
+                    "Stream entry count " + size + " != map size " + value.size()
+                            + " for read-only-K map; use @ReadOnlyManaged on the field"
+                            + " to rebuild structure when keys change");
         }
 
         // K read-only: byte-level lookup is impractical, so use order-based pairing.

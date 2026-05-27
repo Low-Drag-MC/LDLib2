@@ -277,10 +277,10 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         return this;
     }
 
-    public FluidSlot xeiRecipeIngredient(IngredientIO io, Stream<FluidStack> allPossibleFluids) {
+    public FluidSlot xeiRecipeIngredient(IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
         // todo xei
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeIngredient(this, io, () -> allPossibleFluids);
+            JEISupport.recipeIngredient(this, io, allPossibleFluids);
         }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeIngredient(this, io, () -> allPossibleFluids);
@@ -309,10 +309,10 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         return this;
     }
 
-    public FluidSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Stream<FluidStack> allPossibleFluids) {
+    public FluidSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Supplier<Stream<FluidStack>> allPossibleFluids) {
         // todo xei
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this, () -> allPossibleFluids);
+            JEISupport.recipeSlot(this, allPossibleFluids);
         }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io, () -> allPossibleFluids);

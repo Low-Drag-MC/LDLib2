@@ -17,6 +17,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 
@@ -77,6 +78,7 @@ public class TestScene implements IScreenTest {
                 .setTickWorld(true)
                 .setRenderedCore(dummyWorld.getFilledBlocks().longStream().mapToObj(BlockPos::of).toList())
                 .useCacheBuffer()
+                .setClipContext(ClipContext.Block.VISUAL, ClipContext.Fluid.SOURCE_ONLY)
                 .layout(layout -> {
             layout.widthPercent(100);
             layout.flex(1);

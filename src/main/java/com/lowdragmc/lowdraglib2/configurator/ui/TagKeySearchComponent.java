@@ -58,6 +58,7 @@ public class TagKeySearchComponent<T> extends SearchComponentConfigurator<TagKey
 
     @Override
     public void search(String word, IResultHandler<TagKey<T>> searchHandler) {
+        if (registry == null) return;
         var lowerWord = word.toLowerCase();
         for (var tag : registry.getTags().toList()) {
             if (Thread.currentThread().isInterrupted()) return;

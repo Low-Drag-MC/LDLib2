@@ -101,12 +101,6 @@ public class TrackedDummyWorld extends DummyWorld {
         return proxy == null ? super.getChunkSource() : proxy.getChunkSource();
     }
 
-    @Override
-    public FluidState getFluidState(BlockPos pPos) {
-        Level proxy = proxyWorld.get();
-        return proxy == null ? super.getFluidState(pPos) : proxy.getFluidState(pPos);
-    }
-
     @Nonnull
     @Override
     public Holder<Biome> getBiome(@Nonnull BlockPos pos) {

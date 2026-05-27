@@ -258,6 +258,10 @@ public class ScrollerView extends UIElement {
 
     private void updateScrollers() {
         if (!isDisplayed()) return;   // avoid adaptive broken
+        // Ancestor display:none (or first frame before layout) leaves our own size at 0.
+        // Reverse-deriving chrome from getSizeHeight() - viewPort.getContentHeight() would
+        // collapse to 0 and bake a zero-chrome important override into our height/width.
+        if (getSizeWidth() <= 0 || getSizeHeight() <= 0) return;
         var lastContainerWidth = getContainerWidth();
         var lastContainerHeight = getContainerHeight();
         var mode = scrollerViewStyle.mode();

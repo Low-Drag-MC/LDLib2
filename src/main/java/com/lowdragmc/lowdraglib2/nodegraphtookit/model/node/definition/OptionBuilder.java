@@ -39,10 +39,6 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
 
     /**
      * Creates a new option builder.
-     *
-     * @param nodeModel the node model that will own the option
-     * @param name      the unique name of the option
-     * @param dataType  the data type of the option
      */
     public OptionBuilder() {}
 

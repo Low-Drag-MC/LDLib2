@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
+import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -29,6 +30,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -38,6 +40,8 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
     public final Registry<T> registry;
     @Setter @Accessors(chain = true)
     protected Predicate<T> filter = Predicates.alwaysTrue();
+    @Setter @Accessors(chain = true)
+    protected Function<T, String> translator = null;
 
     public RegistrySearchComponent(String name, Supplier<T> supplier, Consumer<T> onUpdate,T defaultValue, boolean forceUpdate, Registry<T> registry, UIElementProvider<T> uiProvider) {
         super(name, supplier, onUpdate, new SearchComponentConfigurator.ISearchConfigurator<>() {
@@ -68,9 +72,15 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
         var lowerWord = word.toLowerCase();
         for (var key : registry.keySet()) {
             if (Thread.currentThread().isInterrupted()) return;
-            if (!filter.test(registry.getValue(key))) continue;
+            var value = registry.getValue(key);
+            if (!filter.test(value)) continue;
             if (key.toString().toLowerCase().contains(lowerWord)) {
-                searchHandler.acceptResult(registry.getValue(key));
+                searchHandler.acceptResult(value);
+                continue;
+            }
+            // translate key to translatable component
+            if (translator != null && translator.apply(value).toLowerCase().contains(lowerWord)) {
+                searchHandler.acceptResult(value);
             }
         }
     }
@@ -94,6 +104,8 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
                 RegistrySearchComponent.EMISupport.ghostItem(this, itemStack -> filter.test(itemStack.getItem()),
                         itemStack -> setValue(itemStack.getItem(), true));
             }
+
+            setTranslator(item -> LocalizationUtils.format(item.getDescriptionId()));
         }
     }
 
@@ -116,6 +128,8 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
                 RegistrySearchComponent.EMISupport.ghostBlock(this, block -> filter.test(block),
                         block -> setValue(block, true));
             }
+
+            setTranslator(block -> LocalizationUtils.format(block.getDescriptionId()));
         }
     }
 
@@ -144,6 +158,8 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
                 RegistrySearchComponent.EMISupport.ghostFluid(this, fluidStack -> filter.test(fluidStack.getFluid()),
                         fluidStack -> setValue(fluidStack.getFluid(), true));
             }
+
+            setTranslator(fluid -> LocalizationUtils.format(fluid.getFluidType().getDescriptionId()));
         }
     }
 
@@ -176,6 +192,8 @@ public class RegistrySearchComponent<T> extends SearchComponentConfigurator<T> {
                         itemStack -> Optional.ofNullable(getTypeFromEgg(itemStack)).filter(filter)
                                 .ifPresent(entityType -> setValue(entityType, true)));
             }
+
+            setTranslator(entityType -> LocalizationUtils.format(entityType.getDescriptionId()));
         }
 
         @Nullable

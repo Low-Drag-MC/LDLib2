@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -110,7 +111,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
             if (buffer.readBoolean()) {
                 field.set(null);
             } else {
-                var uid = buffer.readNbt();
+                var uid = buffer.readNbt(NbtAccounter.unlimitedHeap());
                 var value = readRaw();
                 var managedVar = field.getManagedVar();
                 if (value == null || !managedVar.serializeUid(value).equals(uid)) {

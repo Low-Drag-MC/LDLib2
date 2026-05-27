@@ -147,6 +147,11 @@ public abstract class WorldSceneRenderer {
     /** Viewport rect set in {@link #setupCamera}; used by {@link #project} / {@link #unProject}
      *  so we never need to read GL state via {@code glGetIntegerv(GL_VIEWPORT)}. */
     protected int viewportX, viewportY, viewportWidth, viewportHeight;
+    @Setter
+    protected ClipContext.Block clipBlock = ClipContext.Block.OUTLINE;
+    @Setter
+    protected ClipContext.Fluid clipFluid = ClipContext.Fluid.NONE;
+    @Setter
     @Nullable
     protected ProjectionMatrixBuffer projectionMatrixBuffer;
     /** Lazily-created 4-byte readback buffer for async depth pixel sampling. */
@@ -1227,7 +1232,7 @@ public abstract class WorldSceneRenderer {
         hitPos = hitPos.mul(2, new Vector3f()); // Double view range to ensure pos can be seen.
         var endPos = new Vec3((hitPos.x() - startPos.x), (hitPos.y() - startPos.y), (hitPos.z() - startPos.z));
         try {
-            return this.world.clip(new ClipContext(startPos, endPos, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, cameraEntity));
+            return this.world.clip(new ClipContext(startPos, endPos, clipBlock, clipFluid, cameraEntity));
         } catch (Exception e) {
             return null;
         }
