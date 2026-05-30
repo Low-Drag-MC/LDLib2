@@ -41,6 +41,7 @@ import org.joml.Vector2f;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -247,7 +248,11 @@ public class ItemLibrary extends UIElement {
 
     protected Stream<ItemLibraryItem> getTreeItems(TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
         return Optional.ofNullable(tree.getRoot())
-                .map(node -> node.flatten().stream().filter(ITreeNode::isLeaf).map(ITreeNode::getKey))
+                .map(node -> node.flatten().stream()
+                        .filter(ITreeNode::isLeaf)
+                        .filter(n -> n.getParent() == null) // not root
+                        .map(ITreeNode::getKey)
+                )
                 .orElseGet(Stream::empty);
     }
 
