@@ -38,6 +38,7 @@ import org.joml.Vector2f;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -245,7 +246,11 @@ public class ItemLibrary extends UIElement {
 
     protected Stream<ItemLibraryItem> getTreeItems(TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
         return Optional.ofNullable(tree.getRoot())
-                .map(node -> node.flatten().stream().filter(ITreeNode::isLeaf).map(ITreeNode::getKey))
+                .map(node -> node.flatten().stream()
+                        .filter(ITreeNode::isLeaf)
+                        .filter(n -> n.getParent() == null) // not root
+                        .map(ITreeNode::getKey)
+                )
                 .orElseGet(Stream::empty);
     }
 
@@ -357,12 +362,16 @@ public class ItemLibrary extends UIElement {
 
     /** Shared positioning + focus path for both show variants. */
     private void positionAndShow(float mouseX, float mouseY, Consumer<@Nullable ItemLibraryItem> onFinished) {
-        var parent = getParent();
-        var localMouse = getLocalMouse(mouseX, mouseY);
-        var offset = new Vector2f(
-                localMouse.x - (parent == null ? 0 : parent.getPositionX()),
-                localMouse.y - (parent == null ? 0 : parent.getPositionY())
-        );
+        var mui = graphView.getModularUI();
+        if (mui == null) return;
+
+        var root = mui.ui.rootElement;
+        if (getParent() != null) {
+            removeSelf();
+        }
+        root.addChild(this);
+
+        var offset = root.worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY));
         this.getLayout()
                 .left(offset.x)
                 .top(offset.y);
@@ -426,6 +435,7 @@ public class ItemLibrary extends UIElement {
         Style.importantPipeline(this.blockTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
         Style.importantPipeline(getLayout(), l -> l.display(TaffyDisplay.NONE));
         blur();
+        removeSelf();
     }
 
     protected void onNodeDecided(ItemLibraryItem itemLibraryItem) {

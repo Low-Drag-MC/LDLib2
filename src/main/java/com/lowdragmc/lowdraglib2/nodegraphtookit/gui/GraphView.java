@@ -174,7 +174,7 @@ public class GraphView extends UIElement {
 
         initPanels();
 
-        addChildren(header, canvas.addChildren(graphView, panelLayer, itemLibrary));
+        addChildren(header, canvas.addChildren(graphView, panelLayer));
     }
 
 

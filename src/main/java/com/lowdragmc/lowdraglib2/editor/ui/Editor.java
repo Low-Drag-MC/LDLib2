@@ -41,10 +41,12 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Deque;
 import java.util.function.Supplier;
 
 @Getter
@@ -345,9 +347,10 @@ public abstract class Editor extends UIElement {
         // Collect all views currently in the tree (including ones added via raw addView).
         // untrackedAnchors remembers the nearest named-anchor each untracked view was living under,
         // so we can best-effort restore it if the saved layout doesn't mention that view.
-        var liveViews = new LinkedHashMap<String, View>();
-        var untrackedAnchors = new HashMap<View, SplittableWindow>();
-        collectViewsInTree(rootWindow, null, liveViews, untrackedAnchors);
+        var liveViews = new ArrayList<View>();
+        var liveViewsByName = new LinkedHashMap<String, Deque<View>>();
+        var untrackedAnchors = new HashMap<View, String>();
+        collectViewsInTree(rootWindow, null, liveViews, liveViewsByName, untrackedAnchors);
 
         // Rebuild rootWindow's subtree to match the saved shape, rebinding anchor references.
         var anchorRegistry = new HashMap<String, SplittableWindow>();
@@ -360,10 +363,10 @@ public abstract class Editor extends UIElement {
         rootWindow.rebuildFromLayoutConfig(layout.layoutConfig(), anchorRegistry);
 
         // Refresh anchor references from survivors (entries whose id wasn't in the saved layout are dropped).
-        leftWindow = anchorRegistry.getOrDefault(ANCHOR_LEFT, leftWindow);
-        rightWindow = anchorRegistry.getOrDefault(ANCHOR_RIGHT, rightWindow);
-        centerWindow = anchorRegistry.getOrDefault(ANCHOR_CENTER, centerWindow);
-        bottomWindow = anchorRegistry.getOrDefault(ANCHOR_BOTTOM, bottomWindow);
+        leftWindow = resolveVisibleAnchor(anchorRegistry, ANCHOR_LEFT);
+        rightWindow = resolveVisibleAnchor(anchorRegistry, ANCHOR_RIGHT);
+        centerWindow = resolveVisibleAnchor(anchorRegistry, ANCHOR_CENTER);
+        bottomWindow = resolveVisibleAnchor(anchorRegistry, ANCHOR_BOTTOM);
 
         // Place views into saved slots.
         var placed = new java.util.HashSet<View>();
@@ -376,7 +379,8 @@ public abstract class Editor extends UIElement {
             }
             View selected = null;
             for (var name : slot.viewNames()) {
-                var view = liveViews.get(name);
+                var views = liveViewsByName.get(name);
+                var view = views == null ? null : views.pollFirst();
                 if (view == null) continue;
                 container.addView(view);
                 placed.add(view);
@@ -392,33 +396,41 @@ public abstract class Editor extends UIElement {
         // Place any view that wasn't in the saved layout:
         // - via placeView-tracked fallback when available;
         // - otherwise restore into the same named anchor it was living under (best effort).
-        for (var view : liveViews.values()) {
+        for (var view : liveViews) {
             if (placed.contains(view)) continue;
             var fallback = viewFallbacks.get(view);
             ViewContainer target;
             if (fallback != null) {
                 target = fallback.get();
             } else {
-                var anchor = untrackedAnchors.get(view);
+                var anchorId = untrackedAnchors.get(view);
+                var anchor = anchorId == null ? null : anchorRegistry.get(anchorId);
                 target = (anchor != null) ? anchor.getLeftTop() : rootWindow.getLeftTop();
             }
             target.addView(view);
         }
     }
 
+    private SplittableWindow resolveVisibleAnchor(Map<String, SplittableWindow> anchorRegistry, String anchorId) {
+        var window = anchorRegistry.get(anchorId);
+        return window != null ? window : rootWindow;
+    }
+
     private static void collectViewsInTree(SplittableWindow window, @Nullable SplittableWindow currentAnchor,
-                                           Map<String, View> outViews, Map<View, SplittableWindow> outAnchors) {
+                                           List<View> outViews, Map<String, Deque<View>> outViewsByName,
+                                           Map<View, String> outAnchors) {
         if (window.getAnchorId() != null) currentAnchor = window;
         var container = window.getViewContainer();
         if (container != null) {
             for (var view : container.getAllViews()) {
-                outViews.put(view.getName(), view);
-                if (currentAnchor != null) outAnchors.put(view, currentAnchor);
+                outViews.add(view);
+                outViewsByName.computeIfAbsent(view.getName(), ignored -> new ArrayDeque<>()).addLast(view);
+                if (currentAnchor != null) outAnchors.put(view, currentAnchor.getAnchorId());
             }
             return;
         }
-        if (window.getFirst() != null) collectViewsInTree(window.getFirst(), currentAnchor, outViews, outAnchors);
-        if (window.getSecond() != null) collectViewsInTree(window.getSecond(), currentAnchor, outViews, outAnchors);
+        if (window.getFirst() != null) collectViewsInTree(window.getFirst(), currentAnchor, outViews, outViewsByName, outAnchors);
+        if (window.getSecond() != null) collectViewsInTree(window.getSecond(), currentAnchor, outViews, outViewsByName, outAnchors);
     }
 
     public Component getTitle() {

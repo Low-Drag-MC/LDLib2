@@ -4,7 +4,7 @@
 //import dev.emi.emi.api.stack.EmiStack;
 //import dev.emi.emi.api.widget.Bounds;
 //import dev.emi.emi.api.widget.SlotWidget;
-//import net.minecraft.client.gui.GuiGraphicsExtractor;
+//import net.minecraft.client.gui.GuiGraphics;
 //import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 //import org.joml.Matrix4f;
 //import org.joml.Vector2f;
@@ -45,7 +45,11 @@
 //
 //    @Override
 //    public Bounds getBounds() {
-//        return boundsProvider.get();
+//        var bounds = boundsProvider.get();
+//        var transform = localToWorldSupplier.get();
+//        var pos = transform.transformPosition(new Vector3f(bounds.x(), bounds.y(), 0));
+//        var size = transform.transformDirection(new Vector3f(bounds.width(), bounds.height(), 0));
+//        return new Bounds((int) pos.x, (int) pos.y, (int) size.x, (int) size.y);
 //    }
 //
 //    @Override
@@ -63,17 +67,17 @@
 //    }
 //
 //    @Override
-//    public void drawStack(GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {
+//    public void drawStack(GuiGraphics draw, int mouseX, int mouseY, float delta) {
 //        // do not draw stack yourself
 //    }
 //
 //    @Override
-//    public void drawBackground(GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {
+//    public void drawBackground(GuiGraphics draw, int mouseX, int mouseY, float delta) {
 //        // do not draw background yourself
 //    }
 //
 //    @Override
-//    public void drawOverlay(GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {
+//    public void drawOverlay(GuiGraphics draw, int mouseX, int mouseY, float delta) {
 //        // do not draw overlay yourself
 //    }
 //
