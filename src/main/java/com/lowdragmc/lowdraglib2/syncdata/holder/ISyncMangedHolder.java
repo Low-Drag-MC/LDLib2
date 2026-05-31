@@ -18,6 +18,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.BitSet;
+import java.util.concurrent.RejectedExecutionException;
 
 
 /**
@@ -44,6 +45,8 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
             var changed = new BitSet();
             var syncedFields = rootStorage.getSyncFields();
             var serverLevel = getServerLevel();
+            var server = serverLevel.getServer();
+            if (!Platform.serverSafe(server)) return;
             var data = ByteBufUtil.writeCustomData(buffer -> {
                 for (int i = 0; i < syncedFields.length; i++) {
                     var field = syncedFields[i];
@@ -54,12 +57,17 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
                     }
                 }
             }, serverLevel.registryAccess());
-            serverLevel.getServer().executeIfPossible(() -> {
-                var extra = new CompoundTag();
-                writeCustomSyncData(serverLevel.registryAccess(), extra);
-                var packet = createSyncPacket(changed, data, extra);
-                PacketDistributor.sendToPlayersTrackingChunk(getServerLevel(), this.getTrackingPos(), packet);
-            });
+            try {
+                server.executeIfPossible(() -> {
+                    if (!Platform.serverSafe(server)) return;
+                    var extra = new CompoundTag();
+                    writeCustomSyncData(serverLevel.registryAccess(), extra);
+                    var packet = createSyncPacket(changed, data, extra);
+                    PacketDistributor.sendToPlayersTrackingChunk(serverLevel, this.getTrackingPos(), packet);
+                });
+            } catch (RejectedExecutionException ignored) {
+                // The server can begin shutting down between the safety check and task submission.
+            }
         }
     }
 

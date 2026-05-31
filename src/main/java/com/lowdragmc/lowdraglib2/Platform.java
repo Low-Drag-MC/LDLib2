@@ -38,8 +38,22 @@ public class Platform {
             return Minecraft.getInstance().getConnection() == null;
         } else {
             var server = getMinecraftServer();
-            return server == null || server.isStopped() || server.isShutdown() || !server.isRunning() || server.isCurrentlySaving();
+            return !serverSafe(server) || server.isCurrentlySaving();
         }
+    }
+
+    /**
+     * @return true when the server can still accept scheduled work.
+     */
+    public static boolean serverSafe(MinecraftServer server) {
+        return server != null && !server.isStopped() && !server.isShutdown() && server.isRunning();
+    }
+
+    /**
+     * @return true when the current server can still accept scheduled work.
+     */
+    public static boolean serverSafe() {
+        return serverSafe(getMinecraftServer());
     }
 
     public static String platformName() {
