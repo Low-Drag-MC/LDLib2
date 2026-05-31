@@ -45,7 +45,11 @@ public class EMIRecipeSlotWidget extends SlotWidget {
 
     @Override
     public Bounds getBounds() {
-        return boundsProvider.get();
+        var bounds = boundsProvider.get();
+        var transform = localToWorldSupplier.get();
+        var pos = transform.transformPosition(new Vector3f(bounds.x(), bounds.y(), 0));
+        var size = transform.transformDirection(new Vector3f(bounds.width(), bounds.height(), 0));
+        return new Bounds((int) pos.x, (int) pos.y, (int) size.x, (int) size.y);
     }
 
     @Override
