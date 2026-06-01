@@ -10,8 +10,10 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -31,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 @LDLRegisterClient(name = "renderer_group", registry = "ldlib2:renderer")
 public class RendererGroup implements IRenderer {
@@ -53,7 +56,31 @@ public class RendererGroup implements IRenderer {
 
     @Override
     public RendererGroup copy() {
-        return new RendererGroup(renderers);
+        return new RendererGroup(Arrays.stream(renderers).map(IRenderer::copy).toArray(IRenderer[]::new));
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void onPrepareTextureAtlas(ResourceLocation atlasName, Consumer<ResourceLocation> register) {
+        for (IRenderer renderer : renderers) {
+            renderer.onPrepareTextureAtlas(atlasName, register);
+        }
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void onAdditionalModel(Consumer<ModelResourceLocation> registry) {
+        for (IRenderer renderer : renderers) {
+            renderer.onAdditionalModel(registry);
+        }
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void clearCache() {
+        for (IRenderer renderer : renderers) {
+            renderer.clearCache();
+        }
     }
 
     @Override

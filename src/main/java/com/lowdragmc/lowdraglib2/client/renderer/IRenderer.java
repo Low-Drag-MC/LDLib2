@@ -146,6 +146,11 @@ public interface IRenderer extends ILDLRegisterClient<IRenderer, Supplier<IRende
 
     }
 
+    @OnlyIn(Dist.CLIENT)
+    default void clearCache() {
+
+    }
+
     /**
      * If the renderer requires event registration either {@link #onPrepareTextureAtlas} or {@link #onAdditionalModel}, call this method in the constructor.
      */

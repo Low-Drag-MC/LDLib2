@@ -45,13 +45,13 @@ public abstract class BlockRenderDispatcherMixin {
                                              ModelData modelData, CallbackInfo ci) {
         if (state.getRenderShape() == RenderShape.MODEL) {
             var bakedModel = this.blockModelShaper.getBlockModel(state);
-            if (bakedModel instanceof LDLRendererModel.RendererBakedModel model) {
+            if (bakedModel instanceof LDLRendererModel.RendererBakedModel) {
                 var seed = state.getSeed(pos);
                 modelData = bakedModel.getModelData(level, pos, state, modelData);
                 this.modelRenderer.tesselateBlock(
                         level, bakedModel, state, pos, poseStack, consumer, true, this.random, seed,
                         OverlayTexture.NO_OVERLAY,
-                        model.getModelData(level, pos, state, modelData),
+                        modelData,
                         null);
                 ci.cancel();
             }

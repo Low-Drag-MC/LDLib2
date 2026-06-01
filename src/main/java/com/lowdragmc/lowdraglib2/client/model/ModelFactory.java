@@ -54,7 +54,7 @@ public class ModelFactory {
             }
 
             @Override
-            public UnbakedModel getTopLevelModel(ModelResourceLocation modelResourceLocation) {
+            public @Nullable UnbakedModel getTopLevelModel(ModelResourceLocation modelResourceLocation) {
                 return ModelFactory.getTopLevelModel(modelResourceLocation);
             }
 
@@ -86,16 +86,78 @@ public class ModelFactory {
 
             @Override
             public BakedModel bake(ResourceLocation location, ModelState transform) {
-                return this.bake(location, transform, getModelTextureGetter());
+                var model = this.bake(location, transform, getModelTextureGetter());
+                if (model == null) {
+                    throw new IllegalStateException("Unable to bake model " + location);
+                }
+                return model;
+            }
+        };
+    }
+
+    public static ModelBaker getRegisteredModelBaker() {
+        return new ModelBaker() {
+            @Override
+            public UnbakedModel getModel(ResourceLocation location) {
+                var model = getTopLevelModel(ModelResourceLocation.standalone(location));
+                if (model != null) return model;
+                var missing = getTopLevelModel(ModelBakery.MISSING_MODEL_VARIANT);
+                if (missing == null) {
+                    throw new IllegalStateException("Missing model is not registered");
+                }
+                return missing;
+            }
+
+            @Override
+            public @Nullable UnbakedModel getTopLevelModel(ModelResourceLocation modelResourceLocation) {
+                return ModelFactory.getTopLevelModel(modelResourceLocation);
+            }
+
+            @Override
+            public @Nullable BakedModel bake(ResourceLocation location, ModelState state, Function<Material, TextureAtlasSprite> sprites) {
+                UnbakedModel unbakedmodel = this.getModel(location);
+                if (unbakedmodel instanceof BlockModel blockmodel) {
+                    if (blockmodel.getRootModel() == ModelBakery.GENERATION_MARKER) {
+                        return ITEM_MODEL_GENERATOR.generateBlockModel(sprites, blockmodel).bake(this, blockmodel, sprites, state, false);
+                    }
+                }
+                return unbakedmodel.bake(this, sprites, state);
+            }
+
+            @Override
+            public @Nullable BakedModel bakeUncached(UnbakedModel unbakedModel, ModelState modelState, Function<Material, TextureAtlasSprite> function) {
+                if (unbakedModel instanceof BlockModel blockmodel) {
+                    if (blockmodel.getRootModel() == ModelBakery.GENERATION_MARKER) {
+                        return ITEM_MODEL_GENERATOR.generateBlockModel(function, blockmodel).bake(this, blockmodel, function, modelState, false);
+                    }
+                }
+                return unbakedModel.bake(this, function, modelState);
+            }
+
+            @Override
+            public Function<Material, TextureAtlasSprite> getModelTextureGetter() {
+                return Material::sprite;
+            }
+
+            @Override
+            public BakedModel bake(ResourceLocation location, ModelState transform) {
+                var model = this.bake(location, transform, getModelTextureGetter());
+                if (model == null) {
+                    throw new IllegalStateException("Unable to bake registered model " + location);
+                }
+                return model;
             }
         };
     }
 
     public static UnbakedModel getUnBakedModel(ResourceLocation modelLocation) {
-        return ((ModelBakeryAccessor)getModelBakery()).invokeGetModel(modelLocation);
+        var modelBakery = getModelBakery();
+        synchronized (modelBakery) {
+            return ((ModelBakeryAccessor) modelBakery).invokeGetModel(modelLocation);
+        }
     }
 
-    public static UnbakedModel getTopLevelModel(ModelResourceLocation modelLocation) {
+    public static @Nullable UnbakedModel getTopLevelModel(ModelResourceLocation modelLocation) {
         return ((ModelBakeryAccessor)getModelBakery()).getTopLevelModels().get(modelLocation);
     }
 

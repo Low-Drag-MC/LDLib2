@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.core.mixins.ParticleEngineAccessor;
+import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource;
 import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
@@ -97,6 +98,7 @@ public class ClientProxy {
                 event.register(ModelResourceLocation.standalone(modelLocation));
             }
         }
+        IRendererResource.INSTANCE.onAdditionalModel(event::register);
         for (IRenderer renderer : IRenderer.EVENT_REGISTERS) {
             renderer.onAdditionalModel(event::register);
         }

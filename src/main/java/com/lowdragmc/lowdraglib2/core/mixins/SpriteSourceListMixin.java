@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.core.mixins;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource;
 import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader;
 import net.minecraft.client.renderer.texture.atlas.SpriteSource;
 import net.minecraft.client.renderer.texture.atlas.SpriteSourceList;
@@ -29,6 +30,7 @@ public abstract class SpriteSourceListMixin {
                                    @Local List<SpriteSource> list) {
         ResourceLocation atlas = location.withPath("textures/atlas/%s.png"::formatted);
         Set<ResourceLocation> sprites = new HashSet<>();
+        IRendererResource.INSTANCE.onPrepareTextureAtlas(atlas, sprites::add);
         for (var renderer : IRenderer.EVENT_REGISTERS) {
             renderer.onPrepareTextureAtlas(atlas, sprites::add);
         }

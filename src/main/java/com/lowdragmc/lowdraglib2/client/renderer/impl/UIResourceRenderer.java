@@ -90,6 +90,12 @@ public class UIResourceRenderer implements IRenderer {
 
     @Override
     @OnlyIn(Dist.CLIENT)
+    public void clearCache() {
+        getInternalRenderer().clearCache();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
     public boolean hasBlockEntityRenderer(BlockEntity blockEntity) {
         return getInternalRenderer().hasBlockEntityRenderer(blockEntity);
     }
