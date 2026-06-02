@@ -6,7 +6,7 @@
 //import com.mojang.math.Transformation;
 //import net.neoforged.api.distmarker.Dist;
 //import net.neoforged.api.distmarker.OnlyIn;
-//import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+//import net.minecraft.MethodsReturnNonnullByDefault;
 //import net.minecraft.client.Minecraft;
 //import net.minecraft.client.renderer.block.model.BlockModel;
 //import net.minecraft.client.renderer.block.model.ItemModelGenerator;
@@ -16,7 +16,7 @@
 //import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 //import net.minecraft.client.resources.model.*;
 //import net.minecraft.core.Direction;
-//import net.minecraft.resources.Identifier;
+//import net.minecraft.resources.ResourceLocation;
 //import net.minecraft.util.Mth;
 //import net.minecraft.world.inventory.InventoryMenu;
 //import org.jetbrains.annotations.Nullable;
@@ -49,17 +49,17 @@
 //    public static ModelBaker getModelBaker() {
 //        return new ModelBaker() {
 //            @Override
-//            public UnbakedModel getModel(Identifier location) {
+//            public UnbakedModel getModel(ResourceLocation location) {
 //                return getUnBakedModel(location);
 //            }
 //
 //            @Override
-//            public UnbakedModel getTopLevelModel(ModelResourceLocation modelResourceLocation) {
+//            public @Nullable UnbakedModel getTopLevelModel(ModelResourceLocation modelResourceLocation) {
 //                return ModelFactory.getTopLevelModel(modelResourceLocation);
 //            }
 //
 //            @Override
-//            public @Nullable BakedModel bake(Identifier location, ModelState state, Function<Material, TextureAtlasSprite> sprites) {
+//            public @Nullable BakedModel bake(ResourceLocation location, ModelState state, Function<Material, TextureAtlasSprite> sprites) {
 //                UnbakedModel unbakedmodel = this.getModel(location);
 //                if (unbakedmodel instanceof BlockModel blockmodel) {
 //                    if (blockmodel.getRootModel() == ModelBakery.GENERATION_MARKER) {
@@ -85,17 +85,79 @@
 //            }
 //
 //            @Override
-//            public BakedModel bake(Identifier location, ModelState transform) {
-//                return this.bake(location, transform, getModelTextureGetter());
+//            public BakedModel bake(ResourceLocation location, ModelState transform) {
+//                var model = this.bake(location, transform, getModelTextureGetter());
+//                if (model == null) {
+//                    throw new IllegalStateException("Unable to bake model " + location);
+//                }
+//                return model;
 //            }
 //        };
 //    }
 //
-//    public static UnbakedModel getUnBakedModel(Identifier modelLocation) {
-//        return ((ModelBakeryAccessor)getModelBakery()).invokeGetModel(modelLocation);
+//    public static ModelBaker getRegisteredModelBaker() {
+//        return new ModelBaker() {
+//            @Override
+//            public UnbakedModel getModel(ResourceLocation location) {
+//                var model = getTopLevelModel(ModelResourceLocation.standalone(location));
+//                if (model != null) return model;
+//                var missing = getTopLevelModel(ModelBakery.MISSING_MODEL_VARIANT);
+//                if (missing == null) {
+//                    throw new IllegalStateException("Missing model is not registered");
+//                }
+//                return missing;
+//            }
+//
+//            @Override
+//            public @Nullable UnbakedModel getTopLevelModel(ModelResourceLocation modelResourceLocation) {
+//                return ModelFactory.getTopLevelModel(modelResourceLocation);
+//            }
+//
+//            @Override
+//            public @Nullable BakedModel bake(ResourceLocation location, ModelState state, Function<Material, TextureAtlasSprite> sprites) {
+//                UnbakedModel unbakedmodel = this.getModel(location);
+//                if (unbakedmodel instanceof BlockModel blockmodel) {
+//                    if (blockmodel.getRootModel() == ModelBakery.GENERATION_MARKER) {
+//                        return ITEM_MODEL_GENERATOR.generateBlockModel(sprites, blockmodel).bake(this, blockmodel, sprites, state, false);
+//                    }
+//                }
+//                return unbakedmodel.bake(this, sprites, state);
+//            }
+//
+//            @Override
+//            public @Nullable BakedModel bakeUncached(UnbakedModel unbakedModel, ModelState modelState, Function<Material, TextureAtlasSprite> function) {
+//                if (unbakedModel instanceof BlockModel blockmodel) {
+//                    if (blockmodel.getRootModel() == ModelBakery.GENERATION_MARKER) {
+//                        return ITEM_MODEL_GENERATOR.generateBlockModel(function, blockmodel).bake(this, blockmodel, function, modelState, false);
+//                    }
+//                }
+//                return unbakedModel.bake(this, function, modelState);
+//            }
+//
+//            @Override
+//            public Function<Material, TextureAtlasSprite> getModelTextureGetter() {
+//                return Material::sprite;
+//            }
+//
+//            @Override
+//            public BakedModel bake(ResourceLocation location, ModelState transform) {
+//                var model = this.bake(location, transform, getModelTextureGetter());
+//                if (model == null) {
+//                    throw new IllegalStateException("Unable to bake registered model " + location);
+//                }
+//                return model;
+//            }
+//        };
 //    }
 //
-//    public static UnbakedModel getTopLevelModel(ModelResourceLocation modelLocation) {
+//    public static UnbakedModel getUnBakedModel(ResourceLocation modelLocation) {
+//        var modelBakery = getModelBakery();
+//        synchronized (modelBakery) {
+//            return ((ModelBakeryAccessor) modelBakery).invokeGetModel(modelLocation);
+//        }
+//    }
+//
+//    public static @Nullable UnbakedModel getTopLevelModel(ModelResourceLocation modelLocation) {
 //        return ((ModelBakeryAccessor)getModelBakery()).getTopLevelModels().get(modelLocation);
 //    }
 //
@@ -172,11 +234,11 @@
 //        }
 //    }
 //
-//    public static Either<Material, String> parseTextureLocationOrReference(Identifier pLocation, String pName) {
+//    public static Either<Material, String> parseTextureLocationOrReference(ResourceLocation pLocation, String pName) {
 //        if (isTextureReference(pName)) {
 //            return Either.right(pName.substring(1));
 //        } else {
-//            Identifier resourcelocation = Identifier.tryParse(pName);
+//            ResourceLocation resourcelocation = ResourceLocation.tryParse(pName);
 //            if (resourcelocation == null) {
 //                throw new JsonParseException(pName + " is not valid resource location");
 //            } else {
@@ -189,7 +251,7 @@
 //        if (isTextureReference(pName)) {
 //            return Either.right(pName.substring(1));
 //        } else {
-//            Identifier resourcelocation = Identifier.tryParse(pName);
+//            ResourceLocation resourcelocation = ResourceLocation.tryParse(pName);
 //            if (resourcelocation == null) {
 //                throw new JsonParseException(pName + " is not valid resource location");
 //            } else {
@@ -202,11 +264,11 @@
 //        return pStr.charAt(0) == '#';
 //    }
 //
-//    public static TextureAtlasSprite getBlockSprite(Identifier location) {
+//    public static TextureAtlasSprite getBlockSprite(ResourceLocation location) {
 //        return Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(location);
 //    }
 //
-//    public static TextureAtlasSprite getSprite(Identifier atlas, Identifier location) {
+//    public static TextureAtlasSprite getSprite(ResourceLocation atlas, ResourceLocation location) {
 //        return Minecraft.getInstance().getTextureAtlas(atlas).apply(location);
 //    }
 //

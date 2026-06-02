@@ -1,11 +1,13 @@
 package com.lowdragmc.lowdraglib2.syncdata.holder.blockentity;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.apache.commons.lang3.NotImplementedException;
 
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 
 /**
@@ -43,8 +45,19 @@ public interface IBlockEntityManaged extends IManaged {
 
     @Override
     default void notifyPersistence() {
-        if (asBlockEntity().getLevel() instanceof ServerLevel serverLevel) {
-            serverLevel.getServer().executeIfPossible(() -> asBlockEntity().setChanged());
+        var blockEntity = asBlockEntity();
+        if (blockEntity.getLevel() instanceof ServerLevel serverLevel) {
+            var server = serverLevel.getServer();
+            if (!Platform.serverSafe(server)) return;
+            try {
+                server.executeIfPossible(() -> {
+                    if (Platform.serverSafe(server)) {
+                        blockEntity.setChanged();
+                    }
+                });
+            } catch (RejectedExecutionException ignored) {
+                // The server can begin shutting down between the safety check and task submission.
+            }
         }
     }
 }

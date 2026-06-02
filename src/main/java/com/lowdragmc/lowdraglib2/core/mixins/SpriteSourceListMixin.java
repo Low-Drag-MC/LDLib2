@@ -25,13 +25,13 @@ public abstract class SpriteSourceListMixin {
     @Inject(method = "load", at = @At(value = "RETURN"))
     private static void ldlib2$injectLoad(ResourceManager resourceManager, Identifier location, CallbackInfoReturnable<SpriteResourceLoader> cir,
                                    @Local List<SpriteSource> list) {
-        // todo renderer
-//        Identifier atlas = location.withPath("textures/atlas/%s.png"::formatted);
-//        Set<Identifier> sprites = new HashSet<>();
+//        ResourceLocation atlas = location.withPath("textures/atlas/%s.png"::formatted);
+//        Set<ResourceLocation> sprites = new HashSet<>();
+//        IRendererResource.INSTANCE.onPrepareTextureAtlas(atlas, sprites::add);
 //        for (var renderer : IRenderer.EVENT_REGISTERS) {
 //            renderer.onPrepareTextureAtlas(atlas, sprites::add);
 //        }
-//        for (Identifier sprite : sprites) {
+//        for (ResourceLocation sprite : sprites) {
 //            list.add(new SingleFile(sprite, Optional.empty()));
 //        }
     }

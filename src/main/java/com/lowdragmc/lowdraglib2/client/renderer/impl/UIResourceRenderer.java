@@ -9,7 +9,7 @@
 //import com.mojang.blaze3d.vertex.PoseStack;
 //import lombok.Getter;
 //import lombok.NoArgsConstructor;
-//import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+//import net.minecraft.MethodsReturnNonnullByDefault;
 //import net.minecraft.client.renderer.MultiBufferSource;
 //import net.minecraft.client.renderer.RenderType;
 //import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -18,11 +18,11 @@
 //import net.minecraft.client.resources.model.ModelResourceLocation;
 //import net.minecraft.core.BlockPos;
 //import net.minecraft.core.Direction;
-//import net.minecraft.resources.Identifier;
+//import net.minecraft.resources.ResourceLocation;
 //import net.minecraft.util.RandomSource;
 //import net.minecraft.world.item.ItemDisplayContext;
 //import net.minecraft.world.item.ItemStack;
-//import net.minecraft.world.level.BlockAndLightGetter;
+//import net.minecraft.world.level.BlockAndTintGetter;
 //import net.minecraft.world.level.block.entity.BlockEntity;
 //import net.minecraft.world.level.block.state.BlockState;
 //import net.minecraft.world.phys.AABB;
@@ -72,13 +72,13 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public List<BakedQuad> renderModel(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand,  ModelData data, @Nullable RenderType renderType) {
+//    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand,  ModelData data, @Nullable RenderType renderType) {
 //        return getInternalRenderer().renderModel(level, pos, state, side, rand, data, renderType);
 //    }
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public void onPrepareTextureAtlas(Identifier atlasName, Consumer<Identifier> register) {
+//    public void onPrepareTextureAtlas(ResourceLocation atlasName, Consumer<ResourceLocation> register) {
 //        getInternalRenderer().onPrepareTextureAtlas(atlasName, register);
 //    }
 //
@@ -86,6 +86,12 @@
 //    @OnlyIn(Dist.CLIENT)
 //    public void onAdditionalModel(Consumer<ModelResourceLocation> registry) {
 //        getInternalRenderer().onAdditionalModel(registry);
+//    }
+//
+//    @Override
+//    @OnlyIn(Dist.CLIENT)
+//    public void clearCache() {
+//        getInternalRenderer().clearCache();
 //    }
 //
 //    @Override
@@ -121,7 +127,7 @@
 //    @NotNull
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, ModelData modelData) {
+//    public TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
 //        return getInternalRenderer().getParticleTexture(level, pos, modelData);
 //    }
 //
@@ -163,7 +169,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public ChunkRenderTypeSet getRenderTypes(BlockAndLightGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+//    public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
 //        return getInternalRenderer().getRenderTypes(level, pos, state, rand, modelData);
 //    }
 //

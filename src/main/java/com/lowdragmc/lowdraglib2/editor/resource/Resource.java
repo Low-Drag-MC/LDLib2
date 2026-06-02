@@ -8,6 +8,7 @@ import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
 
+import net.neoforged.fml.ModLoader;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 
@@ -63,7 +64,8 @@ public abstract class Resource<T> {
         resourceInstance.addBuiltinProvider(global);
 
         // send an Event to register built resources
-        NeoForge.EVENT_BUS.post(new EditorResourceEvent.LoadBuiltin(resourceInstance));
+        var event = new EditorResourceEvent.LoadBuiltin(resourceInstance);
+        ModLoader.postEvent(event);
     }
 
     /**

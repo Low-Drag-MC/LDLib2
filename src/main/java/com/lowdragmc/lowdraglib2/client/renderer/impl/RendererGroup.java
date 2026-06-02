@@ -10,12 +10,14 @@
 //import net.minecraft.client.renderer.block.model.BakedQuad;
 //import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 //import net.minecraft.client.resources.model.BakedModel;
+//import net.minecraft.client.resources.model.ModelResourceLocation;
 //import net.minecraft.core.BlockPos;
 //import net.minecraft.core.Direction;
+//import net.minecraft.resources.ResourceLocation;
 //import net.minecraft.util.RandomSource;
 //import net.minecraft.world.item.ItemDisplayContext;
 //import net.minecraft.world.item.ItemStack;
-//import net.minecraft.world.level.BlockAndLightGetter;
+//import net.minecraft.world.level.BlockAndTintGetter;
 //import net.minecraft.world.level.block.entity.BlockEntity;
 //import net.minecraft.world.level.block.state.BlockState;
 //import net.minecraft.world.phys.AABB;
@@ -31,6 +33,7 @@
 //import java.util.ArrayList;
 //import java.util.Arrays;
 //import java.util.List;
+//import java.util.function.Consumer;
 //
 //@LDLRegisterClient(name = "renderer_group", registry = "ldlib2:renderer")
 //public class RendererGroup implements IRenderer {
@@ -53,7 +56,31 @@
 //
 //    @Override
 //    public RendererGroup copy() {
-//        return new RendererGroup(renderers);
+//        return new RendererGroup(Arrays.stream(renderers).map(IRenderer::copy).toArray(IRenderer[]::new));
+//    }
+//
+//    @Override
+//    @OnlyIn(Dist.CLIENT)
+//    public void onPrepareTextureAtlas(ResourceLocation atlasName, Consumer<ResourceLocation> register) {
+//        for (IRenderer renderer : renderers) {
+//            renderer.onPrepareTextureAtlas(atlasName, register);
+//        }
+//    }
+//
+//    @Override
+//    @OnlyIn(Dist.CLIENT)
+//    public void onAdditionalModel(Consumer<ModelResourceLocation> registry) {
+//        for (IRenderer renderer : renderers) {
+//            renderer.onAdditionalModel(registry);
+//        }
+//    }
+//
+//    @Override
+//    @OnlyIn(Dist.CLIENT)
+//    public void clearCache() {
+//        for (IRenderer renderer : renderers) {
+//            renderer.clearCache();
+//        }
 //    }
 //
 //    @Override
@@ -66,7 +93,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public List<BakedQuad> renderModel(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
+//    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData data, @Nullable RenderType renderType) {
 //        var result = new ArrayList<BakedQuad>();
 //        for (IRenderer renderer : renderers) {
 //            result.addAll(renderer.renderModel(level, pos, state, side, rand, data, renderType));
@@ -76,7 +103,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public ChunkRenderTypeSet getRenderTypes(BlockAndLightGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
+//    public ChunkRenderTypeSet getRenderTypes(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource rand, ModelData modelData) {
 //        return ChunkRenderTypeSet.union(Arrays.stream(renderers).map(renderer -> renderer.getRenderTypes(level, pos, state, rand, modelData)).toList());
 //    }
 //
@@ -120,7 +147,7 @@
 //
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public @NotNull TextureAtlasSprite getParticleTexture(@Nullable BlockAndLightGetter level, @Nullable BlockPos pos, ModelData modelData) {
+//    public @NotNull TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
 //        for (IRenderer renderer : renderers) {
 //            return renderer.getParticleTexture(level, pos, modelData);
 //        }

@@ -40,6 +40,7 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -72,6 +73,8 @@ public class TestSerialization implements IScreenTest {
         private int[] intArray = new int[]{1, 2, 3};
         @Configurable
         private List<Boolean> booleanList = new ArrayList<>(List.of(true, false, true));
+        @Configurable
+        private List<BlockState> blockstates = new ArrayList<>();
         @Configurable
         private Component componentValue = Component.translatable("ldlib.author");
         @Configurable(subConfigurable = true)
