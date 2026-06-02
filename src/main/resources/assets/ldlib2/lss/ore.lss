@@ -370,6 +370,10 @@ ResourceView tab:host {
   margin-all: 0;
 }
 
+ResourceView tab:host:selected {
+  height: 20;
+}
+
 ResourceView .__tab-view_tab_header_container__ {
   background: empty;
   padding-vertical: 4;
