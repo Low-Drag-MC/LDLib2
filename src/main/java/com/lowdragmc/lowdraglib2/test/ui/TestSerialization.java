@@ -36,6 +36,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.appliedenergistics.yoga.YogaFlexDirection;
@@ -70,6 +71,8 @@ public class TestSerialization implements IScreenTest {
         private int[] intArray = new int[]{1, 2, 3};
         @Configurable
         private List<Boolean> booleanList = new ArrayList<>(List.of(true, false, true));
+        @Configurable
+        private List<BlockState> blockstates = new ArrayList<>();
         @Configurable
         private Component componentValue = Component.translatable("ldlib.author");
         @Configurable(subConfigurable = true)

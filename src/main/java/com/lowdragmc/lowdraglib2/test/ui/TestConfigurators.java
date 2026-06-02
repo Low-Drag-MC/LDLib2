@@ -33,6 +33,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -101,6 +103,9 @@ public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSe
     @Configurable
     @ConfigSearch(searchConfiguratorMethod = "createBlockSearchConfigurator")
     private Block blockSearch = Blocks.STONE;
+    @Configurable
+    @DefaultValue(stringValue = "minecraft:oak_log[axis=x]")
+    private BlockState blockState = Blocks.OAK_LOG.defaultBlockState().setValue(BlockStateProperties.AXIS, Direction.Axis.X);
     @Configurable
     private ItemStack item = new ItemStack(Items.STONE);
     @Configurable
