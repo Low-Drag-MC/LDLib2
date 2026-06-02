@@ -11,7 +11,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -137,7 +137,7 @@ public class BlockStateAccessor extends TypesAccessor<BlockState> {
         var value = rawValue.trim();
         var propertiesStart = value.indexOf('[');
         var blockName = propertiesStart >= 0 ? value.substring(0, propertiesStart) : value;
-        var state = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockName)).defaultBlockState();
+        var state = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockName)).defaultBlockState();
         if (propertiesStart < 0) return state;
 
         var propertiesEnd = value.lastIndexOf(']');

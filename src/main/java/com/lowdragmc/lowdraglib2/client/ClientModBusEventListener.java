@@ -83,6 +83,7 @@ public final class ClientModBusEventListener {
 //                event.register(ModelResourceLocation.standalone(modelLocation));
 //            }
 //        }
+//        IRendererResource.INSTANCE.onAdditionalModel(event::register);
 //        for (IRenderer renderer : IRenderer.EVENT_REGISTERS) {
 //            renderer.onAdditionalModel(event::register);
 //        }
