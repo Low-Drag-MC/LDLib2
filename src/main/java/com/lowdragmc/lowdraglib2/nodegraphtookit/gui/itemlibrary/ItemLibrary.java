@@ -20,6 +20,8 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.BlockNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.ContextNode;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
@@ -36,9 +38,11 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -209,14 +213,14 @@ public class ItemLibrary extends UIElement {
         var contextsBuilder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
                 .setIcon(Icons.NODE)
                 .setDisplayName(Component.translatable("graph.library.contexts")));
+        var nodeGroupItems = new HashMap<String, ItemLibraryItem>();
+        var contextGroupItems = new HashMap<String, ItemLibraryItem>();
         for (var nodeType : graphModel.getSupportNodes()) {
             if (BlockNode.class.isAssignableFrom(nodeType)) continue;
             if (ContextNode.class.isAssignableFrom(nodeType)) {
-                contextsBuilder.leaf(new NodeModelLibraryItem(nodeType.getSimpleName(),
-                        data -> CustomGraphModelImpl.createNodeFromData(data, nodeType)), null);
+                addNodeLibraryItem(contextsBuilder, contextGroupItems, nodeType);
             } else {
-                nodesBuilder.leaf(new NodeModelLibraryItem(nodeType.getSimpleName(),
-                        data -> CustomGraphModelImpl.createNodeFromData(data, nodeType)), null);
+                addNodeLibraryItem(nodesBuilder, nodeGroupItems, nodeType);
             }
         }
         nodeTree.setRoot(nodesBuilder.build());
@@ -231,6 +235,46 @@ public class ItemLibrary extends UIElement {
                     .setDisplayName(Component.translatable(typeHandle.getFriendlyName())), null);
         }
         constantTree.setRoot(constantsBuilder.build());
+    }
+
+    static void addNodeLibraryItem(TreeBuilder<ItemLibraryItem, Void> builder,
+                                   Map<String, ItemLibraryItem> groupItems,
+                                   Class<? extends Node> nodeType) {
+        var annotation = nodeType.getAnnotation(NodeAttribute.class);
+        var name = annotation == null ? nodeType.getSimpleName() : annotation.name();
+        var item = new NodeModelLibraryItem(name,
+                data -> CustomGraphModelImpl.createNodeFromData(data, nodeType));
+        if (annotation == null || annotation.group().isBlank()) {
+            builder.leaf(item, null);
+            return;
+        }
+
+        var groupPath = getNodeGroupPath(annotation.group(), groupItems);
+        if (groupPath.isEmpty()) {
+            builder.leaf(item, null);
+        } else {
+            builder.diveBranch(groupPath, b -> b.leaf(item, null));
+        }
+    }
+
+    private static List<ItemLibraryItem> getNodeGroupPath(String group, Map<String, ItemLibraryItem> groupItems) {
+        var groupPath = new ArrayList<ItemLibraryItem>();
+        var fullPath = new StringBuilder();
+        for (var part : group.split("\\.")) {
+            var groupName = part.trim();
+            if (groupName.isEmpty()) continue;
+            if (!fullPath.isEmpty()) {
+                fullPath.append('.');
+            }
+            fullPath.append(groupName);
+            var path = fullPath.toString();
+            groupPath.add(groupItems.computeIfAbsent(path, ignored -> new ItemLibraryItem()
+                    .setPath(path)
+                    .setIcon(Icons.FOLDER)
+                    .setDisplayName(Component.literal(groupName))
+                    .setSearchableName(groupName)));
+        }
+        return groupPath;
     }
 
     public Stream<ItemLibraryItem> getAllItems() {
@@ -248,7 +292,7 @@ public class ItemLibrary extends UIElement {
         return Optional.ofNullable(tree.getRoot())
                 .map(node -> node.flatten().stream()
                         .filter(ITreeNode::isLeaf)
-                        .filter(n -> n.getParent() == null) // not root
+                        .filter(n -> n.getParent() != null) // not root
                         .map(ITreeNode::getKey)
                 )
                 .orElseGet(Stream::empty);

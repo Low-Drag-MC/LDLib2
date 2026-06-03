@@ -8,15 +8,15 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarat
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 import net.minecraft.util.Mth;
-import org.apache.commons.compress.utils.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
 public class GroupModel extends GroupModelBase {
     @Getter
-    protected List<IGroupItemModel> items = Lists.newArrayList();
+    protected List<IGroupItemModel> items = new ArrayList<>();
 
     @Persisted @Getter
     protected String name = "";

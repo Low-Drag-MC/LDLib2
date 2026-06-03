@@ -2,8 +2,8 @@
 //
 //import dev.emi.emi.api.stack.EmiIngredient;
 //import dev.emi.emi.api.widget.Bounds;
-//import org.apache.commons.compress.utils.Lists;
 //
+//import java.util.ArrayList;
 //import java.util.List;
 //
 //public final class EMIDragDropHandler {
@@ -12,7 +12,7 @@
 //
 //    public EMIDragDropHandler(EmiIngredient dragged) {
 //        this.dragged = dragged;
-//        this.bounds = Lists.newArrayList();
+//        this.bounds = new ArrayList<>();
 //    }
 //
 //}
