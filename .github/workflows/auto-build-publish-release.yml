@@ -21,7 +21,7 @@ on:
           - 'alpha'
           - 'beta'
           - 'release'
-        default: 'release'
+        default: 'beta'
       dryRun:
         description: 'Dry run (build only, no publishing)'
         required: false
