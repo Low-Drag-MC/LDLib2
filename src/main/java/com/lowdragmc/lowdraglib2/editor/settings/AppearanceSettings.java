@@ -7,6 +7,8 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.SelectorConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
@@ -25,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class AppearanceSettings implements Settings {
     public static final ResourceLocation ID = LDLib2.id("appearance");
@@ -43,6 +45,9 @@ public class AppearanceSettings implements Settings {
     // runtime
     @Nullable
     private Stylesheet currentStylesheet;
+    @Nullable
+    private WeakReference<ModularUI> appliedModularUI;
+    private final UIEventListener onMuiChangedListener = this::onModularUIChanged;
 
     @Override
     public ResourceLocation getId() {
@@ -56,20 +61,10 @@ public class AppearanceSettings implements Settings {
 
     @Override
     public void onApply(Editor editor) {
-        var mui = editor.getModularUI();
-        // stylesheet
-        var stylesheet = StylesheetManager.INSTANCE.getStylesheet(this.stylesheet);
-        if (stylesheet != null) {
-            if (mui != null) {
-                if (currentStylesheet != null) {
-                    mui.getStyleEngine().removeStylesheet(currentStylesheet);
-                }
-                mui.getStyleEngine().addStylesheet(stylesheet);
-            } else {
-                editor.addEventListener(UIEvents.MUI_CHANGED, postEventHandler(editor));
-            }
-            currentStylesheet = stylesheet;
+        if (!editor.hasEventListener(UIEvents.MUI_CHANGED, onMuiChangedListener)) {
+            editor.addEventListener(UIEvents.MUI_CHANGED, onMuiChangedListener);
         }
+        applyStylesheet(editor);
         // screenScale
         var minecraft = Minecraft.getInstance();
         var guiScale = minecraft.options.guiScale();
@@ -83,22 +78,36 @@ public class AppearanceSettings implements Settings {
         }
     }
 
-    private @NotNull UIEventListener postEventHandler(Editor editor) {
-        AtomicReference<UIEventListener> ref = new AtomicReference<>();
-        UIEventListener postHandler = event -> {
-            if (currentStylesheet != null) {
-                var modularUI = event.target.getModularUI();
-                if (modularUI != null) {
-                    modularUI.getStyleEngine().addStylesheet(currentStylesheet);
-                    if (ref.get() != null) {
-                        editor.removeEventListener(UIEvents.MUI_CHANGED, ref.get());
-                        ref.set(null);
-                    }
-                }
-            }
-        };
-        ref.set(postHandler);
-        return postHandler;
+    private void onModularUIChanged(UIEvent event) {
+        if (event.currentElement instanceof Editor editor) {
+            applyStylesheet(editor);
+        }
+    }
+
+    private void applyStylesheet(Editor editor) {
+        var stylesheet = StylesheetManager.INSTANCE.getStylesheet(this.stylesheet);
+        if (stylesheet == null) {
+            return;
+        }
+
+        var mui = editor.getModularUI();
+        if (mui == null) {
+            appliedModularUI = null;
+            currentStylesheet = stylesheet;
+            return;
+        }
+
+        var previousMui = appliedModularUI == null ? null : appliedModularUI.get();
+        if (previousMui == mui && currentStylesheet == stylesheet) {
+            return;
+        }
+
+        if (previousMui != null && currentStylesheet != null) {
+            previousMui.getStyleEngine().removeStylesheet(currentStylesheet);
+        }
+        mui.getStyleEngine().addStylesheet(stylesheet);
+        appliedModularUI = new WeakReference<>(mui);
+        currentStylesheet = stylesheet;
     }
 
     private SearchComponentConfigurator.ISearchConfigurator<ResourceLocation> searchStyles() {
