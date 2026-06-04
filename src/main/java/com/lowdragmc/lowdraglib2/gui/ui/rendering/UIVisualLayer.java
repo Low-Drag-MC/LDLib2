@@ -8,17 +8,16 @@ import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.client.Minecraft;
 
 import org.jetbrains.annotations.Nullable;
-import java.util.ArrayDeque;
-import java.util.Queue;
 
 public class UIVisualLayer {
     // msaa does it necessary?
-//    private static final Queue<MsaaTarget> TARGET_POOL = new ArrayDeque<>();
-    private static final Queue<MainTarget> TARGET_POOL = new ArrayDeque<>();
-    private static final Queue<TextureTarget> MASK_POOL = new ArrayDeque<>();
+//    private static final ObjectArrayList<MsaaTarget> TARGET_POOL = new ObjectArrayList<>();
+    private static final ObjectArrayList<MainTarget> TARGET_POOL = new ObjectArrayList<>();
+    private static final ObjectArrayList<TextureTarget> MASK_POOL = new ObjectArrayList<>();
     private static final int MAX_POOL_SIZE = 10;
 //    private static final int SAMPLER = 4;
 //    private static TextureTarget MSAA_RESOLVED_COLOR;
@@ -36,7 +35,7 @@ public class UIVisualLayer {
     public void release() {
         if (target != null) {
             if (TARGET_POOL.size() < MAX_POOL_SIZE) {
-                TARGET_POOL.offer(target);
+                TARGET_POOL.add(target);
             } else {
                 target.destroyBuffers();
             }
@@ -44,7 +43,7 @@ public class UIVisualLayer {
         }
         if (mask != null) {
             if (MASK_POOL.size() < MAX_POOL_SIZE) {
-                MASK_POOL.offer(mask);
+                MASK_POOL.add(mask);
             } else {
                 mask.destroyBuffers();
             }
@@ -54,10 +53,7 @@ public class UIVisualLayer {
 
     private void ensureTargetValid(int width, int height) {
         if (target == null) {
-            target = TARGET_POOL.poll();
-            if (target == null) {
-                target = new MainTarget(width, height);
-            }
+            target = TARGET_POOL.isEmpty() ? new MainTarget(width, height) : TARGET_POOL.remove(TARGET_POOL.size() - 1);
         }
         if (target.width != width || target.height != height) {
             target.resize(width, height, Minecraft.ON_OSX);
@@ -66,10 +62,7 @@ public class UIVisualLayer {
 
     private void ensureMaskValid(int width, int height) {
         if (mask == null) {
-            mask = MASK_POOL.poll();
-            if (mask == null) {
-                mask = new TextureTarget(width, height, false, Minecraft.ON_OSX);
-            }
+            mask = MASK_POOL.isEmpty() ? new TextureTarget(width, height, false, Minecraft.ON_OSX) : MASK_POOL.remove(MASK_POOL.size() - 1);
         }
         if (mask.width != width || mask.height != height) {
             mask.resize(width, height, Minecraft.ON_OSX);
@@ -149,6 +142,8 @@ public class UIVisualLayer {
     }
 
     public void draw(GUIContext guiContext) {
+        if (target == null) return;
+
         var opacity = element.getStyle().opacity();
         var hasClip = element.getStyle().overflowClip() != IGuiTexture.EMPTY;
 

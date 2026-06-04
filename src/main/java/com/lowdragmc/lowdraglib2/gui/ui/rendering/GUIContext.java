@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.math.Rect;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
@@ -49,11 +50,11 @@ public class GUIContext {
     @OnlyIn(Dist.CLIENT)
     public float localMouseX, localMouseY;
     @OnlyIn(Dist.CLIENT)
-    public Stack<UIVisualLayer> visualLayers = new Stack<>();
+    public ObjectArrayList<UIVisualLayer> visualLayers = new ObjectArrayList<>();
     @OnlyIn(Dist.CLIENT)
-    public final Stack<Rect> scissorStack = new Stack<>();
+    public final ObjectArrayList<Rect> scissorStack = new ObjectArrayList<>();
     @OnlyIn(Dist.CLIENT)
-    private final List<PostCall> postRenderingCalls = new ArrayList<>();
+    private final ObjectArrayList<PostCall> postRenderingCalls = new ObjectArrayList<>();
     private record PostCall(Consumer<GUIContext> call, PoseStack.Pose pose) {}
     private int lastFBO = -1;
     
@@ -86,7 +87,7 @@ public class GUIContext {
         var realPos = trans.transform(new Vector4f(x, y, 0, 1));
         var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
         var rect = Rect.of(Mth.floor(realPos.x), Mth.floor(realPos.y), Mth.ceil(realPos2.x), Mth.ceil(realPos2.y));
-        var peek = scissorStack.isEmpty() ? null : scissorStack.peek();
+        var peek = scissorStack.isEmpty() ? null : scissorStack.top();
         scissorStack.push(peek == null ? rect : peek.intersects(rect));
         graphics.enableScissor(rect.left, rect.up, rect.right, rect.down);
     }
@@ -131,7 +132,7 @@ public class GUIContext {
                     GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, lastFBO);
                 }
             } else {
-                visualLayers.peek().bind(this);
+                visualLayers.top().bind(this);
             }
             popped.draw(this);
             popped.release();
@@ -158,7 +159,10 @@ public class GUIContext {
     }
 
     public void callPostRendering() {
-        for (var postRenderingCall : postRenderingCalls) {
+        final Object[] postCallsElements = postRenderingCalls.elements();
+
+        for (int i = 0; i < postRenderingCalls.size(); i++) {
+            final PostCall postRenderingCall = (PostCall) postCallsElements[i];
             pose.pushPose();
             pose.setIdentity();
             pose.mulPose(postRenderingCall.pose.pose());

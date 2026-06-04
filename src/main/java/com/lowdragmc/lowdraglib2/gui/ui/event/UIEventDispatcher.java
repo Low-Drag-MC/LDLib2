@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.event;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -182,7 +183,11 @@ public final class UIEventDispatcher {
 
         if (event.propagationStopped) return true;
 
-        for (var child : currentElement.getSortedChildren()) {
+        final ObjectArrayList<UIElement> currentSortedElements = currentElement.getSortedChildren();
+        final Object[] currentElements = currentSortedElements.elements();
+
+        for (int i = 0; i < currentSortedElements.size(); i++) {
+            final UIElement child = (UIElement) currentElements[i];
             if ((onlyActive && !child.isActive()) || (onlyDisplay && !child.isDisplayed())) {
                 continue;
             }
