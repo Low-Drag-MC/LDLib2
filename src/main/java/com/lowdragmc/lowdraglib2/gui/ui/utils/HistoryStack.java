@@ -7,12 +7,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
 
 import org.jetbrains.annotations.Nullable;
-import java.util.Stack;
+import java.util.List;
 
 public class HistoryStack implements IHistoryStack {
     public static final int MAX_HISTORY_COUNT = 20;
@@ -21,13 +22,31 @@ public class HistoryStack implements IHistoryStack {
     @Setter
     private int maxHistoryCount = MAX_HISTORY_COUNT;
     // runtime
-    @Getter
-    private final Stack<HistoryItem> undoStack = new Stack<>();
-    @Getter
-    private final Stack<HistoryItem> redoStack = new Stack<>();
+    private final ObjectArrayList<HistoryItem> undoStack = new ObjectArrayList<>();
+    private final ObjectArrayList<HistoryItem> redoStack = new ObjectArrayList<>();
     @Nullable
     @Getter
     private HistoryItem currentHistory;
+
+    public List<HistoryItem> getUndoStack() {
+        return undoStack;
+    }
+
+    public List<HistoryItem> getRedoStack() {
+        return redoStack;
+    }
+
+    private static <T> void push(ObjectArrayList<T> stack, T value) {
+        stack.add(value);
+    }
+
+    private static <T> T pop(ObjectArrayList<T> stack) {
+        return stack.remove(stack.size() - 1);
+    }
+
+    private static <T> T peek(ObjectArrayList<T> stack) {
+        return stack.get(stack.size() - 1);
+    }
 
     public void pushHistory(Component name, EditAction action, @Nullable Object source, boolean execute) {
         if (execute) {
@@ -36,7 +55,7 @@ public class HistoryStack implements IHistoryStack {
         boolean reuse = false;
         if (currentHistory != null) {
             if (!undoStack.isEmpty()) {
-                var popped = undoStack.pop();
+                var popped = pop(undoStack);
                 if (popped.source() != null && popped.source().equals(source) && popped.name().equals(name)) {
                     // merge action here
                     if (popped.action() instanceof SerializableRecordAction<?> serializableRecord) {
@@ -46,18 +65,18 @@ public class HistoryStack implements IHistoryStack {
                     }
                     reuse = true;
                 }
-                undoStack.push(popped);
+                push(undoStack, popped);
             }
             redoStack.clear();
         }
         HistoryItem newHistory;
         if (reuse) {
-            newHistory = undoStack.peek();
+            newHistory = peek(undoStack);
             currentHistory = newHistory;
         } else {
             newHistory = new HistoryItem(name, action, source);
             currentHistory = newHistory;
-            undoStack.push(currentHistory);
+            push(undoStack, currentHistory);
         }
         // update ui
         var ui = new Label().setText(name).textStyle(style -> {
@@ -78,11 +97,9 @@ public class HistoryStack implements IHistoryStack {
         checkStackSize(redoStack);
     }
 
-    private void checkStackSize(Stack<HistoryItem> stack) {
+    private void checkStackSize(ObjectArrayList<HistoryItem> stack) {
         if (stack.size() > maxHistoryCount) {
-            // Remove only the excess items
-            var toRemove = stack.subList(0, stack.size() - maxHistoryCount);
-            toRemove.clear();
+            stack.removeElements(0, stack.size() - maxHistoryCount);
         }
     }
 
@@ -94,43 +111,43 @@ public class HistoryStack implements IHistoryStack {
 
     public void undo() {
         if (undoStack.isEmpty()) return;
-        var top = undoStack.pop();
+        var top = pop(undoStack);
         if (undoStack.isEmpty()) {
-            undoStack.push(top);
+            push(undoStack, top);
             return;
         }
-        var historyItem = undoStack.peek();
-        undoStack.push(top);
+        var historyItem = peek(undoStack);
+        push(undoStack, top);
         jumpToHistory(historyItem);
     }
 
     public void redo() {
         if (redoStack.isEmpty()) return;
-        var historyItem = redoStack.peek();
+        var historyItem = peek(redoStack);
         jumpToHistory(historyItem);
     }
 
     public void jumpToHistory(HistoryItem historyItem) {
         if (currentHistory == historyItem) return;
         if (undoStack.contains(historyItem)) {
-            while(undoStack.peek() != historyItem) {
-                var popped = undoStack.pop();
+            while (peek(undoStack) != historyItem) {
+                var popped = pop(undoStack);
                 popped.action().undo();
-                redoStack.push(popped);
+                push(redoStack, popped);
             }
-            currentHistory = undoStack.peek();
+            currentHistory = peek(undoStack);
             if (currentHistory.action() instanceof SerializableRecordAction<?> serializableRecord) {
                 serializableRecord.execute();
             }
         } else if (redoStack.contains(historyItem)) {
-            while (redoStack.peek() != historyItem) {
-                var popped = redoStack.pop();
+            while (peek(redoStack) != historyItem) {
+                var popped = pop(redoStack);
                 popped.action().execute();
-                undoStack.push(popped);
+                push(undoStack, popped);
             }
-            currentHistory = redoStack.pop();
+            currentHistory = pop(redoStack);
             currentHistory.action().execute();
-            undoStack.push(currentHistory);
+            push(undoStack, currentHistory);
         }
         checkStackSize();
     }

@@ -14,18 +14,21 @@ public final class ChangeHintList {
     public static final ChangeHintList GROUPING    = new ChangeHintList(ChangeHint.GROUPING);
 
     private final ArrayList<ChangeHint> changeHints;
+    private final List<ChangeHint> changeHintsView;
 
     private ChangeHintList(ChangeHint changeHint) {
         this.changeHints = new ArrayList<>(1);
         this.changeHints.add(changeHint);
+        this.changeHintsView = Collections.unmodifiableList(changeHints);
     }
 
     private ChangeHintList(ChangeHintList other) {
         this.changeHints = new ArrayList<>(other.changeHints);
+        this.changeHintsView = Collections.unmodifiableList(changeHints);
     }
 
     public List<ChangeHint> getHints() {
-        return Collections.unmodifiableList(changeHints);
+        return changeHintsView;
     }
 
     private int count() {
