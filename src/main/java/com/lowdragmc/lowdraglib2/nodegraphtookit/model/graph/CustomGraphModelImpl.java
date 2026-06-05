@@ -61,6 +61,23 @@ public class CustomGraphModelImpl extends GraphModel {
         }
     }
 
+    @Override
+    public List<Class<? extends Node>> getLibrarySupportNodes() {
+        return graph.getLibrarySupportNodes();
+    }
+
+    @Override
+    public List<TypeHandle> getLibrarySupportTypes() {
+        var types = graph.getLibrarySupportTypes();
+        return types == null ? getSupportTypes() : types;
+    }
+
+    @Override
+    public List<TypeHandle> getVariableSupportTypes() {
+        var types = graph.getVariableSupportTypes();
+        return types == null ? getSupportTypes() : types;
+    }
+
     public static List<TypeHandle> detectSupportedTypes(GraphModel graphModel) {
         var foundTypes = new HashSet<TypeHandle>();
         var nodeCreationData = GraphNodeCreationData.ofOrphan(graphModel);

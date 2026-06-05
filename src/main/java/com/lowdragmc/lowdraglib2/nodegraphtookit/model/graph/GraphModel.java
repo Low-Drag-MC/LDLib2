@@ -139,6 +139,27 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     public abstract List<TypeHandle> getSupportTypes();
 
     /**
+     * Retrieves node classes shown in the item library.
+     */
+    public List<Class<? extends Node>> getLibrarySupportNodes() {
+        return getSupportNodes();
+    }
+
+    /**
+     * Retrieves type handles shown as constant nodes in the item library.
+     */
+    public List<TypeHandle> getLibrarySupportTypes() {
+        return getSupportTypes();
+    }
+
+    /**
+     * Retrieves type handles shown when creating or editing blackboard variables.
+     */
+    public List<TypeHandle> getVariableSupportTypes() {
+        return getSupportTypes();
+    }
+
+    /**
      * Whether it is allowed to create {@link WirePortalModel} and add them to the graph.
      */
     public boolean allowPortalCreation() {

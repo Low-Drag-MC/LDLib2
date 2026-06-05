@@ -395,7 +395,7 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
 
         var typeHandle = lastVariableInfos.getTypeHandle();
 
-        var supportedTypes = graph.graphModel.getSupportTypes();
+        var supportedTypes = graph.graphModel.getVariableSupportTypes();
         if (!supportedTypes.isEmpty()
                 && !typeHandle.isCustomTypeHandle()
                 && !supportedTypes.contains(typeHandle)) {
