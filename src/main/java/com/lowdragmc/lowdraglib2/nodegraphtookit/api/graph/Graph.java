@@ -40,6 +40,35 @@ public abstract class Graph implements IGraph {
     }
 
     /**
+     * Retrieves node types shown in the item library.
+     *
+     * @return a {@link List} of node types available through the library UI.
+     */
+    public List<Class<? extends Node>> getLibrarySupportNodes() {
+        return getSupportNodes();
+    }
+
+    /**
+     * Retrieves type handles shown as constant nodes in the item library.
+     *
+     * @return a {@link List} of type handles available through the library UI,
+     * or {@code null} to use the graph's supported types.
+     */
+    public @Nullable List<TypeHandle> getLibrarySupportTypes() {
+        return getSupportTypes();
+    }
+
+    /**
+     * Retrieves type handles shown when creating or editing blackboard variables.
+     *
+     * @return a {@link List} of type handles available for variables,
+     * or {@code null} to use the graph's supported types.
+     */
+    public @Nullable List<TypeHandle> getVariableSupportTypes() {
+        return getSupportTypes();
+    }
+
+    /**
      * Retrieves a variable declared in the graph by index.
      *
      * <p>Use this method to access a specific {@link IVariable} from the list of variables declared in the graph.

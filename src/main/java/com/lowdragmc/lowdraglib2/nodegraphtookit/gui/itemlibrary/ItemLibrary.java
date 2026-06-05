@@ -213,7 +213,7 @@ public class ItemLibrary extends UIElement {
                 .setDisplayName(Component.translatable("graph.library.contexts")));
         var nodeGroupItems = new HashMap<String, ItemLibraryItem>();
         var contextGroupItems = new HashMap<String, ItemLibraryItem>();
-        for (var nodeType : graphModel.getSupportNodes()) {
+        for (var nodeType : graphModel.getLibrarySupportNodes()) {
             if (BlockNode.class.isAssignableFrom(nodeType)) continue;
             if (ContextNode.class.isAssignableFrom(nodeType)) {
                 addNodeLibraryItem(contextsBuilder, contextGroupItems, nodeType);
@@ -227,7 +227,7 @@ public class ItemLibrary extends UIElement {
         var constantsBuilder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
                 .setIcon(Icons.NODE)
                 .setDisplayName(Component.translatable("graph.library.constants")));
-        for (var typeHandle : graphModel.getSupportTypes()) {
+        for (var typeHandle : graphModel.getLibrarySupportTypes()) {
             constantsBuilder.leaf(new NodeModelLibraryItem(typeHandle.getName(),
                     data -> data.createConstantNode(typeHandle.getName(), typeHandle))
                     .setDisplayName(Component.translatable(typeHandle.getFriendlyName())), null);

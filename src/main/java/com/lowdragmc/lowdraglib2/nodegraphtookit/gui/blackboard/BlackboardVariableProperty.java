@@ -176,7 +176,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
     public void search(String word, IResultHandler<TypeHandle> searchHandler) {
         var graphModel = getModel().getGraphModel();
         if (graphModel == null) return;
-        var types = List.copyOf(graphModel.getSupportTypes());
+        var types = List.copyOf(graphModel.getVariableSupportTypes());
         var lowerWord = word.toLowerCase();
         for (var type : types) {
             if (Thread.interrupted()) return;

@@ -73,6 +73,7 @@ public class PortConnectorElement extends ModelElement {
         if (visitor.hasHint(ChangeHint.STYLE) || visitor.hasHint(ChangeHint.DATA) || visitor.hasHint(ChangeHint.GRAPH_TOPOLOGY)) {
             // update title and tooltips
             name.setText(portModel.getDisplayName());
+            Style.importantPipeline(getStyle(), s -> s.tooltips(portModel.getTooltips()));
             // Hide label when its text is empty — data-driven.
             var empty = Component.empty().equals(name.getValue());
             Style.importantPipeline(name.getLayout(), l -> l.display(empty ? TaffyDisplay.NONE : TaffyDisplay.FLEX));

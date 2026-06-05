@@ -329,12 +329,14 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
      * @return The default tooltip is "[name] [Input|Output] of type (friendly name of the port type)" for ports (e.g. "input of type float").
      */
     public Tooltips getDefaultTooltips() {
-        return Tooltips.of(getTitle().copy().append(Component.literal(": " + (direction.name) + (dataTypeHandle.equals(TypeHandles.EXECUTION_FLOW) ? " execution flow" :
-                (" of type " + dataTypeHandle.getFriendlyName())))));
+        return Tooltips.of(getTitle().copy().append(" (")
+                .append(Component.literal(dataTypeHandle.getFriendlyName()).withColor(dataTypeHandle.getTypeColor()))
+                .append(")")
+        );
     }
 
     public Tooltips getTooltips() {
-        if (tooltips == null) return getDefaultTooltips();
+        if (tooltips.isEmpty()) return getDefaultTooltips();
         return tooltips;
     }
 

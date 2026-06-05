@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
  */
 public record PortConnectorUI(IGuiTexture unconnectedIcon, IGuiTexture connectedIcon) {
     public static final PortConnectorUI DEFAULT = new PortConnectorUI(Icons.RADIOBOX_BLANK, Icons.RADIOBOX_MARKED);
+    public static final PortConnectorUI FLOW = new PortConnectorUI(Icons.PLAY_EMPTY, Icons.PLAY_FILL);
 
     public IGuiTexture getIcon(boolean isConnected) {
         return isConnected ? connectedIcon : unconnectedIcon;

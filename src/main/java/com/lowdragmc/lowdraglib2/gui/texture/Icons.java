@@ -71,6 +71,8 @@ public class Icons {
     public static SpriteTexture XML = icon("xml");
     public static SpriteTexture RADIOBOX_BLANK = icon("radiobox_blank");
     public static SpriteTexture RADIOBOX_MARKED = icon("radiobox_marked");
+    public static SpriteTexture PLAY_EMPTY = icon("play_empty");
+    public static SpriteTexture PLAY_FILL = icon("play_fill");
     public static SpriteTexture CHECKBOX_BLANK = icon("checkbox_blank");
     public static SpriteTexture CHECKBOX_MARKED = icon("checkbox_marked");
     public static SpriteTexture TRANSFORM_TRANSLATE = icon("transform_translate");
