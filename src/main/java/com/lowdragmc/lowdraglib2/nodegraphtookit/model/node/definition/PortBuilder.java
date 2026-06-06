@@ -75,13 +75,19 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
     @Override
     public PortBuilder withConnectorUI(PortConnectorUI connectorUI) {
         this.connectorUI = connectorUI;
-        return null;
+        return this;
+    }
+
+    @Override
+    public PortBuilder withOrientation(PortOrientation orientation) {
+        this.portOrientation = orientation;
+        return this;
     }
 
     @Override
     public PortBuilder withDefaultValue(Object defaultValue) {
         this.defaultValue = defaultValue;
-        return null;
+        return this;
     }
 
     @Override

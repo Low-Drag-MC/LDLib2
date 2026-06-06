@@ -40,6 +40,23 @@ public abstract class Graph implements IGraph {
     }
 
     /**
+     * Whether this graph accepts a graph of {@code other}'s type as a subgraph — either imported as
+     * an external reference (dragging another graph resource in) or embedded as an inline local
+     * subgraph of a different type.
+     *
+     * <p>Defaults to {@code false}: only same-type subgraphs are allowed (same-type embedding is
+     * handled independently and is always permitted). Override to opt into cross-type subgraphs,
+     * e.g. {@code return other instanceof MaterialGraph;} to let a shader graph embed material
+     * graphs.</p>
+     *
+     * @param other the candidate inner graph (a fresh instance of the would-be subgraph type)
+     * @return {@code true} to allow {@code other}'s type as a subgraph of this graph
+     */
+    public boolean acceptsSubgraphGraph(Graph other) {
+        return false;
+    }
+
+    /**
      * Retrieves node types shown in the item library.
      *
      * @return a {@link List} of node types available through the library UI.

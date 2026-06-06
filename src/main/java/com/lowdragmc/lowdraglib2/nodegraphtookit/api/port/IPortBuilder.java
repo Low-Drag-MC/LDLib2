@@ -51,6 +51,17 @@ public interface IPortBuilder<T extends IPortBuilder<T>> {
     T withConnectorUI(PortConnectorUI connectorUI);
 
     /**
+     * Configures the orientation of the port being built. {@link PortOrientation#Horizontal}
+     * (default) places the port in the node's side in/out columns; {@link PortOrientation#Vertical}
+     * places it in the top (inputs) / bottom (outputs) rows rendered above the title and below the
+     * body (see {@code CollapsibleInOutNodeElement}). UI-only — does not affect connectivity.
+     *
+     * @param orientation the {@link PortOrientation} to use
+     * @return the current builder instance for method chaining
+     */
+    T withOrientation(PortOrientation orientation);
+
+    /**
      * Configures the default value for the option being built.
      *
      * @param defaultValue the default value to assign to the option

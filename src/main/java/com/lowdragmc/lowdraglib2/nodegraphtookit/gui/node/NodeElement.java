@@ -57,6 +57,9 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
     protected @Nullable NodeOptionsInspector nodeOptionContainer;
     @Getter
     protected @Nullable PortContainerElement portContainerElement;
+    /** Preview panel rendered at the bottom of the node; present only when the model has a preview. */
+    @Getter
+    protected @Nullable GraphElement<?> nodePreviewElement;
 
     @Getter
     private final NodeStyle nodeStyle = new NodeStyle();
@@ -82,6 +85,22 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
         if (getModel() instanceof PortNodeModel portNodeNode) {
             parts.add(this.portContainerElement = new PortContainerElement(portNodeNode, PortContainerElement.HORIZONTAL_PORT_FILTER));
         }
+        buildPreviewPart();
+    }
+
+    /**
+     * Creates the preview panel part from the model's {@code NodePreviewModel} (the model decides the
+     * concrete element via {@link com.lowdragmc.lowdraglib2.nodegraphtookit.model.IGraphElementUIModel#createElementUI()}).
+     * Called last in {@link #buildPartList()} so subclasses can rely on the other parts existing.
+     */
+    protected void buildPreviewPart() {
+        var previewModel = getModel().getNodePreviewModel();
+        if (previewModel != null) {
+            var element = previewModel.createElementUI();
+            if (element != null) {
+                parts.add(this.nodePreviewElement = element);
+            }
+        }
     }
 
     @Override
@@ -90,14 +109,16 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
         Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
         Style.defaultPipeline(getStyle(), s -> s.background(Sprites.RECT_SOLID));
 
-        addChildren(nodeTittle, nodeOptionContainer, portContainerElement);
+        // Preview panel always sits at the very bottom of the node.
+        addChildren(nodeTittle, nodeOptionContainer, portContainerElement, nodePreviewElement);
     }
 
     // endregion
 
     @Override
     public boolean hasModelDependenciesChanged() {
-        return getModel() instanceof InputOutputPortsNodeModel ioNode && !ioNode.getNodeOptions().isEmpty();
+        return (getModel() instanceof InputOutputPortsNodeModel ioNode && !ioNode.getNodeOptions().isEmpty())
+                || getModel().getNodePreviewModel() != null;
     }
 
     @Override
@@ -107,6 +128,11 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
             for (var nodeOption : ioNode.getNodeOptions()) {
                 getDependencies().addModelDependency(nodeOption.getPortModel());
             }
+        }
+        // Depend on the preview model so preview expand/collapse and data changes refresh the node.
+        var previewModel = getModel().getNodePreviewModel();
+        if (previewModel != null) {
+            getDependencies().addModelDependency(previewModel);
         }
     }
 

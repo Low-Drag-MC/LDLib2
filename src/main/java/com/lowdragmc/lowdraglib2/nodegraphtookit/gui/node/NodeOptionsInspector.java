@@ -35,8 +35,13 @@ public class NodeOptionsInspector extends ModelElement {
         if (shouldRebuildFields()) {
             buildFields();
         }
-        // Hide entire inspector when no field rows exist — data-driven.
-        Style.importantPipeline(getLayout(), l -> l.display(mutableFieldInfos.isEmpty() ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
+        // Hide the inspector when there are no field rows OR the node is collapsed. This is the
+        // single writer of this element's display: the parent CollapsibleInOutNodeElement must not
+        // also drive it, because this method runs after the parent's applyCollapsedState (parts are
+        // visited after the owner) and would otherwise overwrite the collapsed state at the same
+        // IMPORTANT origin — leaving options visible while collapsed.
+        boolean hidden = mutableFieldInfos.isEmpty() || nodeModel.isCollapsed();
+        Style.importantPipeline(getLayout(), l -> l.display(hidden ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
     }
 
     protected boolean shouldRebuildFields() {

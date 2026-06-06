@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
@@ -33,7 +34,13 @@ public class PortConstantEditorElement extends ModelElement {
      */
     protected boolean isPortRequireEditor() {
         var isPortal = portModel.getNodeModel() instanceof WirePortalModel;
-        return portModel.getDirection() == PortDirection.INPUT && !isPortal;
+        if (portModel.getDirection() != PortDirection.INPUT || isPortal) return false;
+        // Vertical ports default to no inline configurator; the host graph can opt back in.
+        if (portModel.getOrientation() == PortOrientation.Vertical) {
+            var gm = portModel.getGraphModel();
+            return gm != null && gm.showVerticalPortConfigurator();
+        }
+        return true;
     }
 
     @Override

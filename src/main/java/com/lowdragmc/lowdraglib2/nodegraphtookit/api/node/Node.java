@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodePreviewContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.IPort;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
@@ -78,5 +79,42 @@ public abstract class Node implements INode {
      * @param context provides methods for defining input and output ports
      */
     public void onDefinePorts(IPortDefinitionContext context) {}
+
+    // region preview
+
+    /**
+     * Whether this node shows a preview panel beneath its body. Override to return {@code true} and
+     * implement {@link #onBuildNodePreview(NodePreviewContext)} to populate it — e.g. a shader graph node can
+     * render a live shader preview. When {@code true}, a {@code NodePreviewModel} is created for the
+     * node and a preview panel is rendered inside the node element.
+     *
+     * @return {@code true} to enable the preview panel; {@code false} (default) for no preview
+     */
+    public boolean hasNodePreview() {
+        return false;
+    }
+
+    /**
+     * Populates the preview panel's content container. Called when the panel is (re)built. Add the
+     * UI that renders this node's preview (e.g. a custom framebuffer/texture element). The
+     * {@link NodePreviewContext} provides the content container plus the node model, preview model,
+     * and live graph view so the preview can read inputs/options and react to the editor. Default is
+     * a no-op.
+     *
+     * @param context the preview build context (container + node/preview/graph references)
+     */
+    public void onBuildNodePreview(NodePreviewContext context) {}
+
+    /**
+     * Called when the preview panel updates (e.g. an input port value or connection changed). Use it
+     * to refresh dynamic preview content — repaint a shader, recompute a value, or
+     * {@link NodePreviewContext#rebuild() rebuild} the panel. Default is a no-op (static content
+     * built in {@link #onBuildNodePreview} already re-reads the model when it draws).
+     *
+     * @param context the preview context (same references as the build call)
+     */
+    public void onUpdateNodePreview(NodePreviewContext context) {}
+
+    // endregion
 
 }

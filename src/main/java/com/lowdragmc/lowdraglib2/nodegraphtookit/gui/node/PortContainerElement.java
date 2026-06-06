@@ -31,8 +31,16 @@ public class PortContainerElement extends ModelElement {
 
     @Override
     protected void buildUI() {
-        portContainer = new PortContainer();
+        portContainer = createPortContainer();
         addChild(portContainer);
+    }
+
+    /**
+     * Factory for the backing {@link PortContainer}. Overridden by vertical containers so the
+     * spawned ports use the vertical layout.
+     */
+    protected PortContainer createPortContainer() {
+        return new PortContainer();
     }
 
     @Override
