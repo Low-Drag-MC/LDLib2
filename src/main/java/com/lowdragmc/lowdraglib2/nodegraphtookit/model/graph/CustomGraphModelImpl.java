@@ -244,6 +244,16 @@ public class CustomGraphModelImpl extends GraphModel {
     }
 
     @Override
+    public boolean canExecuteCommand(com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand command) {
+        return graph.canExecuteCommand(command);
+    }
+
+    @Override
+    public void onCommandExecuted(com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand command) {
+        graph.onCommandExecuted(command);
+    }
+
+    @Override
     public CustomGraphModelImpl createLocalSubgraphInstance() {
         return createLocalSubgraphInstance(graph.getClass());
     }

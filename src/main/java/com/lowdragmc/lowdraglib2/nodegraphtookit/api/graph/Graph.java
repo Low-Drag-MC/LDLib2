@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.INode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,6 +55,36 @@ public abstract class Graph implements IGraph {
      */
     public boolean acceptsSubgraphGraph(Graph other) {
         return false;
+    }
+
+    /**
+     * Vetoes an editor command before it executes. Returns {@code true} (default) to allow.
+     *
+     * <p>Every mutating editor action — delete, move, paste, duplicate, rename, color, create
+     * node/wire/placemat/subgraph, etc. — runs as an {@link IGraphCommand} through
+     * {@code GraphView.dispatchCommand}, which consults this method first. Inspect the command to
+     * gate specific operations, e.g.:
+     * <pre>{@code
+     * if (command instanceof GraphCommands.DeleteElementsCommand del)
+     *     return del.elementsToDelete.stream().noneMatch(this::isProtected);
+     * }</pre>
+     * For "this single element can never be deleted while others still can", prefer turning off the
+     * element's {@code Capabilities.DELETABLE} instead (filtered at the selection source).</p>
+     *
+     * @param command the command about to execute
+     * @return {@code true} to allow, {@code false} to block
+     */
+    public boolean canExecuteCommand(IGraphCommand command) {
+        return true;
+    }
+
+    /**
+     * Called after an editor command has executed (default no-op). Use it to react to applied
+     * edits — custom side effects, analytics, extra dirty-tracking, etc.
+     *
+     * @param command the command that just executed
+     */
+    public void onCommandExecuted(IGraphCommand command) {
     }
 
     /**

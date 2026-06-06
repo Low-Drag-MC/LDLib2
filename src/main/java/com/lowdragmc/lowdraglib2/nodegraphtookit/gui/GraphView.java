@@ -28,6 +28,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateForeignLocalS
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateSubgraphFromSelectionCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ElementRenameColorCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommands;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommandListener;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ImportExternalSubgraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
@@ -79,6 +80,17 @@ public class GraphView extends UIElement {
     public final Blackboard blackboard = new Blackboard(this);
     public final GraphInspector inspector = new GraphInspector(this);
     public final GraphPreview preview = new GraphPreview(this);
+
+    /**
+     * Optional instance-level veto consulted by {@link #dispatchCommand} before a command runs;
+     * return {@code false} to block. Layered on top of the graph's own
+     * {@link GraphModel#canExecuteCommand} policy (both must allow). For policy tied to the graph
+     * definition, override {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#canExecuteCommand} instead.
+     */
+    @Nullable @Setter @Getter
+    private Predicate<IGraphCommand> commandInterceptor;
+    /** Observers notified after a command executes (see {@link #addCommandListener}). */
+    private final List<GraphCommandListener> commandListeners = new ArrayList<>();
 
     // runtime
     @Nullable
@@ -466,8 +478,32 @@ public class GraphView extends UIElement {
      */
     public boolean dispatchCommand(IGraphCommand command) {
         if (graph == null) return false;
-        command.execute(this, graph.graphModel);
+        var graphModel = graph.graphModel;
+        // before-veto: the graph's own policy AND the optional instance interceptor must both allow.
+        if (!graphModel.canExecuteCommand(command)) return false;
+        if (commandInterceptor != null && !commandInterceptor.test(command)) return false;
+        command.execute(this, graphModel);
+        // post-execute: graph hook first, then registered listeners (copy to tolerate mutation).
+        graphModel.onCommandExecuted(command);
+        if (!commandListeners.isEmpty()) {
+            for (var listener : List.copyOf(commandListeners)) {
+                listener.onCommandExecuted(command, this, graphModel);
+            }
+        }
         return true;
+    }
+
+    /** Registers an observer notified after each command executes. */
+    public GraphView addCommandListener(GraphCommandListener listener) {
+        if (listener != null && !commandListeners.contains(listener)) {
+            commandListeners.add(listener);
+        }
+        return this;
+    }
+
+    /** Removes a previously-registered command listener. */
+    public boolean removeCommandListener(GraphCommandListener listener) {
+        return commandListeners.remove(listener);
     }
 
     public boolean batchUpdate() {

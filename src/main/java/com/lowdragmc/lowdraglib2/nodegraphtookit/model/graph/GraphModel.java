@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortCapacity;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.IGraphReferenceResolver;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
@@ -199,6 +200,22 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      */
     public boolean isStateMachineGraph() {
         return false;
+    }
+
+    /**
+     * Vetoes an editor command before it executes; default {@code true} (allow). Consulted by
+     * {@code GraphView.dispatchCommand}. {@link CustomGraphModelImpl} delegates to
+     * {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#canExecuteCommand}.
+     */
+    public boolean canExecuteCommand(IGraphCommand command) {
+        return true;
+    }
+
+    /**
+     * Called after an editor command has executed; default no-op. {@link CustomGraphModelImpl}
+     * delegates to {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#onCommandExecuted}.
+     */
+    public void onCommandExecuted(IGraphCommand command) {
     }
 
     /**
