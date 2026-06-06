@@ -8,7 +8,9 @@ import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
@@ -16,17 +18,26 @@ import net.minecraft.util.Tuple;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public class GraphResourceProviderContainer<G extends Graph> extends ResourceProviderContainer<CompoundTag> {
     public record DraggingGraph(GraphResource<?> graphResource, IResourcePath path) {}
 
     @Getter
     private final GraphResource<G> graphResource;
+    /**
+     * Factory for the {@link GraphView} used by editor views opened from this container. Initialized
+     * from {@link GraphResource#getGraphViewFactory()}; can be overridden per-container for a custom
+     * {@code GraphView} subclass.
+     */
+    @Getter @Setter
+    private Supplier<? extends GraphView> graphViewFactory;
     private final Map<UUID, Tuple<IResourcePath, GraphEditorView>> openedViews = Maps.newHashMap();
 
     public GraphResourceProviderContainer(GraphResource<G> graphResource, IResourceProvider<CompoundTag> provider) {
         super(provider);
         this.graphResource = graphResource;
+        this.graphViewFactory = graphResource.getGraphViewFactory();
         // Dragging a graph resource carries the IResourcePath itself so the drop site (e.g. an open
         // GraphView) can record a stable EXTERNAL reference. Default behavior would drag the
         // CompoundTag NBT, which loses the path identity.
@@ -97,7 +108,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             var editor = container.getEditor();
             var uuid = UUID.randomUUID();
 
-            var newView = new GraphEditorView().loadGraph(graph, savedTag -> {
+            var newView = new GraphEditorView(graphViewFactory).loadGraph(graph, savedTag -> {
                 if (!openedViews.containsKey(uuid)) return;
                 var realPath = openedViews.get(uuid).getA();
                 provider.addResource(realPath, savedTag);
