@@ -1,11 +1,13 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 
 /**
  * Verifies the command-policy plumbing: a {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph}
@@ -14,11 +16,29 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * {@code GraphView.dispatchCommand} is UI and validated manually.
  *
  * <p>Commands are passed as {@code null} so no real command object (which references the client-only
- * {@code GraphView} in its signatures) is constructed on the dedicated server — the overrides ignore
+ * {@code GraphView} in its signatures) is constructed on the dedicated server - the overrides ignore
  * the argument and decide by flag/counter.</p>
  */
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphCommandPolicyTest {
+public final class GraphCommandPolicyTest {
+    private static final String CAN_EXECUTE_COMMAND_DELEGATES = "graph_command_policy_can_execute_delegates";
+    private static final String ON_COMMAND_EXECUTED_DELEGATES = "graph_command_policy_on_executed_delegates";
+    private static final String DEFAULTS_ARE_PERMISSIVE = "graph_command_policy_defaults_permissive";
+
+    private GraphCommandPolicyTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(CAN_EXECUTE_COMMAND_DELEGATES, GraphCommandPolicyTest::canExecuteCommandDelegatesToGraph);
+        NodeGraphGameTests.registerFunction(ON_COMMAND_EXECUTED_DELEGATES, GraphCommandPolicyTest::onCommandExecutedDelegatesToGraph);
+        NodeGraphGameTests.registerFunction(DEFAULTS_ARE_PERMISSIVE, GraphCommandPolicyTest::defaultsArePermissive);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, CAN_EXECUTE_COMMAND_DELEGATES, NodeGraphGameTests.functionKey(CAN_EXECUTE_COMMAND_DELEGATES), testData);
+        NodeGraphGameTests.registerFunctionTest(event, ON_COMMAND_EXECUTED_DELEGATES, NodeGraphGameTests.functionKey(ON_COMMAND_EXECUTED_DELEGATES), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DEFAULTS_ARE_PERMISSIVE, NodeGraphGameTests.functionKey(DEFAULTS_ARE_PERMISSIVE), testData);
+    }
 
     /** A TestGraph whose command policy is driven by a flag, recording post-execute calls. */
     private static class PolicyTestGraph extends TestGraph {
@@ -36,8 +56,6 @@ public class GraphCommandPolicyTest {
         }
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void canExecuteCommandDelegatesToGraph(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start canExecuteCommandDelegatesToGraph");
 
@@ -56,8 +74,6 @@ public class GraphCommandPolicyTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void onCommandExecutedDelegatesToGraph(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start onCommandExecutedDelegatesToGraph");
 
@@ -73,8 +89,6 @@ public class GraphCommandPolicyTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void defaultsArePermissive(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start defaultsArePermissive");
 

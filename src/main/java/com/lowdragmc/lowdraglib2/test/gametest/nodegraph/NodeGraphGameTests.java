@@ -38,6 +38,9 @@ public final class NodeGraphGameTests {
         GraphRenameColorTest.registerFunctions();
         GraphSubgraphTest.registerFunctions();
         ContextBlockTest.registerFunctions();
+        GraphCommandPolicyTest.registerFunctions();
+        GraphCrossTypeSubgraphTest.registerFunctions();
+        GraphNodePreviewTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
         eventBus.addListener(NodeGraphGameTests::registerGameTests);
     }
@@ -79,6 +82,9 @@ public final class NodeGraphGameTests {
         GraphRenameColorTest.register(event, environment);
         GraphSubgraphTest.register(event, environment);
         ContextBlockTest.register(event, environment);
+        GraphCommandPolicyTest.register(event, environment);
+        GraphCrossTypeSubgraphTest.register(event, environment);
+        GraphNodePreviewTest.register(event, environment);
     }
 
     static void registerFunctionTest(

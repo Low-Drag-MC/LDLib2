@@ -1,28 +1,56 @@
-package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
+package com.lowdragmc.lowdraglib2.test.gametest.nodegraph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.SpawnFlags;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.CustomNodeModelImpl;
-import net.minecraft.gametest.framework.GameTest;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestPreviewNode;
+import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import org.joml.Vector2f;
 
 /**
  * Node preview system: lifecycle (auto-create / ORPHAN skip), duplication, dependency wiring, and
  * persistence of the expanded state. UI rendering is validated manually.
  */
-@GameTestHolder(LDLib2.MOD_ID)
-public class GraphNodePreviewTest {
+public final class GraphNodePreviewTest {
+    private static final String PREVIEW_AUTO_CREATED_AND_DEPENDENT = "graph_node_preview_auto_created_and_dependent";
+    private static final String ORPHAN_SPAWN_SKIPS_PREVIEW = "graph_node_preview_orphan_spawn_skips_preview";
+    private static final String DUPLICATE_COPIES_EXPANDED_STATE = "graph_node_preview_duplicate_copies_expanded_state";
+    private static final String EXPANDED_STATE_PERSISTS_ROUND_TRIP = "graph_node_preview_expanded_state_persists_round_trip";
+
+    private GraphNodePreviewTest() {
+    }
+
+    static void registerFunctions() {
+        NodeGraphGameTests.registerFunction(PREVIEW_AUTO_CREATED_AND_DEPENDENT, GraphNodePreviewTest::previewAutoCreatedAndDependent);
+        NodeGraphGameTests.registerFunction(ORPHAN_SPAWN_SKIPS_PREVIEW, GraphNodePreviewTest::orphanSpawnSkipsPreview);
+        NodeGraphGameTests.registerFunction(DUPLICATE_COPIES_EXPANDED_STATE, GraphNodePreviewTest::duplicateCopiesExpandedState);
+        NodeGraphGameTests.registerFunction(EXPANDED_STATE_PERSISTS_ROUND_TRIP, GraphNodePreviewTest::expandedStatePersistsRoundTrip);
+    }
+
+    static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
+        TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
+        NodeGraphGameTests.registerFunctionTest(event, PREVIEW_AUTO_CREATED_AND_DEPENDENT, NodeGraphGameTests.functionKey(PREVIEW_AUTO_CREATED_AND_DEPENDENT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, ORPHAN_SPAWN_SKIPS_PREVIEW, NodeGraphGameTests.functionKey(ORPHAN_SPAWN_SKIPS_PREVIEW), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DUPLICATE_COPIES_EXPANDED_STATE, NodeGraphGameTests.functionKey(DUPLICATE_COPIES_EXPANDED_STATE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, EXPANDED_STATE_PERSISTS_ROUND_TRIP, NodeGraphGameTests.functionKey(EXPANDED_STATE_PERSISTS_ROUND_TRIP), testData);
+    }
 
     // ------------------------------------------------------------------
     // 1. A node that hasNodePreview auto-creates a preview model that shows
     //    up in getDependentModels; a plain node has none.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void previewAutoCreatedAndDependent(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start previewAutoCreatedAndDependent");
 
@@ -48,8 +76,6 @@ public class GraphNodePreviewTest {
     // ------------------------------------------------------------------
     // 2. ORPHAN spawn does not create a preview.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void orphanSpawnSkipsPreview(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start orphanSpawnSkipsPreview");
 
@@ -69,8 +95,6 @@ public class GraphNodePreviewTest {
     // ------------------------------------------------------------------
     // 3. Duplicating a node copies the preview expanded state.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void duplicateCopiesExpandedState(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start duplicateCopiesExpandedState");
 
@@ -96,8 +120,6 @@ public class GraphNodePreviewTest {
     // 4. Expanded state persists across serialize/deserialize, and the
     //    preview model is recreated on load (syncNodePreview).
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void expandedStatePersistsRoundTrip(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start expandedStatePersistsRoundTrip");
@@ -106,9 +128,9 @@ public class GraphNodePreviewTest {
         var node = graph.graphModel.createNodeModel(new TestPreviewNode(), new Vector2f(0, 0));
         node.setPreviewExpanded(false);
 
-        var serialized = graph.graphModel.serializeNBT(provider);
+        var serialized = serializeGraph(graph.graphModel, provider);
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
 
         AbstractNodeModel restored = null;
         for (var n : graph2.graphModel.getNodeModels()) {
@@ -127,5 +149,15 @@ public class GraphNodePreviewTest {
 
         LDLib2.LOGGER.info("End expandedStatePersistsRoundTrip - PASSED");
         helper.succeed();
+    }
+
+    private static CompoundTag serializeGraph(CustomGraphModelImpl graphModel, net.minecraft.core.HolderLookup.Provider provider) {
+        var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
+        graphModel.serialize(output);
+        return output.buildResult();
+    }
+
+    private static void deserializeGraph(CustomGraphModelImpl graphModel, CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
+        graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, provider, tag));
     }
 }

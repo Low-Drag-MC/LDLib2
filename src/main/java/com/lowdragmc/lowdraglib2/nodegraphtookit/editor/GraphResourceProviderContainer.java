@@ -165,7 +165,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             var refTag = instance.getResource(path);
             if (refTag instanceof CompoundTag tag) {
                 var refGraph = graphResource.createGraph();
-                refGraph.graphModel.deserializeNBT(Platform.getFrozenRegistry(), tag);
+                refGraph.graphModel.deserialize(TagValueInput.create(ProblemReporter.Collector.DISCARDING, Platform.getFrozenRegistry(), tag));
                 return refGraph;
             }
         }
