@@ -435,3 +435,8 @@ ToggleSelectorConfigurator toggle {
   width: 10;
   height: 10;
 }
+
+.__node-preview__ {
+  background: built-in(ui-mc:BORDER);
+  padding-all: 6;
+}

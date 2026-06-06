@@ -559,3 +559,13 @@ ToggleSelectorConfigurator toggle {
   width: 10;
   height: 10;
 }
+
+.__node-preview__ {
+  background:built-in(ui-ore:RECT2);
+  padding-all: 3;
+  padding-top: 5
+}
+
+.__node-port-container__.__vertical-port-container_inner__ {
+  background: built-in(ui-ore:BTN_DEFAULT_SMALL) color(#444)
+}

@@ -528,6 +528,7 @@
   "graph.commands.create_placemat": "Create Placemat",
   "graph.commands.create_sticky_note": "Create Sticky Note",
   "graph.commands.create_local_subgraph": "Create Local Subgraph",
+  "graph.commands.create_foreign_local_subgraph": "Add Subgraph",
   "graph.commands.import_external_subgraph": "Import External Subgraph",
   "graph.commands.create_subgraph_from_selection": "Create Subgraph from Selection",
   "graph.commands.rename": "Rename",

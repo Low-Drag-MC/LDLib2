@@ -21,6 +21,13 @@ public class TestGraph extends Graph {
         return NODE_REGISTRY.getNodeClasses();
     }
 
+    // Cross-type subgraph support: a TestGraph may embed / import AnnotatedOtherGraph instances as
+    // subgraphs (but not, e.g., ModFilteredTestGraph). Exercised by GraphCrossTypeSubgraphTest.
+    @Override
+    public boolean acceptsSubgraphGraph(Graph other) {
+        return other instanceof AnnotatedOtherGraph;
+    }
+
     @Override
     public @Nullable List<TypeHandle> getSupportTypes() {
         var supportTypes = new HashSet<>(CustomGraphModelImpl.detectSupportedTypes(graphModel));

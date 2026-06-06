@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.PortElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
@@ -247,17 +248,16 @@ public class WireElement extends GraphElement<WireModel> {
         }
 
         if (dirty) {
-            var fromPoint2 = from.add(fromOffset, 0, new Vector2f());
-            var toPoint2 = to.add(-toOffset, 0, new Vector2f());
+            // Control points leave the port along its orientation: horizontal ports exit sideways
+            // (±x), vertical ports exit up/down (±y). The output endpoint (`from`) pushes in the
+            // exit direction (+), the input endpoint (`to`) pulls back from its approach side (-).
+            var fromPoint2 = controlPoint(fromPort, from, fromOffset, true);
+            var toPoint2 = controlPoint(toPort, to, toOffset, false);
 
-            var minX = Math.min(from.x, to.x);
-            var minY = Math.min(from.y, to.y);
-            var maxX = Math.max(from.x, to.x);
-            var maxY = Math.max(from.y, to.y);
-            minX = Math.min(minX, fromPoint2.x);
-            minY = Math.min(minY, fromPoint2.y);
-            maxX = Math.max(maxX, toPoint2.x);
-            maxY = Math.max(maxY, toPoint2.y);
+            var minX = Math.min(Math.min(from.x, to.x), Math.min(fromPoint2.x, toPoint2.x));
+            var minY = Math.min(Math.min(from.y, to.y), Math.min(fromPoint2.y, toPoint2.y));
+            var maxX = Math.max(Math.max(from.x, to.x), Math.max(fromPoint2.x, toPoint2.x));
+            var maxY = Math.max(Math.max(from.y, to.y), Math.max(fromPoint2.y, toPoint2.y));
             var border = 2;
 
             var x = minX - border;
@@ -277,6 +277,21 @@ public class WireElement extends GraphElement<WireModel> {
             rawPoints = List.of(realFrom, fromPoint2, toPoint2, realTo);
             drawPoints = roundCorners(rawPoints, 6, 8);
         }
+    }
+
+    /**
+     * Computes a wire control point offset from {@code endpoint} in the direction the wire should
+     * leave/approach the port. Horizontal ports offset along x, vertical ports along y. {@code isFrom}
+     * (the output endpoint) offsets in the positive exit direction; the input endpoint offsets back
+     * along the negative approach direction — matching the node layout (horizontal: out right / in
+     * left; vertical: out bottom / in top).
+     */
+    private Vector2f controlPoint(@org.jetbrains.annotations.Nullable PortModel port, Vector2f endpoint, float offset, boolean isFrom) {
+        float sign = isFrom ? 1f : -1f;
+        boolean vertical = port != null && port.getOrientation() == PortOrientation.Vertical;
+        return vertical
+                ? endpoint.add(0, sign * offset, new Vector2f())
+                : endpoint.add(sign * offset, 0, new Vector2f());
     }
 
     public static List<Vector2f> roundCorners(List<Vector2f> input, float radius, int cornerSegments) {

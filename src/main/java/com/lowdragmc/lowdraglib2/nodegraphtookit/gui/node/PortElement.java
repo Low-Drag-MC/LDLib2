@@ -48,8 +48,16 @@ public class PortElement extends GraphElement<PortModel> {
 
     @Override
     protected void buildPartList() {
-        parts.add(connector = new PortConnectorWithIconElement(getModel()));
+        parts.add(connector = createConnector());
         parts.add(constant = new PortConstantEditorElement(getModel()));
+    }
+
+    /**
+     * Factory for the connector element. Overridden by {@link VerticalPortElement} to spawn a
+     * connector that stacks the wire dot above the type-icon + label.
+     */
+    protected PortConnectorWithIconElement createConnector() {
+        return new PortConnectorWithIconElement(getModel());
     }
 
     @Override

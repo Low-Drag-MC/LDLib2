@@ -76,4 +76,11 @@ public class CustomNodeModelImpl extends NodeModel implements ICustomNodeModel {
     protected PortModelImpl createPort(PortDirection direction, PortOrientation orientation, String portId, PortType portType, TypeHandle dataType, PortModelOptions options, @Nullable PortModel parentPort) {
         return new PortModelImpl(this, direction, orientation, portId, portType, dataType, options, parentPort);
     }
+
+    @Override
+    public boolean hasNodePreview() {
+        // Custom nodes opt into a preview via their Node; the preview content is built by the
+        // node's onBuildNodePreview hook (see NodePreviewElement).
+        return node != null && node.hasNodePreview();
+    }
 }

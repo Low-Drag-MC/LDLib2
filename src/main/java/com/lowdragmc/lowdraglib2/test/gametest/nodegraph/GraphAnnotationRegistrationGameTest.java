@@ -71,7 +71,9 @@ public final class GraphAnnotationRegistrationGameTest {
                 EvCodecValueANode.class,
                 EvCodecValueBNode.class,
                 EvNoCodecNode.class,
-                EvWithoutSerializationNode.class
+                EvWithoutSerializationNode.class,
+                TestPreviewNode.class,
+                TestVerticalNode.class
         );
 
         if (!supportNodes.containsAll(expectedNodes)) {
@@ -89,6 +91,35 @@ public final class GraphAnnotationRegistrationGameTest {
         if (supportNodes.size() != expectedNodes.size()) {
             helper.fail("Unexpected support node count: " + supportNodes.size() + " -> " + supportNodes);
             return;
+        }
+
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void portOrientationFollowsBuilder(GameTestHelper helper) {
+        var graph = new TestGraph();
+        var node = graph.graphModel.createNodeModel(new TestVerticalNode(), new org.joml.Vector2f(0, 0));
+
+        var inputs = node.getInputsById();
+        var outputs = node.getOutputsById();
+
+        if (inputs.get("v_in1") == null
+                || inputs.get("v_in1").getOrientation() != com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation.Vertical) {
+            helper.fail("v_in1 should be a Vertical input port"); return;
+        }
+        if (inputs.get("h_in") == null
+                || inputs.get("h_in").getOrientation() != com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation.Horizontal) {
+            helper.fail("h_in should be a Horizontal input port"); return;
+        }
+        if (outputs.get("v_out1") == null
+                || outputs.get("v_out1").getOrientation() != com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation.Vertical) {
+            helper.fail("v_out1 should be a Vertical output port"); return;
+        }
+        if (outputs.get("h_out") == null
+                || outputs.get("h_out").getOrientation() != com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation.Horizontal) {
+            helper.fail("h_out should be a Horizontal output port"); return;
         }
 
         helper.succeed();

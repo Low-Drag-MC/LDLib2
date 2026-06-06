@@ -482,6 +482,20 @@ ToggleSelectorConfigurator .__toggle_button__ {
   background: sdf(#999, 0 0 4 4, 1, #7f8084);
 }
 
+.__vertical-port-container__ {
+  padding-all: 2;
+  gap-all: 4;
+}
+
+.__vertical-port__ {
+  padding-all: 1;
+}
+
+.__node-preview__ {
+  background: sdf(#2c2c2c, 4 4 0 0, 0.5, #7f8084);
+  padding-all: 3;
+}
+
 .__item-library__ {
   background: sdf(#383838, 4, 1, #71a4f4);
 }

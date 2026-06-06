@@ -28,6 +28,14 @@ public class PortContainer extends UIElement {
         Style.defaultPipeline(getStyle(), s -> s.background(Sprites.RECT_SOLID));
     }
 
+    /**
+     * Factory for the per-port element. Overridden by vertical containers to spawn a
+     * {@link VerticalPortElement} instead of the default horizontal {@link PortElement}.
+     */
+    protected PortElement createPortElement(PortModel port) {
+        return new PortElement(port);
+    }
+
     public void updatePorts(ModelUpdateVisitor visitor, List<PortModel> ports, GraphView graphView) {
         var previousPorts = this.ports;
         this.ports = List.copyOf(ports);
@@ -54,7 +62,7 @@ public class PortContainer extends UIElement {
                 element.updateElement(visitor);
                 continue;
             }
-            var portElement = new PortElement(port);
+            var portElement = createPortElement(port);
             portElement.setGraphView(graphView);
             portElement.doCompleteUpdate();
             addChildAt(portElement, index);

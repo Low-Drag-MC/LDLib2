@@ -29,10 +29,19 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class GraphEditorView extends View implements SubgraphRegistry.Listener {
+    /**
+     * Factory used to create every {@link GraphView} this editor owns — the root view and any
+     * subgraph-dive views. Defaults to {@link GraphView#GraphView()}; supply a custom factory
+     * (via the {@link #GraphEditorView(Supplier) constructor}) to plug in a {@code GraphView}
+     * subclass.
+     */
+    @Getter
+    private final Supplier<? extends GraphView> graphViewFactory;
     /** Root graph view — owns the editor's root graph and is always at the bottom of the navigation stack. */
-    public final GraphView graphView = new GraphView();
+    public final GraphView graphView;
     public final Button saveButton = new Button();
     private final GraphBreadcrumb breadcrumb = new GraphBreadcrumb();
 
@@ -87,7 +96,17 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
     }
 
     public GraphEditorView() {
+        this(GraphView::new);
+    }
+
+    /**
+     * @param graphViewFactory factory used to create the root view and all subgraph-dive views,
+     *                         allowing a custom {@link GraphView} subclass to be plugged in.
+     */
+    public GraphEditorView(Supplier<? extends GraphView> graphViewFactory) {
         super("editor.view.graph_editor");
+        this.graphViewFactory = graphViewFactory;
+        this.graphView = graphViewFactory.get();
         addClass("__graph-editor-view__");
 
         saveButton.setOnClick(e -> notifySaved());
@@ -150,8 +169,8 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         // Detach old top
         removeChild(getCurrentView());
 
-        // Build new view
-        var newView = new GraphView();
+        // Build new view (via the same factory as the root, so subgraph dives use the custom type too)
+        var newView = graphViewFactory.get();
         newView.layout(layout -> {
             layout.widthPercent(100);
             layout.flex(1);

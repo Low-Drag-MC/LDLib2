@@ -24,9 +24,11 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard.Blackboard;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateForeignLocalSubgraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.CreateSubgraphFromSelectionCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ElementRenameColorCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommands;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommandListener;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.ImportExternalSubgraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
@@ -81,6 +83,17 @@ public class GraphView extends UIElement {
     public final Blackboard blackboard = new Blackboard(this);
     public final GraphInspector inspector = new GraphInspector(this);
     public final GraphPreview preview = new GraphPreview(this);
+
+    /**
+     * Optional instance-level veto consulted by {@link #dispatchCommand} before a command runs;
+     * return {@code false} to block. Layered on top of the graph's own
+     * {@link GraphModel#canExecuteCommand} policy (both must allow). For policy tied to the graph
+     * definition, override {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#canExecuteCommand} instead.
+     */
+    @Nullable @Setter @Getter
+    private Predicate<IGraphCommand> commandInterceptor;
+    /** Observers notified after a command executes (see {@link #addCommandListener}). */
+    private final List<GraphCommandListener> commandListeners = new ArrayList<>();
 
     // runtime
     @Nullable
@@ -422,13 +435,9 @@ public class GraphView extends UIElement {
             if (nodeModel == null) continue;
             // skip nodes that require container, e.g., BlockNodeModel
             if (nodeModel.needsContainer()) continue;
-            var nodeUI = createAndAddModelElement(nodeModel);
-            if (nodeUI != null) {
-                var previewModel = nodeModel.getNodePreviewModel();
-                if (previewModel != null) {
-                    createAndAddModelElement(previewModel);
-                }
-            }
+            // The preview panel is rendered inside the node element (see NodeElement#buildPreviewPart),
+            // so we don't register a separate top-level element for the preview model here.
+            createAndAddModelElement(nodeModel);
         }
 
         // sticky notes
@@ -474,8 +483,32 @@ public class GraphView extends UIElement {
      */
     public boolean dispatchCommand(IGraphCommand command) {
         if (graph == null) return false;
-        command.execute(this, graph.graphModel);
+        var graphModel = graph.graphModel;
+        // before-veto: the graph's own policy AND the optional instance interceptor must both allow.
+        if (!graphModel.canExecuteCommand(command)) return false;
+        if (commandInterceptor != null && !commandInterceptor.test(command)) return false;
+        command.execute(this, graphModel);
+        // post-execute: graph hook first, then registered listeners (copy to tolerate mutation).
+        graphModel.onCommandExecuted(command);
+        if (!commandListeners.isEmpty()) {
+            for (var listener : List.copyOf(commandListeners)) {
+                listener.onCommandExecuted(command, this, graphModel);
+            }
+        }
         return true;
+    }
+
+    /** Registers an observer notified after each command executes. */
+    public GraphView addCommandListener(GraphCommandListener listener) {
+        if (listener != null && !commandListeners.contains(listener)) {
+            commandListeners.add(listener);
+        }
+        return this;
+    }
+
+    /** Removes a previously-registered command listener. */
+    public boolean removeCommandListener(GraphCommandListener listener) {
+        return commandListeners.remove(listener);
     }
 
     public boolean batchUpdate() {
@@ -1032,22 +1065,60 @@ public class GraphView extends UIElement {
             return;
         }
 
-        // Reject cross-GraphResource imports. Compared by resource identity — GraphResource
-        // instances are singletons that bind to a node-class registry and a path scheme, so even
-        // two resources that produce the same Graph subclass may have different node/type
-        // registries and shouldn't be interchangeable as subgraphs.
+        // Cross-GraphResource imports are allowed only when the host graph opts in via
+        // acceptsSubgraphGraph. GraphResource instances are singletons binding a node-class registry
+        // and path scheme, so by default (acceptsSubgraphGraph == false) different resources stay
+        // non-interchangeable; a graph that wants cross-type subgraphs overrides the method.
         var resolver = graph.graphModel.getReferenceResolver();
         var hostResource = resolver == null ? null : resolver.getSourceResource();
         if (hostResource != null && hostResource != draggingGraph.graphResource()) {
-            LDLib2.LOGGER.warn(
-                    "Rejected subgraph import: source and host belong to different GraphResources.");
-            return;
+            var draggedGraph = draggingGraph.graphResource().createGraph();
+            if (!graph.acceptsSubgraphGraph(draggedGraph)) {
+                LDLib2.LOGGER.warn(
+                        "Rejected subgraph import: host graph {} does not accept subgraph type {}.",
+                        graph.getClass().getName(), draggedGraph.getClass().getName());
+                return;
+            }
         }
 
         // Validated — dispatch the actual import.
         var localPosition = snapPosition(
                 getContentViewContainer().worldToLocalLayoutOffset(new Vector2f(event.x, event.y)));
         dispatchCommand(new ImportExternalSubgraphCommand(draggingGraph.path(), localPosition));
+    }
+
+    /**
+     * Adds an "Add Subgraph" submenu listing every loaded {@link com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResource} whose graph type is
+     * accepted by this host graph via {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#acceptsSubgraphGraph}.
+     * Selecting one creates an empty inline local subgraph of that foreign type plus a node bound to
+     * it (via {@link CreateForeignLocalSubgraphCommand}). No-op when the host disallows subgraphs or
+     * accepts no foreign types.
+     */
+    private void appendForeignSubgraphMenu(TreeBuilder.Menu menuBuilder, Vector2f localPosition) {
+        if (graph == null || !graph.graphModel.allowSubgraphCreation()) return;
+        var editor = getFirstAncestorOfType(com.lowdragmc.lowdraglib2.editor.ui.Editor.class);
+        if (editor == null) return;
+
+        // (display name, graph type), deduped by graph class.
+        var seen = new java.util.HashSet<Class<?>>();
+        var compatible = new java.util.ArrayList<com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResource<?>>();
+        for (var entry : editor.resourceView.getResources().entrySet()) {
+            if (!(entry.getKey() instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResource<?> resource)) continue;
+            var sample = resource.createGraph();
+            if (sample.getClass() == graph.getClass()) continue; // same-type handled elsewhere
+            if (!graph.acceptsSubgraphGraph(sample)) continue;
+            if (seen.add(sample.getClass())) compatible.add(resource);
+        }
+        if (compatible.isEmpty()) return;
+
+        menuBuilder.branch("graph.commands.create_foreign_local_subgraph", branch -> {
+            for (var resource : compatible) {
+                Class<? extends com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph> type = resource.createGraph().getClass();
+                var name = resource.getName();
+                branch.leaf(resource.getDisplayName(), () ->
+                        dispatchCommand(new CreateForeignLocalSubgraphCommand(type, name, localPosition)));
+            }
+        });
     }
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
@@ -1065,6 +1136,10 @@ public class GraphView extends UIElement {
                 }
             });
         });
+
+        // "Add Subgraph (<type>)" for each cross-type graph this graph accepts — creates an inline
+        // local subgraph of that foreign type so the new node IS a subgraph of another graph type.
+        appendForeignSubgraphMenu(menuBuilder, localPosition);
 
         // "Create Sticky Note" is always available
         menuBuilder.leaf(ContextualMenuHelpers.CREATE_STICKY_NOTE_ITEM.getName(), () ->
@@ -1303,7 +1378,7 @@ public class GraphView extends UIElement {
     protected void updateGraphModelChanges() {
         if (graph == null) return;
         var graphModel = graph.graphModel;
-        var changes = graphModel.getCurrentGraphChangeDescription();
+        var changes = graphModel.flushChanges();
         changeset.addNewModels(changes.getNewModels());
         changeset.addChangedModels(changes.getChangedModels());
         changeset.addDeletedModels(changes.getDeletedModels());
@@ -1336,7 +1411,6 @@ public class GraphView extends UIElement {
             updateChangedModels(changedModels, newPlacemats);
         }
 
-        changes.clear();
         changeset.clear();
     }
 

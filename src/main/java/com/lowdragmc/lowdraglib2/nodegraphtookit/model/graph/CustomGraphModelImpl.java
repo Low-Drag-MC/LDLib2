@@ -244,12 +244,35 @@ public class CustomGraphModelImpl extends GraphModel {
     }
 
     @Override
+    public boolean canExecuteCommand(com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand command) {
+        return graph.canExecuteCommand(command);
+    }
+
+    @Override
+    public void onCommandExecuted(com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand command) {
+        graph.onCommandExecuted(command);
+    }
+
+    @Override
     public CustomGraphModelImpl createLocalSubgraphInstance() {
+        return createLocalSubgraphInstance(graph.getClass());
+    }
+
+    @Override
+    public CustomGraphModelImpl createLocalSubgraphInstance(@Nullable Class<? extends Graph> graphType) {
+        var type = graphType != null ? graphType : graph.getClass();
         try {
-            var newGraph = graph.getClass().getDeclaredConstructor().newInstance();
+            var newGraph = type.getDeclaredConstructor().newInstance();
+            // Same-type subgraphs are always allowed; cross-type must be opted into by the host
+            // graph via acceptsSubgraphGraph.
+            if (type != graph.getClass() && !graph.acceptsSubgraphGraph(newGraph)) {
+                LDLib2.LOGGER.warn("Graph type {} does not accept subgraph of type {}",
+                        graph.getClass().getName(), type.getName());
+                return null;
+            }
             return newGraph.graphModel;
         } catch (Exception e) {
-            LDLib2.LOGGER.error("Failed to instantiate local subgraph of type {}", graph.getClass().getName(), e);
+            LDLib2.LOGGER.error("Failed to instantiate local subgraph of type {}", type.getName(), e);
             return null;
         }
     }

@@ -2,11 +2,13 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortCapacity;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.IGraphReferenceResolver;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
@@ -188,10 +190,35 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     /**
+     * Whether vertical input ports show their embedded constant editor (configurator) while
+     * unconnected. Default is {@code false}: vertical ports are typically compact top/bottom
+     * connectors with no inline value field. Override to opt back in.
+     */
+    public boolean showVerticalPortConfigurator() {
+        return false;
+    }
+
+    /**
      * Whether the graph is a state machine graph.
      */
     public boolean isStateMachineGraph() {
         return false;
+    }
+
+    /**
+     * Vetoes an editor command before it executes; default {@code true} (allow). Consulted by
+     * {@code GraphView.dispatchCommand}. {@link CustomGraphModelImpl} delegates to
+     * {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#canExecuteCommand}.
+     */
+    public boolean canExecuteCommand(IGraphCommand command) {
+        return true;
+    }
+
+    /**
+     * Called after an editor command has executed; default no-op. {@link CustomGraphModelImpl}
+     * delegates to {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#onCommandExecuted}.
+     */
+    public void onCommandExecuted(IGraphCommand command) {
     }
 
     /**
@@ -2119,6 +2146,18 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     /**
+     * Factory for a new empty local subgraph of a (possibly different) graph type. When
+     * {@code graphType} is {@code null} or equal to this graph's own type, behaves like
+     * {@link #createLocalSubgraphInstance()}. Cross-type instances are gated by
+     * {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#acceptsSubgraphGraph}.
+     * Returns {@code null} if the type can't be instantiated or isn't accepted.
+     */
+    @Nullable
+    public GraphModel createLocalSubgraphInstance(@Nullable Class<? extends Graph> graphType) {
+        return createLocalSubgraphInstance();
+    }
+
+    /**
      * If this GraphModel is a subgraph, any subgraph nodes that reference it in the parent graph must redefine its ports whenever an input or output variable declaration is added.
      */
     public void redefineSubgraphNodeModels() {
@@ -2344,12 +2383,18 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         }
         tag.put("stickyNotes", stickyNotesTag);
 
-        // 8. Local Subgraphs — each entry is a full nested GraphModel NBT
+        // 8. Local Subgraphs — each entry is a full nested GraphModel NBT, tagged with the concrete
+        // graph type so cross-type local subgraphs can be rebuilt on load (absent ⇒ same type as
+        // the owner, for backward compatibility with pre-cross-type saves).
         if (localSubGraphs != null && !localSubGraphs.isEmpty()) {
             var localSubGraphsTag = new ListTag();
             for (var sub : localSubGraphs) {
                 if (sub == null) continue;
-                localSubGraphsTag.add(serializeModel(sub, provider));
+                var subTag = serializeModel(sub, provider);
+                if (sub instanceof CustomGraphModelImpl custom) {
+                    subTag.putString("graphClass", custom.getGraph().getClass().getName());
+                }
+                localSubGraphsTag.add(subTag);
             }
             if (!localSubGraphsTag.isEmpty()) {
                 tag.put("localSubGraphs", localSubGraphsTag);
@@ -2425,7 +2470,25 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var listTag = compound.getListOrEmpty("localSubGraphs");
             for (int i = 0; i < listTag.size(); i++) {
                 var subTag = listTag.getCompoundOrEmpty(i);
-                var subModel = createLocalSubgraphInstance();
+                // graphClass absent ⇒ legacy save ⇒ same type as owner (createLocalSubgraphInstance).
+                GraphModel subModel;
+                if (subTag.contains("graphClass")) {
+                    var graphClassName = subTag.getStringOr("graphClass", "");
+                    Class<? extends Graph> graphType = null;
+                    try {
+                        var cls = Class.forName(graphClassName);
+                        if (Graph.class.isAssignableFrom(cls)) {
+                            graphType = cls.asSubclass(Graph.class);
+                        } else {
+                            LDLib2.LOGGER.error("Local subgraph graphClass {} is not a Graph subclass", graphClassName);
+                        }
+                    } catch (ClassNotFoundException e) {
+                        LDLib2.LOGGER.error("Unknown local subgraph graphClass {} — skipping nested graph", graphClassName);
+                    }
+                    subModel = createLocalSubgraphInstance(graphType);
+                } else {
+                    subModel = createLocalSubgraphInstance();
+                }
                 if (subModel == null) {
                     LDLib2.LOGGER.error("Cannot instantiate local subgraph for type {} — skipping nested graph",
                             this.getClass().getName());
@@ -2474,6 +2537,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     if (nodeModel instanceof NodeModel nm) {
                         nm.defineNode();
                     }
+
+                    // The fresh-spawn lifecycle hook that creates the preview model doesn't run on
+                    // load, so reconcile it now that the node (and its hasNodePreview) is restored.
+                    nodeModel.syncNodePreview();
 
                     nodeModels.add(nodeModel);
                     registerElement(nodeModel);

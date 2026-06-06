@@ -13,3 +13,8 @@ button.__disabled__ .__button_text__ {
   text-color: #666;
   text-shadow: false;
 }
+
+.__node-title_collapse-toggle__ {
+  width: 8;
+  height: 8;
+}
