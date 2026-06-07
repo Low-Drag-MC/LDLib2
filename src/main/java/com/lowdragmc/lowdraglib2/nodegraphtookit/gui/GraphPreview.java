@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
@@ -114,6 +115,14 @@ public class GraphPreview extends UIElement implements IGraphTool {
             }
         }
         return hasNodes ? new Bounds(minX, minY, maxX, maxY) : null;
+    }
+
+    @Override
+    protected void drawBackgroundAdditional(IGUIContext context) {
+        super.drawBackgroundAdditional(context);
+        if (context instanceof GUIContext guiContext) {
+            drawBackgroundAdditional(guiContext);
+        }
     }
 
     public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
