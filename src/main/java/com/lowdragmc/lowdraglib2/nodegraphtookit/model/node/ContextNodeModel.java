@@ -103,6 +103,9 @@ public abstract class ContextNodeModel extends NodeModel {
             block.setGraphModel(graphModel);
         }
         blocks.add(index, block);
+        if (graphModel != null && !block.getSpawnFlags().isOrphan()) {
+            block.syncNodePreview();
+        }
 
         if (graphModel != null) {
             graphModel.registerBlockNode(block);
@@ -232,6 +235,7 @@ public abstract class ContextNodeModel extends NodeModel {
                 blockModel.initCustomNode(blockUserNode);
                 blockModel.setContextNodeModel(this);
                 blocks.add(blockModel);
+                blockModel.syncNodePreview();
                 // defineNode is intentionally NOT called here. The caller (GraphModel deserialize
                 // or paste) calls defineNode on the context AFTER any UID re-assignment, and our
                 // overridden defineNode cascades to each block. Defining ports here would compute
