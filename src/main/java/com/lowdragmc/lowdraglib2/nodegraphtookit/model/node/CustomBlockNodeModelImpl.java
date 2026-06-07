@@ -46,6 +46,11 @@ public class CustomBlockNodeModelImpl extends BlockNodeModel implements ICustomN
     }
 
     @Override
+    public boolean hasNodePreview() {
+        return node != null && node.hasNodePreview();
+    }
+
+    @Override
     protected void onDefineNode(NodeDefinitionScope<? extends NodeModel> definitionScope) {
         if (node == null) return;
         optionsById.clear();
