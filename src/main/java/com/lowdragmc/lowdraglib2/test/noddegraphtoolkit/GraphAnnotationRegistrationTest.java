@@ -58,7 +58,8 @@ public class GraphAnnotationRegistrationTest {
                 EvNoCodecNode.class,
                 EvWithoutSerializationNode.class,
                 TestPreviewNode.class,
-                TestVerticalNode.class
+                TestVerticalNode.class,
+                TestPreviewBlock.class
         );
 
         if (!supportNodes.containsAll(expectedNodes)) {
