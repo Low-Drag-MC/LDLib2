@@ -190,6 +190,9 @@ public final class PropertyRegistry {
     public static final Property<Boolean> ADAPTIVE_HEIGHT = create("adaptive-height", false);
     public static final Property<Float> MIN_SCROLL_PIXEL = create("min-scroll", 5f).setMin(0f);
     public static final Property<Float> MAX_SCROLL_PIXEL = create("max-scroll", 7f).setMin(0f);
+    public static final Property<VirtualItemHeightMode> VIRTUAL_ITEM_HEIGHT_MODE = create("virtual-item-height-mode", VirtualItemHeightMode.class, VirtualItemHeightMode.VARIABLE);
+    public static final Property<Float> VIRTUAL_ESTIMATED_ITEM_HEIGHT = create("virtual-estimated-item-height", 10f).setMin(0.001f);
+    public static final Property<Float> VIRTUAL_OVERSCAN_PIXELS = create("virtual-overscan-pixels", 40f).setMin(0f);
 
     public static final Property<IGuiTexture> FOCUS_OVERLAY = create("focus-overlay", IGuiTexture.EMPTY);
     public static final Property<Integer> MAX_ITEM = create("max-item", 5).setMin(1);
@@ -228,6 +231,7 @@ public final class PropertyRegistry {
         BasicStyle.init();
         ProgressBar.ProgressBarStyle.init();
         ScrollerView.ScrollerViewStyle.init();
+        VirtualScrollerView.VirtualScrollerViewStyle.init();
         SearchComponent.SearchStyle.init();
         Selector.SelectorStyle.init();
         SplittableWindow.SplitStyle.init();
