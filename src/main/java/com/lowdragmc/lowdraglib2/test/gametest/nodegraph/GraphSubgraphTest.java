@@ -901,7 +901,77 @@ public final class GraphSubgraphTest {
         helper.succeed();
     }
 
+    // ------------------------------------------------------------------
+    // 10. Graph API can globally disable variable exposure as subgraph ports.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void graphCanDisableSubgraphVariablePorts(GameTestHelper helper) {
+        var root = new NoSubgraphVariableTestGraph();
+        var sub = root.graphModel.createLocalSubgraphInstance();
+        if (sub == null) { helper.fail("createLocalSubgraphInstance returned null"); return; }
+        root.graphModel.addLocalSubgraph(sub);
+        var subNode = root.graphModel.createNodeWithType(SubgraphNodeModel.class, "sub",
+                new Vector2f(0, 0), null,
+                n -> n.setLocalSubgraph(sub), SpawnFlags.DEFAULT);
+
+        var input = (VariableDeclarationModel) sub.createVariable("in", int.class, 0, VariableKind.INPUT);
+        var output = (VariableDeclarationModel) sub.createVariable("out", int.class, 0, VariableKind.OUTPUT);
+        subNode.defineNode();
+
+        assertEq(helper, "disabled input modifier", ModifierFlags.NONE.ordinal(), input.getModifiers().ordinal());
+        assertEq(helper, "disabled output modifier", ModifierFlags.NONE.ordinal(), output.getModifiers().ordinal());
+        assertEq(helper, "disabled subgraph inputs", 0, subNode.getInputsById().size());
+        assertEq(helper, "disabled subgraph outputs", 0, subNode.getOutputsById().size());
+
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 11. Graph API can restrict variable exposure to a single IO direction.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void graphCanRestrictSubgraphVariablePortDirection(GameTestHelper helper) {
+        var root = new InputOnlySubgraphVariableTestGraph();
+        var sub = root.graphModel.createLocalSubgraphInstance();
+        if (sub == null) { helper.fail("createLocalSubgraphInstance returned null"); return; }
+        root.graphModel.addLocalSubgraph(sub);
+        var subNode = root.graphModel.createNodeWithType(SubgraphNodeModel.class, "sub",
+                new Vector2f(0, 0), null,
+                n -> n.setLocalSubgraph(sub), SpawnFlags.DEFAULT);
+
+        var input = (VariableDeclarationModel) sub.createVariable("in", int.class, 0, VariableKind.INPUT);
+        var output = (VariableDeclarationModel) sub.createVariable("out", int.class, 0, VariableKind.OUTPUT);
+        subNode.defineNode();
+
+        assertEq(helper, "allowed input modifier", ModifierFlags.READ.ordinal(), input.getModifiers().ordinal());
+        assertEq(helper, "rejected output modifier", ModifierFlags.NONE.ordinal(), output.getModifiers().ordinal());
+        assertEq(helper, "input-only subgraph inputs", 1, subNode.getInputsById().size());
+        assertEq(helper, "input-only subgraph outputs", 0, subNode.getOutputsById().size());
+
+        output.setModifiers(ModifierFlags.WRITE);
+        assertEq(helper, "direct write modifier stays rejected", ModifierFlags.NONE.ordinal(), output.getModifiers().ordinal());
+        assertEq(helper, "direct write creates no output", 0, subNode.getOutputsById().size());
+
+        helper.succeed();
+    }
+
     // --- Helpers ---
+
+    public static class NoSubgraphVariableTestGraph extends TestGraph {
+        @Override
+        public java.util.Set<VariableKind> getSupportedSubgraphVariableKinds() {
+            return java.util.Set.of();
+        }
+    }
+
+    public static class InputOnlySubgraphVariableTestGraph extends TestGraph {
+        @Override
+        public java.util.Set<VariableKind> getSupportedSubgraphVariableKinds() {
+            return java.util.Set.of(VariableKind.INPUT);
+        }
+    }
 
     private static int countNonNull(java.util.List<?> list) {
         if (list == null) return 0;

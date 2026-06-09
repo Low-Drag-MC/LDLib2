@@ -95,6 +95,17 @@ public abstract class Node implements INode {
     }
 
     /**
+     * Whether this node's preview starts expanded when the node is freshly created. The returned
+     * value is only used for new nodes; after creation, the user's preview-expanded state is
+     * persisted by the node model and restored from saved graph data.
+     *
+     * @return {@code true} (default) to start expanded; {@code false} to start collapsed
+     */
+    public boolean isNodePreviewExpandedByDefault() {
+        return true;
+    }
+
+    /**
      * Populates the preview panel's content container. Called when the panel is (re)built. Add the
      * UI that renders this node's preview (e.g. a custom framebuffer/texture element). The
      * {@link NodePreviewContext} provides the content container plus the node model, preview model,

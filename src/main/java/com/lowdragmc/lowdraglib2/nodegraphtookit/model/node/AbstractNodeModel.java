@@ -218,6 +218,10 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
 
     public abstract boolean hasNodePreview();
 
+    public boolean isNodePreviewExpandedByDefault() {
+        return true;
+    }
+
     public NodePreviewModel getNodePreviewModel() {
         return hasNodePreview() ? nodePreviewModel : null;
     }
@@ -259,6 +263,7 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
 
     public void onCreateNode() {
         if (hasNodePreview() && spawnFlags != SpawnFlags.ORPHAN) {
+            previewExpanded = isNodePreviewExpandedByDefault();
             addNodePreview();
         }
     }

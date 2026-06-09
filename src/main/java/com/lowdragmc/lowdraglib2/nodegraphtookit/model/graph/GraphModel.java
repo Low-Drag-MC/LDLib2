@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.utils.ReorderType;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.Constant;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.constant.TypeConstant;
@@ -159,6 +160,32 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      */
     public List<TypeHandle> getVariableSupportTypes() {
         return getSupportTypes();
+    }
+
+    /**
+     * Retrieves the variable kinds that may be exposed as ports when this graph is used as a subgraph.
+     */
+    public Set<VariableKind> getSupportedSubgraphVariableKinds() {
+        return Set.of(VariableKind.INPUT, VariableKind.OUTPUT);
+    }
+
+    public boolean supportsSubgraphVariableKind(VariableKind kind) {
+        return getSupportedSubgraphVariableKinds().contains(kind);
+    }
+
+    /**
+     * Clamps variable modifier flags to the subgraph exposure directions supported by this graph.
+     */
+    public ModifierFlags sanitizeSubgraphVariableModifiers(@Nullable ModifierFlags flags) {
+        if (flags == null || flags == ModifierFlags.NONE) return ModifierFlags.NONE;
+
+        boolean read = flags.hasFlag(ModifierFlags.READ) && supportsSubgraphVariableKind(VariableKind.INPUT);
+        boolean write = flags.hasFlag(ModifierFlags.WRITE) && supportsSubgraphVariableKind(VariableKind.OUTPUT);
+
+        if (read && write) return ModifierFlags.READ_WRITE;
+        if (read) return ModifierFlags.READ;
+        if (write) return ModifierFlags.WRITE;
+        return ModifierFlags.NONE;
     }
 
     /**
@@ -1359,6 +1386,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                                                                    @Nullable Constant initializationModel,
                                                                    @Nullable UUID uid,
                                                                    @Nullable SpawnFlags spawnFlags) {
+        modifierFlags = sanitizeSubgraphVariableModifiers(modifierFlags);
         if (isContainerGraph() && (modifierFlags == ModifierFlags.READ || modifierFlags == ModifierFlags.WRITE)) {
             LDLib2.LOGGER.warn("Cannot create an input or an output variable declaration in a container graph.");
             return null;
@@ -1404,6 +1432,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                                                                    @Nullable UUID uid,
                                                                    @Nullable BiConsumer<VariableDeclarationModelBase, Constant> initializationCallback,
                                                                    @Nullable SpawnFlags spawnFlags) {
+        modifierFlags = sanitizeSubgraphVariableModifiers(modifierFlags);
         if (isContainerGraph() && (modifierFlags == ModifierFlags.READ || modifierFlags == ModifierFlags.WRITE)) {
             LDLib2.LOGGER.warn("Cannot create an input or an output variable declaration in a container graph.");
             return null;
@@ -2429,6 +2458,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 var variable = new VariableDeclarationModel();
                 variable.setGraphModel(this);
                 deserializeModel(variable, varTag, provider);
+                variable.setModifiers(variable.getModifiers());
                 graphVariableModels.add(variable);
                 existingVariableNames.add(variable.getName());
                 registerElement(variable);
@@ -2900,6 +2930,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 var variable = new VariableDeclarationModel();
                 variable.setGraphModel(this);
                 deserializeModel(variable, varTag, provider);
+                variable.setModifiers(variable.getModifiers());
                 if (!hasModel(variable.getUid())) {
                     addVariableDeclaration(variable);
                 }

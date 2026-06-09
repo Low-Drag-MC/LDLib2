@@ -38,7 +38,9 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -131,7 +133,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     public final UIElement preview;
     public final UIElement dialog;
     public final UIElement listView;
-    public final ScrollerView scrollerView;
+    public final VirtualScrollerView<T> scrollerView;
     @Getter
     private final SearchStyle searchStyle = new SearchStyle();
     private UIElementProvider<T> candidateUIProvider = UIElementProvider.text(value -> value == null ?
@@ -198,7 +200,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                     layout.heightAuto();
                     layout.positionType(TaffyPosition.ABSOLUTE);
                 })
-                .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new ScrollerView())
+                .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new VirtualScrollerView<>())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
                 .addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
                     this.updateDialogPosition();
@@ -216,6 +218,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         scrollerView.viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
         scrollerView.viewPort.layout(layout -> layout.paddingAll(2));
         scrollerView.layout(layout -> layout.setFlexGrow(1));
+        scrollerView.setItemUIProvider(this::createItemUI);
+        scrollerView.setBeforeMountItems(candidateButtons::clear);
         scrollerView.setDisplay(false);
         scrollerView.viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, this::onScrollViewLayoutChanged);
         addChildren(preview, textField);
@@ -268,6 +272,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
     protected void onSearchWordChanged(String word) {
         candidates.clear();
+        scrollerView.verticalScroller.setNormalizedValue(0, false);
         isCandidatesDirty.set(true);
         if (searchOnServer) {
             if (searchEvent != null) {
@@ -291,7 +296,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         var candidates = new ArrayList<>(this.candidates);
         candidateButtons.clear();
         listView.clearAllChildren();
-        scrollerView.clearAllScrollViewChildren();
+        scrollerView.setItems(List.of());
         if (candidates.size() <= searchStyle.maxItemCount()) {
             // list view
             scrollerView.setDisplay(false);
@@ -304,16 +309,15 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             listView.setDisplay(false);
             scrollerView.setDisplay(true);
             scrollerView.layout(layout -> layout.height(searchStyle.scrollerViewHeight()));
-            for (T candidate : candidates) {
-                scrollerView.addScrollViewChild(createItemUI(candidate));
-            }
+            scrollerView.setItems(candidates);
+            scrollerView.refreshVisibleItems(0, searchStyle.scrollerViewHeight());
         }
     }
 
     private UIElement createItemUI(T candidate) {
         var candidateUI = new UIElement().layout(layout -> layout.widthPercent(100));
         var overlayButton = new Button();
-        overlayButton.buttonStyle(style -> style.baseTexture(IGuiTexture.EMPTY)
+        overlayButton.buttonStyle(style -> style.baseTexture(Objects.equals(candidate, value) && searchStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
                         .hoverTexture(searchStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY)
                         .pressedTexture(searchStyle.showOverlay() ? ColorPattern.T_GRAY.rectTexture() : IGuiTexture.EMPTY))
                 .setOnClick(e -> {

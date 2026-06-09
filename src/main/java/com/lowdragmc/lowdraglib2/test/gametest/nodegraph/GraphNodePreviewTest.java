@@ -151,6 +151,96 @@ public final class GraphNodePreviewTest {
         helper.succeed();
     }
 
+    // ------------------------------------------------------------------
+    // 5. A node can choose whether its preview starts expanded. The default
+    //    remains expanded; overriding the API can start collapsed.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void previewDefaultExpandedApi(GameTestHelper helper) {
+        LDLib2.LOGGER.info("Start previewDefaultExpandedApi");
+
+        var graph = new TestGraph();
+        var defaultExpanded = graph.graphModel.createNodeModel(new TestPreviewNode(), new Vector2f(0, 0));
+        if (!defaultExpanded.isPreviewExpanded()) {
+            helper.fail("preview should default to expanded when node does not override the API"); return;
+        }
+        if (defaultExpanded.getNodePreviewModel() == null || !defaultExpanded.getNodePreviewModel().isExpanded()) {
+            helper.fail("preview model should mirror default expanded state"); return;
+        }
+
+        var defaultCollapsed = graph.graphModel.createNodeModel(new TestCollapsedPreviewNode(), new Vector2f(50, 0));
+        if (defaultCollapsed.isPreviewExpanded()) {
+            helper.fail("preview should default to collapsed when node overrides the API"); return;
+        }
+        if (defaultCollapsed.getNodePreviewModel() == null || defaultCollapsed.getNodePreviewModel().isExpanded()) {
+            helper.fail("preview model should mirror default collapsed state"); return;
+        }
+
+        LDLib2.LOGGER.info("End previewDefaultExpandedApi - PASSED");
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 6. Persisted user state wins over the node's default preview state.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void previewExpandedStateOverridesDefaultOnLoad(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        LDLib2.LOGGER.info("Start previewExpandedStateOverridesDefaultOnLoad");
+
+        var graph = new TestGraph();
+        var node = graph.graphModel.createNodeModel(new TestCollapsedPreviewNode(), new Vector2f(0, 0));
+        node.setPreviewExpanded(true);
+
+        var serialized = graph.graphModel.serializeNBT(provider);
+        var graph2 = new TestGraph();
+        graph2.graphModel.deserializeNBT(provider, serialized);
+
+        AbstractNodeModel restored = null;
+        for (var n : graph2.graphModel.getNodeModels()) {
+            if (n != null && n.getUid().equals(node.getUid())) { restored = n; break; }
+        }
+        if (restored == null) { helper.fail("collapsed-default preview node not found after deserialize"); return; }
+        if (!restored.isPreviewExpanded()) {
+            helper.fail("persisted expanded=true should override default collapsed state"); return;
+        }
+        if (restored.getNodePreviewModel() == null || !restored.getNodePreviewModel().isExpanded()) {
+            helper.fail("restored preview model should mirror persisted expanded=true"); return;
+        }
+
+        LDLib2.LOGGER.info("End previewExpandedStateOverridesDefaultOnLoad - PASSED");
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 7. Duplication copies source state instead of reapplying the target
+    //    node's default preview state.
+    // ------------------------------------------------------------------
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void duplicatePreviewStateOverridesDefault(GameTestHelper helper) {
+        LDLib2.LOGGER.info("Start duplicatePreviewStateOverridesDefault");
+
+        var graph = new TestGraph();
+        var src = graph.graphModel.createNodeModel(new TestCollapsedPreviewNode(), new Vector2f(0, 0));
+        src.setPreviewExpanded(true);
+
+        var dst = graph.graphModel.createNodeModel(new TestCollapsedPreviewNode(), new Vector2f(50, 0));
+        dst.onDuplicateNode(src);
+
+        if (!dst.isPreviewExpanded()) {
+            helper.fail("duplicated preview should inherit source expanded=true over default collapsed"); return;
+        }
+        if (dst.getNodePreviewModel() == null || !dst.getNodePreviewModel().isExpanded()) {
+            helper.fail("duplicated preview model should mirror inherited expanded=true"); return;
+        }
+
+        LDLib2.LOGGER.info("End duplicatePreviewStateOverridesDefault - PASSED");
+        helper.succeed();
+    }
+
     private static CompoundTag serializeGraph(CustomGraphModelImpl graphModel, net.minecraft.core.HolderLookup.Provider provider) {
         var output = TagValueOutput.createWithContext(ProblemReporter.Collector.DISCARDING, provider);
         graphModel.serialize(output);

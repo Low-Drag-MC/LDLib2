@@ -35,6 +35,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
@@ -78,6 +79,8 @@ public class ItemLibrary extends UIElement {
     protected TreeList<?> selectedTree;
     @Nullable
     protected ItemLibraryItem selectedItem;
+    @Nullable
+    protected TreeNode<ItemLibraryItem, Void> selectedNode;
     @Nullable
     protected Consumer<@Nullable ItemLibraryItem> onFinished;
     @Nullable
@@ -161,6 +164,7 @@ public class ItemLibrary extends UIElement {
         setFocusable(true);
         setEnforceFocus(e -> this.hide());
         addEventListener(UIEvents.LAYOUT_CHANGED, e -> adaptPositionToScreen());
+        addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
 
         // drag
         WindowDragHelper.setDragMove(headBar, this, null, null);
@@ -194,7 +198,8 @@ public class ItemLibrary extends UIElement {
         });
         treeList.setOnSelectedChanged(selected -> {
             if (selected.isEmpty()) return;
-            onSelectedChanged(treeList, selected.iterator().next().getKey());
+            var node = selected.iterator().next();
+            onSelectedChanged(treeList, node, node.getKey());
         });
         treeList.setDoubleClickToExpand(false);
         treeList.setClickToExpand(true);
@@ -260,11 +265,11 @@ public class ItemLibrary extends UIElement {
     private static List<ItemLibraryItem> getNodeGroupPath(String group, Map<String, ItemLibraryItem> groupItems) {
         var groupPath = new ArrayList<ItemLibraryItem>();
         var fullPath = new StringBuilder();
-        for (var part : group.split("\\.")) {
+        for (var part : group.split("/")) {
             var groupName = part.trim();
             if (groupName.isEmpty()) continue;
             if (!fullPath.isEmpty()) {
-                fullPath.append('.');
+                fullPath.append('/');
             }
             fullPath.append(groupName);
             var path = fullPath.toString();
@@ -298,7 +303,7 @@ public class ItemLibrary extends UIElement {
                 .orElseGet(Stream::empty);
     }
 
-    protected void onSelectedChanged(TreeList<TreeNode<ItemLibraryItem, Void>> tree, ItemLibraryItem newSelected) {
+    protected void onSelectedChanged(TreeList<TreeNode<ItemLibraryItem, Void>> tree, TreeNode<ItemLibraryItem, Void> node, ItemLibraryItem newSelected) {
         if (selectedTree != tree) {
             if (selectedTree != null) {
                 selectedTree.setSelected(Collections.emptySet(), false);
@@ -306,8 +311,98 @@ public class ItemLibrary extends UIElement {
             selectedTree = tree;
         }
         clearSelectedItemData(this.selectedItem);
+        this.selectedNode = node;
         this.selectedItem = newSelected;
         prepareSelectedItemData(newSelected);
+    }
+
+    protected void onKeyDown(com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent event) {
+        switch (event.keyCode) {
+            case GLFW.GLFW_KEY_UP -> {
+                moveKeyboardSelection(-1);
+                event.stopPropagation();
+            }
+            case GLFW.GLFW_KEY_DOWN -> {
+                moveKeyboardSelection(1);
+                event.stopPropagation();
+            }
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+                if (selectedNode != null && selectedNode.isLeaf() && selectedItem != null) {
+                    onNodeDecided(selectedItem);
+                    event.stopPropagation();
+                }
+            }
+        }
+    }
+
+    protected void moveKeyboardSelection(int direction) {
+        var entries = getKeyboardNavigationEntries();
+        if (entries.isEmpty()) return;
+
+        var currentIndex = -1;
+        for (int i = 0; i < entries.size(); i++) {
+            var entry = entries.get(i);
+            if (entry.tree() == selectedTree && entry.node() == selectedNode) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        var nextIndex = currentIndex < 0
+                ? (direction > 0 ? 0 : entries.size() - 1)
+                : Math.max(0, Math.min(entries.size() - 1, currentIndex + direction));
+        selectKeyboardEntry(entries.get(nextIndex));
+    }
+
+    protected List<TreeNavigationEntry> getKeyboardNavigationEntries() {
+        var entries = new ArrayList<TreeNavigationEntry>();
+        for (var tree : getKeyboardNavigationTrees()) {
+            addVisibleNodes(entries, tree);
+        }
+        return entries;
+    }
+
+    protected List<TreeList<TreeNode<ItemLibraryItem, Void>>> getKeyboardNavigationTrees() {
+        if (searchTree.getRoot() != null) {
+            return List.of(searchTree);
+        }
+        if (blockOnlyMode) {
+            return List.of(blockTree);
+        }
+        return List.of(recommendationTree, constantTree, contextTree, nodeTree);
+    }
+
+    protected void addVisibleNodes(List<TreeNavigationEntry> entries, TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
+        var root = tree.getRoot();
+        if (root == null || !tree.isDisplayed()) return;
+        if (tree == searchTree) {
+            for (var child : root.getChildren()) {
+                addVisibleNode(entries, tree, child);
+            }
+        } else {
+            addVisibleNode(entries, tree, root);
+        }
+    }
+
+    protected void addVisibleNode(List<TreeNavigationEntry> entries,
+                                  TreeList<TreeNode<ItemLibraryItem, Void>> tree,
+                                  ITreeNode<ItemLibraryItem, Void> rawNode) {
+        var node = (TreeNode<ItemLibraryItem, Void>) rawNode;
+        entries.add(new TreeNavigationEntry(tree, node));
+        if (node.isBranch() && tree.isNodeExpanded(node)) {
+            for (var child : node.getChildren()) {
+                addVisibleNode(entries, tree, child);
+            }
+        }
+    }
+
+    protected void selectKeyboardEntry(TreeNavigationEntry entry) {
+        if (entry.tree() != selectedTree && selectedTree != null) {
+            selectedTree.setSelected(Collections.emptySet(), false);
+        }
+        entry.tree().setSelected(List.of(entry.node()), true);
+        selectedTree = entry.tree();
+        selectedNode = entry.node();
     }
 
     protected void onSearchWordChanged(String word) {
@@ -315,6 +410,7 @@ public class ItemLibrary extends UIElement {
             clearSearchResult();
             return;
         }
+        clearKeyboardSelection();
         var lowerWorld = word.toLowerCase();
         var builder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem());
         getAllItems().filter(item -> item.getSearchableName().toLowerCase().contains(lowerWorld))
@@ -331,6 +427,7 @@ public class ItemLibrary extends UIElement {
         searchTree.setRoot(null);
         Style.importantPipeline(treeContainer.getLayout(), l -> l.display(TaffyDisplay.FLEX));
         searchCandidates = null;
+        clearKeyboardSelection();
     }
 
     protected void prepareSelectedItemData(ItemLibraryItem item) {
@@ -389,6 +486,7 @@ public class ItemLibrary extends UIElement {
         var root = builder.build();
         blockTree.setRoot(root);
         blockTree.expandNode(root);
+        clearKeyboardSelection();
 
         applyTreeVisibility();
         positionAndShow(mouseX, mouseY, onFinished);
@@ -420,7 +518,7 @@ public class ItemLibrary extends UIElement {
                 .left(offset.x)
                 .top(offset.y);
         Style.importantPipeline(getLayout(), l -> l.display(TaffyDisplay.FLEX));
-        focus();
+        searchField.focus();
         this.onFinished = onFinished;
     }
 
@@ -464,11 +562,11 @@ public class ItemLibrary extends UIElement {
         }
         clearSelectedItemData(this.selectedItem);
         clearSearchResult();
-        if (this.selectedTree != null)
-            this.selectedTree.setSelected(Collections.emptySet(), false);
+        clearKeyboardSelection();
         this.searchField.setText("", false);
         this.selectedTree = null;
         this.selectedItem = null;
+        this.selectedNode = null;
         this.portModels = null;
         this.onFinished = null;
         this.recommendationTree.setRoot(null);
@@ -488,5 +586,18 @@ public class ItemLibrary extends UIElement {
             onFinished = null;
         }
         hide();
+    }
+
+    protected record TreeNavigationEntry(TreeList<TreeNode<ItemLibraryItem, Void>> tree,
+                                         TreeNode<ItemLibraryItem, Void> node) {}
+
+    protected void clearKeyboardSelection() {
+        clearSelectedItemData(this.selectedItem);
+        if (this.selectedTree != null) {
+            this.selectedTree.setSelected(Collections.emptySet(), false);
+        }
+        this.selectedTree = null;
+        this.selectedNode = null;
+        this.selectedItem = null;
     }
 }
