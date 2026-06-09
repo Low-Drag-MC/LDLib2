@@ -275,7 +275,7 @@ public class ItemLibrary extends UIElement {
             groupPath.add(groupItems.computeIfAbsent(path, ignored -> new ItemLibraryItem()
                     .setPath(path)
                     .setIcon(Icons.FOLDER)
-                    .setDisplayName(Component.literal(groupName))
+                    .setDisplayName(Component.translatable(groupName))
                     .setSearchableName(groupName)));
         }
         return groupPath;
