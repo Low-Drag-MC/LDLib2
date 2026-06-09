@@ -39,6 +39,23 @@ public class ProjectType {
     }
 
     /**
+     * Retrieves the default file to prefill when saving the given project.
+     *
+     * @param project The {@link IProject} instance for which the default save file is to be determined.
+     * @param projectRoot The {@link File} instance representing the root directory of the project.
+     * @return The default save file.
+     */
+    public File getDefaultSaveFile(IProject project, File projectRoot) {
+        var savePath = getRootSavePath(project, projectRoot);
+        var defaultFile = new File(savePath, "new" + suffix);
+        var index = 1;
+        while (defaultFile.exists()) {
+            defaultFile = new File(savePath, "new_" + index++ + suffix);
+        }
+        return defaultFile;
+    }
+
+    /**
      * Loads a project from the specified file.
      * The method reads serialized project data from the provided file, creates an instance of the project using the
      * {@link #getProjectCreator()} supplier, and deserializes the data into the project object.

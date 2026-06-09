@@ -30,6 +30,7 @@ import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -500,6 +501,24 @@ public class Dialog extends UIElement {
      * @param result a consumer that will receive the selected file or directory when the confirm button is clicked
      */
     public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable Predicate<FileNode> valid, Consumer<File> result) {
+        return showFileDialog(title, dir, isSelector, null, valid, result);
+    }
+
+    /**
+     * Shows a file dialog for selecting or creating files.
+     * This dialog will display a tree list of files and directories starting from the specified directory.
+     * You can use the text field to filter or specify the file name.
+     * The dialog will have a confirm button to select the file or directory, and a cancel button to close the dialog.
+     * You can also provide a predicate to validate the selected file or directory.
+     * Don't forget to call {@link Dialog#show(UIElement)} to display the dialog.
+     * @param title the title of the dialog
+     * @param dir the directory to start from, it will be created if it does not exist
+     * @param isSelector if true, the dialog will allow selecting a file or directory, otherwise it will allow creating a new file in the selected directory
+     * @param defaultValue the default file or directory to select or prefill, can be null
+     * @param valid a predicate to validate the selected file or directory, can be null to allow all files
+     * @param result a consumer that will receive the selected file or directory when the confirm button is clicked
+     */
+    public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable File defaultValue, @Nullable Predicate<FileNode> valid, Consumer<File> result) {
         var dialog = new Dialog();
         var textField = new TextField();
         var treeList = new TreeList<FileNode>();
@@ -508,6 +527,7 @@ public class Dialog extends UIElement {
                 return dialog;
             }
         }
+        var root = new FileNode(dir).setValid(valid);
         dialog.overlay.layout(layout -> layout.width(200));
         dialog.setTitle(title);
         dialog.addContent(new UIElement().layout(layout -> {
@@ -521,34 +541,35 @@ public class Dialog extends UIElement {
             layout.height(14);
             layout.paddingAll(3);
         }).addChild(new UIElement().layout(layout -> layout.widthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
-        dialog.addContent(new ScrollerView().addScrollViewChild(treeList.setOnSelectedChanged(selected -> {
-                    if (selected.isEmpty()) return;
-                    var first = selected.stream().findFirst().get();
-                    if (isSelector) {
-                        textField.setText(first.getKey().toString(), false);
-                    } else if (first.getKey().isFile()) {
-                        textField.setText(first.getKey().getName(), false);
-                    } else {
-                        textField.setText("", false);
-                    }
-                }).setOnDoubleClickNode(node -> {
-                    var file = node.getKey();
-                    if (isSelector && file.isFile()) {
-                        dialog.close();
-                        if (result != null) result.accept(file);
-                    }
-                }).setNodeUISupplier(TreeList.iconTextTemplate(
-                        node -> node.getKey().isDirectory() ?
-                                Icons.FOLDER :
-                                Icons.getIcon(node.getKey().getName()
-                                        .substring(node.getKey().getName().lastIndexOf('.') + 1)),
-                        node -> Component.translatable(node.getKey().getName())))
-                        .setRoot(new FileNode(dir).setValid(valid))
-                ).layout(layout -> {
-                            layout.widthPercent(100);
-                            layout.height(180);
-                        })
-        );
+        treeList.setOnSelectedChanged(selected -> {
+            if (selected.isEmpty()) return;
+            var first = selected.stream().findFirst().get();
+            if (isSelector) {
+                textField.setText(first.getKey().toString(), false);
+            } else if (first.getKey().isFile()) {
+                textField.setText(first.getKey().getName(), false);
+            } else {
+                textField.setText("", false);
+            }
+        }).setOnDoubleClickNode(node -> {
+            var file = node.getKey();
+            if (isSelector && file.isFile()) {
+                dialog.close();
+                if (result != null) result.accept(file);
+            }
+        }).setNodeUISupplier(TreeList.iconTextTemplate(
+                node -> node.getKey().isDirectory() ?
+                        Icons.FOLDER :
+                        Icons.getIcon(node.getKey().getName()
+                                .substring(node.getKey().getName().lastIndexOf('.') + 1)),
+                node -> Component.translatable(node.getKey().getName())))
+                .setRoot(root);
+        applyFileDialogDefault(treeList, textField, root, isSelector, defaultValue);
+        var scrollerView = new ScrollerView().addScrollViewChild(treeList).layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(180);
+        });
+        dialog.addContent(scrollerView);
         dialog.addButton(new Button()
                 .setOnClick(e -> {
                     var parent = dialog.getParent();
@@ -586,6 +607,28 @@ public class Dialog extends UIElement {
                 .setText("ldlib.gui.tips.cancel")
                 .addClass("__cancel-button__"));
         return dialog;
+    }
+
+    static void applyFileDialogDefault(TreeList<FileNode> treeList, TextField textField, FileNode root, boolean isSelector, @Nullable File defaultValue) {
+        var fileDialogDefault = FileDialogDefaults.resolve(root, isSelector, defaultValue);
+        var selectedNode = fileDialogDefault.selectedNode();
+        if (selectedNode != null) {
+            treeList.expandNodeAlongPath(selectedNode);
+            selectedNode = findDisplayedFileNode(treeList, selectedNode);
+            treeList.setSelected(List.of(selectedNode), false);
+        }
+        if (defaultValue != null) {
+            textField.setText(fileDialogDefault.text(), false);
+        }
+    }
+
+    private static FileNode findDisplayedFileNode(TreeList<FileNode> treeList, FileNode target) {
+        for (var node : treeList.getNodeUIs().keySet()) {
+            if (node.getDimension() == target.getDimension() && FileDialogDefaults.normalizeFile(node.getKey()).equals(FileDialogDefaults.normalizeFile(target.getKey()))) {
+                return node;
+            }
+        }
+        return target;
     }
 
     /**

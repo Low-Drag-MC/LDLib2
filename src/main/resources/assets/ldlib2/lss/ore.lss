@@ -563,3 +563,12 @@ ToggleSelectorConfigurator toggle {
 .__node-port-container__.__vertical-port-container_inner__ {
   background: built-in(ui-ore:BTN_DEFAULT_SMALL) color(#444)
 }
+
+.__node-graph-view_log-footer__ {
+  background:built-in(ui-ore:BTN_DEFAULT);
+  padding-bottom: 5;
+}
+
+.__node-graph-view_log-count__ {
+  text-color:#222;
+}

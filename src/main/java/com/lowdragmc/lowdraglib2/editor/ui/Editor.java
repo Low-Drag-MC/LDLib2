@@ -641,18 +641,34 @@ public abstract class Editor extends UIElement {
      * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
      */
     public void saveAsProject(@Nullable Runnable onFinish) {
+        if (currentProject == null) return;
+        var projectType = currentProject.getProjectType();
+        var projectRoot = LDLib2.getAssetsDir();
+        var defaultSaveFile = currentProjectFile == null ? projectType.getDefaultSaveFile(currentProject, projectRoot) : currentProjectFile;
+        saveAsProject(defaultSaveFile, onFinish);
+    }
+
+    /**
+     * Save the current project as a new file.
+     * @param defaultSaveFile default file to prefill in the save dialog, can be null
+     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     */
+    public void saveAsProject(@Nullable File defaultSaveFile, @Nullable Runnable onFinish) {
         if (currentProject != null) {
             String suffix = currentProject.getSuffix();
+            var projectType = currentProject.getProjectType();
+            var projectRoot = LDLib2.getAssetsDir();
             Dialog.showFileDialog("ldlib.gui.editor.tips.save_as",
-                    currentProject.getProjectType().getRootSavePath(currentProject, LDLib2.getAssetsDir()),
+                    projectType.getRootSavePath(currentProject, projectRoot),
                     false,
+                    defaultSaveFile,
                     Dialog.suffixFilter(suffix), file -> {
                         if (file != null && !file.isDirectory()) {
                             if (!file.getName().endsWith(suffix)) {
                                 file = new File(file.getParentFile(), file.getName() + suffix);
                             }
                             try {
-                                currentProject.getProjectType().saveProjectToFile(currentProject, file);
+                                projectType.saveProjectToFile(currentProject, file);
                                 currentProjectFile = file;
                             } catch (Exception ignored) {}
                         }
