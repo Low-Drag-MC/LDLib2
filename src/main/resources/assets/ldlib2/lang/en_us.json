@@ -514,6 +514,8 @@
   "graph.inspector": "Inspector",
   "graph.preview": "Preview",
   "graph.variable_type": "Variable Type",
+  "graph.variable_type.internal": "Internal",
+  "graph.variable_type.external": "External",
   "graph.variable_name": "Variable Name",
   "graph.commands.change_variable_modifiers": "Change Variable Subgraph Use",
   "graph.flow_direction": "Flow Direction",
@@ -562,5 +564,9 @@
   "graph.library.blocks": "Blocks",
   "graph.library.contexts": "Contexts",
   "graph.min_width": "Min Width",
-  "graph.snap_to_grid": "Snap to Grid"
+  "graph.snap_to_grid": "Snap to Grid",
+  "graph.logger.level.error": "Error",
+  "graph.logger.level.warning": "Warning",
+  "graph.logger.level.info": "Info",
+  "graph.logger.count": "%s logs"
 }

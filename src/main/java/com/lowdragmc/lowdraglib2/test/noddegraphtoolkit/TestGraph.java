@@ -2,11 +2,13 @@ package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.GraphLogger;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.GraphNodeRegistry;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
@@ -40,5 +42,15 @@ public class TestGraph extends Graph {
         supportTypes.add(TypeHandles.DIRECTION);
 
         return List.copyOf(supportTypes);
+    }
+
+    private int changeCount = 0;
+
+    @Override
+    public void onGraphChanged(GraphLogger logger) {
+        changeCount++;
+        logger.info(Component.literal("Graph changed: " + changeCount));
+        logger.error(Component.literal("Graph changed: " + changeCount));
+        logger.warning(Component.literal("Graph changed: " + changeCount));
     }
 }

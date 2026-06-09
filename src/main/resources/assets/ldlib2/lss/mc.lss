@@ -440,3 +440,11 @@ ToggleSelectorConfigurator toggle {
   background: built-in(ui-mc:BORDER);
   padding-all: 6;
 }
+
+.__node-graph-view_log-footer__ {
+  background:built-in(ui-mc:RECT_THIN);
+}
+
+.__node-graph-view_log-count__ {
+  text-color:#222;
+}

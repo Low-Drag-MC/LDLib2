@@ -90,6 +90,19 @@ public abstract class Graph implements IGraph {
     }
 
     /**
+     * Called by {@link com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView} after the editor's
+     * current graph state has been loaded or refreshed. Use this hook to emit validation errors,
+     * warnings, or informational diagnostics for the graph footer.
+     *
+     * <p>This is an editor diagnostic hook only. Messages are runtime UI state and are not
+     * serialized with the graph.</p>
+     *
+     * @param logger collector for diagnostics to show in the graph view
+     */
+    public void onGraphChanged(GraphLogger logger) {
+    }
+
+    /**
      * Retrieves node types shown in the item library.
      *
      * @return a {@link List} of node types available through the library UI.
