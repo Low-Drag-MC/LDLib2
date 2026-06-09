@@ -563,5 +563,9 @@
   "graph.library.blocks": "Blocks",
   "graph.library.contexts": "Contexts",
   "graph.min_width": "Min Width",
-  "graph.snap_to_grid": "Snap to Grid"
+  "graph.snap_to_grid": "Snap to Grid",
+  "graph.logger.level.error": "Error",
+  "graph.logger.level.warning": "Warning",
+  "graph.logger.level.info": "Info",
+  "graph.logger.count": "%s logs"
 }

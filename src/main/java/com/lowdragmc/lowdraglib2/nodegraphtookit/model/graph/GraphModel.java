@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.GraphLogger;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortCapacity;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
@@ -243,6 +244,13 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
      * delegates to {@link com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph#onCommandExecuted}.
      */
     public void onCommandExecuted(IGraphCommand command) {
+    }
+
+    /**
+     * Called after the editor's current graph state has been loaded or refreshed. Implementations
+     * may emit validation diagnostics into {@code logger}.
+     */
+    public void onGraphChanged(GraphLogger logger) {
     }
 
     /**

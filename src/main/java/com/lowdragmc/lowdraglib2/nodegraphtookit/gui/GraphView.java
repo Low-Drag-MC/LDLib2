@@ -10,8 +10,14 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -20,6 +26,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.GraphLogger;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphEditorView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResourceProviderContainer;
@@ -47,10 +54,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.PortMigrationResult;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
-import dev.vfyjxf.taffy.style.AlignContent;
-import dev.vfyjxf.taffy.style.FlexDirection;
-import dev.vfyjxf.taffy.style.TaffyDisplay;
-import dev.vfyjxf.taffy.style.TaffyPosition;
+import dev.vfyjxf.taffy.style.*;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -80,6 +84,11 @@ public class GraphView extends UIElement {
     public final Blackboard blackboard = new Blackboard(this);
     public final GraphInspector inspector = new GraphInspector(this);
     public final GraphPreview preview = new GraphPreview(this);
+    private final UIElement graphLogFooter = new UIElement();
+    private final UIElement graphLogHeader = new UIElement();
+    private final Label graphLogSummary = new Label();
+    private final Label graphLogCount = new Label();
+    private final ScrollerView graphLogList = new ScrollerView();
 
     /**
      * Optional instance-level veto consulted by {@link #dispatchCommand} before a command runs;
@@ -128,6 +137,8 @@ public class GraphView extends UIElement {
     protected boolean isWireDragging = false;
     @Getter
     protected HistoryStack historyStack = new HistoryStack();
+    private List<GraphLogger.Entry> graphLogEntries = List.of();
+    private boolean graphLogExpanded = false;
 
     /** When true, drag-moved and newly-created elements snap their positions to {@link #gridSnapSize}. */
     @Getter @Setter
@@ -183,8 +194,9 @@ public class GraphView extends UIElement {
         inspector.setHistoryStack(historyStack);
 
         initPanels();
+        initGraphLogFooter();
 
-        addChildren(header, canvas.addChildren(graphView, panelLayer));
+        addChildren(header, canvas.addChildren(graphView, graphLogFooter, panelLayer));
     }
 
 
@@ -256,6 +268,68 @@ public class GraphView extends UIElement {
         dockManager.register(prevPanel, DockSlot.BOTTOM_RIGHT);
     }
 
+    protected void initGraphLogFooter() {
+        graphLogFooter.addClass("__node-graph-view_log-footer__");
+        Style.defaultPipeline(graphLogFooter.getLayout(), l -> l
+                .positionType(TaffyPosition.ABSOLUTE)
+                .left(8)
+                .right(8)
+                .bottom(8)
+                .height(16)
+                .paddingAll(3)
+                .gapAll(2));
+        Style.defaultPipeline(graphLogFooter.getStyle(), s -> s.background(
+                new SDFRectTexture()
+                        .setRadius(4)
+                        .setStroke(0.5f)
+                        .setColor(0xCC1E1F22)
+                        .setBorderColor(0xAA7F8084)));
+        Style.importantPipeline(graphLogFooter.getLayout(), l -> l.display(TaffyDisplay.NONE));
+        graphLogFooter.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (!graphLogEntries.isEmpty()) {
+                setGraphLogExpanded(!graphLogExpanded);
+            }
+            event.stopPropagation();
+        });
+
+        graphLogHeader.addClass("__node-graph-view_log-header__");
+        Style.defaultPipeline(graphLogHeader.getLayout(), l -> l
+                .height(10)
+                .widthPercent(100)
+                .flexDirection(FlexDirection.ROW)
+                .alignItems(AlignItems.CENTER)
+                .gapAll(4));
+
+        graphLogSummary.addClass("__node-graph-view_log-summary__");
+        graphLogSummary.setText(Component.empty());
+        Style.defaultPipeline(graphLogSummary.getLayout(), l -> l.flex(1).heightPercent(100));
+        Style.defaultPipeline(graphLogSummary.getTextStyle(), s -> s
+                .textAlignVertical(Vertical.CENTER)
+                .textWrap(TextWrap.HOVER_ROLL)
+                .textShadow(false));
+        Style.defaultPipeline(graphLogSummary.getStyle(), s -> s.overflowVisible(false));
+
+        graphLogCount.addClass("__node-graph-view_log-count__");
+        graphLogCount.setText(Component.empty());
+        Style.defaultPipeline(graphLogCount.getLayout(), l -> l.width(42).heightPercent(100));
+        Style.defaultPipeline(graphLogCount.getTextStyle(), s -> s
+                .textAlignVertical(Vertical.CENTER)
+                .textWrap(TextWrap.HIDE)
+                .textColor(ColorPattern.LIGHT_GRAY.color)
+                .textShadow(false));
+
+        graphLogList.addClass("__node-graph-view_log-list__");
+        Style.defaultPipeline(graphLogList.getLayout(), l -> l.widthPercent(100).flex(1));
+        graphLogList.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER)
+                .verticalScrollDisplay(ScrollDisplay.AUTO));
+        Style.importantPipeline(graphLogList.getLayout(), l -> l.display(TaffyDisplay.NONE));
+
+        graphLogHeader.addChildren(graphLogSummary, graphLogCount);
+        graphLogFooter.addChildren(graphLogHeader, graphLogList);
+    }
+
     /**
      * Sets the layer configuration for this {@code GraphEditor} instance using the specified order of layers.
      * Each layer is represented as a {@code UIElement} and will be added to the {@code graphView}.
@@ -319,6 +393,7 @@ public class GraphView extends UIElement {
                         () -> { graph.graphModel.deserializeNBT(provider, initialTag); rebuildGraphUI(); },
                         () -> { graph.graphModel.deserializeNBT(provider, initialTag); rebuildGraphUI(); }
                 ), null, false);
+        refreshGraphLogger();
         return this;
     }
 
@@ -332,6 +407,9 @@ public class GraphView extends UIElement {
         this.changeset.clear();
         this.inspector.clear();
         this.blackboard.clear();
+        this.graphLogEntries = List.of();
+        this.graphLogExpanded = false;
+        updateGraphLogFooter();
     }
 
     /**
@@ -343,6 +421,112 @@ public class GraphView extends UIElement {
         clearGraph();
         graph.graphModel.getCurrentGraphChangeDescription().clear();
         buildUITree(graph.graphModel);
+        refreshGraphLogger();
+    }
+
+    /**
+     * Manually reruns the graph diagnostic hook and refreshes the floating logger footer.
+     */
+    public void refreshGraphLogger() {
+        if (graph == null) {
+            graphLogEntries = List.of();
+            graphLogExpanded = false;
+            updateGraphLogFooter();
+            return;
+        }
+
+        var logger = new GraphLogger();
+        try {
+            graph.graphModel.onGraphChanged(logger);
+        } catch (RuntimeException e) {
+            LDLib2.LOGGER.error("Graph validation hook failed", e);
+            logger.error(Component.literal("Graph validation hook failed: " + e.getMessage()));
+        }
+        graphLogEntries = logger.getSortedEntries();
+        if (graphLogEntries.isEmpty()) {
+            graphLogExpanded = false;
+        }
+        updateGraphLogFooter();
+    }
+
+    protected void setGraphLogExpanded(boolean expanded) {
+        graphLogExpanded = expanded && !graphLogEntries.isEmpty();
+        updateGraphLogFooter();
+    }
+
+    protected void updateGraphLogFooter() {
+        graphLogList.clearAllScrollViewChildren();
+        if (graphLogEntries.isEmpty()) {
+            graphLogSummary.setText(Component.empty());
+            graphLogCount.setText(Component.empty());
+            Style.importantPipeline(graphLogFooter.getLayout(), l -> l.display(TaffyDisplay.NONE));
+            return;
+        }
+
+        var first = graphLogEntries.getFirst();
+        graphLogSummary.setText(formatGraphLogEntry(first));
+        Style.importantPipeline(graphLogSummary.getTextStyle(), s -> s.textColor(graphLogLevelColor(first.level())));
+        graphLogCount.setText(graphLogEntries.size() > 1
+                ? Component.translatable("graph.logger.count", graphLogEntries.size())
+                : Component.empty());
+
+        if (graphLogExpanded) {
+            for (var entry : graphLogEntries) {
+                graphLogList.addScrollViewChild(createGraphLogRow(entry));
+            }
+        }
+
+        Style.importantPipeline(graphLogFooter.getLayout(), l -> l
+                .display(TaffyDisplay.FLEX)
+                .height(graphLogExpanded ? 96 : 16));
+        Style.importantPipeline(graphLogList.getLayout(), l -> l
+                .display(graphLogExpanded ? TaffyDisplay.FLEX : TaffyDisplay.NONE));
+    }
+
+    protected UIElement createGraphLogRow(GraphLogger.Entry entry) {
+        var row = new UIElement();
+        row.addClass("__node-graph-view_log-row__");
+        Style.defaultPipeline(row.getLayout(), l -> l
+                .widthPercent(100)
+                .height(12)
+                .paddingAll(1)
+                .flexDirection(FlexDirection.ROW));
+
+        var label = new Label();
+        label.addClass("__node-graph-view_log-row-label__");
+        label.setText(formatGraphLogEntry(entry));
+        Style.defaultPipeline(label.getLayout(), l -> l.flex(1).heightPercent(100));
+        Style.defaultPipeline(label.getTextStyle(), s -> s
+                .textAlignVertical(Vertical.CENTER)
+                .textWrap(TextWrap.HOVER_ROLL)
+                .textColor(graphLogLevelColor(entry.level()))
+                .textShadow(false));
+        Style.defaultPipeline(label.getStyle(), s -> s.overflowVisible(false));
+        row.addChild(label);
+        return row;
+    }
+
+    protected Component formatGraphLogEntry(GraphLogger.Entry entry) {
+        return Component.literal("")
+                .append(graphLogLevelComponent(entry.level()))
+                .append(Component.literal(": "))
+                .append(entry.message());
+    }
+
+    protected Component graphLogLevelComponent(GraphLogger.Level level) {
+        return switch (level) {
+            case ERROR -> Component.translatable("graph.logger.level.error");
+            case WARNING -> Component.translatable("graph.logger.level.warning");
+            case INFO -> Component.translatable("graph.logger.level.info");
+        };
+    }
+
+    protected int graphLogLevelColor(GraphLogger.Level level) {
+        return switch (level) {
+            case ERROR -> ColorPattern.BRIGHT_RED.color;
+            case WARNING -> ColorPattern.YELLOW.color;
+            case INFO -> ColorPattern.LIGHT_BLUE.color;
+        };
     }
 
     public void fitGraphChildren() {
@@ -490,6 +674,7 @@ public class GraphView extends UIElement {
                 listener.onCommandExecuted(command, this, graphModel);
             }
         }
+        refreshGraphLogger();
         return true;
     }
 
@@ -1404,6 +1589,7 @@ public class GraphView extends UIElement {
             }
 
             updateChangedModels(changedModels, newPlacemats);
+            refreshGraphLogger();
         }
 
         changeset.clear();

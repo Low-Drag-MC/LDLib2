@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.GraphLogger;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
@@ -259,6 +260,11 @@ public class CustomGraphModelImpl extends GraphModel {
     @Override
     public void onCommandExecuted(com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand command) {
         graph.onCommandExecuted(command);
+    }
+
+    @Override
+    public void onGraphChanged(GraphLogger logger) {
+        graph.onGraphChanged(logger);
     }
 
     @Override
