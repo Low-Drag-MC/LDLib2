@@ -43,6 +43,8 @@ public final class GraphSubgraphTest {
     private static final String COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH = "graph_subgraph_copy_paste_local_subgraph_in_same_graph";
     private static final String COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH = "graph_subgraph_copy_paste_local_subgraph_cross_graph";
     private static final String PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE = "graph_subgraph_pre_subgraph_nbt_is_forward_compatible";
+    private static final String GRAPH_CAN_DISABLE_SUBGRAPH_VARIABLE_PORTS = "graph_subgraph_graph_can_disable_variable_ports";
+    private static final String GRAPH_CAN_RESTRICT_SUBGRAPH_VARIABLE_PORT_DIRECTION = "graph_subgraph_graph_can_restrict_variable_port_direction";
 
     private GraphSubgraphTest() {
     }
@@ -64,6 +66,8 @@ public final class GraphSubgraphTest {
         NodeGraphGameTests.registerFunction(COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH, GraphSubgraphTest::copyPasteLocalSubgraphInSameGraph);
         NodeGraphGameTests.registerFunction(COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH, GraphSubgraphTest::copyPasteLocalSubgraphCrossGraph);
         NodeGraphGameTests.registerFunction(PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE, GraphSubgraphTest::preSubgraphNbtIsForwardCompatible);
+        NodeGraphGameTests.registerFunction(GRAPH_CAN_DISABLE_SUBGRAPH_VARIABLE_PORTS, GraphSubgraphTest::graphCanDisableSubgraphVariablePorts);
+        NodeGraphGameTests.registerFunction(GRAPH_CAN_RESTRICT_SUBGRAPH_VARIABLE_PORT_DIRECTION, GraphSubgraphTest::graphCanRestrictSubgraphVariablePortDirection);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
@@ -84,6 +88,8 @@ public final class GraphSubgraphTest {
         NodeGraphGameTests.registerFunctionTest(event, COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH, NodeGraphGameTests.functionKey(COPY_PASTE_LOCAL_SUBGRAPH_IN_SAME_GRAPH), testData);
         NodeGraphGameTests.registerFunctionTest(event, COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH, NodeGraphGameTests.functionKey(COPY_PASTE_LOCAL_SUBGRAPH_CROSS_GRAPH), testData);
         NodeGraphGameTests.registerFunctionTest(event, PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE, NodeGraphGameTests.functionKey(PRE_SUBGRAPH_NBT_IS_FORWARD_COMPATIBLE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, GRAPH_CAN_DISABLE_SUBGRAPH_VARIABLE_PORTS, NodeGraphGameTests.functionKey(GRAPH_CAN_DISABLE_SUBGRAPH_VARIABLE_PORTS), testData);
+        NodeGraphGameTests.registerFunctionTest(event, GRAPH_CAN_RESTRICT_SUBGRAPH_VARIABLE_PORT_DIRECTION, NodeGraphGameTests.functionKey(GRAPH_CAN_RESTRICT_SUBGRAPH_VARIABLE_PORT_DIRECTION), testData);
     }
 
     // ------------------------------------------------------------------
@@ -904,8 +910,6 @@ public final class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 10. Graph API can globally disable variable exposure as subgraph ports.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void graphCanDisableSubgraphVariablePorts(GameTestHelper helper) {
         var root = new NoSubgraphVariableTestGraph();
         var sub = root.graphModel.createLocalSubgraphInstance();
@@ -930,8 +934,6 @@ public final class GraphSubgraphTest {
     // ------------------------------------------------------------------
     // 11. Graph API can restrict variable exposure to a single IO direction.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void graphCanRestrictSubgraphVariablePortDirection(GameTestHelper helper) {
         var root = new InputOnlySubgraphVariableTestGraph();
         var sub = root.graphModel.createLocalSubgraphInstance();

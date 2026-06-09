@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImp
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.CustomNodeModelImpl;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestCollapsedPreviewNode;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestPreviewNode;
 import net.minecraft.core.Holder;
@@ -28,6 +29,9 @@ public final class GraphNodePreviewTest {
     private static final String ORPHAN_SPAWN_SKIPS_PREVIEW = "graph_node_preview_orphan_spawn_skips_preview";
     private static final String DUPLICATE_COPIES_EXPANDED_STATE = "graph_node_preview_duplicate_copies_expanded_state";
     private static final String EXPANDED_STATE_PERSISTS_ROUND_TRIP = "graph_node_preview_expanded_state_persists_round_trip";
+    private static final String PREVIEW_DEFAULT_EXPANDED_API = "graph_node_preview_default_expanded_api";
+    private static final String PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD = "graph_node_preview_expanded_state_overrides_default_on_load";
+    private static final String DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT = "graph_node_preview_duplicate_state_overrides_default";
 
     private GraphNodePreviewTest() {
     }
@@ -37,6 +41,9 @@ public final class GraphNodePreviewTest {
         NodeGraphGameTests.registerFunction(ORPHAN_SPAWN_SKIPS_PREVIEW, GraphNodePreviewTest::orphanSpawnSkipsPreview);
         NodeGraphGameTests.registerFunction(DUPLICATE_COPIES_EXPANDED_STATE, GraphNodePreviewTest::duplicateCopiesExpandedState);
         NodeGraphGameTests.registerFunction(EXPANDED_STATE_PERSISTS_ROUND_TRIP, GraphNodePreviewTest::expandedStatePersistsRoundTrip);
+        NodeGraphGameTests.registerFunction(PREVIEW_DEFAULT_EXPANDED_API, GraphNodePreviewTest::previewDefaultExpandedApi);
+        NodeGraphGameTests.registerFunction(PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD, GraphNodePreviewTest::previewExpandedStateOverridesDefaultOnLoad);
+        NodeGraphGameTests.registerFunction(DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT, GraphNodePreviewTest::duplicatePreviewStateOverridesDefault);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
@@ -45,6 +52,9 @@ public final class GraphNodePreviewTest {
         NodeGraphGameTests.registerFunctionTest(event, ORPHAN_SPAWN_SKIPS_PREVIEW, NodeGraphGameTests.functionKey(ORPHAN_SPAWN_SKIPS_PREVIEW), testData);
         NodeGraphGameTests.registerFunctionTest(event, DUPLICATE_COPIES_EXPANDED_STATE, NodeGraphGameTests.functionKey(DUPLICATE_COPIES_EXPANDED_STATE), testData);
         NodeGraphGameTests.registerFunctionTest(event, EXPANDED_STATE_PERSISTS_ROUND_TRIP, NodeGraphGameTests.functionKey(EXPANDED_STATE_PERSISTS_ROUND_TRIP), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PREVIEW_DEFAULT_EXPANDED_API, NodeGraphGameTests.functionKey(PREVIEW_DEFAULT_EXPANDED_API), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD, NodeGraphGameTests.functionKey(PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT, NodeGraphGameTests.functionKey(DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT), testData);
     }
 
     // ------------------------------------------------------------------
@@ -155,8 +165,6 @@ public final class GraphNodePreviewTest {
     // 5. A node can choose whether its preview starts expanded. The default
     //    remains expanded; overriding the API can start collapsed.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void previewDefaultExpandedApi(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start previewDefaultExpandedApi");
 
@@ -184,8 +192,6 @@ public final class GraphNodePreviewTest {
     // ------------------------------------------------------------------
     // 6. Persisted user state wins over the node's default preview state.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void previewExpandedStateOverridesDefaultOnLoad(GameTestHelper helper) {
         var provider = helper.getLevel().registryAccess();
         LDLib2.LOGGER.info("Start previewExpandedStateOverridesDefaultOnLoad");
@@ -194,9 +200,9 @@ public final class GraphNodePreviewTest {
         var node = graph.graphModel.createNodeModel(new TestCollapsedPreviewNode(), new Vector2f(0, 0));
         node.setPreviewExpanded(true);
 
-        var serialized = graph.graphModel.serializeNBT(provider);
+        var serialized = serializeGraph(graph.graphModel, provider);
         var graph2 = new TestGraph();
-        graph2.graphModel.deserializeNBT(provider, serialized);
+        deserializeGraph(graph2.graphModel, serialized, provider);
 
         AbstractNodeModel restored = null;
         for (var n : graph2.graphModel.getNodeModels()) {
@@ -218,8 +224,6 @@ public final class GraphNodePreviewTest {
     // 7. Duplication copies source state instead of reapplying the target
     //    node's default preview state.
     // ------------------------------------------------------------------
-    @GameTest(template = "empty")
-    @PrefixGameTestTemplate(false)
     public static void duplicatePreviewStateOverridesDefault(GameTestHelper helper) {
         LDLib2.LOGGER.info("Start duplicatePreviewStateOverridesDefault");
 

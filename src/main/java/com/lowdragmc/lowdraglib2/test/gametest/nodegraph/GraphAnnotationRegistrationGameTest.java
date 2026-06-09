@@ -11,7 +11,6 @@ import java.util.Set;
 
 public final class GraphAnnotationRegistrationGameTest {
     private static final String NODE_TYPES_PATH = "graph_annotation_node_types";
-    private static final String SUPPORT_NODES_PATH = "graph_annotation_support_nodes";
     private static final String UNBOUND_NODE_PATH = "graph_annotation_unbound_node";
     private static final String PORT_ORIENTATION_FOLLOW_BUILDER_PATH = "port_orientation_follows_builder";
 
@@ -20,7 +19,6 @@ public final class GraphAnnotationRegistrationGameTest {
 
     static void registerFunctions() {
         NodeGraphGameTests.registerFunction(NODE_TYPES_PATH, GraphAnnotationRegistrationGameTest::nodeTypesAreRegistered);
-        NodeGraphGameTests.registerFunction(SUPPORT_NODES_PATH, GraphAnnotationRegistrationGameTest::supportNodesAreDiscoveredFromAnnotations);
         NodeGraphGameTests.registerFunction(UNBOUND_NODE_PATH, GraphAnnotationRegistrationGameTest::unboundNodeIsInOtherGraphRegistry);
         NodeGraphGameTests.registerFunction(PORT_ORIENTATION_FOLLOW_BUILDER_PATH, GraphAnnotationRegistrationGameTest::portOrientationFollowsBuilder);
     }
@@ -28,7 +26,6 @@ public final class GraphAnnotationRegistrationGameTest {
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
         TestData<Holder<TestEnvironmentDefinition<?>>> testData = NodeGraphGameTests.defaultTestData(environment, "empty");
         NodeGraphGameTests.registerFunctionTest(event, NODE_TYPES_PATH, NodeGraphGameTests.functionKey(NODE_TYPES_PATH), testData);
-        NodeGraphGameTests.registerFunctionTest(event, SUPPORT_NODES_PATH, NodeGraphGameTests.functionKey(SUPPORT_NODES_PATH), testData);
         NodeGraphGameTests.registerFunctionTest(event, UNBOUND_NODE_PATH, NodeGraphGameTests.functionKey(UNBOUND_NODE_PATH), testData);
         NodeGraphGameTests.registerFunctionTest(event, PORT_ORIENTATION_FOLLOW_BUILDER_PATH, NodeGraphGameTests.functionKey(PORT_ORIENTATION_FOLLOW_BUILDER_PATH), testData);
     }
