@@ -29,6 +29,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
+import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
@@ -411,7 +412,15 @@ public class ItemLibrary extends UIElement {
         clearKeyboardSelection();
         var lowerWorld = word.toLowerCase();
         var builder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem());
-        getAllItems().filter(item -> item.getSearchableName().toLowerCase().contains(lowerWorld))
+        getAllItems().filter(item -> {
+                    if (item.getSearchableName().toLowerCase().contains(lowerWorld)) {
+                        return true;
+                    }
+                    if (item.getDisplayName().getString().toLowerCase().contains(lowerWorld)) {
+                        return true;
+                    }
+                    return LocalizationUtils.format(item.getDisplayName().getString()).toLowerCase().contains(lowerWorld);
+                })
                 .forEach(item -> {
                     builder.leaf(item, null);
                 });
