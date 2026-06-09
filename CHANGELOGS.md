@@ -1,4 +1,14 @@
 # ChangeLogs
+## v26.1.2.18
+* Added port tooltips + Added connection port ui
+* Added vertical port container + Preview
+* Added more ngt APIs
+* Fixed block node preview
+* Fixed block node preview
+* Fixed locale number parser
+* Added GraphLogger
+* Added Project default save path
+
 ## v26.1.2.17
 * Fixed the editor window to restore the stylesheet
 * Removed from using `org.apache.commons.compress.utils.Lists`, (some jre doesn't support it)
