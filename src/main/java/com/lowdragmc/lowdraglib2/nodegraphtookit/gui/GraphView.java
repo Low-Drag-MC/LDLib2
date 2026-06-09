@@ -10,10 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.data.*;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
@@ -310,7 +307,7 @@ public class GraphView extends UIElement {
                 .textAlignVertical(Vertical.CENTER)
                 .textWrap(TextWrap.HOVER_ROLL)
                 .textShadow(false));
-        Style.defaultPipeline(graphLogSummary.getStyle(), s -> s.overflowVisible(false));
+        Style.defaultPipeline(graphLogSummary.getStyle(), s -> s.clip(Clip.SCISSOR));
 
         graphLogCount.addClass("__node-graph-view_log-count__");
         graphLogCount.setText(Component.empty());
@@ -506,7 +503,7 @@ public class GraphView extends UIElement {
                 .textWrap(TextWrap.HOVER_ROLL)
                 .textColor(graphLogLevelColor(entry.level()))
                 .textShadow(false));
-        Style.defaultPipeline(label.getStyle(), s -> s.overflowVisible(false));
+        Style.defaultPipeline(label.getStyle(), s -> s.clip(Clip.SCISSOR));
         row.addChild(label);
         return row;
     }
