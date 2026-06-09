@@ -49,6 +49,9 @@ public class VariableDeclarationModel extends VariableDeclarationModelBase {
 
     @Override
     public void setModifiers(ModifierFlags flags) {
+        if (graphModel != null) {
+            flags = graphModel.sanitizeSubgraphVariableModifiers(flags);
+        }
         if (modifiers == flags) return;
         modifiers = flags;
         if (graphModel != null) {

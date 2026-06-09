@@ -94,7 +94,7 @@ public final class VariableDeclarationCommands {
                     .setName(variableName)
                     .setGroup(group)
                     .setIndexInGroup(indexInGroup)
-                    .setModifiers(modifierFlags)
+                    .setModifiers(newVariableDeclaration.getModifiers())
                     .setScope(scope)
                     .setTypeHandle(typeHandle)
                     .setVariableType(variableType)

@@ -78,6 +78,11 @@ public class CustomGraphModelImpl extends GraphModel {
         return types == null ? getSupportTypes() : types;
     }
 
+    @Override
+    public Set<VariableKind> getSupportedSubgraphVariableKinds() {
+        return graph.getSupportedSubgraphVariableKinds();
+    }
+
     public static List<TypeHandle> detectSupportedTypes(GraphModel graphModel) {
         var foundTypes = new HashSet<TypeHandle>();
         var nodeCreationData = GraphNodeCreationData.ofOrphan(graphModel);
@@ -218,7 +223,10 @@ public class CustomGraphModelImpl extends GraphModel {
     }
 
     public IVariable createVariable(String name, TypeHandle valueType, @Nullable Object defaultValue, @Nullable VariableKind kind) {
-        if (kind == null) kind = VariableKind.LOCAL;
+        var variableKind = kind == null ? VariableKind.LOCAL : kind;
+        if (variableKind != VariableKind.LOCAL && !supportsSubgraphVariableKind(variableKind)) {
+            variableKind = VariableKind.LOCAL;
+        }
         var constant = createConstantValue(valueType);
         if (defaultValue != null) {
             constant.setDefaultValue(defaultValue);
@@ -228,8 +236,8 @@ public class CustomGraphModelImpl extends GraphModel {
         return createGraphVariableDeclaration(
                 valueType,
                 name,
-                kind == VariableKind.INPUT ? ModifierFlags.READ : (kind == VariableKind.OUTPUT ? ModifierFlags.WRITE : ModifierFlags.NONE),
-                kind != VariableKind.LOCAL ? VariableScope.EXPOSED : VariableScope.LOCAL,
+                variableKind == VariableKind.INPUT ? ModifierFlags.READ : (variableKind == VariableKind.OUTPUT ? ModifierFlags.WRITE : ModifierFlags.NONE),
+                variableKind != VariableKind.LOCAL ? VariableScope.EXPOSED : VariableScope.LOCAL,
                 null,
                 Integer.MAX_VALUE,
                 constant,

@@ -1,13 +1,17 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ICustomNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePreviewModel;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
@@ -22,6 +26,16 @@ import org.jetbrains.annotations.Nullable;
  * is the single writer of its own display, so the parent node element must not drive it.
  */
 public class NodePreviewElement extends GraphElement<NodePreviewModel> {
+    public static final String COLLAPSED_CLASS = "__collapsed__";
+
+    /** Header that stays visible while preview content is collapsed. */
+    @Getter
+    @Nullable
+    protected UIElement header;
+    /** Collapse/expand arrow. Its on-state means the preview content is collapsed. */
+    @Getter
+    @Nullable
+    protected Toggle collapseToggle;
     /** Container that holds the node-supplied preview content. */
     @Getter
     @Nullable
@@ -38,10 +52,33 @@ public class NodePreviewElement extends GraphElement<NodePreviewModel> {
         Style.defaultPipeline(getLayout(), l -> l.flexDirection(FlexDirection.COLUMN).paddingAll(2).gapAll(2).flexGrow(1));
         Style.defaultPipeline(getStyle(), s -> s.background(Sprites.RECT_SOLID));
 
+        header = new UIElement().addClass("__node-preview_header__");
+        Style.defaultPipeline(header.getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).height(8));
+
+        collapseToggle = new Toggle();
+        collapseToggle.addClass("__node-preview_toggle__");
+        collapseToggle.noText()
+                .setOn(!getModel().isExpanded(), false)
+                .setOnToggleChanged(collapsed -> {
+                    var parent = getModel().getParentNode();
+                    if (parent != null) {
+                        parent.setPreviewExpanded(!collapsed);
+                        applyPreviewState();
+                    }
+                })
+                .toggleStyle(toggleStyle -> toggleStyle
+                        .baseTexture(IGuiTexture.EMPTY)
+                        .hoverTexture(IGuiTexture.EMPTY)
+                        .markTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT)
+                        .unmarkTexture(Icons.DOWN_ARROW_NO_BAR_S_LIGHT));
+        Style.defaultPipeline(collapseToggle.getLayout(), l -> l.width(8).height(8));
+        header.addChild(collapseToggle);
+
         contentContainer = new UIElement().addClass("__node-preview_content__");
         Style.defaultPipeline(contentContainer.getLayout(), l -> l.flexDirection(FlexDirection.COLUMN).flexGrow(1));
         buildPreviewContent(makeContext(contentContainer));
-        addChild(contentContainer);
+        addChildren(header, contentContainer);
+        applyPreviewState();
     }
 
     /**
@@ -78,16 +115,34 @@ public class NodePreviewElement extends GraphElement<NodePreviewModel> {
     @Override
     public void updateUIFromModel(ModelUpdateVisitor visitor) {
         super.updateUIFromModel(visitor);
-        var preview = getModel();
-        var parent = preview.getParentNode();
-        boolean hidden = !preview.isExpanded() || (parent != null && parent.isCollapsed());
-        Style.importantPipeline(getLayout(), l -> l.display(hidden ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
+        applyPreviewState();
 
         // Let dynamic previews (e.g. a live shader) refresh when inputs/connections change.
+        var parent = getModel().getParentNode();
         if (contentContainer != null
+                && getModel().isExpanded()
                 && (visitor.hasHint(ChangeHint.DATA) || visitor.hasHint(ChangeHint.GRAPH_TOPOLOGY))
                 && parent instanceof ICustomNodeModel cn && cn.getNode() != null) {
             cn.getNode().onUpdateNodePreview(makeContext(contentContainer));
+        }
+    }
+
+    protected void applyPreviewState() {
+        var preview = getModel();
+        var parent = preview.getParentNode();
+        boolean parentCollapsed = parent != null && parent.isCollapsed();
+        boolean previewCollapsed = !preview.isExpanded();
+        Style.importantPipeline(getLayout(), l -> l.display(parentCollapsed ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
+        if (previewCollapsed) {
+            addClass(COLLAPSED_CLASS);
+        } else {
+            removeClass(COLLAPSED_CLASS);
+        }
+        if (contentContainer != null) {
+            Style.importantPipeline(contentContainer.getLayout(), l -> l.display(previewCollapsed ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
+        }
+        if (collapseToggle != null) {
+            collapseToggle.setOn(previewCollapsed, false);
         }
     }
 }

@@ -25,6 +25,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisit
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.AlignItems;
@@ -37,6 +38,7 @@ import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -200,27 +202,28 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
                         if (graphView == null) return;
                         graphView.dispatchCommand(new VariableDeclarationCommands.ChangeVariableModifiersCommand(
                                 List.of(getModel()),
-                                type == VariableType.NONE ? ModifierFlags.NONE : ModifierFlags.READ
+                                type == VariableType.NONE ? ModifierFlags.NONE : getDefaultSubgraphPortModifier()
                         ));
                     },
                     VariableType.NONE,
                     true,
-                    Arrays.stream(VariableType.values()).toList(),
+                    getVariableTypeCandidates(),
                     VariableType::getSerializedName,
                     (type, configuratorGroup) -> {
                         if (type == VariableType.SUB_GRAPH_PORT) {
+                            var portCandidates = getSubGraphPortCandidates();
                             configuratorGroup.addConfigurator(EnumAccessor.create(
                                     "graph.flow_direction",
-                                    Arrays.stream(SubGraphPort.values()).toList(),
-                                    () -> getModel().getModifiers() == ModifierFlags.READ ? SubGraphPort.INPUT : SubGraphPort.OUTPUT,
+                                    portCandidates,
+                                    () -> getSelectedSubGraphPort(portCandidates),
                                     io -> {
                                         if (graphView == null) return;
                                         graphView.dispatchCommand(new VariableDeclarationCommands.ChangeVariableModifiersCommand(
                                                 List.of(getModel()),
-                                                io == SubGraphPort.INPUT ? ModifierFlags.READ : ModifierFlags.WRITE
+                                                toModifier(io)
                                         ));
                                     },
-                                    SubGraphPort.INPUT,
+                                    portCandidates.isEmpty() ? SubGraphPort.INPUT : portCandidates.get(0),
                                     true,
                                     SubGraphPort::getIcon
                             ));
@@ -229,6 +232,41 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
             );
             group.addConfigurators(rename, defaultValue, subGraphConfigurator);
         });
+    }
+
+    private List<VariableType> getVariableTypeCandidates() {
+        if (getSubGraphPortCandidates().isEmpty()) {
+            return List.of(VariableType.NONE);
+        }
+        return Arrays.stream(VariableType.values()).toList();
+    }
+
+    private List<SubGraphPort> getSubGraphPortCandidates() {
+        var graphModel = getModel().getGraphModel();
+        if (graphModel == null) return List.of();
+        var supportedKinds = graphModel.getSupportedSubgraphVariableKinds();
+        var candidates = new ArrayList<SubGraphPort>();
+        if (supportedKinds.contains(VariableKind.INPUT)) candidates.add(SubGraphPort.INPUT);
+        if (supportedKinds.contains(VariableKind.OUTPUT)) candidates.add(SubGraphPort.OUTPUT);
+        return candidates;
+    }
+
+    private ModifierFlags getDefaultSubgraphPortModifier() {
+        var candidates = getSubGraphPortCandidates();
+        if (candidates.isEmpty()) return ModifierFlags.NONE;
+        return toModifier(candidates.get(0));
+    }
+
+    private SubGraphPort getSelectedSubGraphPort(List<SubGraphPort> candidates) {
+        var modifiers = getModel().getModifiers();
+        var selected = modifiers.hasFlag(ModifierFlags.WRITE) && !modifiers.hasFlag(ModifierFlags.READ)
+                ? SubGraphPort.OUTPUT : SubGraphPort.INPUT;
+        if (candidates.contains(selected)) return selected;
+        return candidates.isEmpty() ? SubGraphPort.INPUT : candidates.get(0);
+    }
+
+    private ModifierFlags toModifier(SubGraphPort io) {
+        return io == SubGraphPort.INPUT ? ModifierFlags.READ : ModifierFlags.WRITE;
     }
 
     public IConfigurable getVariableConfigurable() {

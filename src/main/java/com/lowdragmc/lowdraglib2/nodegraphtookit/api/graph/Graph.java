@@ -4,11 +4,13 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.INode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Represents the core definition of a graph and defines its behavior.
@@ -114,6 +116,17 @@ public abstract class Graph implements IGraph {
      */
     public @Nullable List<TypeHandle> getVariableSupportTypes() {
         return getSupportTypes();
+    }
+
+    /**
+     * Retrieves the variable kinds that may be exposed as ports when this graph is used as a subgraph.
+     *
+     * <p>Return an empty set to disable variable-backed subgraph ports entirely, or return only
+     * {@link VariableKind#INPUT} / {@link VariableKind#OUTPUT} to allow one direction. Local
+     * variables are always allowed and are not controlled by this API.</p>
+     */
+    public Set<VariableKind> getSupportedSubgraphVariableKinds() {
+        return Set.of(VariableKind.INPUT, VariableKind.OUTPUT);
     }
 
     /**

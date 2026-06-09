@@ -83,4 +83,9 @@ public class CustomNodeModelImpl extends NodeModel implements ICustomNodeModel {
         // node's onBuildNodePreview hook (see NodePreviewElement).
         return node != null && node.hasNodePreview();
     }
+
+    @Override
+    public boolean isNodePreviewExpandedByDefault() {
+        return node == null || node.isNodePreviewExpandedByDefault();
+    }
 }
