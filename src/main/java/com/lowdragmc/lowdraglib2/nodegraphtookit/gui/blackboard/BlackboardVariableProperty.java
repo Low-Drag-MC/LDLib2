@@ -197,20 +197,20 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
             getModel().buildConfigurator(defaultValue);
             var subGraphConfigurator = new ConfiguratorSelectorConfigurator<>(
                     "graph.variable_type",
-                    () -> getModel().getModifiers() == ModifierFlags.NONE ? VariableType.NONE : VariableType.SUB_GRAPH_PORT,
+                    () -> getModel().getModifiers() == ModifierFlags.NONE ? VariableType.INTERNAL : VariableType.EXTERNAL,
                     type -> {
                         if (graphView == null) return;
                         graphView.dispatchCommand(new VariableDeclarationCommands.ChangeVariableModifiersCommand(
                                 List.of(getModel()),
-                                type == VariableType.NONE ? ModifierFlags.NONE : getDefaultSubgraphPortModifier()
+                                type == VariableType.INTERNAL ? ModifierFlags.NONE : getDefaultSubgraphPortModifier()
                         ));
                     },
-                    VariableType.NONE,
+                    VariableType.INTERNAL,
                     true,
                     getVariableTypeCandidates(),
                     VariableType::getSerializedName,
                     (type, configuratorGroup) -> {
-                        if (type == VariableType.SUB_GRAPH_PORT) {
+                        if (type == VariableType.EXTERNAL) {
                             var portCandidates = getSubGraphPortCandidates();
                             configuratorGroup.addConfigurator(EnumAccessor.create(
                                     "graph.flow_direction",
@@ -236,7 +236,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
 
     private List<VariableType> getVariableTypeCandidates() {
         if (getSubGraphPortCandidates().isEmpty()) {
-            return List.of(VariableType.NONE);
+            return List.of(VariableType.INTERNAL);
         }
         return Arrays.stream(VariableType.values()).toList();
     }
@@ -281,12 +281,12 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
     }
 
     private enum VariableType implements StringRepresentable {
-        NONE,
-        SUB_GRAPH_PORT;
+        INTERNAL,
+        EXTERNAL;
 
         @Override
         public String getSerializedName() {
-            return this == NONE ? "none" : "sub graph port";
+            return this == INTERNAL ? "graph.variable_type.internal" : "graph.variable_type.external";
         }
     }
 

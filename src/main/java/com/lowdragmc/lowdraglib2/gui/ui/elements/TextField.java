@@ -334,17 +334,17 @@ public class TextField extends BindableUIElement<String> {
         } else if (mode == Mode.NUMBER_FLOAT) {
             try {
                 if (numberInstance != null) {
-                    number = numberInstance.format(append ? (Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)) : (float) value);
+                    number = numberInstance.format(append ? (LocalizedNumberText.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)) : (float) value);
                 } else {
-                    number = String.valueOf(append ? (Float.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)) : (float) value);
+                    number = String.valueOf(append ? (LocalizedNumberText.parseFloat(getRawText()) + value * (isShiftDown() ? 10 : 1)) : (float) value);
                 }
             } catch (NumberFormatException ignored) { }
         }  else if (mode == Mode.NUMBER_DOUBLE) {
             try {
                 if (numberInstance != null) {
-                    number = numberInstance.format(append ? (Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)) : value);
+                    number = numberInstance.format(append ? (LocalizedNumberText.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)) : value);
                 } else {
-                    number = String.valueOf(append ? (Double.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)) : value);
+                    number = String.valueOf(append ? (LocalizedNumberText.parseDouble(getRawText()) + value * (isShiftDown() ? 10 : 1)) : value);
                 }
             } catch (NumberFormatException ignored) { }
         } else if (mode == Mode.NUMBER_SHORT) {
@@ -428,7 +428,7 @@ public class TextField extends BindableUIElement<String> {
                 if (isNumberField()) {
                     var startValue = 0d;
                     try {
-                        startValue = Double.parseDouble(getRawText());
+                        startValue = LocalizedNumberText.parseDouble(getRawText());
                     } catch (NumberFormatException ignored) {}
                     startDrag(new NumberStart(startValue), null);
                 } else {
@@ -530,13 +530,22 @@ public class TextField extends BindableUIElement<String> {
     @Override
     public TextField setValue(@Nullable String value, boolean notify) {
         if (value == null) value = "";
+        var textValue = value;
         this.rawText = value;
         if (isNumberField() && numberInstance != null && !value.isEmpty()) {
             try {
                 switch (mode) {
                     case NUMBER_INT -> this.rawText = numberInstance.format(Integer.parseInt(value));
-                    case NUMBER_FLOAT -> this.rawText = numberInstance.format(Float.parseFloat(value));
-                    case NUMBER_DOUBLE -> this.rawText = numberInstance.format(Double.parseDouble(value));
+                    case NUMBER_FLOAT -> {
+                        var parsed = LocalizedNumberText.parseFloat(value);
+                        this.rawText = numberInstance.format(parsed);
+                        textValue = LocalizedNumberText.normalizeFloat(value);
+                    }
+                    case NUMBER_DOUBLE -> {
+                        var parsed = LocalizedNumberText.parseDouble(value);
+                        this.rawText = numberInstance.format(parsed);
+                        textValue = LocalizedNumberText.normalizeDouble(value);
+                    }
                     case NUMBER_BYTE ->  this.rawText = numberInstance.format(Byte.parseByte(value));
                     case NUMBER_SHORT ->  this.rawText = numberInstance.format(Short.parseShort(value));
                     case NUMBER_LONG ->  this.rawText = numberInstance.format(Long.parseLong(value));
@@ -545,8 +554,8 @@ public class TextField extends BindableUIElement<String> {
                 this.rawText = "";
             }
         }
-        if (!this.text.equals(value)) {
-            this.text = value;
+        if (!this.text.equals(textValue)) {
+            this.text = textValue;
             if (notify) {
                 notifyListeners();
             }
@@ -705,12 +714,12 @@ public class TextField extends BindableUIElement<String> {
         mode = Mode.NUMBER_FLOAT;
         setTextValidator(s -> {
             try {
-                float value = Float.parseFloat(s);
+                float value = LocalizedNumberText.parseFloat(s);
                 if (minValue <= value && value <= maxValue) return true;
             } catch (NumberFormatException ignored) { }
             return false;
         });
-        setCharValidator(chr -> chr == '.' || Character.isDigit(chr) || chr == '-' || chr == '+');
+        setCharValidator(LocalizedNumberText::isFloatingPointCharacter);
         if (minValue == -Float.MAX_VALUE && maxValue == Float.MAX_VALUE) {
             style(style -> style.tooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == -Float.MAX_VALUE) {
@@ -727,12 +736,12 @@ public class TextField extends BindableUIElement<String> {
         mode = Mode.NUMBER_DOUBLE;
         setTextValidator(s -> {
             try {
-                var value = Double.parseDouble(s);
+                var value = LocalizedNumberText.parseDouble(s);
                 if (minValue <= value && value <= maxValue) return true;
             } catch (NumberFormatException ignored) { }
             return false;
         });
-        setCharValidator(chr -> chr == '.' || Character.isDigit(chr) || chr == '-' || chr == '+');
+        setCharValidator(LocalizedNumberText::isFloatingPointCharacter);
         if (minValue == -Double.MAX_VALUE && maxValue == Double.MAX_VALUE) {
             style(style -> style.tooltips(Component.translatable("ldlib.gui.text_field.number.3")));
         } else if (minValue == -Double.MAX_VALUE) {
@@ -929,12 +938,25 @@ public class TextField extends BindableUIElement<String> {
         updateDisplayOffset();
         if (textValidator.test(rawText)) {
             isError = false;
-            if (!text.equals(rawText)) {
-                text = rawText;
+            var textValue = normalizeRawTextValue();
+            if (!text.equals(textValue)) {
+                text = textValue;
                 notifyListeners();
             }
         } else {
             isError = true;
+        }
+    }
+
+    private String normalizeRawTextValue() {
+        try {
+            return switch (mode) {
+                case NUMBER_FLOAT -> LocalizedNumberText.normalizeFloat(rawText);
+                case NUMBER_DOUBLE -> LocalizedNumberText.normalizeDouble(rawText);
+                default -> rawText;
+            };
+        } catch (NumberFormatException ignored) {
+            return rawText;
         }
     }
 
