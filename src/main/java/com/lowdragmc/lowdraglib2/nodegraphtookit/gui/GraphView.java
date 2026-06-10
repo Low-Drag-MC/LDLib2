@@ -237,8 +237,8 @@ public class GraphView extends UIElement {
                 .setOnToggleChanged(this::setSnapToGrid);
         Style.defaultPipeline(snapToggle.getToggleStyle(), style -> style.baseTexture(Sprites.BORDER1_RT1_DARK)
                 .hoverTexture(Sprites.BORDER1_RT1)
-                .markTexture(Icons.GRID)
-                .unmarkTexture(Icons.GRID.copy().setColor(ColorPattern.GRAY.color)));
+                .markTexture(Icons.MAGNET)
+                .unmarkTexture(Icons.MAGNET));
         Style.defaultPipeline(snapToggle.getLayout(), l -> l.width(14).heightPercent(100));
         Style.defaultPipeline(snapToggle.getStyle(), s -> s.tooltips("graph.snap_to_grid"));
         rightSection.addChild(snapToggle);
@@ -262,6 +262,7 @@ public class GraphView extends UIElement {
         var bbPanel = new GraphPanel(this, blackboard);
         var insPanel = new GraphPanel(this, inspector);
         var prevPanel = new GraphPanel(this, preview);
+        Style.defaultPipeline(bbPanel.getLayout(), l -> l.width(160));
         panelLayer.addChildren(bbPanel, insPanel, prevPanel);
         dockManager.register(bbPanel, DockSlot.TOP_LEFT);
         dockManager.register(insPanel, DockSlot.TOP_RIGHT);
