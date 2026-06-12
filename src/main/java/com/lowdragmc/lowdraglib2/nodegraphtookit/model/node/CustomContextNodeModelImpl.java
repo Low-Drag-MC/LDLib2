@@ -47,6 +47,11 @@ public class CustomContextNodeModelImpl extends ContextNodeModel implements ICus
     }
 
     @Override
+    public float getNodeWidth() {
+        return node == null ? super.getNodeWidth() : node.getNodeWidth();
+    }
+
+    @Override
     protected void onDefineNode(NodeDefinitionScope<? extends NodeModel> definitionScope) {
         if (node == null) return;
         optionsById.clear();

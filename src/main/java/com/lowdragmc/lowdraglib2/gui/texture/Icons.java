@@ -101,6 +101,7 @@ public class Icons {
     public static SpriteTexture GRADIENT = icon("gradient");
     public static SpriteTexture CURVE = icon("curve");
     public static SpriteTexture SETTINGS = icon("settings");
+    public static SpriteTexture MAGNET = icon("magnet");
     public static SpriteTexture LEFT_CLICK = icon("left_click");
     public static SpriteTexture RIGHT_CLICK = icon("right_click");
     public static SpriteTexture SCREEN = icon("screen");

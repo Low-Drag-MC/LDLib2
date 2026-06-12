@@ -8,6 +8,7 @@ public class GraphInspector extends Inspector implements IGraphTool {
 
     public GraphInspector(GraphView graphView) {
         this.graphView = graphView;
+        getLayout().flex(1);
     }
 
     @Override

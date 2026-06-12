@@ -48,6 +48,16 @@ public abstract class Node implements INode {
     }
 
     /**
+     * Gets the minimum width this node requires. Editor-controlled {@code minWidth} cannot be
+     * reduced below this value.
+     *
+     * @return the node-specific minimum width floor, or {@code 0} for no additional floor
+     */
+    public float getNodeWidth() {
+        return 0f;
+    }
+
+    /**
      * Defines the structure of the node by building its ports and options.
      *
      * <p>This method calls both {@link #onDefineOptions(IOptionDefinitionContext)} and

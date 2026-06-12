@@ -46,6 +46,11 @@ public class CustomBlockNodeModelImpl extends BlockNodeModel implements ICustomN
     }
 
     @Override
+    public float getNodeWidth() {
+        return node == null ? super.getNodeWidth() : node.getNodeWidth();
+    }
+
+    @Override
     public boolean hasNodePreview() {
         return node != null && node.hasNodePreview();
     }

@@ -40,6 +40,11 @@ public class CustomNodeModelImpl extends NodeModel implements ICustomNodeModel {
     }
 
     @Override
+    public float getNodeWidth() {
+        return node == null ? super.getNodeWidth() : node.getNodeWidth();
+    }
+
+    @Override
     protected void onDefineNode(NodeDefinitionScope<? extends NodeModel> definitionScope) {
         if (node == null)
             return;

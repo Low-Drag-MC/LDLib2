@@ -181,13 +181,21 @@ public abstract class AbstractNodeModel extends GraphElementModel implements IHa
 
     @Override
     public float getMinWidth() {
-        return minWidth;
+        return Math.max(minWidth, getNodeWidth());
+    }
+
+    /**
+     * Gets the intrinsic minimum width required by this node type. User-edited {@link #minWidth}
+     * cannot go below this value.
+     */
+    public float getNodeWidth() {
+        return 0f;
     }
 
     @Override
     public void setMinWidth(float value) {
         if (!isResizable()) return;
-        if (value < 0) value = 0;
+        value = Math.max(value, Math.max(0, getNodeWidth()));
         if (minWidth == value) return;
         minWidth = value;
         GraphModel gm = getGraphModel();
