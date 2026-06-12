@@ -11,9 +11,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisit
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ICustomNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodePreviewModel;
-import dev.vfyjxf.taffy.style.AlignItems;
-import dev.vfyjxf.taffy.style.FlexDirection;
-import dev.vfyjxf.taffy.style.TaffyDisplay;
+import dev.vfyjxf.taffy.style.*;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,7 +51,7 @@ public class NodePreviewElement extends GraphElement<NodePreviewModel> {
         Style.defaultPipeline(getStyle(), s -> s.background(Sprites.RECT_SOLID));
 
         header = new UIElement().addClass("__node-preview_header__");
-        Style.defaultPipeline(header.getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).height(8));
+        Style.defaultPipeline(header.getLayout(), l -> l.alignItems(AlignItems.CENTER).justifyContent(AlignContent.CENTER).height(8));
 
         collapseToggle = new Toggle();
         collapseToggle.addClass("__node-preview_toggle__");
@@ -69,15 +67,15 @@ public class NodePreviewElement extends GraphElement<NodePreviewModel> {
                 .toggleStyle(toggleStyle -> toggleStyle
                         .baseTexture(IGuiTexture.EMPTY)
                         .hoverTexture(IGuiTexture.EMPTY)
-                        .markTexture(Icons.RIGHT_ARROW_NO_BAR_S_LIGHT)
-                        .unmarkTexture(Icons.DOWN_ARROW_NO_BAR_S_LIGHT));
+                        .markTexture(Icons.DOWN_ARROW_NO_BAR_S_LIGHT)
+                        .unmarkTexture(Icons.UP_ARROW_NO_BAR_S_LIGHT));
         Style.defaultPipeline(collapseToggle.getLayout(), l -> l.width(8).height(8));
         header.addChild(collapseToggle);
 
         contentContainer = new UIElement().addClass("__node-preview_content__");
         Style.defaultPipeline(contentContainer.getLayout(), l -> l.flexDirection(FlexDirection.COLUMN).flexGrow(1));
         buildPreviewContent(makeContext(contentContainer));
-        addChildren(header, contentContainer);
+        addChildren(contentContainer, header);
         applyPreviewState();
     }
 
