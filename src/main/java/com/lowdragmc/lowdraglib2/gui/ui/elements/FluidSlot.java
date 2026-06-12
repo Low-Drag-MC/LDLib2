@@ -387,7 +387,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
             var access = ItemAccess.forPlayerCursor(player, menu);
             var handler = access.getCapability(Capabilities.Fluid.ITEM);
             if (handler == null) return;
-            var initialFluid = handler.getResource(tankIndex).toStack(handler.getAmountAsInt(tankIndex));
+            var initialFluid = container.getResource(0).toStack(container.getAmountAsInt(0));
             if (allowClickFilled && container.getAmountAsInt(0) > 0) {
                 var performedFill = false;
                 try (var trans = Transaction.openRoot()) {
