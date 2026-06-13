@@ -10,7 +10,7 @@
 
   "ldlib.gui.tips.confirm": "确认",
   "ldlib.gui.tips.apply": "应用",
-  "ldlib.gui.tips.reject": "拒绝",
+  "ldlib.gui.tips.reject": "否",
   "ldlib.gui.tips.cancel": "取消",
   "ldlib.fluid.empty": "空",
   "ldlib.fluid.amount": "§9数量：%d/%d",
