@@ -24,6 +24,7 @@ import dev.vfyjxf.taffy.style.TaffyDimension;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import dev.vfyjxf.taffy.tree.NodeId;
 import dev.vfyjxf.taffy.tree.TaffyTree;
+import it.unimi.dsi.fastutil.objects.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -101,7 +102,7 @@ public class ModularUI {
     @Getter
     private Matrix4f lastDrawPose = new Matrix4f();
     // Element registry for fast retrieval
-    private final List<UIElement> elements = new ArrayList<>();
+    private final ObjectArrayList<UIElement> elements = new ObjectArrayList<>();
     private final Map<String, List<UIElement>> elementsById = new ConcurrentHashMap<>();
     private final Map<Class<?>, List<UIElement>> elementsByType = new ConcurrentHashMap<>();
     private final Map<NodeId, UIElement> elementByNode = new HashMap<>();
@@ -275,7 +276,7 @@ public class ModularUI {
     }
 
     public List<UIElement> getAllElements() {
-        return Collections.unmodifiableList(elements);
+        return ObjectLists.unmodifiable(elements);
     }
 
     /**

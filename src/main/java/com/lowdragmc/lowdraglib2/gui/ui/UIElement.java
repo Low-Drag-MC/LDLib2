@@ -42,6 +42,9 @@ import dev.vfyjxf.taffy.style.*;
 import dev.vfyjxf.taffy.tree.Layout;
 import dev.vfyjxf.taffy.tree.NodeId;
 import dev.vfyjxf.taffy.tree.TaffyTree;
+import it.unimi.dsi.fastutil.ints.IntArrays;
+import it.unimi.dsi.fastutil.ints.IntComparator;
+import it.unimi.dsi.fastutil.objects.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -113,7 +116,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     // structure
     @Nullable
     private UIElement parent;
-    private final List<UIElement> children = new ArrayList<>();
+    private final ObjectArrayList<UIElement> children = new ObjectArrayList<>();
     // style
     @Getter
     @Accessors(chain = true)
@@ -124,8 +127,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Getter
     private final StyleBag styleBag = new StyleBag(this);
     @Getter
-    private final List<Style> styles = new ArrayList<>();
-    private final List<Stylesheet> localStylesheets = new ArrayList<>();
+    private final ObjectArrayList<Style> styles = new ObjectArrayList<>();
+    private final ObjectArrayList<Stylesheet> localStylesheets = new ObjectArrayList<>();
     @Getter
     private final LayoutStyle layoutStyle = new LayoutStyle(this);
     @Getter
@@ -157,7 +160,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return name.isEmpty() ? "Unknown" : name;
     });
     @Nullable
-    private List<UIElement> sortedChildrenCache = null;
+    private UIElement[] sortedChildrenCache = null;
     private ImmutableList<UIElement> structurePathCache = null;
     private FloatOptional positionXCache = FloatOptional.of();
     private FloatOptional positionYCache = FloatOptional.of();
@@ -953,7 +956,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * Local stylesheets only affect this element and its descendants.
      */
     public List<Stylesheet> getLocalStylesheets() {
-        return Collections.unmodifiableList(localStylesheets);
+        return ObjectLists.unmodifiable(localStylesheets);
     }
 
     /**
@@ -1012,7 +1015,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      */
     public UIElement clearLocalStylesheets() {
         if (!localStylesheets.isEmpty()) {
-            var sheets = new ArrayList<>(localStylesheets);
+            final var sheets = localStylesheets.toArray(Stylesheet[]::new);
             localStylesheets.clear();
             if (!LDLib2.isServer()) {
                 var mui = getModularUI();
@@ -1186,19 +1189,35 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * Get the sorted children of this element. The children are sorted by their zIndex and their order in the structure.
      */
     public List<UIElement> getSortedChildren() {
+        // to keep compatibility
+        return Arrays.asList(getSafeSortedChildren());
+    }
+
+    public UIElement[] getSafeSortedChildren() {
         if (sortedChildrenCache == null) {
-            // Pre-build index map to avoid O(n) indexOf calls inside the comparator
-            var indexMap = new HashMap<UIElement, Integer>(children.size() * 2);
-            for (int i = 0; i < children.size(); i++) {
-                indexMap.put(children.get(i), i);
+            int n = children.size();
+            var indexArrayBuffer = new int[n];
+
+            for (int i = 0; i < n; i++) {
+                indexArrayBuffer[i] = i;
             }
-            sortedChildrenCache = new ArrayList<>(children);
-            sortedChildrenCache.sort((a, b) -> {
-                int zCompare = Integer.compare(b.style.zIndex(), a.style.zIndex());
-                if (zCompare != 0) return zCompare;
-                return indexMap.getOrDefault(b, 0) - indexMap.getOrDefault(a, 0);
+
+            IntArrays.quickSort(indexArrayBuffer, 0, n, (a, b) -> {
+                int zA = children.get(a).style.zIndex();
+                int zB = children.get(b).style.zIndex();
+
+                if (zA != zB) {
+                    return Integer.compare(zB, zA);
+                }
+                return Integer.compare(b, a);
             });
+
+            sortedChildrenCache = new UIElement[n];
+            for (int i = 0; i < n; i++) {
+                sortedChildrenCache[i] = children.get(indexArrayBuffer[i]);
+            }
         }
+
         return sortedChildrenCache;
     }
 
@@ -1257,7 +1276,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var hidden = !style.overflowVisible();
 
         if (!hidden || isMouseOverRect(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
-            for (var child : getSortedChildren()) {
+            for (var child : getSafeSortedChildren()) {
                 var result = child.hitTest(localMouseX, localMouseY);
                 if (result != null && (hover == null || hover.getB() < result.getB())) {
                     hover = result;
@@ -1816,7 +1835,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 maxY = Math.max(maxY, corner.y / corner.w);
             }
             var aabb = Rect.of(Mth.floor(minX), Mth.floor(minY), Mth.ceil(maxX), Mth.ceil(maxY));
-            return aabb.isCollide(context.scissorStack.peek());
+            return aabb.isCollide(context.scissorStack.top());
         }
         return true;
     }
@@ -1853,7 +1872,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 guiContext.graphics.flush();
                 guiContext.resetElementColor();
             }
-            List.copyOf(children).forEach(child -> child.drawInBackground(guiContext));
+
+            var copyList = children.toArray(UIElement[]::new);
+            for (UIElement uiElement : copyList) {
+                uiElement.drawInBackground(guiContext);
+            }
+
             if (hasColor) {
                 guiContext.graphics.flush();
                 guiContext.setElementColor(currentColor);

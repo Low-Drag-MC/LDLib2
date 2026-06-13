@@ -16,17 +16,81 @@ import oshi.util.tuples.Pair;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.RandomAccess;
 
 @OnlyIn(Dist.CLIENT)
 public class RenderBufferUtils {
 
+    public static void drawLine(PoseStack.Pose pose, VertexConsumer buffer,
+                                float fromX, float fromY, float fromZ,
+                                float toX, float toY, float toZ,
+                                float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
+        float nx = toX - fromX;
+        float ny = toY - fromY;
+        float nz = toZ - fromZ;
+        float len2 = nx * nx + ny * ny + nz * nz;
+        if (len2 >= 1.0e-12f) {
+            float invLen = (float) (1.0 / Math.sqrt(len2));
+            nx *= invLen;
+            ny *= invLen;
+            nz *= invLen;
+        } else {
+            nx = 0;
+            ny = 0;
+            nz = 0;
+        }
+        buffer.addVertex(pose, fromX, fromY, fromZ).setColor(sr, sg, sb, sa)
+                .setNormal(pose, nx, ny, nz);
+        buffer.addVertex(pose, toX, toY, toZ).setColor(er, eg, eb, ea)
+                .setNormal(pose, nx, ny, nz);
+        if (buffer instanceof MultiBufferSource.BufferSource source) {
+            source.endLastBatch();
+        }
+    }
+
     public static void drawLine(PoseStack.Pose pose, VertexConsumer buffer, Vector3f from, Vector3f to,
                                 float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
-        var normalDir = new Vector3f(to.x - from.x, to.y - from.y, to.z - from.z).normalize();
-        buffer.addVertex(pose, from.x, from.y, from.z).setColor(sr, sg, sb, sa)
-                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z);
-        buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
-                .setNormal(pose, normalDir.x, normalDir.y, normalDir.z);
+        drawLine(pose, buffer, from.x, from.y, from.z, to.x, to.y, to.z, sr, sg, sb, sa, er, eg, eb, ea);
+    }
+
+    public static void drawLine(Matrix4f pose, VertexConsumer buffer,
+                                float fromX, float fromY, float fromZ,
+                                float toX, float toY, float toZ,
+                                float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
+        float nx = toX - fromX;
+        float ny = toY - fromY;
+        float nz = toZ - fromZ;
+        float len2 = nx * nx + ny * ny + nz * nz;
+        if (len2 >= 1.0e-12f) {
+            float invLen = (float) (1.0 / Math.sqrt(len2));
+            nx *= invLen;
+            ny *= invLen;
+            nz *= invLen;
+        } else {
+            nx = 0;
+            ny = 0;
+            nz = 0;
+        }
+
+        float tx = pose.m00() * nx + pose.m10() * ny + pose.m20() * nz;
+        float ty = pose.m01() * nx + pose.m11() * ny + pose.m21() * nz;
+        float tz = pose.m02() * nx + pose.m12() * ny + pose.m22() * nz;
+        float transformedLen2 = tx * tx + ty * ty + tz * tz;
+        if (transformedLen2 >= 1.0e-12f) {
+            float invTransformedLen = (float) (1.0 / Math.sqrt(transformedLen2));
+            tx *= invTransformedLen;
+            ty *= invTransformedLen;
+            tz *= invTransformedLen;
+        } else {
+            tx = 0;
+            ty = 0;
+            tz = 0;
+        }
+
+        buffer.addVertex(pose, fromX, fromY, fromZ).setColor(sr, sg, sb, sa)
+                .setNormal(tx, ty, tz);
+        buffer.addVertex(pose, toX, toY, toZ).setColor(er, eg, eb, ea)
+                .setNormal(tx, ty, tz);
         if (buffer instanceof MultiBufferSource.BufferSource source) {
             source.endLastBatch();
         }
@@ -34,33 +98,46 @@ public class RenderBufferUtils {
 
     public static void drawLine(Matrix4f pose, VertexConsumer buffer, Vector3f from, Vector3f to,
                                 float sr, float sg, float sb, float sa, float er, float eg, float eb, float ea) {
-        var normalDir = new Vector3f(to.x - from.x, to.y - from.y, to.z - from.z).normalize();
-        normalDir = pose.transformDirection(normalDir);
-        buffer.addVertex(pose, from.x, from.y, from.z).setColor(sr, sg, sb, sa)
-                .setNormal(normalDir.x, normalDir.y, normalDir.z);
-        buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
-                .setNormal(normalDir.x, normalDir.y, normalDir.z);
-        if (buffer instanceof MultiBufferSource.BufferSource source) {
-            source.endLastBatch();
-        }
+        drawLine(pose, buffer, from.x, from.y, from.z, to.x, to.y, to.z, sr, sg, sb, sa, er, eg, eb, ea);
     }
 
     public static void drawLines(PoseStack poseStack, VertexConsumer buffer, List<Vector3f> points, int colorStart, int colorEnd) {
-        if (points.size() < 2) return;
-        Vector3f lastPoint = points.getFirst();
-        Vector3f point;
+        int n = points.size();
+        if (n < 2) return;
+
+        float invPointCount = 1f / n;
+        float colorMul = 1f / 255f;
         int sa = (colorStart >> 24) & 0xff, sr = (colorStart >> 16) & 0xff, sg = (colorStart >> 8) & 0xff, sb = colorStart & 0xff;
         int ea = (colorEnd >> 24) & 0xff, er = (colorEnd >> 16) & 0xff, eg = (colorEnd >> 8) & 0xff, eb = colorEnd & 0xff;
         ea = (ea - sa);
         er = (er - sr);
         eg = (eg - sg);
         eb = (eb - sb);
-        for (int i = 1; i < points.size(); i++) {
-            float s = (i - 1f) / points.size();
-            float e = i * 1f / points.size();
-            point = points.get(i);
-            drawLine(poseStack.last().pose(), buffer, lastPoint, point, (sr + er * s) / 255, (sg + eg * s) / 255, (sb + eb * s) / 255, (sa + ea * s) / 255,
-                    (sr + er * e) / 255, (sg + eg * e) / 255, (sb + eb * e) / 255, (sa + ea * e) / 255);
+        Matrix4f mat = poseStack.last().pose();
+
+        if (points instanceof RandomAccess) {
+            Vector3f lastPoint = points.get(0);
+            for (int i = 1; i < n; i++) {
+                float s = (i - 1f) * invPointCount;
+                float e = i * invPointCount;
+                Vector3f point = points.get(i);
+                drawLine(mat, buffer, lastPoint.x, lastPoint.y, lastPoint.z, point.x, point.y, point.z,
+                        (sr + er * s) * colorMul, (sg + eg * s) * colorMul, (sb + eb * s) * colorMul, (sa + ea * s) * colorMul,
+                        (sr + er * e) * colorMul, (sg + eg * e) * colorMul, (sb + eb * e) * colorMul, (sa + ea * e) * colorMul);
+                lastPoint = point;
+            }
+        } else {
+            var iter = points.iterator();
+            Vector3f lastPoint = iter.next();
+            for (int i = 1; i < n; i++) {
+                float s = (i - 1f) * invPointCount;
+                float e = i * invPointCount;
+                Vector3f point = iter.next();
+                drawLine(mat, buffer, lastPoint.x, lastPoint.y, lastPoint.z, point.x, point.y, point.z,
+                        (sr + er * s) * colorMul, (sg + eg * s) * colorMul, (sb + eb * s) * colorMul, (sa + ea * s) * colorMul,
+                        (sr + er * e) * colorMul, (sg + eg * e) * colorMul, (sb + eb * e) * colorMul, (sa + ea * e) * colorMul);
+                lastPoint = point;
+            }
         }
     }
 
@@ -109,9 +186,9 @@ public class RenderBufferUtils {
 
         if (minZ != maxZ && minY != maxY) {
             if (shade) {
-                r *= 0.6;
-                g *= 0.6;
-                b *= 0.6;
+                r *= 0.6f;
+                g *= 0.6f;
+                b *= 0.6f;
             }
 
             buffer.addVertex(mat, minX, minY, minZ).setColor(r, g, b, a);
@@ -292,13 +369,17 @@ public class RenderBufferUtils {
             float f = b.x - a.x;
             float f1 = b.y - a.y;
             float f2 = b.z - a.z;
-            float f3 = Mth.sqrt(f * f + f1 * f1 + f2 * f2);
-            f /= f3;
-            f1 /= f3;
-            f2 /= f3;
+            float len2 = f * f + f1 * f1 + f2 * f2;
+            if (len2 < 1.0e-12f) {
+                continue;
+            }
+            float invLen = (float) (1.0 / Math.sqrt(len2));
+            f *= invLen;
+            f1 *= invLen;
+            f2 *= invLen;
 
-            buffer.addVertex(mat, a.x, a.y, a.z).setColor(color).setNormal(poseStack.last(), f, f1, f2);
-            buffer.addVertex(mat, b.x, b.y, b.z ).setColor(color).setNormal(poseStack.last(), f, f1, f2);
+            buffer.addVertex(mat, a.x, a.y, a.z).setColor(color).setNormal(pose, f, f1, f2);
+            buffer.addVertex(mat, b.x, b.y, b.z).setColor(color).setNormal(pose, f, f1, f2);
         }
     }
 
@@ -321,61 +402,98 @@ public class RenderBufferUtils {
         int ea0 = (colorEnd   >>> 24) & 0xFF, er0 = (colorEnd   >>> 16) & 0xFF, eg0 = (colorEnd   >>> 8) & 0xFF, eb0 = colorEnd & 0xFF;
 
         int da = ea0 - sa0, dr = er0 - sr0, dg = eg0 - sg0, db = eb0 - sb0;
+        float invSegCount = 1f / (n - 1);
+        float colorMul = 1f / 255f;
 
-        int segCount = n - 1;
-
-        Vector2f last = points.get(0);
+        Vector2f last;
         Vector2f curr = null;
-        Vector3f perp = new Vector3f();
+        float px = 0;
+        float py = 0;
+        boolean emittedAny = false;
 
-        for (int i = 1; i < n; i++) {
-            float t = (i - 1f) / segCount;
+        if (points instanceof RandomAccess) {
+            last = points.get(0);
+            for (int i = 1; i < n; i++) {
+                float t = (i - 1f) * invSegCount;
+                float r = (sr0 + dr * t) * colorMul;
+                float g = (sg0 + dg * t) * colorMul;
+                float b = (sb0 + db * t) * colorMul;
+                float a = (sa0 + da * t) * colorMul;
 
-            float r = (sr0 + dr * t) / 255f;
-            float g = (sg0 + dg * t) / 255f;
-            float b = (sb0 + db * t) / 255f;
-            float a = (sa0 + da * t) / 255f;
+                curr = points.get(i);
 
-            curr = points.get(i);
+                float dx = curr.x - last.x;
+                float dy = curr.y - last.y;
+                float len2 = dx * dx + dy * dy;
+                if (len2 < 1.0e-12f) {
+                    last = curr;
+                    continue;
+                }
 
-            float dx = curr.x - last.x;
-            float dy = curr.y - last.y;
-            float len2 = dx * dx + dy * dy;
-            if (len2 < 1.0e-12f) {
-                // skip degenerate segment
+                float invLenHalfW = (float) (1.0 / Math.sqrt(len2)) * halfWidth;
+                px = -dy * invLenHalfW;
+                py = dx * invLenHalfW;
+
+                builder.addVertex(mat, last.x + px, last.y + py, 0).setColor(r, g, b, a);
+
+                if (stripSide && !emittedAny) {
+                    builder.addVertex(mat, last.x + px, last.y + py, 0).setColor(r, g, b, a);
+                }
+
+                builder.addVertex(mat, last.x - px, last.y - py, 0).setColor(r, g, b, a);
+
+                emittedAny = true;
                 last = curr;
-                continue;
             }
+        } else {
+            var iter = points.iterator();
+            last = iter.next();
+            for (int i = 1; i < n; i++) {
+                float t = (i - 1f) * invSegCount;
+                float r = (sr0 + dr * t) * colorMul;
+                float g = (sg0 + dg * t) * colorMul;
+                float b = (sb0 + db * t) * colorMul;
+                float a = (sa0 + da * t) * colorMul;
 
-            // perpendicular (dx,dy) rotated +90° => (-dy, dx)
-            float invLen = (float)(1.0 / Math.sqrt(len2));
-            perp.set(-dy * invLen * halfWidth, dx * invLen * halfWidth, 0);
+                curr = iter.next();
 
-            builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0).setColor(r, g, b, a);
+                float dx = curr.x - last.x;
+                float dy = curr.y - last.y;
+                float len2 = dx * dx + dy * dy;
+                if (len2 < 1.0e-12f) {
+                    last = curr;
+                    continue;
+                }
 
-            if (stripSide && i == 1) {
-                // duplicate to "prime" the strip if you need it
-                builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0).setColor(r, g, b, a);
+                float invLenHalfW = (float) (1.0 / Math.sqrt(len2)) * halfWidth;
+                px = -dy * invLenHalfW;
+                py = dx * invLenHalfW;
+
+                builder.addVertex(mat, last.x + px, last.y + py, 0).setColor(r, g, b, a);
+
+                if (stripSide && !emittedAny) {
+                    builder.addVertex(mat, last.x + px, last.y + py, 0).setColor(r, g, b, a);
+                }
+
+                builder.addVertex(mat, last.x - px, last.y - py, 0).setColor(r, g, b, a);
+
+                emittedAny = true;
+                last = curr;
             }
-
-            builder.addVertex(mat, last.x - perp.x, last.y - perp.y, 0).setColor(r, g, b, a);
-
-            last = curr;
         }
 
-        if (curr == null) return;
+        if (!emittedAny || curr == null) return;
 
-        float rEnd = (sr0 + dr) / 255f;
-        float gEnd = (sg0 + dg) / 255f;
-        float bEnd = (sb0 + db) / 255f;
-        float aEnd = (sa0 + da) / 255f;
+        float rEnd = (sr0 + dr) * colorMul;
+        float gEnd = (sg0 + dg) * colorMul;
+        float bEnd = (sb0 + db) * colorMul;
+        float aEnd = (sa0 + da) * colorMul;
 
-        // 'perp' still contains last segment's perpendicular if we didn't skip it.
-        builder.addVertex(mat, curr.x + perp.x, curr.y + perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
-        builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
+        builder.addVertex(mat, curr.x + px, curr.y + py, 0).setColor(rEnd, gEnd, bEnd, aEnd);
+        builder.addVertex(mat, curr.x - px, curr.y - py, 0).setColor(rEnd, gEnd, bEnd, aEnd);
 
         if (stripSide) {
-            builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0).setColor(rEnd, gEnd, bEnd, aEnd);
+            builder.addVertex(mat, curr.x - px, curr.y - py, 0).setColor(rEnd, gEnd, bEnd, aEnd);
         }
     }
 
@@ -395,71 +513,117 @@ public class RenderBufferUtils {
 
         int da = ea0 - sa0, dr = er0 - sr0, dg = eg0 - sg0, db = eb0 - sb0;
 
-        int segCount = n - 1;
+        float invSegCount = 1f / (n - 1);
+        float colorMul = 1f / 255f;
 
-        var last = points.getFirst();
+        Vector2f last;
         Vector2f curr = null;
-
-        Vector3f perp = new Vector3f();
+        float px = 0;
+        float py = 0;
         boolean emittedAny = false;
 
-        for (int i = 1; i < n; i++) {
-            float u = (i - 1f) / segCount; // 0..1
-            float t = u;
+        if (points instanceof RandomAccess) {
+            last = points.get(0);
+            for (int i = 1; i < n; i++) {
+                float u = (i - 1f) * invSegCount;
 
-            float r = (sr0 + dr * t) / 255f;
-            float g = (sg0 + dg * t) / 255f;
-            float b = (sb0 + db * t) / 255f;
-            float a = (sa0 + da * t) / 255f;
+                float r = (sr0 + dr * u) * colorMul;
+                float g = (sg0 + dg * u) * colorMul;
+                float b = (sb0 + db * u) * colorMul;
+                float a = (sa0 + da * u) * colorMul;
 
-            curr = points.get(i);
+                curr = points.get(i);
 
-            float dx = curr.x - last.x;
-            float dy = curr.y - last.y;
-            float len2 = dx * dx + dy * dy;
-            if (len2 < 1.0e-12f) {
-                last = curr;
-                continue;
-            }
+                float dx = curr.x - last.x;
+                float dy = curr.y - last.y;
+                float len2 = dx * dx + dy * dy;
+                if (len2 < 1.0e-12f) {
+                    last = curr;
+                    continue;
+                }
 
-            float invLen = (float)(1.0 / Math.sqrt(len2));
-            perp.set(-dy * invLen * halfWidth, dx * invLen * halfWidth, 0);
+                float invLenHalfW = (float) (1.0 / Math.sqrt(len2)) * halfWidth;
+                px = -dy * invLenHalfW;
+                py = dx * invLenHalfW;
 
-            builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0)
-                    .setUv(u, 0)
-                    .setColor(r, g, b, a);
-
-            if (stripSide && !emittedAny) {
-                builder.addVertex(mat, last.x + perp.x, last.y + perp.y, 0)
+                builder.addVertex(mat, last.x + px, last.y + py, 0)
                         .setUv(u, 0)
                         .setColor(r, g, b, a);
+
+                if (stripSide && !emittedAny) {
+                    builder.addVertex(mat, last.x + px, last.y + py, 0)
+                            .setUv(u, 0)
+                            .setColor(r, g, b, a);
+                }
+
+                builder.addVertex(mat, last.x - px, last.y - py, 0)
+                        .setUv(u, 1)
+                        .setColor(r, g, b, a);
+
+                emittedAny = true;
+                last = curr;
             }
+        } else {
+            var iter = points.iterator();
+            last = iter.next();
+            for (int i = 1; i < n; i++) {
+                float u = (i - 1f) * invSegCount;
 
-            builder.addVertex(mat, last.x - perp.x, last.y - perp.y, 0)
-                    .setUv(u, 1)
-                    .setColor(r, g, b, a);
+                float r = (sr0 + dr * u) * colorMul;
+                float g = (sg0 + dg * u) * colorMul;
+                float b = (sb0 + db * u) * colorMul;
+                float a = (sa0 + da * u) * colorMul;
 
-            emittedAny = true;
-            last = curr;
+                curr = iter.next();
+
+                float dx = curr.x - last.x;
+                float dy = curr.y - last.y;
+                float len2 = dx * dx + dy * dy;
+                if (len2 < 1.0e-12f) {
+                    last = curr;
+                    continue;
+                }
+
+                float invLenHalfW = (float) (1.0 / Math.sqrt(len2)) * halfWidth;
+                px = -dy * invLenHalfW;
+                py = dx * invLenHalfW;
+
+                builder.addVertex(mat, last.x + px, last.y + py, 0)
+                        .setUv(u, 0)
+                        .setColor(r, g, b, a);
+
+                if (stripSide && !emittedAny) {
+                    builder.addVertex(mat, last.x + px, last.y + py, 0)
+                            .setUv(u, 0)
+                            .setColor(r, g, b, a);
+                }
+
+                builder.addVertex(mat, last.x - px, last.y - py, 0)
+                        .setUv(u, 1)
+                        .setColor(r, g, b, a);
+
+                emittedAny = true;
+                last = curr;
+            }
         }
 
         if (!emittedAny || curr == null) return;
 
-        float rEnd = (sr0 + dr) / 255f;
-        float gEnd = (sg0 + dg) / 255f;
-        float bEnd = (sb0 + db) / 255f;
-        float aEnd = (sa0 + da) / 255f;
+        float rEnd = (sr0 + dr) * colorMul;
+        float gEnd = (sg0 + dg) * colorMul;
+        float bEnd = (sb0 + db) * colorMul;
+        float aEnd = (sa0 + da) * colorMul;
 
-        builder.addVertex(mat, curr.x + perp.x, curr.y + perp.y, 0)
+        builder.addVertex(mat, curr.x + px, curr.y + py, 0)
                 .setUv(1, 0)
                 .setColor(rEnd, gEnd, bEnd, aEnd);
 
-        builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0)
+        builder.addVertex(mat, curr.x - px, curr.y - py, 0)
                 .setUv(1, 1)
                 .setColor(rEnd, gEnd, bEnd, aEnd);
 
         if (stripSide) {
-            builder.addVertex(mat, curr.x - perp.x, curr.y - perp.y, 0)
+            builder.addVertex(mat, curr.x - px, curr.y - py, 0)
                     .setUv(1, 1)
                     .setColor(rEnd, gEnd, bEnd, aEnd);
         }
@@ -479,7 +643,7 @@ public class RenderBufferUtils {
         Vector3f u = new Vector3f();
         Vector3f v = new Vector3f();
 
-        if (normal.equals(new Vector3f(0, 0, 1))) {
+        if (normal.x == 0 && normal.y == 0 && normal.z == 1) {
             u.set(1, 0, 0);
             v.set(0, 1, 0);
         } else {
@@ -494,27 +658,33 @@ public class RenderBufferUtils {
             u.cross(normal, v).normalize();
         }
 
-        Vector3f prevPoint = new Vector3f();
-        Vector3f firstPoint = new Vector3f();
+        float prevX = 0, prevY = 0, prevZ = 0;
+        float firstX = 0, firstY = 0, firstZ = 0;
+        double angleStep = 2.0 * Math.PI / segments;
 
         for (int i = 0; i <= segments; i++) {
-            double angle = 2.0 * Math.PI * i / segments;
+            double angle = angleStep * i;
             float x = (float) (radius * Math.cos(angle));
             float y = (float) (radius * Math.sin(angle));
 
-            Vector3f currentPoint = new Vector3f(position)
-                    .add(u.x * x + v.x * y, u.y * x + v.y * y, u.z * x + v.z * y);
+            float currentX = position.x + u.x * x + v.x * y;
+            float currentY = position.y + u.y * x + v.y * y;
+            float currentZ = position.z + u.z * x + v.z * y;
 
             if (i > 0) {
-                drawLine(pose, buffer, prevPoint, currentPoint, red, green, blue, alpha, red, green, blue, alpha);
+                drawLine(pose, buffer, prevX, prevY, prevZ, currentX, currentY, currentZ, red, green, blue, alpha, red, green, blue, alpha);
             } else {
-                firstPoint.set(currentPoint);
+                firstX = currentX;
+                firstY = currentY;
+                firstZ = currentZ;
             }
 
-            prevPoint.set(currentPoint);
+            prevX = currentX;
+            prevY = currentY;
+            prevZ = currentZ;
         }
 
-        drawLine(pose, buffer, prevPoint, firstPoint, red, green, blue, alpha, red, green, blue, alpha);
+        drawLine(pose, buffer, prevX, prevY, prevZ, firstX, firstY, firstZ, red, green, blue, alpha, red, green, blue, alpha);
     }
 
     /**
@@ -683,35 +853,47 @@ public class RenderBufferUtils {
         float minZ = Math.min(z1, z2);
         float maxZ = Math.max(z1, z2);
 
-        // Define the 8 vertices of the cube
-        float[][] vertices = {
-                {minX, minY, minZ},
-                {maxX, minY, minZ},
-                {maxX, maxY, minZ},
-                {minX, maxY, minZ},
-                {minX, minY, maxZ},
-                {maxX, minY, maxZ},
-                {maxX, maxY, maxZ},
-                {minX, maxY, maxZ}
-        };
+        buffer.addVertex(mat, minX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, minY, minZ).setColor(red, green, blue, alpha);
 
-        // Define the 6 faces of the cube, each with 2 triangles (6 vertices)
-        int[][] faces = {
-                {0, 1, 2, 2, 3, 0}, // Front face
-                {1, 5, 6, 6, 2, 1}, // Right face
-                {5, 4, 7, 7, 6, 5}, // Back face
-                {4, 0, 3, 3, 7, 4}, // Left face
-                {3, 2, 6, 6, 7, 3}, // Top face
-                {4, 5, 1, 1, 0, 4}  // Bottom face
-        };
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(red, green, blue, alpha);
 
-        // Iterate through each face and add the vertices
-        for (int[] face : faces) {
-            for (int index : face) {
-                float[] vertex = vertices[index];
-                buffer.addVertex(mat, vertex[0], vertex[1], vertex[2]).setColor(red, green, blue, alpha);
-            }
-        }
+        buffer.addVertex(mat, maxX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, minY, maxZ).setColor(red, green, blue, alpha);
+
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(red, green, blue, alpha);
+
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, maxY, minZ).setColor(red, green, blue, alpha);
+
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, maxX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(mat, minX, minY, maxZ).setColor(red, green, blue, alpha);
     }
 
     /**
@@ -759,21 +941,28 @@ public class RenderBufferUtils {
                 float sinSlice2 = (float) Math.sin(sliceAngle2);
                 float cosSlice2 = (float) Math.cos(sliceAngle2);
 
-                // Define the 4 vertices of the current quad
-                float[] v1 = {x + radius * sinStack1 * cosSlice1, y + radius * cosStack1, z + radius * sinStack1 * sinSlice1};
-                float[] v2 = {x + radius * sinStack2 * cosSlice1, y + radius * cosStack2, z + radius * sinStack2 * sinSlice1};
-                float[] v3 = {x + radius * sinStack2 * cosSlice2, y + radius * cosStack2, z + radius * sinStack2 * sinSlice2};
-                float[] v4 = {x + radius * sinStack1 * cosSlice2, y + radius * cosStack1, z + radius * sinStack1 * sinSlice2};
+                float v1x = x + radius * sinStack1 * cosSlice1;
+                float v1y = y + radius * cosStack1;
+                float v1z = z + radius * sinStack1 * sinSlice1;
+                float v2x = x + radius * sinStack2 * cosSlice1;
+                float v2y = y + radius * cosStack2;
+                float v2z = z + radius * sinStack2 * sinSlice1;
+                float v3x = x + radius * sinStack2 * cosSlice2;
+                float v3y = y + radius * cosStack2;
+                float v3z = z + radius * sinStack2 * sinSlice2;
+                float v4x = x + radius * sinStack1 * cosSlice2;
+                float v4y = y + radius * cosStack1;
+                float v4z = z + radius * sinStack1 * sinSlice2;
 
                 // First triangle
-                buffer.addVertex(mat, v1[0], v1[1], v1[2]).setColor(red, green, blue, alpha);
-                buffer.addVertex(mat, v2[0], v2[1], v2[2]).setColor(red, green, blue, alpha);
-                buffer.addVertex(mat, v3[0], v3[1], v3[2]).setColor(red, green, blue, alpha);
+                buffer.addVertex(mat, v1x, v1y, v1z).setColor(red, green, blue, alpha);
+                buffer.addVertex(mat, v2x, v2y, v2z).setColor(red, green, blue, alpha);
+                buffer.addVertex(mat, v3x, v3y, v3z).setColor(red, green, blue, alpha);
 
                 // Second triangle
-                buffer.addVertex(mat, v3[0], v3[1], v3[2]).setColor(red, green, blue, alpha);
-                buffer.addVertex(mat, v4[0], v4[1], v4[2]).setColor(red, green, blue, alpha);
-                buffer.addVertex(mat, v1[0], v1[1], v1[2]).setColor(red, green, blue, alpha);
+                buffer.addVertex(mat, v3x, v3y, v3z).setColor(red, green, blue, alpha);
+                buffer.addVertex(mat, v4x, v4y, v4z).setColor(red, green, blue, alpha);
+                buffer.addVertex(mat, v1x, v1y, v1z).setColor(red, green, blue, alpha);
             }
         }
     }

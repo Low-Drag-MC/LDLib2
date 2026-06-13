@@ -19,8 +19,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.YogaEdge;
-import org.appliedenergistics.yoga.YogaGutter;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
