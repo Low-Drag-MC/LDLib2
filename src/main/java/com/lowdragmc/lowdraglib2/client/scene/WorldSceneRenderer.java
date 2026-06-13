@@ -665,6 +665,10 @@ public abstract class WorldSceneRenderer {
 
         // (3) Dispatch phase — three endBatches mirroring LevelRenderer 695-755.
         //     Depth copy between mainTarget/translucent/particle FBOs is skipped (PIP = single FBO).
+        //     Publish this scene's camera (rotation from the SceneCamera set above, projection from our
+        //     own matrix) for the duration of the draws, so custom-uniform consumers (e.g. a mod's UBO
+        //     derived from the view/projection) reflect the scene camera, not the game's main camera.
+        SceneCameraContext.set(camera.getViewRotationMatrix(new Matrix4f()), projectionMatrix);
         try {
             dispatcher.renderSolidFeatures();
             bs.endBatch();
@@ -679,6 +683,7 @@ public abstract class WorldSceneRenderer {
 
             if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
         } finally {
+            SceneCameraContext.clear();
             dispatcher.clearSubmitNodes();
             if (particleManager != null) particleManager.afterRender();
         }
