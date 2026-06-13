@@ -249,7 +249,7 @@
   "editor.settings.menu": "设置 \u00A77 Ctrl + ALT + S \u00A7r",
   "editor.empty_editor": "空编辑器",
   "editor.open_project": "[%s]",
-  "editor.view.inspector": "属性检查器",
+  "editor.view.inspector": "检视面板",
   "editor.view.resources": "资源管理器",
   "editor.view.history": "操作历史",
   "editor.list": "列表",
