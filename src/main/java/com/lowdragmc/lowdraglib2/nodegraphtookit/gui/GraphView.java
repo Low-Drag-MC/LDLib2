@@ -196,7 +196,7 @@ public class GraphView extends UIElement {
         initPanels();
         initGraphLogFooter();
 
-        addChildren(header, canvas.addChildren(graphView, graphLogFooter, panelLayer));
+        addChildren(header, canvas.addChildren(graphView, panelLayer, graphLogFooter));
     }
 
 

@@ -165,7 +165,7 @@ public class GraphView extends UIElement {
         refreshContentTransform();
     }
 
-    private void refreshContentTransform() {
+    protected void refreshContentTransform() {
         contentRoot.transform(transform -> transform
                 .translate(-(offsetX * scale), -(offsetY * scale))
                 .scale(scale)

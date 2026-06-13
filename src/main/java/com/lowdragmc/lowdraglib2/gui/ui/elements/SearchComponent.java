@@ -155,6 +155,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     protected final Map<T, Button> candidateButtons = new HashMap<>();
     @Nullable
     protected RPCEmitter searchEvent;
+    private int delayedHideGeneration;
 
     public SearchComponent(ISearchUI<T> searchUI) {
         this();
@@ -188,8 +189,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         textField.setDisplay(false);
         textField.addEventListener(UIEvents.FOCUS, event -> show());
         textField.addEventListener(UIEvents.BLUR, event -> {
-            var mui = getModularUI();
-            if (mui != null && dialog.isAncestorOf(mui.getLastHoveredElement())) return;
+            if (shouldKeepDialogOpenOnTextFieldBlur(event)) return;
             hide();
         });
         textField.setTextResponder(this::onSearchWordChanged);
@@ -227,6 +227,12 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         searchEngine = new SearchEngine<>(searchUI, this::onResultFound);
         internalSetup();
         dialog.markAsInternal();
+    }
+
+    @Override
+    protected void onRemoved() {
+        hide();
+        super.onRemoved();
     }
 
     protected void onMouseDown(UIEvent event) {
@@ -272,7 +278,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
     protected void onSearchWordChanged(String word) {
         candidates.clear();
-        scrollerView.verticalScroller.setNormalizedValue(0, false);
+        scrollerView.scrollToTop();
         isCandidatesDirty.set(true);
         if (searchOnServer) {
             if (searchEvent != null) {
@@ -389,6 +395,32 @@ public class SearchComponent<T> extends BindableUIElement<T> {
 
     }
 
+    private boolean shouldKeepDialogOpenOnTextFieldBlur(UIEvent event) {
+        if (event.relatedTarget != null && dialog.isAncestorOf(event.relatedTarget)) {
+            return true;
+        }
+
+        var mui = getModularUI();
+        if (mui == null || !isOpen() || !dialog.isMouseOver(mui.getLastMouseDownX(), mui.getLastMouseDownY())) {
+            return false;
+        }
+        if (mui.getLastMouseDownButton() == 0) {
+            return true;
+        }
+        hideAfterDialogTick();
+        return true;
+    }
+
+    private void hideAfterDialogTick() {
+        var generation = ++delayedHideGeneration;
+        dialog.addEventListener(UIEvents.TICK, event -> {
+            dialog.removeEventListener(UIEvents.TICK, event.currentListener);
+            if (generation == delayedHideGeneration && isOpen() && !textField.isFocused()) {
+                hide();
+            }
+        });
+    }
+
     public SearchComponent<T> searchStyle(Consumer<SearchStyle> style) {
         style.accept(searchStyle);
         return this;
@@ -422,6 +454,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         if (this.isOpen()) {
             return;
         }
+        delayedHideGeneration++;
         var mui = getModularUI();
         if (mui != null) {
             var root = mui.ui.rootElement;
@@ -433,6 +466,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     }
 
     public void hide() {
+        delayedHideGeneration++;
         var parent = this.dialog.getParent();
         if (parent != null) {
             this.dialog.blur();

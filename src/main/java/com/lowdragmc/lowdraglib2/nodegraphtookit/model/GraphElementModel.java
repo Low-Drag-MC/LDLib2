@@ -63,9 +63,10 @@ public abstract class GraphElementModel extends Model implements IGraphElementMo
     // Capabilities (from your previous partial)
     // -------------------------
     protected final List<Capabilities> capabilities = new ArrayList<>();
+    private final List<Capabilities> capabilitiesView = Collections.unmodifiableList(capabilities);
 
     public List<Capabilities> getCapabilities() {
-        return Collections.unmodifiableList(capabilities);
+        return capabilitiesView;
     }
 
     public boolean hasCapability(Capabilities capability) {
