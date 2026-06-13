@@ -158,6 +158,7 @@ public class VirtualScrollerView<T> extends ScrollerView {
 
         scrollerStyle(style -> style.adaptiveHeight(false));
         scrollerStyle(style -> style.adaptiveWidth(false));
+        viewContainer.layout(layout -> layout.top(-lastScrollOffset));
         beforeMountItems.run();
         mountedRows.clear();
         clearAllScrollViewChildren();
@@ -180,6 +181,11 @@ public class VirtualScrollerView<T> extends ScrollerView {
             mountedRows.put(index, row);
             addScrollViewChild(row);
         }
+    }
+
+    public void scrollToTop() {
+        verticalScroller.setNormalizedValue(0, false);
+        refreshVisibleItems(0, getCurrentViewportHeight());
     }
 
     public boolean updateMeasuredItemHeight(int index, float measuredHeight) {

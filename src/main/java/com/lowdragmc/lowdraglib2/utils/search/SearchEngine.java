@@ -19,7 +19,7 @@ public class SearchEngine<T> {
     public void searchWord(String word) {
         Thread virtualThread = Thread.ofVirtual()
                 .name("search-" + word.hashCode())
-                .start(() -> {
+                .unstarted(() -> {
                     try {
                         search.search(word, value -> {
                             Thread current = Thread.currentThread();
@@ -35,7 +35,11 @@ public class SearchEngine<T> {
                         currentThread.compareAndSet(Thread.currentThread(), null);
                     }
                 });
-        currentThread.set(virtualThread);
+        Thread previousThread = currentThread.getAndSet(virtualThread);
+        if (previousThread != null && previousThread.isAlive()) {
+            previousThread.interrupt();
+        }
+        virtualThread.start();
     }
 
     public boolean isSearching() {
