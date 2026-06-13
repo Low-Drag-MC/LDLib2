@@ -159,9 +159,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var name = name();
         return name.isEmpty() ? "Unknown" : name;
     });
-
+    @Nullable
     private UIElement[] sortedChildrenCache = null;
-
     private ImmutableList<UIElement> structurePathCache = null;
     private FloatOptional positionXCache = FloatOptional.of();
     private FloatOptional positionYCache = FloatOptional.of();
