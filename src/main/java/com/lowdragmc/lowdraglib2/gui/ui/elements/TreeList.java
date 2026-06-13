@@ -254,7 +254,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     public void expandNodeAlongPath(@Nullable NODE node) {
         if (node == null) return;
-        var stack = new it.unimi.dsi.fastutil.objects.ObjectArrayList<NODE>();
+        var stack = new Stack<NODE>();
         var parent = node.getParent();
         while (parent != null) {
             stack.push((NODE) parent);

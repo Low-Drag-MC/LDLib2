@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
@@ -156,6 +157,14 @@ public class RectTexture extends TransformTexture {
         return scratch.length >= required ? scratch : new float[required];
     }
 
+    boolean canUsePlainRectPath(float width, float height) {
+        float maxRadius = Math.min(width * 0.5f, height * 0.5f);
+        return Math.min(radius.x, maxRadius) <= 0
+                && Math.min(radius.y, maxRadius) <= 0
+                && Math.min(radius.z, maxRadius) <= 0
+                && Math.min(radius.w, maxRadius) <= 0;
+    }
+
     private void appendCorner(float[] vertices, int vertexOffset, int corner, float centerX, float centerY, float radius) {
         int sourceBase = corner * cachedCornerStride;
         int targetBase = vertexOffset * 2;
@@ -170,6 +179,11 @@ public class RectTexture extends TransformTexture {
     @Override
     @OnlyIn(Dist.CLIENT)
     protected void drawInternal(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
+        if (canUsePlainRectPath(width, height)) {
+            drawPlainRect(graphics, x, y, width, height);
+            return;
+        }
+
         ensureCornerCache();
 
         var mat = graphics.pose().last().pose();
@@ -183,6 +197,21 @@ public class RectTexture extends TransformTexture {
 
         if (stroke > 0 && ColorUtils.alpha(borderColor) > 0) {
             drawBorder(buffer, mat, x, y, width, height);
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void drawPlainRect(GuiGraphics graphics, float x, float y, float width, float height) {
+        if (ColorUtils.alpha(color) > 0) {
+            DrawerHelper.drawSolidRect(graphics, x, y, width, height, color);
+        }
+
+        if (stroke > 0 && ColorUtils.alpha(borderColor) > 0) {
+            float border = Math.min(stroke, Math.min(width * 0.5f, height * 0.5f));
+            DrawerHelper.drawSolidRect(graphics, x, y, width, border, borderColor);
+            DrawerHelper.drawSolidRect(graphics, x, y + height - border, width, border, borderColor);
+            DrawerHelper.drawSolidRect(graphics, x, y + border, border, height - border * 2, borderColor);
+            DrawerHelper.drawSolidRect(graphics, x + width - border, y + border, border, height - border * 2, borderColor);
         }
     }
 

@@ -275,7 +275,7 @@ public class ModularUI {
         elements.remove(element);
     }
 
-    public ObjectList<UIElement> getAllElements() {
+    public List<UIElement> getAllElements() {
         return ObjectLists.unmodifiable(elements);
     }
 

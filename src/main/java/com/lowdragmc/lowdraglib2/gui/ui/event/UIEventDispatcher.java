@@ -183,11 +183,7 @@ public final class UIEventDispatcher {
 
         if (event.propagationStopped) return true;
 
-        final ObjectArrayList<UIElement> currentSortedElements = currentElement.getSortedChildren();
-        final Object[] currentElements = currentSortedElements.elements();
-
-        for (int i = 0; i < currentSortedElements.size(); i++) {
-            final UIElement child = (UIElement) currentElements[i];
+        for (var child : currentElement.getSafeSortedChildren()) {
             if ((onlyActive && !child.isActive()) || (onlyDisplay && !child.isDisplayed())) {
                 continue;
             }

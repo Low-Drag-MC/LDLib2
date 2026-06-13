@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
@@ -16,6 +15,7 @@ import org.appliedenergistics.yoga.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 import java.util.function.Consumer;
 
 /**
@@ -28,7 +28,7 @@ import java.util.function.Consumer;
  */
 @KJSBindings
 public class TreeBuilder<K, V> {
-    protected final ObjectArrayList<TreeNode<K, V>> stack = new ObjectArrayList<>();
+    protected final Stack<TreeNode<K, V>> stack = new Stack<>();
 
     public TreeBuilder(K key) {
         stack.push(new TreeNode<>(key));
@@ -51,7 +51,7 @@ public class TreeBuilder<K, V> {
      * @return the current instance of {@link TreeBuilder} for method chaining
      */
     public TreeBuilder<K, V> branch(K key, Consumer<TreeBuilder<K, V>> builderConsumer) {
-        var children = stack.top().getChildren();
+        var children = stack.peek().getChildren();
         if (!children.isEmpty()) {
             for (var child : children) {
                 if (!child.isLeaf() && child.key.equals(key)) {
@@ -63,7 +63,7 @@ public class TreeBuilder<K, V> {
             }
         }
 
-        stack.push(stack.top().getOrCreateChild(key));
+        stack.push(stack.peek().getOrCreateChild(key));
         builderConsumer.accept(this);
         endBranch();
         return this;
@@ -105,7 +105,7 @@ public class TreeBuilder<K, V> {
      * @return the current instance of {@link TreeBuilder} for method chaining
      */
     public TreeBuilder<K, V> startBranch(K key) {
-        stack.push(stack.top().getOrCreateChild(key));
+        stack.push(stack.peek().getOrCreateChild(key));
         return this;
     }
 
@@ -121,34 +121,34 @@ public class TreeBuilder<K, V> {
     }
 
     public TreeBuilder<K, V> content(V content) {
-        stack.top().content = content;
+        stack.peek().content = content;
         return this;
     }
 
     public TreeBuilder<K, V> leaf(K key, V content) {
-        stack.top().addContent(key, content);
+        stack.peek().addContent(key, content);
         return this;
     }
 
     public TreeBuilder<K, V> remove(K key) {
-        stack.top().removeChild(key);
+        stack.peek().removeChild(key);
         return this;
     }
 
     public ITreeNode<K, V> peek() {
-        return stack.top();
+        return stack.peek();
     }
 
     public boolean isEmpty() {
         if (stack.isEmpty()) return true;
-        return stack.top().getChildren().isEmpty();
+        return stack.peek().getChildren().isEmpty();
     }
 
     public TreeNode<K, V> build() {
         while (stack.size() > 1) {
             stack.pop();
         }
-        return stack.top();
+        return stack.peek();
     }
 
     @KJSBindings("MenuBuilder")
@@ -170,10 +170,10 @@ public class TreeBuilder<K, V> {
          * @return the current {@code Menu} instance for method chaining.
          */
         public Menu crossLine() {
-            if (stack.top().getChildren().isEmpty() || stack.top().getChildren().getLast().getKey() == CROSS_LINE) {
+            if (stack.peek().getChildren().isEmpty() || stack.peek().getChildren().getLast().getKey() == CROSS_LINE) {
                 return this;
             }
-            stack.top().createChild(CROSS_LINE);
+            stack.peek().createChild(CROSS_LINE);
             return this;
         }
 
@@ -183,7 +183,7 @@ public class TreeBuilder<K, V> {
 
         public Menu branch(IGuiTexture icon, Component name, Consumer<Menu> menuConsumer) {
             var key = new Tuple<>(icon, name);
-            var child = stack.top().getOrCreateChild(key);
+            var child = stack.peek().getOrCreateChild(key);
             stack.push(child);
             menuConsumer.accept(this);
             endBranch();
@@ -195,7 +195,7 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu branch(Component name, Consumer<Menu> menuConsumer) {
-            var children = stack.top().getChildren();
+            var children = stack.peek().getChildren();
             if (!children.isEmpty()) {
                 for (var child : children) {
                     if (!child.isLeaf() && child.getKey().getB().equals(name)) {
@@ -211,7 +211,7 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu endBranch() {
-            var peek = stack.top();
+            var peek = stack.peek();
             if (!peek.getChildren().isEmpty() && peek.getChildren().getLast().getKey() == CROSS_LINE) {
                 peek.removeChild(peek.getChildren().getLast());
             }
@@ -242,11 +242,11 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu remove(Component name) {
-            var children = stack.top().getChildren();
+            var children = stack.peek().getChildren();
             if (!children.isEmpty()) {
                 for (TreeNode<Tuple<IGuiTexture, Component>, Runnable> child : children) {
                     if (child.getKey().getB().equals(name)) {
-                        stack.top().removeChild(child.getKey());
+                        stack.peek().removeChild(child.getKey());
                         return this;
                     }
                 }

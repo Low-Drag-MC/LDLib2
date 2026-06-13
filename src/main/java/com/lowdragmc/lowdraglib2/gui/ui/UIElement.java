@@ -160,9 +160,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return name.isEmpty() ? "Unknown" : name;
     });
 
-    private ObjectArrayList<UIElement> sortedChildrenCache = new ObjectArrayList<>();
-    private int[] indexArrayBuffer = new int[0];
-    private boolean isSortedCacheDirty = true;
+    private UIElement[] sortedChildrenCache = null;
 
     private ImmutableList<UIElement> structurePathCache = null;
     private FloatOptional positionXCache = FloatOptional.of();
@@ -958,7 +956,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * Returns an unmodifiable view of the local stylesheets attached to this element.
      * Local stylesheets only affect this element and its descendants.
      */
-    public ObjectList<Stylesheet> getLocalStylesheets() {
+    public List<Stylesheet> getLocalStylesheets() {
         return ObjectLists.unmodifiable(localStylesheets);
     }
 
@@ -1023,8 +1021,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             if (!LDLib2.isServer()) {
                 var mui = getModularUI();
                 if (mui != null) {
-                    for (int i = 0; i < sheets.length; i++) {
-                        final var sheet = sheets[i];
+                    for (var sheet : sheets) {
                         mui.getStyleEngine().removeLocalStylesheet(this, sheet);
                     }
                 }
@@ -1192,13 +1189,15 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Get the sorted children of this element. The children are sorted by their zIndex and their order in the structure.
      */
-    public ObjectArrayList<UIElement> getSortedChildren() {
-        if (isSortedCacheDirty) {
-            int n = children.size();
+    public List<UIElement> getSortedChildren() {
+        // to keep compatibility
+        return Arrays.asList(getSafeSortedChildren());
+    }
 
-            if (indexArrayBuffer.length < n) {
-                indexArrayBuffer = new int[Math.max(indexArrayBuffer.length << 1, n)];
-            }
+    public UIElement[] getSafeSortedChildren() {
+        if (sortedChildrenCache == null) {
+            int n = children.size();
+            var indexArrayBuffer = new int[n];
 
             for (int i = 0; i < n; i++) {
                 indexArrayBuffer[i] = i;
@@ -1214,20 +1213,17 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 return Integer.compare(b, a);
             });
 
-            sortedChildrenCache.clear();
+            sortedChildrenCache = new UIElement[n];
             for (int i = 0; i < n; i++) {
-                sortedChildrenCache.add(children.get(indexArrayBuffer[i]));
+                sortedChildrenCache[i] = children.get(indexArrayBuffer[i]);
             }
-
-            isSortedCacheDirty = false;
         }
 
         return sortedChildrenCache;
     }
 
     public void clearSortedChildrenCache() {
-        sortedChildrenCache.clear();
-        isSortedCacheDirty = true;
+        sortedChildrenCache = null;
     }
 
     public final int getSiblingIndex() {
@@ -1281,7 +1277,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         var hidden = !style.overflowVisible();
 
         if (!hidden || isMouseOverRect(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
-            for (var child : getSortedChildren()) {
+            for (var child : getSafeSortedChildren()) {
                 var result = child.hitTest(localMouseX, localMouseY);
                 if (result != null && (hover == null || hover.getB() < result.getB())) {
                     hover = result;
@@ -1878,9 +1874,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 guiContext.resetElementColor();
             }
 
-            final UIElement[] copyList = children.toArray(UIElement[]::new);
-            for (int i = 0; i < copyList.length; i++) {
-                copyList[i].drawInBackground(guiContext);
+            var copyList = children.toArray(UIElement[]::new);
+            for (UIElement uiElement : copyList) {
+                uiElement.drawInBackground(guiContext);
             }
 
             if (hasColor) {
