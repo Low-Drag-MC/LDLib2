@@ -1,4 +1,10 @@
 # ChangeLogs
+## v2.2.19
+* Improved ngt APIs
+* Fixed SearchComponent dialog
+* Optimize UI rendering hot paths and reduce runtime allocations (#44, thanks @Bogdan)
+* Fixed RectTexture Performance
+
 ## v2.2.18
 * Added port tooltips + Added connection port ui
 * Added vertical port container + Preview
