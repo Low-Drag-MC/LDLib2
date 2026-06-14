@@ -1,4 +1,8 @@
 # ChangeLogs
+## v2.2.20
+* Added ResourceManager fallback while server loading
+* Added zh_cn.lang (#47, thanks @Arcomit, @Moflop)
+
 ## v2.2.19
 * Improved ngt APIs
 * Fixed SearchComponent dialog
