@@ -23,6 +23,7 @@ import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
@@ -42,8 +43,11 @@ public class GraphPanel extends UIElement {
     public final UIElement content = new UIElement();
     public final TabView tabView = new TabView();
 
+    record PanelRect(float left, float top, float width, float height) {}
+
     @Getter
     private final List<IGraphTool> tools = new ArrayList<>();
+    @Getter
     private final BiMap<IGraphTool, Tab> toolTabs = HashBiMap.create();
     @Getter
     private DockSlot slot = DockSlot.CENTER;
@@ -104,17 +108,9 @@ public class GraphPanel extends UIElement {
         titleBar.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onTitleDragUpdate);
         titleBar.addEventListener(UIEvents.DRAG_END, this::onTitleDragEnd);
 
-        WindowDragHelper.setBorderResize(this, this, 2, new Vector2f(20f), new Vector2f(Float.MAX_VALUE),
-                activeHandles,
-                e -> canResize(),
-                (e, handle) -> {
-                    isResizing = canResize();
-                    return isResizing;
-                },
-                e -> {
-                    isResizing = false;
-                    rememberCurrentSize();
-                });
+        addEventListener(UIEvents.MOUSE_DOWN, this::onResizeMouseDown);
+        addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onResizeDragUpdate);
+        addEventListener(UIEvents.DRAG_END, this::onResizeDragEnd);
 
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, e -> applySlotLayout());
 
@@ -164,6 +160,18 @@ public class GraphPanel extends UIElement {
 
     public boolean hasNoTools() {
         return tools.isEmpty();
+    }
+
+    public boolean selectTool(IGraphTool tool) {
+        var tab = toolTabs.get(tool);
+        if (tab == null) return false;
+        tabView.selectTab(tab);
+        return true;
+    }
+
+    public @Nullable IGraphTool getSelectedTool() {
+        var selected = tabView.getSelectedTab();
+        return selected == null ? null : toolTabs.inverse().get(selected);
     }
 
     private void updateTabHeaderVisibility() {
@@ -238,25 +246,142 @@ public class GraphPanel extends UIElement {
 
         if (slot == DockSlot.CENTER) {
             // Free floating: keep current position, only clamp.
-            adaptPositionToElement(canvas);
+            var rect = clampPanelRect(currentRect(), new PanelRect(cx, cy, cw, ch));
+            setPanelRect(rect, false);
             return;
         }
 
         // Position only — use the panel's CURRENT size so user resize sticks across layout updates.
-        float w = getSizeWidth();
-        float h = getSizeHeight();
-
-        float left, top;
-        switch (slot) {
-            case TOP_LEFT     -> { left = cx;             top = cy; }
-            case TOP_RIGHT    -> { left = cx + cw - w;    top = cy; }
-            case BOTTOM_LEFT  -> { left = cx;             top = cy + ch - h; }
-            case BOTTOM_RIGHT -> { left = cx + cw - w;    top = cy + ch - h; }
-            default -> { return; }
-        }
+        var rect = anchorPanelRect(slot, currentRect(), cw, ch);
         // Slot anchoring — position is data-driven by the dock manager.
-        float fLeft = left, fTop = top;
-        Style.importantPipeline(getLayout(), l -> l.left(fLeft).top(fTop));
+        setPanelRect(rect, false);
+    }
+
+    // endregion
+
+    // region resize
+
+    static PanelRect clampPanelRect(PanelRect rect, PanelRect bounds) {
+        float left = rect.left();
+        float top = rect.top();
+        if (rect.width() <= bounds.width()) {
+            left = Math.max(bounds.left(), Math.min(left, bounds.left() + bounds.width() - rect.width()));
+        } else {
+            left = bounds.left();
+        }
+        if (rect.height() <= bounds.height()) {
+            top = Math.max(bounds.top(), Math.min(top, bounds.top() + bounds.height() - rect.height()));
+        } else {
+            top = bounds.top();
+        }
+        return new PanelRect(left, top, rect.width(), rect.height());
+    }
+
+    static PanelRect anchorPanelRect(DockSlot slot, PanelRect rect, float canvasWidth, float canvasHeight) {
+        return switch (slot) {
+            case TOP_LEFT -> new PanelRect(0f, 0f, rect.width(), rect.height());
+            case TOP_RIGHT -> new PanelRect(canvasWidth - rect.width(), 0f, rect.width(), rect.height());
+            case BOTTOM_LEFT -> new PanelRect(0f, canvasHeight - rect.height(), rect.width(), rect.height());
+            case BOTTOM_RIGHT -> new PanelRect(canvasWidth - rect.width(), canvasHeight - rect.height(), rect.width(), rect.height());
+            case CENTER -> rect;
+        };
+    }
+
+    static PanelRect resizePanelRect(PanelRect start, ResizeHandle handle, float dx, float dy,
+                                     float minW, float maxW, float minH, float maxH) {
+        float x = start.left();
+        float y = start.top();
+        float w = start.width();
+        float h = start.height();
+        switch (handle) {
+            case LEFT -> {
+                w = clamp(start.width() - dx, minW, maxW);
+                x = start.left() + start.width() - w;
+            }
+            case RIGHT -> w = clamp(start.width() + dx, minW, maxW);
+            case TOP -> {
+                h = clamp(start.height() - dy, minH, maxH);
+                y = start.top() + start.height() - h;
+            }
+            case BOTTOM -> h = clamp(start.height() + dy, minH, maxH);
+            case TOP_LEFT -> {
+                w = clamp(start.width() - dx, minW, maxW);
+                x = start.left() + start.width() - w;
+                h = clamp(start.height() - dy, minH, maxH);
+                y = start.top() + start.height() - h;
+            }
+            case TOP_RIGHT -> {
+                w = clamp(start.width() + dx, minW, maxW);
+                h = clamp(start.height() - dy, minH, maxH);
+                y = start.top() + start.height() - h;
+            }
+            case BOTTOM_LEFT -> {
+                w = clamp(start.width() - dx, minW, maxW);
+                x = start.left() + start.width() - w;
+                h = clamp(start.height() + dy, minH, maxH);
+            }
+            case BOTTOM_RIGHT -> {
+                w = clamp(start.width() + dx, minW, maxW);
+                h = clamp(start.height() + dy, minH, maxH);
+            }
+        }
+        return new PanelRect(x, y, w, h);
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return Math.min(max, Math.max(min, value));
+    }
+
+    private PanelRect currentRect() {
+        return new PanelRect(getLayoutX(), getLayoutY(), getSizeWidth(), getSizeHeight());
+    }
+
+    private void setPanelRect(PanelRect rect, boolean includeSize) {
+        if (includeSize) {
+            Style.importantPipeline(getLayout(), l -> l
+                    .left(rect.left())
+                    .top(rect.top())
+                    .width(rect.width())
+                    .height(rect.height()));
+        } else {
+            Style.importantPipeline(getLayout(), l -> l.left(rect.left()).top(rect.top()));
+        }
+    }
+
+    private void onResizeMouseDown(UIEvent e) {
+        if (!canResize()) return;
+        var handle = WindowDragHelper.detectResizeHandle(this, e.x, e.y, 2, activeHandles);
+        if (handle == null) return;
+        var icon = handle.icon;
+        var width = icon.spriteSize.width;
+        var height = icon.spriteSize.height;
+        startDrag(new WindowDragHelper.DragResize(
+                getLayoutX(), getLayoutY(), getSizeWidth(), getSizeHeight(), handle), icon)
+                .setDragTexture(-width / 2f, -height / 2f, width, height);
+        isResizing = true;
+        e.stopPropagation();
+    }
+
+    private void onResizeDragUpdate(UIEvent e) {
+        if (!(e.dragHandler.draggingObject instanceof WindowDragHelper.DragResize dragResize)) return;
+        if (!isResizing || !canResize()) return;
+        var d = getLocalMouseNormal(e.x - e.dragStartX, e.y - e.dragStartY);
+        var resized = resizePanelRect(
+                new PanelRect(dragResize.startX(), dragResize.startY(), dragResize.startW(), dragResize.startH()),
+                dragResize.handle(), d.x, d.y, 20f, Float.MAX_VALUE, 20f, Float.MAX_VALUE);
+        if (slot != DockSlot.CENTER) {
+            var canvas = graphView.canvas;
+            resized = anchorPanelRect(slot, resized, canvas.getSizeWidth(), canvas.getSizeHeight());
+        }
+        setPanelRect(resized, true);
+    }
+
+    private void onResizeDragEnd(UIEvent e) {
+        if (isResizing) {
+            isResizing = false;
+            rememberCurrentSize();
+            applySlotLayout();
+        }
     }
 
     // endregion
@@ -389,6 +514,7 @@ public class GraphPanel extends UIElement {
     public void setCollapsed(boolean collapsed) {
         if (this.isCollapsed == collapsed) return;
         if (collapsed) {
+            rememberCurrentSize();
             // Collapse hides content and shrinks the panel to fit its title — state-driven.
             Style.importantPipeline(content.getLayout(), l -> l.display(TaffyDisplay.NONE));
             Style.importantPipeline(title.getTextStyle(), s -> s.adaptiveWidth(true));
@@ -399,6 +525,10 @@ public class GraphPanel extends UIElement {
             Style.importantPipeline(title.getTextStyle(), s -> s.adaptiveWidth(false));
             getStyleBag().removeCandidates(LayoutProperties.WIDTH, s -> s.origin() == StyleOrigin.IMPORTANT);
             getStyleBag().removeCandidates(LayoutProperties.HEIGHT, s -> s.origin() == StyleOrigin.IMPORTANT);
+            var size = lastSlotSize.get(slot);
+            if (size != null) {
+                Style.importantPipeline(getLayout(), l -> l.width(Math.max(20f, size.x)).height(Math.max(20f, size.y)));
+            }
         }
 
         this.isCollapsed = collapsed;

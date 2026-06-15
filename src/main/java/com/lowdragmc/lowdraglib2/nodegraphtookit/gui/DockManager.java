@@ -24,10 +24,10 @@ public class DockManager {
     /** Highlight overlay color (semi-transparent blue). */
     private static final int HIGHLIGHT_COLOR = 0x55_4488FF;
 
-    private final GraphView graphView;
-    private final EnumMap<DockSlot, GraphPanel> cornerPanels = new EnumMap<>(DockSlot.class);
-    private final List<GraphPanel> floatingPanels = new ArrayList<>();
-    private final UIElement highlightOverlay = new UIElement();
+    public final GraphView graphView;
+    public final EnumMap<DockSlot, GraphPanel> cornerPanels = new EnumMap<>(DockSlot.class);
+    public final List<GraphPanel> floatingPanels = new ArrayList<>();
+    public final UIElement highlightOverlay = new UIElement();
 
     public DockManager(GraphView graphView) {
         this.graphView = graphView;
