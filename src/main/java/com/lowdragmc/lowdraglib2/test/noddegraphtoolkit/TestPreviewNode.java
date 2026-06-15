@@ -22,6 +22,7 @@ import net.minecraft.util.Mth;
  */
 @NodeAttribute(name = "test_preview", group = "test", graphTypes = {TestGraph.class})
 public class TestPreviewNode extends Node {
+    static final float PREVIEW_SIZE = 100f;
 
     // Live UI refs, rebuilt whenever the panel is (re)built.
     private Label valueLabel;
@@ -39,6 +40,11 @@ public class TestPreviewNode extends Node {
     }
 
     @Override
+    public float getNodeWidth() {
+        return PREVIEW_SIZE;
+    }
+
+    @Override
     public void onDefinePorts(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.IPortDefinitionContext context) {
         super.onDefinePorts(context);
         context.addInputPort("in", Float.class).withDefaultValue(0f).build();
@@ -48,7 +54,17 @@ public class TestPreviewNode extends Node {
     @Override
     public void onBuildNodePreview(NodePreviewContext context) {
         var container = context.container();
-        Style.defaultPipeline(container.getLayout(), l -> l.flexDirection(FlexDirection.COLUMN).gapAll(2).minWidth(90));
+        Style.defaultPipeline(container.getLayout(), l -> l
+                .flexDirection(FlexDirection.COLUMN)
+                .alignItems(AlignItems.STRETCH)
+                .gapAll(2)
+                .minWidth(90));
+
+        // The preview needs an explicit block size; percentage width + aspect ratio does not
+        // provide intrinsic height for the preview element's parent layout.
+        swatch = new UIElement();
+        swatch.getLayoutStyle().width(PREVIEW_SIZE).height(PREVIEW_SIZE);
+        container.addChild(swatch);
 
         // Static title — demonstrates building arbitrary UI into the container.
         container.addChild(new Label().setValue(Component.literal("Preview of " + getDisplayName().getString())));
@@ -56,15 +72,6 @@ public class TestPreviewNode extends Node {
         // Live value read from the node model (context.nodeModel()).
         valueLabel = new Label();
         container.addChild(valueLabel);
-
-        // A colour swatch derived from the input value — visual, updated on change.
-        var swatchRow = new UIElement();
-        Style.defaultPipeline(swatchRow.getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(3));
-        swatch = new UIElement();
-        Style.defaultPipeline(swatch.getLayout(), l -> l.width(16).height(16));
-        swatchRow.addChild(swatch);
-        swatchRow.addChild(new Label().setValue(Component.literal("swatch")));
-        container.addChild(swatchRow);
 
         // Shows the rest of the context wiring: whether we're in a live editor.
         contextLabel = new Label();

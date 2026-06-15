@@ -40,7 +40,9 @@ public final class ResourceHelper {
         if (LDLib2.isClient()) {
             return Minecraft.getInstance().getResourceManager();
         } else {
-            return Platform.getMinecraftServer().getResourceManager();
+            var server = Platform.getMinecraftServer();
+            if (server == null) return Platform.RESOURCE_MANAGER;
+            return server.getResourceManager();
         }
     }
 }

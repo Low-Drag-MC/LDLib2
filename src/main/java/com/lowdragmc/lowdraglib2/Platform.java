@@ -31,6 +31,9 @@ public class Platform {
     @ApiStatus.Internal
     public static RegistryAccess SERVER_REGISTRY_ACCESS = null;
 
+    @ApiStatus.Internal
+    public static ResourceManager RESOURCE_MANAGER = null;
+
     // This is a helper method to check if the ServerLevel is safe to access.
     // @return true if the ServerLevel is not safe to access, otherwise false.
     public static boolean isServerNotSafe() {

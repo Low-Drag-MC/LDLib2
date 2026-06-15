@@ -6,7 +6,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.JustifyContent;
 import net.minecraft.world.inventory.Slot;
 
 import java.util.function.Consumer;
@@ -81,7 +83,7 @@ public class InventorySlots extends UIElement {
         public final ItemSlot[] slots = new ItemSlot[9];
 
         public Row() {
-            getLayout().flexDirection(FlexDirection.ROW);
+            getLayout().flexDirection(FlexDirection.ROW).justifyContent(AlignContent.CENTER);
             addClass("__inventory_row__");
 
             for (int i = 0; i < slots.length; i++) {

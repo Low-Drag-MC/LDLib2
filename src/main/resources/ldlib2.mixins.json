@@ -29,11 +29,12 @@
     "PackConfigMixin",
     "ReloadableResourceManagerMixin",
     "ReloadableServerResourcesMixin",
+    "WorldLoaderMixin",
     "accessor.DelegatingOpsAccessor",
     "ui.AbstractContainerMenuMixin",
+    "ui.InventoryMenuMixin",
     "ui.MenuTypeMixin",
-    "ui.ServerPlayerMixin",
-    "ui.InventoryMenuMixin"
+    "ui.ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
