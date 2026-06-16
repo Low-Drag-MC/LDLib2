@@ -9,6 +9,7 @@ import mezz.jei.api.recipe.RecipeIngredientRole;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -21,7 +22,13 @@ public final class JEIRecipeSlotHandler {
     }
 
     public void registerLayoutSlots(IRecipeLayoutBuilder builder) {
-        for (var slot : slots) {
+        // dispatchAllChildren walks children in z-sorted (reverse insertion) order, so the entries are
+        // not collected in the order they were added to the tree. Register them by their declaration
+        // order (the order xeiRecipeSlot was called, i.e. document order) so transfer handlers
+        // (e.g. the AE2 pattern terminal) encode ingredients in the order the slots were added.
+        var ordered = new ArrayList<>(slots);
+        ordered.sort(Comparator.comparingInt(SlotEntry::order));
+        for (var slot : ordered) {
             if (slot.role() == RecipeIngredientRole.RENDER_ONLY) {
                 continue;
             }
@@ -51,6 +58,7 @@ public final class JEIRecipeSlotHandler {
     }
 
     public record SlotEntry(
+            int order,
             RecipeIngredientRole role,
             int x,
             int y,

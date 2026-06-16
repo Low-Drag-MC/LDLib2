@@ -242,10 +242,13 @@ public class LDLibJEIPlugin implements IModPlugin {
         }
         // Register a real layout slot in setRecipe so JEI transfer handlers and other JEI-API
         // consumers (quick-transfer, bookmarks, show recipes/uses) can see and use this ingredient.
-        var slotName = SLOT_NAME_PREFIX + RECIPE_SLOT_IDS.getAndIncrement();
+        // Assigned at UI build time, so it increases in the order xeiRecipeSlot is called
+        // (document order); used to register the layout slots in that same order.
+        var order = RECIPE_SLOT_IDS.getAndIncrement();
+        var slotName = SLOT_NAME_PREFIX + order;
         element.addEventListener(JEIUIEvents.RECIPE_SLOT, event -> {
             if (event.customData instanceof JEIRecipeSlotHandler recipeSlots) {
-                recipeSlots.addSlot(createRecipeSlotEntry(element, ingredientIO, displayIngredient, allIngredients, slotName));
+                recipeSlots.addSlot(createRecipeSlotEntry(element, ingredientIO, displayIngredient, allIngredients, order, slotName));
             }
         });
         // In createRecipeExtras, map this element's hover onto the JEI-created drawable(s) for that
@@ -272,12 +275,14 @@ public class LDLibJEIPlugin implements IModPlugin {
             IngredientIO ingredientIO,
             Supplier<ITypedIngredient<?>> displayIngredient,
             @Nullable Supplier<List<@org.jetbrains.annotations.Nullable ITypedIngredient<?>>> allIngredients,
+            int order,
             String slotName) {
         var area = LDLibJEIPlugin.getArea(element, true);
         var modularUI = element.getModularUI();
         var left = modularUI == null ? 0 : modularUI.getLeftPos();
         var top = modularUI == null ? 0 : modularUI.getTopPos();
         return new JEIRecipeSlotHandler.SlotEntry(
+                order,
                 getRole(ingredientIO),
                 area.getX() - Math.round(left),
                 area.getY() - Math.round(top),
