@@ -161,6 +161,13 @@ public class ModelFactory {
         return ((ModelBakeryAccessor)getModelBakery()).getTopLevelModels().get(modelLocation);
     }
 
+    public static @Nullable UnbakedModel getCachedModel(ResourceLocation modelLocation) {
+        var modelBakery = getModelBakery();
+        synchronized (modelBakery) {
+            return ((ModelBakeryAccessor) modelBakery).getUnbakedCache().get(modelLocation);
+        }
+    }
+
     public static Quaternionf getQuaternion(Direction facing) {
         return switch (facing) {
             case UP -> new Quaternionf().rotateXYZ(Mth.HALF_PI, 0, 0);
