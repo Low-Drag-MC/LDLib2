@@ -298,7 +298,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public FluidSlot xeiRecipeSlot(IngredientIO io, float chance) {
         // todo xei
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this);
+            JEISupport.recipeSlot(this, io);
         }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io);
@@ -312,7 +312,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     public FluidSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Supplier<Stream<FluidStack>> allPossibleFluids) {
         // todo xei
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this, allPossibleFluids);
+            JEISupport.recipeSlot(this, io, allPossibleFluids);
         }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io, () -> allPossibleFluids);
@@ -571,11 +571,19 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         }
 
         public static void recipeSlot(FluidSlot fluidSlot) {
-            recipeSlot(fluidSlot, () -> Stream.of(fluidSlot.getFluid()));
+            recipeSlot(fluidSlot, IngredientIO.NONE);
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, IngredientIO io) {
+            recipeSlot(fluidSlot, io, () -> Stream.of(fluidSlot.getFluid()));
         }
 
         public static void recipeSlot(FluidSlot fluidSlot, Supplier<Stream<FluidStack>> allPossibleFluids) {
-            LDLibJEIPlugin.recipeSlot(fluidSlot, () -> {
+            recipeSlot(fluidSlot, IngredientIO.NONE, allPossibleFluids);
+        }
+
+        public static void recipeSlot(FluidSlot fluidSlot, IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
+            LDLibJEIPlugin.recipeSlot(fluidSlot, io, () -> {
                 var fluid = fluidSlot.getValue();
                 return fluid.isEmpty() ? null : LDLibJEIPlugin
                         .createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidSlot.getFluid())

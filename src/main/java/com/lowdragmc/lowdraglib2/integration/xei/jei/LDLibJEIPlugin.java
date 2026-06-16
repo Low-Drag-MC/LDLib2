@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeIngredientHandler;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeSlotHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEITargetsTypedHandler;
 import com.lowdragmc.lowdraglib2.test.xei.TestJEIPlugin;
@@ -13,6 +14,7 @@ import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.gui.builder.IClickableIngredientFactory;
+import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
 import mezz.jei.api.ingredients.IIngredientType;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.RecipeIngredientRole;
@@ -35,11 +37,19 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @JeiPlugin
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class LDLibJEIPlugin implements IModPlugin {
+    /**
+     * Prefix for the unique name given to each registered recipe slot. The name is the only key that
+     * links the layout slot created in {@code setRecipe} (Phase 1) to the widget bound in
+     * {@code createRecipeExtras} (Phase 2), so it must be stable per element and unique within a recipe.
+     */
+    private static final String SLOT_NAME_PREFIX = "ldlib2:recipe_slot/";
+    private static final AtomicInteger RECIPE_SLOT_IDS = new AtomicInteger();
     @Nullable
     public static IJeiRuntime jeiRuntime;
     @Nullable
@@ -212,18 +222,69 @@ public class LDLibJEIPlugin implements IModPlugin {
      *                       {@link ITypedIngredient} instances to associate with the slot.
      */
     public static <T extends UIElement> void recipeSlot(T element,
+                                                        IngredientIO ingredientIO,
                                                         Supplier<ITypedIngredient<?>> displayIngredient,
                                                         @Nullable Supplier<List<@org.jetbrains.annotations.Nullable ITypedIngredient<?>>> allIngredients) {
-        element.addEventListener(JEIUIEvents.RECIPE_WIDGET, event -> {
-            if (event.customData instanceof JEIRecipeWidgetHandler recipeSlot) {
-                recipeSlot.addSlot(new JEIRecipeSlotWidget(
-                        recipeSlot.localToWorld,
-                        element::isMouseOverElement,
-                        displayIngredient,
-                        allIngredients,
-                        ((view, tooltip) -> tooltip.addAll(element.getStyle().tooltips().asList()))));
+        if (ingredientIO == IngredientIO.NONE) {
+            // No IO role, so there is nothing transferable to register as a layout slot.
+            // Just draw our own slot widget for the tooltip / lookup, as before.
+            element.addEventListener(JEIUIEvents.RECIPE_WIDGET, event -> {
+                if (event.customData instanceof JEIRecipeWidgetHandler recipeSlot) {
+                    recipeSlot.addSlot(new JEIRecipeSlotWidget(
+                            recipeSlot.localToWorld,
+                            element::isMouseOverElement,
+                            displayIngredient,
+                            allIngredients,
+                            ((view, tooltip) -> tooltip.addAll(element.getStyle().tooltips().asList()))));
+                }
+            });
+            return;
+        }
+        // Register a real layout slot in setRecipe so JEI transfer handlers and other JEI-API
+        // consumers (quick-transfer, bookmarks, show recipes/uses) can see and use this ingredient.
+        var slotName = SLOT_NAME_PREFIX + RECIPE_SLOT_IDS.getAndIncrement();
+        element.addEventListener(JEIUIEvents.RECIPE_SLOT, event -> {
+            if (event.customData instanceof JEIRecipeSlotHandler recipeSlots) {
+                recipeSlots.addSlot(createRecipeSlotEntry(element, ingredientIO, displayIngredient, allIngredients, slotName));
             }
         });
+        // In createRecipeExtras, map this element's hover onto the JEI-created drawable(s) for that
+        // layout slot. The drawables are resolved once per render here, not on every mouse query.
+        element.addEventListener(JEIUIEvents.RECIPE_WIDGET, event -> {
+            if (event.customData instanceof JEIRecipeWidgetHandler recipeSlot) {
+                var createdSlots = JEIRecipeSlotHandler.findByName(recipeSlot.recipeSlots.get(), slotName);
+                recipeSlot.addSlot(
+                        (mouseX, mouseY) -> {
+                            for (var slot : createdSlots) {
+                                if (slot.isMouseOver(mouseX, mouseY)) {
+                                    return new RecipeSlotUnderMouse(slot, 0, 0);
+                                }
+                            }
+                            return null;
+                        },
+                        () -> createdSlots);
+            }
+        });
+    }
+
+    private static <T extends UIElement> JEIRecipeSlotHandler.SlotEntry createRecipeSlotEntry(
+            T element,
+            IngredientIO ingredientIO,
+            Supplier<ITypedIngredient<?>> displayIngredient,
+            @Nullable Supplier<List<@org.jetbrains.annotations.Nullable ITypedIngredient<?>>> allIngredients,
+            String slotName) {
+        var area = LDLibJEIPlugin.getArea(element, true);
+        var modularUI = element.getModularUI();
+        var left = modularUI == null ? 0 : modularUI.getLeftPos();
+        var top = modularUI == null ? 0 : modularUI.getTopPos();
+        return new JEIRecipeSlotHandler.SlotEntry(
+                getRole(ingredientIO),
+                area.getX() - Math.round(left),
+                area.getY() - Math.round(top),
+                displayIngredient,
+                allIngredients,
+                ((view, tooltip) -> tooltip.addAll(element.getStyle().tooltips().asList())),
+                slotName);
     }
 
 }
