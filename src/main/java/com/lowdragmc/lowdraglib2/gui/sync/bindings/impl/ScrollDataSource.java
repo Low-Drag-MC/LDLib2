@@ -60,8 +60,9 @@ public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
 
     @Override
     public void tick() {
+        counter++;
         if (frequency > 1) {
-            if (++counter % frequency != 0) return;
+            if (counter % frequency != 0) return;
         }
 
         if (data.isEmpty()) {
