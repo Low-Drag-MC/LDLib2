@@ -41,14 +41,15 @@
     "PackConfigMixin",
     "ReloadableResourceManagerMixin",
     "ReloadableServerResourcesMixin",
+    "WorldLoaderMixin",
     "accessor.DelegatingOpsAccessor",
     "accessor.SlotAccessor",
     "emi.RecipeScreenMixin",
     "kjs.ServerScriptManagerAccessor",
     "ui.AbstractContainerMenuMixin",
+    "ui.InventoryMenuMixin",
     "ui.MenuTypeMixin",
-    "ui.ServerPlayerMixin",
-    "ui.InventoryMenuMixin"
+    "ui.ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
@@ -142,7 +143,7 @@ public class GraphView extends UIElement {
 
     /** When true, drag-moved and newly-created elements snap their positions to {@link #gridSnapSize}. */
     @Getter @Setter
-    private boolean snapToGrid = false;
+    private boolean snapToGrid = true;
     /** Pixel granularity for snap-to-grid alignment. Runtime-mutable; default 16. */
     @Getter @Setter
     private float gridSnapSize = 16f;
@@ -234,7 +235,8 @@ public class GraphView extends UIElement {
         snapToggle.addClass("__node-graph-view_header-snap-toggle__");
         snapToggle.noText()
                 .setOn(snapToGrid, false)
-                .setOnToggleChanged(this::setSnapToGrid);
+                .setOnToggleChanged(this::setSnapToGrid)
+                .bindDataSource(SupplierDataSource.of(() -> snapToGrid));
         Style.defaultPipeline(snapToggle.getToggleStyle(), style -> style.baseTexture(Sprites.BORDER1_RT1_DARK)
                 .hoverTexture(Sprites.BORDER1_RT1)
                 .markTexture(Icons.MAGNET)
