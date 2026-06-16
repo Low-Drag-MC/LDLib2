@@ -103,7 +103,11 @@ public class IModelRenderer implements IRenderer {
     @OnlyIn(Dist.CLIENT)
     @Nullable
     protected UnbakedModel getModel() {
-        return ModelFactory.getTopLevelModel(ModelResourceLocation.standalone(modelLocation));
+        var model = ModelFactory.getTopLevelModel(ModelResourceLocation.standalone(modelLocation));
+        if (model == null) {
+            model = ModelFactory.getCachedModel(modelLocation);
+        }
+        return model;
     }
 
     @OnlyIn(Dist.CLIENT)
