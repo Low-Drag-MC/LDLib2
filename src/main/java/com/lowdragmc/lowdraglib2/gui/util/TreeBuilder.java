@@ -12,9 +12,11 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
 import org.appliedenergistics.yoga.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Stack;
 import java.util.function.Consumer;
 
@@ -31,7 +33,11 @@ public class TreeBuilder<K, V> {
     protected final Stack<TreeNode<K, V>> stack = new Stack<>();
 
     public TreeBuilder(K key) {
-        stack.push(new TreeNode<>(key));
+        stack.push(createNode(key));
+    }
+
+    protected TreeNode<K, V> createNode(K key) {
+        return new TreeNode<>(key);
     }
 
     public static <K, V> TreeBuilder<K, V> start(K key){
@@ -153,10 +159,38 @@ public class TreeBuilder<K, V> {
 
     @KJSBindings("MenuBuilder")
     public static class Menu extends TreeBuilder<Tuple<IGuiTexture, Component>, Runnable> {
+        @Deprecated(since = "26.1")
+        private static class MenuTreeNode extends TreeNode<Tuple<IGuiTexture, Component>, Runnable> {
+            public MenuTreeNode(Tuple<IGuiTexture, Component> key) {
+                super(key);
+            }
+
+            public MenuTreeNode(@Nullable TreeNode<Tuple<IGuiTexture, Component>, Runnable> parent, int dimension, Tuple<IGuiTexture, Component> key) {
+                super(parent, dimension, key);
+            }
+
+            @Override
+            protected TreeNode<Tuple<IGuiTexture, Component>, Runnable> createNode(@Nullable TreeNode<Tuple<IGuiTexture, Component>, Runnable> parent, int dimension, Tuple<IGuiTexture, Component> key) {
+                return new MenuTreeNode(parent, dimension, key);
+            }
+
+            @Override
+            public boolean areKeysEqual(Tuple<IGuiTexture, Component> key1, Tuple<IGuiTexture, Component> key2) {
+                if (key1 == key2) return true;
+                if (key1 == null || key2 == null) return false;
+                return Objects.equals(key1.getA(), key2.getA()) && Objects.equals(key1.getB(), key2.getB());
+            }
+        }
+
         public static Tuple<IGuiTexture, Component> CROSS_LINE = new Tuple<>(IGuiTexture.EMPTY, Component.empty());
 
         private Menu(Tuple<IGuiTexture, Component> key) {
             super(key);
+        }
+
+        @Override
+        protected TreeNode<Tuple<IGuiTexture, Component>, Runnable> createNode(Tuple<IGuiTexture, Component> key) {
+            return new MenuTreeNode(key);
         }
 
         public static Menu start(){
