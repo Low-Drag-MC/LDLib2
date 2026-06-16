@@ -10,5 +10,6 @@ public final class JEIUIEvents {
     public static final String CLICKABLE_INGREDIENT = "clickableIngredient";
     public static final String GHOST_INGREDIENT = "ghostIngredient";
     public static final String RECIPE_INGREDIENT = "recipeIngredient";
+    public static final String RECIPE_SLOT = "recipeSlot";
     public static final String RECIPE_WIDGET = "recipeWidget";
 }

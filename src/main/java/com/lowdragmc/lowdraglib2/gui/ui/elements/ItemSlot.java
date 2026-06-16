@@ -252,7 +252,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance) {
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this);
+            JEISupport.recipeSlot(this, io);
         }
         if (LDLib2.isReiLoaded()) {
             REISupport.recipeSlot(this, io);
@@ -265,7 +265,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Supplier<Stream<ItemStack>> allPossibleItems) {
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this, allPossibleItems);
+            JEISupport.recipeSlot(this, io, allPossibleItems);
         }
         if (LDLib2.isReiLoaded()) {
             REISupport.recipeSlot(this, io, allPossibleItems);
@@ -512,11 +512,19 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         }
 
         public static void recipeSlot(ItemSlot itemSlot) {
-            recipeSlot(itemSlot, () -> Stream.of(itemSlot.getValue()));
+            recipeSlot(itemSlot, IngredientIO.NONE);
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot, IngredientIO io) {
+            recipeSlot(itemSlot, io, () -> Stream.of(itemSlot.getValue()));
         }
 
         public static void recipeSlot(ItemSlot itemSlot, Supplier<Stream<ItemStack>> allPossibleItems) {
-            LDLibJEIPlugin.recipeSlot(itemSlot, () -> {
+            recipeSlot(itemSlot, IngredientIO.NONE, allPossibleItems);
+        }
+
+        public static void recipeSlot(ItemSlot itemSlot, IngredientIO io, Supplier<Stream<ItemStack>> allPossibleItems) {
+            LDLibJEIPlugin.recipeSlot(itemSlot, io, () -> {
                 var item = itemSlot.getValue();
                 return item.isEmpty() ? null : TypedItemStack.create(item);
             }, () ->allPossibleItems.get().map(TypedItemStack::create).collect(Collectors.toList()));

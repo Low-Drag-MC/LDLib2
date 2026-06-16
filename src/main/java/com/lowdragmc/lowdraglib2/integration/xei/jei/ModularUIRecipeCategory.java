@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.IModularUIProvider;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeIngredientHandler;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeSlotHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
@@ -20,7 +21,6 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.navigation.ScreenPosition;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -76,6 +76,13 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
         for (var focus : ingredientFocus.focuses) {
             builder.addInvisibleIngredients(focus.getA()).addTypedIngredients(focus.getB());
         }
+
+        var recipeSlots = new JEIRecipeSlotHandler();
+        var slotEvent = UIEvent.create(JEIUIEvents.RECIPE_SLOT);
+        slotEvent.target = mui.ui.rootElement;
+        slotEvent.customData = recipeSlots;
+        UIEventDispatcher.dispatchAllChildren(slotEvent);
+        recipeSlots.registerLayoutSlots(builder);
     }
 
     @Override
@@ -86,24 +93,25 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
         builder.addGuiEventListener(widget);
 
         // post event to append recipe slots
-        var recipeSlot = new JEIRecipeWidgetHandler(widget::getLocalToWorld);
+        var recipeSlot = new JEIRecipeWidgetHandler(widget::getLocalToWorld, builder::getRecipeSlots);
         var event = UIEvent.create(JEIUIEvents.RECIPE_WIDGET);
         event.target = widget.modularUI.ui.rootElement;
         event.customData = recipeSlot;
         UIEventDispatcher.dispatchAllChildren(event);
 
         for (var slot : recipeSlot.slots) {
+            var handledSlots = slot.handledSlots().get();
             builder.addSlottedWidget(new ISlottedRecipeWidget() {
                 @Override
                 public Optional<RecipeSlotUnderMouse> getSlotUnderMouse(double mouseX, double mouseY) {
-                    return Optional.ofNullable(slot.getRecipeSlots(mouseX, mouseY));
+                    return Optional.ofNullable(slot.provider().getRecipeSlots(mouseX, mouseY));
                 }
 
                 @Override
                 public ScreenPosition getPosition() {
                     return ModularUIJEIWidget.ZERO;
                 }
-            }, List.of());
+            }, handledSlots);
         }
     }
 }
