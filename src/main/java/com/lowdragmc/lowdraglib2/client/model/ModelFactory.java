@@ -152,8 +152,12 @@ public class ModelFactory {
 
     public static UnbakedModel getUnBakedModel(ResourceLocation modelLocation) {
         var modelBakery = getModelBakery();
-        synchronized (modelBakery) {
-            return ((ModelBakeryAccessor) modelBakery).invokeGetModel(modelLocation);
+        try {
+            synchronized (modelBakery) {
+                return ((ModelBakeryAccessor) modelBakery).invokeGetModel(modelLocation);
+            }
+        } catch (Throwable ignored) {
+            return ((ModelBakeryAccessor) modelBakery).getMissingModel();
         }
     }
 
@@ -163,8 +167,12 @@ public class ModelFactory {
 
     public static @Nullable UnbakedModel getCachedModel(ResourceLocation modelLocation) {
         var modelBakery = getModelBakery();
-        synchronized (modelBakery) {
-            return ((ModelBakeryAccessor) modelBakery).getUnbakedCache().get(modelLocation);
+        try {
+            synchronized (modelBakery) {
+                return ((ModelBakeryAccessor) modelBakery).getUnbakedCache().get(modelLocation);
+            }
+        } catch (Throwable ignored) {
+            return ((ModelBakeryAccessor) modelBakery).getMissingModel();
         }
     }
 

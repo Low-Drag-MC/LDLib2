@@ -22,4 +22,8 @@ public interface ModelBakeryAccessor {
 
     @Accessor
     Map<ModelResourceLocation, UnbakedModel> getTopLevelModels();
+
+    @Accessor
+    UnbakedModel getMissingModel();
+
 }
