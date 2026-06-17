@@ -36,6 +36,10 @@ repositories {
         }
     } // Modrinth File
     maven {
+        name = "CurseForge"
+        url = "https://cursemaven.com"
+    } // CurseForge
+    maven {
         // location of the maven that hosts JEI files since January 2023
         name = "Jared's maven"
         url = "https://maven.blamejared.com/"
@@ -172,6 +176,7 @@ dependencies {
 
     // AE2
     localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
+//    localImplementation("curse.maven:ae2-jei-integration-1074338:7727898")
 
     // KJS
     localImplementation("dev.latvian.mods:kubejs-neoforge:${kjs_version}") {

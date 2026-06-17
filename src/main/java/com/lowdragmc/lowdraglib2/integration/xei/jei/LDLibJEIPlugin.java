@@ -195,7 +195,11 @@ public class LDLibJEIPlugin implements IModPlugin {
                                                               Supplier<List<ITypedIngredient<?>>> ingredientsProvider) {
         element.addEventListener(JEIUIEvents.RECIPE_INGREDIENT, event -> {
             if (event.customData instanceof JEIRecipeIngredientHandler focuses) {
-                focuses.add(getRole(ingredientIO), ingredientsProvider.get());
+                focuses.add(new JEIRecipeIngredientHandler.Entry(
+                        getRole(ingredientIO),
+                        ingredientsProvider.get(),
+                        getArea(element)
+                ));
             }
         });
     }

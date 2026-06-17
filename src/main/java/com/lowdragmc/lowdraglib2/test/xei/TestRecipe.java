@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.xei;
 
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.ScrollDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -13,6 +14,8 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
@@ -20,6 +23,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.appliedenergistics.yoga.YogaFlexDirection;
 import org.appliedenergistics.yoga.YogaWrap;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TestRecipe {
@@ -28,15 +32,18 @@ public class TestRecipe {
 
     public ModularUI createModularUI() {
         var dummyWorld = TestScene.createTestScene();
+        var allLogs = new ArrayList<ItemStack>();
+        BuiltInRegistries.ITEM.getTagOrEmpty(ItemTags.LOGS).forEach(item -> allLogs.add(new ItemStack(item.value())));
         return ModularUI.of(UI.of(
                 new UIElement().layout(layout -> layout.widthPercent(100).heightPercent(100)).addChildren(
                         new SplitView.Horizontal().left(new ScrollerView().addScrollViewChildren(
                                 new UIElement().layout(layout -> layout.gapAll(3)).addChildren(
                                         // items
                                         new UIElement().addChildren(
-                                                new ItemSlot().setItem(Items.APPLE.getDefaultInstance())
-                                                        .xeiRecipeIngredient(IngredientIO.INPUT)
-                                                        .xeiRecipeSlot()
+                                                new ItemSlot()
+                                                        .xeiRecipeIngredient(IngredientIO.INPUT, allLogs::stream)
+                                                        .xeiRecipeSlot(IngredientIO.INPUT, 1, 1, allLogs::stream)
+                                                        .bindDataSource(ScrollDataSource.of((allLogs)))
                                                         .style(style -> style.tooltips("this is additional tooltips")),
                                                 new ItemSlot().setItem(Items.STONE.getDefaultInstance())
                                                         .xeiRecipeIngredient(IngredientIO.INPUT)
