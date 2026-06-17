@@ -152,13 +152,28 @@
 //
 //    public static UnbakedModel getUnBakedModel(ResourceLocation modelLocation) {
 //        var modelBakery = getModelBakery();
-//        synchronized (modelBakery) {
-//            return ((ModelBakeryAccessor) modelBakery).invokeGetModel(modelLocation);
+//        try {
+//            synchronized (modelBakery) {
+//                return ((ModelBakeryAccessor) modelBakery).invokeGetModel(modelLocation);
+//            }
+//        } catch (Throwable ignored) {
+//            return ((ModelBakeryAccessor) modelBakery).getMissingModel();
 //        }
 //    }
 //
 //    public static @Nullable UnbakedModel getTopLevelModel(ModelResourceLocation modelLocation) {
 //        return ((ModelBakeryAccessor)getModelBakery()).getTopLevelModels().get(modelLocation);
+//    }
+//
+//    public static @Nullable UnbakedModel getCachedModel(ResourceLocation modelLocation) {
+//        var modelBakery = getModelBakery();
+//        try {
+//            synchronized (modelBakery) {
+//                return ((ModelBakeryAccessor) modelBakery).getUnbakedCache().get(modelLocation);
+//            }
+//        } catch (Throwable ignored) {
+//            return ((ModelBakeryAccessor) modelBakery).getMissingModel();
+//        }
 //    }
 //
 //    public static Quaternionf getQuaternion(Direction facing) {

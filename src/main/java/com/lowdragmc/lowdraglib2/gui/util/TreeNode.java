@@ -42,6 +42,10 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
         this.key = key;
     }
 
+    protected TreeNode<T, K> createNode(@Nullable TreeNode<T, K> parent, int dimension, T key) {
+        return new TreeNode<>(parent, dimension, key);
+    }
+
     @Nonnull
     public List<? extends TreeNode<T, K>> getChildren() {
         if (children == null) return Collections.emptyList();
@@ -57,14 +61,14 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
     public TreeNode<T, K> getOrCreateChild(T childKey) {
         TreeNode<T, K> result;
         if (children != null) {
-            result = children.stream().filter(child->child.key.equals(childKey)).findFirst().orElseGet(()->{
-                TreeNode<T, K> newNode = new TreeNode<>(this, dimension + 1, childKey).setValid(valid);
+            result = children.stream().filter(child -> areKeysEqual(child.key, childKey)).findFirst().orElseGet(()->{
+                TreeNode<T, K> newNode = createNode(this, dimension + 1, childKey).setValid(valid);
                 children.add(newNode);
                 return newNode;
             });
         } else {
             children = new ArrayList<>();
-            result = new TreeNode<>(this,  dimension + 1, childKey).setValid(valid);
+            result = createNode(this,  dimension + 1, childKey).setValid(valid);
             children.add(result);
         }
         return result;
@@ -74,7 +78,7 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
         if (children == null) {
             children = new ArrayList<>();
         }
-        TreeNode<T, K> result = new TreeNode<>(this, dimension + 1, childKey).setValid(valid);
+        TreeNode<T, K> result = createNode(this, dimension + 1, childKey).setValid(valid);
         children.add(result);
         return result;
     }
@@ -86,7 +90,7 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
     public void removeChild(T key) {
         if (children != null) {
             for (TreeNode<T, K> child : children) {
-                if (child.key.equals(key)) {
+                if (areKeysEqual(child.key, key)) {
                     children.remove(child);
                     return;
                 }
@@ -98,6 +102,14 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
         if (children != null) {
             children.remove(child);
         }
+    }
+
+    public boolean areKeysEqual(T key1, T key2) {
+        return Objects.equals(key1, key2);
+    }
+
+    public boolean areContentsEqual(K content1, K content2) {
+        return Objects.equals(content1, content2);
     }
 
     @Override
@@ -112,8 +124,8 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
         if (o == null || getClass() != o.getClass()) return false;
         TreeNode<?, ?> that = (TreeNode<?, ?>) o;
         return dimension == that.dimension &&
-                Objects.equals(key, that.key) &&
-                Objects.equals(content, that.content);
+                areKeysEqual(key, (T) that.key) &&
+                areContentsEqual(content, (K) that.content);
     }
 
     @Override
