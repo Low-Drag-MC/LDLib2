@@ -2434,6 +2434,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
         // Clear existing state
         nodeModels.clear();
+        onNodeModelsReset();
         wireModels.clear();
         placematModels.clear();
         stickyNoteModels.clear();
@@ -2655,6 +2656,9 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // failure isn't a meaningful event for them. Type-mismatch port-drops are already
         // handled by step 5 above (the wire's referenced port UID no longer resolves).
         dropWiresOnFailedInputConstants();
+    }
+
+    protected void onNodeModelsReset() {
     }
 
     private void dropWiresOnFailedInputConstants() {
