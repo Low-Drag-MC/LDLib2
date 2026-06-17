@@ -153,6 +153,11 @@ public class CustomGraphModelImpl extends GraphModel {
         return (Class<T>) CustomNodeModelImpl.class;
     }
 
+    @Override
+    protected void onNodeModelsReset() {
+        nodes = null;
+    }
+
     public List<? extends INode> getNodes() {
         if (nodes == null) buildNodesFromNodeModels();
         return nodes;

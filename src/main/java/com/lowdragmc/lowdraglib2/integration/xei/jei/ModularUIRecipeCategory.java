@@ -12,6 +12,8 @@ import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeIngredient
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
+import mezz.jei.api.gui.placement.HorizontalAlignment;
+import mezz.jei.api.gui.placement.VerticalAlignment;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
 import mezz.jei.api.gui.widgets.ISlottedRecipeWidget;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
+    public static final String SLOT_PREFIX = "ldlib:recipe_slot/";
     public final IModularUIProvider<T> uiProvider;
     // runtime
     protected final LoadingCache<T, ModularUI> uiCache;
@@ -73,14 +76,24 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
         event.target = mui.ui.rootElement;
         event.customData = ingredientFocus;
         UIEventDispatcher.dispatchAllChildren(event);
-        for (var focus : ingredientFocus.focuses) {
-            builder.addInvisibleIngredients(focus.getA()).addTypedIngredients(focus.getB());
+        var ingredientIndex = 0;
+        // reversed to keep correct order
+        for (var focus : ingredientFocus.focuses.reversed()) {
+//            builder.addInvisibleIngredients(focus.getA()).addTypedIngredients(focus.getB());
+            var area = focus.area();
+            builder.addSlot(focus.role())
+                    .addTypedIngredients(focus.ingredients())
+                    .setSlotName(SLOT_PREFIX + ingredientIndex)
+                    .setPosition(area.getX(), area.getY(), area.getWidth(), area.getHeight(), HorizontalAlignment.LEFT, VerticalAlignment.TOP)
+            ;
+            ingredientIndex++;
         }
     }
 
     @Override
     public void createRecipeExtras(IRecipeExtrasBuilder builder, T recipe, IFocusGroup focuses) {
         IRecipeCategory.super.createRecipeExtras(builder, recipe, focuses);
+        var mui = getUIForRecipe(recipe);
         var widget = new ModularUIJEIWidget(getUIForRecipe(recipe));
         builder.addWidget(widget);
         builder.addGuiEventListener(widget);
@@ -104,6 +117,32 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
                     return ModularUIJEIWidget.ZERO;
                 }
             }, List.of());
+        }
+
+        var ingredientFocus = new JEIRecipeIngredientHandler();
+        event = UIEvent.create(JEIUIEvents.RECIPE_INGREDIENT);
+        event.target = mui.ui.rootElement;
+        event.customData = ingredientFocus;
+        UIEventDispatcher.dispatchAllChildren(event);
+        var ingredientIndex = 0;
+        // let's hide all recipe slots
+        while (true) {
+            var found = builder.getRecipeSlots().findSlotByName(SLOT_PREFIX + ingredientIndex);
+            if (found.isEmpty()) break;
+            found.ifPresent(slot -> {
+                builder.addSlottedWidget(new ISlottedRecipeWidget() {
+                    @Override
+                    public Optional<RecipeSlotUnderMouse> getSlotUnderMouse(double mouseX, double mouseY) {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public ScreenPosition getPosition() {
+                        return ModularUIJEIWidget.ZERO;
+                    }
+                }, List.of(slot));
+            });
+            ingredientIndex++;
         }
     }
 }
