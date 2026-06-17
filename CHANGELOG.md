@@ -1,5 +1,4 @@
-## v2.2.21
-* Improved GraphPanel qoe
+## v26.1.2.21
 * Fixed Menu API
 * Fixed ScrollDataSource (#48 thanks @DaningSnow0517)
 * Fixed model loading issue (#49 thanks @Arcomit)
