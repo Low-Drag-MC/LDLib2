@@ -11,6 +11,7 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -157,7 +158,7 @@ public class TreeBuilder<K, V> {
 
     @KJSBindings("MenuBuilder")
     public static class Menu extends TreeBuilder<Tuple<IGuiTexture, Component>, Runnable> {
-        @Deprecated(since = "26.1")
+        @Deprecated(since = "26.2")
         private static class MenuTreeNode extends TreeNode<Tuple<IGuiTexture, Component>, Runnable> {
             public MenuTreeNode(Tuple<IGuiTexture, Component> key) {
                 super(key);
