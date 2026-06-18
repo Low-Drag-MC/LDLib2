@@ -21,6 +21,7 @@ import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenPosition;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.TooltipFlag;
@@ -93,7 +94,9 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
                 var type = ingredient.getType();
                 slotBuilder.setCustomRenderer(type, new IIngredientRenderer() {
                     @Override
-                    public void render(GuiGraphics guiGraphics, Object ingredient) {}
+                    public void render(GuiGraphicsExtractor guiGraphics, Object ingredient) {
+
+                    }
 
                     @Override
                     public List<Component> getTooltip(Object ingredient, TooltipFlag tooltipFlag) {
