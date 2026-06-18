@@ -64,6 +64,25 @@ public class LDLibJEIPlugin implements IModPlugin {
         return new Rect2i((int) worldPos.x, (int) worldPos.y, (int) worldSize.x, (int) worldSize.y);
     }
 
+    public static Rect2i getAreaLocal(UIElement element, boolean content) {
+        Vector2f pos;
+        Vector2f size;
+        if (content) {
+            pos = new Vector2f(element.getContentX(), element.getContentY());
+            size = new Vector2f(element.getContentWidth(), element.getContentHeight());
+        } else {
+            pos = new Vector2f(element.getPositionX(), element.getPositionY());
+            size = new Vector2f(element.getSizeWidth(), element.getSizeHeight());
+        }
+        var worldPos = element.localToWorld(pos);
+        var worldSize = element.localToWorldNormal(size);
+        var mui = element.getModularUI();
+        if (mui == null) return new Rect2i((int) worldPos.x, (int) worldPos.y, (int) worldSize.x, (int) worldSize.y);
+        var localPos = mui.ui.rootElement.worldToLocalLayoutOffset(worldPos);
+        var localSize = mui.ui.rootElement.worldToLocalNormal(worldSize);
+        return new Rect2i((int) localPos.x, (int) localPos.y, (int) localSize.x, (int) localSize.y);
+    }
+
     public static RecipeIngredientRole getRole(IngredientIO ingredientIO) {
         return switch (ingredientIO) {
             case INPUT -> RecipeIngredientRole.INPUT;
@@ -198,7 +217,7 @@ public class LDLibJEIPlugin implements IModPlugin {
                 focuses.add(new JEIRecipeIngredientHandler.Entry(
                         getRole(ingredientIO),
                         ingredientsProvider.get(),
-                        getArea(element)
+                        getAreaLocal(element, true)
                 ));
             }
         });
