@@ -1,5 +1,5 @@
 # ChangeLogs
-## v2.2.21.a
+## v2.2.22
 * Fixed JEI recipe slot size
 
 ## v2.2.21
