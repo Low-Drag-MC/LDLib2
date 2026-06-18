@@ -16,10 +16,15 @@ import mezz.jei.api.gui.placement.HorizontalAlignment;
 import mezz.jei.api.gui.placement.VerticalAlignment;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
 import mezz.jei.api.gui.widgets.ISlottedRecipeWidget;
+import mezz.jei.api.ingredients.IIngredientRenderer;
+import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.navigation.ScreenPosition;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.TooltipFlag;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
@@ -81,11 +86,32 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
         for (var focus : ingredientFocus.focuses.reversed()) {
 //            builder.addInvisibleIngredients(focus.getA()).addTypedIngredients(focus.getB());
             var area = focus.area();
-            builder.addSlot(focus.role())
+            var slotBuilder = builder.addSlot(focus.role())
                     .addTypedIngredients(focus.ingredients())
                     .setSlotName(SLOT_PREFIX + ingredientIndex)
-                    .setPosition(area.getX(), area.getY(), area.getWidth(), area.getHeight(), HorizontalAlignment.LEFT, VerticalAlignment.TOP)
-            ;
+                    .setPosition(area.getX(), area.getY());
+            for (ITypedIngredient<?> ingredient : focus.ingredients()) {
+                var type = ingredient.getType();
+                slotBuilder.setCustomRenderer(type, new IIngredientRenderer() {
+                    @Override
+                    public void render(GuiGraphics guiGraphics, Object ingredient) {}
+
+                    @Override
+                    public List<Component> getTooltip(Object ingredient, TooltipFlag tooltipFlag) {
+                        return List.of();
+                    }
+
+                    @Override
+                    public int getWidth() {
+                        return area.getWidth();
+                    }
+
+                    @Override
+                    public int getHeight() {
+                        return area.getHeight();
+                    }
+                });
+            }
             ingredientIndex++;
         }
     }
