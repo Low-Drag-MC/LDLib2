@@ -1106,7 +1106,10 @@ public class GraphView extends UIElement {
         if (this.isFocused() || panelLayer.getChildren().stream().anyMatch(UIElement::isFocused)) {
             switch (event.keyCode) {
                 case GLFW.GLFW_KEY_DELETE -> deleteSelectedElements();
+                default -> event.hasHandler = false;
             }
+        } else {
+            event.hasHandler = false;
         }
     }
 
