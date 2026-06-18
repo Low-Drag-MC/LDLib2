@@ -1,4 +1,8 @@
 # ChangeLogs
+## v26.1.2.22
+* Improved itemslot/fluidslot drawing function overridable
+* Fixed JEI recipe slot size
+
 ## v26.1.2.21
 * Fixed Menu API
 * Fixed ScrollDataSource (#48 thanks @DaningSnow0517)
