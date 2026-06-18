@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
+import com.lowdragmc.lowdraglib2.Platform;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
@@ -20,9 +21,10 @@ public final class FilePath implements IResourcePath {
 
     public static String normalizePath(String path) {
         if (path == null) return null;
-        return path.replace('\\', '/')
-                .replaceAll("/+", "/")
-                .replaceAll("/$", "");
+        var gamePath = Platform.getGamePath().toAbsolutePath().normalize();
+        var absolutePath = new File(path).toPath().toAbsolutePath().normalize();
+        var relativePath = absolutePath.startsWith(gamePath) ? gamePath.relativize(absolutePath) : absolutePath;
+        return relativePath.toString().replace('\\', '/');
     }
 
     public FilePath(String path) {
