@@ -414,6 +414,24 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         super.loadXml(element);
     }
 
+    protected void drawDraggingBackground(IGUIContext context) {
+        context.drawTexture(ItemSlot.DRAGGING_BG, 0, 0, 16, 16);
+    }
+
+    protected void drawSlotOverlay(IGUIContext context) {
+        context.drawTexture(getSlotStyle().slotOverlay(), 0, 0, 16, 16);
+    }
+
+    protected void drawItemStack(IGUIContext context, ItemStack itemStack) {
+        if (context instanceof GUIContext guiContext) {
+            DrawerHelperClient.drawItemStack(guiContext, itemStack, 0, 0, 0);
+        }
+    }
+
+    protected void drawHover(IGUIContext context) {
+        context.drawTexture(getSlotStyle().hoverOverlay(), 0, 0, 16, 16);
+    }
+
     // todo xei
 
     // region XEI Supports
@@ -553,7 +571,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     // endregion
 
     @LDLRegisterClient(name = "item_slot", registry = "ldlib2:ui_element_renderer")
-    public static final class ItemSlotRenderer extends DelegatingUIElementRenderer<ItemSlot, ItemSlotRenderer> {
+    public static class ItemSlotRenderer extends DelegatingUIElementRenderer<ItemSlot, ItemSlotRenderer> {
         @Override
         public Class<ItemSlot> type() {
             return ItemSlot.class;
@@ -568,7 +586,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             drawBackgroundAdditional(itemSlot, guiContext);
         }
 
-        static void drawBackgroundAdditional(ItemSlot itemSlot, GUIContext context) {
+        protected void drawBackgroundAdditional(ItemSlot itemSlot, GUIContext context) {
             var value = itemSlot.getValue();
             var mui = itemSlot.getModularUI();
             if (mui == null) return;
@@ -614,34 +632,18 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             context.pose.translate(contentX * 16 / contentWidth, contentY * 16 / contentHeight);
 
             if (drawDraggingBackground) {
-                drawDraggingBackground(context);
+                itemSlot.drawDraggingBackground(context);
             }
             if (drawSlotOverlay) {
-                drawSlotOverlay(itemSlot, context);
+                itemSlot.drawSlotOverlay(context);
             }
             if (!value.isEmpty()) {
-                drawItemStack(context, value);
+                itemSlot.drawItemStack(context, value);
             }
             if (hovered) {
-                drawHover(itemSlot, context);
+                itemSlot.drawHover(context);
             }
             context.pose.popPose();
-        }
-
-        private static void drawDraggingBackground(GUIContext context) {
-            context.drawTexture(ItemSlot.DRAGGING_BG, 0, 0, 16, 16);
-        }
-
-        private static void drawSlotOverlay(ItemSlot itemSlot, GUIContext context) {
-            context.drawTexture(itemSlot.getSlotStyle().slotOverlay(), 0, 0, 16, 16);
-        }
-
-        private static void drawItemStack(GUIContext context, ItemStack itemStack) {
-            DrawerHelperClient.drawItemStack(context, itemStack, 0, 0, 0);
-        }
-
-        private static void drawHover(ItemSlot itemSlot, GUIContext context) {
-            context.drawTexture(itemSlot.getSlotStyle().hoverOverlay(), 0, 0, 16, 16);
         }
     }
 }

@@ -540,6 +540,31 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     }
 
     // todo xei
+
+    protected void drawSlotOverlay(IGUIContext context, float contentX, float contentY, float contentWidth, float contentHeight) {
+        context.drawTexture(this.getSlotStyle().slotOverlay(), contentX, contentY, contentWidth, contentHeight);
+    }
+
+    protected void drawFluid(IGUIContext context, FluidStack renderedFluid, float contentX, float contentY, float contentWidth, float contentHeight) {
+        if (context instanceof GUIContext guiContext) {
+            var fillDirection = this.getSlotStyle().fillDirection();
+            double progress = renderedFluid.getAmount() * 1.0 / Math.max(Math.max(renderedFluid.getAmount(), this.getCapacity()), 1);
+            float drawnU = (float) fillDirection.getDrawnU(progress);
+            float drawnV = (float) fillDirection.getDrawnV(progress);
+            float drawnWidth = (float) fillDirection.getDrawnWidth(progress);
+            float drawnHeight = (float) fillDirection.getDrawnHeight(progress);
+            DrawerHelperClient.drawFluidForGui(guiContext, renderedFluid,
+                    contentX + drawnU * contentWidth,
+                    contentY + drawnV * contentHeight,
+                    contentWidth * drawnWidth,
+                    contentHeight * drawnHeight, -1);
+        }
+    }
+
+    protected void drawHover(IGUIContext context, float contentX, float contentY, float contentWidth, float contentHeight) {
+        context.drawTexture(this.getSlotStyle().hoverOverlay(), contentX, contentY, contentWidth, contentHeight);
+    }
+
     // region XEI Support
     public static class JEISupport {
         public static void clickableIngredient(FluidSlot fluidSlot) {
@@ -716,36 +741,14 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
             var contentHeight = fluidSlot.getContentHeight();
 
             if (renderedFluid.isEmpty() || !fluidSlot.getSlotStyle().showSlotOverlayOnlyEmpty()) {
-                drawSlotOverlay(fluidSlot, context, contentX, contentY, contentWidth, contentHeight);
+                fluidSlot.drawSlotOverlay(context, contentX, contentY, contentWidth, contentHeight);
             }
             if (!renderedFluid.isEmpty()) {
-                drawFluid(fluidSlot, context, renderedFluid, contentX, contentY, contentWidth, contentHeight);
+                fluidSlot.drawFluid(context, renderedFluid, contentX, contentY, contentWidth, contentHeight);
             }
             if (hovered) {
-                drawHover(fluidSlot, context, contentX, contentY, contentWidth, contentHeight);
+                fluidSlot.drawHover(context, contentX, contentY, contentWidth, contentHeight);
             }
-        }
-
-        private static void drawSlotOverlay(FluidSlot fluidSlot, GUIContext context, float contentX, float contentY, float contentWidth, float contentHeight) {
-            context.drawTexture(fluidSlot.getSlotStyle().slotOverlay(), contentX, contentY, contentWidth, contentHeight);
-        }
-
-        private static void drawFluid(FluidSlot fluidSlot, GUIContext context, FluidStack renderedFluid, float contentX, float contentY, float contentWidth, float contentHeight) {
-            var fillDirection = fluidSlot.getSlotStyle().fillDirection();
-            double progress = renderedFluid.getAmount() * 1.0 / Math.max(Math.max(renderedFluid.getAmount(), fluidSlot.getCapacity()), 1);
-            float drawnU = (float) fillDirection.getDrawnU(progress);
-            float drawnV = (float) fillDirection.getDrawnV(progress);
-            float drawnWidth = (float) fillDirection.getDrawnWidth(progress);
-            float drawnHeight = (float) fillDirection.getDrawnHeight(progress);
-            DrawerHelperClient.drawFluidForGui(context, renderedFluid,
-                    contentX + drawnU * contentWidth,
-                    contentY + drawnV * contentHeight,
-                    contentWidth * drawnWidth,
-                    contentHeight * drawnHeight, -1);
-        }
-
-        private static void drawHover(FluidSlot fluidSlot, GUIContext context, float contentX, float contentY, float contentWidth, float contentHeight) {
-            context.drawTexture(fluidSlot.getSlotStyle().hoverOverlay(), contentX, contentY, contentWidth, contentHeight);
         }
     }
 }
