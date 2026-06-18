@@ -1,4 +1,7 @@
 # ChangeLogs
+## v2.2.21.a
+* Fixed JEI recipe slot size
+
 ## v2.2.21
 * Improved GraphPanel qoe
 * Fixed Menu API
