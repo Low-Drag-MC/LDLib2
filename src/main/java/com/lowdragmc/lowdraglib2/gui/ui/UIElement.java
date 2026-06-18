@@ -1873,9 +1873,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 guiContext.resetElementColor();
             }
 
-            var copyList = children.toArray(UIElement[]::new);
-            for (UIElement uiElement : copyList) {
-                uiElement.drawInBackground(guiContext);
+            var sortedChildren = getSafeSortedChildren();
+            for (int i = sortedChildren.length - 1; i >= 0; i--) {
+                sortedChildren[i].drawInBackground(guiContext);
             }
 
             if (hasColor) {
