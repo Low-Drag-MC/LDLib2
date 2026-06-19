@@ -1,4 +1,7 @@
 # ChangeLogs
+## v26.1.2.24
+* Fixed DirectArray sync
+
 ## v26.1.2.23
 * Fixed z-index draw
 * Fixed GraphView keydown event doesn’t use
