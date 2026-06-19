@@ -57,6 +57,7 @@ public final class DirectArrayRef<TYPE, TYPE_ARRAY> extends UniqueDirectRef<TYPE
         if (!Objects.equals(oldValue, newValue)) {
             oldValue = newValue;
             updateRefs(newValue);
+            markAsDirty();
             if (refs != null) {
                 for (var ref : refs) {
                     ref.markAsDirty();
