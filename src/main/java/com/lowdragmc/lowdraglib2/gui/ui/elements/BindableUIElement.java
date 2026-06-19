@@ -27,6 +27,11 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
     }
 
     @Override
+    public Collection<IObserver<T>> getBoundObservers() {
+        return observers.keySet();
+    }
+
+    @Override
     public BindableUIElement<T> bindObserver(IObserver<T> observer) {
         if (observers.containsKey(observer)) {
             LDLib2.LOGGER.warn("Trying to bind an observer to a bindable UI element that already has a binding to it.");
@@ -54,6 +59,11 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
             removed.unsubscribe();
         }
         return this;
+    }
+
+    @Override
+    public Collection<IDataProvider<T>> getBoundDataSources() {
+        return dataSources.keySet();
     }
 
     @Override

@@ -1,7 +1,11 @@
 package com.lowdragmc.lowdraglib2.integration.xei.jei;
 
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.IPausable;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import lombok.Getter;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.inputs.IJeiGuiEventListener;
@@ -130,6 +134,15 @@ public class ModularUIJEIWidget implements IRecipeWidget, IJeiGuiEventListener {
 
     @Override
     public boolean keyPressed(double mouseX, double mouseY, int keyCode, int scanCode, int modifiers) {
-        return ModularUIClientAccess.getWidget(modularUI).keyPressed(new KeyEvent(keyCode, scanCode, modifiers));
+        var result = ModularUIClientAccess.getWidget(modularUI).keyPressed(new KeyEvent(keyCode, scanCode, modifiers));
+        // pause scroll
+        if (!result && UIElement.isShiftDown() && modularUI.getLastHoveredElement() instanceof IDataConsumer<?> consumer) {
+            for (IDataProvider<?> boundDataSource : consumer.getBoundDataSources()) {
+                if (boundDataSource instanceof IPausable pausable) {
+                    pausable.togglePause();
+                }
+            }
+        }
+        return result;
     }
 }

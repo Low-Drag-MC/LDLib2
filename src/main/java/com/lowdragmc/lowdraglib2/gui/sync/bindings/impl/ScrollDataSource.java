@@ -18,7 +18,7 @@ import java.util.function.Function;
 
 @Data(staticConstructor = "of")
 @KJSBindings
-public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
+public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable, IPausable {
     @Getter
     private final List<T> data;
     private final List<Consumer<T>> listeners = new ArrayList<>();
@@ -26,6 +26,8 @@ public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
     @Setter @Getter @Accessors(chain = true, fluent = true)
     private int frequency = 20;
     // runtime
+    @Getter
+    private boolean paused = false;
     @Nullable
     private T current;
     private int counter = 0;
@@ -60,6 +62,7 @@ public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
 
     @Override
     public void tick() {
+        if (paused) return;
         counter++;
         if (frequency > 1) {
             if (counter % frequency != 0) return;
@@ -73,8 +76,18 @@ public final class ScrollDataSource<T> implements IDataProvider<T>, ITickable {
         }
         checkUpdate();
 
-        if (counter > 1_000_000_000) { // 任意足够大的阈值
+        if (counter > 1_000_000_000) {
             counter = 0;
         }
+    }
+
+    @Override
+    public void pause() {
+        paused = true;
+    }
+
+    @Override
+    public void resume() {
+        paused = false;
     }
 }

@@ -34,7 +34,9 @@ import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -272,6 +274,11 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
             removed.unsubscribe();
         }
         return this;
+    }
+
+    @Override
+    public Collection<IDataProvider<Float>> getBoundDataSources() {
+        return dataSources.keySet();
     }
 
     @Override

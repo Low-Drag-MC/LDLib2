@@ -1,14 +1,18 @@
 //package com.lowdragmc.lowdraglib2.integration.xei.rei;
 //
+//import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
+//import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
+//import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.IPausable;
 //import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+//import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 //import lombok.Getter;
 //import me.shedaniel.math.Rectangle;
 //import me.shedaniel.rei.api.client.ClientHelper;
 //import me.shedaniel.rei.api.client.config.ConfigObject;
 //import me.shedaniel.rei.api.client.gui.widgets.Tooltip;
 //import me.shedaniel.rei.api.client.gui.widgets.Widget;
-//import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-//import net.minecraft.client.gui.GuiGraphicsExtractor;
+//import net.minecraft.MethodsReturnNonnullByDefault;
+//import net.minecraft.client.gui.GuiGraphics;
 //import net.minecraft.client.gui.components.events.GuiEventListener;
 //import net.minecraft.core.registries.BuiltInRegistries;
 //import net.minecraft.world.item.Item;
@@ -50,7 +54,7 @@
 //    }
 //
 //    @Override
-//    public void render(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+//    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
 //        guiGraphics.flush();
 //
 //        // fix transform
@@ -102,7 +106,16 @@
 //
 //    @Override
 //    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-//        return modularUI.getWidget().keyPressed(keyCode, scanCode, modifiers);
+//        var result = modularUI.getWidget().keyPressed(keyCode, scanCode, modifiers);
+//        // pause scroll
+//        if (!result && UIElement.isShiftDown() && modularUI.getLastHoveredElement() instanceof IDataConsumer<?> consumer) {
+//            for (IDataProvider<?> boundDataSource : consumer.getBoundDataSources()) {
+//                if (boundDataSource instanceof IPausable pausable) {
+//                    pausable.togglePause();
+//                }
+//            }
+//        }
+//        return result;
 //    }
 //
 //    @Override
