@@ -21,7 +21,12 @@ public interface UIElementRenderer<T extends UIElement> {
             if (hasColor) {
                 context.resetElementColor();
             }
-            element.getSafeChildren().forEach(child -> child.drawInBackground(context));
+
+            var sortedChildren = element.getSafeSortedChildren();
+            for (int i = sortedChildren.length - 1; i >= 0; i--) {
+                sortedChildren[i].drawInBackground(context);
+            }
+
             if (hasColor) {
                 context.setElementColor(currentColor);
             }
