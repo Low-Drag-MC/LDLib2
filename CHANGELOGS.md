@@ -1,4 +1,9 @@
 # ChangeLogs
+## v26.1.2.23
+* Fixed z-index draw
+* Fixed GraphView keydown event doesn’t use
+* Improved IDataConsumer + IObserbale apis. + Added xei shift pause scroll
+
 ## v26.1.2.22
 * Improved itemslot/fluidslot drawing function overridable
 * Fixed JEI recipe slot size
