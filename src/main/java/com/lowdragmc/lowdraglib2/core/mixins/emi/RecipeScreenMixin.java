@@ -1,5 +1,9 @@
 package com.lowdragmc.lowdraglib2.core.mixins.emi;
 
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.IPausable;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.ModularUIEMIWidget;
 import dev.emi.emi.screen.RecipeScreen;
 import dev.emi.emi.screen.WidgetGroup;
@@ -86,6 +90,15 @@ public abstract class RecipeScreenMixin {
                 if (widget instanceof ModularUIEMIWidget modularUIWidget) {
                     if (modularUIWidget.modularUI.getWidget().keyPressed(keyCode, scanCode, modifiers)) {
                         cir.setReturnValue(true);
+                    } else {
+                        // pause scroll
+                        if (UIElement.isShiftDown() && modularUIWidget.modularUI.getLastHoveredElement() instanceof IDataConsumer<?> consumer) {
+                            for (IDataProvider<?> boundDataSource : consumer.getBoundDataSources()) {
+                                if (boundDataSource instanceof IPausable pausable) {
+                                    pausable.togglePause();
+                                }
+                            }
+                        }
                     }
                 }
             }

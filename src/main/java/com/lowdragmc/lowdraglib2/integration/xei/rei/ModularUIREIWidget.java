@@ -1,6 +1,10 @@
 package com.lowdragmc.lowdraglib2.integration.xei.rei;
 
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataConsumer;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.IPausable;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import lombok.Getter;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.ClientHelper;
@@ -102,7 +106,16 @@ public class ModularUIREIWidget extends Widget {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return modularUI.getWidget().keyPressed(keyCode, scanCode, modifiers);
+        var result = modularUI.getWidget().keyPressed(keyCode, scanCode, modifiers);
+        // pause scroll
+        if (!result && UIElement.isShiftDown() && modularUI.getLastHoveredElement() instanceof IDataConsumer<?> consumer) {
+            for (IDataProvider<?> boundDataSource : consumer.getBoundDataSources()) {
+                if (boundDataSource instanceof IPausable pausable) {
+                    pausable.togglePause();
+                }
+            }
+        }
+        return result;
     }
 
     @Override
