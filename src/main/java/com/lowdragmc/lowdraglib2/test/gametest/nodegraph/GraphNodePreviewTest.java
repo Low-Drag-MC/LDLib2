@@ -32,6 +32,7 @@ public final class GraphNodePreviewTest {
     private static final String PREVIEW_DEFAULT_EXPANDED_API = "graph_node_preview_default_expanded_api";
     private static final String PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD = "graph_node_preview_expanded_state_overrides_default_on_load";
     private static final String DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT = "graph_node_preview_duplicate_state_overrides_default";
+    private static final String PASTE_RECREATES_PREVIEW = "graph_node_preview_paste_recreates_preview";
 
     private GraphNodePreviewTest() {
     }
@@ -44,6 +45,7 @@ public final class GraphNodePreviewTest {
         NodeGraphGameTests.registerFunction(PREVIEW_DEFAULT_EXPANDED_API, GraphNodePreviewTest::previewDefaultExpandedApi);
         NodeGraphGameTests.registerFunction(PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD, GraphNodePreviewTest::previewExpandedStateOverridesDefaultOnLoad);
         NodeGraphGameTests.registerFunction(DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT, GraphNodePreviewTest::duplicatePreviewStateOverridesDefault);
+        NodeGraphGameTests.registerFunction(PASTE_RECREATES_PREVIEW, GraphNodePreviewTest::pasteRecreatesPreview);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
@@ -55,6 +57,7 @@ public final class GraphNodePreviewTest {
         NodeGraphGameTests.registerFunctionTest(event, PREVIEW_DEFAULT_EXPANDED_API, NodeGraphGameTests.functionKey(PREVIEW_DEFAULT_EXPANDED_API), testData);
         NodeGraphGameTests.registerFunctionTest(event, PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD, NodeGraphGameTests.functionKey(PREVIEW_EXPANDED_STATE_OVERRIDES_DEFAULT_ON_LOAD), testData);
         NodeGraphGameTests.registerFunctionTest(event, DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT, NodeGraphGameTests.functionKey(DUPLICATE_PREVIEW_STATE_OVERRIDES_DEFAULT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, PASTE_RECREATES_PREVIEW, NodeGraphGameTests.functionKey(PASTE_RECREATES_PREVIEW), testData);
     }
 
     // ------------------------------------------------------------------
@@ -242,6 +245,38 @@ public final class GraphNodePreviewTest {
         }
 
         LDLib2.LOGGER.info("End duplicatePreviewStateOverridesDefault - PASSED");
+        helper.succeed();
+    }
+
+    // ------------------------------------------------------------------
+    // 8. Copy/paste recreates the preview model on the pasted node. Like
+    //    load, paste rebuilds the node via createNodeFromDiscriminator
+    //    (node == null, so the fresh-spawn hook that adds the preview never
+    //    runs) — the preview must be reconciled via syncNodePreview.
+    // ------------------------------------------------------------------
+    public static void pasteRecreatesPreview(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        LDLib2.LOGGER.info("Start pasteRecreatesPreview");
+
+        var graph = new TestGraph();
+        var node = graph.graphModel.createNodeModel(new TestPreviewNode(), new Vector2f(0, 0));
+        if (node.getNodePreviewModel() == null) {
+            helper.fail("source preview not created"); return;
+        }
+
+        var copyData = graph.graphModel.copyElements(java.util.List.of(node), provider);
+        var pasted = graph.graphModel.pasteElements(copyData, new Vector2f(50, 50));
+
+        if (pasted.size() != 1) { helper.fail("expected 1 pasted node, got " + pasted.size()); return; }
+        var pastedNode = (AbstractNodeModel) pasted.get(0);
+        if (pastedNode.getUid().equals(node.getUid())) {
+            helper.fail("pasted node should have a fresh uid"); return;
+        }
+        if (pastedNode.getNodePreviewModel() == null) {
+            helper.fail("pasted node missing preview model (syncNodePreview not called on paste)"); return;
+        }
+
+        LDLib2.LOGGER.info("End pasteRecreatesPreview - PASSED");
         helper.succeed();
     }
 

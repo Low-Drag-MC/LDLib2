@@ -3030,6 +3030,11 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                         nm.defineNode();
                     }
 
+                    // Paste rebuilds the node via createNodeFromDiscriminator (node == null), so the
+                    // fresh-spawn lifecycle hook that creates the preview model never runs — reconcile
+                    // it now that the node (and its hasNodePreview) is restored, mirroring the load path.
+                    nodeModel.syncNodePreview();
+
                     // Offset position
                     var pos = nodeModel.getPosition();
                     nodeModel.setPosition(new Vector2f(pos.x + positionOffset.x, pos.y + positionOffset.y));
