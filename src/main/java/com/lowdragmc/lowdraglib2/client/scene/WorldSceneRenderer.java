@@ -8,8 +8,22 @@ import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.WrappedBlockAndTintGetter;
 import com.mojang.blaze3d.ProjectionType;
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.AddressMode;
+import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.*;
+import net.minecraft.client.renderer.DynamicUniforms;
+import net.minecraft.client.renderer.GlobalSettingsUniform;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.core.SectionPos;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -61,20 +75,32 @@ public abstract class WorldSceneRenderer {
     }
 
     /**
-     * Map a chunk section layer to a RenderType usable outside chunk rendering.
-     * The "moving block" RenderTypes wrap {@code SOLID_BLOCK / CUTOUT_BLOCK / TRANSLUCENT_BLOCK} pipelines
-     * (standard MVP transforms via {@code core/block} shader, block atlas + lightmap bound).
-     * They are chosen over the chunk pipelines (SOLID_TERRAIN, ...) because the latter require the
-     * {@code ChunkSection} UBO that only exists inside chunk rendering. Vertex format is the same
-     * (DefaultVertexFormat.BLOCK), so the meshes built via {@link ChunkSectionLayer#vertexFormat()}
-     * are compatible.
+     * A compiled, CPU-side section mesh (one {@link ChunkSectionLayer}). Vertices are in
+     * <em>section-local</em> coordinates ({@code pos & 15}); the section's world origin is carried
+     * here and applied at draw time via the ChunkSection offset UBO. Backed by a
+     * {@link SectionBufferBuilderPack} that must stay open while referenced.
      */
-    private static RenderType getRenderTypeForLayer(ChunkSectionLayer layer) {
-        return switch (layer) {
-            case SOLID -> RenderTypes.solidMovingBlock();
-            case CUTOUT -> RenderTypes.cutoutMovingBlock();
-            case TRANSLUCENT -> RenderTypes.translucentMovingBlock();
-        };
+    protected record SectionCpuMesh(MeshData mesh, int originX, int originY, int originZ) {
+    }
+
+    /**
+     * A GPU-resident section mesh: vertex (and, for sorted translucent, index) data uploaded to
+     * {@link GpuBuffer}s, ready to be drawn through the terrain pipeline. {@code indexBuffer} is
+     * {@code null} for solid/cutout (they use the shared sequential quad index).
+     */
+    protected record SectionGpuMesh(GpuBuffer vertexBuffer, @Nullable GpuBuffer indexBuffer,
+                                    @Nullable com.mojang.blaze3d.IndexType indexType, int indexCount,
+                                    int originX, int originY, int originZ) implements AutoCloseable {
+        @Override
+        public void close() {
+            vertexBuffer.close();
+            if (indexBuffer != null) indexBuffer.close();
+        }
+    }
+
+    /** Pack a section origin (block coords, multiples of 16) into a dedup key for the UBO list. */
+    private static long packSectionOrigin(int x, int y, int z) {
+        return net.minecraft.core.SectionPos.asLong(x >> 4, y >> 4, z >> 4);
     }
 
     public final Level world;
@@ -95,8 +121,13 @@ public abstract class WorldSceneRenderer {
     public record RenderedBlocksEntry(Set<BlockPos> snapshot, @Nullable ISceneBlockRenderHook hook) {
     }
 
+    /** CPU-side compiled cache (section-local meshes per layer), produced by the (possibly background)
+     *  compile. Uploaded to {@link #cachedGpuMeshes} lazily on the render thread, then released. */
     @Nullable
-    protected Map<ChunkSectionLayer, List<MeshData>> cachedMeshes;
+    protected Map<ChunkSectionLayer, List<SectionCpuMesh>> cachedMeshes;
+    /** GPU-resident cache, drawn each frame via {@link #renderTerrain}. Closed in {@link #deleteCacheBuffer()}. */
+    @Nullable
+    protected Map<ChunkSectionLayer, List<SectionGpuMesh>> cachedGpuMeshes;
     /** Long-lived buffer pack backing {@link #cachedMeshes}. Closed in {@link #deleteCacheBuffer()}. */
     @Nullable
     protected SectionBufferBuilderPack cacheBuilders;
@@ -154,6 +185,9 @@ public abstract class WorldSceneRenderer {
     @Setter
     @Nullable
     protected ProjectionMatrixBuffer projectionMatrixBuffer;
+    /** Scene-private Globals UBO (camera = eyePos) used while drawing the core/terrain pass. */
+    @Nullable
+    private GlobalSettingsUniform sceneGlobals;
     /** Lazily-created 4-byte readback buffer for async depth pixel sampling. */
     @Nullable
     private GpuBuffer depthReadbackBuffer;
@@ -161,13 +195,12 @@ public abstract class WorldSceneRenderer {
     private boolean depthReadInFlight;
     /** Most recent completed depth sample (NDC 0..1). Lags by 1+ frames; initial value
      *  corresponds to the far plane so first-frame unProject still yields a valid ray. */
-    private float lastDepthSample = 0.999f;
+    private float lastDepthSample = 0.0001f;
     /** Scene-private vanilla submission pipeline, lazily built in
      *  {@link #ensureFeatureRenderDispatcher(RenderBuffers)} and identity-cached on the
      *  {@link RenderBuffers} passed by the caller. Closed + rebuilt only when buffers change. */
     @Nullable private SubmitNodeStorage submitNodeStorage;
     @Nullable private FeatureRenderDispatcher featureRenderDispatcher;
-    @Nullable private OutlineBufferSource outlineBufferSource;
     @Nullable private RenderBuffers cachedBuffersIdentity;
     @Setter @Nullable
     private Consumer<WorldSceneRenderer> beforeWorldRender;
@@ -215,6 +248,10 @@ public abstract class WorldSceneRenderer {
             projectionMatrixBuffer.close();
             projectionMatrixBuffer = null;
         }
+        if (sceneGlobals != null) {
+            sceneGlobals.close();
+            sceneGlobals = null;
+        }
         if (depthReadbackBuffer != null) {
             depthReadbackBuffer.close();
             depthReadbackBuffer = null;
@@ -227,7 +264,6 @@ public abstract class WorldSceneRenderer {
             featureRenderDispatcher = null;
         }
         submitNodeStorage = null;
-        outlineBufferSource = null;
         cachedBuffersIdentity = null;
     }
 
@@ -246,16 +282,16 @@ public abstract class WorldSceneRenderer {
         }
         var mc = Minecraft.getInstance();
         submitNodeStorage = new SubmitNodeStorage();
-        outlineBufferSource = new OutlineBufferSource();
+        // 26.2: FeatureRenderDispatcher takes (RenderBuffers, ModelManager, AtlasManager, Font,
+        // GameRenderState). The SubmitNodeStorage is now driven per-frame via prepareFrame(storage),
+        // and OutlineBufferSource / crumblingBufferSource are no longer constructor args
+        // (outlines fold into SubmitNodeCollection.outline).
         featureRenderDispatcher = new FeatureRenderDispatcher(
-                submitNodeStorage,
+                buffers,
                 mc.getModelManager(),
-                buffers.bufferSource(),
                 mc.getAtlasManager(),
-                outlineBufferSource,
-                buffers.crumblingBufferSource(),
                 mc.font,
-                mc.gameRenderer.getGameRenderState()
+                mc.gameRenderer.gameRenderState()
         );
         cachedBuffersIdentity = buffers;
         return featureRenderDispatcher;
@@ -318,39 +354,56 @@ public abstract class WorldSceneRenderer {
      * {@link #cacheBuilders}; completed meshes are only published once every block is processed.
      */
     protected static class SyncCompileState {
-        final SectionBufferBuilderPack builders;
-        final List<RenderedBlocksEntry> entries;
+        /** One 16³ section's worth of blocks (with its group's hook) to compile section-local. */
+        private record SectionJob(int ox, int oy, int oz, @Nullable ISceneBlockRenderHook hook, List<BlockPos> blocks) {
+        }
+
         final BlockCompileContext compileContext;
         final Results results = new Results();
-        int entryIndex;
-        @Nullable
-        Iterator<BlockPos> blockIter;
+        final List<SectionJob> jobs = new ArrayList<>();
+        int jobIndex;
+        /** -1 = current section not yet begun; otherwise index of the next block within the section. */
+        int blockIndex = -1;
 
         SyncCompileState(WorldSceneRenderer renderer, BlockAndTintGetter region,
                          SectionBufferBuilderPack builders, List<RenderedBlocksEntry> entries) {
-            this.builders = builders;
-            this.entries = entries;
             this.compileContext = new BlockCompileContext(renderer, region, builders);
+            for (var entry : entries) {
+                var bySection = new java.util.LinkedHashMap<Long, List<BlockPos>>();
+                for (BlockPos pos : entry.snapshot()) {
+                    bySection.computeIfAbsent(packSectionOrigin(pos.getX(), pos.getY(), pos.getZ()),
+                            k -> new ArrayList<>()).add(pos);
+                }
+                bySection.forEach((key, blocks) -> jobs.add(new SectionJob(
+                        SectionPos.x(key) << 4, SectionPos.y(key) << 4, SectionPos.z(key) << 4,
+                        entry.hook(), blocks)));
+            }
         }
 
         boolean step() {
-            while (entryIndex < entries.size()) {
-                RenderedBlocksEntry entry = entries.get(entryIndex);
-                if (blockIter == null) {
-                    blockIter = entry.snapshot().iterator();
+            while (jobIndex < jobs.size()) {
+                SectionJob job = jobs.get(jobIndex);
+                if (blockIndex < 0) {
+                    compileContext.beginSection(job.ox(), job.oy(), job.oz());
+                    blockIndex = 0;
                 }
-                if (blockIter.hasNext()) {
-                    compileContext.renderBlock(blockIter.next(), entry.hook(), results);
+                if (blockIndex < job.blocks().size()) {
+                    compileContext.renderBlock(job.blocks().get(blockIndex++), job.hook(), results);
                     return true;
                 }
-                blockIter = null;
-                entryIndex++;
+                compileContext.flushSection(results);
+                blockIndex = -1;
+                jobIndex++;
             }
             return false;
         }
 
         void finish() {
-            compileContext.build(results);
+            // Defensive: flush a section that was begun but not yet flushed (step() normally flushes).
+            if (blockIndex >= 0) {
+                compileContext.flushSection(results);
+                blockIndex = -1;
+            }
         }
 
         void discard() {
@@ -362,12 +415,20 @@ public abstract class WorldSceneRenderer {
     public WorldSceneRenderer deleteCacheBuffer() {
         cancelCompile();
         if (cachedMeshes != null) {
-            for (List<MeshData> list : cachedMeshes.values()) {
-                for (MeshData mesh : list) {
-                    mesh.close();
+            for (List<SectionCpuMesh> list : cachedMeshes.values()) {
+                for (SectionCpuMesh m : list) {
+                    m.mesh().close();
                 }
             }
             cachedMeshes = null;
+        }
+        if (cachedGpuMeshes != null) {
+            for (List<SectionGpuMesh> list : cachedGpuMeshes.values()) {
+                for (SectionGpuMesh m : list) {
+                    m.close();
+                }
+            }
+            cachedGpuMeshes = null;
         }
         if (cacheBuilders != null) {
             cacheBuilders.close();
@@ -379,7 +440,7 @@ public abstract class WorldSceneRenderer {
     }
 
     protected void makeSureCacheBufferCreated() {
-        if (cachedMeshes == null) {
+        if (cachedMeshes == null && cachedGpuMeshes == null) {
             cachedMeshes = new EnumMap<>(ChunkSectionLayer.class);
             cacheBuilders = new SectionBufferBuilderPack();
             cancelCompile();
@@ -443,12 +504,12 @@ public abstract class WorldSceneRenderer {
      * Used by the PIP renderer when rendering into a texture.
      */
     public void renderDirect(int viewportWidth, int viewportHeight, int mouseX, int mouseY) {
-        renderDirect(viewportWidth, viewportHeight, mouseX, mouseY, Minecraft.getInstance().renderBuffers());
+        renderDirect(viewportWidth, viewportHeight, mouseX, mouseY, Minecraft.getInstance().gameRenderer.renderBuffers());
     }
 
     public void renderDirect(int viewportWidth, int viewportHeight, int mouseX, int mouseY,
                              RenderBuffers buffers) {
-        if (Minecraft.getInstance().getOverlay() instanceof LoadingOverlay) {
+        if (Minecraft.getInstance().gui.overlay() instanceof LoadingOverlay) {
             return;
         }
         PositionedRect viewport = PositionedRect.of(Position.of(0, 0), Size.of(viewportWidth, viewportHeight));
@@ -468,13 +529,13 @@ public abstract class WorldSceneRenderer {
     }
 
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY) {
-        render(poseStack, x, y, width, height, mouseX, mouseY, Minecraft.getInstance().renderBuffers());
+        render(poseStack, x, y, width, height, mouseX, mouseY, Minecraft.getInstance().gameRenderer.renderBuffers());
     }
 
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY,
                        RenderBuffers buffers) {
         // do not render if the minecraft is reloading
-        if (Minecraft.getInstance().getOverlay() instanceof LoadingOverlay) {
+        if (Minecraft.getInstance().gui.overlay() instanceof LoadingOverlay) {
             return;
         }
         // setupCamera
@@ -594,10 +655,16 @@ public abstract class WorldSceneRenderer {
         RenderSystem.backupProjectionMatrix();
 
         float aspectRatio = width / (height * 1.0f);
+        // 26.2 uses reversed-Z: the world depth buffer is cleared to 0.0 and all pipelines test with
+        // GREATER_THAN_OR_EQUAL (near plane -> depth 1, far plane -> depth 0). Vanilla's Projection
+        // builds this by swapping near/far into setPerspective/setOrtho and passing the device's
+        // zZeroToOne. We must match it or every depth test is inverted (everything renders "through").
+        boolean zZeroToOne = RenderSystem.getDevice().getDeviceInfo().isZZeroToOne();
         if (ortho) {
-            projectionMatrix.setOrtho(minX, maxX, minY / aspectRatio, maxY / aspectRatio, minZ, maxZ);
+            projectionMatrix.setOrtho(minX, maxX, minY / aspectRatio, maxY / aspectRatio, maxZ, minZ, zZeroToOne);
         } else {
-            projectionMatrix.setPerspective(fov * 0.01745329238474369F, aspectRatio, 0.1f, 10000.0f);
+            float near = 0.1f, far = 10000.0f;
+            projectionMatrix.setPerspective(fov * 0.01745329238474369F, aspectRatio, far, near, zZeroToOne);
         }
         RenderSystem.setProjectionMatrix(
                 getOrCreateProjectionMatrixBuffer().getBuffer(projectionMatrix),
@@ -634,8 +701,6 @@ public abstract class WorldSceneRenderer {
         }
 
         var mc = Minecraft.getInstance();
-        var bs = buffers.bufferSource();
-        var crumb = buffers.crumblingBufferSource();
         var dispatcher = ensureFeatureRenderDispatcher(buffers);
         var storage = submitNodeStorage;
         var cameraRenderState = buildCameraRenderState();
@@ -643,15 +708,16 @@ public abstract class WorldSceneRenderer {
         var partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         camera.setSceneRotation(cameraEntity.getYRot(), cameraEntity.getXRot());
 
-        var ctx = new SceneRenderContext(this, poseStack, storage, bs, cameraRenderState, partialTicks);
+        var ctx = new SceneRenderContext(this, poseStack, storage, cameraRenderState, partialTicks);
 
-        // (1) Mesh pass — chunk-section style mesh draws bypass SubmitNodeStorage and write
-        //     directly to the shared BufferSource. Their queued RenderType buckets are flushed
-        //     later by the dispatch-phase endBatches.
+        // (1) Terrain mesh pass — section-local meshes drawn via the vanilla core/terrain pipeline
+        //     with a per-section ChunkSection offset UBO (mirrors LevelRenderer.prepareChunkRenders +
+        //     ChunkSectionsToRender.renderGroup). Honors RenderSystem.outputColor/DepthTextureOverride
+        //     so it lands in the scene FBO.
         if (useCache) {
             renderCacheBuffer(mc);
         } else {
-            renderUncachedWorld(bs, partialTicks);
+            renderUncachedWorld();
         }
 
         if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
@@ -663,28 +729,23 @@ public abstract class WorldSceneRenderer {
 
         if (afterBuiltinSubmit != null) afterBuiltinSubmit.apply(ctx);
 
-        // (3) Dispatch phase — three endBatches mirroring LevelRenderer 695-755.
-        //     Depth copy between mainTarget/translucent/particle FBOs is skipped (PIP = single FBO).
-        //     Publish this scene's camera (rotation from the SceneCamera set above, projection from our
-        //     own matrix) for the duration of the draws, so custom-uniform consumers (e.g. a mod's UBO
-        //     derived from the view/projection) reflect the scene camera, not the game's main camera.
+        // (3) Dispatch phase — 26.2 replaces the per-phase BufferSource.endBatch() flushes with
+        //     FeatureRenderDispatcher.prepareFrame(storage) (which uploads the shared staged vertex
+        //     buffer) followed by the four execute* phases; frame.close() clears the submit nodes.
+        //     Publish this scene's camera so custom-uniform consumers reflect the scene camera.
         SceneCameraContext.set(camera.getViewRotationMatrix(new Matrix4f()), projectionMatrix);
-        try {
-            dispatcher.renderSolidFeatures();
-            bs.endBatch();
-            dispatcher.renderTranslucentFeatures();
-            bs.endBatch();
-            crumb.endBatch();
+        try (var frame = dispatcher.prepareFrame(storage)) {
+            frame.executeSolid();
+            frame.executeTranslucent();
 
             if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(ctx);
 
-            dispatcher.renderTranslucentParticles();
-            bs.endBatch();
+            frame.executeTranslucentAfterTerrain();
+            frame.executeAlwaysOnTop();
 
             if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
         } finally {
             SceneCameraContext.clear();
-            dispatcher.clearSubmitNodes();
             if (particleManager != null) particleManager.afterRender();
         }
     }
@@ -696,37 +757,189 @@ public abstract class WorldSceneRenderer {
      * {@link #submitBlockEntities} and drained by the dispatch phase. Final {@code endBatch}
      * is folded into the dispatch phase's endBatches (same shared BufferSource).
      */
-    private void renderUncachedWorld(MultiBufferSource.BufferSource buffers, float particleTicks) {
+    private void renderUncachedWorld() {
         var mc = Minecraft.getInstance();
-        var fixedPack = mc.renderBuffers().fixedBufferPack();
+        var fixedPack = mc.gameRenderer.renderBuffers().fixedBufferPack();
+        var device = RenderSystem.getDevice();
+        EnumMap<ChunkSectionLayer, List<SectionGpuMesh>> gpu = new EnumMap<>(ChunkSectionLayer.class);
         renderedBlocksMap.forEach((key, entry) -> {
-            var renderedBlocks = entry.snapshot();
-            var hook = entry.hook();
             var region = world instanceof BlockAndTintGetter g ? g : new WrappedBlockAndTintGetter(world);
-            var results = renderBlocks(region, renderedBlocks, hook, fixedPack);
+            var results = renderBlocks(region, entry.snapshot(), entry.hook(), fixedPack);
             try {
-                for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-                    MeshData mesh = results.renderedLayers.remove(layer);
-                    if (mesh != null) {
-                        // RenderType.draw(MeshData) closes the mesh internally; remove() above
-                        // ensures release() in the finally block won't double-close it.
-                        getRenderTypeForLayer(layer).draw(mesh);
+                results.renderedLayers.forEach((layer, list) -> {
+                    var dst = gpu.computeIfAbsent(layer, l -> new ArrayList<SectionGpuMesh>());
+                    for (var cm : list) {
+                        var gm = uploadSectionMesh(device, cm);
+                        if (gm != null) dst.add(gm);
                     }
-                }
+                });
             } finally {
+                // CPU meshes already copied into GpuBuffers; release the (transient) pack-backed data.
                 results.release();
             }
         });
+        try {
+            renderTerrain(gpu);
+        } finally {
+            gpu.values().forEach(list -> list.forEach(SectionGpuMesh::close));
+        }
     }
 
     private BufferBuilder getOrBeginLayer(Map<ChunkSectionLayer, BufferBuilder> startedLayers, SectionBufferBuilderPack buffers, ChunkSectionLayer layer) {
         var builder = startedLayers.get(layer);
         if (builder == null) {
             var buffer = buffers.buffer(layer);
-            builder = new BufferBuilder(buffer, VertexFormat.Mode.QUADS, layer.vertexFormat());
+            builder = new BufferBuilder(buffer, PrimitiveTopology.QUADS, layer.vertexFormat());
             startedLayers.put(layer, builder);
         }
         return builder;
+    }
+
+    /** Upload one section-local {@link SectionCpuMesh} to {@link GpuBuffer}s. Render-thread only. */
+    @Nullable
+    private static SectionGpuMesh uploadSectionMesh(GpuDevice device, SectionCpuMesh cm) {
+        var mesh = cm.mesh();
+        ByteBuffer vb = mesh.vertexBuffer();
+        if (vb == null) return null;
+        var drawState = mesh.drawState();
+        GpuBuffer vbo = device.createBuffer(() -> "scene section vbo", GpuBuffer.USAGE_VERTEX, vb);
+        GpuBuffer ibo = null;
+        IndexType indexType = null;
+        ByteBuffer ib = mesh.indexBuffer();
+        if (ib != null) {
+            // Sorted translucent carries its own index buffer; solid/cutout fall back to the shared
+            // sequential quad index supplied as the default in renderTerrain.
+            ibo = device.createBuffer(() -> "scene section ibo", GpuBuffer.USAGE_INDEX, ib);
+            indexType = drawState.indexType();
+        }
+        return new SectionGpuMesh(vbo, ibo, indexType, drawState.indexCount(),
+                cm.originX(), cm.originY(), cm.originZ());
+    }
+
+    private static Map<ChunkSectionLayer, List<SectionGpuMesh>> uploadSectionMeshes(
+            Map<ChunkSectionLayer, List<SectionCpuMesh>> cpu) {
+        var device = RenderSystem.getDevice();
+        EnumMap<ChunkSectionLayer, List<SectionGpuMesh>> out = new EnumMap<>(ChunkSectionLayer.class);
+        for (var e : cpu.entrySet()) {
+            var list = new ArrayList<SectionGpuMesh>();
+            for (var cm : e.getValue()) {
+                var gm = uploadSectionMesh(device, cm);
+                if (gm != null) list.add(gm);
+            }
+            if (!list.isEmpty()) out.put(e.getKey(), list);
+        }
+        return out;
+    }
+
+    /**
+     * Draw section-local meshes through the vanilla core/terrain pipeline, mirroring
+     * {@code ChunkSectionsToRender.renderGroup} + {@code LevelRenderer.prepareChunkRenders}:
+     * each section contributes one {@link DynamicUniforms.ChunkSectionInfo} (its world origin +
+     * the scene model-view), drawn via {@code drawMultipleIndexed} with the "ChunkSection" UBO.
+     * Color/depth targets honor {@code RenderSystem.outputColor/DepthTextureOverride} so the scene
+     * lands in the FBO (the PreparedRenderType pattern).
+     */
+    private void renderTerrain(Map<ChunkSectionLayer, List<SectionGpuMesh>> meshesByLayer) {
+        if (meshesByLayer.isEmpty()) return;
+        var mc = Minecraft.getInstance();
+        var device = RenderSystem.getDevice();
+        var blockAtlas = mc.getTextureManager().getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
+        int atlasW = blockAtlas.getWidth(0);
+        int atlasH = blockAtlas.getHeight(0);
+        // The core/terrain shader computes pos = Position + (ChunkPosition - CameraBlockPos) + CameraOffset,
+        // then ProjMat * ModelViewMat * pos. CameraBlockPos/CameraOffset come from the Globals UBO (set to
+        // eyePos below) so the camera translation is handled there; ModelViewMat must therefore be the
+        // view ROTATION only. We take the scene model-view (lookAt = rot * translate(-eye)) and zero its
+        // translation column to recover the pure rotation — this makes terrain align exactly with the
+        // entities/BESRs (which use the full lookAt via DynamicTransforms).
+        var viewRotation = new Matrix4f(RenderSystem.getModelViewMatrixCopy());
+        viewRotation.m30(0f).m31(0f).m32(0f);
+
+        List<DynamicUniforms.ChunkSectionInfo> infos = new ArrayList<>();
+        var originToUbo = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+        originToUbo.defaultReturnValue(-1);
+        EnumMap<ChunkSectionLayer, List<RenderPass.Draw<GpuBufferSlice[]>>> drawsByLayer =
+                new EnumMap<>(ChunkSectionLayer.class);
+        int largestIndexCount = 0;
+
+        for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
+            var meshes = meshesByLayer.get(layer);
+            if (meshes == null || meshes.isEmpty()) continue;
+            var draws = new ArrayList<RenderPass.Draw<GpuBufferSlice[]>>(meshes.size());
+            for (var m : meshes) {
+                long key = packSectionOrigin(m.originX(), m.originY(), m.originZ());
+                int uboIndex = originToUbo.get(key);
+                if (uboIndex == -1) {
+                    uboIndex = infos.size();
+                    infos.add(new DynamicUniforms.ChunkSectionInfo(new Matrix4f(viewRotation),
+                            m.originX(), m.originY(), m.originZ(), 1.0f, atlasW, atlasH));
+                    originToUbo.put(key, uboIndex);
+                }
+                final int fUbo = uboIndex;
+                if (m.indexBuffer() == null) {
+                    largestIndexCount = Math.max(largestIndexCount, m.indexCount());
+                }
+                draws.add(new RenderPass.Draw<>(0, m.vertexBuffer(), m.indexBuffer(), m.indexType(),
+                        0, m.indexCount(), 0,
+                        (ubos, up) -> up.upload("ChunkSection", ubos[fUbo])));
+            }
+            drawsByLayer.put(layer, draws);
+        }
+        if (infos.isEmpty()) return;
+
+        GpuBufferSlice[] infoSlices = RenderSystem.getDynamicUniforms()
+                .writeChunkSections(infos.toArray(new DynamicUniforms.ChunkSectionInfo[0]));
+        var seq = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+        GpuBuffer defaultIndexBuffer = largestIndexCount == 0 ? null : seq.getBuffer(largestIndexCount);
+        IndexType defaultIndexType = largestIndexCount == 0 ? null : seq.type();
+
+        GpuSampler sampler0 = RenderSystem.getSamplerCache().getSampler(
+                AddressMode.CLAMP_TO_EDGE, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, FilterMode.LINEAR, true);
+        GpuSampler sampler2 = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR);
+        var lightmap = mc.gameRenderer.lightmap();
+
+        var mainTarget = mc.gameRenderer.mainRenderTarget();
+        GpuTextureView color = RenderSystem.outputColorTextureOverride != null
+                ? RenderSystem.outputColorTextureOverride : mainTarget.getColorTextureView();
+        GpuTextureView depth = RenderSystem.outputDepthTextureOverride != null
+                ? RenderSystem.outputDepthTextureOverride
+                : (mainTarget.useDepth ? mainTarget.getDepthTextureView() : null);
+
+        // Point the Globals UBO at the scene camera (CameraBlockPos/CameraOffset = eyePos) for the
+        // duration of the terrain pass, then restore the game's. bindDefaultUniforms binds whatever
+        // RenderSystem.getGlobalSettingsUniform() currently points at; swapping the buffer reference
+        // (not its contents) means later passes in this frame keep the game's Globals.
+        var savedGlobals = RenderSystem.getGlobalSettingsUniform();
+        updateSceneGlobals(mc);
+        try (RenderPass pass = device.createCommandEncoder().createRenderPass(
+                () -> "scene terrain", color, java.util.Optional.empty(), depth, java.util.OptionalDouble.empty())) {
+            RenderSystem.bindDefaultUniforms(pass);
+            pass.bindTexture("Sampler0", blockAtlas, sampler0);
+            pass.bindTexture("Sampler2", lightmap, sampler2);
+            for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
+                var draws = drawsByLayer.get(layer);
+                if (draws == null || draws.isEmpty()) continue;
+                if (layer == ChunkSectionLayer.TRANSLUCENT) {
+                    draws = draws.reversed();
+                }
+                pass.setPipeline(layer.pipeline());
+                pass.drawMultipleIndexed(draws, defaultIndexBuffer, defaultIndexType,
+                        List.of("ChunkSection"), infoSlices);
+            }
+        } finally {
+            if (savedGlobals != null) RenderSystem.setGlobalSettingsUniform(savedGlobals);
+        }
+    }
+
+    /** Write {@link #eyePos} into a scene-private Globals UBO and make it the active one. */
+    private void updateSceneGlobals(Minecraft mc) {
+        if (sceneGlobals == null) {
+            sceneGlobals = new GlobalSettingsUniform();
+        }
+        long gameTime = world != null ? world.getGameTime() : 0L;
+        sceneGlobals.update(viewportWidth, viewportHeight, 1.0,
+                gameTime, mc.getDeltaTracker(), 0,
+                new Vec3(eyePos.x(), eyePos.y(), eyePos.z()), false);
     }
 
     public boolean isCompiling() {
@@ -742,14 +955,13 @@ public abstract class WorldSceneRenderer {
 
     /**
      * Cached path. On first call (or after invalidation) spawns a background thread that compiles
-     * every {@code renderedBlocks} group into one {@link MeshData} per touched layer, storing them
-     * into {@link #cachedMeshes}. Subsequent calls in the COMPILED state walk the cache map and
-     * draw each mesh via {@link #drawCachedMesh} (which copies before drawing so the cached data
-     * stays valid).
+     * every {@code renderedBlocks} group into per-section {@link SectionCpuMesh}es per touched layer,
+     * storing them into {@link #cachedMeshes}. Once COMPILED, the CPU meshes are uploaded once into
+     * {@link #cachedGpuMeshes} (render thread) and drawn each frame via {@link #renderTerrain}.
      * <p>
      * The compile thread reuses a long-lived {@link SectionBufferBuilderPack} ({@link #cacheBuilders});
      * {@link MeshData} instances reference into its underlying {@link ByteBufferBuilder}s, so the
-     * pack must outlive the meshes (managed by {@link #deleteCacheBuffer()}).
+     * pack must outlive the CPU meshes (released right after the GPU upload).
      */
     private void renderCacheBuffer(Minecraft mc) {
         if (cacheState.get() == CacheState.NEED || cacheState.get() == CacheState.UNCREATED) {
@@ -772,15 +984,19 @@ public abstract class WorldSceneRenderer {
         if (syncCompile && cacheState.get() == CacheState.COMPILING && syncCompileState != null) {
             tickSyncCompile();
         }
-        if (cachedMeshes != null) {
-            for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-                List<MeshData> meshes = cachedMeshes.get(layer);
-                if (meshes == null || meshes.isEmpty()) continue;
-                RenderType rt = getRenderTypeForLayer(layer);
-                for (MeshData mesh : meshes) {
-                    drawCachedMesh(rt, mesh);
-                }
+        // Once compiled, upload the CPU section meshes to GPU buffers once (render thread only),
+        // then release the CPU data and the backing pack. Subsequent frames draw straight from GPU.
+        if (cacheState.get() == CacheState.COMPILED && cachedMeshes != null) {
+            cachedGpuMeshes = uploadSectionMeshes(cachedMeshes);
+            closeCpuMeshes(cachedMeshes);
+            cachedMeshes = null;
+            if (cacheBuilders != null) {
+                cacheBuilders.close();
+                cacheBuilders = null;
             }
+        }
+        if (cachedGpuMeshes != null) {
+            renderTerrain(cachedGpuMeshes);
             // BESRs are submitted by submitBlockEntities() during drawWorld's submit phase
             // (using {@link #blockEntities} as the seed set); no inline submit/dispatch here.
         }
@@ -790,18 +1006,18 @@ public abstract class WorldSceneRenderer {
         var entriesSnapshot = List.copyOf(renderedBlocksMap.values());
         thread = new Thread(() -> {
             cacheState.set(CacheState.COMPILING);
-            EnumMap<ChunkSectionLayer, List<MeshData>> compiled = new EnumMap<>(ChunkSectionLayer.class);
+            EnumMap<ChunkSectionLayer, List<SectionCpuMesh>> compiled = new EnumMap<>(ChunkSectionLayer.class);
             try {
                 var region = world instanceof BlockAndTintGetter g ? g : world instanceof DummyWorld dummyWorld ? DummyWorld.ClientSupport.asClientWorld(dummyWorld) : new WrappedBlockAndTintGetter(world);
                 for (var entry : entriesSnapshot) {
                     if (Thread.interrupted()) return;
                     Results r = renderBlocks(region, entry.snapshot(), entry.hook(), compileBuilders);
-                    r.renderedLayers.forEach((layer, mesh) ->
-                            compiled.computeIfAbsent(layer, k -> new ArrayList<>()).add(mesh));
+                    r.renderedLayers.forEach((layer, list) ->
+                            compiled.computeIfAbsent(layer, k -> new ArrayList<>()).addAll(list));
                     // blockEntities collected separately below to keep compile-thread minimal.
                 }
             } catch (Exception e) {
-                compiled.values().forEach(list -> list.forEach(MeshData::close));
+                closeCpuMeshes(compiled);
                 return;
             }
             Set<BlockPos> poses = new HashSet<>();
@@ -816,16 +1032,16 @@ public abstract class WorldSceneRenderer {
                 }
             }
             if (Thread.interrupted()) {
-                compiled.values().forEach(list -> list.forEach(MeshData::close));
+                closeCpuMeshes(compiled);
                 return;
             }
             if (thread != null) {
-                Map<ChunkSectionLayer, List<MeshData>> oldMeshes = cachedMeshes;
+                Map<ChunkSectionLayer, List<SectionCpuMesh>> oldMeshes = cachedMeshes;
                 cachedMeshes = compiled;
                 blockEntities = poses;
                 cacheState.set(CacheState.COMPILED);
                 thread = null;
-                closeMeshes(oldMeshes);
+                closeCpuMeshes(oldMeshes);
             }
             maxProgress = -1;
         });
@@ -867,77 +1083,34 @@ public abstract class WorldSceneRenderer {
     }
 
     private void publishSyncCompile(SyncCompileState state) {
-        EnumMap<ChunkSectionLayer, List<MeshData>> compiled = new EnumMap<>(ChunkSectionLayer.class);
-        state.results.renderedLayers.forEach((layer, mesh) ->
-                compiled.computeIfAbsent(layer, k -> new ArrayList<>()).add(mesh));
+        EnumMap<ChunkSectionLayer, List<SectionCpuMesh>> compiled = new EnumMap<>(ChunkSectionLayer.class);
+        state.results.renderedLayers.forEach((layer, list) ->
+                compiled.computeIfAbsent(layer, k -> new ArrayList<>()).addAll(list));
         state.results.renderedLayers.clear();
-        Map<ChunkSectionLayer, List<MeshData>> oldMeshes = cachedMeshes;
+        Map<ChunkSectionLayer, List<SectionCpuMesh>> oldMeshes = cachedMeshes;
         cachedMeshes = compiled;
         blockEntities = state.results.blockEntities.stream()
                 .map(BlockEntity::getBlockPos)
                 .collect(java.util.stream.Collectors.toSet());
         syncCompileState = null;
         cacheState.set(CacheState.COMPILED);
-        closeMeshes(oldMeshes);
+        closeCpuMeshes(oldMeshes);
         maxProgress = -1;
     }
 
-    private static void closeMeshes(@Nullable Map<ChunkSectionLayer, List<MeshData>> meshes) {
+    private static void closeCpuMeshes(@Nullable Map<ChunkSectionLayer, List<SectionCpuMesh>> meshes) {
         if (meshes != null) {
-            meshes.values().forEach(list -> list.forEach(MeshData::close));
+            meshes.values().forEach(list -> list.forEach(m -> m.mesh().close()));
         }
-    }
-
-    /**
-     * Draw cached MeshData using a RenderType. This creates a copy of the mesh data for drawing
-     * since RenderType.draw() consumes/closes the MeshData.
-     */
-    private void drawCachedMesh(RenderType renderType, MeshData cachedMesh) {
-        ByteBuffer vertexSource = cachedMesh.vertexBuffer();
-        ByteBuffer indexSource = cachedMesh.indexBuffer();
-        if (vertexSource == null) {
-            return;
-        }
-
-        try (ByteBufferBuilder vertexBuilder = new ByteBufferBuilder(vertexSource.remaining());
-             ByteBufferBuilder indexBuilder = indexSource == null ? null : new ByteBufferBuilder(indexSource.remaining())) {
-            ByteBufferBuilder.Result vertexResult = copyBuffer(vertexSource, vertexBuilder);
-            if (vertexResult == null) {
-                return;
-            }
-
-            MeshData drawMesh = new MeshData(vertexResult, cachedMesh.drawState());
-            if (indexSource != null && indexBuilder != null) {
-                ByteBufferBuilder.Result indexResult = copyBuffer(indexSource, indexBuilder);
-                if (indexResult != null) {
-                    ((MeshDataAccessor) (Object) drawMesh).setIndexBuffer(indexResult);
-                }
-            }
-
-            renderType.draw(drawMesh);
-        }
-    }
-
-    @Nullable
-    private static ByteBufferBuilder.Result copyBuffer(ByteBuffer source, ByteBufferBuilder builder) {
-        ByteBuffer copySource = source.duplicate();
-        int size = copySource.remaining();
-        if (size <= 0) {
-            return null;
-        }
-        long ptr = builder.reserve(size);
-        org.lwjgl.system.MemoryUtil.memCopy(org.lwjgl.system.MemoryUtil.memAddress(copySource), ptr, size);
-        return builder.build();
     }
 
     public static final class Results {
         public final List<BlockEntity> blockEntities = new ArrayList<>();
-        public final Map<ChunkSectionLayer, MeshData> renderedLayers = new EnumMap<>(ChunkSectionLayer.class);
-        public VisibilitySet visibilitySet = new VisibilitySet();
-        public MeshData.@Nullable SortState transparencyState;
+        /** Per-layer section-local meshes (one entry per touched 16³ section). */
+        public final Map<ChunkSectionLayer, List<SectionCpuMesh>> renderedLayers = new EnumMap<>(ChunkSectionLayer.class);
 
         public void release() {
-            this.renderedLayers.values().forEach(MeshData::close);
+            this.renderedLayers.values().forEach(list -> list.forEach(m -> m.mesh().close()));
         }
     }
 
@@ -947,15 +1120,17 @@ public abstract class WorldSceneRenderer {
         private final SectionBufferBuilderPack builders;
         private final ModelBlockRenderer blockRenderer;
         private final FluidRenderer fluidRenderer;
-        private final net.minecraft.client.renderer.block.BlockStateModelSet blockStateModelSet;
-        private final net.minecraft.client.renderer.block.FluidStateModelSet fluidModelSet;
-        private final net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher blockEntityRenderer;
+        private final BlockStateModelSet blockStateModelSet;
+        private final FluidStateModelSet fluidModelSet;
+        private final BlockEntityRenderDispatcher blockEntityRenderer;
         private final boolean cutoutLeaves;
         private final Map<ChunkSectionLayer, BufferBuilder> startedLayers = new EnumMap<>(ChunkSectionLayer.class);
         private final float[] curOffset = new float[3];
         private final int[] curColor = {-1};
         private final boolean[] curHasTransform = {false};
         private final float[] fluidOffset = new float[3];
+        /** World origin of the section currently being compiled (block coords, multiples of 16). */
+        private int curOriginX, curOriginY, curOriginZ;
         private final EnumMap<ChunkSectionLayer, VertexConsumerWrapper> layerWrappers =
                 new EnumMap<>(ChunkSectionLayer.class);
         private final BlockQuadOutput quadOutput;
@@ -1033,9 +1208,11 @@ public abstract class WorldSceneRenderer {
 
                 var fluidState = blockState.getFluidState();
                 if (!fluidState.isEmpty()) {
-                    fluidOffset[0] = pos.getX() - (pos.getX() & 15);
-                    fluidOffset[1] = pos.getY() - (pos.getY() & 15);
-                    fluidOffset[2] = pos.getZ() - (pos.getZ() & 15);
+                    // FluidRenderer.tesselate already emits section-local positions (pos & 15), which is
+                    // exactly what the core/terrain pipeline + ChunkSection UBO expect — no origin add-back.
+                    fluidOffset[0] = 0f;
+                    fluidOffset[1] = 0f;
+                    fluidOffset[2] = 0f;
                     var customRenderer = fluidModelSet.get(fluidState).customRenderer();
                     if (customRenderer == null
                             || !customRenderer.renderFluid(fluidRenderer, fluidState, region, pos, fluidOutput, blockState)) {
@@ -1046,9 +1223,10 @@ public abstract class WorldSceneRenderer {
                 if (blockState.getRenderShape() == MODEL) {
                     var model = blockStateModelSet.get(blockState);
                     var forceOpaque = ModelBlockRenderer.forceOpaque(cutoutLeaves, blockState);
+                    // Section-local position offset (pos - sectionOrigin); the ChunkSection UBO adds the origin.
                     blockRenderer.tesselateBlock(
                             forceOpaque ? opaqueQuadOutput : quadOutput,
-                            pos.getX(), pos.getY(), pos.getZ(),
+                            pos.getX() - curOriginX, pos.getY() - curOriginY, pos.getZ() - curOriginZ,
                             region,
                             pos,
                             blockState,
@@ -1078,16 +1256,27 @@ public abstract class WorldSceneRenderer {
             curHasTransform[0] = curOffset[0] != 0f || curOffset[1] != 0f || curOffset[2] != 0f || curColor[0] != -1;
         }
 
-        private void build(Results results) {
-            var vertexSorting = VertexSorting.byDistance(renderer.eyePos.x, renderer.eyePos.y, renderer.eyePos.z);
+        /** Start compiling a new 16³ section at the given world origin. */
+        private void beginSection(int originX, int originY, int originZ) {
+            this.curOriginX = originX;
+            this.curOriginY = originY;
+            this.curOriginZ = originZ;
+        }
+
+        /** Build the current section's started layers into per-layer {@link SectionCpuMesh} lists. */
+        private void flushSection(Results results) {
+            // Translucent sorting happens in section-local space, so the camera is offset by the origin.
+            var vertexSorting = VertexSorting.byDistance(
+                    renderer.eyePos.x - curOriginX, renderer.eyePos.y - curOriginY, renderer.eyePos.z - curOriginZ);
             for (Map.Entry<ChunkSectionLayer, BufferBuilder> entry : startedLayers.entrySet()) {
                 ChunkSectionLayer layer = entry.getKey();
                 MeshData mesh = entry.getValue().build();
                 if (mesh != null) {
                     if (layer == ChunkSectionLayer.TRANSLUCENT) {
-                        results.transparencyState = mesh.sortQuads(builders.buffer(layer), vertexSorting);
+                        mesh.sortQuads(builders.buffer(layer), vertexSorting);
                     }
-                    results.renderedLayers.put(layer, mesh);
+                    results.renderedLayers.computeIfAbsent(layer, k -> new ArrayList<>())
+                            .add(new SectionCpuMesh(mesh, curOriginX, curOriginY, curOriginZ));
                 }
             }
             startedLayers.clear();
@@ -1107,21 +1296,15 @@ public abstract class WorldSceneRenderer {
     }
 
     /**
-     * Tesselate a group of blocks into per-layer {@link MeshData}, mirroring
-     * {@code SectionCompiler.compile} but rendering at world coordinates instead of section-local.
+     * Tesselate a group of blocks into per-section, per-layer {@link SectionCpuMesh}, mirroring
+     * vanilla {@code SectionCompiler.compile}: blocks are bucketed into 16³ sections and compiled in
+     * <em>section-local</em> coordinates ({@code pos - sectionOrigin}). The section origin is applied
+     * back at draw time via the {@code ChunkSection} offset UBO (see {@link #renderTerrain}). Only one
+     * {@link BufferBuilder} per layer is alive at a time because the section is built (and its builders
+     * reset) before the next section starts.
      * <p>
-     * The returned {@link Results#renderedLayers} owns the built meshes; callers must either draw
-     * them via {@link RenderType#draw(MeshData)} (which closes the mesh) or call
-     * {@link Results#release()}.
-     * <p>
-     * Fluid offset note: {@link FluidRenderer#tesselate} writes vertex positions in section-local
-     * coordinates ({@code pos.getX() & 15}). In vanilla chunk rendering the {@code ChunkSection}
-     * UBO adds the section origin back. We render with the BLOCK pipeline at real world
-     * coordinates and have no such UBO, so we wrap the fluid {@link VertexConsumer} in a
-     * {@link VertexConsumerWrapper} that adds the section origin offset for each fluid block.
-     * Block geometry is unaffected because {@link ModelBlockRenderer#tesselateBlock} already
-     * accepts the world-space {@code (x, y, z)} as offset and routes quads via
-     * {@link BufferBuilder#putBlockBakedQuad}, bypassing the wrapper.
+     * The returned {@link Results#renderedLayers} owns the built CPU meshes; callers must either upload
+     * them (then close) or call {@link Results#release()}.
      */
     private Results renderBlocks(BlockAndTintGetter region,
                                  Collection<BlockPos> renderedBlocks,
@@ -1129,16 +1312,26 @@ public abstract class WorldSceneRenderer {
                                  SectionBufferBuilderPack builders) {
         var results = new Results();
         var compileContext = new BlockCompileContext(this, region, builders);
+        // Bucket blocks by section so each section compiles into its own section-local mesh.
+        var bySection = new java.util.LinkedHashMap<Long, List<BlockPos>>();
+        for (BlockPos pos : renderedBlocks) {
+            bySection.computeIfAbsent(packSectionOrigin(pos.getX(), pos.getY(), pos.getZ()),
+                    k -> new ArrayList<>()).add(pos);
+        }
         BlockModelLighter.enableCaching();
         try {
-            for (BlockPos pos : renderedBlocks) {
-                compileContext.renderBlock(pos, hook, results);
-                // for async progress
-                if (maxProgress > 0) {
-                    progress++;
+            for (var sectionEntry : bySection.entrySet()) {
+                long key = sectionEntry.getKey();
+                compileContext.beginSection(SectionPos.x(key) << 4, SectionPos.y(key) << 4, SectionPos.z(key) << 4);
+                for (BlockPos pos : sectionEntry.getValue()) {
+                    compileContext.renderBlock(pos, hook, results);
+                    // for async progress
+                    if (maxProgress > 0) {
+                        progress++;
+                    }
                 }
+                compileContext.flushSection(results);
             }
-            compileContext.build(results);
         } finally {
             BlockModelLighter.clearCache();
         }
@@ -1166,7 +1359,7 @@ public abstract class WorldSceneRenderer {
                 if (blocked != null && blocked.contains(pos)) continue;
                 BlockEntity be = world.getBlockEntity(pos);
                 if (be == null) continue;
-                var state = beDispatcher.tryExtractRenderState(be, partialTicks, null, null);
+                var state = beDispatcher.tryExtractRenderState(be, partialTicks, null, false);
                 if (state == null) continue;
 
                 poseStack.pushPose();
@@ -1245,17 +1438,30 @@ public abstract class WorldSceneRenderer {
 
     /** Combined projection * modelView, for {@link Matrix4f#project} / {@link Matrix4f#unproject}. */
     private Matrix4f computeCombinedMatrix() {
-        return new Matrix4f(projectionMatrix).mul(RenderSystem.getModelViewMatrix());
+        return new Matrix4f(projectionMatrix).mul(RenderSystem.getModelViewMatrixCopy());
     }
 
     private int[] currentViewport() {
         return new int[] { viewportX, viewportY, viewportWidth, viewportHeight };
     }
 
+    /**
+     * We can't use JOML's {@link Matrix4f#project}/{@link Matrix4f#unproject}: those hard-assume an
+     * NDC depth range of [-1,1], but MC's GL backend sets {@code glClipControl(.., ZERO_TO_ONE)} so
+     * the device reports {@code isZZeroToOne()} and the depth NDC is [0,1]. Mixing the two corrupts
+     * the depth term — which barely shows in ortho (parallel rays) but makes the perspective pick ray
+     * point at garbage (can't select). So we map window<->NDC depth ourselves with the device flag.
+     */
     public Vector3f project(Vector3f pos) {
-        Vector3f winCoords = new Vector3f();
-        computeCombinedMatrix().project(pos.x(), pos.y(), pos.z(), currentViewport(), winCoords);
-        return winCoords;
+        boolean zZeroToOne = RenderSystem.getDevice().getDeviceInfo().isZZeroToOne();
+        int[] vp = currentViewport();
+        Vector4f clip = new Vector4f(pos.x(), pos.y(), pos.z(), 1f);
+        computeCombinedMatrix().transform(clip);
+        if (clip.w() != 0f) clip.div(clip.w());
+        float winX = vp[0] + (clip.x() * 0.5f + 0.5f) * vp[2];
+        float winY = vp[1] + (clip.y() * 0.5f + 0.5f) * vp[3];
+        float winZ = zZeroToOne ? clip.z() : (clip.z() * 0.5f + 0.5f);
+        return new Vector3f(winX, winY, winZ);
     }
 
     public Vector3f unProject(int mouseX, int mouseY) {
@@ -1263,13 +1469,18 @@ public abstract class WorldSceneRenderer {
     }
 
     public Vector3f unProject(int mouseX, int mouseY, boolean checkDepth) {
-        float pixelDepth = 0.999f;
-        if (checkDepth) {
-            pixelDepth = readDepthPixelAsync(mouseX, mouseY);
-        }
-        Vector3f objCoords = new Vector3f();
-        computeCombinedMatrix().unproject(mouseX, mouseY, pixelDepth, currentViewport(), objCoords);
-        return objCoords;
+        boolean zZeroToOne = RenderSystem.getDevice().getDeviceInfo().isZZeroToOne();
+        // Reversed-Z: the far plane is window depth 0. Without a depth sample we unproject at the far
+        // plane to build the pick ray; checkDepth reads the real rendered depth for an exact point.
+        float winZ = checkDepth ? readDepthPixelAsync(mouseX, mouseY) : 0f;
+        int[] vp = currentViewport();
+        float ndcX = (mouseX - vp[0]) / (float) vp[2] * 2f - 1f;
+        float ndcY = (mouseY - vp[1]) / (float) vp[3] * 2f - 1f;
+        float ndcZ = zZeroToOne ? winZ : (winZ * 2f - 1f);
+        Vector4f obj = new Vector4f(ndcX, ndcY, ndcZ, 1f);
+        computeCombinedMatrix().invert(new Matrix4f()).transform(obj);
+        if (obj.w() != 0f) obj.div(obj.w());
+        return new Vector3f(obj.x(), obj.y(), obj.z());
     }
 
     /**
@@ -1322,8 +1533,8 @@ public abstract class WorldSceneRenderer {
                     () -> {
                         try {
                             if (issuedBuf != depthReadbackBuffer) return; // released or recreated
-                            try (var view = RenderSystem.getDevice().createCommandEncoder()
-                                    .mapBuffer(issuedBuf.slice(0, 4), true, false)) {
+                            // 26.2: CommandEncoder.mapBuffer is gone; map directly on the GpuBuffer.
+                            try (var view = issuedBuf.map(0L, 4L, true, false)) {
                                 lastDepthSample = view.data().getFloat(0);
                             }
                         } finally {
@@ -1346,7 +1557,7 @@ public abstract class WorldSceneRenderer {
         // render a frame
         setupCamera(getPositionedRect(x, y, width, height));
 
-        drawWorld(Minecraft.getInstance().renderBuffers());
+        drawWorld(Minecraft.getInstance().gameRenderer.renderBuffers());
 
         Vector3f hitPos = this.lastHit == null ? unProject(mouseX, mouseY) : this.lastHit;
         BlockHitResult result = rayTrace(hitPos);
@@ -1365,7 +1576,7 @@ public abstract class WorldSceneRenderer {
         // render a frame
         setupCamera(getPositionedRect(x, y, width, height));
 
-        drawWorld(Minecraft.getInstance().renderBuffers());
+        drawWorld(Minecraft.getInstance().gameRenderer.renderBuffers());
         Vector3f winPos = project(new Vector3f(pos.getX() + 0.5f, pos.getY() + 0.5f, pos.getZ() + 0.5f));
 
         resetCamera();

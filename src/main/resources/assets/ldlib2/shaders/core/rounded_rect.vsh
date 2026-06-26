@@ -14,7 +14,7 @@ layout(std140) uniform Projection {
 
 in vec3 Position;
 in vec4 Color;
-in ivec4 RectParams;  // halfW*8, halfH*8, border*8, 0
+in ivec4 RectParams;  // halfW*8, halfH*8, border*8, cornerId(0..3)
 in ivec4 Radius;      // rTL*8, rTR*8, rBR*8, rBL*8
 
 out vec2 vLocalPos;
@@ -32,8 +32,10 @@ void main() {
     vRadius = vec4(Radius) / 8.0;
     vColor = Color;
 
-    // Derive local position from vertex index within quad
-    int vid = gl_VertexID % 4;
+    // Derive local position from the per-vertex corner id (RectParams.w). We can't use
+    // gl_VertexID % 4: the 26.2 GUI packs all draws into one shared buffer and draws each with a
+    // baseVertex offset, so gl_VertexID is shifted by a per-frame-varying baseVertex.
+    int vid = RectParams.w;
     float lx = (vid < 2) ? -halfSize.x : halfSize.x;
     float ly = (vid == 0 || vid == 3) ? -halfSize.y : halfSize.y;
     vLocalPos = vec2(lx, ly);

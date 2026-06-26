@@ -23,7 +23,6 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.w3c.dom.Element;
 
@@ -33,7 +32,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "tab", group = "utils", registry = "ldlib2:ui_element")

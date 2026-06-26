@@ -19,7 +19,6 @@ import dev.vfyjxf.taffy.tree.TaffyTree;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
@@ -33,7 +32,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 public class ModularUI {
     public final UI ui;

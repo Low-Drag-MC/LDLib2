@@ -13,7 +13,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.syncdata.holder.IPersistManagedHolder;
 import dev.vfyjxf.taffy.style.AlignContent;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -51,7 +50,6 @@ import java.util.Optional;
  * @implNote TestBlock
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class TestBlock extends Block implements EntityBlock, IBlockRendererProvider, BlockUIMenuType.BlockUI {
     public static TestBlock BLOCK;
 

@@ -20,14 +20,12 @@ import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import net.minecraft.client.gui.render.TextureSetup;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.IntConsumer;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 @LDLRegister(name = "color-selector", group = "misc", registry = "ldlib2:ui_element")
 public class ColorSelector extends BindableUIElement<Integer> {

@@ -38,12 +38,10 @@ import dev.vfyjxf.taffy.tree.Layout;
 import dev.vfyjxf.taffy.tree.NodeId;
 import dev.vfyjxf.taffy.tree.TaffyTree;
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import it.unimi.dsi.fastutil.ints.IntComparator;
 import it.unimi.dsi.fastutil.objects.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -74,7 +72,6 @@ import java.util.stream.Stream;
  */
 //@RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 @LDLRegister(name = "element", registry = "ldlib2:ui_element", priority = -1)
 public class UIElement implements IConfigurable, IPersistedSerializable, ILDLRegister<UIElement, Supplier<UIElement>> {

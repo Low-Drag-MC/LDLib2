@@ -1,8 +1,11 @@
 package com.lowdragmc.lowdraglib2.client.utils;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.BlockPos;
@@ -14,15 +17,94 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
+import java.nio.ByteBuffer;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.Nullable;
 
 public class RenderUtils {
     private static final RenderType BLOCK_OVERLAY = RenderType.create(
             "ldlib_block_overlay",
             RenderSetup.builder(LDLibRenderPipelines.BLOCK_OVERLAY)
-                    .bufferSize(1536)
                     .createRenderSetup()
     );
+
+    /**
+     * 26.2 immediate-draw replacement for the removed {@code MultiBufferSource.BufferSource}: collects
+     * geometry per {@link RenderType} into its own {@link BufferBuilder}, then on {@link #flush()}
+     * uploads each mesh to a transient {@link GpuBuffer} and draws it via
+     * {@code RenderType.prepare().drawFromBuffer(...)} — which captures the current model-view/projection
+     * and honors {@code RenderSystem.outputColor/DepthTextureOverride} (so scene-FBO draws land correctly).
+     * Each RenderType gets its own backing {@link ByteBufferBuilder} so interleaved {@code getBuffer}
+     * calls don't clobber each other.
+     */
+    public static final class ImmediateDraw implements AutoCloseable {
+        private final Map<RenderType, BufferBuilder> builders = new LinkedHashMap<>();
+        private final Map<RenderType, ByteBufferBuilder> scratch = new LinkedHashMap<>();
+
+        public VertexConsumer getBuffer(RenderType renderType) {
+            return builders.computeIfAbsent(renderType, rt -> {
+                var bb = new ByteBufferBuilder(RenderType.TRANSIENT_BUFFER_SIZE);
+                scratch.put(rt, bb);
+                return new BufferBuilder(bb, rt.primitiveTopology(), rt.format());
+            });
+        }
+
+        public void flush() {
+            for (var entry : builders.entrySet()) {
+                MeshData mesh = entry.getValue().build();
+                if (mesh != null) {
+                    drawMesh(entry.getKey(), mesh);
+                }
+            }
+            builders.clear();
+            scratch.values().forEach(ByteBufferBuilder::close);
+            scratch.clear();
+        }
+
+        @Override
+        public void close() {
+            flush();
+        }
+    }
+
+    /** Upload a built {@link MeshData} and draw it once through {@code renderType} (closes the mesh). */
+    public static void drawMesh(RenderType renderType, MeshData mesh) {
+        try (mesh) {
+            ByteBuffer vb = mesh.vertexBuffer();
+            if (vb == null) return;
+            var drawState = mesh.drawState();
+            var device = RenderSystem.getDevice();
+            GpuBuffer vertexBuffer = device.createBuffer(() -> "ldlib immediate vbo", GpuBuffer.USAGE_VERTEX, vb);
+            GpuBuffer ownIndexBuffer = null;
+            try {
+                GpuBuffer indexBuffer;
+                IndexType indexType;
+                ByteBuffer ib = mesh.indexBuffer();
+                if (ib != null) {
+                    ownIndexBuffer = device.createBuffer(() -> "ldlib immediate ibo", GpuBuffer.USAGE_INDEX, ib);
+                    indexBuffer = ownIndexBuffer;
+                    indexType = drawState.indexType();
+                } else {
+                    var seq = RenderSystem.getSequentialBuffer(drawState.primitiveTopology());
+                    indexBuffer = seq.getBuffer(drawState.indexCount());
+                    indexType = seq.type();
+                }
+                renderType.prepare().drawFromBuffer(vertexBuffer, indexBuffer, indexType, 0, 0, drawState.indexCount());
+            } finally {
+                vertexBuffer.close();
+                if (ownIndexBuffer != null) ownIndexBuffer.close();
+            }
+        }
+    }
+
+    /** Emit geometry into a single {@code renderType} and draw it immediately. */
+    public static void drawImmediate(RenderType renderType, Consumer<VertexConsumer> emit) {
+        try (var draw = new ImmediateDraw()) {
+            emit.accept(draw.getBuffer(renderType));
+        }
+    }
 
     /***
      * used to render pixels in stencil mask. (e.g. Restrict rendering results to be displayed only in Monitor Screens)
@@ -63,15 +145,15 @@ public class RenderUtils {
         GL11.glDisable(GL11.GL_STENCIL_TEST);
     }
 
-    public static void renderBlockOverLay(@Nonnull PoseStack poseStack, @Nonnull MultiBufferSource bufferSource, BlockPos pos, float r, float g, float b, float scale) {
+    public static void renderBlockOverLay(@Nonnull PoseStack poseStack, BlockPos pos, float r, float g, float b, float scale) {
         if (pos == null) return;
 
         poseStack.pushPose();
         poseStack.translate((pos.getX() + 0.5), (pos.getY() + 0.5), (pos.getZ() + 0.5));
         poseStack.scale(scale, scale, scale);
 
-        var buffer = bufferSource.getBuffer(BLOCK_OVERLAY);
-        RenderUtils.renderCubeFace(poseStack, buffer, -0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, r, g, b, 1);
+        drawImmediate(BLOCK_OVERLAY, buffer ->
+                RenderUtils.renderCubeFace(poseStack, buffer, -0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, r, g, b, 1));
 
         poseStack.popPose();
     }

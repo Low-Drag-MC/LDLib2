@@ -42,7 +42,7 @@ public class ClientCommands {
                         var entityPlayer = minecraft.player;
                         if (entityPlayer == null) return 0;
                         var ui = test.createUI(entityPlayer);
-                        minecraft.setScreen(new ModularUIScreen(ui, Component.empty()));
+                        minecraft.setScreenAndShow(new ModularUIScreen(ui, Component.empty()));
                         return 1;
                     }));
         }

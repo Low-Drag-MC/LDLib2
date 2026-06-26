@@ -8,15 +8,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Tuple;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class UIResourceProviderContainer extends ResourceProviderContainer<UITemplate> {
-    private final Map<UUID, Tuple<IResourcePath, UIEditorView>> openedViews = Maps.newHashMap();
+    private final Map<UUID, Pair<IResourcePath, UIEditorView>> openedViews = Maps.newHashMap();
 
     public UIResourceProviderContainer(IResourceProvider<UITemplate> provider) {
         super(provider);
@@ -30,7 +30,7 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
         }).style(style -> style.backgroundTexture(Icons.WIDGET_BASIC)))
         .setOnEdit((container, path) -> {
             // if there is an existing view open, don't open a new one'
-            if (openedViews.values().stream().map(Tuple::getA).anyMatch(path::equals)) return;
+            if (openedViews.values().stream().map(Pair::left).anyMatch(path::equals)) return;
 
             var template = provider.getResource(path);
             if (template == null) return;
@@ -42,26 +42,26 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
                     // invalid already.
                     return;
                 }
-                var realPath = openedViews.get(uuid).getA();
+                var realPath = openedViews.get(uuid).left();
                 provider.addResource(realPath, newTemplate);
                 container.reloadSpecificResource(realPath);
             });
             // cache path for renaming cases
             AtomicReference<IResourcePath> pathCache = new AtomicReference<>(path);
             newView.addEventListener(UIEvents.ADDED, e -> {
-                openedViews.put(uuid, new Tuple<>(pathCache.get(), newView));
+                openedViews.put(uuid, Pair.of(pathCache.get(), newView));
             });
             newView.addEventListener(UIEvents.REMOVED, e -> {
                 var pair = openedViews.remove(uuid);
                 if (pair != null) {
-                    pathCache.set(pair.getA());
+                    pathCache.set(pair.left());
                 }
             });
             newView.setCanRemove(true);
             newView.setIcon(Icons.WIDGET_BASIC);
             newView.setDynamicName(() -> {
                 if (openedViews.containsKey(uuid)) {
-                    return Component.literal(openedViews.get(uuid).getA().getResourceName());
+                    return Component.literal(openedViews.get(uuid).left().getResourceName());
                 } else {
                     return Component.literal(pathCache.get().getResourceName());
                 }
@@ -74,9 +74,13 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
     protected void onRename(IResourcePath oldPath, IResourcePath newPath) {
         super.onRename(oldPath, newPath);
         // update open view name as well
-        for (var openedView : openedViews.values()) {
-            if (openedView.getA().equals(oldPath)) {
-                openedView.setA(newPath);
+        for (var entry : openedViews.entrySet()) {
+            var openedView = entry.getValue();
+
+            if (openedView.left().equals(oldPath)) {
+                entry.setValue(
+                        Pair.of(newPath, openedView.right())
+                );
             }
         }
     }

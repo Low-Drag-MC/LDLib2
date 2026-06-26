@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Player;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
@@ -16,7 +15,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
  * Which means UI used for remote and server.
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public interface IContainerUIHolder {
     /**
      * Creates a {@link ModularUI} instance tied to the specified {@link Player}

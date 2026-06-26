@@ -21,7 +21,6 @@ import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
@@ -45,7 +44,6 @@ import java.util.List;
 
 @LDLRegister(name="ui_sync", registry = "ldlib2:menu_test")
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class TestSync implements IMenuTest {
     private final FluidStacksResourceHandler fluidTank = new FluidStacksResourceHandler(1, 2000);
     private final FluidStacksResourceHandler phantomTank = new FluidStacksResourceHandler(2, 2000);

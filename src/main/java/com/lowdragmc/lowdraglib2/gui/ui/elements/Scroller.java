@@ -19,7 +19,6 @@ import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +27,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public abstract class Scroller extends BindableUIElement<Float> {
     @Configurable(name = "ScrollerStyle")
     public class ScrollerStyle extends Style {

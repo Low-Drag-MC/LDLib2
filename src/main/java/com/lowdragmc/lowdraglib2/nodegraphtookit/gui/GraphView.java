@@ -54,7 +54,6 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
 import dev.vfyjxf.taffy.style.*;
 import lombok.Getter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ProblemReporter;
@@ -72,7 +71,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class GraphView extends UIElement {
     public record ElementUpdate(ModelElement element, ElementUpdateVisitor visitor) { }
     public record DragRegionSelection(UIElement selectionRect) {}

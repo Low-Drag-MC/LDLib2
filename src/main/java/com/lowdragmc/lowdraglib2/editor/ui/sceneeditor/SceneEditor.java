@@ -24,7 +24,6 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.Transfo
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +44,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * A scene which provides editable features as a unity scene.
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class SceneEditor extends UIElement implements IScene {
     public static final Object SCENE_OBJECT_DRAGGING = new Object();
     public static final Object CAMERA_MOVING = new Object();

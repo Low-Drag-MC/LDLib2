@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.async;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import com.mojang.serialization.MapCodec;
 import lombok.Getter;
 import net.minecraft.server.level.ServerLevel;
@@ -25,7 +24,6 @@ import java.util.concurrent.*;
  * warning, you have to add and remove runnable manually.
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class AsyncThreadData extends SavedData {
     public static final SavedDataType<AsyncThreadData> TYPE = new SavedDataType<>(
             LDLib2.id("async_thread"),

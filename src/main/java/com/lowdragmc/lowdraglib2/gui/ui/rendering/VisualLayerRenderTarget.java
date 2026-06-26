@@ -1,12 +1,14 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 
 public class VisualLayerRenderTarget extends RenderTarget {
     public VisualLayerRenderTarget() {
-        super("ldlib2-visual-layer", true);
+        // 26.2: RenderTarget ctor now takes the color GpuFormat.
+        super("ldlib2-visual-layer", true, GpuFormat.RGBA8_UNORM);
     }
 
     public void bind(GpuTextureView color, GpuTexture colorTex,

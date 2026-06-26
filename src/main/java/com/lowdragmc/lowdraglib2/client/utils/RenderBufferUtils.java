@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.utils;
 
 import com.mojang.blaze3d.vertex.*;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import org.joml.Matrix3x2fc;
@@ -26,9 +25,6 @@ public class RenderBufferUtils {
                 .setNormal(pose, normalDir.x, normalDir.y, normalDir.z).setLineWidth(sW);
         buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
                 .setNormal(pose, normalDir.x, normalDir.y, normalDir.z).setLineWidth(eW);
-        if (buffer instanceof MultiBufferSource.BufferSource source) {
-            source.endLastBatch();
-        }
     }
 
     public static void drawLine(Matrix4f pose, VertexConsumer buffer, Vector3f from, Vector3f to,
@@ -39,9 +35,6 @@ public class RenderBufferUtils {
                 .setNormal(normalDir.x, normalDir.y, normalDir.z).setLineWidth(sW);
         buffer.addVertex(pose, to.x, to.y, to.z).setColor(er, eg, eb, ea)
                 .setNormal(normalDir.x, normalDir.y, normalDir.z).setLineWidth(eW);
-        if (buffer instanceof MultiBufferSource.BufferSource source) {
-            source.endLastBatch();
-        }
     }
 
     public static void drawLines(PoseStack poseStack, VertexConsumer buffer, List<Vector3f> points, int colorStart, int colorEnd, float widthStart, float widthEnd) {

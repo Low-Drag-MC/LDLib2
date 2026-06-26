@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.world.level.ChunkPos;
@@ -12,7 +11,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class VirtualChunk extends LevelChunk {
 
 	public VirtualChunk(DummyWorld level, int x, int z) {

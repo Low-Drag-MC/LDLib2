@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 import com.lowdragmc.lowdraglib2.client.scene.ParticleManager;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import lombok.Setter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.world.entity.Entity;
@@ -30,7 +29,6 @@ import java.util.function.Predicate;
  * Description: TrackedDummyWorld. Used to build a Fake World.
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class TrackedDummyWorld extends DummyWorld {
     @Setter
     private Predicate<BlockPos> blockFilter;

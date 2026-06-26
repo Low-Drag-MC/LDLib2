@@ -39,7 +39,6 @@ import net.minecraft.world.level.storage.WritableLevelData;
 import net.minecraft.world.ticks.BlackholeTickAccess;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.*;
@@ -81,7 +80,6 @@ import java.util.List;
  * Description:
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class DummyWorld extends Level {
     private static final ResourceKey<Level> LEVEL_ID;
     static {
@@ -110,6 +108,13 @@ public class DummyWorld extends Level {
     private final EnvironmentAttributeSystem environmentAttributes;
     private final WorldBorder worldBorder = new WorldBorder();
     private final FuelValues fuelValues;
+    /**
+     * 26.2 no longer auto-assigns entity ids in the {@code Entity} constructor (the old global
+     * counter was removed; ids now come from the server / network packets). Dummy-world entities are
+     * client-only, so we hand out our own unique negative ids — negative to avoid ever colliding with
+     * a networked (positive) id.
+     */
+    private final java.util.concurrent.atomic.AtomicInteger nextEntityId = new java.util.concurrent.atomic.AtomicInteger(0);
 
     public DummyWorld() {
         this(Platform.getClientRegistryAccess());
@@ -328,7 +333,15 @@ public class DummyWorld extends Level {
 
     public void addEntity(Entity entity) {
         if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityJoinLevelEvent(entity, this)).isCanceled()) return;
-        this.removeEntity(entity.getId(), Entity.RemovalReason.DISCARDED);
+        int id;
+        try {
+            id = entity.getId();
+        } catch (IllegalStateException notAssignedYet) {
+            // 26.2: a freshly constructed entity has no id; assign one before dedup/storage.
+            entity.setId(nextEntityId.decrementAndGet());
+            id = entity.getId();
+        }
+        this.removeEntity(id, Entity.RemovalReason.DISCARDED);
         this.entityStorage.addEntity(entity);
         entity.onAddedToLevel();
     }

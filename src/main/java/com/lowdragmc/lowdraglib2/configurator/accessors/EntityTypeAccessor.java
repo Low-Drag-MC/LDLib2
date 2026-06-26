@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
@@ -24,7 +25,7 @@ public class EntityTypeAccessor extends TypesAccessor<EntityType<?>> {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
             return BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]));
         }
-        return EntityType.PIG;
+        return EntityTypes.PIG;
     }
 
     @Override

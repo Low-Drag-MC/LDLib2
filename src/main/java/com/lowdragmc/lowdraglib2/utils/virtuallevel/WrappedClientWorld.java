@@ -26,7 +26,7 @@ public class WrappedClientWorld extends ClientLevel {
     private WrappedClientWorld(Level world) {
         super(mc.getConnection(), mc.level.getLevelData(), world.dimension(), world.dimensionTypeRegistration(),
                 12, mc.level.getServerSimulationDistance(),
-                mc.levelRenderer, world.isDebug(), -1, 0);
+                mc.levelExtractor, world.isDebug(), -1, 0);
         this.world = world;
     }
 

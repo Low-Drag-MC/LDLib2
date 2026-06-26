@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.math;
 
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import com.mojang.serialization.Codec;
 import lombok.Getter;
 import net.minecraft.util.ExtraCodecs;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.Objects;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class GradientColor implements ValueIOSerializable {
     @Getter
     protected List<Vector2fc> aP;

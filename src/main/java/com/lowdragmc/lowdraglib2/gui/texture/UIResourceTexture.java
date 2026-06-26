@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -20,7 +19,6 @@ import java.util.Optional;
 @LDLRegisterClient(name = "ui_resource_texture", registry = "ldlib2:gui_texture")
 @NoArgsConstructor
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public final class UIResourceTexture extends TransformTexture {
     @Persisted
     @Getter

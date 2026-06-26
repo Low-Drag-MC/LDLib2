@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
 import com.google.common.collect.ImmutableList;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
@@ -12,7 +11,6 @@ import java.util.*;
  * @implNote Resource
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class Resources {
     public static final Resources EMPTY = new Resources(List.of());
 

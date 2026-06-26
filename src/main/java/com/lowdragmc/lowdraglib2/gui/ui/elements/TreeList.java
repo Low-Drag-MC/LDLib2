@@ -25,7 +25,6 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.function.Consumers;
 
@@ -43,7 +42,6 @@ import java.util.function.Predicate;
  */
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 @LDLRegister(name = "tree-list", group = "misc", registry = "ldlib2:ui_element")
 public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {

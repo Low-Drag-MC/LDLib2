@@ -10,7 +10,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.ChatFormatting;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -21,7 +21,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "tag-field", group = "basic", registry = "ldlib2:ui_element")

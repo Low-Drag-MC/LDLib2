@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject;
 import com.lowdragmc.lowdraglib2.math.Transform;
 import lombok.Getter;
 import lombok.Setter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
@@ -13,7 +12,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.UUID;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class TransformRef implements ValueIOSerializable {
     @Nullable
     @Getter @Setter

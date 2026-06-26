@@ -11,7 +11,6 @@ import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.runtime.IClickableIngredient;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
@@ -22,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @UtilityClass
 public final class ModularUIJEIHandlers {
     public static final IGuiContainerHandler<AbstractContainerScreen<?>> GUI_CONTAINER_HANDLER = new IGuiContainerHandler<>() {

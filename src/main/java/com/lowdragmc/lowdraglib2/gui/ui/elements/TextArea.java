@@ -29,24 +29,22 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.FontDescription;
-import net.minecraft.util.Tuple;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
-import oshi.util.tuples.Pair;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -58,7 +56,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "text-area", group = "basic", registry = "ldlib2:ui_element")
@@ -570,8 +567,8 @@ public class TextArea extends BindableUIElement<String[]> {
     protected void ensureCursorVisible() {
         if (!LDLib2.isRemote()) return;
         var scroll = TextAreaClientSupport.computeVisibleScroll(this);
-        scrollX = scroll.getA();
-        scrollY = scroll.getB();
+        scrollX = scroll.left();
+        scrollY = scroll.right();
         updateScrollers();
         lastHeight = contentView.getContentHeight();
         lastWidth = contentView.getContentWidth();
@@ -622,8 +619,8 @@ public class TextArea extends BindableUIElement<String[]> {
             var pos = getCursorUnderMouse(localMouse.x, localMouse.y);
             // select string
             var selected = selectWord(pos);
-            if (!selected.getA().equals(selected.getB())) {
-                setSelection(new Cursor(pos.line(), selected.getA()), new Cursor(pos.line(), selected.getB()));
+            if (!selected.left().equals(selected.right())) {
+                setSelection(new Cursor(pos.line(), selected.left()), new Cursor(pos.line(), selected.right()));
             }
         }
     }
@@ -644,7 +641,7 @@ public class TextArea extends BindableUIElement<String[]> {
         var end = col;
         while (start > 0 && isWordChar(line.charAt(start - 1))) start--;
         while (end < line.length() && isWordChar(line.charAt(end))) end++;
-        return new Pair<>(start, end);
+        return Pair.of(start, end);
     }
 
     protected boolean isWordChar(char c) {
@@ -1137,11 +1134,11 @@ public class TextArea extends BindableUIElement<String[]> {
             return max;
         }
 
-        static Tuple<Float, Float> computeVisibleScroll(TextArea area) {
+        static Pair<Float, Float> computeVisibleScroll(TextArea area) {
             var width = area.contentView.getContentWidth();
             var height = area.contentView.getContentHeight();
             if (width == 0 || height == 0) {
-                return new Tuple<>(area.getScrollX(), area.getScrollY());
+                return Pair.of(area.getScrollX(), area.getScrollY());
             }
 
             var font = Minecraft.getInstance().font;
@@ -1169,7 +1166,7 @@ public class TextArea extends BindableUIElement<String[]> {
             float contentTotalHeight = Math.max(area.lineHeight(), area.lines.size() * area.lineHeight());
             scrollY = Mth.clamp(Float.isNaN(scrollY) ? 0 : scrollY, 0, Math.max(0, contentTotalHeight - height));
             scrollX = Math.max(0, Float.isNaN(scrollX) ? 0 : scrollX);
-            return new Tuple<>(scrollX, scrollY);
+            return Pair.of(scrollX, scrollY);
         }
 
         static Cursor getCursorUnderMouse(TextArea area, double mouseX, double mouseY) {

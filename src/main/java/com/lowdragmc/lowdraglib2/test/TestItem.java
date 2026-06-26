@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import dev.vfyjxf.taffy.style.AlignContent;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -29,7 +28,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
  * @implNote TestItem
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class TestItem extends BlockItem implements IItemRendererProvider, HeldItemUIMenuType.HeldItemUI {
 
     public static TestItem ITEM;

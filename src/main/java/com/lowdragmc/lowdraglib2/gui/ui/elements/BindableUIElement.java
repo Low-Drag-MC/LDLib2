@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import com.lowdragmc.lowdraglib2.gui.util.ITickable;
 
 import org.jetbrains.annotations.Nullable;
@@ -15,7 +14,6 @@ import java.util.*;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public abstract class BindableUIElement<T> extends UIElement implements IBindable<T>, IObservable<T>, IDataConsumer<T> {
     protected final List<Consumer<T>> listeners = new ArrayList<>();
     protected final Map<IObserver<T>, ISubscription> observers = new LinkedHashMap<>();

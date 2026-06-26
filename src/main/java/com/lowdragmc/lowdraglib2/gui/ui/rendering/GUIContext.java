@@ -28,7 +28,6 @@ import net.minecraft.client.renderer.state.gui.GuiItemRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.renderer.state.gui.GuiTextRenderState;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.metadata.gui.GuiMetadataSection;
 import net.minecraft.client.resources.metadata.gui.GuiSpriteScaling;
@@ -249,14 +248,6 @@ public class GUIContext implements IGUIContext {
 
     public void addGuiElement(GuiElementRenderState blitState) {
         graphics.guiRenderState.addGuiElement(blitState);
-    }
-
-    public MultiBufferSource.BufferSource bufferSource() {
-        return mc.renderBuffers().bufferSource();
-    }
-
-    public void endBatch() {
-        bufferSource().endBatch();
     }
 
     public void fill(

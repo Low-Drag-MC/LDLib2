@@ -72,6 +72,6 @@ public final class ModularUIClientAccess {
         if (state.uiDebuggerCache == null) {
             state.uiDebuggerCache = new UIDebugger(modularUI);
         }
-        Minecraft.getInstance().pushGuiLayer(new DebugScreen(state.uiDebuggerCache));
+        Minecraft.getInstance().gui.pushScreenLayer(new DebugScreen(state.uiDebuggerCache));
     }
 }

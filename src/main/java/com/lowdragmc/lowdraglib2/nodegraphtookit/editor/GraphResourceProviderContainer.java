@@ -9,12 +9,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
+import it.unimi.dsi.fastutil.Pair;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ProblemReporter;
-import net.minecraft.util.Tuple;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 
@@ -35,7 +35,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
      */
     @Getter @Setter
     private Supplier<? extends GraphView> graphViewFactory;
-    private final Map<UUID, Tuple<IResourcePath, GraphEditorView>> openedViews = Maps.newHashMap();
+    private final Map<UUID, Pair<IResourcePath, GraphEditorView>> openedViews = Maps.newHashMap();
 
     public GraphResourceProviderContainer(GraphResource<G> graphResource, IResourceProvider<CompoundTag> provider) {
         super(provider);
@@ -60,7 +60,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
 
         setOnEdit((container, path) -> {
             // if there is an existing view open, don't open a new one
-            if (openedViews.values().stream().map(Tuple::getA).anyMatch(path::equals)) return;
+            if (openedViews.values().stream().map(Pair::left).anyMatch(path::equals)) return;
 
             var tag = provider.getResource(path);
             if (tag == null) return;
@@ -115,7 +115,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
 
             var newView = new GraphEditorView(graphViewFactory).loadGraph(graph, savedTag -> {
                 if (!openedViews.containsKey(uuid)) return;
-                var realPath = openedViews.get(uuid).getA();
+                var realPath = openedViews.get(uuid).left();
                 provider.addResource(realPath, savedTag);
                 container.reloadSpecificResource(realPath);
                 // broadcast: every other open editor that references this path must refresh ports
@@ -129,19 +129,19 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             // cache path for renaming cases
             AtomicReference<IResourcePath> pathCache = new AtomicReference<>(path);
             newView.addEventListener(UIEvents.ADDED, e -> {
-                openedViews.put(uuid, new Tuple<>(pathCache.get(), newView));
+                openedViews.put(uuid, Pair.of(pathCache.get(), newView));
             });
             newView.addEventListener(UIEvents.REMOVED, e -> {
                 var pair = openedViews.remove(uuid);
                 if (pair != null) {
-                    pathCache.set(pair.getA());
+                    pathCache.set(pair.left());
                 }
             });
             newView.setCanRemove(true);
             newView.setIcon(graphResource.getIcon());
             newView.setDynamicName(() -> {
                 if (openedViews.containsKey(uuid)) {
-                    return Component.literal(openedViews.get(uuid).getA().getResourceName());
+                    return Component.literal(openedViews.get(uuid).left().getResourceName());
                 } else {
                     return Component.literal(pathCache.get().getResourceName());
                 }
@@ -175,10 +175,13 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
     @Override
     protected void onRename(IResourcePath oldPath, IResourcePath newPath) {
         super.onRename(oldPath, newPath);
-        for (var openedView : openedViews.values()) {
-            if (openedView.getA().equals(oldPath)) {
-                openedView.setA(newPath);
-                openedView.getB().setRootPath(newPath);
+        for (var entry : openedViews.entrySet()) {
+            var openedView = entry.getValue();
+
+            if (openedView.left().equals(oldPath)) {
+                entry.setValue(
+                        Pair.of(newPath, openedView.right())
+                );
             }
         }
     }

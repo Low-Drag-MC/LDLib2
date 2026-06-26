@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import lombok.Getter;
@@ -15,6 +15,7 @@ import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector4f;
 
 /**
  * @Author: KilaBash
@@ -73,9 +74,12 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     public void drawScene(float x, float y, float width, float height, float mouseX, float mouseY) {
         ensureFBOCreated();
 
-        // Clear the FBO textures
+        // Clear the FBO textures. 26.2 uses reversed-Z (clear depth to 0.0 = far plane); clearing to
+        // 1.0 would put the whole scene at the near plane and break GREATER_THAN_OR_EQUAL depth tests.
         var encoder = RenderSystem.getDevice().createCommandEncoder();
-        encoder.clearColorAndDepthTextures(colorTexture, 0, depthTexture, 1.0);
+        if (colorTexture != null && depthTexture != null) {
+            encoder.clearColorAndDepthTextures(colorTexture, new Vector4f(), depthTexture, 0.0);
+        }
 
         // Redirect rendering to our FBO textures
         setupFBORendering();
@@ -107,7 +111,7 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     private void teardownFBORendering() {
         RenderSystem.outputColorTextureOverride = null;
         RenderSystem.outputDepthTextureOverride = null;
-        var mainTarget = Minecraft.getInstance().getMainRenderTarget();
+        var mainTarget = Minecraft.getInstance().gameRenderer.mainRenderTarget();
         GlStateManager._viewport(0, 0, mainTarget.width, mainTarget.height);
 //        GL11.glEnable(GL11.GL_SCISSOR_TEST);
     }
@@ -121,14 +125,18 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     private void createFBO() {
         destroyFBO();
         var device = RenderSystem.getDevice();
-        colorTexture = device.createTexture(() -> "SceneFBO/Color", 15, TextureFormat.RGBA8, resolutionWidth, resolutionHeight, 1, 1);
+        colorTexture = device.createTexture(() -> "SceneFBO/Color",
+                GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_COPY_SRC | GpuTexture.USAGE_TEXTURE_BINDING | GpuTexture.USAGE_RENDER_ATTACHMENT, GpuFormat.RGBA8_UNORM,
+                resolutionWidth, resolutionHeight, 1, 1);
         colorTextureView = device.createTextureView(colorTexture);
-        TextureFormat depthFormat = Minecraft.getInstance().getMainRenderTarget().getDepthTexture().getFormat();
+        GpuFormat depthFormat = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainRenderTarget().getDepthTexture().getFormat();
         // 9 (RENDER_ATTACHMENT | COPY_DST) + 2 (COPY_SRC) = 11.
         // COPY_SRC is required so WorldSceneRenderer.readDepthPixelAsync can copyTextureToBuffer
         // for hover/pick depth read-back. Vanilla's PIP framework omits COPY_SRC, so PIP-mode
         // depth read silently falls back to the cached sample.
-        depthTexture = device.createTexture(() -> "SceneFBO/Depth", 11, depthFormat, resolutionWidth, resolutionHeight, 1, 1);
+        depthTexture = device.createTexture(() -> "SceneFBO/Depth",
+                GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_COPY_SRC | GpuTexture.USAGE_RENDER_ATTACHMENT, depthFormat,
+                resolutionWidth, resolutionHeight, 1, 1);
         depthTextureView = device.createTextureView(depthTexture);
     }
 

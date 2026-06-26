@@ -5,10 +5,10 @@ import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,8 +20,10 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState> {
 
-    public ScenePIPRenderer(MultiBufferSource.BufferSource bufferSource) {
-        super(bufferSource);
+    public ScenePIPRenderer() {
+        // 26.2: PictureInPictureRenderer is no-arg (owns its own SubmitNodeStorage); the
+        // MultiBufferSource model was removed.
+        super();
     }
 
     @Override
@@ -30,7 +32,7 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
     }
 
     @Override
-    protected void renderToTexture(SceneRenderState state, PoseStack poseStack) {
+    protected void renderToTexture(SceneRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector) {
         var renderer = state.sceneRenderer();
 
         if (renderer instanceof FBOWorldSceneRenderer fboRenderer) {

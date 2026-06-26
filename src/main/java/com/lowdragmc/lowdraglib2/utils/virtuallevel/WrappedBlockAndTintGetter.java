@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.utils.virtuallevel;
 
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
@@ -28,7 +27,6 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class WrappedBlockAndTintGetter implements BlockAndTintGetter {
     @Getter @Setter
     private Level world;

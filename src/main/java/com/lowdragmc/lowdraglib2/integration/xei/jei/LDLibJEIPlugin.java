@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeIngredient
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEITargetsTypedHandler;
 import com.lowdragmc.lowdraglib2.test.xei.TestJEIPlugin;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.gui.builder.IClickableIngredientFactory;
@@ -38,7 +37,6 @@ import java.util.function.Supplier;
 
 @JeiPlugin
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class LDLibJEIPlugin implements IModPlugin {
     @Nullable
     public static IJeiRuntime jeiRuntime;

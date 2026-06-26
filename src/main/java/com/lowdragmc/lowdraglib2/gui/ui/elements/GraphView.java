@@ -19,14 +19,12 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 @LDLRegister(name = "graph-view", group = "container", registry = "ldlib2:ui_element")
 public class GraphView extends UIElement {

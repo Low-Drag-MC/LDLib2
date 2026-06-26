@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -100,7 +101,7 @@ public class TypeHandles {
         FLUID = TypeHandleHelpers.fromType(Fluid.class);
         TypeHandleHelpers.setCustomDefaultValue(FLUID, () -> Fluids.EMPTY);
         ENTITY_TYPE = TypeHandleHelpers.fromType(EntityType.class);
-        TypeHandleHelpers.setCustomDefaultValue(ENTITY_TYPE, () -> EntityType.PIG);
+        TypeHandleHelpers.setCustomDefaultValue(ENTITY_TYPE, () -> EntityTypes.PIG);
         ITEM_STACK = TypeHandleHelpers.fromType(ItemStack.class);
         TypeHandleHelpers.setCustomDefaultValue(ITEM_STACK, () -> ItemStack.EMPTY);
         FLUID_STACK = TypeHandleHelpers.fromType(FluidStack.class);

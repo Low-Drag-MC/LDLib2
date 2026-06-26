@@ -20,7 +20,7 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+
 import net.minecraft.core.BlockPos;
 
 import org.jetbrains.annotations.Nullable;
@@ -32,7 +32,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
     public final Scene preview = new Scene();

@@ -22,7 +22,6 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +30,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "switch", group = "basic", registry = "ldlib2:ui_element")

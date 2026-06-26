@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -90,7 +89,6 @@ public class BlockUIMenuType {
     }
 
     @ParametersAreNonnullByDefault
-    @MethodsReturnNonnullByDefault
     public static class BlockUIHolder implements MenuProvider, IContainerUIHolder {
         public final BlockUI blockUI;
         public final Player player;

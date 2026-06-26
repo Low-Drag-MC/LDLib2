@@ -53,27 +53,30 @@ public record FloatRoundedRectRenderState(
         short rBR = (short) Math.round(radiusBR * 8.0);
         short rBL = (short) Math.round(radiusBL * 8.0);
 
-        // Emit 4 vertices: TL, BL, BR, TR (standard quad winding)
-        emitVertex(vertexConsumer, x0, y0, hws, hhs, bs, rTL, rTR, rBR, rBL);
-        emitVertex(vertexConsumer, x0, y1, hws, hhs, bs, rTL, rTR, rBR, rBL);
-        emitVertex(vertexConsumer, x1, y1, hws, hhs, bs, rTL, rTR, rBR, rBL);
-        emitVertex(vertexConsumer, x1, y0, hws, hhs, bs, rTL, rTR, rBR, rBL);
+        // Emit 4 vertices: TL, BL, BR, TR (standard quad winding). The corner id (0..3) is the last
+        // arg: the shader reads it from RectParams.w to derive the local position (it cannot rely on
+        // gl_VertexID because the 26.2 GUI draws from a shared buffer with a per-frame baseVertex).
+        emitVertex(vertexConsumer, x0, y0, hws, hhs, bs, rTL, rTR, rBR, rBL, (short) 0);
+        emitVertex(vertexConsumer, x0, y1, hws, hhs, bs, rTL, rTR, rBR, rBL, (short) 1);
+        emitVertex(vertexConsumer, x1, y1, hws, hhs, bs, rTL, rTR, rBR, rBL, (short) 2);
+        emitVertex(vertexConsumer, x1, y0, hws, hhs, bs, rTL, rTR, rBR, rBL, (short) 3);
     }
 
     private void emitVertex(VertexConsumer vc, float px, float py,
                             short hws, short hhs, short bs,
-                            short rTL, short rTR, short rBR, short rBL) {
+                            short rTL, short rTR, short rBR, short rBL, short cornerId) {
         vc.addVertexWith2DPose(this.pose, px, py).setColor(this.color);
         if (vc instanceof BufferBuilderAccessor accessor) {
-            long i = accessor.invokeBeginElement(LDLibShaders.RECT_PARAMS);
-            if (i != -1L) {
+            // 26.2: BufferBuilder only knows the 7 standard element names, so custom attributes are
+            // written directly at vertexPointer + element.offset() (offsets resolved by name).
+            long base = accessor.getVertexPointer();
+            if (base != -1L) {
+                long i = base + LDLibShaders.RECT_PARAMS_OFFSET;
                 MemoryUtil.memPutShort(i, hws);
                 MemoryUtil.memPutShort(i + 2L, hhs);
                 MemoryUtil.memPutShort(i + 4L, bs);
-                MemoryUtil.memPutShort(i + 6L, (short) 0);
-            }
-            long j = accessor.invokeBeginElement(LDLibShaders.RECT_RADIUS);
-            if (j != -1L) {
+                MemoryUtil.memPutShort(i + 6L, cornerId);
+                long j = base + LDLibShaders.RECT_RADIUS_OFFSET;
                 MemoryUtil.memPutShort(j, rTL);
                 MemoryUtil.memPutShort(j + 2L, rTR);
                 MemoryUtil.memPutShort(j + 4L, rBR);

@@ -1,31 +1,30 @@
 package com.lowdragmc.lowdraglib2.core.mixins;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTextureView;
-import net.minecraft.client.renderer.feature.ParticleFeatureRenderer;
+import net.minecraft.client.renderer.feature.QuadParticleFeatureRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 /**
- * Vanilla {@code ParticleFeatureRenderer.render} reads color/depth attachments straight from
- * {@code Minecraft.getMainRenderTarget()} / {@code levelRenderer.getParticlesTarget()} and
- * ignores {@link RenderSystem#outputColorTextureOverride}. Without this fix, scene-preview
- * particles would draw into the main framebuffer instead of the PIP texture.
+ * 26.2: particle rendering moved to {@code QuadParticleFeatureRenderer.executeGroup}, which reads
+ * color/depth attachments straight from {@code gameRenderer.mainRenderTarget()} /
+ * {@code levelRenderer.particlesTarget()} and ignores {@link RenderSystem#outputColorTextureOverride}.
+ * Without this fix, scene-preview particles would draw into the main framebuffer instead of the PIP
+ * texture.
  * <p>
- * We hook the single {@code createRenderPass(...)} call (rather than the two
- * {@code getColorTextureView()} call sites in a ternary, which {@code @Redirect} doesn't
- * disambiguate cleanly) and substitute the texture-view arguments when an override is set.
+ * We hook the single {@code createRenderPass(...)} call and substitute the color (arg 1) / depth
+ * (arg 3) texture-view arguments when an override is set.
  */
-@Mixin(ParticleFeatureRenderer.class)
+@Mixin(QuadParticleFeatureRenderer.class)
 public class ParticleFeatureRendererMixin {
 
     @ModifyArgs(
-            method = "render(Lnet/minecraft/client/renderer/SubmitNodeCollection;Z)V",
+            method = "executeGroup(Lnet/minecraft/client/renderer/feature/FeatureFrameContext;ILjava/util/List;Z)V",
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/mojang/blaze3d/systems/CommandEncoder;createRenderPass(Ljava/util/function/Supplier;Lcom/mojang/blaze3d/textures/GpuTextureView;Ljava/util/OptionalInt;Lcom/mojang/blaze3d/textures/GpuTextureView;Ljava/util/OptionalDouble;)Lcom/mojang/blaze3d/systems/RenderPass;"
+                    target = "Lcom/mojang/blaze3d/systems/CommandEncoder;createRenderPass(Ljava/util/function/Supplier;Lcom/mojang/blaze3d/textures/GpuTextureView;Ljava/util/Optional;Lcom/mojang/blaze3d/textures/GpuTextureView;Ljava/util/OptionalDouble;)Lcom/mojang/blaze3d/systems/RenderPass;"
             )
     )
     private void ldlib2$applyOutputOverride(Args args) {

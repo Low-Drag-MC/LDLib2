@@ -16,7 +16,6 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 //import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.w3c.dom.Element;
@@ -26,7 +25,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 //@RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
 @KJSBindings

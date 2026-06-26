@@ -354,7 +354,7 @@ public class EditorWindow extends UIElement {
 
     public static class ClientSupport {
         public static void notifyOpenToast() {
-            Minecraft.getInstance().getToastManager().addToast(new SystemToast(
+            Minecraft.getInstance().gui.toastManager().addToast(new SystemToast(
                     new SystemToast.SystemToastId(1000L),
                     Component.translatable("editor.minimized.title"),
                     Component.translatable("editor.minimized.tips")

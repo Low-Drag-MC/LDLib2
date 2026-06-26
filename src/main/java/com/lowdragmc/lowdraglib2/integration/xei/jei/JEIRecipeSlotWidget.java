@@ -20,7 +20,6 @@ import mezz.jei.common.util.SafeIngredientUtil;
 import mezz.jei.library.gui.ingredients.TagContentTooltipComponent;
 import mezz.jei.library.ingredients.DisplayIngredientAcceptor;
 import net.minecraft.ChatFormatting;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
@@ -41,7 +40,6 @@ import java.util.stream.Stream;
  * This is a utility class to provide recipe slot under the mouse
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
     public final Supplier<Matrix3x2f> localToWorldSupplier;
     public final BiPredicate<Float, Float> isMouseOver;
@@ -102,6 +100,11 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
 
     @Override
     public void draw(GuiGraphicsExtractor guiGraphics) {
+
+    }
+
+    @Override
+    public void draw(GuiGraphicsExtractor guiGraphics, boolean hovered) {
 
     }
 

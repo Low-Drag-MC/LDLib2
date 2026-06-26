@@ -17,7 +17,6 @@ import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.nbt.CompoundTag;
 
 import javax.annotation.Nonnull;
@@ -28,7 +27,6 @@ import java.util.function.Consumer;
 
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class SplittableWindow extends UIElement {
     public enum Edge {
         TOP, BOTTOM, LEFT, RIGHT;

@@ -34,7 +34,6 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDimension;
 import lombok.Getter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 
 import org.jetbrains.annotations.Nullable;
@@ -51,7 +50,6 @@ import java.util.function.Supplier;
 
 @Getter
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public abstract class Editor extends UIElement {
     public final UIElement top;
     public final UIElement icon;

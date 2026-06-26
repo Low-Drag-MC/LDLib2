@@ -2,8 +2,7 @@
 //
 //import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 //import dev.latvian.mods.kubejs.script.ScriptType;
-//import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
-//import net.minecraft.network.RegistryFriendlyByteBuf;
+////import net.minecraft.network.RegistryFriendlyByteBuf;
 //import net.minecraft.server.level.ServerPlayer;
 //import net.minecraft.world.entity.player.Inventory;
 //import net.minecraft.world.entity.player.Player;

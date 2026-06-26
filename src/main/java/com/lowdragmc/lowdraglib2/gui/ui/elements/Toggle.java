@@ -26,7 +26,6 @@ import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.w3c.dom.Element;
 
@@ -37,7 +36,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 //@RemapPrefixForJS("kjs$")
 @Accessors(chain = true)
 @KJSBindings

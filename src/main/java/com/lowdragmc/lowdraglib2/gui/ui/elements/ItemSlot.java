@@ -34,7 +34,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Getter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -54,7 +53,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 @LDLRegister(name = "item-slot", group = "inventory", registry = "ldlib2:ui_element")
 public class ItemSlot extends BindableUIElement<ItemStack> {
@@ -594,10 +592,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
             var drawDraggingBackground = false;
             if (ModularUIClientAccess.getScreen(mui) instanceof AbstractContainerScreen<?> containerScreen) {
                 var carried = containerScreen.getMenu().getCarried();
-                if (itemSlot.getSlot() == containerScreen.clickedSlot && !containerScreen.draggingItem.isEmpty() && containerScreen.isSplittingStack && !value.isEmpty()) {
-                    value = value.copyWithCount(value.getCount() / 2);
-                    drawDraggingBackground = true;
-                } else if (containerScreen.isQuickCrafting && containerScreen.quickCraftSlots.contains(itemSlot.getSlot()) && !carried.isEmpty()) {
+                if (containerScreen.isQuickCrafting && containerScreen.quickCraftSlots.contains(itemSlot.getSlot()) && !carried.isEmpty()) {
                     if (containerScreen.quickCraftSlots.size() == 1) {
                         return;
                     }

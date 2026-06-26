@@ -6,17 +6,16 @@ import com.lowdragmc.lowdraglib2.test.TestItem;
 import lombok.Getter;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.helpers.IJeiHelpers;
-import mezz.jei.api.recipe.RecipeType;
+import mezz.jei.api.recipe.types.IRecipeType;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 
 public class TestJEIPlugin {
-    protected static final RecipeType<TestRecipe> RECIPE_TYPE = new RecipeType<>(LDLib2.id("test_category"), TestRecipe.class);
+    protected static final IRecipeType<TestRecipe> RECIPE_TYPE = IRecipeType.create(LDLib2.id("test_category"), TestRecipe.class);
 
     public static void registerCategories(IRecipeCategoryRegistration registration) {
         registration.addRecipeCategories(new TestModularUIRecipeCategory(registration.getJeiHelpers()));
@@ -26,7 +25,6 @@ public class TestJEIPlugin {
         registration.addRecipes(RECIPE_TYPE, List.of(new TestRecipe()));
     }
 
-    @MethodsReturnNonnullByDefault
     @ParametersAreNonnullByDefault
     private static class TestModularUIRecipeCategory extends ModularUIRecipeCategory<TestRecipe> {
         @Getter
@@ -38,7 +36,7 @@ public class TestJEIPlugin {
         }
 
         @Override
-        public RecipeType<TestRecipe> getRecipeType() {
+        public IRecipeType<TestRecipe> getRecipeType() {
             return RECIPE_TYPE;
         }
 

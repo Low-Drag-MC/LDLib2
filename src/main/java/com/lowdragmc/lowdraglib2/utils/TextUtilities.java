@@ -1,11 +1,11 @@
 package com.lowdragmc.lowdraglib2.utils;
 
+import it.unimi.dsi.fastutil.Pair;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.*;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Tuple;
 
 import java.util.List;
 
@@ -22,7 +22,7 @@ public final class TextUtilities {
      * @param maxWidth   The maximum width of the text in pixels.
      * @return A list of tuples containing the formatted text and its width.
      */
-    public static List<Tuple<FormattedCharSequence, Float>> computeFormattedLines(
+    public static List<Pair<FormattedCharSequence, Float>> computeFormattedLines(
             Font font,
             FormattedText text,
             float lineHeight,
@@ -36,7 +36,7 @@ public final class TextUtilities {
                 .map(line -> {
                     var lineWidth = font.getSplitter().stringWidth(line);
                     var realLineWidth = (lineWidth * scale);
-                    return new Tuple<>(line, realLineWidth);
+                    return Pair.of(line, realLineWidth);
                 })
                 .toList();
     }

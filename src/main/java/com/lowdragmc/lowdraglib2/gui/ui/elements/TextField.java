@@ -30,12 +30,12 @@ import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
+import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.util.Mth;
-import net.minecraft.util.Tuple;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
@@ -46,19 +46,17 @@ import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Util;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
-import net.minecraft.util.Tuple;
 import org.lwjgl.glfw.GLFW;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
+
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.text.NumberFormat;
 import java.util.Objects;
@@ -68,7 +66,6 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 @KJSBindings
 @LDLRegister(name = "text-field", group = "basic", registry = "ldlib2:ui_element")
@@ -258,7 +255,7 @@ public class TextField extends BindableUIElement<String> {
      * The formatted text to be displayed in the line and its width.
      */
     @Nullable
-    private Tuple<FormattedCharSequence, Float> formattedLineCache = null;
+    private Pair<FormattedCharSequence, Float> formattedLineCache = null;
 
     public TextField() {
         getLayout().height(14);
@@ -963,10 +960,10 @@ public class TextField extends BindableUIElement<String> {
         return TextFieldClientSupport.getCursorUnderMouseX(this, mouseX);
     }
 
-    public Tuple<FormattedCharSequence, Float> getFormattedLine() {
+    public Pair<FormattedCharSequence, Float> getFormattedLine() {
         if (formattedLineCache == null) {
             if (!LDLib2.isClient()) {
-                formattedLineCache = new Tuple<>(FormattedCharSequence.forward(rawText, net.minecraft.network.chat.Style.EMPTY), 0f);
+                formattedLineCache = Pair.of(FormattedCharSequence.forward(rawText, net.minecraft.network.chat.Style.EMPTY), 0f);
             } else {
                 formattedLineCache = TextFieldClientSupport.computeFormattedLine(this);
             }
@@ -1148,7 +1145,7 @@ public class TextField extends BindableUIElement<String> {
             return Mth.clamp(col, 0, field.getRawText().length());
         }
 
-        static Tuple<FormattedCharSequence, Float> computeFormattedLine(TextField field) {
+        static Pair<FormattedCharSequence, Float> computeFormattedLine(TextField field) {
             var font = field.getTextFieldStyle().font();
             var formattedText = field.getDisplayText();
             var textWithFont = font.equals(FontDescription.DEFAULT.id())
@@ -1161,7 +1158,7 @@ public class TextField extends BindableUIElement<String> {
                     Float.MAX_VALUE
             );
             if (lines.isEmpty()) {
-                return new Tuple<>(FormattedCharSequence.EMPTY, 0f);
+                return Pair.of(FormattedCharSequence.EMPTY, 0f);
             }
             return lines.getFirst();
         }
@@ -1206,7 +1203,7 @@ public class TextField extends BindableUIElement<String> {
             var scale = fontSize / font.lineHeight;
 
             var lineY = y + (height - fontSize) / 2;
-            var line = formattedLine.getA();
+            var line = formattedLine.left();
             var lineX = x - field.getDisplayOffset();
 
             context.pose.pushPose();

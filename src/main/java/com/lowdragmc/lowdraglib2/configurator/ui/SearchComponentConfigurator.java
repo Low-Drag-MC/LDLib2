@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.lowdraglib2.utils.search.ISearch;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -19,7 +19,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-@MethodsReturnNonnullByDefault
 public class SearchComponentConfigurator<T> extends ValueConfigurator<T> implements SearchComponent.ISearchUI<T> {
     public final SearchComponent<T> searchComponent;
     public final BiConsumer<String, Consumer<T>> searchAction;

@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.utils;
 
 import com.google.common.base.Charsets;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.PackLocationInfo;
@@ -22,7 +21,6 @@ import java.util.Optional;
  * @implNote CustomResourcePack
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class CustomResourcePack extends PathPackResources {
     private final PackType type;
     private final String namespace;

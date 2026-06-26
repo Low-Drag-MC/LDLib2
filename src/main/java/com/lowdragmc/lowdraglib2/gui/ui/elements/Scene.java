@@ -29,7 +29,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -53,7 +52,6 @@ import java.util.function.Consumer;
 
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 @LDLRegister(name = "scene", group = "misc", registry = "ldlib2:ui_element")
 public class Scene extends UIElement {
@@ -630,18 +628,17 @@ public class Scene extends UIElement {
         }
 
         private static void renderOverlay(Scene scene, SceneRenderContext ctx) {
-            var bs = ctx.bufferSource();
             if (scene.lastSelectedPosFace != null && scene.renderSelect) {
-                RenderUtils.renderBlockOverLay(new PoseStack(), bs, scene.lastSelectedPosFace.pos(),
+                RenderUtils.renderBlockOverLay(new PoseStack(), scene.lastSelectedPosFace.pos(),
                         0.6f, 0, 0, 1.01f);
             }
             var tmp = scene.dragging ? scene.lastClickPosFace : scene.lastHoverPosFace;
             if (scene.renderFacing) {
                 if (scene.lastSelectedPosFace != null) {
-                    drawFacingBorder(bs, scene.lastSelectedPosFace, 0xff00ff00);
+                    drawFacingBorder(scene.lastSelectedPosFace, 0xff00ff00);
                 }
                 if (tmp != null && !tmp.equals(scene.lastSelectedPosFace)) {
-                    drawFacingBorder(bs, tmp, 0xffffffff);
+                    drawFacingBorder(tmp, 0xffffffff);
                 }
             }
             if (scene.afterWorldRender != null) {
@@ -652,15 +649,15 @@ public class Scene extends UIElement {
             }
         }
 
-        private static void drawFacingBorder(net.minecraft.client.renderer.MultiBufferSource.BufferSource bs,
-                                             BlockPosFace posFace, int color) {
+        private static void drawFacingBorder(BlockPosFace posFace, int color) {
             var poseStack = new PoseStack();
             RenderUtils.moveToFace(poseStack, posFace.pos().getX(), posFace.pos().getY(), posFace.pos().getZ(), posFace.facing());
             RenderUtils.rotateToFace(poseStack, posFace.facing(), null);
             poseStack.scale(1f / 16, 1f / 16, 0);
             poseStack.translate(-8, -8, 0);
-            var vc = bs.getBuffer(TransformGizmo.POSITION_COLOR_NO_DEPTH);
-            drawBorder(poseStack.last().pose(), vc, 1, 1, 14, 14, color, 1);
+            final var pose = poseStack.last().pose();
+            RenderUtils.drawImmediate(TransformGizmo.POSITION_COLOR_NO_DEPTH,
+                    vc -> drawBorder(pose, vc, 1, 1, 14, 14, color, 1));
         }
 
         private static void drawBorder(org.joml.Matrix4f pose, VertexConsumer vc,

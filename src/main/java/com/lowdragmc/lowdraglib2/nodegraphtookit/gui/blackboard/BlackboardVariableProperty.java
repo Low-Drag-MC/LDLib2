@@ -32,7 +32,6 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.Nullable;
@@ -44,7 +43,6 @@ import java.util.List;
 import java.util.Objects;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class BlackboardVariableProperty extends BlackboardElement implements SearchComponent.ISearchUI<TypeHandle> {
     public final UIElement titleBar = new UIElement();
     public final UIElement icon = new UIElement();

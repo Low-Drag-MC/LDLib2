@@ -14,7 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
@@ -38,7 +38,7 @@ public class TestScene implements IScreenTest {
         dummyWorld.setBlockAndUpdate(new BlockPos(1, 2, 0), Blocks.LAVA.defaultBlockState());
         dummyWorld.setBlockAndUpdate(new BlockPos(2, 2, 0), Blocks.BEDROCK.defaultBlockState());
         dummyWorld.setBlockAndUpdate(new BlockPos(0, 0, -1), Blocks.GLASS.defaultBlockState());
-        dummyWorld.setBlockAndUpdate(new BlockPos(1, 0, -1), Blocks.GREEN_STAINED_GLASS.defaultBlockState());
+        dummyWorld.setBlockAndUpdate(new BlockPos(1, 0, -1), Blocks.STAINED_GLASS.green().defaultBlockState());
         dummyWorld.setBlockAndUpdate(new BlockPos(2, 0, -1), Blocks.REDSTONE_BLOCK.defaultBlockState());
         dummyWorld.setBlockAndUpdate(new BlockPos(0, 1, -1), Blocks.CHEST.defaultBlockState());
 
@@ -49,12 +49,12 @@ public class TestScene implements IScreenTest {
         }
 
         // add some entities
-        var sheep = EntityType.SHEEP.create(dummyWorld, EntitySpawnReason.COMMAND);
+        var sheep = EntityTypes.SHEEP.create(dummyWorld, EntitySpawnReason.COMMAND);
         if (sheep != null) {
             sheep.setPos(0.5, 3, -1.5);
             dummyWorld.addEntity(sheep);
         }
-        var item = EntityType.ITEM.create(dummyWorld, EntitySpawnReason.COMMAND);
+        var item = EntityTypes.ITEM.create(dummyWorld, EntitySpawnReason.COMMAND);
         if (item != null) {
             item.setPos(1.5, 3, -0.5);
             item.setItem(Items.DIAMOND.getDefaultInstance());

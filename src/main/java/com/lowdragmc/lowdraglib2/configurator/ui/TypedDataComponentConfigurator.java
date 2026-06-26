@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TagField;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -23,7 +22,6 @@ import java.util.function.Supplier;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class TypedDataComponentConfigurator extends ValueConfigurator<TypedDataComponent> implements SearchComponent.ISearchUI<DataComponentType> {
     public final SearchComponent searchComponent = new SearchComponent<>(this);
     public final TagField tagField = new TagField();

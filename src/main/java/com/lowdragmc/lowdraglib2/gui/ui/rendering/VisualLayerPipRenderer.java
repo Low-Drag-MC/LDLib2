@@ -3,32 +3,31 @@ package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.GameRendererAccessor;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.PictureInPictureRendererAccessor;
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration;
 import org.joml.Matrix3x2f;
+import org.joml.Vector4f;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayerPipState> {
 
     private GuiRenderer subRenderer;
@@ -45,8 +44,9 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
 
     private boolean inUse;
 
-    public VisualLayerPipRenderer(MultiBufferSource.BufferSource bufferSource) {
-        super(bufferSource);
+    public VisualLayerPipRenderer() {
+        // 26.2: PictureInPictureRenderer is no-arg (the MultiBufferSource model was removed).
+        super();
     }
 
     @Override
@@ -67,8 +67,6 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
             var mainExt = (IGuiRendererExt)(Object) mainRenderer;
             subRenderer = new GuiRenderer(
                     new GuiRenderState(),
-                    mainExt.ldlib2$getBufferSource(),
-                    mainExt.ldlib2$getSubmitNodeCollector(),
                     mainExt.ldlib2$getFeatureRenderDispatcher(),
                     List.of(new PictureInPictureRendererRegistration<>(
                             VisualLayerPipState.class, VisualLayerPipRenderer::new))
@@ -83,9 +81,9 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         }
         closeMaskTextures();
         var device = RenderSystem.getDevice();
-        maskColorTex = device.createTexture(() -> "ldlib2 visual-layer mask color", 13, TextureFormat.RGBA8, width, height, 1, 1);
+        maskColorTex = device.createTexture(() -> "ldlib2 visual-layer mask color", 13, GpuFormat.RGBA8_UNORM, width, height, 1, 1);
         maskColorView = device.createTextureView(maskColorTex);
-        var depthFormat = Minecraft.getInstance().getMainRenderTarget().getDepthTexture().getFormat();
+        var depthFormat = Minecraft.getInstance().gameRenderer.mainRenderTarget().getDepthTexture().getFormat();
         maskDepthTex = device.createTexture(() -> "ldlib2 visual-layer mask depth", 9, depthFormat, width, height, 1, 1);
         maskDepthView = device.createTextureView(maskDepthTex);
     }
@@ -104,7 +102,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
     }
 
     @Override
-    protected void renderToTexture(VisualLayerPipState state, PoseStack poseStack) {
+    protected void renderToTexture(VisualLayerPipState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector) {
         GpuTextureView subColorView = RenderSystem.outputColorTextureOverride;
         GpuTextureView subDepthView = RenderSystem.outputDepthTextureOverride;
         if (subColorView == null) return;
@@ -122,7 +120,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
             subExt.ldlib2$setRenderState(state.subState());
             IGuiRendererExt.ldlib2$pushTargetOverride(targetWrapper);
             try {
-                sub.render(IGuiRendererExt.ldlib2$getLastFogBuffer());
+                sub.render();
             } finally {
                 IGuiRendererExt.ldlib2$popTargetOverride();
                 targetWrapper.unbind();
@@ -145,7 +143,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         var mc = Minecraft.getInstance();
         ensureMaskTextures(width, height);
         RenderSystem.getDevice().createCommandEncoder()
-                .clearColorAndDepthTextures(maskColorTex, 0, maskDepthTex, 1.0);
+                .clearColorAndDepthTextures(maskColorTex, new Vector4f(), maskDepthTex, 0.0);
 
         // PASS 2: record mask draw into a fresh sub-state, then flush to mask off-target.
         // Use GUIContext.of so all texture-renderer registries are initialized.
@@ -161,7 +159,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         subExt.ldlib2$setRenderState(maskState);
         IGuiRendererExt.ldlib2$pushTargetOverride(maskTargetWrapper);
         try {
-            sub.render(IGuiRendererExt.ldlib2$getLastFogBuffer());
+            sub.render();
         } finally {
             IGuiRendererExt.ldlib2$popTargetOverride();
             maskTargetWrapper.unbind();
@@ -191,7 +189,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         targetWrapper.bind(subColorView, subColorView.texture(), subDepthView,
                 subDepthView != null ? subDepthView.texture() : null, width, height);
         try {
-            sub.render(IGuiRendererExt.ldlib2$getLastFogBuffer());
+            sub.render();
         } finally {
             IGuiRendererExt.ldlib2$popTargetOverride();
             targetWrapper.unbind();

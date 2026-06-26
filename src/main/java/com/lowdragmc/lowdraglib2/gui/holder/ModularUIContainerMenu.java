@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.gui.holder;
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import lombok.Getter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
@@ -13,7 +12,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class ModularUIContainerMenu extends AbstractContainerMenu {
     public final Inventory inventory;
     public final IContainerUIHolder uiHolder;

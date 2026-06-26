@@ -18,7 +18,6 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -28,7 +27,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class ResourceContainer<T> extends UIElement {
     public final SplitView.Horizontal splitView = new SplitView.Horizontal();
     public final ScrollerView providerList = new ScrollerView();

@@ -13,7 +13,6 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.ChatFormatting;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.material.Fluids;
@@ -26,7 +25,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @LDLRegister(name="doc", registry = "ldlib2:menu_test")
 @NoArgsConstructor
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class TestMenuDoc implements IMenuTest {
     private boolean bool = true;
     private String string = "hello";

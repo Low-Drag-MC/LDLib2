@@ -20,7 +20,6 @@ import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +30,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @Accessors(chain = true)
 @KJSBindings
 public class Menu<K, T> extends UIElement {

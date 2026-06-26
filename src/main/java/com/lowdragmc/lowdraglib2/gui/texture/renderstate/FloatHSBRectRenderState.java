@@ -50,8 +50,10 @@ public record FloatHSBRectRenderState(
     private void emitVertex(VertexConsumer vc, float px, float py, float[] hsba) {
         vc.addVertexWith2DPose(this.pose, px, py);
         if (vc instanceof BufferBuilderAccessor accessor) {
-            long i = accessor.invokeBeginElement(LDLibShaders.HSB_Alpha);
-            if (i != -1L) {
+            // 26.2: write the custom HSB_ALPHA attribute directly at vertexPointer + its offset.
+            long base = accessor.getVertexPointer();
+            if (base != -1L) {
+                long i = base + LDLibShaders.HSB_ALPHA_OFFSET;
                 MemoryUtil.memPutFloat(i, hsba[0]);
                 MemoryUtil.memPutFloat(i + 4L, hsba[1]);
                 MemoryUtil.memPutFloat(i + 8L, hsba[2]);

@@ -9,13 +9,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Tuple;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Stack;
 import java.util.function.Consumer;
 
@@ -157,43 +155,15 @@ public class TreeBuilder<K, V> {
     }
 
     @KJSBindings("MenuBuilder")
-    public static class Menu extends TreeBuilder<Tuple<IGuiTexture, Component>, Runnable> {
-        @Deprecated(since = "26.2")
-        private static class MenuTreeNode extends TreeNode<Tuple<IGuiTexture, Component>, Runnable> {
-            public MenuTreeNode(Tuple<IGuiTexture, Component> key) {
-                super(key);
-            }
+    public static class Menu extends TreeBuilder<Pair<IGuiTexture, Component>, Runnable> {
+        public static Pair<IGuiTexture, Component> CROSS_LINE = Pair.of(IGuiTexture.EMPTY, Component.empty());
 
-            public MenuTreeNode(@Nullable TreeNode<Tuple<IGuiTexture, Component>, Runnable> parent, int dimension, Tuple<IGuiTexture, Component> key) {
-                super(parent, dimension, key);
-            }
-
-            @Override
-            protected TreeNode<Tuple<IGuiTexture, Component>, Runnable> createNode(@Nullable TreeNode<Tuple<IGuiTexture, Component>, Runnable> parent, int dimension, Tuple<IGuiTexture, Component> key) {
-                return new MenuTreeNode(parent, dimension, key);
-            }
-
-            @Override
-            public boolean areKeysEqual(Tuple<IGuiTexture, Component> key1, Tuple<IGuiTexture, Component> key2) {
-                if (key1 == key2) return true;
-                if (key1 == null || key2 == null) return false;
-                return Objects.equals(key1.getA(), key2.getA()) && Objects.equals(key1.getB(), key2.getB());
-            }
-        }
-
-        public static Tuple<IGuiTexture, Component> CROSS_LINE = new Tuple<>(IGuiTexture.EMPTY, Component.empty());
-
-        private Menu(Tuple<IGuiTexture, Component> key) {
+        private Menu(Pair<IGuiTexture, Component> key) {
             super(key);
         }
 
-        @Override
-        protected TreeNode<Tuple<IGuiTexture, Component>, Runnable> createNode(Tuple<IGuiTexture, Component> key) {
-            return new MenuTreeNode(key);
-        }
-
         public static Menu start(){
-            return new Menu(new Tuple<>(IGuiTexture.EMPTY, Component.empty()));
+            return new Menu(Pair.of(IGuiTexture.EMPTY, Component.empty()));
         }
 
         /**
@@ -215,7 +185,7 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu branch(IGuiTexture icon, Component name, Consumer<Menu> menuConsumer) {
-            var key = new Tuple<>(icon, name);
+            var key = Pair.of(icon, name);
             var child = stack.peek().getOrCreateChild(key);
             stack.push(child);
             menuConsumer.accept(this);
@@ -231,7 +201,7 @@ public class TreeBuilder<K, V> {
             var children = stack.peek().getChildren();
             if (!children.isEmpty()) {
                 for (var child : children) {
-                    if (!child.isLeaf() && child.getKey().getB().equals(name)) {
+                    if (!child.isLeaf() && child.getKey().right().equals(name)) {
                         stack.push(child);
                         menuConsumer.accept(this);
                         child.getChildren();
@@ -257,7 +227,7 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu leaf(IGuiTexture icon, Component name, Runnable runnable) {
-            super.leaf(new Tuple<>(icon, name), runnable);
+            super.leaf(Pair.of(icon, name), runnable);
             return this;
         }
 
@@ -266,7 +236,7 @@ public class TreeBuilder<K, V> {
         }
 
         public Menu leaf(Component name, Runnable runnable) {
-            super.leaf(new Tuple<>(IGuiTexture.EMPTY, name), runnable);
+            super.leaf(Pair.of(IGuiTexture.EMPTY, name), runnable);
             return this;
         }
 
@@ -277,8 +247,8 @@ public class TreeBuilder<K, V> {
         public Menu remove(Component name) {
             var children = stack.peek().getChildren();
             if (!children.isEmpty()) {
-                for (TreeNode<Tuple<IGuiTexture, Component>, Runnable> child : children) {
-                    if (child.getKey().getB().equals(name)) {
+                for (TreeNode<Pair<IGuiTexture, Component>, Runnable> child : children) {
+                    if (child.getKey().right().equals(name)) {
                         stack.peek().removeChild(child.getKey());
                         return this;
                     }
@@ -288,7 +258,7 @@ public class TreeBuilder<K, V> {
         }
 
         @Override
-        public TreeNode<Tuple<IGuiTexture, Component>, Runnable> build() {
+        public TreeNode<Pair<IGuiTexture, Component>, Runnable> build() {
             var root = super.build();
             if (!root.getChildren().isEmpty() && root.getChildren().getLast().getKey() == CROSS_LINE) {
                 root.removeChild(root.getChildren().getLast());
@@ -296,25 +266,25 @@ public class TreeBuilder<K, V> {
             return root;
         }
 
-        public static IGuiTexture getIcon(Tuple<IGuiTexture, Component> key) {
-            return key.getA();
+        public static IGuiTexture getIcon(Pair<IGuiTexture, Component> key) {
+            return key.left();
         }
 
-        public static Component getName(Tuple<IGuiTexture, Component> key) {
-            return key.getB();
+        public static Component getName(Pair<IGuiTexture, Component> key) {
+            return key.right();
         }
 
-        public static void handle(ITreeNode<Tuple<IGuiTexture, Component>, Runnable> node) {
+        public static void handle(ITreeNode<Pair<IGuiTexture, Component>, Runnable> node) {
             if (node.isLeaf() && node.getContent() != null) {
                 node.getContent().run();
             }
         }
 
-        public static boolean isCrossLine(Tuple<IGuiTexture, Component> key) {
+        public static boolean isCrossLine(Pair<IGuiTexture, Component> key) {
             return key == CROSS_LINE;
         }
 
-        public static UIElement uiProvider(Tuple<IGuiTexture, Component> node) {
+        public static UIElement uiProvider(Pair<IGuiTexture, Component> node) {
             if (node == CROSS_LINE) {
                 return new UIElement().layout(layout -> {
                     layout.height(1);
@@ -331,15 +301,15 @@ public class TreeBuilder<K, V> {
                 layout.marginLeft(2);
                 layout.width(10);
                 layout.height(10);
-            }).style(style -> style.backgroundTexture(node.getA())))
+            }).style(style -> style.backgroundTexture(node.left())))
                     .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
-                            .setText(node.getB()).layout(layout -> {
+                            .setText(node.right()).layout(layout -> {
                                 layout.setFlexGrow(1);
                             }).setOverflowVisible(false));
 
         }
 
-        public static IGuiTexture hoverTextureProvider(ITreeNode<Tuple<IGuiTexture, Component>, Runnable> node) {
+        public static IGuiTexture hoverTextureProvider(ITreeNode<Pair<IGuiTexture, Component>, Runnable> node) {
             return isCrossLine(node.getKey()) ? IGuiTexture.EMPTY :ColorPattern.BLUE.rectTexture();
         }
     }

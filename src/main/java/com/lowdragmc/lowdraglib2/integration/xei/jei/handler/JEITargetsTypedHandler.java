@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.integration.xei.jei.handler;
 
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.ingredients.ITypedIngredient;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.Rect2i;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public final class JEITargetsTypedHandler<I> {
     public final boolean doStart;
     public final ITypedIngredient<I> ingredient;

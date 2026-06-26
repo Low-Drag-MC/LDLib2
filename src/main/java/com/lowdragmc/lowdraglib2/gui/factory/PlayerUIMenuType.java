@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -16,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class PlayerUIMenuType {
     private final static Map<Identifier, Function<Player, PlayerUIHolder>> UI_HOLDERS = new ConcurrentHashMap<>();
 

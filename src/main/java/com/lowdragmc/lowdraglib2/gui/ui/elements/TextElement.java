@@ -19,14 +19,13 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.client.Minecraft;
 import lombok.Getter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Tuple;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +36,6 @@ import java.util.function.Consumer;
 
 //@RemapPrefixForJS("kjs$")
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 @KJSBindings
 @LDLRegister(name = "text", group = "basic", registry = "ldlib2:ui_element")
 public class TextElement extends UIElement {
@@ -192,7 +190,7 @@ public class TextElement extends UIElement {
     /**
      * The formatted text to be displayed in each line and its width.
      */
-    private List<Tuple<FormattedCharSequence, Float>> formattedLines = Collections.emptyList();
+    private List<Pair<FormattedCharSequence, Float>> formattedLines = Collections.emptyList();
 
     public void recompute() {
         if (!LDLib2.isRemote()) return;
@@ -236,11 +234,11 @@ public class TextElement extends UIElement {
 //        return setText(text);
 //    }
 
-    List<Tuple<FormattedCharSequence, Float>> getFormattedLines() {
+    List<Pair<FormattedCharSequence, Float>> getFormattedLines() {
         return formattedLines;
     }
 
-    void setFormattedLines(List<Tuple<FormattedCharSequence, Float>> formattedLines) {
+    void setFormattedLines(List<Pair<FormattedCharSequence, Float>> formattedLines) {
         this.formattedLines = formattedLines;
     }
 
@@ -281,7 +279,7 @@ public class TextElement extends UIElement {
                     maxWidth
             ));
             if (textElement.getTextStyle().adaptiveWidth()) {
-                Style.importantPipeline(textElement.getLayout(), layout -> layout.width(textElement.getFormattedLines().stream().findFirst().map(Tuple::getB).orElse(0f) + textElement.getSizeWidth() - textElement.getContentWidth()));
+                Style.importantPipeline(textElement.getLayout(), layout -> layout.width(textElement.getFormattedLines().stream().findFirst().map(Pair::right).orElse(0f) + textElement.getSizeWidth() - textElement.getContentWidth()));
             } else {
                 textElement.getStyleBag().removeCandidates(LayoutProperties.WIDTH, slot -> slot.origin() == StyleOrigin.IMPORTANT);
             }
@@ -318,7 +316,7 @@ public class TextElement extends UIElement {
             var dropShadow = textElement.getTextStyle().textShadow();
             var scale = lineHeight / defaultLineHeight;
 
-            List<Tuple<FormattedCharSequence, Float>> displayLines = formattedLines;
+            List<Pair<FormattedCharSequence, Float>> displayLines = formattedLines;
             var textWrap = textElement.getTextStyle().textWrap();
             if (textWrap == TextWrap.HIDE) {
                 displayLines = formattedLines.subList(0, Math.min(1, formattedLines.size()));
@@ -334,8 +332,8 @@ public class TextElement extends UIElement {
             var roll = textWrap == TextWrap.ROLL || (textWrap == TextWrap.HOVER_ROLL && textElement.isSelfOrChildHover());
             for (int i = 0; i < displayLines.size(); i++) {
                 var tuple = displayLines.get(i);
-                var line = tuple.getA();
-                float lineWidth = tuple.getB();
+                var line = tuple.left();
+                float lineWidth = tuple.right();
                 var lineX = x;
                 if (roll && lineWidth > width) {
                     var rollSpeed = textElement.getTextStyle().rollSpeed();

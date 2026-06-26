@@ -28,6 +28,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -114,7 +115,7 @@ public class TestConfigurators implements IMenuTest, IConfigurable, IPersistedSe
     @ConfigRL(ConfigRL.Type.ITEM_TAG_KEY)
     private Identifier itemTagKey = ItemTags.AXES.location();
     @Configurable
-    private EntityType<?> entityType = EntityType.PIG;
+    private EntityType<?> entityType = EntityTypes.PIG;
 
     @Override
     public ModularUI createUI(Player entityPlayer) {

@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.misc;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import lombok.Setter;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.minecraft.world.level.storage.ValueInput;
@@ -21,7 +20,6 @@ import java.util.function.Predicate;
  * @implNote FluidTransferList
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class FluidTransferList implements IFluidHandlerModifiable, ValueIOSerializable {
     public final IFluidHandler[] transfers;
     @Setter

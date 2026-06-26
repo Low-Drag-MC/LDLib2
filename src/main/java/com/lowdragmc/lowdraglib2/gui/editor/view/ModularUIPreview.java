@@ -13,7 +13,6 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2f;
 
@@ -25,7 +24,6 @@ import java.util.ArrayList;
 import java.util.OptionalInt;
 
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class ModularUIPreview extends UIElement {
     @Nullable
     public final UIEditorView editorView;
