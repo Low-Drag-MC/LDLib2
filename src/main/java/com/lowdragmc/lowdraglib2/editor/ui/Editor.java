@@ -309,8 +309,8 @@ public abstract class Editor extends UIElement {
 
         var targetSide = path.charAt(path.length() - 1);
         var edge = parentConfig.vertical() ?
-                (targetSide == 'f' ? YogaEdge.TOP : YogaEdge.BOTTOM) :
-                (targetSide == 'f' ? YogaEdge.LEFT : YogaEdge.RIGHT);
+                (targetSide == 'f' ? SplittableWindow.Edge.TOP : SplittableWindow.Edge.BOTTOM) :
+                (targetSide == 'f' ? SplittableWindow.Edge.LEFT : SplittableWindow.Edge.RIGHT);
         parentWindow.splitStyle(style -> style.percentage(parentConfig.percentage()));
         var split = parentWindow.splitNew(edge);
         var targetWindow = targetSide == 'f' ? split.getFirst() : split.getSecond();

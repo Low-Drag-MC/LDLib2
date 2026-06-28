@@ -62,8 +62,13 @@ public class SplittableWindow extends UIElement {
             return PROPERTIES;
         }
 
+        private <T> T getValueImmediate(Property<T> property) {
+            var candidate = styleBag.computeCandidate(property);
+            return candidate != null ? candidate : getValueSave(property);
+        }
+
         public float percentage() {
-            return getValueSave(PropertyRegistry.PERCENTAGE);
+            return getValueImmediate(PropertyRegistry.PERCENTAGE);
         }
 
         public SplitStyle percentage(float percentage) {
@@ -72,7 +77,7 @@ public class SplittableWindow extends UIElement {
         }
 
         public float minPercentage() {
-            return getValueSave(PropertyRegistry.MIN_PERCENTAGE);
+            return getValueImmediate(PropertyRegistry.MIN_PERCENTAGE);
         }
 
         public SplitStyle minPercentage(float minPercentage) {
@@ -81,7 +86,7 @@ public class SplittableWindow extends UIElement {
         }
 
         public float maxPercentage() {
-            return getValueSave(PropertyRegistry.MAX_PERCENTAGE);
+            return getValueImmediate(PropertyRegistry.MAX_PERCENTAGE);
         }
 
         public SplitStyle maxPercentage(float maxPercentage) {
@@ -148,11 +153,11 @@ public class SplittableWindow extends UIElement {
 
     public LayoutConfig getLayoutConfig() {
         boolean vertical = splitView instanceof SplitView.Vertical;
-        // Note: user-dragged percentages are not currently restored. SplitView mutates its own layout
-        // on drag but does not update splitStyle, so persisting splitView.getPercentage() and replaying
-        // it via the layout-restore path produces visually broken sizes. We save the construction-time
-        // default so reload is a no-op for sizes; view placement still restores correctly.
-        return new LayoutConfig(anchorId, vertical, splitStyle.percentage(),
+        var percentage = splitView == null ? splitStyle.percentage() : splitView.getPercentage();
+        if (percentage <= 0) {
+            percentage = splitStyle.percentage();
+        }
+        return new LayoutConfig(anchorId, vertical, percentage,
                 first != null ? first.getLayoutConfig() : null,
                 second != null ? second.getLayoutConfig() : null);
     }
@@ -232,7 +237,7 @@ public class SplittableWindow extends UIElement {
         } else {
             this.splitView = new SplitView.Horizontal().left(firstChild).right(secondChild);
         }
-        this.splitView.setPercentage(splitStyle.percentage());
+        this.splitView.setPercentage(config.percentage());
         this.splitView.setMinPercentage(splitStyle.minPercentage());
         this.splitView.setMaxPercentage(splitStyle.maxPercentage());
         addChild(splitView);
@@ -484,9 +489,13 @@ public class SplittableWindow extends UIElement {
     }
 
     public void removeSplitWindow(SplittableWindow window) {
-        if (this.parentWindow == null) return;
-        var target = window == this.first ? this.second : this.first;
-        if (target != null && this.parentWindow.splitView != null) {
+        var target = window == this.first ? this.second : window == this.second ? this.first : null;
+        if (target == null) return;
+        if (shouldKeepIdentityWhenChildCollapses()) {
+            replaceContentWith(target);
+            return;
+        }
+        if (this.parentWindow.splitView != null) {
             if (this == this.parentWindow.first) {
                 this.parentWindow.first = target;
                 this.parentWindow.splitView.first(target);
@@ -496,6 +505,104 @@ public class SplittableWindow extends UIElement {
             }
             target.parentWindow = this.parentWindow;
         }
+    }
+
+    public boolean trimEmptySplits() {
+        if (viewContainer != null) {
+            return !viewContainer.isEmptyWindow() || shouldKeepIdentityWhenChildCollapses();
+        }
+        var firstUseful = first != null && first.trimEmptySplits();
+        var secondUseful = second != null && second.trimEmptySplits();
+        if (firstUseful && secondUseful) {
+            return true;
+        }
+        if (firstUseful || secondUseful) {
+            var target = firstUseful ? first : second;
+            if (target == null) return shouldKeepIdentityWhenChildCollapses();
+            if (shouldKeepIdentityWhenChildCollapses()) {
+                replaceContentWith(target);
+            } else {
+                promoteSelfTo(target);
+            }
+            return true;
+        }
+        if (shouldKeepIdentityWhenChildCollapses()) {
+            collapseToEmptyContainer();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean shouldKeepIdentityWhenChildCollapses() {
+        return parentWindow == null || immortal || anchorId != null;
+    }
+
+    private void collapseToEmptyContainer() {
+        var oldFirst = first;
+        var oldSecond = second;
+        first = null;
+        second = null;
+        if (oldFirst != null) oldFirst.parentWindow = null;
+        if (oldSecond != null) oldSecond.parentWindow = null;
+        setViewContainer(new ViewContainer());
+    }
+
+    private void promoteSelfTo(SplittableWindow target) {
+        if (parentWindow == null || parentWindow.splitView == null) return;
+        if (this == parentWindow.first) {
+            parentWindow.first = target;
+            parentWindow.splitView.first(target);
+        } else if (this == parentWindow.second) {
+            parentWindow.second = target;
+            parentWindow.splitView.second(target);
+        } else {
+            return;
+        }
+        target.parentWindow = parentWindow;
+        parentWindow = null;
+    }
+
+    private void replaceContentWith(SplittableWindow source) {
+        var preservedParent = parentWindow;
+        var preservedAnchorId = anchorId;
+        var preservedImmortal = immortal;
+
+        if (splitView != null) {
+            splitView.removeSelf();
+            splitView = null;
+        }
+        if (viewContainer != null) {
+            viewContainer.removeSelf();
+            viewContainer = null;
+        }
+
+        if (source.viewContainer != null) {
+            var sourceContainer = source.viewContainer;
+            source.viewContainer = null;
+            first = null;
+            second = null;
+            setViewContainer(sourceContainer);
+        } else if (source.splitView != null) {
+            var sourceSplitView = source.splitView;
+            splitView = sourceSplitView;
+            first = source.first;
+            second = source.second;
+            if (first != null) first.parentWindow = this;
+            if (second != null) second.parentWindow = this;
+            source.splitView = null;
+            source.first = null;
+            source.second = null;
+            addChild(sourceSplitView);
+        } else {
+            first = null;
+            second = null;
+            setViewContainer(new ViewContainer());
+        }
+
+        parentWindow = preservedParent;
+        anchorId = preservedAnchorId;
+        immortal = preservedImmortal;
+        source.parentWindow = null;
     }
 
     protected void tryMoveToNewWindow(View view, Edge edge) {
