@@ -1,4 +1,8 @@
 # ChangeLogs
+## v2.2.25.a
+* Added config to disable layout restore
+* Fixed splitwindow crash
+
 ## v2.2.25
 * Fixed node preview rebuilt
 * Fixed editor split window restore
