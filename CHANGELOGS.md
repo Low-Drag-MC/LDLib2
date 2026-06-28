@@ -1,4 +1,8 @@
 # ChangeLogs
+## v2.2.25
+* Fixed node preview rebuilt
+* Fixed editor split window restore
+
 ## v2.2.24
 * Fixed DirectArray sync
 
