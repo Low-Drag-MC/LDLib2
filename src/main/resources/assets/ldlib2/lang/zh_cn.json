@@ -481,6 +481,7 @@
   "Capacity": "容量",
   "settings.ldlib2.appearance": "外观",
   "settings.ldlib2.behavior": "行为",
+  "settings.ldlib2.behavior.restoreLayoutOnProjectOpen": "打开项目时恢复布局",
   "editor.minimized.title": "编辑器提示",
   "editor.minimized.tips": "欢迎回来！",
   "EditorAllowXEILookup": "编辑器支持 XEI 查询",

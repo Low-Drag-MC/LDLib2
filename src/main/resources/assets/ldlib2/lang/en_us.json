@@ -481,6 +481,7 @@
   "Capacity": "Capacity",
   "settings.ldlib2.appearance": "Appearance",
   "settings.ldlib2.behavior": "Behavior",
+  "settings.ldlib2.behavior.restoreLayoutOnProjectOpen": "Restore Layout When Opening Project",
   "editor.minimized.title": "Editor Tips",
   "editor.minimized.tips": "Welcome Back!",
   "EditorAllowXEILookup": "Editor Allow XEI Lookup",
