@@ -148,7 +148,7 @@ public class Scene extends UIElement {
     public Scene useCacheBuffer(boolean cacheBuffer) {
         useCache = cacheBuffer;
         if (renderer != null) {
-            renderer.useCacheBuffer(true);
+            renderer.useCacheBuffer(cacheBuffer);
         }
         return this;
     }

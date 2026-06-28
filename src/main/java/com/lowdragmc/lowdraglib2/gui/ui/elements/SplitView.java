@@ -8,17 +8,18 @@ import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDimension;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.Mth;
-import org.appliedenergistics.yoga.YogaUnit;
 import org.w3c.dom.Element;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -57,6 +58,12 @@ public abstract class SplitView extends UIElement {
     public abstract SplitView setPercentage(float percentage);
 
     public abstract float getPercentage();
+
+    private static float getPercentValue(TaffyDimension dimension) {
+        if (!dimension.isPercent()) return 0;
+        var value = dimension.getValue();
+        return value <= 1 ? value * 100 : value;
+    }
 
     public SplitView first(UIElement first) {
         this.first.clearAllChildren();
@@ -173,15 +180,17 @@ public abstract class SplitView extends UIElement {
 
         @Override
         public Horizontal setPercentage(float percentage) {
-            first.layout(layout -> layout.widthPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage())));
+            first.getLayout().widthPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage()));
             return this;
         }
 
         @Override
         public float getPercentage() {
-            var width = first.getLayout().getWidth();
-            if (width.isPercent()) return width.getValue();
-            return 0;
+            var width = first.getStyleBag().computeCandidate(LayoutProperties.WIDTH);
+            if (width == null) {
+                width = first.getLayout().getWidth();
+            }
+            return getPercentValue(width);
         }
     }
 
@@ -231,15 +240,17 @@ public abstract class SplitView extends UIElement {
 
         @Override
         public Vertical setPercentage(float percentage) {
-            first.layout(layout -> layout.heightPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage())));
+            first.getLayout().heightPercent(Mth.clamp(percentage, getMinPercentage(), getMaxPercentage()));
             return this;
         }
 
         @Override
         public float getPercentage() {
-            var height = first.getLayout().getHeight();
-            if (height.isPercent()) return height.getValue();
-            return 0;
+            var height = first.getStyleBag().computeCandidate(LayoutProperties.HEIGHT);
+            if (height == null) {
+                height = first.getLayout().getHeight();
+            }
+            return getPercentValue(height);
         }
     }
 }
