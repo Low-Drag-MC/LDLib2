@@ -146,7 +146,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
                     return Component.literal(pathCache.get().getResourceName());
                 }
             });
-            editor.centerWindow.getLeftTop().addView(newView);
+            editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
         });
     }
 

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.settings;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -22,6 +23,9 @@ public class BehaviorSettings implements Settings {
             PersistedParser.createCodec(BehaviorSettings::new);
 
     @Configurable @Getter @Setter private boolean shouldCloseOnEsc = false;
+    @DefaultValue(booleanValue = true)
+    @Configurable(name = "settings.ldlib2.behavior.restoreLayoutOnProjectOpen")
+    @Getter @Setter private boolean restoreLayoutOnProjectOpen = true;
 
     private final UIEventListener onKeyDownListener = this::onKeyDown;
 
