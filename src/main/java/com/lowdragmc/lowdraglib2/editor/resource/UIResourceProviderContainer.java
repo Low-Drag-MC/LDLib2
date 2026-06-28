@@ -66,7 +66,7 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
                     return Component.literal(pathCache.get().getResourceName());
                 }
             });
-            editor.centerWindow.getLeftTop().addView(newView);
+            editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
         });
     }
 

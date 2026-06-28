@@ -264,12 +264,17 @@ public abstract class Editor extends UIElement {
         viewFallbacks.put(view, fallback);
         ViewContainer target = null;
         if (savedLayout != null) {
-            target = locateSavedSlot(view.getName());
+            target = locateSavedSlot(view.getName(), true);
         }
         if (target == null) {
             target = fallback.get();
         }
         target.addView(view);
+    }
+
+    @Nullable
+    protected ViewContainer locateSavedSlot(String viewName) {
+        return locateSavedSlot(viewName, false);
     }
 
     /**
@@ -278,17 +283,49 @@ public abstract class Editor extends UIElement {
      * (e.g., the slot was pruned).
      */
     @Nullable
-    protected ViewContainer locateSavedSlot(String viewName) {
+    protected ViewContainer locateSavedSlot(String viewName, boolean allowOneStepSplit) {
         if (savedLayout == null) return null;
         var slot = savedLayout.findSlotForView(viewName);
         if (slot == null) return null;
         var window = navigatePath(rootWindow, slot.path());
-        if (window == null) return null;
+        if (window == null) {
+            return allowOneStepSplit ? createOneStepSavedSlot(slot.path()) : null;
+        }
         if (window.getViewContainer() != null) {
             return window.getViewContainer();
         }
         // Path resolved to an interior node — fall back to its top-left leaf.
         return window.getLeftTop();
+    }
+
+    @Nullable
+    private ViewContainer createOneStepSavedSlot(String path) {
+        if (savedLayout == null || path.isEmpty()) return null;
+        var parentPath = path.substring(0, path.length() - 1);
+        var parentWindow = navigatePath(rootWindow, parentPath);
+        if (parentWindow == null || parentWindow.isSplit()) return null;
+        var parentConfig = navigateConfig(savedLayout.layoutConfig(), parentPath);
+        if (parentConfig == null || parentConfig.first() == null || parentConfig.second() == null) return null;
+
+        var targetSide = path.charAt(path.length() - 1);
+        var edge = parentConfig.vertical() ?
+                (targetSide == 'f' ? YogaEdge.TOP : YogaEdge.BOTTOM) :
+                (targetSide == 'f' ? YogaEdge.LEFT : YogaEdge.RIGHT);
+        parentWindow.splitStyle(style -> style.percentage(parentConfig.percentage()));
+        var split = parentWindow.splitNew(edge);
+        var targetWindow = targetSide == 'f' ? split.getFirst() : split.getSecond();
+        return targetWindow.getViewContainer();
+    }
+
+    @Nullable
+    private static SplittableWindow.LayoutConfig navigateConfig(SplittableWindow.LayoutConfig root, String path) {
+        var cur = root;
+        for (int i = 0; i < path.length(); i++) {
+            if (cur == null) return null;
+            char c = path.charAt(i);
+            cur = c == 'f' ? cur.first() : cur.second();
+        }
+        return cur;
     }
 
     @Nullable
@@ -409,11 +446,40 @@ public abstract class Editor extends UIElement {
             }
             target.addView(view);
         }
+        rootWindow.trimEmptySplits();
+        refreshAnchorReferences();
     }
 
     private SplittableWindow resolveVisibleAnchor(Map<String, SplittableWindow> anchorRegistry, String anchorId) {
         var window = anchorRegistry.get(anchorId);
         return window != null ? window : rootWindow;
+    }
+
+    private void refreshAnchorReferences() {
+        leftWindow = resolveVisibleAnchor(ANCHOR_LEFT, leftWindow);
+        rightWindow = resolveVisibleAnchor(ANCHOR_RIGHT, rightWindow);
+        centerWindow = resolveVisibleAnchor(ANCHOR_CENTER, centerWindow);
+        bottomWindow = resolveVisibleAnchor(ANCHOR_BOTTOM, bottomWindow);
+    }
+
+    private SplittableWindow resolveVisibleAnchor(String anchorId, SplittableWindow fallback) {
+        var window = findAnchorWindow(rootWindow, anchorId);
+        return window != null ? window : fallback;
+    }
+
+    @Nullable
+    private static SplittableWindow findAnchorWindow(SplittableWindow window, String anchorId) {
+        if (anchorId.equals(window.getAnchorId())) {
+            return window;
+        }
+        if (window.getFirst() != null) {
+            var found = findAnchorWindow(window.getFirst(), anchorId);
+            if (found != null) return found;
+        }
+        if (window.getSecond() != null) {
+            return findAnchorWindow(window.getSecond(), anchorId);
+        }
+        return null;
     }
 
     private static void collectViewsInTree(SplittableWindow window, @Nullable SplittableWindow currentAnchor,
