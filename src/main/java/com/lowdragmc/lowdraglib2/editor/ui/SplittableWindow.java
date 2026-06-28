@@ -470,12 +470,14 @@ public class SplittableWindow extends UIElement {
             } else if (isBorderHovering(Edge.RIGHT, event.x, event.y)) {
                 tryMoveToNewWindow(view, Edge.RIGHT);
             } else if (isWindowHovering(event.x, event.y)) {
-                if (viewContainer == null) {
+                var targetContainer = viewContainer;
+                if (targetContainer == null) {
                     setViewContainer(new ViewContainer());
+                    targetContainer = viewContainer;
                 }
-                if (!viewContainer.hasView(view)) {
-                    viewContainer.addView(view);
-                    viewContainer.selectView(view);
+                if (targetContainer != null && !targetContainer.hasView(view)) {
+                    targetContainer.addView(view);
+                    targetContainer.selectView(view);
                 }
             }
         }

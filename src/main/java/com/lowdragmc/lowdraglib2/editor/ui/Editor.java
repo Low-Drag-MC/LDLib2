@@ -770,12 +770,19 @@ public abstract class Editor extends UIElement {
     protected void loadNewProject(IProject project, @Nullable File projectFile) {
         currentProject = project;
         currentProjectFile = projectFile;
+        savedLayout = null;
         // load project resource
         resourceView.loadResources(project.getResources());
         historyView.recordSerializableObject(Component.translatable("editor.open"), currentProject);
         project.onLoad(this);
         // Apply saved per-project-type layout (if any) now that all project-specific views are registered.
-        EditorLayoutStore.load(project.getProjectType().getName()).ifPresent(this::applyLayout);
+        var behaviorSettings = editorSettings.getSettings(BehaviorSettings.ID)
+                .filter(BehaviorSettings.class::isInstance)
+                .map(BehaviorSettings.class::cast)
+                .orElse(null);
+        if (behaviorSettings == null || behaviorSettings.isRestoreLayoutOnProjectOpen()) {
+            EditorLayoutStore.load(project.getProjectType().getName()).ifPresent(this::applyLayout);
+        }
     }
 
 
