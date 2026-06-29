@@ -12,8 +12,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ManagedFieldUtils {
 
@@ -34,16 +36,33 @@ public class ManagedFieldUtils {
 
     public static Map<String, RPCMethodMeta> getRPCMethods(Class<?> clazz) {
         Map<String, RPCMethodMeta> result = new HashMap<>();
+        collectRPCMethodsFromInterfaces(clazz, result, new HashSet<>());
         for (Method method : clazz.getDeclaredMethods()) {
-            if (Modifier.isStatic(method.getModifiers())) {
-                continue;
-            }
-            if (method.isAnnotationPresent(RPCMethod.class)) {
-                var rpcMethod = new RPCMethodMeta(method);
-                result.put(rpcMethod.getName(), rpcMethod);
-            }
+            collectRPCMethod(result, method);
         }
         return result;
+    }
+
+    private static void collectRPCMethodsFromInterfaces(Class<?> clazz, Map<String, RPCMethodMeta> result, Set<Class<?>> visited) {
+        for (Class<?> interfaceClass : clazz.getInterfaces()) {
+            if (!visited.add(interfaceClass)) {
+                continue;
+            }
+            collectRPCMethodsFromInterfaces(interfaceClass, result, visited);
+            for (Method method : interfaceClass.getDeclaredMethods()) {
+                collectRPCMethod(result, method);
+            }
+        }
+    }
+
+    private static void collectRPCMethod(Map<String, RPCMethodMeta> result, Method method) {
+        if (Modifier.isStatic(method.getModifiers())) {
+            return;
+        }
+        if (method.isAnnotationPresent(RPCMethod.class)) {
+            var rpcMethod = new RPCMethodMeta(method);
+            result.put(rpcMethod.getName(), rpcMethod);
+        }
     }
 
     public static ManagedKey createKey(Field field) {
