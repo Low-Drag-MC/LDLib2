@@ -1,3 +1,2 @@
-## v2.2.25.a
-* Added config to disable layout restore
-* Fixed splitwindow crash
+## v2.2.26
+* Fixed incorrect rpc method calling
