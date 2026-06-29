@@ -11,9 +11,9 @@
 [![NeoForge](https://img.shields.io/badge/NeoForge-21.1+-E04E14?style=for-the-badge)](https://neoforged.net/)
 [![License](https://img.shields.io/github/license/low-drag-mc/ldlib2?style=for-the-badge)](LICENSE)
 
-[Documentation](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/) |
-[Java Integration](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/java_integration/) |
-[UI Guide](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/ui/) |
+[Documentation](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/) |
+[Java Integration](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/java_integration.html) |
+[UI Guide](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/ui/) |
 [Discord](https://discord.com/invite/sDdf2yD9bh) |
 [CurseForge](https://www.curseforge.com/minecraft/mc-mods/ldlib) |
 [Modrinth](https://modrinth.com/mod/ldlib)
@@ -22,32 +22,48 @@
 
 ---
 
-LDLib2 is a complete rewrite of the original [LDLib](https://github.com/Low-Drag-MC/LDLib-MultiLoader), redesigned around modern Minecraft and NeoForge development. It gives mod authors a higher-level foundation for building complex UI, visual tools, renderer-backed content, synchronized data, and persistent runtime systems without rebuilding the same infrastructure in every project.
+LDLib2 is a complete rewrite of the original [LDLib](https://github.com/Low-Drag-MC/LDLib-MultiLoader), redesigned around modern Minecraft and NeoForge development. It gives mod authors a higher-level foundation for building UI, in-game tools, renderer-backed content, synchronized data, and persistent runtime systems without rebuilding the same infrastructure in every project.
 
-The 2.x line focuses heavily on developer experience: a modern layout engine, CSS-like styling, data binding, RPC events, plug-and-play UI components, XML UI definitions, and an in-game visual editor.
+## Feature Highlights
 
-## Watch the UI Showcase
-
-[![LDLib2 UI showcase](https://img.youtube.com/vi/Ic5H3YoVPjQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=Ic5H3YoVPjQ)
-
-## Why LDLib2?
-
-- **Modern UI system**: build screens with a Taffy-powered layout model, flexible event handling, and reusable components.
-- **LSS stylesheets**: describe layout and visuals with a CSS-like stylesheet system instead of scattering style code everywhere.
-- **Data binding + RPC events**: connect client UI state with server-side logic using built-in synchronization patterns.
-- **Visual UI editor**: design and iterate on UI in game, then load layouts from XML or wire them up from Java/KubeJS.
-- **Rendering infrastructure**: shader, texture, model rendering, scene, and editor utilities for advanced visual mods.
-- **Sync and persistence**: annotation-driven data synchronization and persisted parsing for block entities and runtime data.
-- **Ecosystem integration**: built-in support patterns for JEI, REI, EMI, KubeJS, and other common modding workflows.
-
-## Core Modules
-
-| Module | What it is for |
-| --- | --- |
-| [LDLib2 UI](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/ui/) | Modular UI, layout, events, styling, XML, editor, components, HUD overlays |
-| Synchronization and Persistence | Data sync, persisted parsing, RPC packets, and managed block entities |
-| Rendering | Shaders, textures, model rendering, scenes, and visual editor infrastructure |
-| Integrations | XEI recipe viewer support, KubeJS hooks, Java plugin entry points |
+<table>
+<tr>
+<td>
+<a href="https://www.youtube.com/watch?v=Ic5H3YoVPjQ"><img src="https://img.youtube.com/vi/Ic5H3YoVPjQ/maxresdefault.jpg" alt="LDLib2 UI showcase"></a><br>
+<strong><a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/ui/">LDLib2 UI</a></strong><br>
+Build Minecraft screens with Taffy-powered layout, LSS stylesheets, reusable components, XML definitions, data bindings, RPC events, and HUD overlays.
+</td>
+<td>
+<a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/sync/"><img src=".github/readme/sync-persistence.svg" alt="Data synchronization and persistence overview"></a><br>
+<strong><a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/sync/">Data Synchronization and Persistence</a></strong><br>
+Annotate fields with <code>@Persisted</code>, <code>@DescSynced</code>, and RPC helpers to generate NBT IO, codecs, dirty-field sync, and packet flow with minimal boilerplate.
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/node-graph-toolkit/"><img src="https://raw.githubusercontent.com/Low-Drag-MC/LowDragMC-Doc/v2/docs/en/ldlib2/node-graph-toolkit/assets/ngt-overview-placeholder.png" alt="Node Graph Toolkit editor"></a><br>
+<strong><a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/node-graph-toolkit/">Node Graph Toolkit</a></strong><br>
+Create in-game graph editors with nodes, ports, wires, variables, subgraphs, blackboards, undoable commands, and resource-backed graph assets.
+</td>
+<td>
+<a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/editor/"><img src="https://raw.githubusercontent.com/Low-Drag-MC/LowDragMC-Doc/v2/docs/en/ldlib2/editor/assets/ui_editor.png" alt="LDLib2 in-game UI editor"></a><br>
+<strong><a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/editor/">In-game Editor Framework</a></strong><br>
+Build Unity-, Blender-, or Blockbench-style tools with dockable views, project files, resource browsers, inspectors, history, settings, and custom editor panels.
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/configurable/"><img src="https://raw.githubusercontent.com/Low-Drag-MC/LowDragMC-Doc/v2/docs/en/ldlib2/configurable/assets/configurator_example.png" alt="Generated Configurable property editor"></a><br>
+<strong><a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/configurable/">Configurable</a></strong><br>
+Turn annotated Java objects into inspector-ready property panels, including ranges, selectors, lists, resource locations, search fields, undo history, and persistence.
+</td>
+<td>
+<a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/ui/xei_support.html"><img src=".github/readme/xei.png" alt="LDLib2 XEI integration"></a><br>
+<strong><a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/ui/xei_support.html">Rendering and Integrations</a></strong><br>
+Use LDLib2's shader, texture, model rendering, scene, and editor utilities together with common modding workflows such as JEI, REI, EMI, KubeJS, and Java plugin entry points.
+</td>
+</tr>
+</table>
 
 ## Java Integration
 
@@ -78,7 +94,7 @@ Recommended project variables:
 
 ```properties
 minecraft_version=1.21.1
-ldlib2_version=2.2.6
+ldlib2_version=2.2.26
 ```
 
 ### LDLib Plugin Entry Point
@@ -103,16 +119,6 @@ public class MyLDLibPlugin implements ILDLibPlugin {
 This creates a small `ModularUI` with a label, a button, and a styled root element.
 
 ```java
-import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
-
 public class MyScreenUi {
     public static ModularUI createUi() {
         var root = new UIElement()
@@ -130,20 +136,14 @@ public class MyScreenUi {
 
         return ModularUI.of(UI.of(root));
     }
-
-    public static void open() {
-        Minecraft.getInstance().setScreen(
-                new ModularUIScreen(createUi(), Component.empty())
-        );
-    }
 }
 ```
 
-For a full walkthrough, see the [UI Getting Started guide](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/ui/getting_start/).
+For a full walkthrough, see the [UI Getting Started guide](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/ui/getting_start.html).
 
 ## Developer Tools
 
-If you develop with LDLib2, install the LDLib Dev Tool IDEA plugin for editor assistance around LDLib2-specific files and annotations. The [Java Integration guide](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/java_integration/) covers code highlighting, syntax checks, jump-to-definition, autocomplete, and annotation support.
+If you develop with LDLib2, install the LDLib Dev Tool IDEA plugin for editor assistance around LDLib2-specific files and annotations. The [Java Integration guide](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/java_integration.html) covers code highlighting, syntax checks, jump-to-definition, autocomplete, and annotation support.
 
 ## Migrating from LDLib
 
@@ -156,7 +156,7 @@ LDLib2 is not a small patch over LDLib. It removes old systems and rebuilds the 
 
 ## Links
 
-- [Documentation](https://low-drag-mc.github.io/LowDragMC-Doc/ldlib2/)
+- [Documentation](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/)
 - [GitHub repository](https://github.com/Low-Drag-MC/LDLib2)
 - [CurseForge project](https://www.curseforge.com/minecraft/mc-mods/ldlib)
 - [Modrinth project](https://modrinth.com/mod/ldlib)
