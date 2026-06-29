@@ -506,7 +506,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
 
         var hoverTooltips = ModularUIClientAccess.getHoverTooltips(modularUI);
         if (modularUI.isDrawTooltips() && !modularUI.getDragHandler().isDragging() && hoverTooltips != null) {
-            DrawerHelperClient.drawTooltip(context, hoverTooltips);
+            DrawerHelperClient.drawTooltip(context, hoverTooltips, true, true);
         }
     }
 

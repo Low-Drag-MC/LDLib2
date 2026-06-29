@@ -130,4 +130,11 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
             }
         }
     }
+
+    @Inject(method = "extractTooltip", at = @At(value = "HEAD"), cancellable = true)
+    private void ldlib2$renderTooltips(GuiGraphicsExtractor graphics, int mouseX, int mouseY, CallbackInfo ci) {
+        if (getMenu() instanceof IItemSlotHolderMenu) {
+            ci.cancel();
+        }
+    }
 }

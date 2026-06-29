@@ -17,14 +17,18 @@ import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPosition
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import com.mojang.datafixers.util.Either;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.ClientHooks;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -193,13 +197,36 @@ public class DrawerHelperClient {
     }
 
     public static void drawTooltip(GUIContext context, HoverTooltips hoverTooltips) {
-        context.graphics.tooltip(
-                tooltipFont(hoverTooltips, context),
-                toClientTooltips(hoverTooltips.tooltips()),
-                (int) context.localMouseX, (int) context.localMouseY,
-                tooltipPositioner(hoverTooltips),
-                hoverTooltips.background(),
-                Optional.ofNullable(hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY));
+        drawTooltip(context, hoverTooltips, false, false);
+    }
+
+    public static void drawTooltip(GUIContext context, HoverTooltips hoverTooltips, boolean setNextFrame, boolean replacing) {
+        if (hoverTooltips.tooltips().isEmpty()) return;
+        var font = tooltipFont(hoverTooltips, context);
+        var stack = Optional.ofNullable(hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY);
+        var mouseX = context.mouseX;
+        var mouseY = context.mouseY;
+        if (setNextFrame) {
+            context.graphics.tooltipStack = stack;
+
+            var clientTooltipComponents = toClientTooltips(hoverTooltips.tooltips(), stack, mouseX,
+                    context.graphics.guiWidth(), context.graphics.guiHeight(), font);
+
+            context.graphics.setTooltipForNextFrameInternal(font,
+                    clientTooltipComponents,
+                    mouseX, mouseY,
+                    tooltipPositioner(hoverTooltips), hoverTooltips.background(), replacing);
+            context.graphics.tooltipStack = ItemStack.EMPTY;
+        } else {
+            context.graphics.tooltip(
+                    font,
+                    toClientTooltips(hoverTooltips.tooltips(), stack, mouseX,
+                            context.graphics.guiWidth(), context.graphics.guiHeight(), font),
+                    (int) context.localMouseX, (int) context.localMouseY,
+                    tooltipPositioner(hoverTooltips),
+                    hoverTooltips.background(),
+                    stack);
+        }
     }
 
     public static Font tooltipFont(HoverTooltips hoverTooltips, GUIContext context) {
@@ -212,11 +239,43 @@ public class DrawerHelperClient {
                 : DefaultTooltipPositioner.INSTANCE;
     }
 
+    /**
+     * Converts the given tooltips into {@link ClientTooltipComponent}s, routing {@link TooltipComponent} and
+     * {@link FormattedText} (e.g. {@link Component}) through NeoForge's
+     * {@link ClientHooks#gatherTooltipComponentsFromElements} event pipeline so addon/mixin tooltip modifications
+     * are respected. Since that hook can only be invoked once, all eligible elements are gathered together in a
+     * single call; any remaining elements that the pipeline cannot handle are converted via
+     * {@link #toClientTooltips(List)} and appended to the end of the result.
+     */
+    public static List<ClientTooltipComponent> toClientTooltips(List<?> tooltips, ItemStack stack, int mouseX,
+                                                                int screenWidth, int screenHeight, Font font) {
+        if (tooltips.isEmpty()) {
+            return List.of();
+        }
+        var elements = new ArrayList<Either<FormattedText, TooltipComponent>>();
+        var others = new ArrayList<Object>();
+        for (var tooltip : tooltips) {
+            if (tooltip == null) continue;
+            switch (tooltip) {
+                case TooltipComponent tooltipComponent -> elements.add(Either.right(tooltipComponent));
+                case FormattedText formattedText -> elements.add(Either.left(formattedText));
+                default -> others.add(tooltip);
+            }
+        }
+        var clientTooltips = new ArrayList<ClientTooltipComponent>(tooltips.size());
+        if (!elements.isEmpty()) {
+            clientTooltips.addAll(ClientHooks.gatherTooltipComponentsFromElements(
+                    stack, elements, mouseX, screenWidth, screenHeight, font));
+        }
+        clientTooltips.addAll(toClientTooltips(others));
+        return clientTooltips;
+    }
+
     public static List<ClientTooltipComponent> toClientTooltips(List<?> tooltips) {
         if (tooltips.isEmpty()) {
             return List.of();
         }
-        var clientTooltips = new java.util.ArrayList<ClientTooltipComponent>(tooltips.size());
+        var clientTooltips = new ArrayList<ClientTooltipComponent>(tooltips.size());
         for (var tooltip : tooltips) {
             if (tooltip == null) continue;
             switch (tooltip) {
