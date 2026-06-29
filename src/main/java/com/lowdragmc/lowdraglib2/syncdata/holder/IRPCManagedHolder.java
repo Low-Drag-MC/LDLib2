@@ -62,12 +62,13 @@ public interface IRPCManagedHolder extends IManagedHolder {
             var index = buf.readVarInt();
             var methodName = buf.readUtf();
 
-            var rpcMethod = getRPCMethod(getRootStorage().getManaged()[index], methodName);
+            var managed = getRootStorage().getManaged()[index];
+            var rpcMethod = getRPCMethod(managed, methodName);
             if (rpcMethod == null) {
                 LDLib2.LOGGER.error("Cannot find RPC method: {}, which is sent by {}", methodName, sender);
             } else {
                 try {
-                    rpcMethod.invoke(this, sender, buf);
+                    rpcMethod.invoke(managed, sender, buf);
                 } catch (Exception e) {
                     LDLib2.LOGGER.error("Error invoking RPC method: {}, which is sent by {}", methodName, sender, e);
                 }
