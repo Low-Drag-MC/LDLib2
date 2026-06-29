@@ -1,4 +1,9 @@
 # ChangeLogs
+## v26.2.2.26
+* Fixed incorrect rpc method calling
+* Added RPCMethod annotation support for interface
+* Fixed tooltips rendering issue
+
 ## v26.2.2.25
 * Fixed node preview rebuilt
 * Fixed editor split window restore
