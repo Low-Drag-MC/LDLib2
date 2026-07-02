@@ -882,7 +882,7 @@ public class TextField extends BindableUIElement<String> {
         if (!LDLib2.isClient()) return;
         // Keep cursor inside viewport; prefer placing cursor at the right edge when scrolling
         var scale = textFieldStyle.fontSize() / getFont().lineHeight;
-        var cursorPosX = getFont().getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(0, cursorPos), getTextFieldStyle().font())) * scale;
+        var cursorPosX = getFont().getSplitter().stringWidth(TextUtilities.truncateStyled(getStyledLine(), cursorPos)) * scale;
         var width = getContentWidth();
         float rightPad = 1f;
 
@@ -967,24 +967,35 @@ public class TextField extends BindableUIElement<String> {
     public int getCursorUnderMouseX(double mouseX) {
         var x = getContentX();
         var font = getFont();
-        var textFont = textFieldStyle.font();
 
         var scale = textFieldStyle.fontSize() / font.lineHeight;
-        var availableWidth = ((mouseX - x + displayOffset) * scale);
+        // Mouse offset in rendered pixels. substrByWidth() expects unscaled/natural font pixels, so divide by
+        // scale for it; the half-character comparison below stays in rendered pixels (like subLength).
+        var mouseOffset = (float) (mouseX - x + displayOffset);
 
-        var lineWithFont = TextUtilities.withFont(rawText, textFont);
-        var subWithFont = font.substrByWidth(lineWithFont, (int) availableWidth);
-        float fullLength = font.getSplitter().stringWidth(lineWithFont) * scale;
+        var styledLine = getStyledLine();
+        var subWithFont = font.substrByWidth(styledLine, (int) (mouseOffset / scale));
+        float fullLength = font.getSplitter().stringWidth(styledLine) * scale;
         float subLength = font.getSplitter().stringWidth(subWithFont) * scale;
         int col;
         if (subLength >= fullLength) {
             col = rawText.length();
         } else {
-            var sub = subWithFont.getString();
-            float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(sub.length(), sub.length() + 1), textFont)) * scale;
-            col = (availableWidth - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+            var subLen = subWithFont.getString().length();
+            float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, subLen + 1)) * scale - subLength;
+            col = (mouseOffset - subLength) - nextCharWidth / 2f > 0 ? subLen + 1 : subLen;
         }
         return Mth.clamp(col, 0, rawText.length());
+    }
+
+    /**
+     * The rendered content of the text (formatter applied + font), used to measure caret/selection positions so
+     * that they stay aligned with what {@link #drawBackgroundAdditional} actually draws (including bold styling).
+     */
+    @OnlyIn(Dist.CLIENT)
+    public Component getStyledLine() {
+        var formattedText = formatter == null ? Component.literal(rawText) : formatter.apply(rawText);
+        return TextUtilities.withFont(formattedText, getTextFieldStyle().font());
     }
 
 
@@ -1032,7 +1043,7 @@ public class TextField extends BindableUIElement<String> {
         var formattedLine = getFormattedLine();
         var font = getFont();
         var fontSize = textFieldStyle.fontSize();
-        var textFont = textFieldStyle.font();
+        var styledLine = getStyledLine();
         var scale = fontSize / font.lineHeight;
 
         var lineY = y + (height - fontSize) / 2;
@@ -1054,8 +1065,8 @@ public class TextField extends BindableUIElement<String> {
         if (isFocused() && selectionStart != selectionEnd) {
             var min = Math.min(selectionStart, selectionEnd);
             var max = Math.max(selectionStart, selectionEnd);
-            var minX = font.getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(0, min), textFont)) * scale - displayOffset;
-            var maxX = font.getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(0, max), textFont)) * scale - displayOffset;
+            var minX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, min)) * scale - displayOffset;
+            var maxX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, max)) * scale - displayOffset;
             DrawerHelper.drawSolidRect(guiContext.graphics,
                     RenderType.guiTextHighlight(),
                     x + minX,
@@ -1064,7 +1075,7 @@ public class TextField extends BindableUIElement<String> {
                     fontSize, -16776961);
         }
         // draw cursor
-        var cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(rawText.substring(0, cursorPos), textFont)) * scale;
+        var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, cursorPos)) * scale;
         if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
             DrawerHelper.drawSolidRect(guiContext.graphics,
                     x + cursorPosX - displayOffset,

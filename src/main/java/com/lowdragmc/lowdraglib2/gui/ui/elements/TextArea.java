@@ -522,6 +522,20 @@ public class TextArea extends BindableUIElement<String[]> {
         return textAreaStyle.fontSize() / getFont().lineHeight;
     }
 
+    /**
+     * The rendered content of the character range {@code [from, to)} on {@code line}, with the styling it is
+     * actually drawn with. Measuring the width of this component keeps caret/selection positions aligned with
+     * the rendered text, including style-dependent advances such as bold. Subclasses that render styled text
+     * (e.g. syntax highlighting) should override this to reflect that styling.
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected Component styledLineComponent(int line, int from, int to) {
+        var text = lines.get(line);
+        from = Mth.clamp(from, 0, text.length());
+        to = Mth.clamp(to, 0, text.length());
+        return TextUtilities.withFont(text.substring(from, to), getTextAreaStyle().font());
+    }
+
     public float lineHeight() {
         return textAreaStyle.fontSize() + textAreaStyle.lineSpacing();
     }
@@ -719,7 +733,6 @@ public class TextArea extends BindableUIElement<String[]> {
         var y = contentView.getContentY();
         var s = scale();
         var font = getFont();
-        var textFont = getTextAreaStyle().font();
 
         // Determine line
         var relY = (float) (mouseY - y + scrollY) - 2;
@@ -729,18 +742,19 @@ public class TextArea extends BindableUIElement<String[]> {
         var lineText = lines.get(line);
         var relX = (float) (mouseX - x + scrollX);
 
-        // Estimate col using font width and substring fitting
-        var lineWithFont = TextUtilities.withFont(lineText, textFont);
-        var subWithFont = font.substrByWidth(lineWithFont, (int) (relX / s));
-        float fullLength = font.getSplitter().stringWidth(lineWithFont) * s;
+        // Estimate col using style-aware font width and substring fitting. substrByWidth() needs unscaled
+        // font pixels, so divide by scale; the comparison stays in rendered pixels (like subLength).
+        var styledLine = styledLineComponent(line, 0, lineText.length());
+        var subWithFont = font.substrByWidth(styledLine, (int) (relX / s));
+        float fullLength = font.getSplitter().stringWidth(styledLine) * s;
         float subLength = font.getSplitter().stringWidth(subWithFont) * s;
         int col;
         if (subLength >= fullLength) {
             col = lineText.length();
         } else {
-            var sub = subWithFont.getString();
-            float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(lineText.substring(sub.length(), sub.length() + 1), textFont)) * s;
-            col = (relX - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+            var subLen = subWithFont.getString().length();
+            float nextCharWidth = font.getSplitter().stringWidth(styledLineComponent(line, 0, subLen + 1)) * s - subLength;
+            col = (relX - subLength) - nextCharWidth / 2f > 0 ? subLen + 1 : subLen;
         }
         col = Mth.clamp(col, 0, lineText.length());
         return new Cursor(line, col);
@@ -1213,11 +1227,11 @@ public class TextArea extends BindableUIElement<String[]> {
                 from = Mth.clamp(from, 0, text.length());
                 to = Mth.clamp(to, 0, text.length());
 
-                float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - scrollX;
+                float minX = font.getSplitter().stringWidth(styledLineComponent(line, 0, from)) * scale - scrollX;
                 float maxX;
                 if (line == end.line()) {
                     if (from == to) continue;
-                    maxX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, to), textFont)) * scale - scrollX;
+                    maxX = font.getSplitter().stringWidth(styledLineComponent(line, 0, to)) * scale - scrollX;
                 } else {
                     maxX = maxWidth;
                 }
@@ -1238,8 +1252,7 @@ public class TextArea extends BindableUIElement<String[]> {
     @OnlyIn(Dist.CLIENT)
     protected void drawCursor(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y) {
         if (isVisible() && isFocused() && isDisplayed() && (!isActive() || System.currentTimeMillis() % 1000 < 500)) {
-            var current = lines.get(cursorLine);
-            float cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(current.substring(0, cursorCol), textFont)) * scale;
+            float cursorPosX = font.getSplitter().stringWidth(styledLineComponent(cursorLine, 0, cursorCol)) * scale;
             float cursorY = y + cursorLine * lineHeight() - scrollY;
             DrawerHelper.drawSolidRect(
                     guiContext.graphics,
