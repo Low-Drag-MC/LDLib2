@@ -55,6 +55,13 @@ public class IModelRenderer implements IRenderer {
     @OnlyIn(Dist.CLIENT)
     private volatile boolean itemModelInitialized;
 
+    // resolved once per renderer to avoid re-acquiring the bakery lock on every bake
+    @OnlyIn(Dist.CLIENT)
+    @Nullable
+    protected volatile UnbakedModel cachedUnbakedModel;
+    @OnlyIn(Dist.CLIENT)
+    private volatile boolean unbakedModelInitialized;
+
     @OnlyIn(Dist.CLIENT)
     protected volatile Map<ModelStateCacheKey, BakedModel> modelCaches;
 
@@ -75,6 +82,8 @@ public class IModelRenderer implements IRenderer {
         if (LDLib2.isClient()) {
             itemModel = null;
             itemModelInitialized = false;
+            cachedUnbakedModel = null;
+            unbakedModelInitialized = false;
             if (modelCaches != null) modelCaches = new ConcurrentHashMap<>();
         }
     }
@@ -103,11 +112,22 @@ public class IModelRenderer implements IRenderer {
     @OnlyIn(Dist.CLIENT)
     @Nullable
     protected UnbakedModel getModel() {
-        var model = ModelFactory.getTopLevelModel(ModelResourceLocation.standalone(modelLocation));
-        if (model == null) {
-            model = ModelFactory.getCachedModel(modelLocation);
+        if (!unbakedModelInitialized) {
+            synchronized (this) {
+                if (!unbakedModelInitialized) {
+                    // fast path: models registered through the RegisterAdditional pipeline
+                    var model = ModelFactory.getTopLevelModel(ModelResourceLocation.standalone(modelLocation));
+                    if (model == null) {
+                        // renderer created after the initial reload: dynamically load & resolve
+                        // the model under the bakery lock (see ModelFactory#loadUnbakedModelDynamically)
+                        model = ModelFactory.loadUnbakedModelDynamically(modelLocation);
+                    }
+                    cachedUnbakedModel = model;
+                    unbakedModelInitialized = true;
+                }
+            }
         }
-        return model;
+        return cachedUnbakedModel;
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -183,7 +203,7 @@ public class IModelRenderer implements IRenderer {
                     var model = getModel();
                     if (model != null) {
                         itemModel = model.bake(
-                                ModelFactory.getRegisteredModelBaker(),
+                                ModelFactory.getModelBaker(),
                                 this::materialMapping,
                                 BlockModelRotation.X0_Y0);
                     }
@@ -218,7 +238,7 @@ public class IModelRenderer implements IRenderer {
         var model = getModel();
         if (model == null) return null;
         return model.bake(
-                ModelFactory.getRegisteredModelBaker(),
+                ModelFactory.getModelBaker(),
                 this::materialMapping,
                 modelState);
     }
