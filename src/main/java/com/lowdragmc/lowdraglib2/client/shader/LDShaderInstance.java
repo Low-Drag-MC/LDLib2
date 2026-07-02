@@ -36,10 +36,22 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
 
     @Nullable
     public static LDShaderInstance create(ResourceLocation location, VertexFormat format, Set<String> defines) throws Throwable {
+        return create(Minecraft.getInstance().getResourceManager(), location, format, defines);
+    }
+
+    /**
+     * As {@link #create(ResourceLocation, VertexFormat, Set)} but reading the shader assets from an explicit
+     * {@link ResourceProvider} instead of {@code Minecraft.getResourceManager()} — so a caller can serve a shader
+     * that isn't a shipped asset (e.g. generated in-memory), while still getting the LDLib2 shader features
+     * (defines, dynamic uniforms/samplers, geometry stage). The provider must resolve
+     * {@code <ns>:shaders/core/<path>.json} plus the {@code .vsh}/{@code .fsh} it names and any {@code #moj_import}
+     * includes (delegate those to the game resource manager).
+     */
+    @Nullable
+    public static LDShaderInstance create(ResourceProvider resourceProvider, ResourceLocation location, VertexFormat format, Set<String> defines) throws Throwable {
         for (var define : defines) {
             LDProgramDefineManager.addProgramDefine(define);
         }
-        var resourceProvider = Minecraft.getInstance().getResourceManager();
         var resourcelocation = ResourceLocation.fromNamespaceAndPath(location.getNamespace(), "shaders/core/" + location.getPath() + ".json");
         if (resourceProvider.getResource(resourcelocation).isEmpty()) return null;
         var shaderWithDefines = new LDShaderInstance(resourceProvider, location, format, defines);
