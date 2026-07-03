@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
+  <title id="title">LDLib2 Data Synchronization and Persistence</title>
+  <desc id="desc">A compact comparison between manual Minecraft synchronization boilerplate and LDLib2 annotation-driven data sync and persistence.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#18212f"/>
+      <stop offset="0.52" stop-color="#142b2e"/>
+      <stop offset="1" stop-color="#2a2438"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000000" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="520" rx="28" fill="url(#bg)"/>
+  <circle cx="135" cy="88" r="70" fill="#38bdf8" opacity="0.12"/>
+  <circle cx="880" cy="430" r="110" fill="#f59e0b" opacity="0.10"/>
+
+  <text x="56" y="70" fill="#f8fafc" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700">Data Sync + Persistence</text>
+  <text x="56" y="106" fill="#cbd5e1" font-family="Segoe UI, Arial, sans-serif" font-size="18">Declare what each field is. LDLib2 handles when and how it is saved or synchronized.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="56" y="150" width="400" height="282" rx="18" fill="#111827" stroke="#334155"/>
+    <rect x="544" y="150" width="400" height="282" rx="18" fill="#0f172a" stroke="#2dd4bf"/>
+  </g>
+
+  <text x="88" y="196" fill="#fca5a5" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Typical boilerplate</text>
+  <text x="576" y="196" fill="#5eead4" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">With LDLib2</text>
+
+  <g font-family="Cascadia Mono, Consolas, monospace" font-size="16">
+    <text x="88" y="236" fill="#e5e7eb">saveAdditional(tag)</text>
+    <text x="88" y="266" fill="#e5e7eb">load(tag)</text>
+    <text x="88" y="296" fill="#e5e7eb">getUpdateTag()</text>
+    <text x="88" y="326" fill="#e5e7eb">onDataPacket(...)</text>
+    <text x="88" y="356" fill="#e5e7eb">dirty flags + packets</text>
+    <text x="88" y="386" fill="#94a3b8">repeated per BlockEntity</text>
+
+    <text x="576" y="236" fill="#c4b5fd">public class ExampleBE</text>
+    <text x="576" y="266" fill="#93c5fd">  implements ISyncPersistRPCBlockEntity {</text>
+    <text x="576" y="296" fill="#fde68a">  @Persisted</text>
+    <text x="576" y="326" fill="#fde68a">  @DescSynced</text>
+    <text x="576" y="356" fill="#f8fafc">  public int energy = 0;</text>
+    <text x="576" y="386" fill="#94a3b8">}</text>
+  </g>
+
+  <path d="M470 292h54" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M520 280l16 12-16 12" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="600">
+    <rect x="96" y="454" width="160" height="34" rx="17" fill="#26364d"/>
+    <text x="124" y="477" fill="#dbeafe">NBT IO</text>
+    <rect x="278" y="454" width="160" height="34" rx="17" fill="#26364d"/>
+    <text x="306" y="477" fill="#dbeafe">Dirty sync</text>
+    <rect x="460" y="454" width="160" height="34" rx="17" fill="#26364d"/>
+    <text x="489" y="477" fill="#dbeafe">RPC packets</text>
+    <rect x="642" y="454" width="220" height="34" rx="17" fill="#123c3a"/>
+    <text x="676" y="477" fill="#ccfbf1">Generated codecs</text>
+  </g>
+</svg>

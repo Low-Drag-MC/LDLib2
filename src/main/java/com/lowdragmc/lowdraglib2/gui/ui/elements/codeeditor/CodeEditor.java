@@ -248,4 +248,36 @@ public class CodeEditor extends TextArea {
         var styled = getStyledLines();
         return styled.isEmpty() || (styled.size() == 1 && styled.getFirst().text().isEmpty());
     }
+
+    /**
+     * Build the styled content of a range from the syntax-highlighted segments, using the exact same styling
+     * applied in {@link #drawContentLines} (font + per-segment style). This keeps caret/selection widths aligned
+     * with the rendered text even when segments are bold.
+     */
+    @Override
+    protected Component styledLineComponent(int line, int from, int to) {
+        var styled = getStyledLines();
+        if (line < 0 || line >= styled.size()) {
+            return super.styledLineComponent(line, from, to);
+        }
+        var font = getTextAreaStyle().font();
+        var result = Component.empty();
+        int pos = 0;
+        for (StyledText seg : styled.get(line).text()) {
+            var segText = seg.text();
+            int segStart = pos;
+            int segEnd = pos + segText.length();
+            int a = Math.max(from, segStart);
+            int b = Math.min(to, segEnd);
+            if (a < b) {
+                var sub = segText.substring(a - segStart, b - segStart);
+                result.append(Component.literal(sub)
+                        .withStyle(style -> style.withFont(new FontDescription.Resource(font)))
+                        .withStyle(seg.style()));
+            }
+            pos = segEnd;
+            if (pos >= to) break;
+        }
+        return result;
+    }
 }

@@ -313,54 +313,60 @@ public class RenderBufferUtils {
         int da = ea0 - sa0, dr = er0 - sr0, dg = eg0 - sg0, db = eb0 - sb0;
         int segCount = n - 1;
 
-        Vector2f last = points.get(0);
-        Vector2f curr = null;
-        Vector3f perp = new Vector3f();
+        float invSegCount = 1f / segCount;
+        float colorMul = 1f / 255f;
 
-        for (int i = 1; i < n; i++) {
-            float t = (i - 1f) / segCount;
+        // Each segment is emitted as an INDEPENDENT quad (its perpendicular is a fixed 90° rotation of the
+        // segment direction, so every quad winds consistently), and consecutive quads are separated by
+        // degenerate triangles. This prevents a sharp/near-vertical corner from folding the connected strip
+        // into a self-intersecting "bowtie" — the old behavior shared each point's vertices between two
+        // segments, so at a corner the perpendicular flipped and one triangle ended up wound the wrong way
+        // for its strip parity and got back-face culled (the segment vanished).
+        Vector2f prev = null;
+        int prevIdx = 0;
+        boolean first = true;
+        float lastBx = 0, lastBy = 0; // previous quad's last vertex (curr - perp), for the degenerate join
+        int i = 0;
+        for (Vector2f cur : points) {
+            if (prev == null) { prev = cur; prevIdx = i; i++; continue; }
 
-            float r = (sr0 + dr * t) / 255f;
-            float g = (sg0 + dg * t) / 255f;
-            float b = (sb0 + db * t) / 255f;
-            float a = (sa0 + da * t) / 255f;
-
-            curr = points.get(i);
-
-            float dx = curr.x - last.x;
-            float dy = curr.y - last.y;
+            float dx = cur.x - prev.x;
+            float dy = cur.y - prev.y;
             float len2 = dx * dx + dy * dy;
-            if (len2 < 1.0e-12f) {
-                last = curr;
-                continue;
+            if (len2 < 1.0e-12f) { prev = cur; prevIdx = i; i++; continue; } // collapse zero-length segments
+
+            float invLenHalfW = (float) (1.0 / Math.sqrt(len2)) * halfWidth;
+            float px = -dy * invLenHalfW;
+            float py = dx * invLenHalfW;
+
+            float t0 = prevIdx * invSegCount;
+            float t1 = i * invSegCount;
+            float r0 = (sr0 + dr * t0) * colorMul, g0 = (sg0 + dg * t0) * colorMul, b0 = (sb0 + db * t0) * colorMul, a0 = (sa0 + da * t0) * colorMul;
+            float r1 = (sr0 + dr * t1) * colorMul, g1 = (sg0 + dg * t1) * colorMul, b1 = (sb0 + db * t1) * colorMul, a1 = (sa0 + da * t1) * colorMul;
+
+            float aX = prev.x + px, aY = prev.y + py; // quad first vertex (prev + perp)
+            float eX = cur.x - px,  eY = cur.y - py;  // quad last vertex (cur - perp)
+
+            if (first) {
+                // leading duplicate of the first vertex: shifts the strip parity by one so the real
+                // triangles land on odd indices and come out front-facing (the GPU flips winding for
+                // odd strip triangles). Without it every triangle is back-facing → all culled → nothing
+                // renders. Each later degenerate join adds 2 verts, preserving this parity.
+                builder.addVertexWith2DPose(pose, aX, aY).setColor(r0, g0, b0, a0);
+            } else {
+                // degenerate join: repeat the previous quad's last vertex and this quad's first vertex
+                // (two zero-area triangles) so the two quads don't connect across the corner.
+                builder.addVertexWith2DPose(pose, lastBx, lastBy).setColor(r0, g0, b0, a0);
+                builder.addVertexWith2DPose(pose, aX, aY).setColor(r0, g0, b0, a0);
             }
+            builder.addVertexWith2DPose(pose, aX, aY).setColor(r0, g0, b0, a0);                       // prev + perp
+            builder.addVertexWith2DPose(pose, prev.x - px, prev.y - py).setColor(r0, g0, b0, a0);      // prev - perp
+            builder.addVertexWith2DPose(pose, cur.x + px, cur.y + py).setColor(r1, g1, b1, a1);        // cur + perp
+            builder.addVertexWith2DPose(pose, eX, eY).setColor(r1, g1, b1, a1);                        // cur - perp
 
-            float invLen = (float) (1.0 / Math.sqrt(len2));
-            perp.set(-dy * invLen * halfWidth, dx * invLen * halfWidth, 0);
-
-            builder.addVertexWith2DPose(pose, last.x + perp.x, last.y + perp.y).setColor(r, g, b, a);
-
-            if (stripSide && i == 1) {
-                builder.addVertexWith2DPose(pose, last.x + perp.x, last.y + perp.y).setColor(r, g, b, a);
-            }
-
-            builder.addVertexWith2DPose(pose, last.x - perp.x, last.y - perp.y).setColor(r, g, b, a);
-
-            last = curr;
-        }
-
-        if (curr == null) return;
-
-        float rEnd = (sr0 + dr) / 255f;
-        float gEnd = (sg0 + dg) / 255f;
-        float bEnd = (sb0 + db) / 255f;
-        float aEnd = (sa0 + da) / 255f;
-
-        builder.addVertexWith2DPose(pose, curr.x + perp.x, curr.y + perp.y).setColor(rEnd, gEnd, bEnd, aEnd);
-        builder.addVertexWith2DPose(pose, curr.x - perp.x, curr.y - perp.y).setColor(rEnd, gEnd, bEnd, aEnd);
-
-        if (stripSide) {
-            builder.addVertexWith2DPose(pose, curr.x - perp.x, curr.y - perp.y).setColor(rEnd, gEnd, bEnd, aEnd);
+            lastBx = eX; lastBy = eY;
+            first = false;
+            prev = cur; prevIdx = i; i++;
         }
     }
 

@@ -23,6 +23,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
@@ -182,6 +183,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.justifyContent(AlignContent.FLEX_START);
                     layout.heightPercent(100);
                     layout.widthPercent(normalizedValue * 100);
                 });
@@ -192,6 +195,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.justifyContent(AlignContent.FLEX_END);
                     layout.heightPercent(100);
                     layout.widthPercent(normalizedValue * 100);
                 });
@@ -202,6 +207,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_START);
                 });
                 this.bar.layout(layout -> {
+                    layout.flexDirection(FlexDirection.COLUMN);
+                    layout.justifyContent(AlignContent.FLEX_START);
                     layout.heightPercent(normalizedValue * 100);
                     layout.widthPercent(100);
                 });
@@ -212,6 +219,8 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
                     layout.alignItems(AlignItems.FLEX_END);
                 });
                 this.bar.layout(layout -> {
+                    layout.flexDirection(FlexDirection.COLUMN);
+                    layout.justifyContent(AlignContent.FLEX_END);
                     layout.heightPercent(normalizedValue * 100);
                     layout.widthPercent(100);
                 });
