@@ -234,7 +234,8 @@ public class TestComponentExamples implements IScreenTest {
     private UIElement textFieldExample() {
         return new UIElement().layout(layout -> layout.gapAll(2)).addChildren(
                 new TextField(),
-                new TextField().setText("disabled").disabled()
+                new TextField().setText("disabled").disabled(),
+                new TextField().setText("editable").textFieldStyle(style -> style.fontSize(13)).layout(l -> l.height(18))
         );
     }
 

@@ -510,6 +510,19 @@ public class TextArea extends BindableUIElement<String[]> {
         return LDLib2.isRemote() ? TextAreaClientSupport.scale(this) : 1f;
     }
 
+    /**
+     * The rendered content of the character range {@code [from, to)} on {@code line}, with the styling it is
+     * actually drawn with. Measuring the width of this component keeps caret/selection positions aligned with
+     * the rendered text, including style-dependent advances such as bold. Subclasses that render styled text
+     * (e.g. syntax highlighting) should override this to reflect that styling.
+     */
+    protected Component styledLineComponent(int line, int from, int to) {
+        var text = lines.get(line);
+        from = Mth.clamp(from, 0, text.length());
+        to = Mth.clamp(to, 0, text.length());
+        return TextUtilities.withFont(text.substring(from, to), getTextAreaStyle().font());
+    }
+
     public float lineHeight() {
         return textAreaStyle.fontSize() + textAreaStyle.lineSpacing();
     }
@@ -1177,24 +1190,24 @@ public class TextArea extends BindableUIElement<String[]> {
             var y = area.contentView.getContentY();
             var scale = scale(area);
             var font = Minecraft.getInstance().font;
-            var textFont = area.getTextAreaStyle().font();
 
             var relY = (float) (mouseY - y + area.getScrollY()) - 2;
             int line = Mth.clamp((int) Math.floor(relY / area.lineHeight()), 0, Math.max(0, area.lines.size() - 1));
             var lineText = area.lines.get(line);
             var relX = (float) (mouseX - x + area.getScrollX());
 
-            var lineWithFont = TextUtilities.withFont(lineText, textFont);
-            var subWithFont = font.substrByWidth(lineWithFont, (int) (relX / scale));
-            float fullLength = font.getSplitter().stringWidth(lineWithFont) * scale;
+            // Measure against the styled line so caret hit-testing matches the rendered (possibly bold/highlighted) text.
+            var styledLine = area.styledLineComponent(line, 0, lineText.length());
+            var subWithFont = font.substrByWidth(styledLine, (int) (relX / scale));
+            float fullLength = font.getSplitter().stringWidth(styledLine) * scale;
             float subLength = font.getSplitter().stringWidth(subWithFont) * scale;
             int col;
             if (subLength >= fullLength) {
                 col = lineText.length();
             } else {
-                var sub = subWithFont.getString();
-                float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(lineText.substring(sub.length(), sub.length() + 1), textFont)) * scale;
-                col = (relX - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+                var subLen = subWithFont.getString().length();
+                float nextCharWidth = font.getSplitter().stringWidth(area.styledLineComponent(line, 0, subLen + 1)) * scale - subLength;
+                col = (relX - subLength) - nextCharWidth / 2f > 0 ? subLen + 1 : subLen;
             }
             return new Cursor(line, Mth.clamp(col, 0, lineText.length()));
         }
@@ -1236,7 +1249,6 @@ public class TextArea extends BindableUIElement<String[]> {
             var height = area.contentView.getContentHeight();
 
             Font font = Minecraft.getInstance().font;
-            var textFont = area.getTextAreaStyle().font();
             var scale = area.scale();
 
             int firstVisibleLine = (int) Math.floor(area.getScrollY() / area.lineHeight());
@@ -1244,11 +1256,11 @@ public class TextArea extends BindableUIElement<String[]> {
             int lastVisibleLine = Mth.clamp(firstVisibleLine + maxVisibleLines, 0, Math.max(area.lines.size() - 1, 0));
 
             area.drawContentLines(context, font, scale, x, y, firstVisibleLine, lastVisibleLine);
-            drawSelection(area, context, font, textFont, scale, x, y, firstVisibleLine, lastVisibleLine);
-            drawCursor(area, context, font, textFont, scale, x, y);
+            drawSelection(area, context, font, scale, x, y, firstVisibleLine, lastVisibleLine);
+            drawCursor(area, context, font, scale, x, y);
         }
 
-        private static void drawSelection(TextArea area, GUIContext context, Font font, Identifier textFont, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
+        private static void drawSelection(TextArea area, GUIContext context, Font font, float scale, float x, float y, int firstVisibleLine, int lastVisibleLine) {
             if (area.isFocused() && area.hasSelection()) {
                 var start = selectionMin(area);
                 var end = selectionMax(area);
@@ -1265,11 +1277,11 @@ public class TextArea extends BindableUIElement<String[]> {
                     from = Mth.clamp(from, 0, text.length());
                     to = Mth.clamp(to, 0, text.length());
 
-                    float minX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, from), textFont)) * scale - area.getScrollX();
+                    float minX = font.getSplitter().stringWidth(area.styledLineComponent(line, 0, from)) * scale - area.getScrollX();
                     float maxX;
                     if (line == end.line()) {
                         if (from == to) continue;
-                        maxX = font.getSplitter().stringWidth(TextUtilities.withFont(text.substring(0, to), textFont)) * scale - area.getScrollX();
+                        maxX = font.getSplitter().stringWidth(area.styledLineComponent(line, 0, to)) * scale - area.getScrollX();
                     } else {
                         maxX = maxWidth;
                     }
@@ -1287,10 +1299,9 @@ public class TextArea extends BindableUIElement<String[]> {
             }
         }
 
-        private static void drawCursor(TextArea area, GUIContext context, Font font, Identifier textFont, float scale, float x, float y) {
+        private static void drawCursor(TextArea area, GUIContext context, Font font, float scale, float x, float y) {
             if (area.isVisible() && area.isFocused() && area.isDisplayed() && (!area.isActive() || System.currentTimeMillis() % 1000 < 500)) {
-                var current = area.lines.get(area.getCursorLine());
-                float cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(current.substring(0, area.getCursorCol()), textFont)) * scale;
+                float cursorPosX = font.getSplitter().stringWidth(area.styledLineComponent(area.getCursorLine(), 0, area.getCursorCol())) * scale;
                 float cursorY = y + area.getCursorLine() * area.lineHeight() - area.getScrollY();
                 DrawerHelperClient.drawSolidRect(
                         context,

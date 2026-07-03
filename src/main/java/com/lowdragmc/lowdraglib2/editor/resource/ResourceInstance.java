@@ -208,7 +208,7 @@ public class ResourceInstance<T> implements ValueIOSerializable {
         resourceContainer.splitView.setPercentage(30);
         var dialog = new Dialog()
                 .windowMode(mouseX, mouseY)
-                .setTitle("select texture")
+                .setTitle("resource.selector.select_resource")
                 .addContent(resourceContainer);
         dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
         dialog.addButton(new Button().setOnClick(e -> {

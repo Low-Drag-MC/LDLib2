@@ -8,6 +8,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 
 import java.util.List;
+import java.util.Optional;
 
 @UtilityClass
 public final class TextUtilities {
@@ -47,6 +48,31 @@ public final class TextUtilities {
 
     public Component withFont(Component component, Identifier font) {
         return font.equals(FontDescription.DEFAULT.id()) ? component : component.copy().withStyle(style -> style.withFont(new FontDescription.Resource(font)));
+    }
+
+    /**
+     * Returns a styled copy of {@code styled} containing only its first {@code charCount} characters, while
+     * preserving each run's style (font, bold, ...). Measuring the width of the result therefore accounts for
+     * style-dependent advances (e.g. bold adds ~1px per character), which a plain-text measurement misses.
+     * This keeps caret/selection positions aligned with what is actually rendered.
+     *
+     * @param styled    The styled content, in the same styling as it will be rendered.
+     * @param charCount The number of leading characters to keep.
+     * @return A styled component with the first {@code charCount} characters.
+     */
+    public Component truncateStyled(Component styled, int charCount) {
+        MutableComponent result = Component.empty();
+        if (charCount <= 0) return result;
+        var remaining = new int[]{charCount};
+        styled.visit((style, content) -> {
+            if (remaining[0] > 0) {
+                var take = Math.min(content.length(), remaining[0]);
+                result.append(Component.literal(content.substring(0, take)).withStyle(style));
+                remaining[0] -= take;
+            }
+            return Optional.empty();
+        }, Style.EMPTY);
+        return result;
     }
 
 }

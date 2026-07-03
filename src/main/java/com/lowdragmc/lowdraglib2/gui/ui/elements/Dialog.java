@@ -532,7 +532,7 @@ public class Dialog extends UIElement {
             layout.width(14);
             layout.height(14);
             layout.paddingAll(3);
-        }).addChild(new UIElement().layout(layout -> layout.widthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
+        }).addChild(new UIElement().addClass("__white_icon__").layout(layout -> layout.widthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
         treeList.setOnSelectedChanged(selected -> {
             if (selected.isEmpty()) return;
             var first = selected.stream().findFirst().get();

@@ -978,12 +978,14 @@ public class TextField extends BindableUIElement<String> {
         return rawText.isEmpty() ? textFieldStyle.placeholder() : (formatter == null ? Component.literal(rawText) : formatter.apply(rawText));
     }
 
-    String getRawPrefix(int endExclusive) {
-        return rawText.substring(0, Mth.clamp(endExclusive, 0, rawText.length()));
-    }
-
-    String getRawCharacterAt(int index) {
-        return rawText.substring(index, index + 1);
+    /**
+     * The rendered content of the current text (formatter applied + font). Measuring the width of a
+     * {@link TextUtilities#truncateStyled styled} prefix of this keeps caret/selection positions aligned with
+     * what is actually drawn, including style-dependent advances such as bold.
+     */
+    Component getStyledLine() {
+        var formattedText = formatter == null ? Component.literal(rawText) : formatter.apply(rawText);
+        return TextUtilities.withFont(formattedText, getTextFieldStyle().font());
     }
 
     String getClipboardSelectionText() {
@@ -1115,7 +1117,7 @@ public class TextField extends BindableUIElement<String> {
         static float computeDisplayOffset(TextField field) {
             var font = Minecraft.getInstance().font;
             var scale = field.getTextFieldStyle().fontSize() / font.lineHeight;
-            var cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawPrefix(field.getCursorPos()), field.getTextFieldStyle().font())) * scale;
+            var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(field.getStyledLine(), field.getCursorPos())) * scale;
             var width = field.getContentWidth();
             float rightPad = 1f;
             var displayOffset = field.getDisplayOffset();
@@ -1129,21 +1131,23 @@ public class TextField extends BindableUIElement<String> {
         static int getCursorUnderMouseX(TextField field, double mouseX) {
             var x = field.getContentX();
             var font = Minecraft.getInstance().font;
-            var textFont = field.getTextFieldStyle().font();
             var scale = field.getTextFieldStyle().fontSize() / font.lineHeight;
-            var availableWidth = ((mouseX - x + field.getDisplayOffset()) * scale);
+            // Mouse offset in rendered pixels. substrByWidth() expects unscaled/natural font pixels, so divide by
+            // scale for it; the half-character comparison below stays in rendered pixels (like subLength).
+            var mouseOffset = (float) (mouseX - x + field.getDisplayOffset());
 
-            var lineWithFont = TextUtilities.withFont(field.getRawText(), textFont);
-            var subWithFont = font.substrByWidth(lineWithFont, (int) availableWidth);
-            float fullLength = font.getSplitter().stringWidth(lineWithFont) * scale;
+            // Measure against the styled line so hit-testing matches the rendered (possibly bold) text.
+            var styledLine = field.getStyledLine();
+            var subWithFont = font.substrByWidth(styledLine, (int) (mouseOffset / scale));
+            float fullLength = font.getSplitter().stringWidth(styledLine) * scale;
             float subLength = font.getSplitter().stringWidth(subWithFont) * scale;
             int col;
             if (subLength >= fullLength) {
                 col = field.getRawText().length();
             } else {
-                var sub = subWithFont.getString();
-                float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawCharacterAt(sub.length()), textFont)) * scale;
-                col = (availableWidth - subLength) - nextCharWidth / 2f > 0 ? sub.length() + 1 : sub.length();
+                var subLen = subWithFont.getString().length();
+                float nextCharWidth = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, subLen + 1)) * scale - subLength;
+                col = (mouseOffset - subLength) - nextCharWidth / 2f > 0 ? subLen + 1 : subLen;
             }
             return Mth.clamp(col, 0, field.getRawText().length());
         }
@@ -1202,7 +1206,6 @@ public class TextField extends BindableUIElement<String> {
             var formattedLine = field.getFormattedLine();
             Font font = Minecraft.getInstance().font;
             var fontSize = field.getTextFieldStyle().fontSize();
-            var textFont = field.getTextFieldStyle().font();
             var scale = fontSize / font.lineHeight;
 
             var lineY = y + (height - fontSize) / 2;
@@ -1217,11 +1220,12 @@ public class TextField extends BindableUIElement<String> {
                     !field.getRawText().isEmpty() && field.getTextFieldStyle().textShadow());
             context.pose.popPose();
 
+            var styledLine = field.getStyledLine();
             if (field.isFocused() && field.getSelectionStart() != field.getSelectionEnd()) {
                 var min = Math.min(field.getSelectionStart(), field.getSelectionEnd());
                 var max = Math.max(field.getSelectionStart(), field.getSelectionEnd());
-                var minX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, min), textFont)) * scale - field.getDisplayOffset();
-                var maxX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, max), textFont)) * scale - field.getDisplayOffset();
+                var minX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, min)) * scale - field.getDisplayOffset();
+                var maxX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, max)) * scale - field.getDisplayOffset();
                 DrawerHelperClient.drawSolidRect(context,
                         RenderPipelines.GUI_TEXT_HIGHLIGHT,
                         x + minX,
@@ -1230,7 +1234,7 @@ public class TextField extends BindableUIElement<String> {
                         fontSize, -16776961);
             }
 
-            var cursorPosX = font.getSplitter().stringWidth(TextUtilities.withFont(field.getRawText().substring(0, field.getCursorPos()), textFont)) * scale;
+            var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, field.getCursorPos())) * scale;
             if (field.isFocused() && System.currentTimeMillis() % 1000 < 500) {
                 DrawerHelperClient.drawSolidRect(context,
                         x + cursorPosX - field.getDisplayOffset(),
