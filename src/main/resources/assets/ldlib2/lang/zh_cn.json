@@ -565,5 +565,6 @@
   "graph.logger.level.error": "错误",
   "graph.logger.level.warning": "警告",
   "graph.logger.level.info": "信息",
-  "graph.logger.count": "%s 条日志"
+  "graph.logger.count": "%s 条日志",
+  "resource.selector.select_resource": "选择资源"
 }
