@@ -1,4 +1,7 @@
 # ChangeLogs
+## v26.1.2.27.a
+* Fixed vanilla tooltip rendering missing
+
 ## v26.1.2.27
 * Improved draw lines smoothness
 * Improved LDShaderInstance APIs
