@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.core.mixins.shader;
 
 import com.google.gson.JsonObject;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.lowdragmc.lowdraglib2.client.shader.ILDShaderInstance;
 import com.lowdragmc.lowdraglib2.client.shader.LDProgramDefineManager;
@@ -43,5 +44,20 @@ public abstract class ShaderInstanceMixin implements ILDShaderInstance {
             var program = programType.getPrograms().get(LDProgramDefineManager.createProgramNameWithDefines(name));
             if (program != null) cir.setReturnValue(program);
         }
+    }
+
+    /**
+     * While defines are active, a PLAIN-name cache hit in the vanilla body would silently reuse a
+     * stage compiled WITHOUT the defines (e.g. the vanilla-registered copy of a shared vsh like
+     * photon:particle, or a previously built no-defines variant of the same source) — the defines
+     * never reach the program and e.g. an instanced variant links the non-instanced attribute
+     * layout and renders nothing. Force a fresh compile instead: the ProgramMixin renames the
+     * cache key at put time, and the defines-aware lookup above serves later requests.
+     */
+    @ModifyExpressionValue(method = "getOrCreate", at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/Map;get(Ljava/lang/Object;)Ljava/lang/Object;"))
+    private static Object ldlib2$skipPlainCacheWhenDefinesActive(Object original) {
+        return LDProgramDefineManager.hasProgramDefines() ? null : original;
     }
 }
