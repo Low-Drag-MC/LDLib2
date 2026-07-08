@@ -1,7 +1,4 @@
-## v2.2.27
-* Improved draw lines smoothness
-* Improved LDShaderInstance APIs
-* Fixed TextField selection with font size/bold
-* Improved model loading
-* Improve qol of styles
-* Improved progressbar layout
+## v2.2.28
+* Fixed fbo clear color
+* Fixed shader defines injection
+* Improved ngt qol
