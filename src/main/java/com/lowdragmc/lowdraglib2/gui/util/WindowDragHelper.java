@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
+import org.joml.Vector4f;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -91,87 +92,93 @@ public class WindowDragHelper {
         });
 
         element.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, e -> {
-            if (!(e.dragHandler.draggingObject instanceof DragResize(
-                    float startX, float startY, float startW, float startH, ResizeHandle handle
-            ))) return;
+            if (!(e.dragHandler.draggingObject instanceof DragResize dragResize)) return;
 
-            if (dragResizePredicate != null && !dragResizePredicate.test(e, (DragResize) e.dragHandler.draggingObject)) return;
+            if (dragResizePredicate != null && !dragResizePredicate.test(e, dragResize)) return;
             var d = element.getLocalMouseNormal(e.x - e.dragStartX, e.y - e.dragStartY);
-            float dx = d.x;
-            float dy = d.y;
-            float x = startX;
-            float y = startY;
-            float w = startW;
-            float h = startH;
-
-            float minW = minSize.x, maxW = maxSize.x;
-            float minH = minSize.y, maxH = maxSize.y;
-
-            switch (handle) {
-                case LEFT -> {
-                    float clampedNewW = Math.min(maxW, Math.max(minW, startW - dx));
-                    float dxApplied = startW - clampedNewW;     // 实际生效的 dx
-                    x = startX + dxApplied;
-                    w = clampedNewW;
-                }
-                case RIGHT -> {
-                    w = Math.min(maxW, Math.max(minW, startW + dx));
-                    x = startX;
-                }
-                case TOP -> {
-                    float clampedNewH = Math.min(maxH, Math.max(minH, startH - dy));
-                    float dyApplied = startH - clampedNewH;
-                    y = startY + dyApplied;
-                    h = clampedNewH;
-                }
-                case BOTTOM -> {
-                    h = Math.min(maxH, Math.max(minH, startH + dy));
-                    y = startY;
-                }
-                case TOP_LEFT -> {
-                    float clampedNewW = Math.min(maxW, Math.max(minW, startW - dx));
-                    float dxApplied = startW - clampedNewW;
-                    x = startX + dxApplied;
-                    w = clampedNewW;
-
-                    float clampedNewH = Math.min(maxH, Math.max(minH, startH - dy));
-                    float dyApplied = startH - clampedNewH;
-                    y = startY + dyApplied;
-                    h = clampedNewH;
-                }
-                case TOP_RIGHT -> {
-                    w = Math.min(maxW, Math.max(minW, startW + dx));
-                    x = startX;
-
-                    float clampedNewH = Math.min(maxH, Math.max(minH, startH - dy));
-                    float dyApplied = startH - clampedNewH;
-                    y = startY + dyApplied;
-                    h = clampedNewH;
-                }
-                case BOTTOM_LEFT -> {
-                    float clampedNewW = Math.min(maxW, Math.max(minW, startW - dx));
-                    float dxApplied = startW - clampedNewW;
-                    x = startX + dxApplied;
-                    w = clampedNewW;
-
-                    h = Math.min(maxH, Math.max(minH, startH + dy));
-                    y = startY;
-                }
-                case BOTTOM_RIGHT -> {
-                    w = Math.min(maxW, Math.max(minW, startW + dx));
-                    h = Math.min(maxH, Math.max(minH, startH + dy));
-                    x = startX;
-                    y = startY;
-                }
-            }
+            var rect = computeResizeRect(dragResize, d.x, d.y, minSize, maxSize);
 
             target.getLayout()
-                    .left(x)
-                    .top(y)
-                    .width(w)
-                    .height(h);
+                    .left(rect.x)
+                    .top(rect.y)
+                    .width(rect.z)
+                    .height(rect.w);
         });
         if (onFinish != null) element.addEventListener(UIEvents.DRAG_END, onFinish::accept);
+    }
+
+    /**
+     * Computes the resized rectangle {@code (x, y, width, height)} for a drag given the accumulated
+     * local-space delta {@code (dx, dy)}, clamping the size to {@code [minSize, maxSize]}. Edge/corner
+     * handles that anchor the opposite side adjust the position so the anchored edge stays put.
+     */
+    public static Vector4f computeResizeRect(DragResize d, float dx, float dy, Vector2f minSize, Vector2f maxSize) {
+        float startX = d.startX(), startY = d.startY(), startW = d.startW(), startH = d.startH();
+        ResizeHandle handle = d.handle();
+        float x = startX, y = startY, w = startW, h = startH;
+
+        float minW = minSize.x, maxW = maxSize.x;
+        float minH = minSize.y, maxH = maxSize.y;
+
+        switch (handle) {
+            case LEFT -> {
+                float clampedNewW = Math.min(maxW, Math.max(minW, startW - dx));
+                float dxApplied = startW - clampedNewW;     // 实际生效的 dx
+                x = startX + dxApplied;
+                w = clampedNewW;
+            }
+            case RIGHT -> {
+                w = Math.min(maxW, Math.max(minW, startW + dx));
+                x = startX;
+            }
+            case TOP -> {
+                float clampedNewH = Math.min(maxH, Math.max(minH, startH - dy));
+                float dyApplied = startH - clampedNewH;
+                y = startY + dyApplied;
+                h = clampedNewH;
+            }
+            case BOTTOM -> {
+                h = Math.min(maxH, Math.max(minH, startH + dy));
+                y = startY;
+            }
+            case TOP_LEFT -> {
+                float clampedNewW = Math.min(maxW, Math.max(minW, startW - dx));
+                float dxApplied = startW - clampedNewW;
+                x = startX + dxApplied;
+                w = clampedNewW;
+
+                float clampedNewH = Math.min(maxH, Math.max(minH, startH - dy));
+                float dyApplied = startH - clampedNewH;
+                y = startY + dyApplied;
+                h = clampedNewH;
+            }
+            case TOP_RIGHT -> {
+                w = Math.min(maxW, Math.max(minW, startW + dx));
+                x = startX;
+
+                float clampedNewH = Math.min(maxH, Math.max(minH, startH - dy));
+                float dyApplied = startH - clampedNewH;
+                y = startY + dyApplied;
+                h = clampedNewH;
+            }
+            case BOTTOM_LEFT -> {
+                float clampedNewW = Math.min(maxW, Math.max(minW, startW - dx));
+                float dxApplied = startW - clampedNewW;
+                x = startX + dxApplied;
+                w = clampedNewW;
+
+                h = Math.min(maxH, Math.max(minH, startH + dy));
+                y = startY;
+            }
+            case BOTTOM_RIGHT -> {
+                w = Math.min(maxW, Math.max(minW, startW + dx));
+                h = Math.min(maxH, Math.max(minH, startH + dy));
+                x = startX;
+                y = startY;
+            }
+        }
+
+        return new Vector4f(x, y, w, h);
     }
 
     @Nullable
