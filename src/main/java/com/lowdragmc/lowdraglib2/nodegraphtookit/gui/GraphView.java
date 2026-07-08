@@ -817,46 +817,57 @@ public class GraphView extends UIElement {
      */
     public void wireSelectableElement(@Nullable ModelElement element) {
         if (element == null || !element.isSelectable() || element.getModel() == null) return;
-        var model = element.getModel();
-        element.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            if (element.allowGraphMouseDown(event)) {
-                var tagetWasSelected = isSelected(model);
-                batchSelection(() -> {
-                    // select node
-                    if (!event.isCtrlDown() && !isSelected(model)) {
-                        clearAllSelected();
-                    }
-                    addSelected(model);
-                    moveElementTop(element);
-                });
+        // Elements can opt out of the body-wide handler and wire their own drag handle instead
+        // (e.g. PlacematElement drags only via its title bar and lets body clicks region-select).
+        if (!element.wantsDefaultMouseWiring()) return;
+        element.addEventListener(UIEvents.MOUSE_DOWN, event -> onGraphElementMouseDown(element, event),
+                element.isGraphMouseDownCaptured());
+    }
 
-                // drag movable — include fully contained nodes when dragging a placemat. Filter
-                // by the MOVABLE capability so non-movable nodes (e.g. BlockNodeModel) don't
-                // start a DragMove that would preempt their own drag-reorder handlers.
-                var movablesList = new ArrayList<>(selected.stream()
-                        .filter(m -> m instanceof IMovable
-                                && (!(m instanceof GraphElementModel gem) || gem.isMovable()))
-                        .toList());
-                for (var sel : new ArrayList<>(movablesList)) {
-                    if (sel instanceof PlacematModel pm) {
-                        java.util.function.Function<com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel, Vector2f> sizeLookup = node -> {
-                            var nodeEl = getModelElement(node);
-                            return nodeEl != null ? new Vector2f(nodeEl.getSizeWidth(), nodeEl.getSizeHeight()) : null;
-                        };
-                        for (var contained : pm.getContainedNodes(sizeLookup)) {
-                            if (contained != null && !movablesList.contains(contained)) {
-                                movablesList.add(contained);
-                            }
-                        }
+    /**
+     * Handles a {@code MOUSE_DOWN} on a graph element: updates selection (respecting Ctrl for
+     * additive selection) and starts a {@link DragMove} for all selected movables. Extracted from
+     * {@link #wireSelectableElement} so opted-out elements (e.g. a placemat's title bar) can reuse the
+     * exact same select + drag behavior from their own handle sub-element.
+     */
+    public void onGraphElementMouseDown(ModelElement element, UIEvent event) {
+        var model = element.getModel();
+        if (model == null || !element.allowGraphMouseDown(event)) return;
+        var tagetWasSelected = isSelected(model);
+        batchSelection(() -> {
+            // select node
+            if (!event.isCtrlDown() && !isSelected(model)) {
+                clearAllSelected();
+            }
+            addSelected(model);
+            moveElementTop(element);
+        });
+
+        // drag movable — include fully contained nodes when dragging a placemat. Filter
+        // by the MOVABLE capability so non-movable nodes (e.g. BlockNodeModel) don't
+        // start a DragMove that would preempt their own drag-reorder handlers.
+        var movablesList = new ArrayList<>(selected.stream()
+                .filter(m -> m instanceof IMovable
+                        && (!(m instanceof GraphElementModel gem) || gem.isMovable()))
+                .toList());
+        for (var sel : new ArrayList<>(movablesList)) {
+            if (sel instanceof PlacematModel pm) {
+                java.util.function.Function<com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel, Vector2f> sizeLookup = node -> {
+                    var nodeEl = getModelElement(node);
+                    return nodeEl != null ? new Vector2f(nodeEl.getSizeWidth(), nodeEl.getSizeHeight()) : null;
+                };
+                for (var contained : pm.getContainedNodes(sizeLookup)) {
+                    if (contained != null && !movablesList.contains(contained)) {
+                        movablesList.add(contained);
                     }
                 }
-                var movables = List.copyOf(movablesList);
-                if (movables.isEmpty()) return;
-                var width = 12;
-                var height = 12;
-                startDrag(new DragMove(tagetWasSelected, model, movables), Icons.MOVE).setDragTexture(- width / 2f, -height / 2f, width, height);
             }
-        }, element.isGraphMouseDownCaptured());
+        }
+        var movables = List.copyOf(movablesList);
+        if (movables.isEmpty()) return;
+        var width = 12;
+        var height = 12;
+        startDrag(new DragMove(tagetWasSelected, model, movables), Icons.MOVE).setDragTexture(- width / 2f, -height / 2f, width, height);
     }
 
     /**
@@ -1122,7 +1133,8 @@ public class GraphView extends UIElement {
                 CommandEvents.COPY.equals(event.command) ||
                 CommandEvents.CUT.equals(event.command) ||
                 CommandEvents.DUPLICATE.equals(event.command) ||
-                CommandEvents.PASTE.equals(event.command)
+                CommandEvents.PASTE.equals(event.command) ||
+                CommandEvents.SAVE.equals(event.command)
         ) {
             event.stopPropagation();
         }
@@ -1142,6 +1154,9 @@ public class GraphView extends UIElement {
             duplicateSelectedElements();
         } else if (CommandEvents.PASTE.equals(event.command)) {
             pasteElements();
+        } else if (CommandEvents.SAVE.equals(event.command)) {
+            var editorView = getFirstAncestorOfType(GraphEditorView.class);
+            if (editorView != null) editorView.notifySaved();
         }
     }
 
@@ -1160,6 +1175,9 @@ public class GraphView extends UIElement {
                 // start drag selection — transient drag-rect feedback, pinned via IMPORTANT.
                 var selectionRect = new UIElement();
                 selectionRect.addClass("__node-graph-view_drag-selection__");
+                // Pure visual overlay: it must not intercept hover/hit-test from the elements it
+                // sweeps over, otherwise their hover highlights flicker as the rect grows.
+                selectionRect.setAllowHitTest(false);
                 Style.importantPipeline(selectionRect.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
                         .width(0)
                         .height(0));

@@ -520,6 +520,7 @@
   "graph.commands.change_variable_modifiers": "更改变量在子图中的访问修饰符",
   "graph.flow_direction": "流向",
   "graph.commands.move": "移动",
+  "graph.commands.resize": "缩放",
   "ui_editor.focus_mode.0": "专注模式",
   "ui_editor.focus_mode.1": "开启后 - 按住 Shift 点击元素以聚焦",
   "structured_tag_editor": "结构化标签编辑器",

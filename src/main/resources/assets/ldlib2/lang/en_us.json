@@ -521,6 +521,7 @@
   "graph.commands.change_variable_modifiers": "Change Variable Subgraph Use",
   "graph.flow_direction": "Flow Direction",
   "graph.commands.move": "Move",
+  "graph.commands.resize": "Resize",
   "ui_editor.focus_mode.0": "focus mode",
   "ui_editor.focus_mode.1": "enable - shift click element to focus",
   "structured_tag_editor": "Structured Tag Editor",

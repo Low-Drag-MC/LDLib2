@@ -258,4 +258,17 @@ public abstract class ModelElement extends UIElement {
     public boolean isGraphMouseDownCaptured() {
         return false;
     }
+
+    /**
+     * Whether {@link GraphView#wireSelectableElement} should attach the default select + drag-move
+     * {@code MOUSE_DOWN} handler to the whole element body. Elements that want to restrict dragging to
+     * a specific sub-element (e.g. {@link com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.PlacematElement}
+     * dragging only via its title bar) override this to return {@code false} and wire their own handle,
+     * letting body clicks fall through to the graph view for region selection.
+     *
+     * @return {@code true} to install the default body-wide interaction handler, {@code false} to opt out.
+     */
+    public boolean wantsDefaultMouseWiring() {
+        return true;
+    }
 }

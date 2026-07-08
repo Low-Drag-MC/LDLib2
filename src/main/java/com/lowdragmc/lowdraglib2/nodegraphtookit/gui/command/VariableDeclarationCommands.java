@@ -161,6 +161,13 @@ public final class VariableDeclarationCommands {
         public void execute() {
             for (var variable : variableDeclarationModels) {
                 variable.setModifiers(modifierFlags);
+                // Keep the scope in sync with the subgraph kind, mirroring
+                // CustomGraphModelImpl.createVariable: an external (INPUT/OUTPUT) variable is
+                // EXPOSED (settable in the inspector / a material uniform), an internal one LOCAL.
+                // Without this, changing an existing variable to "External" only flipped the
+                // modifier and left scope=LOCAL, so it never became an exposed uniform.
+                variable.setScope(modifierFlags == ModifierFlags.NONE
+                        ? VariableScope.LOCAL : VariableScope.EXPOSED);
             }
 
             graphModel.updateSubGraphs();

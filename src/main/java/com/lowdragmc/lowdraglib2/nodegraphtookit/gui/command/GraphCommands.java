@@ -63,6 +63,30 @@ public final class GraphCommands {
         }
     }
 
+    public static class ResizeElementCommand extends UndoableGraphCommand {
+        public static final Component NAME = Component.translatable("graph.commands.resize");
+        private final PlacematModel model;
+        private final Vector2f position;
+        private final Vector2f size;
+
+        public ResizeElementCommand(PlacematModel model, Vector2f position, Vector2f size) {
+            this.model = model;
+            this.position = position;
+            this.size = size;
+        }
+
+        @Override
+        public void execute() {
+            model.setPosition(position);
+            model.setSize(size);
+        }
+
+        @Override
+        public Component getCommandName() {
+            return NAME;
+        }
+    }
+
     public static class PasteElementsCommand extends UndoableGraphCommand {
         public static final Component NAME = Component.translatable("ldlib.gui.editor.menu.paste");
         private final GraphModel.CopyPasteData data;
