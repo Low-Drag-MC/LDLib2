@@ -1,4 +1,7 @@
 # ChangeLogs
+## v26.2.2.28
+* Improved ngt qol
+
 ## v26.2.2.27.a
 * Fixed vanilla tooltip rendering missing
 

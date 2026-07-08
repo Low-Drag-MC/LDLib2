@@ -243,6 +243,19 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
 
     public void setDataTypeHandle(TypeHandle dataTypeHandle) {
         if (Objects.equals(this.dataTypeHandle, dataTypeHandle)) return;
+        // A port's UID is derived from its data type (see computePortUid), and wires persist their
+        // endpoints by port UID (WireModel#getFromPortUid) and relink via GraphModel#getModel(uid) on
+        // load. Without re-keying here, a type change would leave the in-session port under its OLD-type
+        // UID (wires stay linked in-session because the port->wire index is keyed by portId, not UID) —
+        // but a reload reconstructs the port under the NEW-type UID, so the saved wire points at the
+        // now-nonexistent old UID and is silently dropped. Re-key so the in-session identity matches what
+        // deserialization recomputes; the object-based in-session wire links are unaffected.
+        var newUid = computePortUid(nodeModel, direction, portId, portType, dataTypeHandle, parentPort);
+        if (!newUid.equals(getUid())) {
+            if (graphModel != null) graphModel.unregisterPort(this);
+            setUid(newUid);
+            if (graphModel != null) graphModel.registerPort(this);
+        }
         this.dataTypeHandle = dataTypeHandle;
         this.dataTypeCache = null;
         if (isPolymorphic() && !isAscendable()) {
