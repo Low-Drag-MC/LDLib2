@@ -511,6 +511,8 @@
   "debugger.focus_mode.1": "click element to focus",
   "debugger.ui_shaping.0": "render ui shaping (F4)",
   "graph.commands.create_variable": "Create Variable",
+  "graph.commands.create_group": "Create Group",
+  "graph.constant": "Constant",
   "graph.inspector": "Inspector",
   "graph.preview": "Preview",
   "graph.variable_type": "Variable Type",

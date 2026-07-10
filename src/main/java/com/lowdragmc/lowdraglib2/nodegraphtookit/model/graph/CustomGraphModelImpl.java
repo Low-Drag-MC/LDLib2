@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarat
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableScope;
 import com.lowdragmc.lowdraglib2.utils.TypeUtils;
 import lombok.Getter;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;

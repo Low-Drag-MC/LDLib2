@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.group.GroupModelBase;
 import dev.vfyjxf.taffy.style.FlexDirection;
 
@@ -28,11 +30,20 @@ public class BlackboardGroup extends BlackboardElement {
         label.setText(groupModel.getName());
         Style.defaultPipeline(label.getLayout(), l -> l.heightPercent(100).flex(1));
         Style.defaultPipeline(label.getStyle(), s -> s.overflowVisible(false));
+        enableInlineRename(label);
     }
 
     @Override
     protected void buildUI() {
         addChildren(icon, label);
+    }
+
+    @Override
+    public void updateUIFromModel(ModelUpdateVisitor visitor) {
+        super.updateUIFromModel(visitor);
+        if (visitor.hasHint(ChangeHint.DATA)) {
+            label.setText(getModel().getName());
+        }
     }
 
     @Override

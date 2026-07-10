@@ -1,14 +1,9 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.blackboard;
 
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib2.configurator.accessors.EnumAccessor;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorSelectorConfigurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
-import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
@@ -20,12 +15,10 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphInspector;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.VariableDeclarationCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.VariableDeclarationConfigurableHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarationModelBase;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.AlignItems;
@@ -34,12 +27,9 @@ import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -73,6 +63,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
         Style.defaultPipeline(icon.getLayout(), l -> l.aspectRatio(1).height(9));
         label.addClass("__blackboard-var-prop_label__");
         Style.defaultPipeline(label.getTextStyle(), s -> s.adaptiveWidth(true));
+        enableInlineRename(label);
         collapseToggle.addClass("__blackboard-var-prop_collapse-toggle__");
         collapseToggle.getLayout().height(9);
         collapseToggle.noText().setOnToggleChanged(this::setCollapsed);
@@ -190,83 +181,7 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
     }
 
     protected IConfigurable createVariableConfigurable() {
-        return IConfigurable.create(group -> {
-            var rename = new StringConfigurator("graph.variable_name", () -> getModel().getName(),
-                    name -> getModel().setName(name),  getModel().getName(), true);
-            var defaultValue = new ConfiguratorGroup("graph.default_value").setCollapse(false);
-            getModel().buildConfigurator(defaultValue);
-            var subGraphConfigurator = new ConfiguratorSelectorConfigurator<>(
-                    "graph.variable_type",
-                    () -> getModel().getModifiers() == ModifierFlags.NONE ? VariableType.INTERNAL : VariableType.EXTERNAL,
-                    type -> {
-                        if (graphView == null) return;
-                        graphView.dispatchCommand(new VariableDeclarationCommands.ChangeVariableModifiersCommand(
-                                List.of(getModel()),
-                                type == VariableType.INTERNAL ? ModifierFlags.NONE : getDefaultSubgraphPortModifier()
-                        ));
-                    },
-                    VariableType.INTERNAL,
-                    true,
-                    getVariableTypeCandidates(),
-                    VariableType::getSerializedName,
-                    (type, configuratorGroup) -> {
-                        if (type == VariableType.EXTERNAL) {
-                            var portCandidates = getSubGraphPortCandidates();
-                            configuratorGroup.addConfigurator(EnumAccessor.create(
-                                    "graph.flow_direction",
-                                    portCandidates,
-                                    () -> getSelectedSubGraphPort(portCandidates),
-                                    io -> {
-                                        if (graphView == null) return;
-                                        graphView.dispatchCommand(new VariableDeclarationCommands.ChangeVariableModifiersCommand(
-                                                List.of(getModel()),
-                                                toModifier(io)
-                                        ));
-                                    },
-                                    portCandidates.isEmpty() ? SubGraphPort.INPUT : portCandidates.get(0),
-                                    true,
-                                    SubGraphPort::getIcon
-                            ));
-                        }
-                    }
-            );
-            group.addConfigurators(rename, defaultValue, subGraphConfigurator);
-        });
-    }
-
-    private List<VariableType> getVariableTypeCandidates() {
-        if (getSubGraphPortCandidates().isEmpty()) {
-            return List.of(VariableType.INTERNAL);
-        }
-        return Arrays.stream(VariableType.values()).toList();
-    }
-
-    private List<SubGraphPort> getSubGraphPortCandidates() {
-        var graphModel = getModel().getGraphModel();
-        if (graphModel == null) return List.of();
-        var supportedKinds = graphModel.getSupportedSubgraphVariableKinds();
-        var candidates = new ArrayList<SubGraphPort>();
-        if (supportedKinds.contains(VariableKind.INPUT)) candidates.add(SubGraphPort.INPUT);
-        if (supportedKinds.contains(VariableKind.OUTPUT)) candidates.add(SubGraphPort.OUTPUT);
-        return candidates;
-    }
-
-    private ModifierFlags getDefaultSubgraphPortModifier() {
-        var candidates = getSubGraphPortCandidates();
-        if (candidates.isEmpty()) return ModifierFlags.NONE;
-        return toModifier(candidates.get(0));
-    }
-
-    private SubGraphPort getSelectedSubGraphPort(List<SubGraphPort> candidates) {
-        var modifiers = getModel().getModifiers();
-        var selected = modifiers.hasFlag(ModifierFlags.WRITE) && !modifiers.hasFlag(ModifierFlags.READ)
-                ? SubGraphPort.OUTPUT : SubGraphPort.INPUT;
-        if (candidates.contains(selected)) return selected;
-        return candidates.isEmpty() ? SubGraphPort.INPUT : candidates.get(0);
-    }
-
-    private ModifierFlags toModifier(SubGraphPort io) {
-        return io == SubGraphPort.INPUT ? ModifierFlags.READ : ModifierFlags.WRITE;
+        return VariableDeclarationConfigurableHelper.build(getModel(), graphView);
     }
 
     public IConfigurable getVariableConfigurable() {
@@ -278,33 +193,5 @@ public class BlackboardVariableProperty extends BlackboardElement implements Sea
     @Override
     protected void onSelectionInspect(GraphInspector inspector) {
         inspector.inspect(getVariableConfigurable());
-    }
-
-    private enum VariableType implements StringRepresentable {
-        INTERNAL,
-        EXTERNAL;
-
-        @Override
-        public String getSerializedName() {
-            return this == INTERNAL ? "graph.variable_type.internal" : "graph.variable_type.external";
-        }
-    }
-
-    private enum SubGraphPort implements StringRepresentable {
-        INPUT(new TextTexture("I")),
-        OUTPUT(new TextTexture("O"));
-
-        @Getter
-        public final IGuiTexture icon;
-
-        SubGraphPort(IGuiTexture icon) {
-            this.icon = icon;
-        }
-
-        @Override
-        public String getSerializedName() {
-            return this == INPUT ? "input" : "output";
-        }
-
     }
 }
