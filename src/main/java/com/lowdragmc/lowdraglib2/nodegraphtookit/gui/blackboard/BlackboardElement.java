@@ -61,7 +61,8 @@ public class BlackboardElement extends ModelElement {
         var field = new TextField();
         inlineRenameField = field;
         field.setText(initial == null ? "" : initial, false);
-        Style.defaultPipeline(field.getLayout(), l -> l.flex(1).height(10));
+        // minWidth keeps the field usable — without it the adaptive-width label's slot collapses to ~0.
+        Style.defaultPipeline(field.getLayout(), l -> l.flex(1).minWidth(80).height(10));
 
         final boolean[] done = {false};
         Runnable commit = () -> {

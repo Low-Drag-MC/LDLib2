@@ -358,9 +358,19 @@ public class SceneEditor extends UIElement implements IScene {
                 var lookAt = renderer.getLookAt();
                 var worldUp = renderer.getWorldUp();
                 var lookDir = new Vector3f(lookAt).sub(eyePos);
-                var cross = new Vector3f(lookDir).cross(worldUp).normalize();
-                lookDir = new Vector3f(lookDir).rotate(new Quaternionf(new AxisAngle4f((float) Math.toRadians(-event.deltaY + 360), cross)));
-                lookDir = new Vector3f(lookDir).rotate(new Quaternionf(new AxisAngle4f((float) Math.toRadians(-event.deltaX + 360), worldUp)));
+                var cross = new Vector3f(lookDir).cross(worldUp);
+                if (cross.lengthSquared() < 1.0e-6f) {
+                    // looking (near) straight up/down: cross is degenerate, recover with a stable horizontal axis
+                    cross.set(1, 0, 0);
+                }
+                cross.normalize();
+                // clamp pitch so the look direction never reaches the poles (avoids gimbal-lock flicker/spin)
+                var minPitchAngle = 0.5f;
+                var pitchToUp = (float) Math.toDegrees(lookDir.angle(worldUp));
+                var newPitchToUp = Mth.clamp(pitchToUp + event.deltaY, minPitchAngle, 180f - minPitchAngle);
+                var pitchAngle = pitchToUp - newPitchToUp;
+                lookDir = new Vector3f(lookDir).rotate(new Quaternionf(new AxisAngle4f((float) Math.toRadians(pitchAngle), cross)));
+                lookDir = new Vector3f(lookDir).rotate(new Quaternionf(new AxisAngle4f((float) Math.toRadians(-event.deltaX), worldUp)));
                 var center = new Vector3f(eyePos).add(new Vector3f(lookDir));
                 scene.setCenter(center);
                 Vector3f pos = new Vector3f(eyePos).sub(lookAt);
@@ -434,7 +444,8 @@ public class SceneEditor extends UIElement implements IScene {
                 var realMoveSpeed = moveSpeed * guiContext.partialTick * (isShiftDown() ? 5 : 1);
                 var forward = new Vector3f(lookDir).normalize().mul(realMoveSpeed);
                 var right = new Vector3f(lookDir).cross(worldUp).normalize().mul(realMoveSpeed);
-                var up = new Vector3f(worldUp).normalize().mul(realMoveSpeed);
+                // camera up (screen up), perpendicular to the look direction, so it tilts with the camera pitch
+                var up = new Vector3f(right).cross(forward).normalize().mul(realMoveSpeed);
                 if (_forward) { // move forward
                     eyePos.add(forward);
                     lookAt.add(forward);
