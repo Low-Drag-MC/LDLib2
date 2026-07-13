@@ -22,4 +22,6 @@ public class ItemLibraryItem {
     @Getter @Setter
     @ToString.Include
     protected IItemLibraryData data;
+
+    public ItemLibraryItem() {}
 }
