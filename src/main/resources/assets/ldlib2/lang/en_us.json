@@ -130,6 +130,7 @@
   "editor.camera.mode": "Camera Mode",
   "editor.camera.perspective": "Persp",
   "editor.camera.ortho": "Ortho",
+  "editor.gizmo.space": "Gizmo Space (Local / Global)",
   "editor.inspector.history": "Inspect (%s)",
   "editor.edit_color": "Edit Color",
   "editor.open": "Open",

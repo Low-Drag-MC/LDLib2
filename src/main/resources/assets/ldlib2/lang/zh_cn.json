@@ -130,6 +130,7 @@
   "editor.camera.mode": "摄像机模式",
   "editor.camera.perspective": "透视 (Persp)",
   "editor.camera.ortho": "正交 (Ortho)",
+  "editor.gizmo.space": "坐标系 (本地 / 世界)",
   "editor.inspector.history": "检查 (%s)",
   "editor.edit_color": "编辑颜色",
   "editor.open": "打开",

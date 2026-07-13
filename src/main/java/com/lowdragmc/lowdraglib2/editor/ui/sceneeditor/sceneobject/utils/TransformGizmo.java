@@ -3,35 +3,84 @@ package com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor;
-import com.lowdragmc.lowdraglib2.math.Ray;
-import com.lowdragmc.lowdraglib2.math.Transform;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInteractable;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
-import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.math.Ray;
+import com.lowdragmc.lowdraglib2.math.Transform;
+import com.lowdragmc.lowdraglib2.utils.Vector3fHelper;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * A Unity-style transform gizmo (move / rotate / scale) rendered on top of the scene.
+ * <p>
+ * The gizmo has no transform of its own that matters for rendering: it is drawn and picked entirely from
+ * {@link #gizmoMatrix()} = {@code translate(targetPos) * rotate(orientation) * scale(screenConstant)}, so it
+ * always sits on the target, faces the chosen {@link Space}, and keeps a constant on-screen size. Dragging is
+ * resolved geometrically against the mouse ray (closest-point-on-axis for translate/scale, ray-vs-plane angle
+ * for rotate) so the handle tracks the cursor exactly and rotation is independent of camera distance.
+ */
+@OnlyIn(Dist.CLIENT)
 public class TransformGizmo extends SceneObject implements ISceneRendering, ISceneInteractable {
     public enum Mode {
+        NONE,
         TRANSLATE,
         ROTATE,
         SCALE
     }
+
+    public enum Space {
+        LOCAL,
+        GLOBAL
+    }
+
+    /** Which handle a hover/drag is targeting. */
+    private enum Handle {
+        AXIS_X(0, false), AXIS_Y(1, false), AXIS_Z(2, false),
+        PLANE_X(0, true), PLANE_Y(1, true), PLANE_Z(2, true);
+        final int axis;      // 0=X, 1=Y, 2=Z
+        final boolean plane; // true = planar handle, false = axis handle
+        Handle(int axis, boolean plane) { this.axis = axis; this.plane = plane; }
+    }
+
+    // gizmo geometry, authored in gizmo-units (a constant screen scale is applied on top)
+    private static final float BASE_SCALE = 0.23f;
+    private static final float AXIS_LENGTH = 1.0f;
+    private static final float SHAFT_RADIUS = 0.02f;
+    private static final float ARROW_RADIUS = 0.07f;
+    private static final float ARROW_HEIGHT = 0.22f;
+    private static final float PLANE_MIN = 0.12f;
+    private static final float PLANE_MAX = 0.32f;
+    private static final float SCALE_SHAFT_LENGTH = 0.9f;
+    private static final float SCALE_BOX_HALF = 0.08f;
+    private static final float RING_RADIUS = 1.0f;
+    private static final int RING_SEGMENTS = 64;
+    private static final int ARC_SEGMENTS = 48;
+    private static final int SHAFT_SEGMENTS = 12;
+
+    // snapping increments (Ctrl held)
+    private static final float SNAP_TRANSLATE = 0.25f;
+    private static final float SNAP_SCALE = 0.25f;
+    private static final float SNAP_ROTATE = (float) Math.toRadians(15);
+
     private static final VoxelShape xAxisCollider = Shapes.box(0, -0.1, -0.1, 1.2, 0.1, 0.1);
     private static final VoxelShape xPlaneCollider = Shapes.box(0, 0.1, 0.1, 0.01, 0.3, 0.3);
     private static final VoxelShape yAxisCollider = Shapes.box(-0.1, 0, -0.1, 0.1, 1.2, 0.1);
@@ -39,15 +88,11 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private static final VoxelShape zAxisCollider = Shapes.box(-0.1, -0.1, 0, 0.1, 0.1, 1.2);
     private static final VoxelShape zPlaneCollider = Shapes.box(0.1, 0.1, 0, 0.3, 0.3, 0.01);
     private static final VoxelShape xRingCollider = createRingCollisionBox(
-            new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), 1.0, 16, 0.1
-    );
+            new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), 1.0, 16, 0.1);
     private static final VoxelShape yRingCollider = createRingCollisionBox(
-            new Vector3f(0, 0, 0), new Vector3f(0, 1, 0), 1.0, 16, 0.1
-    );
+            new Vector3f(0, 0, 0), new Vector3f(0, 1, 0), 1.0, 16, 0.1);
     private static final VoxelShape zRingCollider = createRingCollisionBox(
-            new Vector3f(0, 0, 0), new Vector3f(0, 0, 1), 1.0, 16, 0.1
-    );
-
+            new Vector3f(0, 0, 0), new Vector3f(0, 0, 1), 1.0, 16, 0.1);
 
     @Nullable
     @Getter
@@ -56,199 +101,291 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     @Setter
     private Runnable onTransformChanged;
 
-    //runtime
     @Getter
-    @Setter
     @Nonnull
-    private Mode mode = Mode.TRANSLATE;
-    private boolean isMovingX, isMovingY, isMovingZ, isMovingXPlane, isMovingYPlane, isMovingZPlane;
-    private Vector3f moveDirection;
-    private Vector3f startPosition;
-    private Vector3f diffPosition;
-    private Vector2f startMouse;
+    private Mode mode = Mode.NONE;
+    @Getter
+    @Nonnull
+    private Space space = Space.LOCAL;
+    @Getter
+    private boolean enabled = true;
+
+    // runtime
+    @Nullable
+    private Handle hoverHandle;
+    @Nullable
+    private Handle dragHandle;
+    // drag state, all captured at drag start (world space)
+    private Vector3f dragAxis;          // unit world axis / plane normal
+    private Vector3f dragStartPosition; // target world position at grab
+    private Quaternionf dragStartRotation;
+    private Vector3f dragStartScale;    // target local scale at grab
+    private Vector3f dragGrabOffset;    // plane drag: grabbed hit - center
+    private float dragStartParam;       // axis translate/scale: along-axis distance at grab
+    private Vector3f dragStartHandleDir; // rotate: unit grabbed direction from center (world)
+    private float dragRotateAccum;      // rotate: continuous accumulated angle (unwrapped, unsnapped)
+    private float dragPrevRaw;          // rotate: previous frame's raw signed angle (for unwrapping)
+    private float dragRotateAngle;      // rotate: applied/displayed angle (possibly snapped)
+    @Nullable
+    @Getter
+    private String readoutText;         // transient HUD text shown while dragging
+
+    // ---------------------------------------------------------------------------------------------
+    // state / lifecycle
+    // ---------------------------------------------------------------------------------------------
 
     public void setTargetTransform(@Nullable Transform targetTransform) {
         if (this.targetTransform == targetTransform) return;
+        endDrag();
         this.targetTransform = targetTransform;
-        if (targetTransform != null) {
-            transform().position(targetTransform.position());
-            transform().rotation(targetTransform.rotation());
-        }
     }
 
-    public boolean isMoving() {
-        return isMovingX || isMovingY || isMovingZ;
+    public void setMode(@Nonnull Mode mode) {
+        if (this.mode == mode) return;
+        this.mode = mode;
+        endDrag();
     }
 
-    public boolean isMovingPlane() {
-        return isMovingXPlane || isMovingYPlane || isMovingZPlane;
+    public void setSpace(@Nonnull Space space) {
+        if (this.space == space) return;
+        this.space = space;
+        endDrag();
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!isActive()) endDrag();
     }
 
     public boolean hasTargetTransform() {
         return targetTransform != null;
     }
 
-    public boolean isHoverPlane(Direction.Axis axis) {
-        var scene = getScene();
-        if (scene instanceof SceneEditor editor && targetTransform != null) {
-            return editor.getMouseRay()
-                    .map(ray -> ray.worldToLocal(transform()).toInfinite())
-                    .map(ray -> switch (axis) {
-                        case X -> ray.clip(xPlaneCollider) != null;
-                        case Y -> ray.clip(yPlaneCollider) != null;
-                        case Z -> ray.clip(zPlaneCollider) != null;
-                    }).orElse(false);
-        }
-        return false;
+    /** The single source of truth for whether the gizmo should render and accept interaction. */
+    public boolean isActive() {
+        return enabled && targetTransform != null && mode != Mode.NONE;
     }
 
-    public boolean isHoverAxis(Direction.Axis axis) {
-        var scene = getScene();
-        if (scene instanceof SceneEditor editor && targetTransform != null) {
-            return switch (mode) {
-                case TRANSLATE -> editor.getMouseRay()
-                        .map(ray -> ray.worldToLocal(transform()).toInfinite())
-                        .map(ray -> switch (axis) {
-                            case X -> ray.clip(xAxisCollider) != null;
-                            case Y -> ray.clip(yAxisCollider) != null;
-                            case Z -> ray.clip(zAxisCollider) != null;
-                        }).orElse(false);
-                case ROTATE -> editor.getMouseRay()
-                        .map(ray -> ray.worldToLocal(transform()).toInfinite())
-                        .map(ray -> switch (axis) {
-                            case X -> ray.clip(xRingCollider) != null;
-                            case Y -> ray.clip(yRingCollider) != null;
-                            case Z -> ray.clip(zRingCollider) != null;
-                        }).orElse(false);
-                case SCALE -> editor.getMouseRay()
-                        .map(ray -> ray.worldToLocal(transform()).toInfinite())
-                        .map(ray -> {
-                            if (targetTransform == null) return false;
-                            var scale = targetTransform.scale();
-                            return switch (axis) {
-                                case X -> ray.clip(Shapes.box(
-                                        Math.min(0.2 + scale.x, 0), -0.1, -0.1,
-                                        Math.max(0.2 + scale.x, 0), 0.1, 0.1)) != null;
-                                case Y -> ray.clip(Shapes.box(
-                                        -0.1, Math.min(0.2 + scale.y, 0), -0.1,
-                                        0.1, Math.max(0.2 + scale.y, 0), 0.1)) != null;
-                                case Z -> ray.clip(Shapes.box(
-                                        -0.1, -0.1, Math.min(0.2 + scale.z, 0),
-                                        0.1, 0.1, Math.max(0.2 + scale.z, 0))) != null;
-                            };
-                        }).orElse(false);
-            };
-        }
-        return false;
+    public boolean isDragging() {
+        return dragHandle != null;
     }
+
+    /** The gizmo orientation in world space. Scale is always local; translate/rotate honour {@link Space}. */
+    private Quaternionf orientation() {
+        if (targetTransform == null) return new Quaternionf();
+        if (mode == Mode.SCALE || space == Space.LOCAL) {
+            return targetTransform.rotation();
+        }
+        return new Quaternionf();
+    }
+
+    private float computeGizmoScale() {
+        if (targetTransform == null || !(getScene() instanceof SceneEditor editor)) return 1f;
+        var renderer = editor.scene.getRenderer();
+        if (renderer == null) return 1f;
+        var distance = renderer.getEyePos().distance(targetTransform.position());
+        return distance * (float) Math.tan(renderer.getFov() * 0.5f * Math.PI / 180) * BASE_SCALE;
+    }
+
+    /** translate(targetPos) * rotate(orientation) * scale(screenConstant); shared by render and picking. */
+    private Matrix4f gizmoMatrix() {
+        if (targetTransform == null) return new Matrix4f();
+        return new Matrix4f()
+                .translate(targetTransform.position())
+                .rotate(orientation())
+                .scale(computeGizmoScale());
+    }
+
+    private Vector3f localAxis(int idx) {
+        return switch (idx) {
+            case 0 -> new Vector3f(1, 0, 0);
+            case 1 -> new Vector3f(0, 1, 0);
+            default -> new Vector3f(0, 0, 1);
+        };
+    }
+
+    private Vector3f worldAxis(int idx) {
+        return orientation().transform(localAxis(idx)).normalize();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // picking
+    // ---------------------------------------------------------------------------------------------
+
+    /** Transform a world-space ray into gizmo-local space (where the colliders live). */
+    private Ray toGizmoSpace(Ray ray) {
+        return ray.transform(gizmoMatrix().invert()).toInfinite();
+    }
+
+    private void updateHover() {
+        hoverHandle = null;
+        if (!isActive() || !(getScene() instanceof SceneEditor editor)) return;
+        var worldRay = editor.getMouseRay().orElse(null);
+        if (worldRay == null) return;
+        var ray = toGizmoSpace(worldRay);
+        if (mode == Mode.TRANSLATE) {
+            if (ray.clip(xPlaneCollider) != null) { hoverHandle = Handle.PLANE_X; return; }
+            if (ray.clip(yPlaneCollider) != null) { hoverHandle = Handle.PLANE_Y; return; }
+            if (ray.clip(zPlaneCollider) != null) { hoverHandle = Handle.PLANE_Z; return; }
+        }
+        VoxelShape xc, yc, zc;
+        if (mode == Mode.ROTATE) {
+            xc = xRingCollider; yc = yRingCollider; zc = zRingCollider;
+        } else { // TRANSLATE or SCALE
+            xc = xAxisCollider; yc = yAxisCollider; zc = zAxisCollider;
+        }
+        if (ray.clip(xc) != null) hoverHandle = Handle.AXIS_X;
+        else if (ray.clip(yc) != null) hoverHandle = Handle.AXIS_Y;
+        else if (ray.clip(zc) != null) hoverHandle = Handle.AXIS_Z;
+    }
+
+    @Override
+    public boolean onMouseClick(Ray mouseRay) {
+        if (!isActive()) return false;
+        updateHover();
+        if (hoverHandle == null) return false;
+        dragHandle = hoverHandle;
+        beginDrag(mouseRay);
+        return true;
+    }
+
+    private void beginDrag(Ray worldRay) {
+        assert targetTransform != null && dragHandle != null;
+        var center = targetTransform.position();
+        dragStartPosition = new Vector3f(center);
+        dragStartRotation = targetTransform.rotation();
+        dragStartScale = new Vector3f(targetTransform.localScale());
+        dragAxis = worldAxis(dragHandle.axis);
+        dragRotateAccum = 0;
+        dragPrevRaw = 0;
+        dragRotateAngle = 0;
+        readoutText = null;
+
+        var origin = worldRay.startPos();
+        var dir = worldRay.getDirection();
+        if (dragHandle.plane) {
+            var hit = rayPlaneIntersect(origin, dir, center, dragAxis);
+            dragGrabOffset = hit == null ? new Vector3f() : new Vector3f(hit).sub(center);
+        } else if (mode == Mode.ROTATE) {
+            var hit = rayPlaneIntersect(origin, dir, center, dragAxis);
+            var handleDir = hit == null ? new Vector3f() : new Vector3f(hit).sub(center);
+            if (handleDir.lengthSquared() < 1.0e-9f) {
+                // fallback: any vector perpendicular to the axis
+                handleDir = perpendicular(dragAxis);
+            }
+            dragStartHandleDir = handleDir.normalize();
+        } else { // axis translate / scale
+            var closest = Vector3fHelper.closestPointOnLine(origin, dir, center, dragAxis);
+            dragStartParam = new Vector3f(closest).sub(center).dot(dragAxis);
+        }
+    }
+
+    @Override
+    public void onMouseRelease(Ray mouseRay) {
+        endDrag();
+    }
+
+    private void endDrag() {
+        dragHandle = null;
+        dragAxis = null;
+        dragStartPosition = null;
+        dragStartRotation = null;
+        dragStartScale = null;
+        dragGrabOffset = null;
+        dragStartHandleDir = null;
+        dragStartParam = 0;
+        dragRotateAccum = 0;
+        dragPrevRaw = 0;
+        dragRotateAngle = 0;
+        readoutText = null;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // drag resolution (runs per frame)
+    // ---------------------------------------------------------------------------------------------
 
     @Override
     @OnlyIn(Dist.CLIENT)
     public void updateFrame(float partialTicks) {
         super.updateFrame(partialTicks);
-        if (getScene() instanceof SceneEditor editor && editor.getModularUI() != null) {
-            var renderer = editor.scene.getRenderer();
-            if (renderer == null) return;
-            var distance = renderer.getEyePos().distance(transform().position());
-            float baseScale = 0.23F;
-            float gizmoScale = distance * (float) Math.tan(renderer.getFov() * 0.5f * Math.PI / 180) * baseScale;
-//            if (lastScale != gizmoScale) {
-//                transform().scale(new Vector3f(gizmoScale));
-//                lastScale = gizmoScale;
-//            }
-            if (targetTransform == null) return;
-            var hasChanged = false;
-            if (!transform().position().equals(targetTransform.position())) {
-                transform().position(targetTransform.position());
-            }
-            if (!transform().rotation().equals(targetTransform.rotation())) {
-                transform().rotation(targetTransform.rotation());
-            }
-            if (isMovingPlane()) {
-                Vector3f planeNormal = moveDirection;
-                Vector3f point = startPosition;
-
-                var ray = editor.getMouseRay().orElse(null);
-                if (ray == null) return;
-                var origin = ray.startPos();
-                var direction = ray.getDirection();
-
-                float denominator = direction.dot(planeNormal);
-                if (Math.abs(denominator) < 1e-6f) {
-                    return;
-                }
-                Vector3f originToPoint = new Vector3f(point).sub(origin);
-                float t = originToPoint.dot(planeNormal) / denominator;
-                Vector3f intersectionPoint = new Vector3f(origin).add(new Vector3f(direction).mul(t)).sub(startPosition);
-                Vector3f newPosition = new Vector3f(startPosition).add(intersectionPoint);
-                if (diffPosition == null) {
-                    diffPosition = new Vector3f(newPosition).sub(transform().position());
-                }
-                newPosition = newPosition.sub(diffPosition);
-                transform().position(newPosition);
-                targetTransform.position(newPosition);
-                hasChanged = true;
-            } else if (isMoving()) {
-                var lastMouseX = editor.getModularUI().getLastMouseX();
-                var lastMouseY = editor.getModularUI().getLastMouseY();
-                var currentPosition = transform().position();
-
-                var moveD = transform().localToWorldMatrix().transformDirection(new Vector3f(moveDirection));
-                var screenStart = editor.project(currentPosition);
-                var screenEnd = editor.project(new Vector3f(currentPosition).add(moveD));
-                if (screenStart.isEmpty() || screenEnd.isEmpty()) return;
-                var screenAxis = new Vector2f(screenEnd.get()).sub(screenStart.get());
-
-                if (screenAxis.length() > 0) {
-                    screenAxis.normalize();
-                } else {
-                    return;
-                }
-
-                assert editor.getModularUI() != null;
-                var mouseDelta = new Vector2f(lastMouseX, lastMouseY).sub(startMouse);
-                if (mode == Mode.ROTATE) {
-                    mouseDelta.set(-mouseDelta.y, mouseDelta.x);
-                }
-                var projectedLength = mouseDelta.dot(screenAxis);
-                if (projectedLength == 0) {
-                    return;
-                }
-                var distanceToCamera = renderer.getEyePos().distance(currentPosition);
-
-                var fov = renderer.getFov();
-                var screenHeight = editor.getSizeHeight();
-                float worldHeight = 2.0f * distanceToCamera * (float) Math.tan(Math.toRadians(fov / 2));
-                float pixelToWorldScale = worldHeight / screenHeight;
-                var scaleDelta = projectedLength * pixelToWorldScale;
-                if (scaleDelta == 0) {
-                    return;
-                }
-
-                if (mode == Mode.TRANSLATE) {
-                    var position = currentPosition.add(new Vector3f(moveD).mul(scaleDelta));
-                    transform().position(position);
-                    targetTransform.position(position);
-                    hasChanged = true;
-                } else if (mode == Mode.SCALE) {
-                    var localScale = targetTransform.localScale().add(new Vector3f(moveDirection).mul(scaleDelta));
-                    targetTransform.localScale(localScale);
-                    hasChanged = true;
-                } else if (mode == Mode.ROTATE) {
-                    var localRotation = new Quaternionf(transform().localRotation());
-                    localRotation.rotateAxis(-scaleDelta, moveDirection);
-                    transform().localRotation(localRotation);
-                    targetTransform.rotation(transform().rotation());
-                    hasChanged = true;
-                }
-
-                startMouse.set(lastMouseX, lastMouseY);
-            }
-            if (hasChanged && onTransformChanged != null) {
-                onTransformChanged.run();
-            }
+        if (targetTransform == null || !(getScene() instanceof SceneEditor editor)) {
+            endDrag();
+            return;
+        }
+        if (dragHandle != null) {
+            editor.getMouseRay().ifPresent(this::applyDrag);
+        } else {
+            updateHover();
         }
     }
+
+    private void applyDrag(Ray worldRay) {
+        assert targetTransform != null && dragHandle != null;
+        var origin = worldRay.startPos();
+        var dir = worldRay.getDirection();
+        var snap = UIElement.isCtrlDown();
+        var changed = false;
+
+        if (dragHandle.plane) {
+            var hit = rayPlaneIntersect(origin, dir, dragStartPosition, dragAxis);
+            if (hit != null) {
+                var newPos = new Vector3f(hit).sub(dragGrabOffset);
+                if (snap) snapVector(newPos, SNAP_TRANSLATE);
+                targetTransform.position(newPos);
+                readoutText = fmt(new Vector3f(newPos).sub(dragStartPosition));
+                changed = true;
+            }
+        } else if (mode == Mode.ROTATE) {
+            var hit = rayPlaneIntersect(origin, dir, dragStartPosition, dragAxis);
+            if (hit != null) {
+                var currentDir = new Vector3f(hit).sub(dragStartPosition);
+                if (currentDir.lengthSquared() > 1.0e-9f) {
+                    currentDir.normalize();
+                    // signedAngle wraps at ±180°; unwrap the per-frame delta so rotations can exceed a half turn
+                    var raw = Vector3fHelper.signedAngle(dragStartHandleDir, currentDir, dragAxis);
+                    double d = raw - dragPrevRaw;
+                    if (d > Math.PI) d -= 2 * Math.PI;
+                    else if (d < -Math.PI) d += 2 * Math.PI;
+                    dragPrevRaw = raw;
+                    dragRotateAccum += (float) d;
+                    var angle = snap ? Math.round(dragRotateAccum / SNAP_ROTATE) * SNAP_ROTATE : dragRotateAccum;
+                    dragRotateAngle = angle;
+                    var delta = new Quaternionf().fromAxisAngleRad(dragAxis.x, dragAxis.y, dragAxis.z, angle);
+                    targetTransform.rotation(delta.mul(dragStartRotation, new Quaternionf()));
+                    readoutText = "%.1f°".formatted(Math.toDegrees(angle));
+                    changed = true;
+                }
+            }
+        } else if (mode == Mode.TRANSLATE) {
+            var closest = Vector3fHelper.closestPointOnLine(origin, dir, dragStartPosition, dragAxis);
+            var delta = new Vector3f(closest).sub(dragStartPosition).dot(dragAxis) - dragStartParam;
+            if (snap) delta = Math.round(delta / SNAP_TRANSLATE) * SNAP_TRANSLATE;
+            var newPos = new Vector3f(dragStartPosition).add(new Vector3f(dragAxis).mul(delta));
+            targetTransform.position(newPos);
+            readoutText = fmt(new Vector3f(dragAxis).mul(delta));
+            changed = true;
+        } else if (mode == Mode.SCALE) {
+            var closest = Vector3fHelper.closestPointOnLine(origin, dir, dragStartPosition, dragAxis);
+            var worldDelta = new Vector3f(closest).sub(dragStartPosition).dot(dragAxis) - dragStartParam;
+            var gizmoScale = computeGizmoScale();
+            var delta = gizmoScale > 1.0e-6f ? worldDelta / gizmoScale : worldDelta; // measure in gizmo-units
+            var idx = dragHandle.axis;
+            var newComp = dragStartScale.get(idx) + delta;
+            if (snap) newComp = Math.round(newComp / SNAP_SCALE) * SNAP_SCALE;
+            var newScale = new Vector3f(dragStartScale).setComponent(idx, newComp);
+            targetTransform.localScale(newScale);
+            readoutText = fmt(newScale);
+            changed = true;
+        }
+
+        if (changed && onTransformChanged != null) {
+            onTransformChanged.run();
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // rendering
+    // ---------------------------------------------------------------------------------------------
 
     @Override
     public void preDraw(float partialTicks) {
@@ -262,257 +399,202 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     @Override
     @OnlyIn(Dist.CLIENT)
+    public void draw(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
+        if (targetTransform == null) return;
+        poseStack.pushPose();
+        poseStack.mulPose(gizmoMatrix());
+        drawInternal(poseStack, bufferSource, partialTicks);
+        poseStack.popPose();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
     public void drawInternal(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
         if (targetTransform == null) return;
-        var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
-        RenderSystem.disableDepthTest();
-
-        var isHoverXPlane = isHoverPlane(Direction.Axis.X);
-        var isHoverYPlane = !isHoverXPlane && isHoverPlane(Direction.Axis.Y);
-        var isHoverZPlane = !isHoverXPlane && !isHoverYPlane && isHoverPlane(Direction.Axis.Z);
-        var isHoverPlane = isHoverXPlane || isHoverYPlane || isHoverZPlane;
-
-        var isHoverX = !isHoverPlane && isHoverAxis(Direction.Axis.X);
-        var isHoverY = !isHoverPlane && !isHoverX && isHoverAxis(Direction.Axis.Y);
-        var isHoverZ = !isHoverPlane && !isHoverX && !isHoverY && isHoverAxis(Direction.Axis.Z);
-
-        var xColor = 0xFFFF0000;
-        var yColor = 0xFF00FF00;
-        var zColor = 0xFF0000FF;
-        var xR = ColorUtils.red(xColor);
-        var xG = ColorUtils.green(xColor);
-        var xB = ColorUtils.blue(xColor);
-        var xA = ColorUtils.alpha(xColor);
-        var yR = ColorUtils.red(yColor);
-        var yG = ColorUtils.green(yColor);
-        var yB = ColorUtils.blue(yColor);
-        var yA = ColorUtils.alpha(yColor);
-        var zR = ColorUtils.red(zColor);
-        var zG = ColorUtils.green(zColor);
-        var zB = ColorUtils.blue(zColor);
-        var zA = ColorUtils.alpha(zColor);
-        if (mode == Mode.SCALE || mode == Mode.TRANSLATE) {
-            var scale = targetTransform.scale();
-            if (isMovingX || isHoverX) {
-                xR = 1;
-                xG = 1;
-                xB = 1;
-                xA = 1;
-            }
-            if (isMovingY || isHoverY) {
-                yR = 1;
-                yG = 1;
-                yB = 1;
-                yA = 1;
-            }
-            if (isMovingZ || isHoverZ) {
-                zR = 1;
-                zG = 1;
-                zB = 1;
-                zA = 1;
-            }
-            // draw x axis
-            RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(mode == Mode.TRANSLATE ? 1 : scale.x, 0, 0),
-                    xR, xG, xB, xA, xR, xG, xB, xA);
-            if (isMovingX) {
-                RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(-50, 0, 0), new Vector3f(50, 0, 0),
-                        1, 1, 1, 1, 1, 1, 1, 1);
-            }
-            // draw y axis
-            RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, mode == Mode.TRANSLATE ? 1 : scale.y, 0),
-                    yR, yG, yB, yA, yR, yG, yB, yA);
-            if (isMovingY) {
-                RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, -50, 0), new Vector3f(0, 50, 0),
-                        1, 1, 1, 1, 1, 1, 1, 1);
-            }
-            // draw z axis
-            RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, 0), new Vector3f(0, 0, mode == Mode.TRANSLATE ? 1 : scale.z),
-                    zR, zG, zB, zA, zR, zG, zB, zA);
-            if (isMovingZ) {
-                RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(0, 0, -50), new Vector3f(0, 0, 50),
-                        1, 1, 1, 1, 1, 1, 1, 1);
-            }
-
-            if (mode == Mode.TRANSLATE) {
-                // draw arrow
-                buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
-                RenderSystem.disableDepthTest();
-
-                // draw x arrow
-                RenderBufferUtils.shapeCone(poseStack, buffer, 1, 0, 0, 0.05f, 0.15f, 10,
-                        xR, xG, xB, xA, Direction.Axis.X);
-                RenderBufferUtils.shapeCircle(poseStack, buffer, 1, 0, 0, 0.05f, 10,
-                        xR, xG, xB, xA, Direction.Axis.X);
-                // draw y arrow
-                RenderBufferUtils.shapeCone(poseStack, buffer, 0, 1, 0, 0.05f, 0.15f, 10,
-                        yR, yG, yB, yA, Direction.Axis.Y);
-                RenderBufferUtils.shapeCircle(poseStack, buffer, 0, 1, 0, 0.05f, 10,
-                        yR, yG, yB, yA, Direction.Axis.Y);
-                // draw z arrow
-                RenderBufferUtils.shapeCone(poseStack, buffer, 0, 0, 1, 0.05f, 0.15f, 10,
-                        zR, zG, zB, zA, Direction.Axis.Z);
-                RenderBufferUtils.shapeCircle(poseStack, buffer, 0, 0, 1, 0.05f, 10,
-                        zR, zG, zB, zA, Direction.Axis.Z);
-                xR = 1f;
-                xG = 1f;
-                xB = 1f;
-                xA = 1f;
-                yR = 1f;
-                yG = 1f;
-                yB = 1f;
-                yA = 1f;
-                zR = 1f;
-                zG = 1f;
-                zB = 1f;
-                zA = 1f;
-                if (!isMovingXPlane && !isHoverXPlane || isMoving() || isHoverX) {
-                    xG = 0;
-                    xB = 0;
-                }
-                if (!isMovingYPlane && !isHoverYPlane || isMoving() || isHoverY) {
-                    yR = 0;
-                    yB = 0;
-                }
-                if (!isMovingZPlane && !isHoverZPlane || isMoving() || isHoverZ) {
-                    zR = 0;
-                    zG = 0;
-                }
-                RenderSystem.depthMask(true);
-                // draw x surface
-                RenderBufferUtils.drawCubeFace(poseStack, buffer, 0, 0.1f, 0.1f, 0, 0.3f, 0.3f,
-                        xR, xG, xB, xA, false);
-                // draw y surface
-                RenderBufferUtils.drawCubeFace(poseStack, buffer, 0.1f, 0, 0.1f, 0.3f, 0, 0.3f,
-                        yR, yG, yB, yA, false);
-                // draw z surface
-                RenderBufferUtils.drawCubeFace(poseStack, buffer, 0.1f, 0.1f, 0, 0.3f, 0.3f, 0,
-                        zR, zG, zB, zA, false);
-            }
-
-            if (mode == Mode.SCALE) {
-                // draw box
-                buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
-                RenderSystem.disableDepthTest();
-
-                // draw x box
-                RenderBufferUtils.drawCubeFace(poseStack, buffer, scale.x - 0.05f, -0.05f, -0.05f, scale.x + 0.05f, 0.05f, 0.05f,
-                        xR, xG, xB, xA, true);
-                // draw y box
-                RenderBufferUtils.drawCubeFace(poseStack, buffer, -0.05f, scale.y - 0.05f, -0.05f, 0.05f, scale.y + 0.05f, 0.05f,
-                        yR, yG, yB, yA, true);
-                // draw z box
-                RenderBufferUtils.drawCubeFace(poseStack, buffer, -0.05f, -0.05f, scale.z - 0.05f, 0.05f, 0.05f, scale.z + 0.05f,
-                        zR, zG, zB, zA, true);
-            }
+        switch (mode) {
+            case TRANSLATE -> drawTranslate(poseStack, bufferSource);
+            case SCALE -> drawScale(poseStack, bufferSource);
+            case ROTATE -> drawRotate(poseStack, bufferSource);
+            default -> { return; }
         }
-
-        if (mode == Mode.ROTATE) {
-            if (isMovingX || isHoverX) {
-                xR = 1;
-                xG = 1;
-                xB = 1;
-                xA = 1;
-            }
-            if (isMovingY || isHoverY) {
-                yR = 1;
-                yG = 1;
-                yB = 1;
-                yA = 1;
-            }
-            if (isMovingZ || isHoverZ) {
-                zR = 1;
-                zG = 1;
-                zB = 1;
-                zA = 1;
-            }
-            // draw x ring
-            RenderBufferUtils.drawCircleLine(poseStack, buffer, new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), 50,
-                    1f, xR, xG, xB, xA);
-
-            // draw y ring
-            RenderBufferUtils.drawCircleLine(poseStack, buffer, new Vector3f(0, 0, 0), new Vector3f(0, 1, 0), 50,
-                    1f, yR, yG, yB, yA);
-
-            // draw z ring
-            RenderBufferUtils.drawCircleLine(poseStack, buffer, new Vector3f(0, 0, 0), new Vector3f(0, 0, 1), 50,
-                    1f, zR, zG, zB, zA);
-
-            // draw box
-            buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
-            RenderSystem.disableDepthTest();
-
-            // draw x box
-            RenderBufferUtils.drawCubeFace(poseStack, buffer, 0.95f, -0.05f, -0.05f, 1.05f, 0.05f, 0.05f,
-                    zR, zG, zB, zA, true);
-            // draw y box
-            RenderBufferUtils.drawCubeFace(poseStack, buffer, -0.05f, 0.95f, -0.05f, 0.05f, 1.05f, 0.05f,
-                    xR, xG, xB, xA, true);
-            // draw z box
-            RenderBufferUtils.drawCubeFace(poseStack, buffer, -0.05f, -0.05f, 0.95f, 0.05f, 0.05f, 1.05f,
-                    yR, yG, yB, yA, true);
-        }
-
         if (bufferSource instanceof MultiBufferSource.BufferSource source) {
             source.endLastBatch();
         }
     }
 
-    @Override
-    public boolean onMouseClick(Ray mouseRay) {
-        if (getScene() instanceof SceneEditor editor && editor.getModularUI() != null) {
-            var lastMouseX = editor.getModularUI().getLastMouseX();
-            var lastMouseY = editor.getModularUI().getLastMouseY();
-            if (mode == Mode.TRANSLATE) {
-                if (isHoverPlane(Direction.Axis.X)) {
-                    isMovingXPlane = true;
-                    startPosition = transform().position();
-                    moveDirection = transform().localToWorldMatrix().transformDirection(new Vector3f(1, 0, 0));
-                } else if (isHoverPlane(Direction.Axis.Y)) {
-                    isMovingYPlane = true;
-                    startPosition = transform().position();
-                    moveDirection = transform().localToWorldMatrix().transformDirection(new Vector3f(0, 1, 0));
-                } else if (isHoverPlane(Direction.Axis.Z)) {
-                    isMovingZPlane = true;
-                    startPosition = transform().position();
-                    moveDirection = transform().localToWorldMatrix().transformDirection(new Vector3f(0, 0, 1));
-                }
-                if (isMovingXPlane || isMovingYPlane || isMovingZPlane) {
-                    startMouse = new Vector2f(lastMouseX, lastMouseY);
-                    return true;
-                }
-            }
-            if (isHoverAxis(Direction.Axis.X)) {
-                isMovingX = true;
-                moveDirection = new Vector3f(1, 0, 0);
-                startMouse = new Vector2f(lastMouseX, lastMouseY);
-                return true;
-            } else if (isHoverAxis(Direction.Axis.Y)) {
-                isMovingY = true;
-                moveDirection = new Vector3f(0, 1, 0);
-                startMouse = new Vector2f(lastMouseX, lastMouseY);
-                return true;
-            } else if (isHoverAxis(Direction.Axis.Z)) {
-                isMovingZ = true;
-                moveDirection = new Vector3f(0, 0, 1);
-                startMouse = new Vector2f(lastMouseX, lastMouseY);
-                return true;
-            }
+    private void drawTranslate(PoseStack poseStack, MultiBufferSource bufferSource) {
+        // guide line for the active axis while dragging
+        if (dragHandle != null && !dragHandle.plane) {
+            var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+            drawInfiniteAxisLine(poseStack, line, dragHandle.axis);
         }
-        return false;
+        var buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+        for (int idx = 0; idx < 3; idx++) {
+            if (!isAxisVisible(idx)) continue;
+            var c = axisColor(idx, isAxisHighlighted(idx));
+            var axis = axisEnum(idx);
+            RenderBufferUtils.shapeCylinder(poseStack, buffer, 0, 0, 0, SHAFT_RADIUS, AXIS_LENGTH, SHAFT_SEGMENTS,
+                    c[0], c[1], c[2], c[3], axis);
+            var tip = axisPoint(idx, AXIS_LENGTH);
+            RenderBufferUtils.shapeCone(poseStack, buffer, tip.x, tip.y, tip.z, ARROW_RADIUS, ARROW_HEIGHT, 12,
+                    c[0], c[1], c[2], c[3], axis);
+            RenderBufferUtils.shapeCircle(poseStack, buffer, tip.x, tip.y, tip.z, ARROW_RADIUS, 12,
+                    c[0], c[1], c[2], c[3], axis);
+        }
+        // planar handles
+        for (int idx = 0; idx < 3; idx++) {
+            if (!isPlaneVisible(idx)) continue;
+            var c = axisColor(idx, isPlaneHighlighted(idx));
+            drawPlaneQuad(poseStack, buffer, idx, c);
+        }
     }
 
-    @Override
-    public void onMouseRelease(Ray mouseRay) {
-        isMovingX = false;
-        isMovingY = false;
-        isMovingZ = false;
-        isMovingXPlane = false;
-        isMovingYPlane = false;
-        isMovingZPlane = false;
-        startMouse = null;
-        moveDirection = null;
-        startPosition = null;
-        diffPosition = null;
+    private void drawScale(PoseStack poseStack, MultiBufferSource bufferSource) {
+        if (dragHandle != null && !dragHandle.plane) {
+            var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+            drawInfiniteAxisLine(poseStack, line, dragHandle.axis);
+        }
+        var buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+        for (int idx = 0; idx < 3; idx++) {
+            if (!isAxisVisible(idx)) continue;
+            var c = axisColor(idx, isAxisHighlighted(idx));
+            var axis = axisEnum(idx);
+            RenderBufferUtils.shapeCylinder(poseStack, buffer, 0, 0, 0, SHAFT_RADIUS, SCALE_SHAFT_LENGTH, SHAFT_SEGMENTS,
+                    c[0], c[1], c[2], c[3], axis);
+            var end = axisPoint(idx, AXIS_LENGTH);
+            RenderBufferUtils.drawCubeFace(poseStack, buffer,
+                    end.x - SCALE_BOX_HALF, end.y - SCALE_BOX_HALF, end.z - SCALE_BOX_HALF,
+                    end.x + SCALE_BOX_HALF, end.y + SCALE_BOX_HALF, end.z + SCALE_BOX_HALF,
+                    c[0], c[1], c[2], c[3], true);
+        }
+    }
+
+    private void drawRotate(PoseStack poseStack, MultiBufferSource bufferSource) {
+        var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        for (int idx = 0; idx < 3; idx++) {
+            if (!isAxisVisible(idx)) continue;
+            var c = axisColor(idx, isAxisHighlighted(idx));
+            RenderBufferUtils.drawCircleLine(poseStack, line, new Vector3f(0, 0, 0), localAxis(idx), RING_SEGMENTS,
+                    RING_RADIUS, c[0], c[1], c[2], c[3]);
+        }
+        // world-space angle indicator while rotating
+        if (dragHandle != null && dragStartHandleDir != null) {
+            drawRotateIndicator(poseStack, bufferSource);
+        }
+    }
+
+    /** Draws the translucent swept-angle sector + guide lines in world space (undoing the gizmo matrix). */
+    private void drawRotateIndicator(PoseStack poseStack, MultiBufferSource bufferSource) {
+        if (targetTransform == null) return;
+        poseStack.pushPose();
+        poseStack.mulPose(gizmoMatrix().invert()); // back to world space
+        var center = targetTransform.position();
+        var radius = RING_RADIUS * computeGizmoScale();
+        var u = new Vector3f(dragStartHandleDir);
+        var v = new Vector3f(dragAxis).cross(u, new Vector3f());
+        if (v.lengthSquared() > 1.0e-9f) v.normalize();
+
+        var tri = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+        RenderBufferUtils.shapeSector(poseStack, tri, center, u, v, radius, 0, dragRotateAngle, ARC_SEGMENTS,
+                1f, 1f, 0f, 0.35f);
+
+        var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        var startPt = new Vector3f(center).add(new Vector3f(u).mul(radius));
+        var endDir = new Vector3f(u).mul(Mth.cos(dragRotateAngle)).add(new Vector3f(v).mul(Mth.sin(dragRotateAngle)));
+        var endPt = new Vector3f(center).add(endDir.mul(radius));
+        RenderBufferUtils.drawLine(poseStack.last(), line, center, startPt, 1f, 1f, 1f, 0.5f, 1f, 1f, 1f, 0.5f);
+        RenderBufferUtils.drawLine(poseStack.last(), line, center, endPt, 1f, 1f, 0f, 1f, 1f, 1f, 0f, 1f);
+        poseStack.popPose();
+    }
+
+    private void drawInfiniteAxisLine(PoseStack poseStack, VertexConsumer buffer, int idx) {
+        var far = axisPoint(idx, 50f);
+        RenderBufferUtils.drawLine(poseStack.last(), buffer, new Vector3f(far).negate(), far,
+                1f, 1f, 1f, 0.6f, 1f, 1f, 1f, 0.6f);
+    }
+
+    private void drawPlaneQuad(PoseStack poseStack, VertexConsumer buffer, int idx, float[] c) {
+        switch (idx) {
+            case 0 -> RenderBufferUtils.drawCubeFace(poseStack, buffer, 0, PLANE_MIN, PLANE_MIN, 0, PLANE_MAX, PLANE_MAX,
+                    c[0], c[1], c[2], c[3] * 0.6f, false);
+            case 1 -> RenderBufferUtils.drawCubeFace(poseStack, buffer, PLANE_MIN, 0, PLANE_MIN, PLANE_MAX, 0, PLANE_MAX,
+                    c[0], c[1], c[2], c[3] * 0.6f, false);
+            default -> RenderBufferUtils.drawCubeFace(poseStack, buffer, PLANE_MIN, PLANE_MIN, 0, PLANE_MAX, PLANE_MAX, 0,
+                    c[0], c[1], c[2], c[3] * 0.6f, false);
+        }
+    }
+
+    private Direction.Axis axisEnum(int idx) {
+        return switch (idx) {
+            case 0 -> Direction.Axis.X;
+            case 1 -> Direction.Axis.Y;
+            default -> Direction.Axis.Z;
+        };
+    }
+
+    private Vector3f axisPoint(int idx, float len) {
+        return switch (idx) {
+            case 0 -> new Vector3f(len, 0, 0);
+            case 1 -> new Vector3f(0, len, 0);
+            default -> new Vector3f(0, 0, len);
+        };
+    }
+
+    /** @return {r, g, b, a}; highlighted handles are yellow, otherwise the per-axis colour. */
+    private float[] axisColor(int idx, boolean highlight) {
+        if (highlight) return new float[]{1f, 1f, 0f, 1f};
+        return switch (idx) {
+            case 0 -> new float[]{1f, 0f, 0f, 1f};
+            case 1 -> new float[]{0f, 1f, 0f, 1f};
+            default -> new float[]{0f, 0f, 1f, 1f};
+        };
+    }
+
+    private Handle activeHandle() {
+        return dragHandle != null ? dragHandle : hoverHandle;
+    }
+
+    private boolean isAxisHighlighted(int idx) {
+        var h = activeHandle();
+        return h != null && !h.plane && h.axis == idx;
+    }
+
+    private boolean isPlaneHighlighted(int idx) {
+        var h = activeHandle();
+        return h != null && h.plane && h.axis == idx;
+    }
+
+    private boolean isAxisVisible(int idx) {
+        return dragHandle == null || (!dragHandle.plane && dragHandle.axis == idx);
+    }
+
+    private boolean isPlaneVisible(int idx) {
+        return dragHandle == null || (dragHandle.plane && dragHandle.axis == idx);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // math helpers
+    // ---------------------------------------------------------------------------------------------
+
+    @Nullable
+    private static Vector3f rayPlaneIntersect(Vector3f origin, Vector3f dir, Vector3f planePoint, Vector3f planeNormal) {
+        var denom = dir.dot(planeNormal);
+        if (Math.abs(denom) < 1.0e-6f) return null;
+        var t = new Vector3f(planePoint).sub(origin).dot(planeNormal) / denom;
+        return new Vector3f(origin).add(new Vector3f(dir).mul(t));
+    }
+
+    private static Vector3f perpendicular(Vector3f v) {
+        var ref = Math.abs(v.x) < 0.9f ? new Vector3f(1, 0, 0) : new Vector3f(0, 1, 0);
+        return ref.cross(v).normalize();
+    }
+
+    private static void snapVector(Vector3f v, float step) {
+        v.set(Math.round(v.x / step) * step, Math.round(v.y / step) * step, Math.round(v.z / step) * step);
+    }
+
+    private static String fmt(Vector3f v) {
+        return "%.2f, %.2f, %.2f".formatted(v.x, v.y, v.z);
     }
 
     public static VoxelShape createRingCollisionBox(Vector3f center, Vector3f normal, double radius, int segments, double thickness) {
@@ -559,7 +641,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             double maxZ = Math.max(start.z, end.z) + thickness / 2;
 
             VoxelShape segmentBox = Shapes.box(minX, minY, minZ, maxX, maxY, maxZ);
-
             ringShape = Shapes.or(ringShape, segmentBox);
         }
 
