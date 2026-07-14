@@ -108,7 +108,7 @@ public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundT
         return getShaderInstance(Collections.emptySet());
     }
 
-    public LDShaderInstance getShaderInstance(Set<String> defines) {
+    public LDShaderInstance getShaderInstance(Collection<String> defines) {
         return getShaderInstance(defines, Minecraft.getInstance().getResourceManager());
     }
 

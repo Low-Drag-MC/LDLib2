@@ -171,8 +171,9 @@ dependencies {
     compileOnly("me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}")
 
     // EMI
-    compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
-    compileOnly("dev.emi:emi-neoforge:${emi_version}")
+//    compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
+//    compileOnly("dev.emi:emi-neoforge:${emi_version}")
+    compileOnly("maven.modrinth:emi:1.1.24+1.21.1+neoforge")
 
     // AE2
     localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
