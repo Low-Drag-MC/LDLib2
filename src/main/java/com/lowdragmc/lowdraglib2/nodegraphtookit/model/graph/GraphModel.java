@@ -35,6 +35,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
@@ -248,9 +249,37 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 
     /**
      * Called after the editor's current graph state has been loaded or refreshed. Implementations
-     * may emit validation diagnostics into {@code logger}.
+     * may emit validation diagnostics into {@code logger}. Overrides should call {@code super} so
+     * the built-in diagnostics (missing ports) are always reported.
      */
     public void onGraphChanged(GraphLogger logger) {
+        reportMissingPorts(logger);
+    }
+
+    /**
+     * Emit an error for every MISSING_PORT placeholder still present in the graph — each marks an
+     * unresolved connection (a broken/renamed subgraph reference, a removed port whose wire was
+     * preserved, ...) the user must resolve. Runs for every graph type so the diagnostic doesn't
+     * depend on each {@link Graph} subclass opting in.
+     */
+    protected void reportMissingPorts(GraphLogger logger) {
+        forEachMissingPort((nm, port) -> logger.error(Component.literal("Missing port ")
+                .append(port.getDisplayName())
+                .append(Component.literal(" on node "))
+                .append(nm.getTitle()), port));
+    }
+
+    /** Visits every MISSING_PORT placeholder in the graph over a snapshot, so the action may remove them. */
+    private void forEachMissingPort(BiConsumer<NodeModel, PortModel> action) {
+        for (var nodeModel : nodeModels) {
+            if (!(nodeModel instanceof NodeModel nm)) continue;
+            for (var port : new ArrayList<>(nm.getInputsById().values())) {
+                if (port.getPortType() == PortType.MISSING_PORT) action.accept(nm, port);
+            }
+            for (var port : new ArrayList<>(nm.getOutputsById().values())) {
+                if (port.getPortType() == PortType.MISSING_PORT) action.accept(nm, port);
+            }
+        }
     }
 
     /**
@@ -2593,6 +2622,43 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     PortModel fromPort = fromPortUid != null && getModel(fromPortUid) instanceof PortModel p ? p : null;
                     PortModel toPort = toPortUid != null && getModel(toPortUid) instanceof PortModel p ? p : null;
 
+                    // Recovery: a port uid drifts when the port's TYPE changed (uid hashes the type)
+                    // or the port temporarily doesn't exist (its source graph is broken/unavailable).
+                    // Re-bind by (node uid, port id) — to the real port when present, else keep the
+                    // wire alive on a missing-port placeholder that a later defineNode retypes back.
+                    boolean fromRecovered = false;
+                    boolean toRecovered = false;
+                    if (fromPort == null) {
+                        fromPort = resolveWireEndpointFallback(wireTag, false);
+                        fromRecovered = fromPort != null;
+                    }
+                    if (toPort == null) {
+                        toPort = resolveWireEndpointFallback(wireTag, true);
+                        toRecovered = toPort != null;
+                    }
+
+                    // A recovered endpoint was RETYPED. Compatible per the graph's own rule → the
+                    // re-bind stands (matches in-session getReusablePort behavior). Incompatible →
+                    // the wire is neither deleted nor left as an illegal connection: the recovered
+                    // side parks on a TYPE-CONFLICT placeholder ("the port matching this wire's
+                    // type is missing") for the user to resolve; it migrates back automatically if
+                    // a compatible type returns.
+                    if ((fromRecovered || toRecovered) && fromPort != null && toPort != null
+                            && !fromPort.getPortType().equals(PortType.MISSING_PORT)
+                            && !toPort.getPortType().equals(PortType.MISSING_PORT)
+                            && !canAssignTo(toPort, fromPort)) {
+                        LDLib2.LOGGER.warn("Wire {} re-bound by port id but the retyped ports are no longer compatible ({} -> {}) — parking on a type-conflict placeholder.",
+                                wireModel.getUid(), fromPort.getDataTypeHandle(), toPort.getDataTypeHandle());
+                        if (fromRecovered && fromPort.getNodeModel() instanceof NodeModel fromNode) {
+                            fromPort = fromNode.getOrCreateTypeConflictPlaceholder(
+                                    PortDirection.OUTPUT, fromPort.getPortId());
+                        }
+                        if (toRecovered && toPort.getNodeModel() instanceof NodeModel toNode) {
+                            toPort = toNode.getOrCreateTypeConflictPlaceholder(
+                                    PortDirection.INPUT, toPort.getPortId());
+                        }
+                    }
+
                     if (fromPort == null || toPort == null) {
                         LDLib2.LOGGER.warn("Skipping wire {} with unresolvable ports (from={}, to={})",
                                 wireModel.getUid(), fromPortUid, toPortUid);
@@ -2656,9 +2722,46 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // failure isn't a meaningful event for them. Type-mismatch port-drops are already
         // handled by step 5 above (the wire's referenced port UID no longer resolves).
         dropWiresOnFailedInputConstants();
+
+        // 9. Orphan missing-port sweep. A MISSING_PORT placeholder exists ONLY to keep a wire
+        // alive (recovery fallback / type-conflict parking) — a missing port with no connected
+        // wire is meaningless. This happens when a wire's recovery creates a placeholder on one
+        // endpoint but the wire is then skipped because the OTHER endpoint stayed unresolvable
+        // (step 5), or a step-8 drop removed the last wire. Enforce the invariant: no wire ⇒ no
+        // missing port.
+        removeOrphanMissingPorts();
+    }
+
+    /** Drop every MISSING_PORT placeholder that no longer carries a wire (see step 9). */
+    private void removeOrphanMissingPorts() {
+        forEachMissingPort((nm, port) -> {
+            if (port.getConnectedWires().isEmpty()) nm.removeUnusedMissingPort(port);
+        });
     }
 
     protected void onNodeModelsReset() {
+    }
+
+    /**
+     * Load-time wire recovery for one endpoint whose port UID didn't resolve: re-bind by the
+     * wire's (node uid, port id) recovery keys. A real port with that id wins (covers uid drift
+     * from port retyping); otherwise a MISSING_PORT placeholder keeps the wire alive — when the
+     * port's source becomes resolvable again, {@code NodeModel.getReusablePort} retypes the
+     * placeholder in place and the wire is fully restored. Returns null when the recovery keys
+     * are absent (older saves) or the node itself is gone (the wire is then legitimately dead).
+     */
+    @Nullable
+    private PortModel resolveWireEndpointFallback(CompoundTag wireTag, boolean toSide) {
+        var nodeUid = WireModel.getNodeUidFromTag(wireTag, toSide);
+        var portId = WireModel.getPortIdFromTag(wireTag, toSide);
+        if (nodeUid == null || portId == null || portId.isEmpty()) return null;
+        if (!(getModel(nodeUid) instanceof NodeModel nodeModel)) return null;
+        var existing = toSide ? nodeModel.getInputsById().get(portId)
+                : nodeModel.getOutputsById().get(portId);
+        if (existing != null) return existing;
+        LDLib2.LOGGER.warn("Wire endpoint '{}' on node {} is unavailable — keeping the wire on a missing-port placeholder.",
+                portId, nodeModel.getClass().getSimpleName());
+        return nodeModel.addMissingPort(toSide ? PortDirection.INPUT : PortDirection.OUTPUT, portId, null);
     }
 
     private void dropWiresOnFailedInputConstants() {

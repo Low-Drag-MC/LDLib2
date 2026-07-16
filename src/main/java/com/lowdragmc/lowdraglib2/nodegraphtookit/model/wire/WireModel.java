@@ -198,9 +198,41 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
     @Override
     public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        if (fromPort != null) tag.putUUID("fromPortUid", fromPort.getUid());
-        if (toPort != null) tag.putUUID("toPortUid", toPort.getUid());
+        // Port uid is the primary key; node uid + port id are the RECOVERY keys: a port's uid hashes
+        // its type, so a retyped/vanished port used to strand the wire on load. With these, the
+        // loader re-binds by (node, portId) — to the real port if present, else a missing-port
+        // placeholder that keeps the wire alive until the port comes back.
+        if (fromPort != null) {
+            tag.putUUID("fromPortUid", fromPort.getUid());
+            tag.putString("fromPortId", fromPort.getPortId());
+            if (fromPort.getNodeModel() != null) tag.putUUID("fromNodeUid", fromPort.getNodeModel().getUid());
+        }
+        if (toPort != null) {
+            tag.putUUID("toPortUid", toPort.getUid());
+            tag.putString("toPortId", toPort.getPortId());
+            if (toPort.getNodeModel() != null) tag.putUUID("toNodeUid", toPort.getNodeModel().getUid());
+        }
         return tag;
+    }
+
+    /** The recovery node uid for one side, or null (older saves lack it). */
+    public static @Nullable UUID getNodeUidFromTag(CompoundTag tag, boolean toSide) {
+        if (tag.contains("_additional")) {
+            var additional = tag.getCompound("_additional");
+            var key = toSide ? "toNodeUid" : "fromNodeUid";
+            if (additional.contains(key)) return additional.getUUID(key);
+        }
+        return null;
+    }
+
+    /** The recovery port id for one side, or null (older saves lack it). */
+    public static @Nullable String getPortIdFromTag(CompoundTag tag, boolean toSide) {
+        if (tag.contains("_additional")) {
+            var additional = tag.getCompound("_additional");
+            var key = toSide ? "toPortId" : "fromPortId";
+            if (additional.contains(key)) return additional.getString(key);
+        }
+        return null;
     }
 
     @Override

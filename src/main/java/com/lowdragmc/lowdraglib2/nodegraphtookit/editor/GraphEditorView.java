@@ -26,6 +26,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -84,6 +85,12 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         /** Live Graph instance held by an external-dive level; {@code null} for root / local-dive. */
         @Nullable final Graph graphRef;
         @Nullable CompoundTag levelSavedTag;
+        /**
+         * Custom save routing for this level, overriding the root resolver. Needed when the dive
+         * target lives in a DIFFERENT resource library than the root graph (the root resolver's
+         * save would write it into the wrong provider).
+         */
+        @Nullable BiConsumer<IResourcePath, CompoundTag> saveHandler;
 
         Level(GraphView view, Component label, @Nullable IResourcePath externalPath, @Nullable Graph graphRef) {
             this.view = view;
@@ -193,6 +200,37 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
     }
 
     /**
+     * Pushes a navigation level editing an EXTERNAL graph that is not backed by a
+     * {@link SubgraphNodeModel} — e.g. a node referencing a graph from another resource library
+     * (a post-processing pass referencing a fullscreen shader graph). Saving that level routes
+     * through {@code saveHandler} (required — the root resolver would write into the wrong
+     * library); {@code viewFactory} lets the dive use the target graph type's own view.
+     */
+    public void enterExternalGraph(Graph innerGraph, Component label, IResourcePath externalPath,
+                                   @Nullable Supplier<? extends GraphView> viewFactory,
+                                   BiConsumer<IResourcePath, CompoundTag> saveHandler) {
+        if (innerGraph == null || externalPath == null) return;
+
+        removeChild(getCurrentView());
+
+        var newView = (viewFactory != null ? viewFactory : graphViewFactory).get();
+        newView.layout(layout -> {
+            layout.widthPercent(100);
+            layout.flex(1);
+        });
+
+        var level = new Level(newView, label, externalPath, innerGraph);
+        level.saveHandler = saveHandler;
+        levelStack.push(level);
+        attachOverlayToHeader(newView);
+        addChildren(newView);
+        newView.loadGraph(innerGraph);
+        level.levelSavedTag = serializeLevelGraph(level);
+        refreshBreadcrumb();
+        refreshSaveButton();
+    }
+
+    /**
      * Pops the navigation stack down to {@code level} (0 = root). No-op if already at that level.
      * Popped levels are discarded (their HistoryStack with them).
      */
@@ -282,13 +320,18 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         try {
             var level = getCurrentLevel();
             if (level.externalPath != null && level.graphRef != null) {
-                var resolver = graph != null ? graph.graphModel.getReferenceResolver() : null;
-                if (resolver == null) {
-                    LDLib2.LOGGER.warn("Cannot save external subgraph at {}: no resolver bound.", level.externalPath);
-                    return;
-                }
                 var tag = serializeLevelGraph(level);
-                resolver.save(level.externalPath, tag);
+                if (level.saveHandler != null) {
+                    // cross-library dive (enterExternalGraph): route around the root resolver
+                    level.saveHandler.accept(level.externalPath, tag);
+                } else {
+                    var resolver = graph != null ? graph.graphModel.getReferenceResolver() : null;
+                    if (resolver == null) {
+                        LDLib2.LOGGER.warn("Cannot save external subgraph at {}: no resolver bound.", level.externalPath);
+                        return;
+                    }
+                    resolver.save(level.externalPath, tag);
+                }
                 level.levelSavedTag = tag;
                 clearDirty();
                 return;

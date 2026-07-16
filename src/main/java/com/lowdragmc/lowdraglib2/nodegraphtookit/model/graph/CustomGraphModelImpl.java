@@ -270,6 +270,7 @@ public class CustomGraphModelImpl extends GraphModel {
 
     @Override
     public void onGraphChanged(GraphLogger logger) {
+        super.onGraphChanged(logger); // built-in diagnostics (missing ports)
         graph.onGraphChanged(logger);
     }
 
