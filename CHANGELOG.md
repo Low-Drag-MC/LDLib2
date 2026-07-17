@@ -1,4 +1,4 @@
-## v2.2.29
+## v26.1.2.29
 * Fixed EnumAccessor weekmap
 * Improved the TreeList to support reordering dragging
 * Improved ngt qol
