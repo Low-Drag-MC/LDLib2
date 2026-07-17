@@ -26,6 +26,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
 
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.context.ContextMap;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
@@ -236,7 +237,7 @@ public class LDLibJEIPlugin implements IModPlugin {
      */
     public static <T extends UIElement> void recipeSlot(T element,
                                                         Supplier<ITypedIngredient<?>> displayIngredient,
-                                                        @Nullable Supplier<List<@org.jetbrains.annotations.Nullable ITypedIngredient<?>>> allIngredients) {
+                                                        @Nullable Supplier<List<@Nullable ITypedIngredient<?>>> allIngredients) {
         element.addEventListener(JEIUIEvents.RECIPE_WIDGET, event -> {
             if (event.customData instanceof JEIRecipeWidgetHandler recipeSlot) {
                 recipeSlot.addSlot(new JEIRecipeSlotWidget(
@@ -244,7 +245,9 @@ public class LDLibJEIPlugin implements IModPlugin {
                         element::isMouseOverElement,
                         displayIngredient,
                         allIngredients,
-                        ((view, tooltip) -> tooltip.addAll(element.getStyle().tooltips().asList()))));
+                        ((view, tooltip) -> tooltip.addAll(element.getStyle().tooltips().asList())),
+                        ContextMap.EMPTY
+                        ));
             }
         });
     }

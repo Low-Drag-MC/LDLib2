@@ -24,6 +24,7 @@ import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.context.ContextMap;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.joml.Matrix3x2f;
@@ -50,6 +51,7 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
     public final Supplier<List<@Nullable ITypedIngredient<?>>> allIngredients;
     @Nullable
     private final IRecipeSlotRichTooltipCallback tooltipCallback;
+    private final ContextMap contextMap;
 
     /**
      * Constructs a new {@code DirectRecipeSlot}.
@@ -68,12 +70,14 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
                                BiPredicate<Float, Float> isMouseOver,
                                Supplier<ITypedIngredient<?>> displayedIngredient,
                                @Nullable Supplier<List<@Nullable ITypedIngredient<?>>> allIngredients,
-                               @Nullable IRecipeSlotRichTooltipCallback tooltipCallback) {
+                               @Nullable IRecipeSlotRichTooltipCallback tooltipCallback,
+                               ContextMap contextMap) {
         this.localToWorldSupplier = localToWorldSupplier;
         this.isMouseOver = isMouseOver;
         this.displayedIngredient = displayedIngredient;
         this.allIngredients = allIngredients;
         this.tooltipCallback = tooltipCallback;
+        this.contextMap = contextMap;
     }
 
     public Vector2f getWorldMouse(float mouseX, float mouseY) {
@@ -102,6 +106,11 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
 
     @Override
     public void draw(GuiGraphicsExtractor guiGraphics) {
+
+    }
+
+    @Override
+    public void draw(GuiGraphicsExtractor guiGraphics, boolean hovered) {
 
     }
 
@@ -199,7 +208,7 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
     public IIngredientAcceptor<?> createDisplayOverrides() {
         if (displayOverrides == null) {
             IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
-            displayOverrides = new DisplayIngredientAcceptor(ingredientManager);
+            displayOverrides = new DisplayIngredientAcceptor(ingredientManager, contextMap);
         }
         return displayOverrides;
     }
