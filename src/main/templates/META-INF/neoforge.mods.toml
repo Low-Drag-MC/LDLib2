@@ -49,7 +49,7 @@ side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "jei"
 type = "optional"
-versionRange = "[29.16.0.47,)"
+versionRange = "[30.12.0.69,)"
 ordering = "NONE"
 side = "CLIENT"
 
