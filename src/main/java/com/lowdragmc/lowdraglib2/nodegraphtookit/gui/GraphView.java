@@ -103,6 +103,9 @@ public class GraphView extends UIElement {
     // runtime
     @Nullable
     private GraphModel.CopyPasteData clipboardData = null;
+    /** Top-left of the copied cluster's bounding box, so paste can anchor it at the cursor. */
+    @Nullable
+    private Vector2f clipboardAnchor = null;
     private boolean requireFitGraph = false;
     @Getter
     private GraphChangeset changeset = new GraphChangeset();
@@ -1466,7 +1469,7 @@ public class GraphView extends UIElement {
             }
             case "graph.paste" -> {
                 if (clipboardData != null)
-                    yield item.withAction(this::pasteElements);
+                    yield item.withAction(() -> pasteElementsAt(localPosition));
                 yield null;
             }
             case "graph.paste_as_new" -> null; // TODO
@@ -1832,6 +1835,9 @@ public class GraphView extends UIElement {
         } else {
 
             float padding = 20f;
+            // The title bar is drawn inside the top of the placemat, so grow the top gap by its
+            // height to keep the top-most nodes clear of the title.
+            float titleBar = PlacematElement.TITLE_BAR_HEIGHT;
             float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
             float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
             for (var movable : movables) {
@@ -1844,8 +1850,8 @@ public class GraphView extends UIElement {
                 maxX = Math.max(maxX, pos.x + w);
                 maxY = Math.max(maxY, pos.y + h);
             }
-            var placematPos = new Vector2f(minX - padding, minY - padding);
-            var placematSize = new Vector2f(maxX - minX + padding * 2, maxY - minY + padding * 2);
+            var placematPos = new Vector2f(minX - padding, minY - padding - titleBar);
+            var placematSize = new Vector2f(maxX - minX + padding * 2, maxY - minY + padding * 2 + titleBar);
             dispatchCommand(new GraphCommands.CreatePlacematCommand("Placemat", placematPos, placematSize));
         }
     }
@@ -1859,6 +1865,7 @@ public class GraphView extends UIElement {
                 .toList();
         if (selectedModels.isEmpty()) return;
         clipboardData = graph.graphModel.copyElements(selectedModels, Platform.getFrozenRegistry());
+        clipboardAnchor = computeMovableAnchor(selectedModels);
     }
 
     public void cutSelectedElements() {
@@ -1866,9 +1873,44 @@ public class GraphView extends UIElement {
         deleteSelectedElements();
     }
 
+    /** Top-left corner of the given elements' bounding box, or {@code null} if none are positioned. */
+    @Nullable
+    private static Vector2f computeMovableAnchor(List<? extends GraphElementModel> models) {
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        boolean found = false;
+        for (var model : models) {
+            if (model instanceof IMovable movable) {
+                var pos = movable.getPosition();
+                minX = Math.min(minX, pos.x);
+                minY = Math.min(minY, pos.y);
+                found = true;
+            }
+        }
+        return found ? new Vector2f(minX, minY) : null;
+    }
+
+    /** Paste at the current cursor position (keyboard shortcut path). */
     public void pasteElements() {
         if (graph == null || clipboardData == null) return;
-        dispatchCommand(new GraphCommands.PasteElementsCommand(clipboardData, new Vector2f(50, 50)));
+        var mui = getModularUI();
+        Vector2f target = null;
+        if (mui != null) {
+            target = snapPosition(getContentViewContainer()
+                    .worldToLocalLayoutOffset(new Vector2f(mui.getLastMouseX(), mui.getLastMouseY())));
+        }
+        pasteElementsAt(target);
+    }
+
+    /**
+     * Pastes the clipboard so the copied cluster's top-left lands at {@code targetLocalPosition}
+     * (content-local coordinates). Falls back to a fixed offset when no target/anchor is available.
+     */
+    public void pasteElementsAt(@Nullable Vector2f targetLocalPosition) {
+        if (graph == null || clipboardData == null) return;
+        Vector2f offset = targetLocalPosition != null && clipboardAnchor != null
+                ? new Vector2f(targetLocalPosition).sub(clipboardAnchor)
+                : new Vector2f(50, 50);
+        dispatchCommand(new GraphCommands.PasteElementsCommand(clipboardData, offset));
     }
 
     public void duplicateSelectedElements() {

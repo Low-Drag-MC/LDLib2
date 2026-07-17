@@ -765,6 +765,83 @@ public class RenderBufferUtils {
         }
     }
 
+    /**
+     * Solid cylinder (open-ended tube), used as a gizmo axis shaft. The base circle is centred at
+     * {@code (x, y, z)} and the cylinder extends {@code height} along {@code axis}. Emitted as TRIANGLES.
+     */
+    public static void shapeCylinder(PoseStack poseStack, VertexConsumer buffer, float x, float y, float z,
+                                     float radius, float height, int segments,
+                                     float red, float green, float blue, float alpha, Direction.Axis axis) {
+        Matrix4f mat = poseStack.last().pose();
+        float segmentDelta = (float) (2.0 * Math.PI / segments);
+        for (int i = 0; i < segments; i++) {
+            float t0 = i * segmentDelta;
+            float t1 = (i + 1) * segmentDelta;
+            float c0 = Mth.cos(t0), s0 = Mth.sin(t0);
+            float c1 = Mth.cos(t1), s1 = Mth.sin(t1);
 
+            float b0x, b0y, b0z, b1x, b1y, b1z, t0x, t0y, t0z, t1x, t1y, t1z;
+            switch (axis) {
+                case X -> {
+                    b0x = x;          b0y = y + c0 * radius; b0z = z + s0 * radius;
+                    b1x = x;          b1y = y + c1 * radius; b1z = z + s1 * radius;
+                    t0x = x + height; t0y = b0y;             t0z = b0z;
+                    t1x = x + height; t1y = b1y;             t1z = b1z;
+                }
+                case Y -> {
+                    b0x = x + c0 * radius; b0y = y;          b0z = z + s0 * radius;
+                    b1x = x + c1 * radius; b1y = y;          b1z = z + s1 * radius;
+                    t0x = b0x;             t0y = y + height; t0z = b0z;
+                    t1x = b1x;             t1y = y + height; t1z = b1z;
+                }
+                default -> { // Z
+                    b0x = x + c0 * radius; b0y = y + s0 * radius; b0z = z;
+                    b1x = x + c1 * radius; b1y = y + s1 * radius; b1z = z;
+                    t0x = b0x;             t0y = b0y;             t0z = z + height;
+                    t1x = b1x;             t1y = b1y;             t1z = z + height;
+                }
+            }
+            // side quad as two triangles
+            buffer.addVertex(mat, b0x, b0y, b0z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, b1x, b1y, b1z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, t1x, t1y, t1z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, t1x, t1y, t1z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, t0x, t0y, t0z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, b0x, b0y, b0z).setColor(red, green, blue, alpha);
+        }
+    }
+
+    /**
+     * Filled circular sector (pie slice), triangle-fan from {@code center}, laid out in the plane spanned by the
+     * orthonormal vectors {@code u} and {@code v}. Sweeps {@code sweepAngle} radians from {@code startAngle}.
+     * Emitted double-sided so it is visible from either side of the plane (e.g. the rotation angle indicator).
+     */
+    public static void shapeSector(PoseStack poseStack, VertexConsumer buffer, Vector3f center, Vector3f u, Vector3f v,
+                                   float radius, float startAngle, float sweepAngle, int segments,
+                                   float red, float green, float blue, float alpha) {
+        Matrix4f mat = poseStack.last().pose();
+        if (segments < 1) segments = 1;
+        float step = sweepAngle / segments;
+        for (int i = 0; i < segments; i++) {
+            float a0 = startAngle + step * i;
+            float a1 = startAngle + step * (i + 1);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            float p0x = center.x + (u.x * c0 + v.x * s0) * radius;
+            float p0y = center.y + (u.y * c0 + v.y * s0) * radius;
+            float p0z = center.z + (u.z * c0 + v.z * s0) * radius;
+            float p1x = center.x + (u.x * c1 + v.x * s1) * radius;
+            float p1y = center.y + (u.y * c1 + v.y * s1) * radius;
+            float p1z = center.z + (u.z * c1 + v.z * s1) * radius;
+            // front face
+            buffer.addVertex(mat, center.x, center.y, center.z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, p0x, p0y, p0z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, p1x, p1y, p1z).setColor(red, green, blue, alpha);
+            // back face
+            buffer.addVertex(mat, center.x, center.y, center.z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, p1x, p1y, p1z).setColor(red, green, blue, alpha);
+            buffer.addVertex(mat, p0x, p0y, p0z).setColor(red, green, blue, alpha);
+        }
+    }
 
 }

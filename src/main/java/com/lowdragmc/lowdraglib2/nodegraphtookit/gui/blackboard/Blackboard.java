@@ -374,6 +374,7 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
     protected TreeBuilder.Menu createMenu() {
         var menu = TreeBuilder.Menu.start();
         menu.leaf("graph.commands.create_variable", this::createVariable);
+        menu.leaf("graph.commands.create_group", this::createGroup);
         if (!getSelectedItems().isEmpty()) {
             menu.leaf("graph.commands.delete", graphView::deleteSelectedElements);
         }
@@ -411,6 +412,23 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
                 Integer.MAX_VALUE,
                 lastVariableInfos.getModifiers(),
                 null
+        ));
+    }
+
+    /**
+     * Create a new empty group, nested into the currently selected group (or the default section).
+     */
+    public void createGroup() {
+        var graph = graphView.getGraph();
+        if (graph == null) return;
+
+        var section = graph.graphModel.getSectionModel(GraphModel.DEFAULT_SECTION_NAME);
+        var target = getTargetGroupForNewVariable(section);
+
+        graphView.dispatchCommand(new VariableDeclarationCommands.CreateGroupCommand(
+                "New Group",
+                target,
+                Integer.MAX_VALUE
         ));
     }
 

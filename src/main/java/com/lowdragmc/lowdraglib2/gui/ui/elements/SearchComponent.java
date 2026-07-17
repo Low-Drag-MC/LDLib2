@@ -154,6 +154,9 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     @Nullable
     protected RPCEmitter searchEvent;
     private int delayedHideGeneration;
+    // the anchor's on-screen position when the dialog was last positioned; used to close the dialog
+    // if the component moves (e.g. an ancestor ScrollerView scrolls) so it never lingers detached.
+    private float dialogAnchorX, dialogAnchorY;
 
     public SearchComponent(ISearchUI<T> searchUI) {
         this();
@@ -272,6 +275,13 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     public void screenTick() {
         super.screenTick();
         updateCandidatesUI();
+        // Close the dropdown if the component moved on screen since it was opened (e.g. an ancestor
+        // ScrollerView scrolled). The dialog is anchored to root and isn't clipped by the scroller, so
+        // rather than let it float detached we dismiss it. Scrolling inside the dropdown's own list does
+        // not move the component, so it stays open then.
+        if (isOpen() && (Math.abs(getPositionX() - dialogAnchorX) > 0.5f || Math.abs(getPositionY() - dialogAnchorY) > 0.5f)) {
+            hide();
+        }
     }
 
     protected void onSearchWordChanged(String word) {
@@ -445,6 +455,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                 layout.top(pos.y);
                 layout.width(Math.max(this.getSizeWidth(), 50));
             });
+            this.dialogAnchorX = getPositionX();
+            this.dialogAnchorY = getPositionY();
         }
     }
 

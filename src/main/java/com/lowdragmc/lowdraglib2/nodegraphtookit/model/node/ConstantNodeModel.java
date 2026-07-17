@@ -1,8 +1,8 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.CapsuleNodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.ConstantNodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Capabilities;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ContextualMenuItem;
@@ -13,6 +13,7 @@ import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Type;
@@ -87,7 +88,9 @@ public class ConstantNodeModel extends NodeModel implements ISingleOutputPortNod
 
     @Override
     protected void onDefineNode(NodeDefinitionScope<? extends NodeModel> scope) {
-        scope.nodeModel.addOutputPort(OUTPUT_PORT_ID, getConstant().getTypeHandle(), PortType.DEFAULT, null, null);
+        var port = scope.nodeModel.addOutputPort(OUTPUT_PORT_ID, getConstant().getTypeHandle(), PortType.DEFAULT, null, null);
+        // The port id "Output_0" is an internal identifier; show a friendlier default label instead.
+        port.setTitle(Component.translatable("graph.constant"));
     }
 
     @Override
@@ -104,6 +107,6 @@ public class ConstantNodeModel extends NodeModel implements ISingleOutputPortNod
 
     @Override
     public @Nullable GraphElement<?> createElementUI() {
-        return new CapsuleNodeElement(this);
+        return new ConstantNodeElement(this);
     }
 }

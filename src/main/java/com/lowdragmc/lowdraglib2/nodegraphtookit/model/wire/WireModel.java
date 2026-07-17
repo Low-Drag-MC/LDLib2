@@ -198,9 +198,41 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
     @Override
     public Tag serializeAdditionalNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        if (fromPort != null) tag.putString("fromPortUid", fromPort.getUid().toString());
-        if (toPort != null) tag.putString("toPortUid", toPort.getUid().toString());
+        // Port uid is the primary key; node uid + port id are the RECOVERY keys: a port's uid hashes
+        // its type, so a retyped/vanished port used to strand the wire on load. With these, the
+        // loader re-binds by (node, portId) — to the real port if present, else a missing-port
+        // placeholder that keeps the wire alive until the port comes back.
+        if (fromPort != null) {
+            tag.putString("fromPortUid", fromPort.getUid().toString());
+            tag.putString("fromPortId", fromPort.getPortId());
+            if (fromPort.getNodeModel() != null) tag.putString("fromNodeUid", fromPort.getNodeModel().getUid().toString());
+        }
+        if (toPort != null) {
+            tag.putString("toPortUid", toPort.getUid().toString());
+            tag.putString("toPortId", toPort.getPortId());
+            if (toPort.getNodeModel() != null) tag.putString("toNodeUid", toPort.getNodeModel().getUid().toString());
+        }
         return tag;
+    }
+
+    /** The recovery node uid for one side, or null (older saves lack it). */
+    public static @Nullable UUID getNodeUidFromTag(CompoundTag tag, boolean toSide) {
+        if (tag.contains("_additional")) {
+            var additional = tag.getCompound("_additional");
+            var key = toSide ? "toNodeUid" : "fromNodeUid";
+            if (additional.isPresent() && additional.get().contains(key)) return UUID.fromString(additional.get().getString(key).orElseThrow());
+        }
+        return null;
+    }
+
+    /** The recovery port id for one side, or null (older saves lack it). */
+    public static @Nullable String getPortIdFromTag(CompoundTag tag, boolean toSide) {
+        if (tag.contains("_additional")) {
+            var additional = tag.getCompound("_additional");
+            var key = toSide ? "toPortId" : "fromPortId";
+            if (additional.isPresent() && additional.get().contains(key)) return additional.get().getString(key).orElseThrow();
+        }
+        return null;
     }
 
     @Override

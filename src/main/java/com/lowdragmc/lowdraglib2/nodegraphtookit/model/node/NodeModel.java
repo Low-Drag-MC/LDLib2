@@ -5,6 +5,8 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.*;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
@@ -174,6 +176,7 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
         inputPortInfos.portsById = new OrderedPorts();
         outputPortInfos.portsById = new OrderedPorts();
 
+        retypedPortsThisDefine.clear();
         var nodeDefinitionScope = createNodeDefinitionScope();
         onDefineNode(nodeDefinitionScope);
 
@@ -182,6 +185,8 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
 
         removeObsoleteNodeOptionPorts();
         removeObsoleteWiresAndConstants();
+        reconcileTypeConflictWires();
+        retypedPortsThisDefine.clear();
 
         // Drop any pending tags that defineNode didn't consume — e.g. saved ports that no longer
         // exist in the current node definition. Leaving them would cause stale re-decode on the
@@ -321,37 +326,8 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
     protected void removeObsoleteWiresAndConstants() {
         if (inputPortInfos.previousPorts == null) return;
         var removedPortModels = new ArrayList<PortModel>();
-        for (var entry : inputPortInfos.previousPorts.entrySet()) {
-            if (inputPortInfos.portsById.containsKey(entry.getKey())) continue;
-            var portModel = entry.getValue();
-            if (!portModel.getOptions().hasFlag(PortModelOptions.NODE_OPTION)
-                    && !portModel.portType.equals(PortType.MISSING_PORT)) {
-                disconnectPort(portModel);
-                if (graphModel != null) {
-                    graphModel.unregisterPort(portModel);
-                }
-                removedPortModels.add(portModel);
-            } else if (portModel.portType.equals(PortType.MISSING_PORT) && !portModel.getConnectedWires().isEmpty()) {
-                // Prevents added missing ports that aren't obsolete yet from being overwritten by newly instantiated ports in OnDefineNode().
-                inputPortInfos.portsById.add(portModel);
-            }
-        }
-
-        for (var entry : outputPortInfos.previousPorts.entrySet()) {
-            if (outputPortInfos.portsById.containsKey(entry.getKey())) continue;
-            var portModel = entry.getValue();
-            if (!portModel.getOptions().hasFlag(PortModelOptions.NODE_OPTION)
-                    && !portModel.portType.equals(PortType.MISSING_PORT)) {
-                disconnectPort(portModel);
-                if (graphModel != null) {
-                    graphModel.unregisterPort(portModel);
-                }
-                removedPortModels.add(portModel);
-            } else if (portModel.portType.equals(PortType.MISSING_PORT) && !portModel.getConnectedWires().isEmpty()) {
-                // Prevents added missing ports that aren't obsolete yet from being overwritten by newly instantiated ports in OnDefineNode().
-                outputPortInfos.portsById.add(portModel);
-            }
-        }
+        removeObsoletePorts(inputPortInfos, removedPortModels);
+        removeObsoletePorts(outputPortInfos, removedPortModels);
 
         if (graphModel != null && !removedPortModels.isEmpty()) {
             graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.GRAPH_TOPOLOGY);
@@ -370,6 +346,55 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
         // remove expanded status for removed ports
         cleanupExpandedPortDictionary(inputPortInfos);
         cleanupExpandedPortDictionary(outputPortInfos);
+    }
+
+    /** Reconciles one direction's {@code previousPorts} that the fresh define no longer offers:
+     *  a wired real port degrades to a missing placeholder in place (transient source failure must
+     *  not destroy authored wires; a later define retypes it back) unless it merely FLIPPED direction
+     *  (drop — a same-direction wire is illegal); a wireless one is disconnected and removed; an
+     *  existing wired missing port is kept so newly instantiated ports don't overwrite it. */
+    private void removeObsoletePorts(PortInfos portInfos, List<PortModel> removedPortModels) {
+        if (portInfos.previousPorts == null) return;
+        for (var entry : portInfos.previousPorts.entrySet()) {
+            if (portInfos.portsById.containsKey(entry.getKey())) continue;
+            var portModel = entry.getValue();
+            if (!portModel.getOptions().hasFlag(PortModelOptions.NODE_OPTION)
+                    && !portModel.portType.equals(PortType.MISSING_PORT)) {
+                if (!portModel.getConnectedWires().isEmpty() && !portFlippedDirection(portModel)) {
+                    degradeToMissingPort(portModel);
+                    portInfos.portsById.add(portModel);
+                } else {
+                    disconnectPort(portModel);
+                    if (graphModel != null) {
+                        graphModel.unregisterPort(portModel);
+                    }
+                    removedPortModels.add(portModel);
+                }
+            } else if (portModel.portType.equals(PortType.MISSING_PORT) && !portModel.getConnectedWires().isEmpty()) {
+                portInfos.portsById.add(portModel);
+            }
+        }
+    }
+
+    /**
+     * True when {@code portModel} didn't merely vanish but reappeared in the OPPOSITE direction —
+     * i.e. the current define offers a port with the same id on the other side (a variable's IO
+     * reversed input⇄output, a subgraph port that flipped). Such a port must not degrade-to-missing:
+     * a wire can't legally connect two same-direction ports, so the old wire is dropped instead.
+     */
+    private boolean portFlippedDirection(PortModel portModel) {
+        var opposite = portModel.getDirection() == PortDirection.INPUT ? outputPortInfos : inputPortInfos;
+        return opposite.portsById.containsKey(portModel.getUniqueName());
+    }
+
+    /** Retype a vanished-but-wired real port into a MISSING placeholder in place — same
+     *  PortModel object, so its wires stay attached (the uid re-keys with the type). */
+    private void degradeToMissingPort(PortModel portModel) {
+        portModel.setDataTypeHandle(TypeHandles.MISSING_PORT);
+        portModel.setPortType(PortType.MISSING_PORT);
+        if (graphModel != null) {
+            graphModel.getCurrentGraphChangeDescription().addChangedModel(portModel, ChangeHint.GRAPH_TOPOLOGY);
+        }
     }
 
     private void cleanupExpandedPortDictionary(PortInfos portInfos) {
@@ -658,12 +683,94 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
             portModel = found;
         }
         if (portModel != null) {
+            var oldType = portModel.getDataTypeHandle();
+            var wasMissing = portModel.getPortType().equals(PortType.MISSING_PORT);
             portModel.setTitle(Component.translatable(portId));
             portModel.setDataTypeHandle(dataType);
             portModel.setPortType(portType);
+            // real→real RETYPE: remember it so reconcileTypeConflictWires can park wires whose
+            // expected type is no longer offered (missing→real is a revival, not a retype)
+            if (!wasMissing && !portType.equals(PortType.MISSING_PORT)
+                    && oldType != null && !oldType.equals(dataType)) {
+                retypedPortsThisDefine.add(portModel);
+            }
             return portModel;
         }
         return null;
+    }
+
+    // ---- type-conflict placeholders ------------------------------------------------------------
+
+    /**
+     * Suffix of a type-conflict placeholder's id. Unlike a plain missing port (the port is ABSENT),
+     * a type-conflict placeholder coexists with a same-name REAL port whose type no longer fits the
+     * wire — "the port matching this wire's type is missing". The suffix avoids the id collision.
+     */
+    public static final String TYPE_CONFLICT_SUFFIX = "!missing";
+
+    /** Ports whose data type changed during the current defineNode (see getReusablePort). */
+    private final List<PortModel> retypedPortsThisDefine = new ArrayList<>();
+
+    /** The parking placeholder for wires whose expected type {@code basePortId} no longer offers. */
+    public PortModel getOrCreateTypeConflictPlaceholder(PortDirection direction, String basePortId) {
+        var id = basePortId.endsWith(TYPE_CONFLICT_SUFFIX) ? basePortId : basePortId + TYPE_CONFLICT_SUFFIX;
+        var infos = getPortInfos(direction);
+        if (infos.portsById.get(id) instanceof PortModel existing) return existing;
+        return addMissingPort(direction, id, null);
+    }
+
+    /**
+     * After reconciliation: (a) wires on freshly-retyped ports that no longer satisfy the graph's
+     * {@code canAssignTo} move to a type-conflict placeholder (a MISSING_PORT, rendered red — never
+     * silently deleted, never left as an illegal connection; the user resolves it). A deliberate
+     * DIRECTION flip is handled earlier in removeObsoleteWiresAndConstants (drop). (b) placeholders
+     * whose base port offers a compatible type again migrate their wires back and disappear when empty.
+     */
+    private void reconcileTypeConflictWires() {
+        if (graphModel == null) return;
+        for (var port : retypedPortsThisDefine) {
+            for (var wire : new ArrayList<>(port.getConnectedWires())) {
+                var other = wire.getFromPort() == port ? wire.getToPort() : wire.getFromPort();
+                if (other == null || other.getPortType().equals(PortType.MISSING_PORT)) continue;
+                if (wireTypesCompatible(port, other)) continue;
+                var placeholder = getOrCreateTypeConflictPlaceholder(port.getDirection(), port.getPortId());
+                rebindWireSide(wire, port, placeholder);
+            }
+        }
+        reviveTypeConflictPlaceholders(inputPortInfos);
+        reviveTypeConflictPlaceholders(outputPortInfos);
+    }
+
+    private void reviveTypeConflictPlaceholders(PortInfos infos) {
+        for (var candidate : new ArrayList<>(infos.portsById.values())) {
+            if (!(candidate instanceof PortModel placeholder)
+                    || !placeholder.getPortType().equals(PortType.MISSING_PORT)) continue;
+            var id = placeholder.getPortId();
+            if (!id.endsWith(TYPE_CONFLICT_SUFFIX)) continue;
+            var base = infos.portsById.get(id.substring(0, id.length() - TYPE_CONFLICT_SUFFIX.length()));
+            if (!(base instanceof PortModel basePort)
+                    || basePort.getPortType().equals(PortType.MISSING_PORT)) continue;
+            for (var wire : new ArrayList<>(placeholder.getConnectedWires())) {
+                var other = wire.getFromPort() == placeholder ? wire.getToPort() : wire.getFromPort();
+                if (other == null || other.getPortType().equals(PortType.MISSING_PORT)) continue;
+                if (!wireTypesCompatible(basePort, other)) continue;
+                rebindWireSide(wire, placeholder, basePort);
+            }
+            removeUnusedMissingPort(placeholder); // gone once its last wire migrated away
+        }
+    }
+
+    /** canAssignTo for a wire between {@code endpoint} and {@code other}, resolving dest/src from
+     *  {@code endpoint}'s direction. False when there is no graph model. */
+    private boolean wireTypesCompatible(PortModel endpoint, PortModel other) {
+        if (graphModel == null) return false;
+        var toInput = endpoint.getDirection() == PortDirection.INPUT;
+        return graphModel.canAssignTo(toInput ? endpoint : other, toInput ? other : endpoint);
+    }
+
+    /** Re-point the wire side currently holding {@code current} onto {@code replacement}. */
+    private static void rebindWireSide(WireModel wire, PortModel current, PortModel replacement) {
+        wire.setPort(wire.getFromPort() == current ? WireSide.FROM : WireSide.TO, replacement);
     }
 
 
@@ -760,8 +867,21 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
             return false;
 
         graphModel.unregisterPort(portModel);
-        graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.GRAPH_TOPOLOGY);
-        return getPortInfos(portModel.getDirection()).portsById.remove(portModel);
+        var change = graphModel.getCurrentGraphChangeDescription();
+        change.addChangedModel(this, ChangeHint.GRAPH_TOPOLOGY);
+        // Report the port itself as deleted, not just the node as changed: the GraphView removes a
+        // port's UI element only when the port appears in the change set's deleted models. Without
+        // this, deleting the last wire of a missing port leaves a stale port element until reload.
+        change.addDeletedModel(portModel);
+        var portInfos = getPortInfos(portModel.getDirection());
+        boolean removed = portInfos.portsById.remove(portModel);
+        // Invalidate the cached visible-ports list. InOutPortContainerElement (subgraph nodes)
+        // renders from getVisible*ByDisplayOrder, whose orderedVisiblePorts cache is only rebuilt
+        // when empty (buildVisiblePorts) — so a removed missing port stays visible until reload
+        // otherwise. defineNode / on(Dis)connection clear it for their own edits; a standalone
+        // port removal must invalidate it too.
+        portInfos.orderedVisiblePorts.clear();
+        return removed;
     }
 
     @Override

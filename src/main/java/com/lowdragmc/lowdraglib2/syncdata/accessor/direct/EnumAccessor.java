@@ -10,6 +10,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -19,7 +20,7 @@ public class EnumAccessor implements IDirectAccessor<Enum<?>> {
 
     public static Enum<?> getEnum(Class<Enum<?>> type, String name) {
         var values = enumNameCache.computeIfAbsent(type, t -> {
-            var map = new WeakHashMap<String, Enum<?>>();
+            var map = new HashMap<String, Enum<?>>();
             for (var value : t.getEnumConstants()) {
                 String enumName = getEnumName(value);
 

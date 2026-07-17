@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.configurator.ui;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -110,7 +111,11 @@ public class ValueConfigurator<T> extends Configurator {
     public void screenTick() {
         super.screenTick();
         if (forceUpdate) {
-            onValueUpdatePassively(supplier.get());
+            try {
+                onValueUpdatePassively(supplier.get());
+            } catch (Exception e) {
+                LDLib2.LOGGER.error("Error while updating ValueConfigurator value passively", e);
+            }
         }
     }
 
