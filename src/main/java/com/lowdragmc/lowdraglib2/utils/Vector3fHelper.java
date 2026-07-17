@@ -42,4 +42,40 @@ public final class Vector3fHelper {
         return a;
     }
 
+    /**
+     * Find the point on the infinite line {@code lineOrigin + t * lineDir} that is closest to the infinite
+     * ray/line {@code rayOrigin + s * rayDir}. Used to drag a scene object along a gizmo axis so it tracks
+     * the mouse ray exactly (accounting for axis foreshortening).
+     *
+     * @param lineDir direction of the target line; need not be normalized (t is measured in its units).
+     * @return the closest point on the {@code (lineOrigin, lineDir)} line.
+     */
+    public static Vector3f closestPointOnLine(Vector3f rayOrigin, Vector3f rayDir, Vector3f lineOrigin, Vector3f lineDir) {
+        Vector3f w0 = new Vector3f(rayOrigin).sub(lineOrigin);
+        float a = rayDir.dot(rayDir);
+        float b = rayDir.dot(lineDir);
+        float c = lineDir.dot(lineDir);
+        float d = rayDir.dot(w0);
+        float e = lineDir.dot(w0);
+        float denom = a * c - b * b;
+        float t;
+        if (Math.abs(denom) < 1.0e-9f) {
+            // ray and line are (nearly) parallel: project w0 onto the line
+            t = c < 1.0e-9f ? 0f : e / c;
+        } else {
+            t = (a * e - b * d) / denom;
+        }
+        return new Vector3f(lineOrigin).add(new Vector3f(lineDir).mul(t));
+    }
+
+    /**
+     * Signed angle (radians) rotating {@code from} to {@code to} around {@code axis}, following the right-hand
+     * rule. {@code from} and {@code to} are expected to lie (roughly) in the plane whose normal is {@code axis}.
+     */
+    public static float signedAngle(Vector3f from, Vector3f to, Vector3f axis) {
+        Vector3f cross = new Vector3f(from).cross(to);
+        float angle = (float) Math.atan2(cross.length(), from.dot(to));
+        return axis.dot(cross) < 0 ? -angle : angle;
+    }
+
 }

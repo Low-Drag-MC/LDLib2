@@ -32,14 +32,16 @@ public class CapsuleNodeElement extends NodeElement {
     @Override
     protected void buildPartList() {
         parts.add(this.nodeTittle = new NodeTitleElement(getModel()));
-        if (getModel() instanceof ConstantNodeModel constantNodeModel) {
-            parts.add(this.constant = new ConstantNodeEditorElement(constantNodeModel));
-        }
     }
 
     @Override
     protected void buildUI() {
         // ABSOLUTE positioning is data-driven (node coordinates) — pin via IMPORTANT.
+        if (nodeTittle != null) {
+            Style.defaultPipeline(nodeTittle.getLayout(), l -> {
+                l.marginHorizontal(2);
+            });
+        }
         Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE));
         Style.defaultPipeline(getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER)
                 .gapAll(2)

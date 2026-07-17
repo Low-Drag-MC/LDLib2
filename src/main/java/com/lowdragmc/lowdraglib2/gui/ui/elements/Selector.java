@@ -149,6 +149,9 @@ public class Selector<T> extends BindableUIElement<T> {
 
     // runtime
     protected final Map<T, Button> candidateButtons = new HashMap<>();
+    // the anchor's on-screen position when the dialog was last positioned; used to close the dialog
+    // if the selector moves (e.g. an ancestor ScrollerView scrolls) so it never lingers detached.
+    private float dialogAnchorX, dialogAnchorY;
 
     public Selector() {
         getLayout().height(14);
@@ -363,6 +366,20 @@ public class Selector<T> extends BindableUIElement<T> {
                 layout.top(pos.y);
                 layout.width(Math.max(this.getSizeWidth(), 50));
             });
+            this.dialogAnchorX = getPositionX();
+            this.dialogAnchorY = getPositionY();
+        }
+    }
+
+    @Override
+    public void screenTick() {
+        super.screenTick();
+        // Close the dropdown if the selector moved on screen since it was opened (e.g. an ancestor
+        // ScrollerView scrolled). The dialog is anchored to root and isn't clipped by the scroller, so
+        // rather than let it float detached we dismiss it - matching native <select> / Menu behavior.
+        // Scrolling inside the dropdown's own list does not move the selector, so it stays open then.
+        if (isOpen() && (Math.abs(getPositionX() - dialogAnchorX) > 0.5f || Math.abs(getPositionY() - dialogAnchorY) > 0.5f)) {
+            hide();
         }
     }
 

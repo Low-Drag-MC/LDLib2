@@ -489,8 +489,10 @@ public class ItemLibrary extends UIElement {
         var builder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
                 .setIcon(Icons.NODE)
                 .setDisplayName(Component.translatable("graph.library.blocks")));
-        for (var blockClass : context.getSupportBlockClasses()) {
-            builder.leaf(new BlockLibraryItem(blockClass), null);
+        for (var blockType : context.getSupportBlockClasses()) {
+            var annotation = blockType.getAnnotation(NodeAttribute.class);
+            var name = annotation == null ? blockType.getSimpleName() : annotation.name();
+            builder.leaf(new BlockLibraryItem(name, blockType), null);
         }
         var root = builder.build();
         blockTree.setRoot(root);

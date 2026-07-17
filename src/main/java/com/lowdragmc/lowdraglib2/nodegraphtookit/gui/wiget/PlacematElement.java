@@ -39,6 +39,8 @@ public class PlacematElement extends GraphElement<PlacematModel> {
     /** Title font size — doubled from the default 9 so the placemat label reads as a heading. */
     private static final float TITLE_FONT_SIZE = 18f;
     private static final float TITLE_HEIGHT = 24f;
+    /** Total vertical space the title bar occupies (top inset + title height). */
+    public static final float TITLE_BAR_HEIGHT = RESIZE_BORDER + TITLE_HEIGHT; // 5 + 24 = 29
     private static final Vector2f MIN_SIZE = new Vector2f(120, 60);
     private static final Vector2f MAX_SIZE = new Vector2f(4000, 4000);
 

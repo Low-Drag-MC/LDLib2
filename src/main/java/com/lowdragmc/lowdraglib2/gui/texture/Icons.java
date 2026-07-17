@@ -153,6 +153,7 @@ public class Icons {
     public static SpriteTexture INT = icon("int");
     public static SpriteTexture LONG = icon("long");
     public static SpriteTexture STRING = icon("string");
+    public static SpriteTexture ALERT = icon("alert");
 
     static {
         registerFileIcon(IMAGE, "png", "jpg", "jpeg");

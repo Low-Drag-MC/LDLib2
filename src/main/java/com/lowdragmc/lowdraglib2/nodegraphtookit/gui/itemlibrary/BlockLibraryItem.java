@@ -19,10 +19,10 @@ public class BlockLibraryItem extends ItemLibraryItem {
     @Getter
     private final Class<? extends BlockNode> blockClass;
 
-    public BlockLibraryItem(Class<? extends BlockNode> blockClass) {
+    public BlockLibraryItem(String name, Class<? extends BlockNode> blockClass) {
         this.blockClass = blockClass;
         this.icon = Icons.NODE;
-        this.displayName = Component.literal(blockClass.getSimpleName());
-        this.searchableName = blockClass.getSimpleName();
+        this.displayName = Component.translatable(name);
+        this.searchableName = name;
     }
 }

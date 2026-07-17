@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -47,6 +48,15 @@ import java.util.function.Predicate;
 @KJSBindings
 @LDLRegister(name = "tree-list", group = "misc", registry = "ldlib2:ui_element")
 public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
+    /** Where a dragged node is dropped relative to the target row. */
+    public enum DropMode { BEFORE, INTO, AFTER }
+
+    /**
+     * A drag-reorder request: move {@link #dragged} nodes relative to {@link #target} per {@link #mode}.
+     * The consumer registered via {@link #setOnReorder(Consumer)} performs the actual model change.
+     */
+    public record ReorderRequest<N>(Set<N> dragged, N target, DropMode mode) {}
+
     @Getter @Setter
     @Configurable(name = "TreeListStyle")
     public class TreeListStyle extends Style {
@@ -126,6 +136,20 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     protected boolean staticTree = false;
     protected boolean flattenRoot = false;
     /**
+     * Opt-in drag-to-reorder. When enabled each row can be dragged onto another row to request a
+     * move (before / into / after). The move itself is performed by {@link #onReorder}; validity is
+     * gated by {@link #reorderValidator}. Default {@code false} keeps the previous behavior.
+     */
+    protected boolean draggable = false;
+    protected Consumer<ReorderRequest<NODE>> onReorder = Consumers.nop();
+    protected Predicate<ReorderRequest<NODE>> reorderValidator = Predicates.alwaysTrue();
+    /**
+     * Optional factory for the drag payload object (receives the pressed node). Lets consumers hand
+     * external drop targets a payload they recognise. Defaults to the {@link TreeList} itself.
+     */
+    @Nullable
+    protected Function<NODE, Object> dragPayloadFactory = null;
+    /**
      * When true, the TreeList and each row size to their content's max width instead of stretching
      * to the parent. Useful when embedded in a {@link ScrollerView} with horizontal scrolling so
      * that deeply-indented rows or long node labels can push the scroll container wider.
@@ -147,10 +171,27 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     protected final Set<NODE> expandedNodes = new HashSet<>();
     protected final Map<NODE, List<NODE>> displayedChildren = new HashMap<>();
 
+    // drag-reorder runtime (single source of truth for the drop indicator)
+    protected final Set<NODE> draggingNodes = new LinkedHashSet<>();
+    @Nullable
+    protected NODE dragCandidate = null;
+    @Nullable
+    protected NODE dropTargetNode = null;
+    protected DropMode dropMode = DropMode.INTO;
+    protected boolean dropValid = false;
+
     public TreeList() {
         getLayout().widthPercent(100);
         getLayout().gapAll(1);
         internalSetup();
+        // drop indicator + reorder are driven from the TreeList level so exactly one indicator
+        // ever shows and it clears automatically (no per-node residue). DRAG_ENTER/DRAG_END are
+        // capture-only in the dispatcher, so listen in the capture phase for those.
+        addEventListener(UIEvents.DRAG_ENTER, this::onDragOver, true);
+        addEventListener(UIEvents.DRAG_UPDATE, this::onDragOver);
+        addEventListener(UIEvents.DRAG_LEAVE, this::onDragLeave, true);
+        addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
+        addEventListener(UIEvents.DRAG_END, e -> clearDragState(), true);
     }
 
     public TreeList(NODE root) {
@@ -190,6 +231,31 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     public TreeList<NODE> setFlattenRoot(boolean flattenRoot) {
         this.flattenRoot = flattenRoot;
         reloadList();
+        return this;
+    }
+
+    /** Enable/disable opt-in drag-to-reorder. Rebuilds rows so the drag overlay/handlers attach. */
+    public TreeList<NODE> setDraggable(boolean draggable) {
+        this.draggable = draggable;
+        reloadList();
+        return this;
+    }
+
+    /** Callback that performs a reorder produced by dragging. The consumer owns model + history. */
+    public TreeList<NODE> setOnReorder(Consumer<ReorderRequest<NODE>> onReorder) {
+        this.onReorder = onReorder;
+        return this;
+    }
+
+    /** Predicate gating whether a hovered drop is allowed; drives the indicator color and the drop. */
+    public TreeList<NODE> setReorderValidator(Predicate<ReorderRequest<NODE>> reorderValidator) {
+        this.reorderValidator = reorderValidator;
+        return this;
+    }
+
+    /** Supplies the drag payload object (from the pressed node) so external drop targets can accept it. */
+    public TreeList<NODE> setDragPayloadFactory(@Nullable Function<NODE, Object> dragPayloadFactory) {
+        this.dragPayloadFactory = dragPayloadFactory;
         return this;
     }
 
@@ -485,6 +551,24 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         container.addEventListener(UIEvents.DOUBLE_CLICK, e -> onNodeDoubleClicked(e, node));
         container.addEventListener(UIEvents.MOUSE_ENTER, e -> hoveredNode = node, true);
         container.addEventListener(UIEvents.MOUSE_LEAVE, e -> hoveredNode = null, true);
+        if (draggable) {
+            // Overlay is a pure function of the shared drop state, so it clears itself.
+            container.style(style -> style.overlayTexture(DynamicTexture.of(() ->
+                    node == dropTargetNode ? createDraggingOverlay(dropMode, dropValid) : IGuiTexture.EMPTY)));
+            container.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+                if (e.button == 0) {
+                    dragCandidate = node;
+                }
+            });
+            container.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
+                // leaving the pressed row while the button is held begins the drag
+                if (dragCandidate == node && isMouseDown(0)) {
+                    startDragNodes(node);
+                }
+                dragCandidate = null;
+            }, true);
+            container.addEventListener(UIEvents.MOUSE_UP, e -> dragCandidate = null);
+        }
         onNodeUICreated.accept(node, container);
         return container;
     }
@@ -544,6 +628,116 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         }
     }
 
+    // ------------------------------------------------------------------ drag reorder
+
+    protected void startDragNodes(NODE pressed) {
+        if (!draggable) {
+            return;
+        }
+        draggingNodes.clear();
+        // dragging a node that is part of a multi-selection drags the whole selection
+        if (selectedNodes.contains(pressed) && selectedNodes.size() > 1) {
+            draggingNodes.addAll(selectedNodes);
+        } else {
+            draggingNodes.add(pressed);
+        }
+        dropTargetNode = null;
+        dropValid = false;
+        var ui = nodeUIs.get(pressed);
+        if (ui != null) {
+            var count = draggingNodes.size();
+            Object payload = dragPayloadFactory != null ? dragPayloadFactory.apply(pressed) : this;
+            ui.startDrag(payload, new TextTexture(count > 1 ? (count + " items") : "1 item"));
+        }
+    }
+
+    // a non-empty draggingNodes means WE own the active drag (the DragHandler is a per-UI singleton),
+    // so it is the reliable guard regardless of the (consumer-supplied) payload object.
+    protected void onDragOver(UIEvent event) {
+        if (!draggable || draggingNodes.isEmpty()) {
+            return;
+        }
+        updateDropTarget(event.x, event.y);
+    }
+
+    protected void onDragLeave(UIEvent event) {
+        // clear the indicator once the drag moves off this tree entirely (no lingering line)
+        if (draggingNodes.isEmpty()) {
+            return;
+        }
+        if (event.relatedTarget == null || !isAncestorOf(event.relatedTarget)) {
+            dropTargetNode = null;
+        }
+    }
+
+    /**
+     * Resolves the drop target from the mouse Y over row geometry (not the hovered element), so the
+     * inter-row gaps are not dead zones and a target is always found while over the list.
+     */
+    protected void updateDropTarget(float mouseX, float mouseY) {
+        if (!isMouseOver(getContentX(), getContentY(), getContentWidth(), getContentHeight(), mouseX, mouseY)) {
+            dropTargetNode = null;
+            return;
+        }
+        var rows = new ArrayList<>(nodeUIs.entrySet());
+        rows.sort(Comparator.comparingDouble(e -> e.getValue().getPositionY()));
+        if (rows.isEmpty()) {
+            dropTargetNode = null;
+            return;
+        }
+        for (int i = 0; i < rows.size(); i++) {
+            var ui = rows.get(i).getValue();
+            // extend the first row's top and each row's bottom across the gap to the next row's top
+            float top = (i == 0) ? Math.min(ui.getPositionY(), getContentY()) : ui.getPositionY();
+            float bottom = (i + 1 < rows.size())
+                    ? rows.get(i + 1).getValue().getPositionY()
+                    : ui.getPositionY() + ui.getSizeHeight();
+            if (mouseY >= top && mouseY < bottom) {
+                float y = ui.getPositionY();
+                float h = ui.getSizeHeight();
+                DropMode mode;
+                if (mouseY < y + h / 3f) {
+                    mode = DropMode.BEFORE;
+                } else if (mouseY < y + h * 2f / 3f) {
+                    mode = DropMode.INTO;
+                } else {
+                    mode = DropMode.AFTER;
+                }
+                setDropTarget(rows.get(i).getKey(), mode);
+                return;
+            }
+        }
+        // below the last row -> after the last node
+        setDropTarget(rows.get(rows.size() - 1).getKey(), DropMode.AFTER);
+    }
+
+    protected void setDropTarget(NODE node, DropMode mode) {
+        // never indicate a drop on a row that is itself being dragged
+        if (draggingNodes.contains(node)) {
+            dropTargetNode = null;
+            return;
+        }
+        dropTargetNode = node;
+        dropMode = mode;
+        dropValid = reorderValidator.test(new ReorderRequest<>(Set.copyOf(draggingNodes), node, mode));
+    }
+
+    protected void onDragPerform(UIEvent event) {
+        if (!draggable || draggingNodes.isEmpty()) {
+            return;
+        }
+        if (dropTargetNode != null && dropValid) {
+            onReorder.accept(new ReorderRequest<>(Set.copyOf(draggingNodes), dropTargetNode, dropMode));
+        }
+        clearDragState();
+    }
+
+    protected void clearDragState() {
+        draggingNodes.clear();
+        dropTargetNode = null;
+        dropValid = false;
+    }
+
     /// Template
     public static <NODE extends ITreeNode<?, ?>> UIElementProvider<NODE> iconTextTemplate(
             Function<NODE, IGuiTexture> iconMapper,
@@ -593,11 +787,21 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     }
 
     public static IGuiTexture createDraggingOverlay(int mode) {
-        return TreeListDraggingOverlays.of(mode);
+        return TreeListDraggingOverlays.of(mode, ColorPattern.T_WHITE.color);
+    }
+
+    /**
+     * Drag-reorder drop indicator whose color reflects validity: white when the drop is allowed,
+     * red when {@link #reorderValidator} rejected it. {@link DropMode#ordinal()} matches the int
+     * {@code mode} convention (0 = before/above line, 1 = into/full, 2 = after/below line).
+     */
+    public static IGuiTexture createDraggingOverlay(DropMode mode, boolean valid) {
+        return TreeListDraggingOverlays.of(mode.ordinal(),
+                valid ? ColorPattern.T_WHITE.color : ColorPattern.T_BRIGHT_RED.color);
     }
 
     public static final class TreeListDraggingOverlays {
-        private static Provider provider = mode -> IGuiTexture.EMPTY;
+        private static Provider provider = (mode, color) -> IGuiTexture.EMPTY;
 
         private TreeListDraggingOverlays() {}
 
@@ -605,23 +809,23 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
             TreeListDraggingOverlays.provider = provider;
         }
 
-        public static IGuiTexture of(int mode) {
-            return DynamicTexture.of(() -> provider.overlay(mode));
+        public static IGuiTexture of(int mode, int color) {
+            return DynamicTexture.of(() -> provider.overlay(mode, color));
         }
 
         public interface Provider {
-            IGuiTexture overlay(int mode);
+            IGuiTexture overlay(int mode, int color);
         }
     }
 
     public static final class TreeListClientTextures {
-        private static final TreeListDraggingOverlays.Provider PROVIDER = mode -> switch (mode) {
+        private static final TreeListDraggingOverlays.Provider PROVIDER = (mode, color) -> switch (mode) {
             case 0 -> GuiTexture.of((context, x, y, width, height) ->
-                    DrawerHelperClient.drawSolidRect(context, x, y - 1, width, 1, ColorPattern.T_WHITE.color));
+                    DrawerHelperClient.drawSolidRect(context, x, y - 1, width, 1, color));
             case 1 -> GuiTexture.of((context, x, y, width, height) ->
-                    DrawerHelperClient.drawSolidRect(context, x, y, width, height, ColorPattern.T_WHITE.color));
+                    DrawerHelperClient.drawSolidRect(context, x, y, width, height, color));
             case 2 -> GuiTexture.of((context, x, y, width, height) ->
-                    DrawerHelperClient.drawSolidRect(context, x, y + height, width, 1, ColorPattern.T_WHITE.color));
+                    DrawerHelperClient.drawSolidRect(context, x, y + height, width, 1, color));
             default -> IGuiTexture.EMPTY;
         };
 

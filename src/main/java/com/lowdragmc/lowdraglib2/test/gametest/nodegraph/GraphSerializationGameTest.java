@@ -56,6 +56,13 @@ public final class GraphSerializationGameTest {
     private static final String CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE = "graph_serialization_codec_port_survives_multiple_define_node";
     private static final String PORT_MISSING_ACCESSOR_WARNS_ONCE = "graph_serialization_port_missing_accessor_warns_once";
     private static final String BACKWARD_COMPAT_LEGACY_NBT = "graph_serialization_backward_compat_legacy_nbt";
+    private static final String WIRE_RECOVERY_BY_PORT_ID = "graph_serialization_wire_recovery_by_port_id";
+    private static final String ORPHAN_MISSING_PORT_REMOVED_ON_LOAD = "graph_serialization_orphan_missing_port_removed_on_load";
+    private static final String DELETING_WIRE_REMOVES_MISSING_PORT = "graph_serialization_deleting_wire_removes_missing_port";
+    private static final String VARIABLE_IO_REVERSAL_DROPS_WIRE = "graph_serialization_variable_io_reversal_drops_wire";
+    private static final String MISSING_PORT_REPORTED_TO_GRAPH_LOGGER = "graph_serialization_missing_port_reported_to_graph_logger";
+    private static final String REMOVING_MISSING_PORT_INVALIDATES_VISIBLE_CACHE = "graph_serialization_removing_missing_port_invalidates_visible_cache";
+    private static final String INCOMPATIBLE_RETYPE_PARKS_WIRE_ON_MISSING_PORT = "graph_serialization_incompatible_retype_parks_wire_on_missing_port";
 
 
     private GraphSerializationGameTest() {
@@ -82,6 +89,13 @@ public final class GraphSerializationGameTest {
         NodeGraphGameTests.registerFunction(CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE, GraphSerializationGameTest::codecPortSurvivesMultipleDefineNode);
         NodeGraphGameTests.registerFunction(PORT_MISSING_ACCESSOR_WARNS_ONCE, GraphSerializationGameTest::portMissingAccessorWarnsOnce);
         NodeGraphGameTests.registerFunction(BACKWARD_COMPAT_LEGACY_NBT, GraphSerializationGameTest::backwardCompatLegacyNbt);
+        NodeGraphGameTests.registerFunction(WIRE_RECOVERY_BY_PORT_ID, GraphSerializationGameTest::wireRecoveryByPortId);
+        NodeGraphGameTests.registerFunction(ORPHAN_MISSING_PORT_REMOVED_ON_LOAD, GraphSerializationGameTest::orphanMissingPortRemovedOnLoad);
+        NodeGraphGameTests.registerFunction(DELETING_WIRE_REMOVES_MISSING_PORT, GraphSerializationGameTest::deletingWireRemovesMissingPort);
+        NodeGraphGameTests.registerFunction(VARIABLE_IO_REVERSAL_DROPS_WIRE, GraphSerializationGameTest::variableIoReversalDropsWire);
+        NodeGraphGameTests.registerFunction(MISSING_PORT_REPORTED_TO_GRAPH_LOGGER, GraphSerializationGameTest::missingPortReportedToGraphLogger);
+        NodeGraphGameTests.registerFunction(REMOVING_MISSING_PORT_INVALIDATES_VISIBLE_CACHE, GraphSerializationGameTest::removingMissingPortInvalidatesVisibleCache);
+        NodeGraphGameTests.registerFunction(INCOMPATIBLE_RETYPE_PARKS_WIRE_ON_MISSING_PORT, GraphSerializationGameTest::incompatibleRetypeParksWireOnMissingPort);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
@@ -106,6 +120,13 @@ public final class GraphSerializationGameTest {
         NodeGraphGameTests.registerFunctionTest(event, CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE, NodeGraphGameTests.functionKey(CODEC_PORT_SURVIVES_MULTIPLE_DEFINE_NODE), testData);
         NodeGraphGameTests.registerFunctionTest(event, PORT_MISSING_ACCESSOR_WARNS_ONCE, NodeGraphGameTests.functionKey(PORT_MISSING_ACCESSOR_WARNS_ONCE), testData);
         NodeGraphGameTests.registerFunctionTest(event, BACKWARD_COMPAT_LEGACY_NBT, NodeGraphGameTests.functionKey(BACKWARD_COMPAT_LEGACY_NBT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, WIRE_RECOVERY_BY_PORT_ID, NodeGraphGameTests.functionKey(WIRE_RECOVERY_BY_PORT_ID), testData);
+        NodeGraphGameTests.registerFunctionTest(event, ORPHAN_MISSING_PORT_REMOVED_ON_LOAD, NodeGraphGameTests.functionKey(ORPHAN_MISSING_PORT_REMOVED_ON_LOAD), testData);
+        NodeGraphGameTests.registerFunctionTest(event, DELETING_WIRE_REMOVES_MISSING_PORT, NodeGraphGameTests.functionKey(DELETING_WIRE_REMOVES_MISSING_PORT), testData);
+        NodeGraphGameTests.registerFunctionTest(event, VARIABLE_IO_REVERSAL_DROPS_WIRE, NodeGraphGameTests.functionKey(VARIABLE_IO_REVERSAL_DROPS_WIRE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, MISSING_PORT_REPORTED_TO_GRAPH_LOGGER, NodeGraphGameTests.functionKey(MISSING_PORT_REPORTED_TO_GRAPH_LOGGER), testData);
+        NodeGraphGameTests.registerFunctionTest(event, REMOVING_MISSING_PORT_INVALIDATES_VISIBLE_CACHE, NodeGraphGameTests.functionKey(REMOVING_MISSING_PORT_INVALIDATES_VISIBLE_CACHE), testData);
+        NodeGraphGameTests.registerFunctionTest(event, INCOMPATIBLE_RETYPE_PARKS_WIRE_ON_MISSING_PORT, NodeGraphGameTests.functionKey(INCOMPATIBLE_RETYPE_PARKS_WIRE_ON_MISSING_PORT), testData);
     }
 
     private static void graphSerializationRoundTrip(GameTestHelper helper) {
@@ -1009,6 +1030,210 @@ public final class GraphSerializationGameTest {
         helper.succeed();
     }
 
+    /**
+     * Wire recovery by (node, portId) when the saved port UID no longer resolves. A port's uid
+     * hashes its type, so a retyped/rebuilt port drifts its uid and the primary key misses. The
+     * loader must re-bind the wire to the REAL port that still carries the same id instead of
+     * stranding it. Simulated by scrambling only the serialized {@code fromPortUid}.
+     */
+    public static void wireRecoveryByPortId(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        var graphModel = new TestGraph().graphModel;
+
+        var nodeA = graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
+        var nodeB = graphModel.createNodeModel(new TestAddNode(), new Vector2f(200, 0));
+        var aOut = nodeA.getOutputsById().get("out");
+        var bIn = nodeB.getInputsById().get("in1");
+        if (aOut == null || bIn == null) { helper.fail("test ports missing"); return; }
+        graphModel.createWire(bIn, aOut);
+        var aUid = nodeA.getUid();
+
+        var serialized = serializeGraph(graphModel, provider);
+        // Scramble only the primary key; keep fromPortId / fromNodeUid so recovery can re-bind.
+        firstWireAdditional(serialized).putString("fromPortUid", java.util.UUID.randomUUID().toString());
+
+        var graph2 = new TestGraph();
+        deserializeGraph(graph2.graphModel, serialized, provider);
+
+        assertEq(helper, "recovered wire count", 1, countNonNull(graph2.graphModel.getWireModels()));
+        var restoredWire = firstNonNull(graph2.graphModel.getWireModels());
+        if (restoredWire == null || restoredWire.getFromPort() == null) {
+            helper.fail("wire dropped instead of recovered"); return;
+        }
+        var from = restoredWire.getFromPort();
+        if (from.getPortType() == com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType.MISSING_PORT) {
+            helper.fail("wire parked on a missing placeholder instead of re-binding to the real port"); return;
+        }
+        assertEq(helper, "recovered port id", "out", from.getPortId());
+        assertEq(helper, "recovered onto node A", aUid.toString(), from.getNodeModel().getUid().toString());
+        assertEq(helper, "no stray placeholder on A", 0, countMissingPorts(findRestoredNode(graph2, aUid)));
+        helper.succeed();
+    }
+
+    /**
+     * Load-time orphan sweep: when recovery creates a missing-port placeholder on ONE endpoint but
+     * the OTHER endpoint stays unresolvable, the wire is skipped — the placeholder would otherwise
+     * linger forever with no wire. Enforce the invariant "no wire ⇒ no missing port".
+     */
+    public static void orphanMissingPortRemovedOnLoad(GameTestHelper helper) {
+        var provider = helper.getLevel().registryAccess();
+        var graphModel = new TestGraph().graphModel;
+
+        var nodeA = graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
+        var nodeB = graphModel.createNodeModel(new TestAddNode(), new Vector2f(200, 0));
+        var aOut = nodeA.getOutputsById().get("out");
+        var bIn = nodeB.getInputsById().get("in1");
+        if (aOut == null || bIn == null) { helper.fail("test ports missing"); return; }
+        graphModel.createWire(bIn, aOut);
+        var aUid = nodeA.getUid();
+
+        var serialized = serializeGraph(graphModel, provider);
+        var wireAdditional = firstWireAdditional(serialized);
+        // fromPort: unresolvable uid + an id node A does NOT define → fallback CREATES a missing
+        // output "ghostOut" on A; fromNodeUid stays A's uid so the node itself still resolves.
+        wireAdditional.putString("fromPortUid", java.util.UUID.randomUUID().toString());
+        wireAdditional.putString("fromPortId", "ghostOut");
+        // toPort: fully unresolvable (bogus node uid) → recovery returns null → the wire is skipped.
+        wireAdditional.putString("toPortUid", java.util.UUID.randomUUID().toString());
+        wireAdditional.putString("toNodeUid", java.util.UUID.randomUUID().toString());
+        wireAdditional.putString("toPortId", "ghostIn");
+
+        var graph2 = new TestGraph();
+        deserializeGraph(graph2.graphModel, serialized, provider);
+
+        // The to-side could not be resolved, so the wire is dropped...
+        assertEq(helper, "skipped wire count", 0, countNonNull(graph2.graphModel.getWireModels()));
+        // ...and the placeholder created for the from-side must NOT be left orphaned on node A.
+        var restoredA = findRestoredNode(graph2, aUid);
+        if (restoredA == null) { helper.fail("node A missing after load"); return; }
+        assertEq(helper, "orphan missing ports on A", 0, countMissingPorts(restoredA));
+        if (restoredA.getOutputsById().get("out") == null) {
+            helper.fail("real output port 'out' was lost by the sweep");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * Deleting the last wire on a MISSING_PORT placeholder must remove the port from the model AND
+     * report it as deleted, so the editor drops its UI element in place instead of leaving a stale
+     * port that only clears on reload.
+     */
+    public static void deletingWireRemovesMissingPort(GameTestHelper helper) {
+        var graphModel = new TestGraph().graphModel;
+        var nodeA = graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
+        var nodeB = graphModel.createNodeModel(new TestAddNode(), new Vector2f(200, 0));
+        var aOut = nodeA.getOutputsById().get("out");
+        var bMissing = nodeB.addMissingPort(
+                com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection.INPUT, "ghost", null);
+        var wire = graphModel.createWire(bMissing, aOut);
+        assertEq(helper, "missing port before delete", 1, countMissingPorts(nodeB));
+
+        var portUid = bMissing.getUid();
+        graphModel.deleteElements(java.util.List.of(wire));
+
+        assertEq(helper, "missing port after wire delete", 0, countMissingPorts(nodeB));
+        if (!graphModel.getCurrentGraphChangeDescription().getDeletedModels().contains(portUid)) {
+            helper.fail("removed missing port was not reported as deleted — the editor would keep a stale port element");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * Reversing a variable's external IO direction flips its node's main port between input and
+     * output. The old-direction wire can't survive the flip (it would connect two same-direction
+     * ports), so it must be DROPPED — not degraded to a lingering missing-port placeholder.
+     */
+    public static void variableIoReversalDropsWire(GameTestHelper helper) {
+        var graphModel = new TestGraph().graphModel;
+        // OUTPUT-kind variable ⇒ WRITE modifier ⇒ the variable node's main port is an INPUT.
+        var decl = (VariableDeclarationModel) graphModel.createVariable("v", float.class, 0f, VariableKind.OUTPUT);
+        var varNode = graphModel.createVariableNode(decl, new Vector2f(0, 0), null, null);
+        var producer = graphModel.createNodeModel(new TestAddNode(), new Vector2f(200, 0));
+        var pOut = producer.getOutputsById().get("out");
+        var varIn = varNode.getInputPort();
+        if (varIn == null || pOut == null) { helper.fail("variable node did not expose an input main port"); return; }
+        graphModel.createWire(varIn, pOut);
+        assertEq(helper, "wire before IO reversal", 1, countNonNull(graphModel.getWireModels()));
+
+        // Reverse the external IO: READ modifier ⇒ the main port becomes an OUTPUT.
+        decl.setModifiers(com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags.READ);
+
+        if (varNode.getOutputPort() == null) { helper.fail("main port did not flip to output"); return; }
+        assertEq(helper, "wire dropped after IO reversal", 0, countNonNull(graphModel.getWireModels()));
+        assertEq(helper, "no lingering missing port", 0, countMissingPorts(varNode));
+        helper.succeed();
+    }
+
+    /**
+     * A missing port must surface as an ERROR in the graph logger so the editor can flag the
+     * unresolved connection to the user.
+     */
+    public static void missingPortReportedToGraphLogger(GameTestHelper helper) {
+        var graphModel = new TestGraph().graphModel;
+        var node = graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
+        node.addMissingPort(com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection.INPUT, "ghost", null);
+
+        var logger = new com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.GraphLogger();
+        graphModel.onGraphChanged(logger);
+
+        var hasError = logger.getEntries().stream()
+                .anyMatch(e -> e.level() == com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.GraphLogger.Level.ERROR);
+        if (!hasError) helper.fail("missing port was not reported as an error in the graph logger");
+        helper.succeed();
+    }
+
+    /**
+     * removeUnusedMissingPort must invalidate the cached visible-ports list. Nodes that render via
+     * getVisible*ByDisplayOrder (subgraph nodes' InOutPortContainerElement) otherwise keep showing a
+     * removed missing port until reload, because buildVisiblePorts only rebuilds the cache when it is
+     * empty. Regression for the "delete wire, missing port stays" editor bug.
+     */
+    public static void removingMissingPortInvalidatesVisibleCache(GameTestHelper helper) {
+        var graphModel = new TestGraph().graphModel;
+        var node = graphModel.createNodeModel(new TestAddNode(), new Vector2f(0, 0));
+        var missing = node.addMissingPort(
+                com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection.INPUT, "ghost", null);
+        // Prime the visible-ports cache so it holds the missing port.
+        if (!node.getVisibleInputsByDisplayOrder().contains(missing)) {
+            helper.fail("precondition: missing port not in the visible list"); return;
+        }
+        // Remove it (no wires attached ⇒ eligible).
+        node.removeUnusedMissingPort(missing);
+        // The cached visible list must no longer report the removed port.
+        if (node.getVisibleInputsByDisplayOrder().contains(missing)) {
+            helper.fail("visible-ports cache still contains the removed missing port (stale cache)");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A real→real retype that makes a connected wire type-incompatible PARKS the wire on a
+     * type-conflict MISSING_PORT placeholder (preserved + flagged red, revivable) rather than
+     * dropping it — the core "external/subgraph reference changed under you" safety net. Here a
+     * variable's float→String change retypes its node's main output port, leaving the wire into a
+     * float input illegal.
+     */
+    public static void incompatibleRetypeParksWireOnMissingPort(GameTestHelper helper) {
+        var graphModel = new TestGraph().graphModel;
+        // INPUT-kind (READ) variable ⇒ the variable node's main port is a float OUTPUT.
+        var decl = (VariableDeclarationModel) graphModel.createVariable("v", float.class, 0f, VariableKind.INPUT);
+        var varNode = graphModel.createVariableNode(decl, new Vector2f(0, 0), null, null);
+        var consumer = graphModel.createNodeModel(new TestAddNode(), new Vector2f(200, 0));
+        var vOut = varNode.getOutputPort();
+        var cIn = consumer.getInputsById().get("in1");
+        if (vOut == null || cIn == null) { helper.fail("setup: missing ports"); return; }
+        graphModel.createWire(cIn, vOut);
+        assertEq(helper, "wire before retype", 1, countNonNull(graphModel.getWireModels()));
+
+        // Retype float→String: main retypes, the wire (String → float input) is now illegal → parked
+        // on a type-conflict missing-port placeholder, NOT dropped.
+        decl.setDataTypeHandle(TypeHandleHelpers.fromType(String.class));
+
+        assertEq(helper, "wire preserved (parked, not dropped)", 1, countNonNull(graphModel.getWireModels()));
+        assertEq(helper, "type-conflict placeholder created on var node", 1, countMissingPorts(varNode));
+        helper.succeed();
+    }
+
     // --- Evolution-test helpers ---
 
     /**
@@ -1097,5 +1322,30 @@ public final class GraphSerializationGameTest {
         if (!java.util.Objects.equals(expected, actual)) {
             helper.fail(label + ": expected '" + expected + "', got '" + actual + "'");
         }
+    }
+
+    /** The mutable {@code _additional} sub-tag of the graph's first serialized wire (the recovery
+     *  keys: fromPortUid/fromPortId/fromNodeUid + the to-side equivalents). */
+    private static CompoundTag firstWireAdditional(CompoundTag graphTag) {
+        var wireTag = unwrapAdditional(graphTag).getListOrEmpty("wires").getCompoundOrEmpty(0);
+        if (!wireTag.contains("_additional")) wireTag.put("_additional", new CompoundTag());
+        return wireTag.getCompoundOrEmpty("_additional");
+    }
+
+    private static WireModel firstNonNull(java.util.List<WireModel> wires) {
+        for (var w : wires) if (w != null) return w;
+        return null;
+    }
+
+    private static int countMissingPorts(com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel node) {
+        if (node == null) return -1;
+        int count = 0;
+        for (var p : node.getInputsById().values()) {
+            if (p.getPortType() == com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType.MISSING_PORT) count++;
+        }
+        for (var p : node.getOutputsById().values()) {
+            if (p.getPortType() == com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType.MISSING_PORT) count++;
+        }
+        return count;
     }
 }

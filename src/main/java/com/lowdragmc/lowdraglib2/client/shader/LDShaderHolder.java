@@ -22,7 +22,7 @@
 //import com.mojang.blaze3d.vertex.VertexFormat;
 //import dev.vfyjxf.taffy.style.AlignItems;
 //import net.minecraft.client.Minecraft;
-//import net.minecraft.client.gui.GuiGraphicsExtractor;
+//import net.minecraft.client.gui.GuiGraphics;
 //import net.minecraft.client.renderer.GameRenderer;
 //import net.minecraft.client.renderer.ShaderInstance;
 //import net.minecraft.core.HolderLookup;
@@ -30,7 +30,8 @@
 //import net.minecraft.nbt.FloatTag;
 //import net.minecraft.nbt.IntArrayTag;
 //import net.minecraft.nbt.ListTag;
-//import net.minecraft.resources.Identifier;
+//import net.minecraft.resources.ResourceLocation;
+//import net.minecraft.server.packs.resources.ResourceProvider;
 //import net.neoforged.neoforge.common.util.INBTSerializable;
 //import org.jetbrains.annotations.UnknownNullability;
 //import org.joml.*;
@@ -66,7 +67,7 @@
 //    }
 //
 //    @Nullable
-//    public static LDShaderHolder createSafe(Identifier location, VertexFormat format) {
+//    public static LDShaderHolder createSafe(ResourceLocation location, VertexFormat format) {
 //        try {
 //            return create(location, format);
 //        } catch (Throwable e) {
@@ -74,10 +75,29 @@
 //        }
 //    }
 //
-//    public static LDShaderHolder create(Identifier location, VertexFormat format) throws Throwable {
+//    @Nullable
+//    public static LDShaderHolder createSafe(ResourceProvider resourceProvider, ResourceLocation location, VertexFormat format) {
+//        try {
+//            return create(resourceProvider, location, format);
+//        } catch (Throwable e) {
+//            return null;
+//        }
+//    }
+//
+//    public static LDShaderHolder create(ResourceLocation location, VertexFormat format) throws Throwable {
+//        return create(Minecraft.getInstance().getResourceManager(), location, format);
+//    }
+//
+//    /**
+//     * As {@link #create(ResourceLocation, VertexFormat)} but reading the shader assets from an explicit
+//     * {@link ResourceProvider} (see {@link LDShaderInstance#create(ResourceProvider, ResourceLocation,
+//     * VertexFormat, java.util.Set)}) — lets callers serve shaders that are not shipped assets. The
+//     * provider is retained and reused for define-variant compiles.
+//     */
+//    public static LDShaderHolder create(ResourceProvider resourceProvider, ResourceLocation location, VertexFormat format) throws Throwable {
 //        var currentId = SHADER_ID.get();
 //        var id = SHADER_UID_DEFINE.formatted(currentId);
-//        var shaderInstance = LDShaderInstance.create(location, format, Set.of(id));
+//        var shaderInstance = LDShaderInstance.create(resourceProvider, location, format, Set.of(id));
 //        if (shaderInstance == null) return null;
 //        // if successful, increment shader id
 //        SHADER_ID.getAndIncrement();
@@ -89,13 +109,17 @@
 //    }
 //
 //    public LDShaderInstance getShaderInstance(Collection<String> defines) {
+//        return getShaderInstance(defines, Minecraft.getInstance().getResourceManager());
+//    }
+//
+//    public LDShaderInstance getShaderInstance(Collection<String> defines, ResourceProvider resourceProvider) {
 //        if (defines.isEmpty()) return baseInstance;
 //        return shadersWithDefines.computeIfAbsent(defines.stream().collect(Collectors.toUnmodifiableSet()),
 //                definesKey -> {
 //                    var defineWithUid = new LinkedHashSet<>(definesKey);
 //                    defineWithUid.addFirst(shaderUid);
 //                    try {
-//                        var shader = LDShaderInstance.create(baseInstance.shaderLocation, baseInstance.getVertexFormat(), defineWithUid);
+//                        var shader = LDShaderInstance.create(resourceProvider, baseInstance.shaderLocation, baseInstance.getVertexFormat(), defineWithUid);
 //                        if (shader == null) return baseInstance;
 //                        shader.setHolder(this);
 //                        // copy uniforms from the base instance
@@ -163,7 +187,7 @@
 //    @Nullable
 //    public CompoundTag serializeSampler(Object sampler) {
 //        CompoundTag tag = new CompoundTag();
-//        if (sampler instanceof Identifier textureLocation) {
+//        if (sampler instanceof ResourceLocation textureLocation) {
 //            tag.putString("type", "texture");
 //            tag.putString("resource", textureLocation.toString());
 //            return tag;
@@ -175,7 +199,7 @@
 //    public Object deserializeSampler(CompoundTag tag) {
 //        var type  = tag.getString("type");
 //        if (type.equals("texture")) {
-//            return Identifier.parse(tag.getString("resource"));
+//            return ResourceLocation.parse(tag.getString("resource"));
 //        }
 //        return null;
 //    }
@@ -308,7 +332,7 @@
 //    }
 //
 //    private IGuiTexture createSamplerPreview(String name) {
-//        return (GUIContext context, float x, float y, float width, float height) -> {
+//        return (GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) -> {
 //            RenderSystem.enableBlend();
 //            float imageU = 0;
 //            float imageV = 0;
@@ -328,7 +352,7 @@
 //
 //    private int getSamplerID(String name) {
 //        var sampler = samplerCache.get(name);
-//        if (sampler instanceof Identifier location) {
+//        if (sampler instanceof ResourceLocation location) {
 //            return Minecraft.getInstance().getTextureManager().getTexture(location).getId();
 //        } if (sampler instanceof RenderTarget renderTarget) {
 //            return renderTarget.getColorTextureId();
@@ -345,7 +369,7 @@
 //                    () -> samplerCache.getOrDefault(samplerName, IGuiTexture.EMPTY),
 //                    object -> setSamplerCache(samplerName, object), IGuiTexture.EMPTY, true);
 //            samplerConfigurator.setCanDropPredicate(obj -> {
-//                if (obj instanceof Identifier) return true;
+//                if (obj instanceof ResourceLocation) return true;
 //                if (obj instanceof RenderTarget) return true;
 //                return false;
 //            });
@@ -394,9 +418,9 @@
 //                            .setType(ConfigNumber.Type.INTEGER));
 //                } else if (current.length == 2) {
 //                    father.addConfigurator(new Vector2iAccessor().create(name, () -> {
-//                        var data = readInts(uniform);
-//                        return new Vector2i(data[0], data[1]);
-//                    }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y)),
+//                                var data = readInts(uniform);
+//                                return new Vector2i(data[0], data[1]);
+//                            }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y)),
 //                            true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
 //                } else if (current.length == 3) {
 //                    father.addConfigurator(new Vector3iAccessor().create(name, () -> {
@@ -450,9 +474,9 @@
 //                                ColorUtils.color(current[3], current[0], current[1], current[2]), true));
 //                    } else {
 //                        father.addConfigurator(new Vector4fAccessor().create(name, () -> {
-//                            var data = readFloats(uniform);
-//                            return new Vector4f(data[0], data[1], data[2], data[3]);
-//                        }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z, v.w)),
+//                                    var data = readFloats(uniform);
+//                                    return new Vector4f(data[0], data[1], data[2], data[3]);
+//                                }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z, v.w)),
 //                                true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
 //                    }
 //                }
