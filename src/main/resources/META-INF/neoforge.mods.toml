@@ -17,17 +17,17 @@ config="${mod_id}.mixins.json"
 file="META-INF/accesstransformer.cfg"
 
 [[dependencies.${mod_id}]]
-    modId = "neoforge"
-    type = "required"
-    versionRange = "[21.1.216,)"
-    ordering = "NONE"
-    side = "BOTH"
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.216,)"
+ordering = "NONE"
+side = "BOTH"
 [[dependencies.${mod_id}]]
-    modId = "minecraft"
-    type = "required"
-    versionRange = "${minecraft_version}"
-    ordering = "NONE"
-    side = "BOTH"
+modId = "jei"
+type = "optional"
+versionRange = "[19.39.0.368,)"
+ordering = "NONE"
+side = "CLIENT"
 
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't

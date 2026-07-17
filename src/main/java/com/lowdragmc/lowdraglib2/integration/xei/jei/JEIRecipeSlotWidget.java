@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.integration.xei.jei;
 
-import com.google.common.base.Suppliers;
 import mezz.jei.api.gui.builder.IIngredientConsumer;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
@@ -22,7 +21,6 @@ import mezz.jei.library.gui.ingredients.TagContentTooltipComponent;
 import mezz.jei.library.ingredients.DisplayIngredientAcceptor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
@@ -149,7 +147,7 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
         }
 
         IClientConfig clientConfig = Internal.getJeiClientConfigs().getClientConfig();
-        if (clientConfig.getHideSingleTagContentTooltipEnabled() && ingredients.size() == 1) {
+        if (clientConfig.hideSingleTagContentTooltipEnabled().getValue() && ingredients.size() == 1) {
             return;
         }
 
@@ -170,7 +168,7 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
 
     private <T> void addIngredientsToTooltip(ITooltipBuilder tooltip, ITypedIngredient<T> displayed) {
         IClientConfig clientConfig = Internal.getJeiClientConfigs().getClientConfig();
-        if (clientConfig.isTagContentTooltipEnabled()) {
+        if (clientConfig.tagContentTooltipEnabled().getValue()) {
             IIngredientType<T> type = displayed.getType();
 
             IJeiRuntime jeiRuntime = Internal.getJeiRuntime();
