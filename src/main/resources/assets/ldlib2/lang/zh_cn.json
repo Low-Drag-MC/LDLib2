@@ -571,5 +571,13 @@
   "graph.logger.level.info": "信息",
   "graph.logger.count": "%s 条日志",
   "resource.selector.select_resource": "选择资源",
-  "resource.selector.search": "在所有资源提供者中搜索资源，选中后将自动跳转并选中该资源"
+  "resource.selector.search": "在所有资源提供者中搜索资源，选中后将自动跳转并选中该资源",
+
+  "ldlib.gui.file_dialog.new_folder": "新建文件夹",
+  "ldlib.gui.file_dialog.rename": "重命名",
+  "ldlib.gui.file_dialog.delete": "删除",
+  "ldlib.gui.file_dialog.delete.confirm": "确定删除 \"%s\"？文件夹会连同其中的所有内容一起删除，且无法撤销。",
+  "ldlib.gui.file_dialog.name_exists": "同名文件已存在。",
+  "ldlib.gui.file_dialog.invalid_name": "该名称不能用作文件名。",
+  "ldlib.gui.file_dialog.failed": "操作失败。"
 }

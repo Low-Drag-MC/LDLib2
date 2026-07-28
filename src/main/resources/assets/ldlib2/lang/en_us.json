@@ -575,5 +575,13 @@
   "graph.logger.count": "%s logs",
 
   "resource.selector.select_resource": "Select Resource",
-  "resource.selector.search": "Search a resource among all providers, the selected one will be located and selected"
+  "resource.selector.search": "Search a resource among all providers, the selected one will be located and selected",
+
+  "ldlib.gui.file_dialog.new_folder": "New Folder",
+  "ldlib.gui.file_dialog.rename": "Rename",
+  "ldlib.gui.file_dialog.delete": "Delete",
+  "ldlib.gui.file_dialog.delete.confirm": "Delete \"%s\"? Folders are deleted with everything inside them, and this cannot be undone.",
+  "ldlib.gui.file_dialog.name_exists": "A file with that name already exists.",
+  "ldlib.gui.file_dialog.invalid_name": "That name cannot be used for a file.",
+  "ldlib.gui.file_dialog.failed": "The operation failed."
 }
