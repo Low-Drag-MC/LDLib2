@@ -574,5 +574,6 @@
   "graph.logger.level.info": "Info",
   "graph.logger.count": "%s logs",
 
-  "resource.selector.select_resource": "Select Resource"
+  "resource.selector.select_resource": "Select Resource",
+  "resource.selector.search": "Search a resource among all providers, the selected one will be located and selected"
 }

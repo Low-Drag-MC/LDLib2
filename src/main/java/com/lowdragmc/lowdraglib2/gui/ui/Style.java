@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -141,6 +142,7 @@ public abstract class Style implements IConfigurable, IPersistedSerializable {
                 .filter(slot -> slot.origin() == origin)
                 .sorted(((a, b) -> StyleSlot.compare(b, a)))
                 .map(StyleSlot::value)
+                .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null));
     }

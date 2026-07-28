@@ -30,6 +30,7 @@ import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -40,6 +41,11 @@ public class Dialog extends UIElement {
     public final UIElement titleBar;
     public final UIElement contentContainer;
     public final UIElement buttonContainer;
+    /**
+     * Elements displayed outside the dialog's element tree, but logically belonging to it.
+     * @see #addExternalElement(UIElement)
+     */
+    private final List<UIElement> externalElements = new ArrayList<>();
     private boolean autoClose = true;
     private boolean clickOutsideClose = false;
     @Nullable
@@ -135,7 +141,7 @@ public class Dialog extends UIElement {
 
     protected void mouseDown(UIEvent event) {
         if (clickOutsideClose && autoClose && !overlay.isSelfOrChildHover()) {
-            if (isInsideDialog()) {
+            if (isInsideDialog() || isExternalElementInteracted(null)) {
                 return;
             }
             close();
@@ -148,6 +154,9 @@ public class Dialog extends UIElement {
             return;
         }
         if (isInsideDialog()) { // focus on sibling popup/menu
+            return;
+        }
+        if (isExternalElementInteracted(event.relatedTarget)) { // interacting with an external popup of this dialog
             return;
         }
 
@@ -174,6 +183,25 @@ public class Dialog extends UIElement {
                 }
             }
         }
+    }
+
+    /**
+     * Registers an element that is displayed outside the dialog's element tree, e.g. the dropdown of a
+     * {@link SearchComponent}, which is anchored to the root element. Such an element is considered as a part of the
+     * dialog, so that interacting with it won't dismiss the dialog even if the auto close is enabled.
+     */
+    public Dialog addExternalElement(UIElement element) {
+        externalElements.add(element);
+        return this;
+    }
+
+    private boolean isExternalElementInteracted(@Nullable UIElement focused) {
+        for (var element : externalElements) {
+            if (element.isSelfOrChildHover() || element.isAncestorOf(focused)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isInsideDialog() {

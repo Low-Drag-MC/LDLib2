@@ -92,14 +92,18 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
 
     protected void showTextureDialog(UIEvent event) {
         var previous = getValue();
-        TexturesResource.INSTANCE.getResourceInstance().createSelectorDialog(event.x, event.y, texture -> {
+        var resourceInstance = TexturesResource.INSTANCE.getResourceInstance();
+        // a texture referencing a resource knows its path, otherwise look the raw texture up in the resources.
+        var selected = previous instanceof UIResourceTexture resourceTexture ?
+                resourceTexture.getResourcePath() : resourceInstance.findResourcePath(previous);
+        resourceInstance.createSelectorDialog(event.x, event.y, texture -> {
             onValueUpdatePassively(texture);
             updateValue();
         }, () -> {
             if (previous == null) return;
             onValueUpdatePassively(previous);
             updateValue();
-        }).show(getModularUI());
+        }, selected).show(getModularUI());
     }
 
     protected void onDropObject(@Nullable Object object) {

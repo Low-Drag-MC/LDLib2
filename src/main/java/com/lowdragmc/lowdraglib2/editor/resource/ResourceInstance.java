@@ -5,14 +5,21 @@ import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import javax.annotation.Nonnull;
@@ -20,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
@@ -125,6 +133,77 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         }
     }
 
+    /**
+     * A resource path together with the {@link IResourceProvider} holding it.
+     */
+    public record ResourceEntry<T>(IResourceProvider<T> provider, IResourcePath path) {
+        public String getResourceName() {
+            return provider.getResourceName(path);
+        }
+
+        @Nullable
+        public T getResource() {
+            return provider.getResource(path);
+        }
+    }
+
+    /**
+     * Lists all resource paths of this instance together with the provider holding them.
+     * They are ordered as they are displayed in the {@link ResourceContainer} (builtin providers first).
+     */
+    public List<ResourceEntry<T>> listAllResourceEntries() {
+        var entries = new ArrayList<ResourceEntry<T>>();
+        listProviderResourceEntries(entries, builtinProviders);
+        listProviderResourceEntries(entries, customProviders);
+        return Collections.unmodifiableList(entries);
+    }
+
+    private void listProviderResourceEntries(List<ResourceEntry<T>> entries, Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders) {
+        for (var providers : resourceProviders.values()) {
+            for (var provider : providers) {
+                for (var entry : provider) {
+                    entries.add(new ResourceEntry<>(provider, entry.getKey()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Looks up the entry of the given resource. The resource is matched by identity first, then by
+     * {@link Object#equals(Object)}.
+     *
+     * @param value the resource to look up, can be null.
+     * @return the entry of the resource, or null if it's not provided by this instance.
+     */
+    @Nullable
+    public ResourceEntry<T> findResourceEntry(@Nullable T value) {
+        if (value == null) return null;
+        ResourceEntry<T> equalsMatch = null;
+        for (var entry : listAllResourceEntries()) {
+            var resource = entry.getResource();
+            if (resource == value) {
+                return entry;
+            }
+            if (equalsMatch == null && Objects.equals(resource, value)) {
+                equalsMatch = entry;
+            }
+        }
+        return equalsMatch;
+    }
+
+    /**
+     * Looks up the path of the given resource.
+     *
+     * @param value the resource to look up, can be null.
+     * @return the path of the resource, or null if it's not provided by this instance.
+     * @see #findResourceEntry(Object)
+     */
+    @Nullable
+    public IResourcePath findResourcePath(@Nullable T value) {
+        var entry = findResourceEntry(value);
+        return entry == null ? null : entry.path();
+    }
+
     public void setDisplayMode(Resource.DisplayMode displayMode) {
         if (this.displayMode == displayMode) return;
         this.displayMode = displayMode;
@@ -192,14 +271,55 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
      * @return an instance of {@link Dialog} configured with the resource selector.
      */
     public Dialog createSelectorDialog(float mouseX, float mouseY, Consumer<T> onValueSelect, @Nullable Runnable onCancel) {
+        return createSelectorDialog(mouseX, mouseY, onValueSelect, onCancel, (IResourcePath) null);
+    }
+
+    /**
+     * Creates a selector dialog to allow users to select a resource, with the given resource selected and located
+     * at the beginning.
+     *
+     * @param defaultValue the resource that should be selected when the dialog opens, can be null. It is looked up
+     *                     via {@link #findResourcePath(Object)}, so it has to be provided by this instance.
+     * @see #createSelectorDialog(float, float, Consumer, Runnable)
+     */
+    public Dialog createSelectorDialog(float mouseX, float mouseY, Consumer<T> onValueSelect, @Nullable Runnable onCancel,
+                                       @Nullable T defaultValue) {
+        return createSelectorDialog(mouseX, mouseY, onValueSelect, onCancel, findResourcePath(defaultValue));
+    }
+
+    /**
+     * Creates a selector dialog to allow users to select a resource, with the resource of the given path selected and
+     * located at the beginning.
+     *
+     * @param defaultSelected the path of the resource that should be selected when the dialog opens, can be null.
+     * @see #createSelectorDialog(float, float, Consumer, Runnable)
+     */
+    public Dialog createSelectorDialog(float mouseX, float mouseY, Consumer<T> onValueSelect, @Nullable Runnable onCancel,
+                                       @Nullable IResourcePath defaultSelected) {
         var resourceContainer = new ResourceContainer<>(this, Editor.emptyEditor());
-        resourceContainer.getLayout().widthPercent(100).widthPercent(100).flexAuto();
-        resourceContainer.setOnResourceSelect(onValueSelect);
+        // it shares the content with the search component now, so it grows into the remaining space instead of
+        // taking the full height.
+        resourceContainer.getLayout().widthPercent(100).heightAuto().flex(1);
         resourceContainer.splitView.setPercentage(30);
+        var searchComponent = createSelectorSearchComponent(resourceContainer);
+        resourceContainer.setOnResourceSelect(value -> {
+            onValueSelect.accept(value);
+            // keep the search bar in sync with the selection made in the resource container.
+            var entry = findResourceEntry(value);
+            if (entry != null && !entry.equals(searchComponent.getValue())) {
+                searchComponent.setSelected(entry, false);
+            }
+        });
         var dialog = new Dialog()
                 .windowMode(mouseX, mouseY)
                 .setTitle("resource.selector.select_resource")
-                .addContent(resourceContainer);
+                .addContent(new UIElement().layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.flex(1);
+                    layout.gapAll(2);
+                }).addChildren(searchComponent, resourceContainer));
+        // the search dropdown is anchored to the root element, don't dismiss the dialog while using it.
+        dialog.addExternalElement(searchComponent.dialog);
         dialog.addButton(new Button().setOnClick(e -> dialog.close()).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
         dialog.addButton(new Button().setOnClick(e -> {
             if (onCancel != null) {
@@ -207,7 +327,62 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
             }
             dialog.close();
         }).setText("ldlib.gui.tips.cancel").addClass("__cancel-button__"));
+
+        if (defaultSelected != null) {
+            for (var entry : listAllResourceEntries()) {
+                if (entry.path().equals(defaultSelected)) {
+                    // it's the value we already have, don't notify the selection back.
+                    resourceContainer.locateResource(entry.provider(), entry.path(), false);
+                    searchComponent.setSelected(entry, false);
+                    break;
+                }
+            }
+        }
         return dialog;
+    }
+
+    /**
+     * Creates the search component of the {@link #createSelectorDialog} to quickly locate a resource among all
+     * providers of this instance.
+     */
+    protected SearchComponent<ResourceEntry<T>> createSelectorSearchComponent(ResourceContainer<T> resourceContainer) {
+        // searching runs on another thread, so the resources are snapshotted on the main thread before it starts.
+        var snapshot = new AtomicReference<>(listAllResourceEntries());
+        var searchComponent = new SearchComponent<>(new SearchComponent.ISearchUI<ResourceEntry<T>>() {
+            @Override
+            public void search(String word, IResultHandler<ResourceEntry<T>> searchHandler) {
+                var lowerWord = word.toLowerCase(Locale.ROOT);
+                for (var entry : snapshot.get()) {
+                    if (Thread.currentThread().isInterrupted()) return;
+                    if (entry.getResourceName().toLowerCase(Locale.ROOT).contains(lowerWord) ||
+                            entry.path().getPath().toLowerCase(Locale.ROOT).contains(lowerWord)) {
+                        searchHandler.acceptResult(entry);
+                    }
+                }
+            }
+
+            @Override
+            public String resultText(ResourceEntry<T> value) {
+                return value.getResourceName();
+            }
+
+            @Override
+            public void onResultSelected(@Nullable ResourceEntry<T> value) {
+                if (value != null) {
+                    resourceContainer.locateResource(value.provider(), value.path(), true);
+                }
+            }
+        });
+        searchComponent.setCandidateUIProvider(UIElementProvider.iconText(
+                entry -> entry.provider().getType().getIcon(),
+                entry -> Component.literal(entry.getResourceName())
+                        .append(Component.literal(" (%s)".formatted(entry.provider().getName()))
+                                .withColor(ColorPattern.GRAY.color))));
+        searchComponent.getLayout().widthPercent(100);
+        searchComponent.style(style -> style.tooltips(Component.translatable("resource.selector.search")));
+        // refresh the snapshot on the main thread each time the search begins.
+        searchComponent.textField.addEventListener(UIEvents.FOCUS, e -> snapshot.set(listAllResourceEntries()));
+        return searchComponent;
     }
 
     @Override

@@ -98,7 +98,7 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
             if (previous == null) return;
             onValueUpdatePassively(previous);
             updateValue();
-        }).show(getModularUI());
+        }, previous).show(getModularUI());
     }
 
     @Override

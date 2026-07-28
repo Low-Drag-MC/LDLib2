@@ -202,8 +202,18 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void selectResource(IResourcePath resourcePath) {
+        selectResource(resourcePath, true);
+    }
+
+    /**
+     * Selects the given resource.
+     *
+     * @param resourcePath the resource path to select.
+     * @param notify whether the {@link #onResourceSelect} callback should be notified.
+     */
+    public void selectResource(IResourcePath resourcePath, boolean notify) {
         var res = resourceProvider.getResource(resourcePath);
-        if (onResourceSelect != null && res != null) {
+        if (notify && onResourceSelect != null && res != null) {
             onResourceSelect.accept(res);
         }
         if (!resourceUIs.containsKey(resourcePath)) {
@@ -222,6 +232,25 @@ public class ResourceProviderContainer<T> extends UIElement {
                 selectedUI.style(style -> style.overlayTexture(ColorPattern.T_DARK_GRAY.rectTexture()));
             }
         }
+    }
+
+    /**
+     * Selects the given resource and scrolls it into the view.
+     *
+     * @param resourcePath the resource path to locate.
+     * @param notify whether the {@link #onResourceSelect} callback should be notified.
+     */
+    public void locateResource(IResourcePath resourcePath, boolean notify) {
+        selectResource(resourcePath, notify);
+        scrollToResource(resourcePath);
+    }
+
+    /**
+     * Scrolls the view to make the given resource visible.
+     */
+    public void scrollToResource(@Nullable IResourcePath resourcePath) {
+        // it may be delayed, as the layout is not available if the container was just created.
+        scrollerView.scrollToChildDelayed(resourceUIs.get(resourcePath));
     }
 
     public void setUiWidth(int uiWidth) {
