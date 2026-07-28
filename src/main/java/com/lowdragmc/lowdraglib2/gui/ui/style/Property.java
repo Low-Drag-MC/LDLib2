@@ -128,6 +128,7 @@ public class Property<VALUE> {
         configurator.setTips(tooltips);
         var clearButton = new Button().noText().setOnClick(e -> setter.accept(null));
         clearButton.layout(layout -> layout.height(14).width(14)).addChild(new UIElement()
+                .addClass("__white_icon__")
                 .layout(layout -> layout.height(10).width(10))
                 .style(style -> style.backgroundTexture(Icons.REPLAY).tooltips("property.reset"))
         );

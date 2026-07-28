@@ -349,8 +349,21 @@ public class PortModel extends GraphElementModel implements IPort, IHasDisplayNa
     }
 
     public Tooltips getTooltips() {
-        if (tooltips.isEmpty()) return getDefaultTooltips();
+        var custom = getCustomTooltips();
+        return custom.isEmpty() ? getDefaultTooltips() : custom;
+    }
+
+    @Override
+    public Tooltips getCustomTooltips() {
         return tooltips;
+    }
+
+    /**
+     * The visual style of this port's connector. Overridden by {@link PortModelImpl} to let a port
+     * pick its own; the base implementation is the default dot.
+     */
+    public PortConnectorUI getConnectorUI() {
+        return PortConnectorUI.DEFAULT;
     }
 
     public void setTooltips(Tooltips tooltips) {

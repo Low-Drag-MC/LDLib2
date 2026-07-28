@@ -1,10 +1,13 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
@@ -21,14 +24,14 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.BlockNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.ContextNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ICustomNodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.InputOutputPortsNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
@@ -62,6 +65,10 @@ public class ItemLibrary extends UIElement {
     public final Label tailLabel = new Label();
     public final UIElement resizeButton = new UIElement();
 
+    /** Side panel showing the selected node's {@link Node#createDescriptionUI()}. Collapsed by default. */
+    public final UIElement descriptionPanel = new UIElement();
+    public final ScrollerView descriptionView = new ScrollerView();
+
     public final UIElement treeContainer = new UIElement();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> searchTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> recommendationTree = new TreeList<>();
@@ -70,13 +77,15 @@ public class ItemLibrary extends UIElement {
     public final TreeList<TreeNode<ItemLibraryItem, Void>> nodeTree = new TreeList<>();
     /** Hidden by default. Populated and shown only when {@link #showBlocksForContext} is called. */
     public final TreeList<TreeNode<ItemLibraryItem, Void>> blockTree = new TreeList<>();
+    /** Width of the {@link #descriptionPanel}, the library's own default width by default. */
+    protected float descriptionWidth = 150;
     // runtime
     @Nullable
     protected GraphModel graphModel;
     @Nullable
     protected List<PortModel> portModels;
     @Nullable
-    protected TreeList<?> selectedTree;
+    protected TreeList<TreeNode<ItemLibraryItem, Void>> selectedTree;
     @Nullable
     protected ItemLibraryItem selectedItem;
     @Nullable
@@ -87,6 +96,12 @@ public class ItemLibrary extends UIElement {
     protected List<ItemLibraryItem> searchCandidates;
     /** True while the library is in "pick a block for context X" mode (see {@link #showBlocksForContext}). */
     protected boolean blockOnlyMode = false;
+    /**
+     * Throwaway models built to inspect a node type (ports, description). Cached for the lifetime of a
+     * single show, so the recommendation pass, the port sub-items and the description panel share one
+     * model per item instead of creating one each.
+     */
+    protected final Map<ItemLibraryItem, GraphElementModel> testModels = new HashMap<>();
 
     public ItemLibrary(GraphView graphView) {
         this.graphView = graphView;
@@ -154,15 +169,35 @@ public class ItemLibrary extends UIElement {
         Style.defaultPipeline(resizeButton.getStyle(), s -> s.background(DynamicTexture.of(() -> resizeButton.isHover() ?
                 Icons.RESIZE_BOTTOM_RIGHT : Icons.RESIZE_BOTTOM_RIGHT.copy().setColor(ColorPattern.LIGHT_GRAY.color))));
 
+        // Description panel: an absolutely positioned child, so it doesn't take part in the column
+        // layout and — being a descendant — hovering/scrolling it doesn't trip setEnforceFocus.
+        descriptionPanel.addClass("__item-library_description-panel__");
+        Style.importantPipeline(descriptionPanel.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
+                .display(TaffyDisplay.NONE));
+        Style.defaultPipeline(descriptionPanel.getLayout(), l -> l.paddingAll(5));
+        Style.defaultPipeline(descriptionPanel.getStyle(), s -> s.background(Sprites.BORDER1_RT1));
+        descriptionView.addClass("__item-library_description-view__");
+        descriptionView.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO));
+        Style.defaultPipeline(descriptionView.getLayout(), l -> l.widthPercent(100).flex(1));
+        descriptionPanel.addChild(descriptionView);
+
         addChildren(
                 headBar.addChildren(title),
                 searchField,
                 resultContainer,
-                tailBar.addChildren(tailLabel, resizeButton)
+                tailBar.addChildren(tailLabel, resizeButton),
+                descriptionPanel
         );
         setFocusable(true);
         setEnforceFocus(e -> this.hide());
-        addEventListener(UIEvents.LAYOUT_CHANGED, e -> adaptPositionToScreen());
+        addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
+            adaptPositionToScreen();
+            // only while it's on screen: this fires every frame the popup is dragged or resized
+            if (descriptionPanel.isDisplayed()) {
+                updateDescriptionPanelBounds();
+            }
+        });
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
 
         // drag
@@ -192,7 +227,7 @@ public class ItemLibrary extends UIElement {
                 node -> node.getKey().getDisplayName())
         );
         treeList.setOnDoubleClickNode(node -> {
-            if (node.isBranch()) return;
+            if (!isDecidableNode(node)) return;
             onNodeDecided(node.getKey());
         });
         treeList.setOnSelectedChanged(selected -> {
@@ -200,9 +235,16 @@ public class ItemLibrary extends UIElement {
             var node = selected.iterator().next();
             onSelectedChanged(treeList, node, node.getKey());
         });
+        // Port sub-items are attached when a row's UI is built, which covers every tree — including the
+        // search tree that is rebuilt on each keystroke — and only for the rows actually displayed.
+        treeList.setOnNodeUICreated((node, ui) -> ensurePortChildren(node));
         treeList.setDoubleClickToExpand(false);
         treeList.setClickToExpand(true);
-        treeList.setSelectableNodeFilter(ITreeNode::isLeaf);
+        // A node item stays selectable/confirmable once it grows port children; clicking it only
+        // selects it, expanding its ports is done with a right click (or the arrow).
+        treeList.setSelectableNodeFilter(ItemLibrary::isDecidableNode);
+        treeList.setClickToExpandFilter(node -> !(node.getKey() instanceof NodeModelLibraryItem));
+        treeList.setRightClickToExpand(true);
         if (container == null) return;
         container.addChild(treeList);
     }
@@ -295,7 +337,10 @@ public class ItemLibrary extends UIElement {
     protected Stream<ItemLibraryItem> getTreeItems(TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
         return Optional.ofNullable(tree.getRoot())
                 .map(node -> node.flatten().stream()
-                        .filter(ITreeNode::isLeaf)
+                        // entries, not group folders. A node item stays an entry once it grew port
+                        // children; the port children themselves are not library entries.
+                        .filter(ItemLibrary::isDecidableNode)
+                        .filter(n -> !(n.getKey() instanceof PortLibraryItem))
                         .filter(n -> n.getParent() != null) // not root
                         .map(ITreeNode::getKey)
                 )
@@ -313,6 +358,64 @@ public class ItemLibrary extends UIElement {
         this.selectedNode = node;
         this.selectedItem = newSelected;
         prepareSelectedItemData(newSelected);
+        updateDescription(newSelected);
+    }
+
+    /**
+     * Shows the selected item's node description in the side panel, or collapses the panel when the
+     * node has none. See {@link Node#createDescriptionUI()}.
+     */
+    protected void updateDescription(@Nullable ItemLibraryItem item) {
+        descriptionView.clearAllScrollViewChildren();
+        var node = item == null ? null : resolveNode(item);
+        var description = node == null ? null : node.createDescriptionUI();
+        Style.importantPipeline(descriptionPanel.getLayout(),
+                l -> l.display(description == null ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
+        if (description != null) {
+            descriptionView.addScrollViewChild(description);
+            updateDescriptionPanelBounds();
+        }
+    }
+
+    /** Resolves the {@link Node} behind a library item, or null if the item isn't backed by one. */
+    @Nullable
+    protected Node resolveNode(ItemLibraryItem rawItem) {
+        var item = ownerItem(rawItem);
+        if (item instanceof BlockLibraryItem blockItem) {
+            try {
+                return blockItem.getBlockClass().getConstructor().newInstance();
+            } catch (Exception e) {
+                LDLib2.LOGGER.error("Failed to create block node {} for its description", blockItem.getBlockClass(), e);
+                return null;
+            }
+        }
+        // constants have no custom node behind them, hence no description
+        return getTestModel(item) instanceof ICustomNodeModel customNodeModel ? customNodeModel.getNode() : null;
+    }
+
+    /**
+     * Places the description panel next to the library, flipping it to the left side when it wouldn't
+     * fit on the right of the screen. Position and size are data-driven, so they are pinned IMPORTANT.
+     */
+    protected void updateDescriptionPanelBounds() {
+        var mui = getModularUI();
+        if (mui == null) return;
+        var onRight = getPositionX() + getSizeWidth() + descriptionWidth <= mui.getScreenWidth();
+        var anchorX = onRight ? getPositionX() + getSizeWidth() : getPositionX() - descriptionWidth;
+        var offset = worldToLocalLayoutOffset(new Vector2f(anchorX, getPositionY()));
+        var height = getSizeHeight();
+        Style.importantPipeline(descriptionPanel.getLayout(), l -> l
+                .left(offset.x)
+                .top(offset.y)
+                .width(descriptionWidth)
+                .height(height));
+    }
+
+    /** Sets the width of the description side panel. */
+    public ItemLibrary setDescriptionWidth(float descriptionWidth) {
+        this.descriptionWidth = descriptionWidth;
+        updateDescriptionPanelBounds();
+        return this;
     }
 
     protected void onKeyDown(com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent event) {
@@ -325,8 +428,18 @@ public class ItemLibrary extends UIElement {
                 moveKeyboardSelection(1);
                 event.stopPropagation();
             }
+            case GLFW.GLFW_KEY_RIGHT, GLFW.GLFW_KEY_LEFT -> {
+                if (selectedTree != null && selectedNode != null && selectedNode.isBranch()) {
+                    if (event.keyCode == GLFW.GLFW_KEY_RIGHT) {
+                        selectedTree.expandNode(selectedNode);
+                    } else {
+                        selectedTree.collapseNode(selectedNode);
+                    }
+                    event.stopPropagation();
+                }
+            }
             case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
-                if (selectedNode != null && selectedNode.isLeaf() && selectedItem != null) {
+                if (selectedNode != null && selectedItem != null && isDecidableNode(selectedNode)) {
                     onNodeDecided(selectedItem);
                     event.stopPropagation();
                 }
@@ -437,28 +550,126 @@ public class ItemLibrary extends UIElement {
         clearKeyboardSelection();
     }
 
-    protected void prepareSelectedItemData(ItemLibraryItem item) {
-        if (item == null || this.graphModel == null) return;
-        if (portModels == null || portModels.isEmpty()) return;
-        var sourcePort = portModels.getFirst();
-        var testData = GraphNodeCreationData.ofOrphan(this.graphModel);
-        if (item instanceof NodeModelLibraryItem nodeItem) {
-            if (nodeItem.createNode(testData) instanceof NodeModel nodeModel) {
-                var ports = sourcePort.getDirection() == PortDirection.INPUT ?
-                    nodeModel.getOutputsByDisplayOrder() : nodeModel.getInputsByDisplayOrder();
-                var compatiblePorts = graphModel.getCompatiblePorts(ports, sourcePort);
-                if (compatiblePorts.isEmpty()) return;
-                nodeItem.setData(new NodeItemLibraryData(nodeModel.getClass(), compatiblePorts.getFirst()));
-                for (var portToAdd : compatiblePorts) {
-                    // todo sub port items
-                }
+    /**
+     * A node is decidable (selectable + confirmable) when it holds a node item — even if it grew port
+     * children — or when it is a leaf, i.e. a constant / block / port item. Group folders are not.
+     */
+    protected static boolean isDecidableNode(ITreeNode<ItemLibraryItem, ?> node) {
+        return node.getKey() instanceof NodeModelLibraryItem || node.isLeaf();
+    }
+
+    /**
+     * Gets the throwaway model used to inspect the item's node type, creating it on first use.
+     * Returns null for items that don't create a node (e.g. blocks) or when no graph is loaded.
+     */
+    @Nullable
+    protected GraphElementModel getTestModel(ItemLibraryItem item) {
+        if (this.graphModel == null || !(item instanceof NodeModelLibraryItem nodeItem)) return null;
+        return testModels.computeIfAbsent(item, key -> nodeItem.createNode(GraphNodeCreationData.ofOrphan(this.graphModel)));
+    }
+
+    /**
+     * The ports of the item's node that the dragged wire can be connected to, in display order.
+     * Empty when the library wasn't opened from a wire drag.
+     */
+    protected List<PortModel> getCompatiblePorts(ItemLibraryItem item) {
+        if (portModels == null || portModels.isEmpty()) return List.of();
+        return getCompatiblePorts(item, portModels.getFirst());
+    }
+
+    /** As {@link #getCompatiblePorts(ItemLibraryItem)}, for an explicit source port. */
+    protected List<PortModel> getCompatiblePorts(ItemLibraryItem item, PortModel sourcePort) {
+        return getTestModel(item) instanceof InputOutputPortsNodeModel nodeModel
+                ? nodeModel.getPortsFitToConnectTo(sourcePort)
+                : List.of();
+    }
+
+    /**
+     * Attaches one child per connectable port to a node item's tree node, so the user can expand it and
+     * pick the port to wire to instead of taking the first compatible one. Does nothing when the
+     * library wasn't opened from a wire drag, or when the children already exist.
+     */
+    protected void ensurePortChildren(TreeNode<ItemLibraryItem, Void> node) {
+        // getCompatiblePorts is empty unless a wire drag is in progress, so this self-disables
+        if (!(node.getKey() instanceof NodeModelLibraryItem nodeItem) || node.isBranch()) return;
+        for (var port : getCompatiblePorts(nodeItem)) {
+            node.createChild(new PortLibraryItem(nodeItem, port));
+        }
+    }
+
+    protected void removePortChildren(TreeNode<ItemLibraryItem, Void> node) {
+        for (var child : List.copyOf(node.getChildren())) {
+            if (child.getKey() instanceof PortLibraryItem) {
+                node.removeChild(child);
             }
+        }
+    }
+
+    /** All trees the library owns, whether currently visible or not. */
+    protected List<TreeList<TreeNode<ItemLibraryItem, Void>>> getAllTrees() {
+        return List.of(searchTree, recommendationTree, constantTree, contextTree, nodeTree, blockTree);
+    }
+
+    /**
+     * Attaches the port sub-items to the rows that already exist. Needed because trees (and their
+     * rows) survive between shows, so a row built before this wire drag would never get them —
+     * rows built from now on are covered by the {@code onNodeUICreated} hook. With
+     * {@code staticTree = false} the {@link TreeList} picks the new children up on its next tick.
+     */
+    protected void attachPortChildren() {
+        for (var tree : getAllTrees()) {
+            // only materialised rows: entries inside collapsed folders are handled when they are built
+            for (var node : List.copyOf(tree.getNodeUIs().keySet())) {
+                ensurePortChildren(node);
+            }
+        }
+    }
+
+    /** Strips every port sub-item, whether its row is currently built or not. */
+    protected void detachPortChildren() {
+        for (var tree : getAllTrees()) {
+            var root = tree.getRoot();
+            if (root == null) continue;
+            for (var node : root.flatten()) {
+                if (!(node instanceof TreeNode<ItemLibraryItem, Void> treeNode)) continue;
+                // collapse first: it drops the port rows right away instead of leaving them on screen
+                // until the tree's next tick notices the children are gone.
+                if (treeNode.getKey() instanceof NodeModelLibraryItem && tree.isNodeExpanded(treeNode)) {
+                    tree.collapseNode(treeNode);
+                }
+                removePortChildren(treeNode);
+            }
+        }
+    }
+
+    /** The entry an item belongs to: a port sub-item stands for its owner, anything else for itself. */
+    protected static ItemLibraryItem ownerItem(ItemLibraryItem item) {
+        return item instanceof PortLibraryItem portItem ? portItem.getOwner() : item;
+    }
+
+    protected void prepareSelectedItemData(ItemLibraryItem item) {
+        if (item == null || portModels == null || portModels.isEmpty()) return;
+        NodeModelLibraryItem owner;
+        PortModel portToConnect;
+        if (item instanceof PortLibraryItem portItem) {
+            // an explicitly picked port wins over the default first-compatible-port behaviour
+            owner = portItem.getOwner();
+            portToConnect = portItem.getPort();
+        } else if (item instanceof NodeModelLibraryItem nodeItem) {
+            var ports = getCompatiblePorts(nodeItem);
+            if (ports.isEmpty()) return;
+            owner = nodeItem;
+            portToConnect = ports.getFirst();
+        } else return;
+        var model = getTestModel(owner);
+        if (model != null) {
+            owner.setData(new NodeItemLibraryData(model.getClass(), portToConnect));
         }
     }
 
     protected void clearSelectedItemData(ItemLibraryItem item) {
         if (item == null) return;
-        item.setData(null);
+        ownerItem(item).setData(null);
     }
 
     public void show(float mouseX, float mouseY, Consumer<@Nullable ItemLibraryItem> onFinished) {
@@ -543,24 +754,20 @@ public class ItemLibrary extends UIElement {
 
     public void setPortRecommendation(PortModel sourcePort) {
         if (this.graphModel == null) return;
-        var testData = GraphNodeCreationData.ofOrphan(this.graphModel);
-        setRecommendation(builder -> {
-            getAllItems().forEach(item -> {
-                if (item instanceof NodeModelLibraryItem nodeItem) {
-                    if (nodeItem.createNode(testData) instanceof PortNodeModel portNodeModel) {
-                        if (portNodeModel.getPortFitToConnectTo(sourcePort) != null) {
-                            builder.leaf(nodeItem, null);
-                        }
-                    }
-                }
-            });
-        });
+        setRecommendation(builder -> getAllItems().forEach(item -> {
+            // same lookup the port sub-items use, so it hits the shared test model cache
+            if (item instanceof NodeModelLibraryItem nodeItem && !getCompatiblePorts(nodeItem, sourcePort).isEmpty()) {
+                builder.leaf(nodeItem, null);
+            }
+        }));
     }
 
     public void showWithNodesFitPort(float mouseX, float mouseY, List<PortModel> portModels, Consumer<@Nullable ItemLibraryItem> onFinished) {
         if (portModels.isEmpty()) return;
+        testModels.clear();
         this.portModels = portModels;
         title.setText(Component.translatable("graph.library.choose", Component.translatable(portModels.getFirst().getDataTypeHandle().getFriendlyName())));
+        attachPortChildren();
         setPortRecommendation(portModels.getFirst());
         show(mouseX, mouseY, onFinished);
     }
@@ -572,6 +779,9 @@ public class ItemLibrary extends UIElement {
         clearSelectedItemData(this.selectedItem);
         clearSearchResult();
         clearKeyboardSelection();
+        // strip the port sub-items: the trees outlive this popup and the ports they point at don't
+        detachPortChildren();
+        testModels.clear();
         this.searchField.setText("", false);
         this.selectedTree = null;
         this.selectedItem = null;
@@ -590,8 +800,14 @@ public class ItemLibrary extends UIElement {
     }
 
     protected void onNodeDecided(ItemLibraryItem itemLibraryItem) {
+        // a port sub-item pins its port on the owner and hands the owner back: the create-node
+        // commands work with a NodeModelLibraryItem and read the port from its data.
+        if (itemLibraryItem instanceof PortLibraryItem) {
+            prepareSelectedItemData(itemLibraryItem);
+        }
+        var decided = ownerItem(itemLibraryItem);
         if (onFinished != null) {
-            onFinished.accept(itemLibraryItem);
+            onFinished.accept(decided);
             onFinished = null;
         }
         hide();
@@ -608,5 +824,6 @@ public class ItemLibrary extends UIElement {
         this.selectedTree = null;
         this.selectedNode = null;
         this.selectedItem = null;
+        updateDescription(null);
     }
 }

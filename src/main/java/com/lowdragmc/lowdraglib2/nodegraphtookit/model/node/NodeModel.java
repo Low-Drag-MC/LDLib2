@@ -563,9 +563,9 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
         var noConnectorPort = addNoConnectorInputPort(portId, dataType, PortType.DEFAULT, PortOrientation.Horizontal, PortModelOptions.NODE_OPTION, initializationCallback, setterAction);
         noConnectorPort.setTitle(Component.translatable(optionId));
 
-        if (tooltip != null) {
-            noConnectorPort.setTooltips(tooltip);
-        }
+        // Reapply on every define — the port model may be reused across defineNode passes, so overwrite
+        // (including with empty) to avoid inheriting a tooltip from a previous definition.
+        noConnectorPort.setTooltips(tooltip == null ? Tooltips.empty() : tooltip);
 
         var nodeOption = new NodeOption(optionId, noConnectorPort, showInInspectorOnly, order);
         nodeOptions.add(nodeOption);

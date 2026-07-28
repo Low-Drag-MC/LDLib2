@@ -34,6 +34,18 @@ public interface IFieldValueConfigurable extends IConfigurable {
      */
     Tooltips getTooltips();
 
+    /**
+     * Gets the tooltips that were explicitly authored for this option, without the generated fallback
+     * {@link #getTooltips()} may provide (e.g. {@code "name (type)"}).
+     *
+     * <p>This is what {@link #buildConfigurator(com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup)}
+     * surfaces as the configurator's tip icon, so options/ports without an authored tooltip don't end up
+     * with a help icon repeating what the row already displays.</p>
+     */
+    default Tooltips getCustomTooltips() {
+        return Tooltips.empty();
+    }
+
     default void notifyValueChanged() {
 
     }

@@ -504,3 +504,9 @@ ToggleSelectorConfigurator .__toggle_button__ {
   color: #555;
 }
 
+.__item-library_description-panel__ {
+  background: sdf(#dd2c2c34, 5);
+  padding-all: 5;
+  gap-all: 4;
+}
+
