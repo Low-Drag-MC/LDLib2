@@ -220,7 +220,9 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
         if (tag.contains("_additional")) {
             var additional = tag.getCompound("_additional");
             var key = toSide ? "toNodeUid" : "fromNodeUid";
-            if (additional.isPresent() && additional.get().contains(key)) return UUID.fromString(additional.get().getString(key).orElseThrow());
+            if (additional.isPresent()) {
+                return com.lowdragmc.lowdraglib2.utils.TagUtils.readUUID(additional.get(), key).orElse(null);
+            }
         }
         return null;
     }
@@ -248,8 +250,7 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
     public static @Nullable UUID getFromPortUidFromTag(CompoundTag tag) {
         if (tag.contains("_additional")) {
             var additional = tag.getCompoundOrEmpty("_additional");
-            var uid = additional.getStringOr("fromPortUid", "");
-            if (!uid.isEmpty()) return UUID.fromString(uid);
+            return com.lowdragmc.lowdraglib2.utils.TagUtils.readUUID(additional, "fromPortUid").orElse(null);
         }
         return null;
     }
@@ -261,8 +262,7 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
     public static @Nullable UUID getToPortUidFromTag(CompoundTag tag) {
         if (tag.contains("_additional")) {
             var additional = tag.getCompoundOrEmpty("_additional");
-            var uid = additional.getStringOr("toPortUid", "");
-            if (!uid.isEmpty()) return UUID.fromString(uid);
+            return com.lowdragmc.lowdraglib2.utils.TagUtils.readUUID(additional, "toPortUid").orElse(null);
         }
         return null;
     }

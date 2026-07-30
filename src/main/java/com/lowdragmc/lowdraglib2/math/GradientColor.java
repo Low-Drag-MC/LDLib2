@@ -18,6 +18,44 @@ import java.util.Objects;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class GradientColor implements ValueIOSerializable {
+    /** Legacy 1.21 layout: a flat float list {@code [t,a, t,a, ...]} — kept for decoding old saves. */
+    @Deprecated(since = "1.22")
+    private static final Codec<List<Vector2fc>> LEGACY_ALPHA_POINTS = Codec.FLOAT.listOf().xmap(
+            flat -> {
+                List<Vector2fc> points = new ArrayList<>();
+                for (int i = 0; i + 1 < flat.size(); i += 2) {
+                    points.add(new Vector2f(flat.get(i), flat.get(i + 1)));
+                }
+                return points;
+            },
+            points -> {
+                List<Float> flat = new ArrayList<>();
+                points.forEach(p -> { flat.add(p.x()); flat.add(p.y()); });
+                return flat;
+            });
+
+    /** Legacy 1.21 layout: a flat float list {@code [t,r,g,b, t,r,g,b, ...]} — kept for decoding old saves. */
+    @Deprecated(since = "1.22")
+    private static final Codec<List<Vector4fc>> LEGACY_RGB_POINTS = Codec.FLOAT.listOf().xmap(
+            flat -> {
+                List<Vector4fc> points = new ArrayList<>();
+                for (int i = 0; i + 3 < flat.size(); i += 4) {
+                    points.add(new Vector4f(flat.get(i), flat.get(i + 1), flat.get(i + 2), flat.get(i + 3)));
+                }
+                return points;
+            },
+            points -> {
+                List<Float> flat = new ArrayList<>();
+                points.forEach(p -> { flat.add(p.x()); flat.add(p.y()); flat.add(p.z()); flat.add(p.w()); });
+                return flat;
+            });
+
+    /** Encode the current list-of-vectors form; decode either layout. */
+    private static final Codec<List<Vector2fc>> ALPHA_POINTS =
+            Codec.withAlternative(Codec.list(ExtraCodecs.VECTOR2F), LEGACY_ALPHA_POINTS);
+    private static final Codec<List<Vector4fc>> RGB_POINTS =
+            Codec.withAlternative(Codec.list(ExtraCodecs.VECTOR4F), LEGACY_RGB_POINTS);
+
     @Getter
     protected List<Vector2fc> aP;
     @Getter
@@ -44,6 +82,9 @@ public class GradientColor implements ValueIOSerializable {
     }
 
     public float getAlpha(float t) {
+        if (aP.isEmpty()) {
+            return 1; // broken/empty gradient data must degrade, not crash the tick
+        }
         var value = aP.getFirst().y();
         var found = t < aP.getFirst().x();
         if (!found) {
@@ -64,6 +105,9 @@ public class GradientColor implements ValueIOSerializable {
     }
 
     public Vector3f getRGB(float t) {
+        if (rgbP.isEmpty()) {
+            return new Vector3f(1, 1, 1); // broken/empty gradient data must degrade, not crash the tick
+        }
         var value = new Vector3f(rgbP.getFirst().y(), rgbP.getFirst().z(), rgbP.getFirst().w());
         var found = t < rgbP.getFirst().x();
         if (!found) {
@@ -138,16 +182,16 @@ public class GradientColor implements ValueIOSerializable {
 
     @Override
     public void serialize(ValueOutput output) {
-        output.store("a", Codec.list(ExtraCodecs.VECTOR2F), aP);
-        output.store("rgb", Codec.list(ExtraCodecs.VECTOR4F), rgbP);
+        output.store("a", ALPHA_POINTS, aP);
+        output.store("rgb", RGB_POINTS, rgbP);
     }
 
     @Override
     public void deserialize(ValueInput input) {
         aP.clear();
         rgbP.clear();
-        input.read("a", Codec.list(ExtraCodecs.VECTOR2F)).ifPresent(aP::addAll);
-        input.read("rgb", Codec.list(ExtraCodecs.VECTOR4F)).ifPresent(rgbP::addAll);
+        input.read("a", ALPHA_POINTS).ifPresent(aP::addAll);
+        input.read("rgb", RGB_POINTS).ifPresent(rgbP::addAll);
     }
     
     public GradientColor copy() {

@@ -609,6 +609,8 @@ public abstract class WorldSceneRenderer {
         posesStack.pushMatrix();
         posesStack.identity();
         posesStack.lookAt(eyePos.x(), eyePos.y(), eyePos.z(), lookAt.x(), lookAt.y(), lookAt.z(), worldUp.x(), worldUp.y(), worldUp.z());
+        // expose the true eye for view-dependent extraction math (position() stays ZERO by design)
+        camera.setSceneEye(new net.minecraft.world.phys.Vec3(eyePos.x(), eyePos.y(), eyePos.z()));
     }
 
     protected void resetCamera() {
@@ -654,38 +656,48 @@ public abstract class WorldSceneRenderer {
             renderUncachedWorld(bs, partialTicks);
         }
 
-        if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
-
-        // (2) Submit phase — builtin scene geometry into the single SubmitNodeStorage.
-        submitBlockEntities(poseStack, storage, cameraRenderState, partialTicks);
-        submitEntities(poseStack, storage, cameraRenderState, partialTicks);
-        submitParticles(storage, cameraRenderState, partialTicks);
-
-        if (afterBuiltinSubmit != null) afterBuiltinSubmit.apply(ctx);
-
-        // (3) Dispatch phase — three endBatches mirroring LevelRenderer 695-755.
-        //     Depth copy between mainTarget/translucent/particle FBOs is skipped (PIP = single FBO).
-        //     Publish this scene's camera (rotation from the SceneCamera set above, projection from our
-        //     own matrix) for the duration of the draws, so custom-uniform consumers (e.g. a mod's UBO
-        //     derived from the view/projection) reflect the scene camera, not the game's main camera.
+        // Publish this scene's camera (rotation from the SceneCamera set above, projection from our own
+        // matrix) so custom-uniform consumers (e.g. a mod's UBO derived from the view/projection) reflect
+        // the scene camera rather than the game's main one.
+        //
+        // Scope: the WHOLE submit+dispatch cycle, and it outlives afterRender(). It used to wrap only the
+        // dispatch phase and be cleared before afterRender(), which left the two points a consumer
+        // actually needs it unable to see it: submitters build their per-view uniforms during the submit
+        // phase (before the old set), and renderers that defer their draw to afterRender() — Photon's
+        // particle pipeline does exactly this — ran after the old clear. Both then silently fell back to
+        // the main world camera, so anything reconstructing position from depth was wrong in the scene.
         SceneCameraContext.set(camera.getViewRotationMatrix(new Matrix4f()), projectionMatrix);
         try {
-            dispatcher.renderSolidFeatures();
-            bs.endBatch();
-            dispatcher.renderTranslucentFeatures();
-            bs.endBatch();
-            crumb.endBatch();
+            if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
 
-            if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(ctx);
+            // (2) Submit phase — builtin scene geometry into the single SubmitNodeStorage.
+            submitBlockEntities(poseStack, storage, cameraRenderState, partialTicks);
+            submitEntities(poseStack, storage, cameraRenderState, partialTicks);
+            submitParticles(storage, cameraRenderState, partialTicks);
 
-            dispatcher.renderTranslucentParticles();
-            bs.endBatch();
+            if (afterBuiltinSubmit != null) afterBuiltinSubmit.apply(ctx);
 
-            if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
+            // (3) Dispatch phase — three endBatches mirroring LevelRenderer 695-755.
+            //     Depth copy between mainTarget/translucent/particle FBOs is skipped (PIP = single FBO).
+            try {
+                dispatcher.renderSolidFeatures();
+                bs.endBatch();
+                dispatcher.renderTranslucentFeatures();
+                bs.endBatch();
+                crumb.endBatch();
+
+                if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(ctx);
+
+                dispatcher.renderTranslucentParticles();
+                bs.endBatch();
+
+                if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
+            } finally {
+                dispatcher.clearSubmitNodes();
+                if (particleManager != null) particleManager.afterRender();
+            }
         } finally {
             SceneCameraContext.clear();
-            dispatcher.clearSubmitNodes();
-            if (particleManager != null) particleManager.afterRender();
         }
     }
 

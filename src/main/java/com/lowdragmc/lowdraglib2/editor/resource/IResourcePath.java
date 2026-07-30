@@ -10,10 +10,27 @@ import java.util.regex.Pattern;
 public interface IResourcePath {
     Pattern PATH_WITH_TYPE_PATTERN = Pattern.compile("^([a-zA-Z0-9-_]+)\\((.+)\\)$");
 
-    Codec<IResourcePath> CODEC = Codec.STRING.xmap(
+    /** Legacy 1.21 layout {@code {built-in: bool, path: string}} — kept for decoding old saves. */
+    @Deprecated(since = "1.22")
+    Codec<IResourcePath> V0 = com.mojang.serialization.codecs.RecordCodecBuilder.create(instance -> instance.group(
+            Codec.BOOL.fieldOf("built-in").forGetter(path -> path.getType() == BuiltinResourceProvider.TYPE),
+            Codec.STRING.fieldOf("path").forGetter(IResourcePath::getPath)
+    ).apply(instance, (builtin, path) -> builtin ? new BuiltinPath(path) : new FilePath(path)));
+
+    /** Legacy 1.21 layout {@code {type: name, path: string}} — kept for decoding old saves. */
+    @Deprecated(since = "1.22")
+    Codec<IResourcePath> V1 = com.mojang.serialization.codecs.RecordCodecBuilder.create(instance -> instance.group(
+            LDLib2Registries.RESOURCE_PROVIDER_TYPES.codec().fieldOf("type").forGetter(IResourcePath::getType),
+            Codec.STRING.fieldOf("path").forGetter(IResourcePath::getPath)
+    ).apply(instance, ResourceProviderType::createFullPath));
+
+    Codec<IResourcePath> V2 = Codec.STRING.xmap(
             IResourcePath::parse,
             IResourcePath::getPathWithType
     );
+
+    /** Always encodes the V2 {@code "type(path)"} string; decodes any historical layout. */
+    Codec<IResourcePath> CODEC = Codec.withAlternative(V2, Codec.withAlternative(V1, V0));
 
     /**
      * Retrieves the type of the resource provider associated with this resource path.

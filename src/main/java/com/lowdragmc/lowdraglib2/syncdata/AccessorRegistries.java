@@ -358,7 +358,9 @@ public class AccessorRegistries {
                 ))
                 .copyMark(Vector2i::new)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Quaternionfc.class)
+        // supportChildClass: fields are usually declared as the concrete Quaternionf (e.g.
+        // Transform.localRotation) — an exact-class match would fail to resolve them.
+        registerAccessor(CustomDirectAccessor.builder(Quaternionfc.class, true)
                 .codec(ExtraCodecs.QUATERNIONF)
                 .streamCodec(ByteBufCodecs.QUATERNIONF)
                 .copyMark(Quaternionf::new)

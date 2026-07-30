@@ -5,13 +5,44 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @UtilityClass
 public final class TagUtils {
+
+    /**
+     * Reads a UUID stored in either supported form:
+     * <ul>
+     *   <li>a String — what {@code UUID#toString()} + {@code putString} write today;</li>
+     *   <li>an int array — what the now-removed {@code CompoundTag#putUUID} wrote, so every save
+     *       made before it disappeared (node graphs above all) still carries this form.</li>
+     * </ul>
+     * Reading the legacy form as a String silently yields the empty default and then throws in
+     * {@code UUID.fromString}, which is why this probes instead of assuming one.
+     *
+     * @return the UUID, or empty when the key is absent or holds neither form
+     */
+    public static Optional<UUID> readUUID(CompoundTag compoundTag, String key) {
+        var asString = compoundTag.getString(key);
+        if (asString.isPresent() && !asString.get().isEmpty()) {
+            try {
+                return Optional.of(UUID.fromString(asString.get()));
+            } catch (IllegalArgumentException e) {
+                return Optional.empty();
+            }
+        }
+        try {
+            return compoundTag.read(key, UUIDUtil.CODEC);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
 
     public static CompoundTag getOrCreateTag(CompoundTag compoundTag, String key) {
         if (!compoundTag.contains(key)) {
