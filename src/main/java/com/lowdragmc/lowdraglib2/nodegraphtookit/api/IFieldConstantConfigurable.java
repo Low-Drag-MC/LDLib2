@@ -97,7 +97,14 @@ public interface IFieldConstantConfigurable extends IFieldValueConfigurable {
                 group.addConfigurator(configurator);
             }
         }
+        // Authored tooltips (e.g. IOptionBuilder#withTooltips) become the configurator's tip icon. The
+        // generated fallback of getTooltips() is deliberately not used here, it would only repeat the
+        // name/type the row already shows.
+        var tooltips = getCustomTooltips();
         for (var configurator : group.getConfigurators()) {
+            if (!tooltips.isEmpty()) {
+                configurator.setTips(tooltips.tooltips());
+            }
             configurator.addEventListener(Configurator.CHANGE_EVENT, e -> notifyValueChanged());
             father.addConfigurator(configurator);
         }

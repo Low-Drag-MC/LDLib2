@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.node;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodePreviewContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.IPort;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
@@ -10,6 +11,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.IPortDefi
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.IOptionDefinitionContext;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The base class for all user-accessible nodes in a graph.
@@ -135,6 +137,26 @@ public abstract class Node implements INode {
      * @param context the preview context (same references as the build call)
      */
     public void onUpdateNodePreview(NodePreviewContext context) {}
+
+    // endregion
+
+    // region description
+
+    /**
+     * Builds the extra documentation shown in the item library's description panel while this node is
+     * selected. Return any UI — text, images, a small preview — and it will be rendered inside a
+     * scrollable side panel next to the library.
+     *
+     * <p>Called each time the node is selected in the library, so a fresh element must be returned
+     * (a {@link UIElement} can only live under one parent). Returning {@code null} (default) keeps the
+     * panel collapsed for this node.</p>
+     *
+     * @return the description UI, or {@code null} for no description
+     */
+    @Nullable
+    public UIElement createDescriptionUI() {
+        return null;
+    }
 
     // endregion
 

@@ -8,8 +8,10 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph.Graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.OptionTestNode;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestAddNode;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestConstantNode;
+import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestDescriptionNode;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraph;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestStringConcatNode;
 import lombok.NoArgsConstructor;
@@ -43,6 +45,8 @@ public class TestGraphToolkit implements IMenuTest {
         graph.graphModel.createVariable("test_v", Float.class, 10f, null);
         // nodes
         graph.graphModel.createNodeModel(new TestStringConcatNode(), new Vector2f(200, 200));
+        graph.graphModel.createNodeModel(new OptionTestNode(), new Vector2f(350, 0));
+        graph.graphModel.createNodeModel(new TestDescriptionNode(), new Vector2f(350, 150));
         var constant = graph.graphModel.createNodeModel(new TestConstantNode(), new Vector2f(0));
         var add1 = graph.graphModel.createNodeModel(new TestAddNode(), new Vector2f(50));
         var add2 = graph.graphModel.createNodeModel(new TestAddNode(), new Vector2f(150));

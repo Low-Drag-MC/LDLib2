@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.font.LDFonts;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
@@ -29,7 +30,6 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.FontDescription;
@@ -1062,7 +1062,7 @@ public class TextArea extends BindableUIElement<String[]> {
             context.pose.pushPose();
             context.pose.translate(drawX, lineY);
             context.pose.scale(scale, scale);
-            context.graphics.text(
+            LDFonts.drawText(context, 
                     font,
                     textWithFont,
                     0,
@@ -1085,7 +1085,7 @@ public class TextArea extends BindableUIElement<String[]> {
         context.pose.pushPose();
         context.pose.translate(x, y);
         context.pose.scale(scale, scale);
-        context.graphics.text(
+        LDFonts.drawText(context, 
                 font,
                 textAreaStyle.placeholder(),
                 0,
@@ -1137,11 +1137,11 @@ public class TextArea extends BindableUIElement<String[]> {
         }
 
         static float scale(TextArea area) {
-            return area.getTextAreaStyle().fontSize() / Minecraft.getInstance().font.lineHeight;
+            return area.getTextAreaStyle().fontSize() / LDFonts.font().lineHeight;
         }
 
         static float getMaxWidth(TextArea area) {
-            var font = Minecraft.getInstance().font;
+            var font = LDFonts.font();
             var scale = scale(area);
             var max = 0f;
             for (String line : area.lines) {
@@ -1157,7 +1157,7 @@ public class TextArea extends BindableUIElement<String[]> {
                 return new Tuple<>(area.getScrollX(), area.getScrollY());
             }
 
-            var font = Minecraft.getInstance().font;
+            var font = LDFonts.font();
             var scale = scale(area);
             var currentLine = area.lines.get(area.getCursorLine());
             float cursorX = font.getSplitter().stringWidth(TextUtilities.withFont(currentLine.substring(0, area.getCursorCol()), area.getTextAreaStyle().font())) * scale;
@@ -1189,7 +1189,7 @@ public class TextArea extends BindableUIElement<String[]> {
             var x = area.contentView.getContentX();
             var y = area.contentView.getContentY();
             var scale = scale(area);
-            var font = Minecraft.getInstance().font;
+            var font = LDFonts.font();
 
             var relY = (float) (mouseY - y + area.getScrollY()) - 2;
             int line = Mth.clamp((int) Math.floor(relY / area.lineHeight()), 0, Math.max(0, area.lines.size() - 1));
@@ -1248,7 +1248,7 @@ public class TextArea extends BindableUIElement<String[]> {
             var y = area.contentView.getContentY();
             var height = area.contentView.getContentHeight();
 
-            Font font = Minecraft.getInstance().font;
+            Font font = LDFonts.font();
             var scale = area.scale();
 
             int firstVisibleLine = (int) Math.floor(area.getScrollY() / area.lineHeight());

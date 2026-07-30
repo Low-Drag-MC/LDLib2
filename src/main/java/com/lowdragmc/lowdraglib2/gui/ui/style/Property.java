@@ -9,15 +9,12 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 import com.mojang.serialization.Codec;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
@@ -128,6 +125,7 @@ public class Property<VALUE> {
         configurator.setTips(tooltips);
         var clearButton = new Button().noText().setOnClick(e -> setter.accept(null));
         clearButton.layout(layout -> layout.height(14).width(14)).addChild(new UIElement()
+                .addClass("__white_icon__")
                 .layout(layout -> layout.height(10).width(10))
                 .style(style -> style.backgroundTexture(Icons.REPLAY).tooltips("property.reset"))
         );

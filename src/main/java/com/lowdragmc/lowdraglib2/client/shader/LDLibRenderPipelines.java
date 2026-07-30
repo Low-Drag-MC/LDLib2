@@ -94,6 +94,107 @@ public class LDLibRenderPipelines {
             .withLocation(LDLib2.id("pipeline/strip_lines"))
             .build();
 
+    /**
+     * Glyphs sampled from a signed distance field atlas.
+     * <p>
+     * The GUI variant drops depth testing the way vanilla's {@code GUI_TEXT} does, the world variant keeps it so
+     * text drawn into a scene still sorts against geometry. Both need the atlas sampled with {@code LINEAR},
+     * which is what reconstructs the field between texels; that is a property of the sampler rather than the
+     * pipeline, so it is set where the texture is bound.
+     */
+    public static final RenderPipeline SDF_TEXT_GUI = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/sdf_text"))
+            .withFragmentShader(LDLib2.id("core/sdf_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/sdf_text_gui"))
+            .build();
+
+    public static final RenderPipeline SDF_TEXT = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/sdf_text"))
+            .withFragmentShader(LDLib2.id("core/sdf_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(DepthStencilState.DEFAULT)
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/sdf_text"))
+            .build();
+
+    /**
+     * Same as {@link #SDF_TEXT} but offset towards the viewer, so text drawn on a surface does not z-fight it.
+     */
+    public static final RenderPipeline SDF_TEXT_POLYGON_OFFSET = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/sdf_text"))
+            .withFragmentShader(LDLib2.id("core/sdf_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true, -1.0F, -10.0F))
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/sdf_text_polygon_offset"))
+            .build();
+
+    public static final RenderPipeline SDF_TEXT_SEE_THROUGH = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/sdf_text"))
+            .withFragmentShader(LDLib2.id("core/sdf_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/sdf_text_see_through"))
+            .build();
+
+    /**
+     * Glyphs rasterized at the size they are drawn at. One texel is one device pixel, so the atlas is sampled
+     * with {@code NEAREST} and the shader only has to unpack the coverage value.
+     */
+    public static final RenderPipeline RASTER_TEXT_GUI = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/raster_text"))
+            .withFragmentShader(LDLib2.id("core/raster_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/raster_text_gui"))
+            .build();
+
+    public static final RenderPipeline RASTER_TEXT = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/raster_text"))
+            .withFragmentShader(LDLib2.id("core/raster_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(DepthStencilState.DEFAULT)
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/raster_text"))
+            .build();
+
+    public static final RenderPipeline RASTER_TEXT_POLYGON_OFFSET = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/raster_text"))
+            .withFragmentShader(LDLib2.id("core/raster_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true, -1.0F, -10.0F))
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/raster_text_polygon_offset"))
+            .build();
+
+    public static final RenderPipeline RASTER_TEXT_SEE_THROUGH = RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+            .withVertexShader(LDLib2.id("core/raster_text"))
+            .withFragmentShader(LDLib2.id("core/raster_text"))
+            .withSampler("Sampler0")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
+            .withVertexFormat(LDLibShaders.SDF_TEXT_FORMAT, VertexFormat.Mode.QUADS)
+            .withLocation(LDLib2.id("pipeline/raster_text_see_through"))
+            .build();
+
     public static void register(RegisterRenderPipelinesEvent event) {
         event.registerPipeline(GUI_TRIANGLE);
         event.registerPipeline(POSITION_COLOR_NO_DEPTH);
@@ -104,5 +205,13 @@ public class LDLibRenderPipelines {
         event.registerPipeline(HSB);
         event.registerPipeline(MASK_ALPHA_MULTIPLY);
         event.registerPipeline(STRIP_LINES);
+        event.registerPipeline(SDF_TEXT_GUI);
+        event.registerPipeline(SDF_TEXT);
+        event.registerPipeline(SDF_TEXT_POLYGON_OFFSET);
+        event.registerPipeline(SDF_TEXT_SEE_THROUGH);
+        event.registerPipeline(RASTER_TEXT_GUI);
+        event.registerPipeline(RASTER_TEXT);
+        event.registerPipeline(RASTER_TEXT_POLYGON_OFFSET);
+        event.registerPipeline(RASTER_TEXT_SEE_THROUGH);
     }
 }

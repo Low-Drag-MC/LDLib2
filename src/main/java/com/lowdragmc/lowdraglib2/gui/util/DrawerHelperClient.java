@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.util;
 
+import com.lowdragmc.lowdraglib2.client.font.LDFonts;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -102,16 +103,16 @@ public class DrawerHelperClient {
 
     public static void drawStringSized(@NotNull GUIContext context, String text, float x, float y, int color, boolean dropShadow, float scale, boolean center) {
         context.pose.pushPose();
-        Font fontRenderer = Minecraft.getInstance().font;
+        Font fontRenderer = LDFonts.font();
         var scaledTextWidth = center ? fontRenderer.getSplitter().stringWidth(text) * scale : 0f;
         context.pose.translate(x - scaledTextWidth / 2f, y);
         context.pose.scale(scale, scale);
-        context.graphics.text(fontRenderer, text, 0, 0, color, dropShadow);
+        LDFonts.drawText(context, fontRenderer, text, 0, 0, color, dropShadow);
         context.pose.popPose();
     }
 
     public static void drawStringFixedCorner(@NotNull GUIContext context, String text, float x, float y, int color, boolean dropShadow, float scale) {
-        Font fontRenderer = Minecraft.getInstance().font;
+        Font fontRenderer = LDFonts.font();
         float scaledWidth = fontRenderer.getSplitter().stringWidth(text) * scale;
         float scaledHeight = fontRenderer.lineHeight * scale;
         drawStringSized(context, text, x - scaledWidth, y - scaledHeight, color, dropShadow, scale, false);
@@ -122,11 +123,11 @@ public class DrawerHelperClient {
     }
 
     public static void drawText(@NotNull GUIContext context, String text, float x, float y, float scale, int color, boolean shadow) {
-        Font fontRenderer = Minecraft.getInstance().font;
+        Font fontRenderer = LDFonts.font();
         context.pose.pushPose();
         context.pose.scale(scale, scale);
         float sf = 1 / scale;
-        context.graphics.text(fontRenderer, text, (int) (x * sf), (int) (y * sf), color, shadow);
+        LDFonts.drawText(context, fontRenderer, text, (int) (x * sf), (int) (y * sf), color, shadow);
         context.pose.popPose();
     }
 
@@ -229,6 +230,20 @@ public class DrawerHelperClient {
         }
     }
 
+    /**
+     * Tooltips deliberately stay on the vanilla font.
+     * <p>
+     * A tooltip is laid out and drawn by vanilla ({@code ClientTextTooltip#extractText} -> {@code
+     * GuiGraphics#text} -> {@code GuiTextRenderState}), so its glyphs are submitted through vanilla's
+     * {@code GlyphRenderState}, whose {@code textureSetup()} binds the atlas with a hardcoded
+     * {@code FilterMode.NEAREST}. A distance field sampled without interpolation is not a distance field, which
+     * is the whole reason LDLib submits its own {@link com.lowdragmc.lowdraglib2.client.font.LDGlyphRenderState}
+     * for text it draws itself. Handing LDLib's font to that path renders wrong, so it is not handed over.
+     * <p>
+     * 1.21 did use LDLib's font here, and could: tooltips were immediate mode there ({@code renderTooltip} ->
+     * {@code Font#drawInBatch}), so they picked up LDLib's render types like everything else. Making it work
+     * again on 26.1 needs the sampler choice moved into the glyph, which means patching {@code GlyphRenderState}.
+     */
     public static Font tooltipFont(HoverTooltips hoverTooltips, GUIContext context) {
         return hoverTooltips.tooltipFont() instanceof Font font ? font : context.mc.font;
     }

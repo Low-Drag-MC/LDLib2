@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.font.LDFonts;
 import com.lowdragmc.lowdraglib2.configurator.annotation.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -19,7 +20,6 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import net.minecraft.client.Minecraft;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -275,7 +275,7 @@ public class TextElement extends UIElement {
                 maxWidth = textElement.getContentWidth();
             }
             textElement.setFormattedLines(TextUtilities.computeFormattedLines(
-                    Minecraft.getInstance().font,
+                    LDFonts.font(),
                     TextUtilities.withFont(textElement.getText(), font),
                     textElement.getTextStyle().fontSize(),
                     maxWidth
@@ -304,7 +304,7 @@ public class TextElement extends UIElement {
         static void drawBackgroundAdditional(TextElement textElement, GUIContext context) {
             var formattedLines = textElement.getFormattedLines();
             if (formattedLines.isEmpty()) return;
-            var font = Minecraft.getInstance().font;
+            var font = LDFonts.font();
             var defaultLineHeight = font.lineHeight;
             var x = textElement.getContentX();
             var y = textElement.getContentY();
@@ -354,7 +354,7 @@ public class TextElement extends UIElement {
                 context.pose.pushPose();
                 context.pose.translate(lineX, lineY);
                 context.pose.scale(scale, scale);
-                context.graphics.text(font, line, 0, 0, color, dropShadow);
+                LDFonts.drawText(context, font, line, 0, 0, color, dropShadow);
                 context.pose.popPose();
             }
         }

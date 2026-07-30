@@ -349,6 +349,55 @@ public class ScrollerView extends UIElement {
         return viewContainer.hasChild(child);
     }
 
+    /**
+     * Scrolls the view to make the given scroll view child visible.
+     * It scrolls as little as possible, so nothing happens if the child is already fully visible.
+     *
+     * @param child the child added by {@link #addScrollViewChild(UIElement)}
+     * @return false if the given element is not a scroll view child, or if the layout has not been computed yet.
+     *         In the latter case, you may want to retry after the layout is updated.
+     */
+    public boolean scrollToChild(@Nullable UIElement child) {
+        if (child == null || !hasScrollViewChild(child)) return false;
+        // the layout is not available yet, e.g. the scroller view has not been displayed for a frame.
+        if (viewPort.getContentWidth() <= 0 || viewPort.getContentHeight() <= 0) return false;
+        var location = child.getTaffyLayout().location();
+        var mode = scrollerViewStyle.mode();
+        if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
+            scrollAxisToChild(verticalScroller, location.y, child.getSizeHeight(), viewPort.getContentHeight(), getContainerHeight());
+        }
+        if (mode == ScrollerMode.HORIZONTAL || mode == ScrollerMode.BOTH) {
+            scrollAxisToChild(horizontalScroller, location.x, child.getSizeWidth(), viewPort.getContentWidth(), getContainerWidth());
+        }
+        return true;
+    }
+
+    /**
+     * Same as {@link #scrollToChild(UIElement)}, but if the layout is not available yet, e.g. the child was just
+     * added, it retries as soon as the layout is updated.
+     */
+    public void scrollToChildDelayed(@Nullable UIElement child) {
+        if (child == null || scrollToChild(child)) return;
+        viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
+            event.currentElement.removeEventListener(UIEvents.LAYOUT_CHANGED, event.currentListener);
+            scrollToChild(child);
+        });
+    }
+
+    private static void scrollAxisToChild(Scroller scroller, float childOffset, float childSize, float portSize, float containerSize) {
+        var range = containerSize - portSize;
+        if (range <= 0) return; // the whole container fits into the view port, nothing to scroll
+        var scrolled = scroller.getNormalizedValue() * range;
+        if (Float.isNaN(scrolled)) scrolled = 0;
+        var target = scrolled;
+        if (childOffset < scrolled) { // the child is before the view port
+            target = childOffset;
+        } else if (childOffset + childSize > scrolled + portSize) { // the child is after the view port
+            target = childOffset + childSize - portSize;
+        }
+        scroller.setNormalizedValue(Mth.clamp(target, 0, range) / range);
+    }
+
     public ScrollerView addScrollViewChildAt(@Nullable UIElement child, int index) {
         viewContainer.addChildAt(child, index);
         return this;

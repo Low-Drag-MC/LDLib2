@@ -30,16 +30,46 @@ import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 @KJSBindings
 public class Dialog extends UIElement {
+    /**
+     * Optional features of {@link Dialog#showFileDialog}, combined with {@code |}:
+     * <pre>{@code showFileDialog(title, dir, true, valid, FileFeature.NEW_FOLDER | FileFeature.RENAME, result)}</pre>
+     * The overloads without a feature mask enable {@link #ALL} of them.
+     */
+    public interface FileFeature {
+        /** A plain file picker: no folder button, no editing. */
+        int NONE = 0;
+        /** The button that reveals the selected directory in the system file browser. */
+        int OPEN_FOLDER = 1;
+        /** Right click on the tree to create a folder. */
+        int NEW_FOLDER = 1 << 1;
+        /** Right click on the tree to rename a file or folder. */
+        int RENAME = 1 << 2;
+        /** Right click on the tree to delete a file or folder, after a confirmation. */
+        int DELETE = 1 << 3;
+        /** Every feature above. */
+        int ALL = OPEN_FOLDER | NEW_FOLDER | RENAME | DELETE;
+
+        static boolean has(int features, int feature) {
+            return (features & feature) != 0;
+        }
+    }
+
     public final UIElement overlay;
     public final UIElement titleBar;
     public final UIElement contentContainer;
     public final UIElement buttonContainer;
+    /**
+     * Elements displayed outside the dialog's element tree, but logically belonging to it.
+     * @see #addExternalElement(UIElement)
+     */
+    private final List<UIElement> externalElements = new ArrayList<>();
     private boolean autoClose = true;
     private boolean clickOutsideClose = false;
     @Nullable
@@ -135,7 +165,7 @@ public class Dialog extends UIElement {
 
     protected void mouseDown(UIEvent event) {
         if (clickOutsideClose && autoClose && !overlay.isSelfOrChildHover()) {
-            if (isInsideDialog()) {
+            if (isInsideDialog() || isExternalElementInteracted(null)) {
                 return;
             }
             close();
@@ -148,6 +178,9 @@ public class Dialog extends UIElement {
             return;
         }
         if (isInsideDialog()) { // focus on sibling popup/menu
+            return;
+        }
+        if (isExternalElementInteracted(event.relatedTarget)) { // interacting with an external popup of this dialog
             return;
         }
 
@@ -174,6 +207,34 @@ public class Dialog extends UIElement {
                 }
             }
         }
+    }
+
+    /**
+     * Registers an element that is displayed outside the dialog's element tree, e.g. the dropdown of a
+     * {@link SearchComponent}, which is anchored to the root element. Such an element is considered as a part of the
+     * dialog, so that interacting with it won't dismiss the dialog even if the auto close is enabled.
+     */
+    public Dialog addExternalElement(UIElement element) {
+        externalElements.add(element);
+        return this;
+    }
+
+    /**
+     * Un-registers an element added by {@link #addExternalElement(UIElement)}, e.g. when the popup it
+     * stands for is closed.
+     */
+    public Dialog removeExternalElement(UIElement element) {
+        externalElements.remove(element);
+        return this;
+    }
+
+    private boolean isExternalElementInteracted(@Nullable UIElement focused) {
+        for (var element : externalElements) {
+            if (element.isSelfOrChildHover() || element.isAncestorOf(focused)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isInsideDialog() {
@@ -441,6 +502,14 @@ public class Dialog extends UIElement {
      * @param onClosed a BooleanConsumer that will be called with true if confirm is clicked, or false if cancel is clicked
      */
     public static Dialog showCheckBox(String title, String info, BooleanConsumer onClosed) {
+        return showCheckBox(title, Component.translatable(info), onClosed);
+    }
+
+    /**
+     * As {@link #showCheckBox(String, String, BooleanConsumer)}, for an already built message — e.g. one
+     * naming the thing that is about to be removed.
+     */
+    public static Dialog showCheckBox(String title, Component info, BooleanConsumer onClosed) {
         var dialog = new Dialog();
         dialog.setTitle(title);
         dialog.addContent(new Label().textStyle(textStyle -> textStyle.textWrap(TextWrap.WRAP).adaptiveHeight(true))
@@ -493,7 +562,18 @@ public class Dialog extends UIElement {
      * @param result a consumer that will receive the selected file or directory when the confirm button is clicked
      */
     public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable Predicate<FileNode> valid, Consumer<File> result) {
-        return showFileDialog(title, dir, isSelector, null, valid, result);
+        return showFileDialog(title, dir, isSelector, null, valid, FileFeature.ALL, result);
+    }
+
+    /**
+     * Shows a file dialog offering only the given {@link FileFeature}s.
+     *
+     * @param features the enabled features, e.g. {@code FileFeature.OPEN_FOLDER | FileFeature.NEW_FOLDER}
+     * @see #showFileDialog(String, File, boolean, Predicate, Consumer)
+     */
+    public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable Predicate<FileNode> valid,
+                                        int features, Consumer<File> result) {
+        return showFileDialog(title, dir, isSelector, null, valid, features, result);
     }
 
     /**
@@ -511,6 +591,17 @@ public class Dialog extends UIElement {
      * @param result a consumer that will receive the selected file or directory when the confirm button is clicked
      */
     public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable File defaultValue, @Nullable Predicate<FileNode> valid, Consumer<File> result) {
+        return showFileDialog(title, dir, isSelector, defaultValue, valid, FileFeature.ALL, result);
+    }
+
+    /**
+     * Shows a file dialog offering only the given {@link FileFeature}s.
+     *
+     * @param features the enabled features, e.g. {@code FileFeature.OPEN_FOLDER | FileFeature.NEW_FOLDER}
+     * @see #showFileDialog(String, File, boolean, File, Predicate, Consumer)
+     */
+    public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable File defaultValue,
+                                        @Nullable Predicate<FileNode> valid, int features, Consumer<File> result) {
         var dialog = new Dialog();
         var textField = new TextField();
         var treeList = new TreeList<FileNode>();
@@ -527,12 +618,15 @@ public class Dialog extends UIElement {
             layout.flexDirection(FlexDirection.ROW);
             layout.gapAll(2);
         }).addChildren(textField.layout(layout -> layout.flex(1)), new Button().setOnClick(e -> {
-            Util.getPlatform().openFile(dir.isDirectory() ? dir : dir.getParentFile());
+            // reveal what's selected in the tree, and only fall back to the dialog's own directory
+            Util.getPlatform().openFile(FileDialogActions.openTargetDir(treeList, dir));
         }).noText().layout(layout -> {
             layout.width(14);
             layout.height(14);
             layout.paddingAll(3);
-        }).addChild(new UIElement().addClass("__white_icon__").layout(layout -> layout.widthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
+        }).style(style -> style.tooltips("ldlib.gui.tips.open_folder"))
+                .setDisplay(FileFeature.has(features, FileFeature.OPEN_FOLDER))
+                .addChild(new UIElement().addClass("__white_icon__").layout(layout -> layout.widthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
         treeList.setOnSelectedChanged(selected -> {
             if (selected.isEmpty()) return;
             var first = selected.stream().findFirst().get();
@@ -560,6 +654,13 @@ public class Dialog extends UIElement {
         var scrollerView = new ScrollerView().addScrollViewChild(treeList).layout(layout -> {
             layout.widthPercent(100);
             layout.height(180);
+        });
+        // new folder / rename / delete. Listening on the scroller so a right click below the last row
+        // still offers to create a folder in the root.
+        scrollerView.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            if (e.button == 1) {
+                FileDialogActions.openContextMenu(dialog, treeList, root, features, e.x, e.y);
+            }
         });
         dialog.addContent(scrollerView);
         dialog.addButton(new Button()

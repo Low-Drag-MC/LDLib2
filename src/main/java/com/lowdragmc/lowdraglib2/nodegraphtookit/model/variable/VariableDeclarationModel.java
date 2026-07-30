@@ -167,6 +167,11 @@ public class VariableDeclarationModel extends VariableDeclarationModelBase {
     }
 
     @Override
+    public Tooltips getCustomTooltips() {
+        return tooltips;
+    }
+
+    @Override
     public void setTooltips(Tooltips tooltips) {
         if (this.tooltips.equals(tooltips)) return;
         this.tooltips = tooltips;

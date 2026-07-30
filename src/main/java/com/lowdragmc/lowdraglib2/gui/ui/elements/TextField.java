@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.font.LDFonts;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
@@ -30,7 +31,6 @@ import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.FontDescription;
@@ -1115,7 +1115,7 @@ public class TextField extends BindableUIElement<String> {
         }
 
         static float computeDisplayOffset(TextField field) {
-            var font = Minecraft.getInstance().font;
+            var font = LDFonts.font();
             var scale = field.getTextFieldStyle().fontSize() / font.lineHeight;
             var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(field.getStyledLine(), field.getCursorPos())) * scale;
             var width = field.getContentWidth();
@@ -1130,7 +1130,7 @@ public class TextField extends BindableUIElement<String> {
 
         static int getCursorUnderMouseX(TextField field, double mouseX) {
             var x = field.getContentX();
-            var font = Minecraft.getInstance().font;
+            var font = LDFonts.font();
             var scale = field.getTextFieldStyle().fontSize() / font.lineHeight;
             // Mouse offset in rendered pixels. substrByWidth() expects unscaled/natural font pixels, so divide by
             // scale for it; the half-character comparison below stays in rendered pixels (like subLength).
@@ -1159,7 +1159,7 @@ public class TextField extends BindableUIElement<String> {
                     ? formattedText
                     : formattedText.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(new FontDescription.Resource(font)));
             var lines = TextUtilities.computeFormattedLines(
-                    Minecraft.getInstance().font,
+                    LDFonts.font(),
                     textWithFont,
                     field.getTextFieldStyle().fontSize(),
                     Float.MAX_VALUE
@@ -1204,7 +1204,7 @@ public class TextField extends BindableUIElement<String> {
             var y = field.getContentY();
             var height = field.getContentHeight();
             var formattedLine = field.getFormattedLine();
-            Font font = Minecraft.getInstance().font;
+            Font font = LDFonts.font();
             var fontSize = field.getTextFieldStyle().fontSize();
             var scale = fontSize / font.lineHeight;
 
@@ -1215,7 +1215,7 @@ public class TextField extends BindableUIElement<String> {
             context.pose.pushPose();
             context.pose.translate(lineX, lineY);
             context.pose.scale(scale, scale);
-            context.graphics.text(font, line, 0, 0, field.getRawText().isEmpty() ?
+            LDFonts.drawText(context, font, line, 0, 0, field.getRawText().isEmpty() ?
                     ColorPattern.LIGHT_GRAY.color : (field.isError() ? field.getTextFieldStyle().errorColor() : field.getTextFieldStyle().textColor()),
                     !field.getRawText().isEmpty() && field.getTextFieldStyle().textShadow());
             context.pose.popPose();

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
@@ -37,10 +38,17 @@ public class ResourceContainer<T> extends UIElement {
     public final Editor editor;
 
     // runtime
-    private final Map<IResourceProvider<T>, UIElement> providerToggles = new java.util.HashMap<>();
+    // keeps the display order of the providers, so that the first one is selected by default.
+    private final Map<IResourceProvider<T>, UIElement> providerToggles = new java.util.LinkedHashMap<>();
     @Getter
     @Nullable
     private IResourceProvider<T> selectedProvider = null;
+    /**
+     * The container of the {@link #selectedProvider}, it is recreated whenever the selected provider changes.
+     */
+    @Getter
+    @Nullable
+    private ResourceProviderContainer<T> selectedProviderContainer = null;
     @Nullable @Setter
     private Consumer<T> onResourceSelect;
 
@@ -154,6 +162,7 @@ public class ResourceContainer<T> extends UIElement {
         }
         providerContainer.clearAllChildren();
         selectedProvider = provider;
+        selectedProviderContainer = null;
         if (selectedProvider != null) {
             var toggle = providerToggles.get(selectedProvider);
             if (toggle != null) {
@@ -168,7 +177,41 @@ public class ResourceContainer<T> extends UIElement {
                 }
             });
             providerContainer.addChild(providerView);
+            selectedProviderContainer = providerView;
         }
+    }
+
+    /**
+     * Locates the given resource. It selects the provider holding the resource, scrolls the resource into the view and
+     * selects it.
+     *
+     * @param path the path of the resource to locate.
+     * @param notify whether the {@link #onResourceSelect} callback should be notified.
+     * @return true if the resource was found and located.
+     */
+    public boolean locateResource(@Nullable IResourcePath path, boolean notify) {
+        if (path == null) return false;
+        for (var provider : providerToggles.keySet()) {
+            if (provider.hasResource(path)) {
+                return locateResource(provider, path, notify);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Locates the given resource of the given provider.
+     *
+     * @see #locateResource(IResourcePath, boolean)
+     */
+    public boolean locateResource(IResourceProvider<T> provider, IResourcePath path, boolean notify) {
+        if (!providerToggles.containsKey(provider) || !provider.hasResource(path)) return false;
+        selectProvider(provider);
+        providerList.scrollToChildDelayed(providerToggles.get(provider));
+        if (selectedProviderContainer != null) {
+            selectedProviderContainer.locateResource(path, notify);
+        }
+        return true;
     }
 
     @Override
