@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
+import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -55,6 +56,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
@@ -363,7 +365,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> pattern.matcher(entry.getKey()).matches())
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -376,7 +378,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> entry.getKey().contains(substring))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -389,7 +391,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith(prefix))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -402,7 +404,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> entry.getKey().endsWith(suffix))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -1173,7 +1175,7 @@ public class ModularUI {
             if (drawTooltips && !dragHandler.isDragging() && tooltipTexts != null && !tooltipTexts.isEmpty()) {
                 guiGraphics.pose().pushPose();
                 guiGraphics.pose().translate(0, 0, 200);
-                DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? Minecraft.getInstance().font : tooltipFont);
+                DrawerHelper.drawTooltip(guiGraphics, (int) lastMouseX, (int) lastMouseY, tooltipTexts, tooltipStack, tooltipComponent, tooltipFont == null ? LDLibFonts.font() : tooltipFont);
                 guiGraphics.pose().popPose();
             }
 

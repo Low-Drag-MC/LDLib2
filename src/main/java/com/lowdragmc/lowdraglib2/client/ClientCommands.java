@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.client.font.LDFontStatsOverlay;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
@@ -29,16 +31,57 @@ public class ClientCommands {
 
     public static List<LiteralArgumentBuilder<CommandSourceStack>> createClientCommands() {
         var commands = new ArrayList<LiteralArgumentBuilder<CommandSourceStack>>();
-        commands.add(createLiteral("ldlib2_client").then(createLiteral("reload_shader")
-                .executes(context -> {
-                    LDLibShaders.reload();
-                    ShaderManager.getInstance().reload();
-                    return 1;
-                })));
+        commands.add(createLiteral("ldlib2_client")
+                .then(createLiteral("reload_shader")
+                        .executes(context -> {
+                            LDLibShaders.reload();
+                            ShaderManager.getInstance().reload();
+                            return 1;
+                        })));
+        if (Platform.isDevEnv()) {
+            commands.add(createFontCommands());
+        }
         if (LDLib2Registries.SCREEN_TESTS != null && !LDLib2Registries.SCREEN_TESTS.values().isEmpty()) {
             commands.add(createScreenTestCommands());
         }
         return commands;
+    }
+
+    /**
+     * Development only helpers for eyeballing the text renderer. Not registered outside a dev environment:
+     * the settings they poke live in the client config, which is where users are meant to change them.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> createFontCommands() {
+        return createLiteral("ldlib2_font")
+                .then(createLiteral("mode")
+                        .executes(context -> {
+                            var modes = LDLibClientConfig.FontRenderMode.values();
+                            var next = modes[(LDLibClientConfig.fontRenderMode().ordinal() + 1) % modes.length];
+                            LDLibClientConfig.setFontRenderMode(next);
+                            // the renderers measure text slightly differently, so lay the screen out again
+                            reinitCurrentScreen();
+                            context.getSource().sendSuccess(
+                                    () -> Component.literal("LDLib text: " + next), false);
+                            return 1;
+                        }))
+                .then(createLiteral("stats")
+                        .executes(context -> {
+                            LDFontStatsOverlay.toggle();
+                            context.getSource().sendSuccess(
+                                    () -> Component.literal(LDFontStatsOverlay.describe()), false);
+                            return 1;
+                        }));
+    }
+
+    /**
+     * Rebuilds the open screen so text is measured again with the renderer that is now active.
+     */
+    private static void reinitCurrentScreen() {
+        var minecraft = Minecraft.getInstance();
+        var screen = minecraft.screen;
+        if (screen != null) {
+            screen.resize(minecraft, screen.width, screen.height);
+        }
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> createScreenTestCommands() {

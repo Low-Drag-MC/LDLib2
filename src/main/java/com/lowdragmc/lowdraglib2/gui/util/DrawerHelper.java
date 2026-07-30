@@ -16,6 +16,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -123,7 +124,7 @@ public class DrawerHelper {
 
     public static void drawStringSized(@Nonnull GuiGraphics graphics, String text, float x, float y, int color, boolean dropShadow, float scale, boolean center) {
         graphics.pose().pushPose();
-        Font fontRenderer = Minecraft.getInstance().font;
+        Font fontRenderer = LDLibFonts.font();
         double scaledTextWidth = center ? fontRenderer.getSplitter().stringWidth(text) * scale : 0.0;
         graphics.pose().translate(x - scaledTextWidth / 2.0, y, 0.0f);
         graphics.pose().scale(scale, scale, scale);
@@ -132,7 +133,7 @@ public class DrawerHelper {
     }
 
     public static void drawStringFixedCorner(@Nonnull GuiGraphics graphics, String text, float x, float y, int color, boolean dropShadow, float scale) {
-        Font fontRenderer = Minecraft.getInstance().font;
+        Font fontRenderer = LDLibFonts.font();
         float scaledWidth = fontRenderer.getSplitter().stringWidth(text) * scale;
         float scaledHeight = fontRenderer.lineHeight * scale;
         drawStringSized(graphics, text, x - scaledWidth, y - scaledHeight, color, dropShadow, scale, false);
@@ -143,7 +144,7 @@ public class DrawerHelper {
     }
 
     public static void drawText(@Nonnull GuiGraphics graphics, String text, float x, float y, float scale, int color, boolean shadow) {
-        Font fontRenderer = Minecraft.getInstance().font;
+        Font fontRenderer = LDLibFonts.font();
         RenderSystem.disableBlend();
         graphics.pose().pushPose();
         graphics.pose().scale(scale, scale, 0f);

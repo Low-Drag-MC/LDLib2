@@ -3,6 +3,8 @@ package com.lowdragmc.lowdraglib2.client;
 import com.lowdragmc.lowdraglib2.CommonProxy;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.client.font.LDFontManager;
+import com.lowdragmc.lowdraglib2.client.font.LDFontStatsOverlay;
 import com.lowdragmc.lowdraglib2.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib2.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
@@ -27,15 +29,24 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.client.event.*;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
 @OnlyIn(Dist.CLIENT)
 public class ClientProxy {
 
-    public ClientProxy(IEventBus eventBus) {
+    public ClientProxy(IEventBus eventBus, ModContainer modContainer) {
         eventBus.register(this);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, LDLibClientConfig.SPEC);
+        // Without a screen factory NeoForge shows no Config button for the mod in the mod list, leaving the
+        // file as the only way in. ConfigurationScreen builds the screen from the spec.
+        modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
     @SubscribeEvent
@@ -78,10 +89,36 @@ public class ClientProxy {
         LDLibShaders.registerShaders(event);
     }
 
+    /**
+     * The client config decides how glyphs are baked, so a change to it invalidates every atlas.
+     * <p>
+     * Only {@code Reloading} matters: at {@code Loading} time nothing has been baked yet. The rebuild is handed
+     * to the client thread because this event is documented to fire on any thread and freeing a texture is not
+     * thread safe.
+     */
+    @SubscribeEvent
+    public void onConfigReloaded(ModConfigEvent.Reloading event) {
+        if (event.getConfig().getSpec() == LDLibClientConfig.SPEC) {
+            Minecraft.getInstance().execute(LDFontManager.INSTANCE::invalidate);
+        }
+    }
+
+    /**
+     * TEMPORARY: development readout, see {@link LDFontStatsOverlay}. Registered above everything so it is not
+     * hidden by the rest of the HUD.
+     */
+    @SubscribeEvent
+    public void registerFontStatsOverlay(RegisterGuiLayersEvent event) {
+        if (Platform.isDevEnv()) {
+            event.registerAboveAll(LDLib2.id("font_stats"), LDFontStatsOverlay.INSTANCE);
+        }
+    }
+
     @SubscribeEvent
     public void onRegisterClientReloadListenersEvent(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener(PackResourceManager.INSTANCE);
         event.registerReloadListener(StylesheetManager.INSTANCE);
+        event.registerReloadListener(LDFontManager.INSTANCE);
     }
 
     @SubscribeEvent

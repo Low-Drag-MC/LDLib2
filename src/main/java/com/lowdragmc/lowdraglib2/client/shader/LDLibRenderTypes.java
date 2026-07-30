@@ -1,8 +1,10 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
+import com.lowdragmc.lowdraglib2.client.LDLibClientConfig;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.Util;
+import net.minecraft.client.gui.font.GlyphRenderTypes;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -90,6 +92,54 @@ public class LDLibRenderTypes extends RenderType {
                     .createCompositeState(false)
     );
 
+    /**
+     * Pushes the SDF tuning uniforms right before the shader is used. The supplier runs at draw time, which is
+     * before {@code ShaderInstance#apply} uploads the uniform values.
+     */
+    private static final RenderStateShard.ShaderStateShard SDF_TEXT_SHADER = new RenderStateShard.ShaderStateShard(() -> {
+        var shader = LDLibShaders.getSdfText();
+        if (shader != null) {
+            var sharpness = shader.getUniform("Sharpness");
+            if (sharpness != null) sharpness.set(LDLibClientConfig.sharpness());
+            var weight = shader.getUniform("Weight");
+            if (weight != null) weight.set(LDLibClientConfig.weight());
+        }
+        return shader;
+    });
+
+    /**
+     * These mirror vanilla's {@code RenderType.text*} states one for one, only swapping the shader and turning
+     * on linear filtering, so LDLib text layers against the rest of the GUI exactly like vanilla text does.
+     */
+    private static final Function<ResourceLocation, RenderType> SDF_TEXT = Util.memoize(
+            texture -> create("ldlib_sdf_text", DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP,
+                    VertexFormat.Mode.QUADS, 786432, false, true,
+                    sdfTextState(texture).createCompositeState(false)));
+
+    private static final Function<ResourceLocation, RenderType> SDF_TEXT_SEE_THROUGH = Util.memoize(
+            texture -> create("ldlib_sdf_text_see_through", DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP,
+                    VertexFormat.Mode.QUADS, 1536, false, true,
+                    sdfTextState(texture)
+                            .setDepthTestState(NO_DEPTH_TEST)
+                            .setWriteMaskState(COLOR_WRITE)
+                            .createCompositeState(false)));
+
+    private static final Function<ResourceLocation, RenderType> SDF_TEXT_POLYGON_OFFSET = Util.memoize(
+            texture -> create("ldlib_sdf_text_polygon_offset", DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP,
+                    VertexFormat.Mode.QUADS, 1536, false, true,
+                    sdfTextState(texture)
+                            .setLayeringState(POLYGON_OFFSET_LAYERING)
+                            .createCompositeState(false)));
+
+    private static CompositeState.CompositeStateBuilder sdfTextState(ResourceLocation texture) {
+        return CompositeState.builder()
+                .setShaderState(SDF_TEXT_SHADER)
+                // blur = true so the atlas is sampled with GL_LINEAR, which the distance field relies on
+                .setTextureState(new TextureStateShard(texture, true, false))
+                .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                .setLightmapState(LIGHTMAP);
+    }
+
     private static final RenderStateShard.ShaderStateShard GRAPH_WIRE_SHADER = new RenderStateShard.ShaderStateShard(
             LDLibShaders::getGraphWireShader);
     private static final RenderType GRAPH_WIRE = create("graphWire",
@@ -133,5 +183,38 @@ public class LDLibRenderTypes extends RenderType {
 
     public static RenderType graphWire() {
         return GRAPH_WIRE;
+    }
+
+    private static final RenderStateShard.ShaderStateShard RASTER_TEXT_SHADER =
+            new RenderStateShard.ShaderStateShard(LDLibShaders::getRasterText);
+
+    private static final Function<ResourceLocation, RenderType> RASTER_TEXT = Util.memoize(
+            texture -> create("ldlib_raster_text", DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP,
+                    VertexFormat.Mode.QUADS, 786432, false, true,
+                    CompositeState.builder()
+                            .setShaderState(RASTER_TEXT_SHADER)
+                            // nearest: the glyph was rasterized at the size it is drawn at, so one texel is
+                            // one device pixel and filtering would only give back the softness this avoids
+                            .setTextureState(new TextureStateShard(texture, false, false))
+                            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                            .setLightmapState(LIGHTMAP)
+                            .createCompositeState(false)));
+
+    /**
+     * Render types for glyphs rasterized at the size they are drawn at. Unlike the distance field they need no
+     * see-through or polygon offset variants of their own, so one type covers all three display modes.
+     */
+    public static GlyphRenderTypes rasterTextGlyphs(ResourceLocation atlasPage) {
+        var type = RASTER_TEXT.apply(atlasPage);
+        return new GlyphRenderTypes(type, type, type);
+    }
+
+    /**
+     * Render types for glyphs baked into an SDF glyph atlas page. Mirrors the three display modes vanilla
+     * expects from {@link net.minecraft.client.gui.font.GlyphRenderTypes}.
+     */
+    public static GlyphRenderTypes sdfTextGlyphs(ResourceLocation atlasPage) {
+        return new GlyphRenderTypes(SDF_TEXT.apply(atlasPage), SDF_TEXT_SEE_THROUGH.apply(atlasPage),
+                SDF_TEXT_POLYGON_OFFSET.apply(atlasPage));
     }
 }

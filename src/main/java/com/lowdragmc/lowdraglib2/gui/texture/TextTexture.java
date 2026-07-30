@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -130,8 +131,7 @@ public class TextTexture extends TransformTexture {
         this.width = width;
         if (LDLib2.isClient()) {
             if (this.width > 0) {
-                texts = Minecraft.getInstance()
-                        .font.getSplitter()
+                texts = LDLibFonts.font().getSplitter()
                         .splitLines(text, width, Style.EMPTY)
                         .stream().map(FormattedText::getString)
                         .collect(Collectors.toList());
@@ -169,7 +169,7 @@ public class TextTexture extends TransformTexture {
         if (backgroundColor != 0) {
             DrawerHelper.drawSolidRect(graphics, (int) x, (int) y, (int) width, (int) height, backgroundColor);
         }
-        Font fontRenderer = Minecraft.getInstance().font;
+        Font fontRenderer = LDLibFonts.font();
         int textH = fontRenderer.lineHeight;
         if (type == TextType.NORMAL) {
             textH *= texts.size();
