@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.font.LDFonts;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
@@ -176,8 +177,7 @@ public class TextTexture extends TransformTexture {
 
         public static void refreshTexts(TextTexture texture) {
             if (texture.width > 0) {
-                texture.texts = Minecraft.getInstance()
-                        .font.getSplitter()
+                texture.texts = LDFonts.font().getSplitter()
                         .splitLines(texture.text, texture.width, Style.EMPTY)
                         .stream()
                         .map(FormattedText::getString)
@@ -195,7 +195,7 @@ public class TextTexture extends TransformTexture {
             if (texture.backgroundColor != 0) {
                 DrawerHelperClient.drawSolidRect(context, (int) x, (int) y, (int) width, (int) height, texture.backgroundColor);
             }
-            Font fontRenderer = Minecraft.getInstance().font;
+            Font fontRenderer = LDFonts.font();
             int textH = fontRenderer.lineHeight;
             if (texture.type == TextType.NORMAL) {
                 textH *= texture.texts.size();
@@ -204,7 +204,7 @@ public class TextTexture extends TransformTexture {
                     int lineWidth = fontRenderer.width(line);
                     float drawX = x + (width - lineWidth) / 2f;
                     float drawY = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                    context.graphics.text(fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
+                    LDFonts.drawText(context, fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
                 }
                 return;
             }
@@ -213,7 +213,7 @@ public class TextTexture extends TransformTexture {
                 for (int i = 0; i < texture.texts.size(); i++) {
                     String line = texture.texts.get(i);
                     float drawY = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                    context.graphics.text(fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
+                    LDFonts.drawText(context, fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
                 }
                 return;
             }
@@ -223,7 +223,7 @@ public class TextTexture extends TransformTexture {
                     String line = texture.texts.get(i);
                     int lineWidth = fontRenderer.width(line);
                     float drawY = y + (height - textH) / 2f + i * fontRenderer.lineHeight;
-                    context.graphics.text(fontRenderer, line, (int) (x + width - lineWidth), (int) drawY, texture.color, texture.dropShadow);
+                    LDFonts.drawText(context, fontRenderer, line, (int) (x + width - lineWidth), (int) drawY, texture.color, texture.dropShadow);
                 }
                 return;
             }
@@ -250,7 +250,7 @@ public class TextTexture extends TransformTexture {
                 } else {
                     String line = texture.texts.getFirst() + (texture.texts.size() > 1 ? ".." : "");
                     float drawY = y + (height - textH) / 2f;
-                    context.graphics.text(fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
+                    LDFonts.drawText(context, fontRenderer, line, (int) x, (int) drawY, texture.color, texture.dropShadow);
                 }
                 return;
             }
@@ -258,7 +258,7 @@ public class TextTexture extends TransformTexture {
                 drawRollTextLine(texture, context, x, y, width, height, fontRenderer, textH, texture.text);
             } else {
                 float drawY = y + (height - textH) / 2f;
-                context.graphics.text(fontRenderer, texture.texts.getFirst(), (int) x, (int) drawY, texture.color, texture.dropShadow);
+                LDFonts.drawText(context, fontRenderer, texture.texts.getFirst(), (int) x, (int) drawY, texture.color, texture.dropShadow);
             }
         }
 
@@ -273,7 +273,7 @@ public class TextTexture extends TransformTexture {
             var realPos2 = trans.transformPosition(new Vector2f(x + width, y + height));
             context.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
             var t = texture.rollSpeed > 0 ? ((((texture.rollSpeed * Math.abs((int) (System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / totalW) : 0.5;
-            context.graphics.text(fontRenderer, line, (int) (from - t * totalW), (int) drawY, texture.color, texture.dropShadow);
+            LDFonts.drawText(context, fontRenderer, line, (int) (from - t * totalW), (int) drawY, texture.color, texture.dropShadow);
             context.disableScissor();
         }
 
@@ -282,7 +282,7 @@ public class TextTexture extends TransformTexture {
             int textW = fontRenderer.width(line);
             float drawX = x + (width - textW) / 2f;
             float drawY = y + (height - textH) / 2f;
-            context.graphics.text(fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
+            LDFonts.drawText(context, fontRenderer, line, (int) drawX, (int) drawY, texture.color, texture.dropShadow);
         }
     }
 

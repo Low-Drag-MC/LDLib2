@@ -11,9 +11,21 @@ import org.jetbrains.annotations.NotNull;
  * matrix is {@code lookAt(eyePos, ...)} which already encodes that translation.
  */
 public class SceneCamera extends Camera {
+    private Vec3 sceneEye = Vec3.ZERO;
+
     @Override
     public @NotNull Vec3 position() {
         return Vec3.ZERO;
+    }
+
+    /** The real eye position for view-dependent math (facing cross products etc.) —
+     *  {@link #position()} is intentionally ZERO so extraction stays in world space. */
+    public Vec3 sceneEye() {
+        return sceneEye;
+    }
+
+    public void setSceneEye(Vec3 sceneEye) {
+        this.sceneEye = sceneEye;
     }
 
     /** Public wrapper around protected {@link Camera#setRotation} for callers that drive

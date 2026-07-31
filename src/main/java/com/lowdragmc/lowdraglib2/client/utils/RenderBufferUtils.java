@@ -275,6 +275,12 @@ public class RenderBufferUtils {
     }
 
     public static void drawEdges(@Nonnull PoseStack poseStack, VertexConsumer buffer, List<Pair<Vector3f, Vector3f>> lines, int color) {
+        drawEdges(poseStack, buffer, lines, color, 1);
+    }
+
+    /** 26.1: the lines vertex format carries a per-vertex LineWidth element — omitting it throws
+     *  "Missing elements in vertex: LineWidth" at draw time, so every edge vertex sets it. */
+    public static void drawEdges(@Nonnull PoseStack poseStack, VertexConsumer buffer, List<Pair<Vector3f, Vector3f>> lines, int color, float width) {
         var pose = poseStack.last();
         var mat = pose.pose();
 
@@ -289,8 +295,8 @@ public class RenderBufferUtils {
             f1 /= f3;
             f2 /= f3;
 
-            buffer.addVertex(mat, a.x, a.y, a.z).setColor(color).setNormal(poseStack.last(), f, f1, f2);
-            buffer.addVertex(mat, b.x, b.y, b.z ).setColor(color).setNormal(poseStack.last(), f, f1, f2);
+            buffer.addVertex(mat, a.x, a.y, a.z).setColor(color).setNormal(poseStack.last(), f, f1, f2).setLineWidth(width);
+            buffer.addVertex(mat, b.x, b.y, b.z ).setColor(color).setNormal(poseStack.last(), f, f1, f2).setLineWidth(width);
         }
     }
 

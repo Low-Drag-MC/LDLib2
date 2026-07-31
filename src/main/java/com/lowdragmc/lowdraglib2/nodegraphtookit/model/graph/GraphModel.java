@@ -30,6 +30,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
+import com.lowdragmc.lowdraglib2.utils.TagUtils;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -2355,10 +2356,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         for (int i = 0; i < itemsTag.size(); i++) {
             var itemTag = itemsTag.getCompoundOrEmpty(i);
             var type = itemTag.getStringOr("type", "");
-            var uid = UUID.fromString(itemTag.getStringOr("uid", ""));
+            var uid = TagUtils.readUUID(itemTag, "uid").orElse(null);
             switch (type) {
                 case "variable" -> {
-                    var model = getModel(uid);
+                    var model = uid == null ? null : getModel(uid);
                     if (model instanceof IGroupItemModel variable) {
                         parent.insertItem(variable, parent.getItems().size());
                     }
@@ -3022,7 +3023,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             for (int i = 0; i < listTag.size(); i++) {
                 var entry = listTag.getCompoundOrEmpty(i);
                 if (!entry.contains("oldUid") || !entry.contains("graph")) continue;
-                var oldUid = UUID.fromString(entry.getStringOr("oldUid", ""));
+                var oldUid = TagUtils.readUUID(entry, "oldUid").orElse(null);
+                if (oldUid == null) continue;
                 var clone = createLocalSubgraphInstance();
                 if (clone == null) {
                     LDLib2.LOGGER.warn("Cannot instantiate local subgraph for paste; clone skipped");
@@ -3157,10 +3159,11 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var wiresTag = compound.getListOrEmpty("wires");
             for (int i = 0; i < wiresTag.size(); i++) {
                 var wireRef = wiresTag.getCompoundOrEmpty(i);
-                var fromNodeUid = UUID.fromString(wireRef.getStringOr("fromNodeUid", ""));
+                var fromNodeUid = TagUtils.readUUID(wireRef, "fromNodeUid").orElse(null);
                 var fromPortName = wireRef.getStringOr("fromPortUniqueName", "");
-                var toNodeUid = UUID.fromString(wireRef.getStringOr("toNodeUid", ""));
+                var toNodeUid = TagUtils.readUUID(wireRef, "toNodeUid").orElse(null);
                 var toPortName = wireRef.getStringOr("toPortUniqueName", "");
+                if (fromNodeUid == null || toNodeUid == null) continue;
 
                 var newFromNode = oldToNewNodeMap.get(fromNodeUid);
                 var newToNode = oldToNewNodeMap.get(toNodeUid);

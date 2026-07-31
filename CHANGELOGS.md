@@ -1,4 +1,12 @@
 # ChangeLogs
+## v26.2.2.31
+* Added smooth font rendering
+* Fixed style resolve crash
+* Improved resource dialog searching
+* Improved ItemLibrary qol
+* Improved FileDialog
+* Minor Fixes
+
 ## v26.2.2.29
 * Fixed EnumAccessor weekmap
 * Improved the TreeList to support reordering dragging

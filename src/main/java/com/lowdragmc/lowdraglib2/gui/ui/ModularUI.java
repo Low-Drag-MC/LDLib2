@@ -29,6 +29,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
@@ -318,7 +319,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> pattern.matcher(entry.getKey()).matches())
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -331,7 +332,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> entry.getKey().contains(substring))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -344,7 +345,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith(prefix))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -357,7 +358,7 @@ public class ModularUI {
         return elementsById.entrySet().stream()
                 .filter(entry -> entry.getKey().endsWith(suffix))
                 .flatMap(entry -> entry.getValue().stream())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**

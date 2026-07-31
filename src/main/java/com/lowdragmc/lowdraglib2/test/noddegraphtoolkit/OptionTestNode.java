@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.noddegraphtoolkit;
 
+import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
@@ -20,8 +21,14 @@ public class OptionTestNode extends Node {
     @Override
     public void onDefineOptions(IOptionDefinitionContext context) {
         super.onDefineOptions(context);
-        context.addOption("enum", Direction.class).withDefaultValue(Direction.WEST);
-        context.addOption("string[]", String[].class).withDefaultValue(new String[] {"Hello World!"});
+        // with authored tooltips: the configurator gets a "?" tip icon after it
+        context.addOption("enum", Direction.class).withDefaultValue(Direction.WEST)
+                .withTooltips(Tooltips.of(Component.literal("Single line tooltip")));
+        context.addOption("string[]", String[].class).withDefaultValue(new String[] {"Hello World!"})
+                .withTooltips(Tooltips.of(
+                        Component.literal("First tooltip line"),
+                        Component.literal("Second tooltip line")));
+        // without tooltips: no tip icon at all
         context.addOption("color", TypeHandles.COLOR);
         context.addOption("block", Block.class);
         context.addOption("stack", ItemStack.class);

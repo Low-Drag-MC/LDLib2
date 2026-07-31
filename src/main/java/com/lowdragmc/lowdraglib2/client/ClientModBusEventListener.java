@@ -1,6 +1,9 @@
 package com.lowdragmc.lowdraglib2.client;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.client.font.LDFontManager;
+import com.lowdragmc.lowdraglib2.client.font.LDFontStatsOverlay;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.editor.resource.PackResourceManager;
 import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
@@ -8,7 +11,9 @@ import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUIClientElementComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
+import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.*;
 
@@ -54,6 +59,32 @@ public final class ClientModBusEventListener {
     public void onAddClientReloadListenerEvent(AddClientReloadListenersEvent event) {
         event.addListener(PackResourceManager.RESOURCE_ID, PackResourceManager.INSTANCE);
         event.addListener(StylesheetManager.RESOURCE_ID, StylesheetManager.INSTANCE);
+        event.addListener(LDFontManager.RESOURCE_ID, LDFontManager.INSTANCE);
+    }
+
+    /**
+     * The client config decides how glyphs are baked, so a change to it invalidates every atlas.
+     * <p>
+     * Only {@code Reloading} matters: at {@code Loading} time nothing has been baked yet. The rebuild is handed
+     * to the client thread because this event is documented to fire on any thread and freeing a texture is not
+     * thread safe.
+     */
+    @SubscribeEvent
+    public void onConfigReloaded(ModConfigEvent.Reloading event) {
+        if (event.getConfig().getSpec() == LDLibClientConfig.SPEC) {
+            Minecraft.getInstance().execute(LDFontManager.INSTANCE::invalidate);
+        }
+    }
+
+    /**
+     * TEMPORARY: development readout, see {@link LDFontStatsOverlay}. Registered above everything so it is not
+     * hidden by the rest of the HUD.
+     */
+    @SubscribeEvent
+    public void registerFontStatsOverlay(RegisterGuiLayersEvent event) {
+        if (Platform.isDevEnv()) {
+            event.registerAboveAll(LDLib2.id("font_stats"), LDFontStatsOverlay.INSTANCE);
+        }
     }
 
     @SubscribeEvent

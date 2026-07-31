@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import org.lwjgl.opengl.GL;
 
@@ -45,6 +46,40 @@ public class LDLibShaders {
 	/** Byte offsets of the custom rounded-rect attributes within {@link #ROUNDED_RECT_FORMAT}. */
 	public static final int RECT_PARAMS_OFFSET = ROUNDED_RECT_FORMAT.getElement("RectParams").offset();
 	public static final int RECT_RADIUS_OFFSET = ROUNDED_RECT_FORMAT.getElement("Radius").offset();
+
+	/**
+	 * Fixed point scale for the SDF tuning carried in {@link #SDF_TEXT_FORMAT}'s UV1 channel.
+	 * <p>
+	 * Sharpness tops out at 4.0 and weight at +-0.5 (see {@code LDLibClientConfig}), so 4096 keeps both well
+	 * inside a signed short while leaving far more precision than either value is ever tuned to.
+	 * <p>
+	 * Kept in sync by hand with the matching literal in {@code assets/ldlib2/shaders/core/sdf_text.vsh}.
+	 */
+	public static final float SDF_PARAM_SCALE = 4096f;
+
+	/**
+	 * The vertex format behind every LDLib text pipeline, SDF and raster alike (the raster shader ignores UV1;
+	 * one shared format keeps {@code LDBakedGlyph} single-path). Byte for byte it is
+	 * {@link net.minecraft.client.renderer.RenderPipelines}' entity format without {@code Normal} - vanilla's own
+	 * text format has no UV1 at all - with the overlay channel carrying the SDF tuning (sharpness, weight).
+	 * <p>
+	 * There is no hook to bind a custom uniform buffer for a glyph draw: the GUI renderer owns the render pass
+	 * and {@link net.minecraft.client.renderer.state.gui.GuiElementRenderState} only exposes the pipeline, the
+	 * textures and the vertices. UV1 is used rather than a custom attribute (the {@code HSB_ALPHA} /
+	 * {@code RectParams} pattern above) because a custom attribute can only be written by poking at a
+	 * {@code BufferBuilder}'s vertex pointer, and {@code LDBakedGlyph} also renders through vanilla {@code Font}
+	 * into a {@code MultiBufferSource}, where the consumer may be a wrapper ({@code VertexMultiConsumer},
+	 * {@code SheetedDecalTextureGenerator}). There the cast silently no-ops, the attribute is never written and
+	 * the vertex is rejected for leaving a declared element unfilled. {@code VertexConsumer#setUv1} is on the
+	 * interface, so it survives wrapping.
+	 */
+	public static final VertexFormat SDF_TEXT_FORMAT = VertexFormat.builder(0)
+			.addAttribute(DefaultVertexFormat.POSITION_SEMANTIC_NAME, GpuFormat.RGB32_FLOAT)
+			.addAttribute(DefaultVertexFormat.COLOR_SEMANTIC_NAME, GpuFormat.RGBA8_UNORM)
+			.addAttribute(DefaultVertexFormat.UV0_SEMANTIC_NAME, GpuFormat.RG32_FLOAT)
+			.addAttribute(DefaultVertexFormat.UV1_SEMANTIC_NAME, GpuFormat.RG16_SINT)
+			.addAttribute(DefaultVertexFormat.UV2_SEMANTIC_NAME, GpuFormat.RG16_SINT)
+			.build();
 
 	@Deprecated
 	public static boolean supportComputeShader() {

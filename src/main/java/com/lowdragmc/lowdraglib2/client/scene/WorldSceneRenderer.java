@@ -676,6 +676,8 @@ public abstract class WorldSceneRenderer {
         posesStack.pushMatrix();
         posesStack.identity();
         posesStack.lookAt(eyePos.x(), eyePos.y(), eyePos.z(), lookAt.x(), lookAt.y(), lookAt.z(), worldUp.x(), worldUp.y(), worldUp.z());
+        // expose the true eye for view-dependent extraction math (position() stays ZERO by design)
+        camera.setSceneEye(new net.minecraft.world.phys.Vec3(eyePos.x(), eyePos.y(), eyePos.z()));
     }
 
     protected void resetCamera() {
@@ -688,12 +690,12 @@ public abstract class WorldSceneRenderer {
     }
 
     /**
-     * Vanilla-aligned scene render. Mirrors {@code LevelRenderer.java:695-755}: one submit
-     * phase into {@link SubmitNodeStorage}, then three dispatch passes (solid / translucent /
-     * translucent particles), each followed by {@code BufferSource.endBatch()}.
+     * Vanilla-aligned scene render: a terrain mesh pass, one submit phase into {@link SubmitNodeStorage},
+     * then the dispatch phase. The numbered comments in the body are the description.
      *
-     * @param buffers RenderBuffers used for both the mesh path and the dispatcher's buffer source.
-     *                Identity-cached: same instance across frames keeps the dispatcher warm.
+     * @param buffers RenderBuffers the dispatcher is built from. Identity-cached: passing the same instance
+     *                across frames keeps the dispatcher warm. The mesh path does not use it - it takes the
+     *                game's own fixed buffer pack.
      */
     protected void drawWorld(RenderBuffers buffers) {
         if (beforeWorldRender != null) {
@@ -720,33 +722,41 @@ public abstract class WorldSceneRenderer {
             renderUncachedWorld();
         }
 
-        if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
-
-        // (2) Submit phase — builtin scene geometry into the single SubmitNodeStorage.
-        submitBlockEntities(poseStack, storage, cameraRenderState, partialTicks);
-        submitEntities(poseStack, storage, cameraRenderState, partialTicks);
-        submitParticles(storage, cameraRenderState, partialTicks);
-
-        if (afterBuiltinSubmit != null) afterBuiltinSubmit.apply(ctx);
-
-        // (3) Dispatch phase — 26.2 replaces the per-phase BufferSource.endBatch() flushes with
-        //     FeatureRenderDispatcher.prepareFrame(storage) (which uploads the shared staged vertex
-        //     buffer) followed by the four execute* phases; frame.close() clears the submit nodes.
-        //     Publish this scene's camera so custom-uniform consumers reflect the scene camera.
+        // Publish this scene's camera (rotation from the SceneCamera set above, projection from our own matrix)
+        // so custom-uniform consumers see the scene camera, not the game's. Must span the WHOLE submit+dispatch
+        // cycle and outlive afterRender(): submitters build their per-view uniforms during the submit phase, and
+        // renderers that defer their draw to afterRender() (Photon's particle pipeline does) would otherwise
+        // fall back to the main world camera and reconstruct position from depth wrongly.
         SceneCameraContext.set(camera.getViewRotationMatrix(new Matrix4f()), projectionMatrix);
-        try (var frame = dispatcher.prepareFrame(storage)) {
-            frame.executeSolid();
-            frame.executeTranslucent();
+        try {
+            if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
 
-            if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(ctx);
+            // (2) Submit phase -- builtin scene geometry into the single SubmitNodeStorage.
+            submitBlockEntities(poseStack, storage, cameraRenderState, partialTicks);
+            submitEntities(poseStack, storage, cameraRenderState, partialTicks);
+            submitParticles(storage, cameraRenderState, partialTicks);
 
-            frame.executeTranslucentAfterTerrain();
-            frame.executeAlwaysOnTop();
+            if (afterBuiltinSubmit != null) afterBuiltinSubmit.apply(ctx);
 
-            if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
+            // (3) Dispatch phase -- 26.2 replaces the per-phase BufferSource.endBatch() flushes with
+            //     FeatureRenderDispatcher.prepareFrame(storage) (which uploads the shared staged vertex
+            //     buffer) followed by the four execute* phases; frame.close() clears the submit nodes.
+            try (var frame = dispatcher.prepareFrame(storage)) {
+                frame.executeSolid();
+                frame.executeTranslucent();
+
+                if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(ctx);
+
+                frame.executeTranslucentAfterTerrain();
+                frame.executeAlwaysOnTop();
+
+                if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
+            }
         } finally {
-            SceneCameraContext.clear();
+            // try-with-resources has already closed the frame, so this still runs after the dispatcher
+            // drains and still with the camera context live.
             if (particleManager != null) particleManager.afterRender();
+            SceneCameraContext.clear();
         }
     }
 
@@ -754,8 +764,7 @@ public abstract class WorldSceneRenderer {
      * Uncached mesh pass: per-frame compile each {@code renderedBlocks} group into per-layer
      * meshes and draw each via the corresponding {@link RenderType}. BESRs are <em>not</em>
      * drawn here — they're submitted to {@link SubmitNodeStorage} in
-     * {@link #submitBlockEntities} and drained by the dispatch phase. Final {@code endBatch}
-     * is folded into the dispatch phase's endBatches (same shared BufferSource).
+     * {@link #submitBlockEntities} and drained by the dispatch phase.
      */
     private void renderUncachedWorld() {
         var mc = Minecraft.getInstance();

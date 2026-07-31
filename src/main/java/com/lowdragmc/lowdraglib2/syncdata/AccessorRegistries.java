@@ -29,6 +29,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -255,13 +256,7 @@ public class AccessorRegistries {
         registerAccessor(RegistryAccessor.of((Class<BlockEntityType<?>>)(Class<?>)BlockEntityType.class, BuiltInRegistries.BLOCK_ENTITY_TYPE));
         registerAccessor(CustomDirectAccessor.builder(UUID.class)
                 .codec(LDLibExtraCodecs.UUID)
-                .streamCodec(StreamCodec.of(
-                        (byteBuf, uuid) -> {
-                            byteBuf.writeLong(uuid.getMostSignificantBits());
-                            byteBuf.writeLong(uuid.getLeastSignificantBits());
-                        },
-                        byteBuf -> new UUID(byteBuf.readLong(), byteBuf.readLong())
-                ))
+                .streamCodec(UUIDUtil.STREAM_CODEC)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(BlockState.class)
                 .codec(BlockState.CODEC)
@@ -358,7 +353,9 @@ public class AccessorRegistries {
                 ))
                 .copyMark(Vector2i::new)
                 .build());
-        registerAccessor(CustomDirectAccessor.builder(Quaternionfc.class)
+        // supportChildClass: fields are usually declared as the concrete Quaternionf (e.g.
+        // Transform.localRotation) — an exact-class match would fail to resolve them.
+        registerAccessor(CustomDirectAccessor.builder(Quaternionfc.class, true)
                 .codec(ExtraCodecs.QUATERNIONF)
                 .streamCodec(ByteBufCodecs.QUATERNIONF)
                 .copyMark(Quaternionf::new)

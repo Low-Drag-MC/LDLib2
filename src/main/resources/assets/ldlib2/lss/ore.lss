@@ -578,3 +578,18 @@ ToggleSelectorConfigurator toggle {
 .__node-graph-view_log-count__ {
   text-color:#222;
 }
+
+.__item-library_resize-button__ {
+  color: #ff000000;
+}
+
+.__item-library_resize-button__:hovered {
+  color: #fff;
+}
+
+.__item-library_description-panel__ {
+  background: built-in(ui-ore:BORDER_7);
+  padding-all: 5;
+  padding-bottom: 7;
+  gap-all: 4;
+}

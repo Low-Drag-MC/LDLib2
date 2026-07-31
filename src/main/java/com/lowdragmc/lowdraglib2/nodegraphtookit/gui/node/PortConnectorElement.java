@@ -92,8 +92,7 @@ public class PortConnectorElement extends ModelElement {
             Style.importantPipeline(connectorIcon.getLayout(), l -> l.display(TaffyDisplay.NONE));
         } else {
             Style.importantPipeline(connectorIcon.getLayout(), l -> l.display(TaffyDisplay.FLEX));
-            var connectorUI = portModel instanceof PortModelImpl impl ? impl.getConnectorUI() : PortConnectorUI.DEFAULT;
-            lastIcon = connectorUI.getIcon(portModel.isConnected() || isWillConnect());
+            lastIcon = portModel.getConnectorUI().getIcon(portModel.isConnected() || isWillConnect());
         }
     }
 }

@@ -18,3 +18,9 @@ button.__disabled__ .__button_text__ {
   width: 8;
   height: 8;
 }
+
+.__item-library_description-panel__ {
+    background: built-in(ui-gdp:RECT_SOLID);
+    padding-all: 5;
+    gap-all: 4;
+}

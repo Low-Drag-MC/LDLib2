@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.NodeDefinitionScope;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.ModifierFlags;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.utils.TagUtils;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -252,7 +253,7 @@ public class SubgraphNodeModel extends NodeModel {
                 var entry = listTag.getCompoundOrEmpty(i);
                 var portId = entry.getStringOr("portId", "");
                 var typeId = entry.getStringOr("typeId", "");
-                UUID varUid = entry.contains("varUid") ? UUID.fromString(entry.getStringOr("varUid", "")) : null;
+                UUID varUid = TagUtils.readUUID(entry, "varUid").orElse(null);
                 PortDirection dir;
                 try {
                     dir = PortDirection.valueOf(entry.getStringOr("dir", ""));

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor;
 
+import com.lowdragmc.lowdraglib2.client.font.LDFonts;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextArea;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.*;
@@ -225,7 +226,7 @@ public class CodeEditor extends TextArea {
                 context.pose.pushPose();
                 context.pose.translate(drawX, lineY);
                 context.pose.scale(scale, scale);
-                context.graphics.text(
+                LDFonts.drawText(context, 
                         font,
                         textComponent,
                         0,
