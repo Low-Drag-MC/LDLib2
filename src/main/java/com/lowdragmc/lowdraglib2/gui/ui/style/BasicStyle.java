@@ -109,13 +109,13 @@ public class BasicStyle extends Style {
     }
 
     public BasicStyle appendTooltips(Component... tooltips) {
-        tooltips(tooltips().append(tooltips));
-        return this;
+        // not tooltips(): it reads the value computed by the style engine, which is still empty until the
+        // engine has run once, so appending before that would drop everything set so far.
+        return tooltips(getValueImmediate(PropertyRegistry.TOOLTIPS).append(tooltips));
     }
 
     public BasicStyle appendTooltipsString(String... tooltips) {
-        tooltips(tooltips().append(Arrays.stream(tooltips).map(Component::translatable).toArray(Component[]::new)));
-        return this;
+        return appendTooltips(Arrays.stream(tooltips).map(Component::translatable).toArray(Component[]::new));
     }
 
     public int zIndex() {

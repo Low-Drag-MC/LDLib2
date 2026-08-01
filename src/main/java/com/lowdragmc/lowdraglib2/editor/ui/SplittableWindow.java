@@ -59,11 +59,6 @@ public class SplittableWindow extends UIElement {
             return PROPERTIES;
         }
 
-        private <T> T getValueImmediate(Property<T> property) {
-            var candidate = styleBag.computeCandidate(property);
-            return candidate != null ? candidate : getValueSave(property);
-        }
-
         public float percentage() {
             return getValueImmediate(PropertyRegistry.PERCENTAGE);
         }

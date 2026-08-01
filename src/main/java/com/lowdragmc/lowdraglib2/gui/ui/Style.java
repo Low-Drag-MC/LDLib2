@@ -157,6 +157,16 @@ public abstract class Style implements IConfigurable, IPersistedSerializable {
         return property.initialValue;
     }
 
+    /**
+     * Same as {@link #getValueSave(Property)}, but resolves the candidates on the fly instead of reading
+     * the value the style engine computed last. Use it when the value is needed before the style bag has
+     * been computed, or right after a setter within the same frame, where the computed value is still stale.
+     */
+    public <T> T getValueImmediate(Property<T> property) {
+        var candidate = styleBag.computeCandidate(property);
+        return candidate != null ? candidate : getValueSave(property);
+    }
+
     public void copyFrom(Style other) {
         var properties = new HashSet<>(Arrays.asList(getProperties()));
         styleBag.removeCandidates(slot ->
