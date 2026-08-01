@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIDragDropHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIRecipeIngredientHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIRecipeWidgetHandler;
@@ -138,6 +139,9 @@ public class LDLibEMIPlugin implements EmiPlugin {
     /**
      * Adds recipe slot(widget) functionality to the EMI recipe.
      * This allows associating an invisible slot in the UI element for EMI lookups and tooltips.
+     * <p>
+     * The tooltip of the slot replaces the one of {@link ModularUIEMIWidget}, so the tooltips of the
+     * element are appended to it to keep them visible.
      *
      * @param <T> The type of the {@link UIElement} to which the slot functionality is added.
      * @param element The {@link UIElement} where the recipe slot functionality is applied.
@@ -148,13 +152,12 @@ public class LDLibEMIPlugin implements EmiPlugin {
                                                         Supplier<EmiIngredient> displayIngredient) {
         element.addEventListener(EMIUIEvents.RECIPE_WIDGET, event -> {
             if (event.customData instanceof EMIRecipeWidgetHandler recipeSlot) {
+                // the tooltips are resolved per frame, they can change at any time
                 var slot = new EMIRecipeSlotWidget(displayIngredient,
                         recipeSlot.localToWorld,
                         element::isMouseOverElement,
-                        () -> getBounds(element));
-                for (var component : element.getStyle().tooltips().asList()) {
-                    slot.appendTooltip(component);
-                }
+                        () -> getBounds(element),
+                        () -> XEITooltipContext.RECIPE_SLOT.collectTooltips(element));
                 recipeSlot.addWidget(slot);
             }
         });

@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.*;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -321,9 +322,20 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         return setValue(itemStack, notify);
     }
 
+    /**
+     * Delegates to {@link #getFullTooltipTexts(boolean)}, override that one instead of this.
+     */
     public List<Component> getFullTooltipTexts() {
+        return getFullTooltipTexts(true);
+    }
+
+    /**
+     * @param withItemTooltips whether the vanilla tooltip of the item should be included. XEI recipe slots
+     *                         render it themselves, so they ask for the tooltips without it.
+     */
+    public List<Component> getFullTooltipTexts(boolean withItemTooltips) {
         var tips = new ArrayList<Component>();
-        if (slotStyle.showItemTooltips()) {
+        if (withItemTooltips && slotStyle.showItemTooltips()) {
             tips.addAll(DrawerHelper.getItemToolTip(getValue()));
         }
         tips.addAll(getStyle().tooltips().asList());
@@ -333,6 +345,11 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     protected void onHoverTooltips(UIEvent event) {
         var item = getValue();
         if (item.isEmpty()) return;
+        // an XEI recipe slot renders the vanilla tooltip and the tooltip image itself, do not repeat them there
+        if (event.customData == XEITooltipContext.RECIPE_SLOT) {
+            event.hoverTooltips = new HoverTooltips(getFullTooltipTexts(false), null, null, null);
+            return;
+        }
         event.hoverTooltips = new HoverTooltips(getFullTooltipTexts(), item.getTooltipImage().orElse(null), null, item);
     }
 

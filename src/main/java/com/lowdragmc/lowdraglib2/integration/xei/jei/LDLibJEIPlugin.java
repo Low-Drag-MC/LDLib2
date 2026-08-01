@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeIngredientHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEITargetsTypedHandler;
@@ -226,6 +227,10 @@ public class LDLibJEIPlugin implements IModPlugin {
     /**
      * Adds recipe (slots)widgets to the JEI recipe.
      * This allows associating an invisible slot in the UI element for JEI lookups and tooltips.
+     * <p>
+     * While such a slot is hovered, JEI draws the slot tooltip <b>instead of</b> the tooltip of any
+     * {@link mezz.jei.api.gui.widgets.IRecipeWidget}, so {@link ModularUIJEIWidget#getTooltip} never runs.
+     * The tooltips of the element are therefore appended to the slot tooltip to keep them visible.
      *
      * @param <T> The type of the {@link UIElement} to which the slot functionality is added.
      * @param element The {@link UIElement} where the recipe slot functionality is applied.
@@ -244,7 +249,14 @@ public class LDLibJEIPlugin implements IModPlugin {
                         element::isMouseOverElement,
                         displayIngredient,
                         allIngredients,
-                        ((view, tooltip) -> tooltip.addAll(element.getStyle().tooltips().asList()))));
+                        ((view, tooltip) -> {
+                            var hoverTooltips = XEITooltipContext.RECIPE_SLOT.collectTooltips(element);
+                            if (hoverTooltips == null) return;
+                            tooltip.addAll(hoverTooltips.tooltipTexts());
+                            if (hoverTooltips.tooltipComponent() != null) {
+                                tooltip.add(hoverTooltips.tooltipComponent());
+                            }
+                        })));
             }
         });
     }

@@ -1,15 +1,19 @@
 package com.lowdragmc.lowdraglib2.integration.xei.emi;
 
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.widget.Bounds;
 import dev.emi.emi.api.widget.SlotWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
@@ -19,16 +23,27 @@ public class EMIRecipeSlotWidget extends SlotWidget {
     public final Supplier<Matrix4f> localToWorldSupplier;
     public final BiPredicate<Float, Float> isMouseOver;
     public final Supplier<Bounds> boundsProvider;
+    @Nullable
+    private final Supplier<HoverTooltips> tooltipProvider;
 
     public EMIRecipeSlotWidget(Supplier<EmiIngredient> ingredientProvider,
                                Supplier<Matrix4f> localToWorldSupplier,
                                BiPredicate<Float, Float> isMouseOver,
                                Supplier<Bounds> boundsProvider) {
+        this(ingredientProvider, localToWorldSupplier, isMouseOver, boundsProvider, null);
+    }
+
+    public EMIRecipeSlotWidget(Supplier<EmiIngredient> ingredientProvider,
+                               Supplier<Matrix4f> localToWorldSupplier,
+                               BiPredicate<Float, Float> isMouseOver,
+                               Supplier<Bounds> boundsProvider,
+                               @Nullable Supplier<HoverTooltips> tooltipProvider) {
         super(EmiStack.EMPTY, 0, 0);
         this.localToWorldSupplier = localToWorldSupplier;
         this.isMouseOver = isMouseOver;
         this.ingredientProvider = ingredientProvider;
         this.boundsProvider = boundsProvider;
+        this.tooltipProvider = tooltipProvider;
     }
 
     public Vector2f getWorldMouse(float mouseX, float mouseY) {
@@ -56,7 +71,20 @@ public class EMIRecipeSlotWidget extends SlotWidget {
     public List<ClientTooltipComponent> getTooltip(int mouseX, int mouseY) {
         var realMouse = getWorldMouse(mouseX, mouseY);
         if (!isMouseOver.test(realMouse.x, realMouse.y)) return List.of();
-        return super.getTooltip(mouseX, mouseY);
+        var tooltip = new ArrayList<>(super.getTooltip(mouseX, mouseY));
+        if (tooltipProvider != null) {
+            var hoverTooltips = tooltipProvider.get();
+            if (hoverTooltips != null) {
+                hoverTooltips.tooltipTexts().stream()
+                        .map(Component::getVisualOrderText)
+                        .map(ClientTooltipComponent::create)
+                        .forEach(tooltip::add);
+                if (hoverTooltips.tooltipComponent() != null) {
+                    tooltip.add(ClientTooltipComponent.create(hoverTooltips.tooltipComponent()));
+                }
+            }
+        }
+        return tooltip;
     }
 
     @Override

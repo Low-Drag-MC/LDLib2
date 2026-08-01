@@ -1174,6 +1174,32 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /**
+     * Collects the tooltips this element wants to display while it is hovered.
+     * <p>
+     * It follows the exact same resolution order that {@link ModularUI} uses while rendering: the
+     * {@link UIEvents#HOVER_TOOLTIPS} event wins, and the tooltips of the style are the fallback.
+     * It does not walk up to the parents.
+     *
+     * @return the tooltips of this element, or {@code null} if it provides none.
+     */
+    @Nullable
+    public HoverTooltips collectHoverTooltips() {
+        var event = UIEvent.create(UIEvents.HOVER_TOOLTIPS);
+        event.hasBubblePhase = false;
+        event.hasCapturePhase = false;
+        event.target = this;
+        UIEventDispatcher.dispatchDirectEvent(event, false);
+        if (event.hoverTooltips != null) {
+            return event.hoverTooltips;
+        }
+        var styleTooltips = getStyle().tooltips();
+        if (!styleTooltips.isEmpty()) {
+            return new HoverTooltips(styleTooltips.asList(), null, null, null);
+        }
+        return null;
+    }
+
+    /**
      * Start dragging the element. This will call the {@link com.lowdragmc.lowdraglib2.gui.ui.event.DragHandler#startDrag} method.
      */
     public DragHandler startDrag(@Nullable Object draggingObject, @Nullable IGuiTexture dragTexture) {

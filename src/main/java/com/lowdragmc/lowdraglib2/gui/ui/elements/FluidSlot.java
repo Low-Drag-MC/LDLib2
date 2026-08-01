@@ -24,6 +24,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -368,13 +369,24 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         return setValue(fluid, notify);
     }
 
+    /**
+     * Delegates to {@link #getFullTooltipTexts(boolean)}, override that one instead of this.
+     */
     public List<Component> getFullTooltipTexts() {
+        return getFullTooltipTexts(true);
+    }
+
+    /**
+     * @param withFluidName whether the display name of the fluid should be included. XEI recipe slots
+     *                      render it themselves, so they ask for the tooltips without it.
+     */
+    public List<Component> getFullTooltipTexts(boolean withFluidName) {
         var tooltips = new ArrayList<Component>();
         if (slotStyle.showFluidTooltips()) {
             var fluidStack = getFluid();
             capacity = Math.max(capacity, fluidStack.getAmount());
             if (!fluidStack.isEmpty()) {
-                tooltips.add(FluidHelper.getDisplayName(fluidStack));
+                if (withFluidName) tooltips.add(FluidHelper.getDisplayName(fluidStack));
                 tooltips.add(Component.translatable("ldlib.fluid.amount", fluidStack.getAmount(), capacity).append(" " + FluidHelper.getUnit()));
                 tooltips.add(Component.translatable("ldlib.fluid.temperature", FluidHelper.getTemperature(fluidStack)));
                 tooltips.add(Component.translatable(FluidHelper.isLighterThanAir(fluidStack) ? "ldlib.fluid.state_gas" : "ldlib.fluid.state_liquid"));
@@ -396,7 +408,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     protected void onHoverTooltips(UIEvent event) {
         var item = getValue();
         if (item.isEmpty()) return;
-        event.hoverTooltips = new HoverTooltips(getFullTooltipTexts(), null, null, null);
+        // an XEI recipe slot renders the name of the fluid itself, do not repeat it there
+        var withFluidName = event.customData != XEITooltipContext.RECIPE_SLOT;
+        event.hoverTooltips = new HoverTooltips(getFullTooltipTexts(withFluidName), null, null, null);
     }
 
     @Override

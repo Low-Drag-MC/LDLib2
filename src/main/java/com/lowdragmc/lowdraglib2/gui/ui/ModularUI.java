@@ -1139,20 +1139,12 @@ public class ModularUI {
             if (lastHoveredElement != null && tooltipTexts == null) {
                 var element = lastHoveredElement;
                 while (element != null) {
-                    var event = UIEvent.create(UIEvents.HOVER_TOOLTIPS);
-                    event.hasBubblePhase = false;
-                    event.hasCapturePhase = false;
-                    event.target = element;
-                    UIEventDispatcher.dispatchDirectEvent(event, false);
-                    if (event.hoverTooltips != null) {
-                        setHoverTooltip(event.hoverTooltips.tooltipTexts(),
-                                Optional.ofNullable(event.hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY),
-                                event.hoverTooltips.tooltipFont(),
-                                event.hoverTooltips.tooltipComponent());
-                        break;
-                    }
-                    if (!element.getStyle().tooltips().isEmpty()) {
-                        setHoverTooltip(element.getStyle().tooltips().asList(), ItemStack.EMPTY, null, null);
+                    var hoverTooltips = element.collectHoverTooltips();
+                    if (hoverTooltips != null) {
+                        setHoverTooltip(hoverTooltips.tooltipTexts(),
+                                Optional.ofNullable(hoverTooltips.tooltipStack()).orElse(ItemStack.EMPTY),
+                                hoverTooltips.tooltipFont(),
+                                hoverTooltips.tooltipComponent());
                         break;
                     }
                     element = element.getParent();
