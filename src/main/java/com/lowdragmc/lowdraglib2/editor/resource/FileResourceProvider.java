@@ -275,14 +275,10 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public @Nonnull CompoundTag serializeNBT() {
         var data = new CompoundTag();
         data.putString("name", getName());
-        var gamePath = Platform.getGamePath().toAbsolutePath().normalize();
-        var resultPath = resourceLocation.toPath().toAbsolutePath().normalize();
-        var realPath = resourceLocation.getPath();
-        if (resultPath.startsWith(gamePath)) {
-            realPath = gamePath.relativize(resultPath).toFile().getPath();
-            data.putInt("_version", 1);
-        }
-        data.putString("location", realPath.replace('\\', '/'));
+        // store the canonical, portable game-relative form ("./ldlib2/assets/..."), matching FilePath
+        // identity; fromNBT resolves it (with or without the leading "./") against the game dir
+        data.putString("location", FilePath.toGameRelative(resourceLocation.getPath()));
+        data.putInt("_version", 1);
         return data;
     }
 
@@ -292,7 +288,10 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
         File location;
         if (nbt.contains("_version") && nbt.getInt("_version") >= 1) {
-            location = Platform.getGamePath().resolve(locationStr).toFile();
+            // canonical "./..." or legacy relative-to-gamedir (no "./") — resolve both against the game
+            // dir (an absolute string resolves to itself, so external custom providers still work)
+            var rel = locationStr.startsWith("./") ? locationStr.substring(2) : locationStr;
+            location = Platform.getGamePath().resolve(rel).toFile();
         } else {
             location = new File(locationStr);
         }
