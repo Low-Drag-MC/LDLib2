@@ -7,8 +7,10 @@ import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.Resources;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.editor.ui.browser.AssetBrowser;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
@@ -17,9 +19,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
+import net.minecraft.network.chat.Component;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ResourceView extends View {
@@ -31,6 +35,14 @@ public class ResourceView extends View {
     private final BiMap<Resource<?>, Tab> resourceTabs= HashBiMap.create();
     @Getter @Nullable
     private ResourceInstance<?> selectedResourceInstance = null;
+    /**
+     * The file system view of the {@code ldlib2} folder. It is pinned in front of the per resource type
+     * tabs and survives project loading, so it is not part of {@link #resourceTabs}.
+     */
+    @Getter
+    private final AssetBrowser assetBrowser;
+    @Getter
+    private final Tab assetBrowserTab;
 
     public ResourceView(Editor editor) {
         super("editor.view.resources");
@@ -66,16 +78,19 @@ public class ResourceView extends View {
         tabView.setOnTabSelected(this::onResourceSelected);
 
         this.addChildren(tabView);
+
+        this.assetBrowser = new AssetBrowser(editor);
+        this.assetBrowserTab = createTab(Icons.FOLDER, Component.translatable("editor.view.assets"));
+        tabView.addTab(assetBrowserTab, assetBrowser, 0);
     }
 
     private void onResourceSelected(Tab tab) {
-        var resource = resourceTabs.inverse().get(tab);
-        if (resource != null) {
-            selectedResourceInstance = getResourceInstance(resource);
-        }
+        // the asset browser is not tied to a single resource type
+        var resource = tab == assetBrowserTab ? null : resourceTabs.inverse().get(tab);
+        selectedResourceInstance = resource == null ? null : getResourceInstance(resource);
     }
 
-    public void addResourceInstance(ResourceInstance<?> resourceInstance) {
+    private Tab createTab(IGuiTexture icon, Component tooltip) {
         var tab = new Tab().tabStyle(style -> {
             style.baseTexture(IGuiTexture.EMPTY);
             style.hoverTexture(Sprites.RECT_RD_T);
@@ -86,13 +101,26 @@ public class ResourceView extends View {
             layout.height(14);
             layout.paddingAll(1);
             layout.marginAll(1);
-        }).style(style -> style.tooltips(resourceInstance.resource.getDisplayName())).addChild(new UIElement().layout(layout -> {
+        }).style(style -> style.tooltips(tooltip)).addChild(new UIElement().layout(layout -> {
             layout.widthPercent(100);
             layout.heightPercent(100);
-        }).style(style -> style.backgroundTexture(resourceInstance.resource.getIcon())));
+        }).style(style -> style.backgroundTexture(icon)));
         tab.moveInlineAsDefault();
+        return tab;
+    }
+
+    public void addResourceInstance(ResourceInstance<?> resourceInstance) {
+        var resource = resourceInstance.resource;
+        var previous = resourceTabs.remove(resource);
+        if (previous != null) {
+            tabView.removeTab(previous);
+        }
+        var tab = createTab(resource.getIcon(), resource.getDisplayName());
+        // registered before addTab: adding the first tab selects it right away, which calls back into
+        // onResourceSelected and needs the tab to already be resolvable.
+        resources.put(resource, resourceInstance);
+        resourceTabs.put(resource, tab);
         tabView.addTab(tab, new ResourceContainer<>(resourceInstance, editor));
-        resources.put(resourceInstance.resource, resourceInstance);
     }
 
     public void addResourceInstances(ResourceInstance<?>... resources) {
@@ -103,6 +131,9 @@ public class ResourceView extends View {
 
     public void loadResources(Resources resources) {
         resources.resources.stream().map(Resource::getResourceInstance).forEach(this::addResourceInstance);
+        // the pinned asset browser is already selected at this point, so select the first resource type
+        // ourselves to keep the view that opens the same as before it existed.
+        resourceTabs.values().stream().findFirst().ifPresent(tabView::selectTab);
     }
 
     public void removeResource(Resource<?> resource) {
@@ -114,10 +145,24 @@ public class ResourceView extends View {
     }
 
     public void clear() {
-        tabView.clear();
+        // the resource tabs are removed one by one instead of clearing the whole tab view, so the
+        // pinned asset browser tab stays in place (and keeps its selection state consistent).
+        for (var tab : List.copyOf(resourceTabs.values())) {
+            tabView.removeTab(tab);
+        }
         resourceTabs.clear();
         resources.clear();
         selectedResourceInstance = null;
+        tabView.selectTab(assetBrowserTab);
+        assetBrowser.reset();
+    }
+
+    @Override
+    public void screenTick() {
+        super.screenTick();
+        // the browser's borrowed resource behaviors have to keep flushing dirty resources to disk even
+        // while another tab is showing, and hidden children are not ticked by the framework.
+        assetBrowser.tickBehaviors();
     }
 
     public void selectResourceInstance(Resource<?> resource) {

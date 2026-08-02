@@ -584,6 +584,18 @@
   "ldlib.gui.file_dialog.name_exists": "A file with that name already exists.",
   "ldlib.gui.file_dialog.invalid_name": "That name cannot be used for a file.",
   "ldlib.gui.file_dialog.failed": "The operation failed.",
+  "ldlib.gui.file_dialog.error": "File Error",
+
+  "editor.view.assets": "Assets",
+  "editor.assets.refresh": "Refresh",
+  "editor.assets.show_all_files": "Show files that are not resources",
+  "editor.assets.search": "Filter this folder by name",
+  "editor.resource.preview_size": "Preview size",
+  "editor.assets.open": "Open Folder In Browser",
+  "editor.assets.paste": "Paste",
+  "editor.assets.cut": "Cut",
+  "editor.assets.duplicate": "Duplicate",
+  "editor.assets.move": "Move Files",
 
   "ldlib2.configuration.title": "%s Settings",
   "ldlib2.configuration.font": "Text Rendering",

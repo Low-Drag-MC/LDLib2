@@ -614,3 +614,11 @@ ToggleSelectorConfigurator toggle {
   padding-bottom: 7;
   gap-all: 4;
 }
+
+button.__asset-browser_breadcrumb-segment__ > text {
+  color:#fff;
+}
+
+button.__asset-browser_breadcrumb-segment__ {
+  padding-bottom: 0;
+}
