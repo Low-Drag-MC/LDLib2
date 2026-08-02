@@ -77,21 +77,20 @@ public class IRendererResource extends Resource<IRenderer> {
         });
         container.setOnDragProvider(UIResourceRenderer::new);
 
-        container.setOnMenu((c, m) -> {
-            m.leaf("ldlib.gui.editor.menu.reload_resource", this::reloadResourcesAndRefreshOpenedContainers);
-            if (provider.supportAdd()) {
-                m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
-                    for (var holder : LDLib2Registries.RENDERERS) {
-                        var name = holder.annotation().name();
-                        if (name.equals("empty") || name.equals("ui_resource_renderer")) continue;
-                        menu.leaf(name, () -> {
-                            var renderer = holder.value().get();
-                            c.addNewResource(renderer);
-                        });
-                    }
-                });
-            }
-        });
+        container.setOnMenu((c, m) ->
+                m.leaf("ldlib.gui.editor.menu.reload_resource", this::reloadResourcesAndRefreshOpenedContainers));
+        if (provider.supportAdd()) {
+            container.setOnCreateMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+                for (var holder : LDLib2Registries.RENDERERS) {
+                    var name = holder.annotation().name();
+                    if (name.equals("empty") || name.equals("ui_resource_renderer")) continue;
+                    menu.leaf(name, () -> {
+                        var renderer = holder.value().get();
+                        c.addNewResource(renderer);
+                    });
+                }
+            }));
+        }
         return container;
     }
 

@@ -61,7 +61,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
         });
         container.setOnDragProvider(UIResourceTexture::new);
         if (provider.supportAdd()) {
-            container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+            container.setOnCreateMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
                 for (var holder : LDLib2Registries.GUI_TEXTURES) {
                     String name = holder.annotation().name();
                     if (name.equals("empty") || name.equals("missing") || name.equals("ui_resource_texture")) continue;

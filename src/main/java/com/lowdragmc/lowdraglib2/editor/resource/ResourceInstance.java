@@ -222,8 +222,24 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     }
 
     public void setUiWidth(int uiWidth) {
+        setUiWidth(uiWidth, true);
+    }
+
+    /**
+     * @param persist whether the change is written to the resource meta file right away. Pass false
+     *                while a value is still being dragged and call {@link #saveSettings()} on release,
+     *                so a slider does not write the file on every pixel.
+     */
+    public void setUiWidth(int uiWidth, boolean persist) {
         if (this.uiWidth == uiWidth) return;
         this.uiWidth = uiWidth;
+        if (persist) {
+            saveResource();
+        }
+    }
+
+    /** Writes the display settings of this instance to its meta file. */
+    public void saveSettings() {
         saveResource();
     }
 
