@@ -40,6 +40,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     // runtime
     private final Map<IResourcePath, T> cache = new ConcurrentHashMap<>();
     private final PackFileResourceProvider<T> packFileProvider = new PackFileResourceProvider<>(this);
+    private final DirectFileResourceProvider<T> directFileProvider = new DirectFileResourceProvider<>(this);
 
     @Getter
     private Resource.DisplayMode displayMode;
@@ -86,6 +87,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
 
     public void clearCache() {
         cache.clear();
+        directFileProvider.clearCache();
     }
 
     @Nullable
@@ -108,6 +110,15 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
             if (result.isPresent()) {
                 cache.put(path, result.get());
                 return result.get();
+            }
+            // a resource file inside the game dir that no provider owns, e.g. one stored in a folder the
+            // user created through the asset browser. Checked before the pack tier because
+            // PackFileResourceProvider caches for the whole session and only invalidates on a resource
+            // reload, which would hide edits to the very same file on disk.
+            var direct = directFileProvider.getResource(path);
+            if (direct != null) {
+                cache.put(path, direct);
+                return direct;
             }
             var resource = packFileProvider.getResource(path);
             if (resource == null) return null;
