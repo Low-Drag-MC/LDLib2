@@ -322,11 +322,26 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
+    /**
+     * Draws whatever the GUI has queued up before this scene takes over the render state.
+     * <p>
+     * A scene shares {@code renderBuffers().bufferSource()} with {@link net.minecraft.client.gui.GuiGraphics},
+     * and {@link #drawWorld()} calls the argument-less {@code endBatch()}, which flushes EVERY pending
+     * render type — including GUI geometry recorded earlier in the frame. Without this, that geometry
+     * would be drawn with the scene's viewport and 3D matrices instead of the screen's, so it would
+     * silently vanish. Callers must invoke this before they touch the render state, which for a render
+     * target means before binding it, or the flushed geometry lands in the target.
+     */
+    protected static void flushPendingGuiBatches() {
+        Minecraft.getInstance().renderBuffers().bufferSource().endBatch();
+    }
+
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY) {
         // do not render if the minecraft is reloading
         if (Minecraft.getInstance().getOverlay() instanceof LoadingOverlay) {
             return;
         }
+        flushPendingGuiBatches();
         // setupCamera
         var pose = poseStack.last().pose();
         Vector4f pos = new Vector4f(x, y, 0, 1.0F);
