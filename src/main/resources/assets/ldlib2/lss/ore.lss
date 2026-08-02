@@ -258,6 +258,33 @@ scroller-vertical .__scroller_scroll_bar__ {
   display: none;
 }
 
+// slider
+slider-horizontal:host {
+  height: 9;
+}
+
+slider-vertical:host {
+  width: 9;
+}
+
+slider-horizontal, slider-vertical {
+  slider-track-size: 3;
+  slider-handle-size: 5;
+}
+
+.__slider_track__ {
+  background: built-in(ui-ore:RECT2);
+}
+
+.__slider_fill__ {
+  background: color(#c6a06a);
+}
+
+.__slider_handle__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT_SMALL);
+  hover-background: built-in(ui-ore:BTN_PRESSED_SMALL);
+  pressed-background: built-in(ui-ore:BTN_PRESSED_SMALL) color(#ddd);
+}
 
 scroller-view {
   scroller-view-margin: 10;

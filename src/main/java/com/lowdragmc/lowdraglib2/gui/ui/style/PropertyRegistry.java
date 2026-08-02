@@ -182,6 +182,10 @@ public final class PropertyRegistry {
     public static final Property<Float> SCROLL_DELTA = create("scroll-delta", 0.1f).setRange(0f, 1f);
     public static final Property<Float> SCROLL_BAR_SIZE = create("scroll-bar-size", 20f).setRange(0f, 100f);
 
+    public static final Property<Float> SLIDER_STEP = create("slider-step", 0.1f).setRange(0f, 1f);
+    public static final Property<Float> SLIDER_TRACK_SIZE = create("slider-track-size", 1f).setMin(0f);
+    public static final Property<Float> SLIDER_HANDLE_SIZE = create("slider-handle-size", 3f).setMin(1f);
+
     public static final Property<Float> SCROLLER_VIEW_MARGIN = create("scroller-view-margin", 5f);
     public static final Property<ScrollerMode> SCROLLER_VIEW_MODE = create("scroller-view-mode", ScrollerMode.class, ScrollerMode.BOTH);
     public static final Property<ScrollDisplay> SCROLLER_VERTICAL_DISPLAY = create("scroller-vertical-display", ScrollDisplay.class, ScrollDisplay.AUTO);
@@ -231,6 +235,7 @@ public final class PropertyRegistry {
         BasicStyle.init();
         ProgressBar.ProgressBarStyle.init();
         ScrollerView.ScrollerViewStyle.init();
+        Slider.SliderStyle.init();
         VirtualScrollerView.VirtualScrollerViewStyle.init();
         SearchComponent.SearchStyle.init();
         Selector.SelectorStyle.init();

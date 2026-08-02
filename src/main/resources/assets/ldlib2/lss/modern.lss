@@ -220,6 +220,34 @@ scroller-vertical .__scroller_scroll_bar__ {
   display: none;
 }
 
+// slider
+slider-horizontal:host {
+  height: 8;
+}
+
+slider-vertical:host {
+  width: 8;
+}
+
+slider-horizontal, slider-vertical {
+  slider-track-size: 2;
+  slider-handle-size: 4;
+}
+
+.__slider_track__ {
+  background: sdf(#3b3d41, 1);
+}
+
+.__slider_fill__ {
+  background: sdf(#71a4f4, 1);
+}
+
+.__slider_handle__ {
+  base-background: sdf(#c9ccd1, 2);
+  hover-background: sdf(#ffffff, 2);
+  pressed-background: sdf(#71a4f4, 2);
+}
+
 scroller-view {
   scroller-view-margin: 8;
 }

@@ -186,6 +186,39 @@ scroller-vertical .__scroller_scroll_bar__ {
   display: none;
 }
 
+// slider
+slider-horizontal:host {
+  height: 9;
+}
+
+slider-vertical:host {
+  width: 9;
+}
+
+slider-horizontal, slider-vertical {
+  slider-track-size: 3;
+  slider-handle-size: 5;
+}
+
+.__slider_track__ {
+  background: built-in(ui-mc:RECT_1);
+}
+
+.__slider_fill__ {
+  background: color(#8b8b8b);
+}
+
+slider-horizontal .__slider_handle__ {
+  base-background: built-in(ui-mc:SCROLLER_H);
+  hover-background: built-in(ui-mc:SCROLLER_H_DARK);
+  pressed-background: built-in(ui-mc:SCROLLER_H_DARK) color(#dddddd);
+}
+
+slider-vertical .__slider_handle__ {
+  base-background: built-in(ui-mc:SCROLLER_V);
+  hover-background: built-in(ui-mc:SCROLLER_V_DARK);
+  pressed-background: built-in(ui-mc:SCROLLER_V_DARK) color(#dddddd);
+}
 
 scroller-view {
   scroller-view-margin: 10;
