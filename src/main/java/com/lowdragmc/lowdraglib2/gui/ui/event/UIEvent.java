@@ -9,6 +9,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
 import org.jetbrains.annotations.Nullable;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -106,6 +107,10 @@ public class UIEvent {
      * Hover Tooltips
      */
     public HoverTooltips hoverTooltips;
+    /**
+     * File Drop Event data: the files dropped onto the window from outside the game.
+     */
+    public List<File> droppedFiles = List.of();
     /**
      * Command name
      */

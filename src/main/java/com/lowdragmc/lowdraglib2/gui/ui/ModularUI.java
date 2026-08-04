@@ -53,6 +53,7 @@ import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
@@ -662,6 +663,38 @@ public class ModularUI {
     @OnlyIn(Dist.CLIENT)
     public void clearFocus() {
         requestFocus(null);
+    }
+
+    /**
+     * Routes files dropped onto the window from outside the game to the element under the cursor, as a
+     * {@link UIEvents#FILE_DROP} event that bubbles up from it.
+     * <p>
+     * The cursor position is queried from the window rather than taken from the last mouse move: the
+     * operating system does not deliver mouse movement while a drag from another application is in
+     * progress, so the cached hover element is whatever was under the cursor before the drag began.
+     *
+     * @return true if any element handled the drop.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public boolean onFilesDrop(List<File> files) {
+        if (files.isEmpty()) return false;
+        var minecraft = Minecraft.getInstance();
+        var window = minecraft.getWindow();
+        var x = new double[1];
+        var y = new double[1];
+        GLFW.glfwGetCursorPos(window.getWindow(), x, y);
+        var mouseX = x[0] * window.getGuiScaledWidth() / window.getScreenWidth();
+        var mouseY = y[0] * window.getGuiScaledHeight() / window.getScreenHeight();
+
+        var hit = ui.rootElement.hitTest(mouseX, mouseY);
+        if (hit == null) return false;
+        var event = UIEvent.create(UIEvents.FILE_DROP);
+        event.x = (float) mouseX;
+        event.y = (float) mouseY;
+        event.droppedFiles = List.copyOf(files);
+        event.target = hit.getA();
+        UIEventDispatcher.dispatchEvent(event);
+        return event.hasHandler;
     }
 
     @OnlyIn(Dist.CLIENT)

@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceImportContext;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
@@ -28,6 +29,7 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -36,8 +38,12 @@ import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
+import java.io.File;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.*;
 
@@ -155,6 +161,7 @@ public class ResourceProviderContainer<T> extends UIElement {
 
         addChildren(scrollerView, bottomBar);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        addEventListener(UIEvents.FILE_DROP, this::onFilesDropped);
         // clicking the empty space around the cells clears the selection. Listening on the scroller
         // rather than the whole container keeps the bottom bar's own controls out of it.
         scrollerView.addEventListener(UIEvents.MOUSE_DOWN, event -> {
@@ -173,6 +180,70 @@ public class ResourceProviderContainer<T> extends UIElement {
     /** The shared selection look: a light blue wash over the cell, no outline. */
     public static IGuiTexture defaultSelectedTexture() {
         return new ColorRectTexture(0x554852ff);
+    }
+
+    /**
+     * Briefly tints an element to show where a dropped file landed.
+     * <p>
+     * This is the only drop feedback there can be: the operating system does not tell the game anything
+     * while files are being dragged over the window, so nothing can light up beforehand.
+     */
+    public static void flashDropTarget(UIElement element) {
+        var flash = new UIElement();
+        flash.getLayout().positionType(TaffyPosition.ABSOLUTE);
+        flash.getLayout().widthPercent(100);
+        flash.getLayout().heightPercent(100);
+        flash.setAllowHitTest(false);
+        flash.style(style -> style.backgroundTexture(new ColorRectTexture(0x554852ff)));
+        flash.addClass("__drop-flash__");
+        var expiry = System.currentTimeMillis() + 400;
+        flash.addEventListener(UIEvents.TICK, e -> {
+            if (System.currentTimeMillis() > expiry) {
+                flash.removeSelf();
+            }
+        });
+        element.addChild(flash);
+    }
+
+    /**
+     * Imports dropped files one after another, so that the dialog one import may open is answered before
+     * the next begins.
+     *
+     * @param owner the element dialogs are shown on.
+     */
+    public void importFiles(List<File> files, UIElement owner) {
+        importFile(new ArrayDeque<>(files), owner);
+    }
+
+    private void importFile(Deque<File> remaining, UIElement owner) {
+        var file = remaining.poll();
+        if (file == null) return;
+        var resource = resourceProvider.getResourceInstance().resource;
+        if (!resource.canImportFile(file)) {
+            importFile(remaining, owner);
+            return;
+        }
+        Runnable next = () -> importFile(remaining, owner);
+        resource.importFile(new ResourceImportContext<>(resource, resourceProvider, file, owner, editor,
+                (name, value) -> {
+                    addNewResource(value, name);
+                    next.run();
+                }, next));
+    }
+
+    protected void onFilesDropped(UIEvent event) {
+        // a headless container is a behavior object, its owner decides what a drop means
+        if (headless || event.droppedFiles.isEmpty()) return;
+        var resource = resourceProvider.getResourceInstance().resource;
+        var accepted = event.droppedFiles.stream().filter(resource::canImportFile).toList();
+        if (accepted.isEmpty()) return;
+        event.stopPropagation();
+        if (!resourceProvider.supportAdd()) {
+            Dialog.showNotification("editor.resource.import_failed", "editor.resource.import_read_only", null).show(this);
+            return;
+        }
+        flashDropTarget(this);
+        importFiles(accepted, this);
     }
 
     /**
@@ -484,11 +555,20 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     public void addNewResource(T value) {
+        addNewResource(value, null);
+    }
+
+    /**
+     * @param name the name to create the resource under, made unique if it is taken. Null falls back to
+     *             the generic "new_res", which is what creating one from the menu uses.
+     */
+    public void addNewResource(T value, @Nullable String name) {
         if (value == null) return;
-        var key = resourceProvider.createSubPath("new_res");
+        var base = name == null || name.isBlank() ? "new_res" : name;
+        var key = resourceProvider.createSubPath(base);
         var count = 1;
         while (resourceProvider.hasResource(key)) {
-            key = resourceProvider.createSubPath("new_res_" + count);
+            key = resourceProvider.createSubPath(base + "_" + count);
             count++;
         }
         IResourcePath finalKey = key;

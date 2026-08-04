@@ -19,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
@@ -155,6 +156,7 @@ public class AssetBrowser extends UIElement {
 
         bottomBar.setOnValueChanged(this::setUiWidth);
         addChild(splitView);
+        addEventListener(UIEvents.FILE_DROP, this::onFilesDropped);
 
         addClass("__asset-browser__");
         moveInlineAsDefault();
@@ -636,6 +638,81 @@ public class AssetBrowser extends UIElement {
             }
             performed.clear();
         });
+    }
+
+    // ------------------------------------------------------------------- external file drop
+
+    /**
+     * Files dropped onto the browser from outside the game. They can either be copied in as they are or
+     * handed to a resource type that knows how to read them, so the choice is offered as a menu at the
+     * point they landed on.
+     * <p>
+     * The cell under the cursor cannot be taken from {@link #hovered}: no mouse movement is delivered
+     * while a drag from another application is in progress, so that field still holds whatever was
+     * hovered before the drag started. The event's target comes from a fresh hit test instead.
+     */
+    protected void onFilesDropped(UIEvent event) {
+        if (event.droppedFiles.isEmpty() || currentDirectory == null) return;
+        event.stopPropagation();
+        var files = event.droppedFiles.stream().filter(File::isFile).toList();
+        if (files.isEmpty()) {
+            Dialog.showNotification("editor.resource.import_failed", "editor.assets.drop_no_files", null).show(this);
+            return;
+        }
+        var target = directoryOf(event.target);
+        var cell = entryUIs.get(target);
+        ResourceProviderContainer.flashDropTarget(cell == null ? gridScroller : cell);
+        if (editor == null) {
+            copyFilesInto(files, target);
+            return;
+        }
+        editor.openMenu(event.x, event.y, createDropMenu(files, target));
+    }
+
+    /** The folder a drop landed on: the folder cell under the cursor, else the open directory. */
+    private File directoryOf(@Nullable UIElement target) {
+        if (target != null) {
+            // the hit element is the thumbnail or the label inside a cell, so match on the whole path
+            var path = target.getStructurePath();
+            for (var entry : entryUIs.entrySet()) {
+                if (entry.getKey().isDirectory() && path.contains(entry.getValue())) {
+                    return entry.getKey();
+                }
+            }
+        }
+        return currentDirectory;
+    }
+
+    protected TreeBuilder.Menu createDropMenu(List<File> files, File directory) {
+        var menu = TreeBuilder.Menu.start();
+        menu.leaf(Icons.COPY, Component.translatable("editor.assets.drop_copy", directory.getName()),
+                () -> copyFilesInto(files, directory));
+        // a resource can only be created in the directory the browser is showing, that is the one the
+        // behaviour objects are bound to
+        if (directory.equals(currentDirectory)) {
+            for (var resource : List.copyOf(behaviors.availableResources())) {
+                var importable = files.stream().filter(resource::canImportFile).toList();
+                if (importable.isEmpty()) continue;
+                var behavior = behaviors.get(resource);
+                if (behavior == null || !behavior.provider().supportAdd()) continue;
+                menu.leaf(resource.getIcon(),
+                        Component.translatable("editor.assets.drop_import", resource.getDisplayName()),
+                        () -> {
+                            behavior.container().importFiles(importable, this);
+                            requestGridRebuild();
+                        });
+            }
+        }
+        return menu;
+    }
+
+    protected void copyFilesInto(List<File> files, File directory) {
+        for (var file : files) {
+            if (FileOps.copyInto(file, directory) == null) {
+                LDLib2.LOGGER.warn("Failed to copy {} into {}", file, directory);
+            }
+        }
+        afterStructureChange();
     }
 
     // ------------------------------------------------------------------------------------ menus

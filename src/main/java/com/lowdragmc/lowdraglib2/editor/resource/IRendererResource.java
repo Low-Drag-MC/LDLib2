@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
+import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.client.scene.FBOWorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.client.scene.ImmediateWorldSceneRenderer;
@@ -24,9 +25,11 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -62,6 +65,31 @@ public class IRendererResource extends Resource<IRenderer> {
     @Override
     public IRenderer deserializeResource(Tag tag, HolderLookup.Provider provider) {
         return IRenderer.deserializeWrapper(tag);
+    }
+
+    @Override
+    public boolean canImportFile(File file) {
+        return super.canImportFile(file) || file.isFile() && file.getName().toLowerCase(Locale.ROOT).endsWith(".json");
+    }
+
+    @Override
+    public void importFile(ResourceImportContext<IRenderer> context) {
+        var file = context.getFile();
+        if (super.canImportFile(file)) {
+            super.importFile(context);
+            return;
+        }
+        // a model json is only usable once it has been baked, which happens during a resource reload,
+        // so unlike a texture the packs have to be reloaded before the renderer will draw anything
+        ResourceFileImport.resolveOrImport(context.getOwner(), file, "models", location -> {
+            // the model location drops the "models/" prefix and the extension, that is how the bakery
+            // addresses it: models/block/foo.json -> block/foo
+            var path = location.getPath();
+            if (path.startsWith("models/")) path = path.substring("models/".length());
+            if (path.endsWith(".json")) path = path.substring(0, path.length() - ".json".length());
+            context.complete(new IModelRenderer(ResourceLocation.fromNamespaceAndPath(location.getNamespace(), path)));
+            reloadResourcesAndRefreshOpenedContainers();
+        }, context::cancel);
     }
 
     @Override
