@@ -534,10 +534,22 @@ public abstract class Editor extends UIElement {
     }
 
     public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
+        openMenu(posX, posY, menuBuilder, true);
+    }
+
+    /**
+     * @param closeOnClick false for a menu of toggles, so several entries can be picked without it
+     *                     closing after the first. It still closes when it loses focus.
+     *                     Entries of such a menu should draw their state with a
+     *                     {@link com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture}, the menu is
+     *                     built once and its icons are not rebuilt between clicks.
+     */
+    public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder, boolean closeOnClick) {
         if (menuBuilder == null || menuBuilder.isEmpty()) return;
         openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider)
                 .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
-                .setOnNodeClicked(TreeBuilder.Menu::handle);
+                .setOnNodeClicked(TreeBuilder.Menu::handle)
+                .setCloseOnClick(closeOnClick);
     }
 
     /**
