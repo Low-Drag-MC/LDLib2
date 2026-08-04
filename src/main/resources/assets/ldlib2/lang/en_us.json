@@ -54,6 +54,7 @@
   "ldlib.gui.editor.group.widget.container": "Container Widgets",
   "ldlib.gui.editor.group.widget.custom": "Custom Widgets",
   "ldlib.gui.editor.blockstate.properties": "Properties",
+  "ldlib.gui.editor.name.hdr_intensity": "HDR",
   "ldlib.gui.editor.name.slot_background": "Slot Background",
   "ldlib.gui.editor.name.allow_custom_background": "Allow Custom Background",
   "ldlib.gui.editor.name.allow_custom_background.tips": "If true, Each slot can have it's own Background, if false, All Slots will share the same Background.",

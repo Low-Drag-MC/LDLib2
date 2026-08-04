@@ -25,7 +25,7 @@ public class TestColorBlendNode extends Node {
         super.onDefinePorts(context);
         context.addInputPort("a", TypeHandles.COLOR)
                 .build();
-        context.addInputPort("b", TypeHandles.COLOR)
+        context.addInputPort("b", TypeHandles.HDR_COLOR)
                 .build();
         context.addOutputPort("out", TypeHandles.COLOR)
                 .build();

@@ -13,11 +13,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NodeOptionsInspector extends ModelElement {
-    public record OptionFieldInfo(String name, TypeHandle type, boolean inspectorOnly) {}
+    public record OptionFieldInfo(String name, TypeHandle type, boolean inspectorOnly, boolean configuratorEnabled) {}
     public final NodeModel nodeModel;
 
     // runtime
     private final List<OptionFieldInfo> mutableFieldInfos = new ArrayList<>();
+    /** How many option rows {@link #buildFields()} actually added (options without a configurator add none). */
+    private int rowCount;
 
     public NodeOptionsInspector(NodeModel nodeModel) {
         this.nodeModel = nodeModel;
@@ -40,7 +42,7 @@ public class NodeOptionsInspector extends ModelElement {
         // also drive it, because this method runs after the parent's applyCollapsedState (parts are
         // visited after the owner) and would otherwise overwrite the collapsed state at the same
         // IMPORTANT origin — leaving options visible while collapsed.
-        boolean hidden = mutableFieldInfos.isEmpty() || nodeModel.isCollapsed();
+        boolean hidden = rowCount == 0 || nodeModel.isCollapsed();
         Style.importantPipeline(getLayout(), l -> l.display(hidden ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
     }
 
@@ -54,6 +56,9 @@ public class NodeOptionsInspector extends ModelElement {
             if (!currentOption.getPortModel().getUniqueName().equals(oldOption.name)) return true;
             if (!currentOption.getPortModel().getDataTypeHandle().equals(oldOption.type)) return true;
             if (currentOption.isShowInInspectorOnly() != oldOption.inspectorOnly) return true;
+            // a node that toggles which of its options are editable (e.g. a mode option swapping in a
+            // different value editor) changes nothing else — without this the UI would never refresh
+            if (currentOption.getPortModel().isConfiguratorEnabled() != oldOption.configuratorEnabled) return true;
         }
 
         return false;
@@ -61,18 +66,26 @@ public class NodeOptionsInspector extends ModelElement {
 
     protected void buildFields() {
         mutableFieldInfos.clear();
+        clearAllChildren();
+        rowCount = 0;
         for (var nodeOption : nodeModel.getNodeOptions()) {
+            var portModel = nodeOption.getPortModel();
+            // every option gets an info entry (shouldRebuildFields compares them positionally), but only
+            // the ones with a configurator get a row
             mutableFieldInfos.add(new OptionFieldInfo(
-                    nodeOption.getPortModel().getUniqueName(),
-                    nodeOption.getPortModel().getDataTypeHandle(),
-                    nodeOption.isShowInInspectorOnly())
+                    portModel.getUniqueName(),
+                    portModel.getDataTypeHandle(),
+                    nodeOption.isShowInInspectorOnly(),
+                    portModel.isConfiguratorEnabled())
             );
-            if (nodeOption.getPortModel() instanceof IFieldValueConfigurable configurable) {
+            if (!portModel.isConfiguratorEnabled()) continue; // else it'd render as a label with nothing beside it
+            if (portModel instanceof IFieldValueConfigurable configurable) {
                 var inspector = new FieldValueInspector();
-                inspector.setFieldName(nodeOption.getPortModel().getDisplayName());
+                inspector.setFieldName(portModel.getDisplayName());
                 if (getGraphView() != null) inspector.setHistoryStack(getGraphView().getHistoryStack());
                 inspector.loadValueField(configurable);
                 addChildren(inspector);
+                rowCount++;
             }
         }
     }
