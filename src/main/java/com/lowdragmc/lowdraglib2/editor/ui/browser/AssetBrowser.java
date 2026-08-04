@@ -41,11 +41,14 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * A file system browser over the {@code ldlib2} folder, in the spirit of Unity's Project window: a
@@ -57,6 +60,11 @@ import java.util.Map;
  * {@link ResourceBehaviorCache} rather than reimplemented here.
  */
 public class AssetBrowser extends UIElement {
+    /** What the grid orders its entries by. Folders are always listed before files regardless. */
+    public enum SortMode {
+        NAME, TYPE, SIZE, MODIFIED
+    }
+
     /** Payload of a drag started in the browser, so drop targets can recognise plain files. */
     public record DraggedAssets(List<File> files) {}
 
@@ -98,6 +106,13 @@ public class AssetBrowser extends UIElement {
     private boolean showAllFiles = false;
     /** Lower-cased name filter from the search field; empty means everything is shown. */
     private String searchFilter = "";
+    /** What the grid is ordered by, within the folders-first rule. */
+    @Getter
+    private SortMode sortMode = SortMode.NAME;
+    @Getter
+    private boolean sortAscending = true;
+    /** The resource types to show. Empty means no filtering, i.e. every type. */
+    private final Set<Resource<?>> typeFilter = new LinkedHashSet<>();
     /** Cell size, local to the browser so it never writes a resource type's saved display settings. */
     @Getter
     private int uiWidth = 30;
@@ -151,7 +166,7 @@ public class AssetBrowser extends UIElement {
         }).addChildren(toolbar, breadcrumb, gridScroller, bottomBar)
                 .addClass("__asset-browser_content-pane__").moveInlineAsDefault();
 
-        splitView.left(treePane).right(contentPane).setPercentage(25);
+        splitView.left(treePane).right(contentPane).setPercentage(20);
         splitView.addClass("__asset-browser_split-view__");
 
         bottomBar.setOnValueChanged(this::setUiWidth);
@@ -225,6 +240,9 @@ public class AssetBrowser extends UIElement {
                 }),
                 iconButton(DynamicTexture.of(() -> showAllFiles ? Icons.EYE : Icons.EYE_OFF),
                         "editor.assets.show_all_files", () -> setShowAllFiles(!showAllFiles)),
+                menuButton(Icons.SORT, "editor.assets.sort", this::createSortMenu),
+                menuButton(DynamicTexture.of(() -> typeFilter.isEmpty() ? Icons.FILTER : Icons.FILTER_CHECK),
+                        "editor.assets.filter", this::createFilterMenu, false),
                 searchField
         ).addClass("__asset-browser_toolbar__").moveInlineAsDefault();
     }
@@ -283,6 +301,58 @@ public class AssetBrowser extends UIElement {
         }).addChildren(icon, label);
         row.addClass("__asset-browser_tree-node__").moveInlineAsDefault();
         return row;
+    }
+
+    /** A toolbar button that drops its menu right underneath itself. */
+    private Button menuButton(IGuiTexture icon, String tooltip, Supplier<TreeBuilder.Menu> menu) {
+        return menuButton(icon, tooltip, menu, true);
+    }
+
+    /** @param closeOnClick false for a menu of toggles, so it survives picking an entry. */
+    private Button menuButton(IGuiTexture icon, String tooltip, Supplier<TreeBuilder.Menu> menu,
+                              boolean closeOnClick) {
+        var button = iconButton(icon, tooltip, () -> {});
+        button.setOnClick(e -> {
+            e.stopPropagation();
+            if (editor != null) {
+                editor.openMenu(button.getPositionX(), button.getPositionY() + button.getSizeHeight(),
+                        menu.get(), closeOnClick);
+            }
+        });
+        return button;
+    }
+
+    protected TreeBuilder.Menu createSortMenu() {
+        var menu = TreeBuilder.Menu.start();
+        for (var mode : SortMode.values()) {
+            menu.leaf(sortMode == mode ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY,
+                    "editor.assets.sort_" + mode.name().toLowerCase(Locale.ROOT), () -> setSortMode(mode));
+        }
+        menu.crossLine();
+        menu.leaf(sortAscending ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY,
+                "editor.assets.sort_ascending", () -> setSortAscending(true));
+        menu.leaf(sortAscending ? IGuiTexture.EMPTY : Icons.CHECK_SPRITE,
+                "editor.assets.sort_descending", () -> setSortAscending(false));
+        return menu;
+    }
+
+    /**
+     * The type filter is a set of toggles, so this menu stays open while they are being picked. Its
+     * icons are read every frame rather than captured, because the menu is built once and clicking an
+     * entry no longer rebuilds it.
+     */
+    protected TreeBuilder.Menu createFilterMenu() {
+        var menu = TreeBuilder.Menu.start();
+        menu.leaf(DynamicTexture.of(() -> typeFilter.isEmpty() ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY),
+                Component.translatable("editor.assets.filter_all"), this::clearTypeFilter);
+        menu.crossLine();
+        // an empty filter means everything is shown, so every entry reads as ticked in that state
+        for (var resource : List.copyOf(behaviors.availableResources())) {
+            menu.leaf(DynamicTexture.of(() -> typeFilter.isEmpty() || typeFilter.contains(resource)
+                            ? Icons.CHECKBOX_MARKED : Icons.CHECKBOX_BLANK),
+                    resource.getDisplayName(), () -> toggleTypeFilter(resource));
+        }
+        return menu;
     }
 
     private Button iconButton(IGuiTexture icon, String tooltip, Runnable onClick) {
@@ -386,6 +456,40 @@ public class AssetBrowser extends UIElement {
         return this;
     }
 
+    public AssetBrowser setSortMode(SortMode sortMode) {
+        if (this.sortMode == sortMode) return this;
+        this.sortMode = sortMode;
+        requestGridRebuild();
+        return this;
+    }
+
+    public AssetBrowser setSortAscending(boolean sortAscending) {
+        if (this.sortAscending == sortAscending) return this;
+        this.sortAscending = sortAscending;
+        requestGridRebuild();
+        return this;
+    }
+
+    /** The resource types currently shown, or an empty set when nothing is filtered out. */
+    public Set<Resource<?>> getTypeFilter() {
+        return Set.copyOf(typeFilter);
+    }
+
+    public AssetBrowser toggleTypeFilter(Resource<?> resource) {
+        if (!typeFilter.remove(resource)) {
+            typeFilter.add(resource);
+        }
+        requestGridRebuild();
+        return this;
+    }
+
+    public AssetBrowser clearTypeFilter() {
+        if (typeFilter.isEmpty()) return this;
+        typeFilter.clear();
+        requestGridRebuild();
+        return this;
+    }
+
     public AssetBrowser setDisplayMode(Resource.DisplayMode displayMode) {
         if (this.displayMode == displayMode) return this;
         this.displayMode = displayMode;
@@ -402,6 +506,9 @@ public class AssetBrowser extends UIElement {
         gridDirty = true;
     }
 
+    /** An entry that survived filtering, with its resource type already resolved. */
+    private record GridEntry(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior) {}
+
     protected void rebuildGrid() {
         gridScroller.clearAllScrollViewChildren();
         entryUIs.clear();
@@ -410,29 +517,69 @@ public class AssetBrowser extends UIElement {
         if (directory == null) return;
         var files = directory.listFiles();
         if (files == null) return;
-        var entries = Arrays.stream(files).sorted((a, b) -> {
-            if (a.isDirectory() != b.isDirectory()) return a.isDirectory() ? -1 : 1;
-            return a.getName().compareToIgnoreCase(b.getName());
-        }).toList();
-        var liveThumbnails = 0;
-        for (var file : entries) {
+
+        var entries = new ArrayList<GridEntry>();
+        for (var file : files) {
             var isDirectory = file.isDirectory();
             // resolved once per entry: every lookup scans all loaded resource types
             var behavior = isDirectory ? null : behaviors.forFile(file);
-            if (!isDirectory && behavior == null && !showAllFiles) continue;
-            if (!searchFilter.isEmpty() &&
-                    !displayNameOf(file, behavior).toLowerCase(Locale.ROOT).contains(searchFilter)) {
-                continue;
-            }
-            var ui = createEntryUI(file, behavior, behavior != null && liveThumbnails < LIVE_THUMBNAIL_LIMIT);
+            if (!isDirectory && !accepts(file, behavior)) continue;
+            entries.add(new GridEntry(file, behavior));
+        }
+        entries.sort(entryComparator());
+
+        var liveThumbnails = 0;
+        for (var entry : entries) {
+            var behavior = entry.behavior();
+            var ui = createEntryUI(entry.file(), behavior, behavior != null && liveThumbnails < LIVE_THUMBNAIL_LIMIT);
             if (behavior != null) liveThumbnails++;
-            entryUIs.put(file, ui);
+            entryUIs.put(entry.file(), ui);
             gridScroller.addScrollViewChild(ui);
         }
         // re-applies the highlight on the new cell, and drops the selection if it is gone
         var previous = selected;
         selected = null;
         selectEntry(previous);
+    }
+
+    /** Whether a file passes the "show all files" toggle, the type filter and the search box. */
+    private boolean accepts(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior) {
+        if (behavior == null) {
+            // a plain file belongs to no resource type, so any type filter excludes it
+            if (!showAllFiles || !typeFilter.isEmpty()) return false;
+        } else if (!typeFilter.isEmpty() && !typeFilter.contains(behavior.resource())) {
+            return false;
+        }
+        return searchFilter.isEmpty() ||
+                displayNameOf(file, behavior).toLowerCase(Locale.ROOT).contains(searchFilter);
+    }
+
+    /** Folders always come first, whichever way the rest is sorted. */
+    private Comparator<GridEntry> entryComparator() {
+        Comparator<GridEntry> comparator = switch (sortMode) {
+            case NAME -> Comparator.comparing(this::displayNameOf, String.CASE_INSENSITIVE_ORDER);
+            case TYPE -> Comparator.comparing(this::typeNameOf, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(this::displayNameOf, String.CASE_INSENSITIVE_ORDER);
+            case SIZE -> Comparator.comparingLong(entry -> entry.file().length());
+            case MODIFIED -> Comparator.comparingLong(entry -> entry.file().lastModified());
+        };
+        if (!sortAscending) {
+            comparator = comparator.reversed();
+        }
+        return Comparator.<GridEntry, Boolean>comparing(entry -> !entry.file().isDirectory())
+                .thenComparing(comparator);
+    }
+
+    private String displayNameOf(GridEntry entry) {
+        return displayNameOf(entry.file(), entry.behavior());
+    }
+
+    /** What an entry sorts under by type: the resource type name, or the plain file extension. */
+    private String typeNameOf(GridEntry entry) {
+        if (entry.behavior() != null) return entry.behavior().resource().getName();
+        var name = entry.file().getName();
+        var dot = name.lastIndexOf('.');
+        return dot == -1 ? "" : name.substring(dot + 1);
     }
 
     protected UIElement createEntryUI(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior,
