@@ -130,10 +130,9 @@ public class ResourceView extends View {
     }
 
     public void loadResources(Resources resources) {
+        // the selected tab is deliberately left alone: loading a project keeps whatever was showing,
+        // which for a fresh editor and after clear() is the pinned asset browser
         resources.resources.stream().map(Resource::getResourceInstance).forEach(this::addResourceInstance);
-        // the pinned asset browser is already selected at this point, so select the first resource type
-        // ourselves to keep the view that opens the same as before it existed.
-        resourceTabs.values().stream().findFirst().ifPresent(tabView::selectTab);
     }
 
     public void removeResource(Resource<?> resource) {
