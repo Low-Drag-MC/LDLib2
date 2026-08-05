@@ -701,6 +701,7 @@ public abstract class Editor extends UIElement {
             } else {
                 try {
                     currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
+                    recordRecentProject();
                 } catch (Exception ignored) {}
                 if (showNotification) {
                     if (onFinish != null) {
@@ -749,6 +750,7 @@ public abstract class Editor extends UIElement {
                             try {
                                 projectType.saveProjectToFile(currentProject, file);
                                 currentProjectFile = file;
+                                recordRecentProject();
                             } catch (Exception ignored) {}
                         }
                         if (onFinish != null) {
@@ -793,13 +795,27 @@ public abstract class Editor extends UIElement {
             EditorLayoutStore.load(project.getProjectType().getName()).ifPresent(this::applyLayout);
         }
         if (projectFile != null) {
-            EditorProjectStore.addRecentProject(projectFile, behaviorSettings.getRecentProjectCount());
+            recordRecentProject();
             if (behaviorSettings.isRestoreAssetBrowserPath()) {
                 var browserPath = EditorProjectStore.getBrowserPath(projectFile);
                 if (browserPath != null) {
                     resourceView.getAssetBrowser().openDirectory(browserPath);
                 }
             }
+        }
+    }
+
+    /**
+     * Puts the current project at the top of the recent list.
+     * <p>
+     * Called whenever the project gains or confirms a file, not only when one is opened: a project that
+     * was created from scratch has no file until it is first saved, so saving is the moment it becomes
+     * something worth listing.
+     */
+    protected void recordRecentProject() {
+        if (currentProjectFile != null) {
+            EditorProjectStore.addRecentProject(currentProjectFile,
+                    BehaviorSettings.of(this).getRecentProjectCount());
         }
     }
 
