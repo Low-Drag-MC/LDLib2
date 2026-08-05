@@ -574,6 +574,7 @@ public abstract class Editor extends UIElement {
     public void exit(@Nullable Runnable onFinish) {
         askToSaveProject(() -> {
             if (currentProject != null) {
+                saveAssetBrowserPath();
                 EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
             }
             if (window != null) {
@@ -787,12 +788,26 @@ public abstract class Editor extends UIElement {
         historyView.recordSerializableObject(Component.translatable("editor.open"), currentProject);
         project.onLoad(this);
         // Apply saved per-project-type layout (if any) now that all project-specific views are registered.
-        var behaviorSettings = editorSettings.getSettings(BehaviorSettings.ID)
-                .filter(BehaviorSettings.class::isInstance)
-                .map(BehaviorSettings.class::cast)
-                .orElse(null);
-        if (behaviorSettings == null || behaviorSettings.isRestoreLayoutOnProjectOpen()) {
+        var behaviorSettings = BehaviorSettings.of(this);
+        if (behaviorSettings.isRestoreLayoutOnProjectOpen()) {
             EditorLayoutStore.load(project.getProjectType().getName()).ifPresent(this::applyLayout);
+        }
+        if (projectFile != null) {
+            EditorProjectStore.addRecentProject(projectFile, behaviorSettings.getRecentProjectCount());
+            if (behaviorSettings.isRestoreAssetBrowserPath()) {
+                var browserPath = EditorProjectStore.getBrowserPath(projectFile);
+                if (browserPath != null) {
+                    resourceView.getAssetBrowser().openDirectory(browserPath);
+                }
+            }
+        }
+    }
+
+    /** Remembers where the asset browser was, so reopening this project returns to the same folder. */
+    protected void saveAssetBrowserPath() {
+        var directory = resourceView.getAssetBrowser().getCurrentDirectory();
+        if (currentProjectFile != null && directory != null) {
+            EditorProjectStore.setBrowserPath(currentProjectFile, directory);
         }
     }
 
@@ -820,6 +835,7 @@ public abstract class Editor extends UIElement {
 
     protected void closeCurrentProject() {
         if (currentProject != null) {
+            saveAssetBrowserPath();
             EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
             currentProject.onClosed(this);
             currentProject = null;

@@ -2,7 +2,10 @@ package com.lowdragmc.lowdraglib2.editor.ui.menu;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
+import com.lowdragmc.lowdraglib2.editor.settings.BehaviorSettings;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.editor.ui.EditorProjectStore;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
@@ -37,6 +40,7 @@ public class FileMenu extends MenuTab {
             newMenuCreators.forEach(creator -> creator.accept(this, newMenu));
         });
         menu.leaf(Icons.OPEN_FILE, "ldlib.gui.editor.menu.open", this::onOpenProject);
+        appendRecentProjects(menu);
         menu.crossLine();
         if (editor.getCurrentProject() != null) {
             if (editor.getCurrentProjectFile() != null) {
@@ -77,6 +81,33 @@ public class FileMenu extends MenuTab {
     public ISubscription registerNewMenuCreator(BiConsumer<MenuTab, TreeBuilder.Menu> newCreator) {
         this.newMenuCreators.add(newCreator);
         return () -> this.newMenuCreators.remove(newCreator);
+    }
+
+    /**
+     * The recently opened projects, as a branch that opens one straight away. Projects whose file is
+     * gone are already left out by the store, and the branch is skipped entirely when none remain.
+     */
+    protected void appendRecentProjects(TreeBuilder.Menu menu) {
+        var limit = BehaviorSettings.of(editor).getRecentProjectCount();
+        if (limit <= 0) return;
+        var recent = EditorProjectStore.getRecentProjects().stream().limit(limit).toList();
+        if (recent.isEmpty()) return;
+        menu.branch(Icons.HISTORY, "ldlib.gui.editor.menu.recent_projects", branch -> {
+            for (var file : recent) {
+                var type = getProjectType(file);
+                // the folder is appended because several projects may well share a file name
+                var parent = file.getParentFile();
+                var label = Component.literal(file.getName());
+                if (parent != null) {
+                    label.append(Component.literal(" (" + parent.getName() + ")")
+                            .withColor(ColorPattern.GRAY.color));
+                }
+                branch.leaf(type == null ? Icons.FILE : type.icon, label, () -> openProject(file));
+            }
+            branch.crossLine();
+            branch.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.recent_projects.clear",
+                    EditorProjectStore::clearRecentProjects);
+        });
     }
 
     /**

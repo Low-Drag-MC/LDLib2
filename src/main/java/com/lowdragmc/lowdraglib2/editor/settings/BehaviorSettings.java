@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.settings;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
@@ -19,13 +20,32 @@ import org.lwjgl.glfw.GLFW;
 
 public class BehaviorSettings implements Settings {
     public static final ResourceLocation ID = LDLib2.id("behavior");
+    public static final int DEFAULT_RECENT_PROJECT_COUNT = 10;
     public static final Codec<BehaviorSettings> CODEC =
             PersistedParser.createCodec(BehaviorSettings::new);
+
+    /**
+     * The behavior settings of an editor, or a default instance when it has none registered, so that
+     * callers do not each have to spell out the lookup and a fallback for every field they read.
+     */
+    public static BehaviorSettings of(Editor editor) {
+        return editor.getEditorSettings().getSettings(ID)
+                .filter(BehaviorSettings.class::isInstance)
+                .map(BehaviorSettings.class::cast)
+                .orElseGet(BehaviorSettings::new);
+    }
 
     @Configurable @Getter @Setter private boolean shouldCloseOnEsc = false;
     @DefaultValue(booleanValue = true)
     @Configurable(name = "settings.ldlib2.behavior.restoreLayoutOnProjectOpen")
     @Getter @Setter private boolean restoreLayoutOnProjectOpen = true;
+    @DefaultValue(booleanValue = true)
+    @Configurable(name = "settings.ldlib2.behavior.restoreAssetBrowserPath")
+    @Getter @Setter private boolean restoreAssetBrowserPath = true;
+    @DefaultValue(numberValue = DEFAULT_RECENT_PROJECT_COUNT)
+    @Configurable(name = "settings.ldlib2.behavior.recentProjectCount")
+    @ConfigNumber(range = {0, 50}, type = ConfigNumber.Type.INTEGER)
+    @Getter @Setter private int recentProjectCount = DEFAULT_RECENT_PROJECT_COUNT;
 
     private final UIEventListener onKeyDownListener = this::onKeyDown;
 
