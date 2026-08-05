@@ -157,6 +157,7 @@ public class GraphView extends UIElement {
 
         graphView.addClass("__node-graph-view_canvas-view__");
         Style.defaultPipeline(this.graphView.getLayout(), l -> l.widthPercent(100).heightPercent(100));
+        Style.defaultPipeline(this.graphView.getGraphViewStyle(), s -> s.maxScale(2f));
 
         panelLayer.addClass("__node-graph-view_panel-layer__");
         Style.defaultPipeline(this.panelLayer.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE).width(0).height(0));
