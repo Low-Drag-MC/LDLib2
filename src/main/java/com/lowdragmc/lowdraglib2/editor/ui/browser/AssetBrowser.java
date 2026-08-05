@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
+import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceBottomBar;
@@ -545,13 +546,27 @@ public class AssetBrowser extends UIElement {
     /** Whether a file passes the "show all files" toggle, the type filter and the search box. */
     private boolean accepts(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior) {
         if (behavior == null) {
-            // a plain file belongs to no resource type, so any type filter excludes it
-            if (!showAllFiles || !typeFilter.isEmpty()) return false;
+            // neither a plain file nor a project belongs to a resource type, so a type filter hides both
+            if (!typeFilter.isEmpty()) return false;
+            // a project is editor content like a resource is, so it shows without "show all files"
+            if (!showAllFiles && projectTypeOf(file) == null) return false;
         } else if (!typeFilter.isEmpty() && !typeFilter.contains(behavior.resource())) {
             return false;
         }
         return searchFilter.isEmpty() ||
                 displayNameOf(file, behavior).toLowerCase(Locale.ROOT).contains(searchFilter);
+    }
+
+    /**
+     * The project type that can open the file, or null when it is not a project of a known type.
+     * <p>
+     * The file menu is built after the resource view is, so it can still be missing while the browser
+     * is being constructed.
+     */
+    @Nullable
+    protected ProjectType projectTypeOf(File file) {
+        if (editor == null || editor.fileMenu == null) return null;
+        return editor.fileMenu.getProjectType(file);
     }
 
     /** Folders always come first, whichever way the rest is sorted. */
@@ -574,9 +589,11 @@ public class AssetBrowser extends UIElement {
         return displayNameOf(entry.file(), entry.behavior());
     }
 
-    /** What an entry sorts under by type: the resource type name, or the plain file extension. */
+    /** What an entry sorts under by type: its resource or project type, else the file extension. */
     private String typeNameOf(GridEntry entry) {
         if (entry.behavior() != null) return entry.behavior().resource().getName();
+        var projectType = projectTypeOf(entry.file());
+        if (projectType != null) return projectType.name;
         var name = entry.file().getName();
         var dot = name.lastIndexOf('.');
         return dot == -1 ? "" : name.substring(dot + 1);
@@ -626,9 +643,14 @@ public class AssetBrowser extends UIElement {
                 icon = behavior.resource().getIcon().copy().setColor(ColorPattern.RED.color);
             }
         } else {
-            var name = file.getName();
-            var dot = name.lastIndexOf('.');
-            icon = dot == -1 ? Icons.FILE : Icons.getIcon(name.substring(dot + 1));
+            var projectType = projectTypeOf(file);
+            if (projectType != null) {
+                icon = projectType.icon;
+            } else {
+                var name = file.getName();
+                var dot = name.lastIndexOf('.');
+                icon = dot == -1 ? Icons.FILE : Icons.getIcon(name.substring(dot + 1));
+            }
         }
         IGuiTexture finalIcon = icon;
         return new UIElement().layout(layout -> {
@@ -692,7 +714,10 @@ public class AssetBrowser extends UIElement {
                 : behaviors.pathOf(selected).getPathWithType());
     }
 
-    /** Double click: descend into folders, open resources in their editor, hand other files to the OS. */
+    /**
+     * Double click: descend into folders, open resources in their editor, load projects into the editor
+     * and hand anything else to the operating system.
+     */
     public void activate(File file) {
         if (file.isDirectory()) {
             openDirectory(file);
@@ -707,6 +732,8 @@ public class AssetBrowser extends UIElement {
                 return;
             }
         }
+        // the same route the File menu's open entry takes, prompt about the open project included
+        if (editor != null && editor.fileMenu != null && editor.fileMenu.openProject(file)) return;
         Util.getPlatform().openFile(file);
     }
 
@@ -920,6 +947,8 @@ public class AssetBrowser extends UIElement {
                 path == null ? target.getAbsolutePath() : path.getPathWithType()));
         if (container != null && container.getOnEdit() != null && container.getCanEdit().test(path)) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> activate(target));
+        } else if (projectTypeOf(target) != null) {
+            menu.leaf(Icons.OPEN_FILE, "ldlib.gui.editor.menu.open", () -> activate(target));
         }
         menu.leaf("ldlib.gui.editor.menu.rename", () -> renameEntry(target));
         menu.crossLine();

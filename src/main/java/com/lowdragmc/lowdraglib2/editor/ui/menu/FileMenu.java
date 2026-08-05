@@ -9,6 +9,8 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import net.minecraft.network.chat.Component;
 
+import org.jetbrains.annotations.Nullable;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -77,23 +79,47 @@ public class FileMenu extends MenuTab {
         return () -> this.newMenuCreators.remove(newCreator);
     }
 
+    /**
+     * The project type that can open the given file, out of the ones registered on this menu.
+     *
+     * @return the matching type, or null if no registered type recognises the file.
+     */
+    @Nullable
+    public ProjectType getProjectType(@Nullable File file) {
+        if (file == null) return null;
+        // the name is matched before the file system is touched, this runs per entry of a file listing
+        var name = file.getName();
+        var type = projectTypes.stream()
+                .filter(candidate -> name.endsWith(candidate.getSuffix()))
+                .findFirst()
+                .orElse(null);
+        return type != null && file.isFile() ? type : null;
+    }
+
+    /**
+     * Loads a project file into the editor, exactly as the {@code open} entry of this menu does, prompt
+     * about the currently open project included.
+     *
+     * @return false if the file is not a project of any registered type, so the caller can fall back.
+     */
+    public boolean openProject(File file) {
+        var type = getProjectType(file);
+        if (type == null) return false;
+        try {
+            editor.loadProject(type.loadProjectFromFile(file), file);
+        } catch (Exception e) {
+            LDLib2.LOGGER.error("Failed to load the project {}: ", file, e);
+            Dialog.showNotification("editor.error", "editor.loading_failed", null).show(editor);
+        }
+        return true;
+    }
+
     protected void onOpenProject() {
         var suffixes = projectTypes.stream().map(ProjectType::getSuffix).toArray(String[]::new);
         Dialog.showFileDialog("ldlib.gui.editor.tips.load_project", LDLib2.getAssetsDir(), true,
                 Dialog.suffixFilter(suffixes), r -> {
-                    if (r != null && r.isFile()) {
-                        var fileName = r.getName();
-                        projectTypes.stream()
-                                .filter(type -> fileName.endsWith(type.getSuffix()))
-                                .findFirst()
-                                .ifPresent(type -> {
-                                    try {
-                                        var project = type.loadProjectFromFile(r);
-                                        editor.loadProject(project, r);
-                                    } catch (Exception e) {
-                                        Dialog.showNotification("editor.error", "editor.loading_failed", null).show(editor);
-                                    }
-                                });
+                    if (r != null) {
+                        openProject(r);
                     }
                 }).show(editor);
     }
