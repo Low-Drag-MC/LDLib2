@@ -3,6 +3,7 @@
 //import com.lowdragmc.lowdraglib2.Platform;
 //import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 //import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+//import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 //import com.lowdragmc.lowdraglib2.integration.xei.rei.handler.REIDraggableStackBoundsHandler;
 //import com.lowdragmc.lowdraglib2.integration.xei.rei.handler.REIRecipeIngredientHandler;
 //import com.lowdragmc.lowdraglib2.integration.xei.rei.handler.REIRecipeWidgetHandler;
@@ -21,6 +22,8 @@
 //import me.shedaniel.rei.api.common.entry.type.EntryType;
 //import me.shedaniel.rei.forge.REIPluginClient;
 //import net.minecraft.client.gui.screens.Screen;
+//import net.minecraft.network.chat.Component;
+//import net.minecraft.world.inventory.tooltip.TooltipComponent;
 //import org.jetbrains.annotations.Nullable;
 //import org.joml.Vector2f;
 //
@@ -178,6 +181,9 @@
 //    /**
 //     * Adds recipe widgets functionality to the REI recipe.
 //     * This allows associating an invisible slot in the UI element for REI lookups and tooltips.
+//     * <p>
+//     * The tooltip of the slot replaces the one of {@link ModularUIREIWidget}, so the tooltips of the
+//     * element are appended to it to keep them visible.
 //     *
 //     * @param <T>                The type of the {@link UIElement} to which the functionality is being added.
 //     * @param element            The {@link UIElement} to associate with the recipe slot functionality.
@@ -197,7 +203,17 @@
 //                        () -> getRectangle(element),
 //                        displayedIngredient,
 //                        allIngredients,
-//                        (tooltip) -> tooltip.addAllTexts(element.getStyle().tooltips().asList()));
+//                        (tooltip) -> {
+//                            var hoverTooltips = XEITooltipContext.RECIPE_SLOT.collectTooltips(element);
+//                            if (hoverTooltips == null) return;
+//                            for (var entry : hoverTooltips.tooltips()) {
+//                                if (entry instanceof Component component) {
+//                                    tooltip.add(component);
+//                                } else if (entry instanceof TooltipComponent component) {
+//                                    tooltip.add(component);
+//                                }
+//                            }
+//                        });
 //                if (ingredientIO == IngredientIO.INPUT) {
 //                    recipeSlot.markInput();
 //                } else if (ingredientIO == IngredientIO.OUTPUT) {

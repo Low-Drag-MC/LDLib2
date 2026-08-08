@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.HDRColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
+import com.lowdragmc.lowdraglib2.math.HDRColor;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import dev.vfyjxf.taffy.style.FlexDirection;
@@ -40,7 +41,13 @@ public class Vector4fAccessor extends TypesAccessor<Vector4f> {
     @Override
     public Configurator create(String name, Supplier<Vector4f> supplier, Consumer<Vector4f> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         if (field != null && field.isAnnotationPresent(ConfigHDR.class)) {
-            return new HDRColorConfigurator(name, supplier, consumer, defaultValue(field, field.getType()), forceUpdate);
+            // Legacy encoding: xyz = rgb, w = intensity, alpha unrepresentable. Adapt it onto the real
+            // HDRColor editor (alpha hidden) so the on-disk Vector4f shape and behaviour stay identical.
+            // New code should declare the field as HDRColor directly.
+            return new HDRColorConfigurator(name,
+                    () -> fromLegacyHDR(supplier.get()),
+                    hdr -> consumer.accept(toLegacyHDR(hdr)),
+                    fromLegacyHDR(defaultValue(field, field.getType())), forceUpdate, false);
         }
         if (field != null && field.isAnnotationPresent(ConfigColor.class)) {
             return new ColorConfigurator(name,
@@ -103,6 +110,15 @@ public class Vector4fAccessor extends TypesAccessor<Vector4f> {
         });
         configurator.setPastable(Vector4f.class, consumer);
         return configurator;
+    }
+
+    private static HDRColor fromLegacyHDR(@Nullable Vector4f legacy) {
+        return legacy == null ? HDRColor.black() : new HDRColor(legacy.x, legacy.y, legacy.z, 1f, legacy.w);
+    }
+
+    private static Vector4f toLegacyHDR(@Nullable HDRColor hdr) {
+        return hdr == null ? new Vector4f(0, 0, 0, 1)
+                : new Vector4f(hdr.getR(), hdr.getG(), hdr.getB(), hdr.getIntensity());
     }
 
 }

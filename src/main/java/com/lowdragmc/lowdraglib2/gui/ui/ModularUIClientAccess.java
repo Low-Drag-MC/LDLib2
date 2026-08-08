@@ -3,11 +3,16 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
+import java.io.File;
 import java.util.List;
 
 public final class ModularUIClientAccess {
@@ -58,6 +63,36 @@ public final class ModularUIClientAccess {
             UIElementClientAccess.appendExtraAreas(modularUI.ui.rootElement, state.extraAreas);
         }
         return state.extraAreas;
+    }
+
+    /**
+     * Routes files dropped onto the window from outside the game to the element under the cursor, as a
+     * {@link UIEvents#FILE_DROP} event that bubbles up from it.
+     * <p>
+     * The cursor position is queried from the window rather than taken from the last mouse move: the
+     * operating system does not deliver mouse movement while a drag from another application is in
+     * progress, so the cached hover element is whatever was under the cursor before the drag began.
+     *
+     * @return true if any element handled the drop.
+     */
+    public static boolean onFilesDrop(ModularUI modularUI, List<File> files) {
+        if (files.isEmpty()) return false;
+        var window = Minecraft.getInstance().getWindow();
+        var x = new double[1];
+        var y = new double[1];
+        GLFW.glfwGetCursorPos(window.handle(), x, y);
+        var mouseX = x[0] * window.getGuiScaledWidth() / window.getScreenWidth();
+        var mouseY = y[0] * window.getGuiScaledHeight() / window.getScreenHeight();
+
+        var hit = modularUI.ui.rootElement.hitTest(mouseX, mouseY);
+        if (hit == null) return false;
+        var event = UIEvent.create(UIEvents.FILE_DROP);
+        event.x = (float) mouseX;
+        event.y = (float) mouseY;
+        event.droppedFiles = List.copyOf(files);
+        event.target = hit.getA();
+        UIEventDispatcher.dispatchEvent(event);
+        return event.hasHandler;
     }
 
     public static void enableDebugger(ModularUI modularUI, boolean debugMode) {

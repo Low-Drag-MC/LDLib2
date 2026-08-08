@@ -32,7 +32,7 @@ public final class FilePath implements IResourcePath {
      * use. Editor references are saved with this string; the resource panel enumerates files under an
      * ABSOLUTE game dir (some launchers force one). Both — plus any legacy absolute save — must collapse
      * to the SAME string so a saved reference and the panel resolve to ONE cached resource instance
-     * (otherwise editing a material/curve/... in the panel doesn't affect a project referencing it).
+     * (otherwise editing a texture/renderer/... in the panel doesn't affect a project referencing it).
      * <p>Examples (all → {@code ./ldlib2/assets/ldlib2/resources/global/x.nbt}):
      * {@code C:/.../run/ldlib2/assets/ldlib2/resources/global/x.nbt}, {@code ./ldlib2/assets/...},
      * a legacy absolute save from another machine.
@@ -40,6 +40,9 @@ public final class FilePath implements IResourcePath {
     public static String toGameRelative(String rawPath) {
         var normalized = normalizePath(rawPath);
         if (normalized == null) return null;
+        // already canonical. resolving it again would go through the process CWD, which is not
+        // guaranteed to be the game dir, so keep it as is.
+        if (normalized.startsWith("./")) return normalized;
         // 1) precise: strip the actual game-dir prefix (robust even if the game dir itself contains "ldlib2")
         try {
             var abs = new File(normalized).getAbsoluteFile().toPath().normalize();
@@ -57,8 +60,10 @@ public final class FilePath implements IResourcePath {
         return normalized;
     }
 
-    /** Resolve a (possibly game-relative {@code ./...}) path to an ABSOLUTE file for I/O, so access
-     *  works regardless of the process working directory. */
+    /**
+     * Resolve a (possibly game-relative {@code ./...}) path to an ABSOLUTE file for I/O, so access
+     * works regardless of the process working directory.
+     */
     public static File resolveFile(String path) {
         if (path != null && path.startsWith("./")) {
             try {

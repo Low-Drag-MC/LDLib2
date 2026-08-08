@@ -12,6 +12,7 @@
 //import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 //import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 //import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+//import com.lowdragmc.lowdraglib2.math.HDRColor;
 //import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 //import com.mojang.blaze3d.pipeline.RenderTarget;
 //import com.mojang.blaze3d.shaders.AbstractUniform;
@@ -30,6 +31,8 @@
 //import net.minecraft.nbt.FloatTag;
 //import net.minecraft.nbt.IntArrayTag;
 //import net.minecraft.nbt.ListTag;
+//import net.minecraft.nbt.NbtOps;
+//import net.minecraft.nbt.Tag;
 //import net.minecraft.resources.ResourceLocation;
 //import net.minecraft.server.packs.resources.ResourceProvider;
 //import net.neoforged.neoforge.common.util.INBTSerializable;
@@ -50,6 +53,8 @@
 //public class LDShaderHolder implements IConfigurable, INBTSerializable<CompoundTag>, AutoCloseable {
 //    public final static String SHADER_UID_DEFINE = "LD_SHADER_%d";
 //    private final static AtomicInteger SHADER_ID = new AtomicInteger();
+//    /** Bumped when the {@code hdrUniforms} payload shape changes; absent means pre-HDR data. */
+//    public final static int HDR_UNIFORM_VERSION = 1;
 //
 //    public final String shaderUid;
 //    public final LDShaderInstance baseInstance;
@@ -59,6 +64,13 @@
 //    protected final Map<String, Object> samplerCache = new HashMap<>();
 //    protected final Map<String, Supplier<Object>> dynamicSampler = new HashMap<>();
 //    protected final Map<String, Consumer<Uniform>> dynamicUniform = new HashMap<>();
+//    /**
+//     * Authored {@link HDRColor} for each HDR uniform. A uniform only stores the four premultiplied
+//     * floats, so the (base color, intensity) split cannot be recovered from it — this map is the
+//     * source of truth and the uniform is a derived value. It is also what the editor reads back, so
+//     * the intensity field doesn't get overwritten by a value re-derived from the GL state.
+//     */
+//    protected final Map<String, HDRColor> hdrUniformCache = new HashMap<>();
 //
 //    private LDShaderHolder(String shaderUid, LDShaderInstance baseInstance) {
 //        this.shaderUid = shaderUid;
@@ -172,6 +184,48 @@
 //        markAllShaderSamplerDirty();
 //    }
 //
+//    /**
+//     * Whether a {@code vec4} uniform of this name is treated as an HDR emission color (editable as an
+//     * {@link HDRColor} rather than four raw floats). Name-based, because a compiled shader carries no
+//     * such metadata.
+//     */
+//    public boolean isHDRUniform(String name) {
+//        var lowerName = name.toLowerCase();
+//        return lowerName.contains("hdr") || lowerName.contains("emission");
+//    }
+//
+//    /**
+//     * The authored HDR value of {@code name}. Falls back to deriving one from the uniform's current
+//     * (premultiplied) floats — see {@link HDRColor#fromPremultiplied} for the caveats — and caches it,
+//     * so subsequent reads are stable.
+//     */
+//    public HDRColor getHDRUniform(String name) {
+//        var cached = hdrUniformCache.get(name);
+//        if (cached != null) return cached;
+//        var uniform = baseInstance.getUniform(name);
+//        var derived = HDRColor.black();
+//        if (uniform != null && uniform.getType() > 3) {
+//            var data = readFloats(uniform);
+//            if (data.length >= 4) {
+//                derived = HDRColor.fromPremultiplied(data[0], data[1], data[2], data[3]);
+//            }
+//        }
+//        hdrUniformCache.put(name, derived);
+//        return derived;
+//    }
+//
+//    /**
+//     * Set an HDR uniform. The uniform receives {@link HDRColor#toVector4fOpaque()} — alpha pinned to 1 —
+//     * which keeps shaders written against the old {@code rgb * a} encoding numerically identical while
+//     * also satisfying the current "use {@code .rgb} directly" convention.
+//     */
+//    public void setHDRUniform(String name, HDRColor color) {
+//        var value = color.copy();
+//        hdrUniformCache.put(name, value);
+//        var vec = value.toVector4fOpaque();
+//        allUniforms(name).forEach(u -> u.set(vec.x, vec.y, vec.z, vec.w));
+//    }
+//
 //    private Stream<LDShaderInstance> allShaders() {
 //        return Stream.concat(Stream.of(baseInstance), shadersWithDefines.values().stream());
 //    }
@@ -225,6 +279,18 @@
 //        }
 //        tag.put("uniforms", uniforms);
 //
+//        // HDR uniforms additionally record their (base color, intensity) split, which the four floats
+//        // above cannot express. Written as a sibling key so readers that don't know about it — including
+//        // older versions — still get the correct premultiplied value out of "uniforms".
+//        var hdrUniforms = new CompoundTag();
+//        for (var entry : hdrUniformCache.entrySet()) {
+//            if (baseInstance.getUniform(entry.getKey()) == null) continue;
+//            HDRColor.CODEC.encodeStart(NbtOps.INSTANCE, entry.getValue()).result()
+//                    .ifPresent(encoded -> hdrUniforms.put(entry.getKey(), encoded));
+//        }
+//        tag.put("hdrUniforms", hdrUniforms);
+//        tag.putInt("hdrVersion", HDR_UNIFORM_VERSION);
+//
 //        var samplers = new CompoundTag();
 //        for (var entry : samplerCache.entrySet()) {
 //            var name = entry.getKey();
@@ -243,6 +309,7 @@
 //        samplerCache.clear();
 //        dynamicSampler.clear();
 //        dynamicUniform.clear();
+//        hdrUniformCache.clear();
 //        markAllShaderSamplerDirty();
 //
 //        var uniforms = tag.getCompound("uniforms");
@@ -259,6 +326,31 @@
 //                    floatArray[i] = floatArrayTag.getFloat(i);
 //                }
 //                allUniforms(name).forEach(u -> writeFloats(floatArray, u));
+//            }
+//        }
+//
+//        // Gate on the key's presence, not on its contents: a current-format save may legitimately have
+//        // an empty "hdrUniforms" (nothing edited yet), and re-running the legacy migration on it would
+//        // reinterpret alpha as intensity.
+//        if (tag.contains("hdrUniforms", Tag.TAG_COMPOUND)) {
+//            var hdrUniforms = tag.getCompound("hdrUniforms");
+//            for (var name : hdrUniforms.getAllKeys()) {
+//                if (baseInstance.getUniform(name) == null) continue;
+//                HDRColor.CODEC.parse(NbtOps.INSTANCE, hdrUniforms.get(name)).result()
+//                        .ifPresent(color -> setHDRUniform(name, color));
+//            }
+//        } else {
+//            // Legacy data: an HDR uniform's four floats were (r, g, b, intensity) — alpha was not
+//            // representable. Re-author them as real HDRColors so the intensity survives from here on;
+//            // setHDRUniform then uploads (rgb * intensity, 1), which is exactly what the old
+//            // `rgb * a` shaders were already computing.
+//            for (var name : uniforms.getAllKeys()) {
+//                if (!isHDRUniform(name)) continue;
+//                var uniform = baseInstance.getUniform(name);
+//                if (uniform == null || uniform.getType() <= 3) continue;
+//                var data = readFloats(uniform);
+//                if (data.length < 4) continue;
+//                setHDRUniform(name, new HDRColor(data[0], data[1], data[2], 1f, data[3]));
 //            }
 //        }
 //
@@ -418,9 +510,9 @@
 //                            .setType(ConfigNumber.Type.INTEGER));
 //                } else if (current.length == 2) {
 //                    father.addConfigurator(new Vector2iAccessor().create(name, () -> {
-//                                var data = readInts(uniform);
-//                                return new Vector2i(data[0], data[1]);
-//                            }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y)),
+//                        var data = readInts(uniform);
+//                        return new Vector2i(data[0], data[1]);
+//                    }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y)),
 //                            true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
 //                } else if (current.length == 3) {
 //                    father.addConfigurator(new Vector3iAccessor().create(name, () -> {
@@ -460,12 +552,13 @@
 //                    }
 //                } else if (current.length == 4) {
 //                    var lowerName = name.toLowerCase();
-//                    if (lowerName.contains("hdr") || lowerName.contains("emission")) {
-//                        father.addConfigurator(new HDRColorConfigurator(name, () -> {
-//                            var data = readFloats(uniform);
-//                            return new Vector4f(data[0], data[1], data[2], data[3]);
-//                        }, hdr -> allUniforms(name).forEach(u -> u.set(hdr.x, hdr.y, hdr.z, hdr.w)),
-//                                new Vector4f(current[0], current[1], current[2], current[3]), true));
+//                    if (isHDRUniform(name)) {
+//                        // reads/writes the authored HDRColor rather than the uniform's premultiplied
+//                        // floats — deriving it back every tick (forceUpdate) would fight the intensity field
+//                        father.addConfigurator(new HDRColorConfigurator(name,
+//                                () -> getHDRUniform(name),
+//                                hdr -> setHDRUniform(name, hdr),
+//                                getHDRUniform(name).copy(), true, false));
 //                    } else if (lowerName.contains("color") || lowerName.contains("rgba")) {
 //                        father.addConfigurator(new ColorConfigurator(name, () -> {
 //                            var data = readFloats(uniform);
@@ -474,9 +567,9 @@
 //                                ColorUtils.color(current[3], current[0], current[1], current[2]), true));
 //                    } else {
 //                        father.addConfigurator(new Vector4fAccessor().create(name, () -> {
-//                                    var data = readFloats(uniform);
-//                                    return new Vector4f(data[0], data[1], data[2], data[3]);
-//                                }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z, v.w)),
+//                            var data = readFloats(uniform);
+//                            return new Vector4f(data[0], data[1], data[2], data[3]);
+//                        }, v -> allUniforms(name).forEach(u -> u.set(v.x, v.y, v.z, v.w)),
 //                                true, ConfiguratorGroup.class.getDeclaredFields()[0], this));
 //                    }
 //                }

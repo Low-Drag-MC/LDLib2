@@ -2,7 +2,9 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.type;
 
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.HDRColorConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.math.HDRColor;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
@@ -40,6 +42,7 @@ public class TypeHandles {
     public static final TypeHandle STRING;
 
     public static final TypeHandle COLOR;
+    public static final TypeHandle HDR_COLOR;
 
     // Minecraft
     public static final TypeHandle DIRECTION;
@@ -91,6 +94,17 @@ public class TypeHandles {
         TypeHandleHelpers.setCustomConfigurable(COLOR, (valueConfigurable, typeHandle) ->
                 IConfigurable.create(group -> group.addConfigurator(new ColorConfigurator("",
                         valueConfigurable::getValue, valueConfigurable::setValue, -1,
+                        valueConfigurable.forceUpdate()))));
+
+        // As COLOR, but the value is an HDRColor (rgba + intensity) instead of a packed ARGB int, so
+        // components may exceed 1. COLOR is deliberately left untouched — retyping it would silently
+        // drop every saved constant of the old type.
+        HDR_COLOR = TypeHandleHelpers.customType(HDRColor.class, "HDR_COLOR", "HDR Color");
+        TypeHandleHelpers.setCustomDefaultValue(HDR_COLOR, HDRColor::white);
+        TypeHandleHelpers.setCustomIcon(HDR_COLOR, Icons.COLOR);
+        TypeHandleHelpers.setCustomConfigurable(HDR_COLOR, (valueConfigurable, typeHandle) ->
+                IConfigurable.create(group -> group.addConfigurator(new HDRColorConfigurator("",
+                        valueConfigurable::getValue, valueConfigurable::setValue, HDRColor.white(),
                         valueConfigurable.forceUpdate()))));
 
         DIRECTION = TypeHandleHelpers.fromType(Direction.class);

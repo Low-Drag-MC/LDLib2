@@ -533,10 +533,22 @@ public abstract class Editor extends UIElement {
     }
 
     public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
+        openMenu(posX, posY, menuBuilder, true);
+    }
+
+    /**
+     * @param closeOnClick false for a menu of toggles, so several entries can be picked without it
+     *                     closing after the first. It still closes when it loses focus.
+     *                     Entries of such a menu should draw their state with a
+     *                     {@link com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture}, the menu is
+     *                     built once and its icons are not rebuilt between clicks.
+     */
+    public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder, boolean closeOnClick) {
         if (menuBuilder == null || menuBuilder.isEmpty()) return;
         openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider)
                 .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
-                .setOnNodeClicked(TreeBuilder.Menu::handle);
+                .setOnNodeClicked(TreeBuilder.Menu::handle)
+                .setCloseOnClick(closeOnClick);
     }
 
     /**
@@ -561,6 +573,7 @@ public abstract class Editor extends UIElement {
     public void exit(@Nullable Runnable onFinish) {
         askToSaveProject(() -> {
             if (currentProject != null) {
+                saveAssetBrowserPath();
                 EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
             }
             if (window != null) {
@@ -687,6 +700,7 @@ public abstract class Editor extends UIElement {
             } else {
                 try {
                     currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
+                    recordRecentProject();
                 } catch (Exception ignored) {}
                 if (showNotification) {
                     if (onFinish != null) {
@@ -735,6 +749,7 @@ public abstract class Editor extends UIElement {
                             try {
                                 projectType.saveProjectToFile(currentProject, file);
                                 currentProjectFile = file;
+                                recordRecentProject();
                             } catch (Exception ignored) {}
                         }
                         if (onFinish != null) {
@@ -774,12 +789,40 @@ public abstract class Editor extends UIElement {
         historyView.recordSerializableObject(Component.translatable("editor.open"), currentProject);
         project.onLoad(this);
         // Apply saved per-project-type layout (if any) now that all project-specific views are registered.
-        var behaviorSettings = editorSettings.getSettings(BehaviorSettings.ID)
-                .filter(BehaviorSettings.class::isInstance)
-                .map(BehaviorSettings.class::cast)
-                .orElse(null);
-        if (behaviorSettings == null || behaviorSettings.isRestoreLayoutOnProjectOpen()) {
+        var behaviorSettings = BehaviorSettings.of(this);
+        if (behaviorSettings.isRestoreLayoutOnProjectOpen()) {
             EditorLayoutStore.load(project.getProjectType().getName()).ifPresent(this::applyLayout);
+        }
+        if (projectFile != null) {
+            recordRecentProject();
+            if (behaviorSettings.isRestoreAssetBrowserPath()) {
+                var browserPath = EditorProjectStore.getBrowserPath(projectFile);
+                if (browserPath != null) {
+                    resourceView.getAssetBrowser().openDirectory(browserPath);
+                }
+            }
+        }
+    }
+
+    /**
+     * Puts the current project at the top of the recent list.
+     * <p>
+     * Called whenever the project gains or confirms a file, not only when one is opened: a project that
+     * was created from scratch has no file until it is first saved, so saving is the moment it becomes
+     * something worth listing.
+     */
+    protected void recordRecentProject() {
+        if (currentProjectFile != null) {
+            EditorProjectStore.addRecentProject(currentProjectFile,
+                    BehaviorSettings.of(this).getRecentProjectCount());
+        }
+    }
+
+    /** Remembers where the asset browser was, so reopening this project returns to the same folder. */
+    protected void saveAssetBrowserPath() {
+        var directory = resourceView.getAssetBrowser().getCurrentDirectory();
+        if (currentProjectFile != null && directory != null) {
+            EditorProjectStore.setBrowserPath(currentProjectFile, directory);
         }
     }
 
@@ -807,6 +850,7 @@ public abstract class Editor extends UIElement {
 
     protected void closeCurrentProject() {
         if (currentProject != null) {
+            saveAssetBrowserPath();
             EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
             currentProject.onClosed(this);
             currentProject = null;

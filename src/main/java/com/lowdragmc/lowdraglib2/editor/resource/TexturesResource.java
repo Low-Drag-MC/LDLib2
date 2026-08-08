@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -11,9 +12,15 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
+import java.io.File;
+import java.util.Locale;
+import java.util.Set;
+
 @KJSBindings
 public class TexturesResource extends Resource<IGuiTexture> {
     public static final TexturesResource INSTANCE = new TexturesResource();
+    /** Image formats Minecraft's texture manager can load, and so the ones a drop can be turned into. */
+    public static final Set<String> IMAGE_EXTENSIONS = Set.of(".png");
 
     @Override
     public void buildBuiltin(ResourceInstance<IGuiTexture> resourceInstance) {
@@ -35,6 +42,27 @@ public class TexturesResource extends Resource<IGuiTexture> {
     @Override
     public String getName() {
         return "texture";
+    }
+
+    @Override
+    public boolean canImportFile(File file) {
+        return super.canImportFile(file) || file.isFile() && IMAGE_EXTENSIONS.stream()
+                .anyMatch(extension -> file.getName().toLowerCase(Locale.ROOT).endsWith(extension));
+    }
+
+    @Override
+    public void importFile(ResourceImportContext<IGuiTexture> context) {
+        var file = context.getFile();
+        if (super.canImportFile(file)) {
+            super.importFile(context);
+            return;
+        }
+        // an image only becomes usable once Minecraft can address it, so one from outside the pack has
+        // to be copied in first. The texture manager reads the file when it is first drawn, so unlike a
+        // model this needs no resource reload.
+        ResourceFileImport.resolveOrImport(context.getOwner(), file, "textures",
+                location -> context.complete(SpriteTexture.of(location)),
+                context::cancel);
     }
 
     @Override
@@ -61,7 +89,7 @@ public class TexturesResource extends Resource<IGuiTexture> {
         });
         container.setOnDragProvider(UIResourceTexture::new);
         if (provider.supportAdd()) {
-            container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+            container.setOnCreateMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
                 for (var holder : LDLib2ClientRegistries.GUI_TEXTURES) {
                     String name = holder.annotation().name();
                     if (name.equals("empty") || name.equals("missing") || name.equals("ui_resource_texture")) continue;

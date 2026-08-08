@@ -262,6 +262,33 @@ scroller-vertical .__scroller_scroll_bar__ {
   display: none;
 }
 
+// slider
+slider-horizontal:host {
+  height: 9;
+}
+
+slider-vertical:host {
+  width: 9;
+}
+
+slider-horizontal, slider-vertical {
+  slider-track-size: 3;
+  slider-handle-size: 5;
+}
+
+.__slider_track__ {
+  background: built-in(ui-ore:RECT2);
+}
+
+.__slider_fill__ {
+  background: color(#c6a06a);
+}
+
+.__slider_handle__ {
+  base-background: built-in(ui-ore:BTN_DEFAULT_SMALL);
+  hover-background: built-in(ui-ore:BTN_PRESSED_SMALL);
+  pressed-background: built-in(ui-ore:BTN_PRESSED_SMALL) color(#ddd);
+}
 
 scroller-view {
   scroller-view-margin: 10;
@@ -592,4 +619,13 @@ ToggleSelectorConfigurator toggle {
   padding-all: 5;
   padding-bottom: 7;
   gap-all: 4;
+}
+
+button.__asset-browser_breadcrumb-segment__ > text {
+  color:#fff;
+  text-color: #fff;
+}
+
+button.__asset-browser_breadcrumb-segment__ {
+  padding-bottom: 0;
 }

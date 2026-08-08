@@ -8,6 +8,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.nio.file.Path;
+import java.util.List;
 
 @ParametersAreNonnullByDefault
 public class ModularUIScreen extends Screen {
@@ -43,6 +45,13 @@ public class ModularUIScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    @Override
+    public void onFilesDrop(List<Path> paths) {
+        if (!ModularUIClientAccess.onFilesDrop(modularUI, paths.stream().map(Path::toFile).toList())) {
+            super.onFilesDrop(paths);
+        }
     }
 
     @Override

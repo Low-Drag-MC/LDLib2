@@ -23,6 +23,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.util.ItemTooltipTextHelper;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -328,9 +329,20 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         return setValue(itemStack, notify);
     }
 
+    /**
+     * Delegates to {@link #getFullTooltipTexts(boolean)}, override that one instead of this.
+     */
     public List<Component> getFullTooltipTexts() {
+        return getFullTooltipTexts(true);
+    }
+
+    /**
+     * @param withItemTooltips whether the vanilla tooltip of the item should be included. XEI recipe slots
+     *                         render it themselves, so they ask for the tooltips without it.
+     */
+    public List<Component> getFullTooltipTexts(boolean withItemTooltips) {
         var tips = new ArrayList<Component>();
-        if (slotStyle.showItemTooltips()) {
+        if (withItemTooltips && slotStyle.showItemTooltips()) {
             tips.addAll(ItemTooltipTextHelper.getTooltip(getValue()));
         }
         tips.addAll(getStyle().tooltips().asList());
@@ -340,6 +352,11 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     protected void onHoverTooltips(UIEvent event) {
         var item = getValue();
         if (item.isEmpty()) return;
+        // an XEI recipe slot renders the vanilla tooltip and the tooltip image itself, do not repeat them there
+        if (event.customData == XEITooltipContext.RECIPE_SLOT) {
+            event.hoverTooltips = HoverTooltips.create(getFullTooltipTexts(false).toArray());
+            return;
+        }
         event.hoverTooltips = HoverTooltips.create(getFullTooltipTexts().toArray()).append(item.getTooltipImage().orElse(null)).stack(item);
     }
 
