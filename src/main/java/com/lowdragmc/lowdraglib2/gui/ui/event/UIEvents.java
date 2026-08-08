@@ -137,6 +137,16 @@ public interface UIEvents {
      */
     String LAYOUT_CHANGED = "layoutChanged";
 
+    /**
+     * The {@code fileDrop} is sent when files are dropped onto the window from outside the game, to the
+     * element under the cursor. The paths are in {@link UIEvent#droppedFiles}.
+     * <p>
+     * The operating system only tells the game about the drop itself: there is no drag-enter or
+     * drag-over notification while the files are being dragged, and the cursor position is not updated
+     * either, so an element cannot highlight itself as a drop target beforehand.
+     */
+    String FILE_DROP = "fileDrop";
+
     /// Style Events, which won't be sent to the server.
     // TODO fine shell do style changed for all changes or only custom one??????
     String STYLE_CHANGED = "styleChanged";

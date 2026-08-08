@@ -56,7 +56,8 @@ public class TestRecipe {
                                         new UIElement().addChildren(
                                                 new FluidSlot().setFluid(new FluidStack(Fluids.WATER, 1000))
                                                         .xeiRecipeIngredient(IngredientIO.INPUT)
-                                                        .xeiRecipeSlot(),
+                                                        .xeiRecipeSlot()
+                                                        .style(style -> style.appendTooltipsString("additional tooltips")),
                                                 new UIElement().layout(layout -> layout.height(18).aspectRatio(1))
                                                         .style(style -> style.backgroundTexture(Icons.RIGHT_ARROW_NO_BAR)),
                                                 new FluidSlot().setFluid(new FluidStack(Fluids.LAVA, 1000))

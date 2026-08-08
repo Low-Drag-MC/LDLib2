@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.LengthPercent;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Pivot;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Translate2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.math.HDRColor;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -289,6 +290,11 @@ public class AccessorRegistries {
         registerAccessor(CustomDirectAccessor.builder(Range.class)
                 .codec(Range.CODEC)
                 .streamCodec(Range.STREAM_CODEC)
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(HDRColor.class)
+                .codec(HDRColor.CODEC)
+                .streamCodec(HDRColor.STREAM_CODEC)
+                .copyMark(HDRColor::new)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(Identifier.class)
                 .codec(Identifier.CODEC)

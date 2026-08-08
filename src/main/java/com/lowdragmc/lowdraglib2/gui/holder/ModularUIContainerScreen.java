@@ -8,6 +8,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.nio.file.Path;
+import java.util.List;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -36,4 +38,10 @@ public class ModularUIContainerScreen extends AbstractContainerScreen<ModularUIC
     protected void extractLabels(GuiGraphicsExtractor graphics, int xm, int ym) {
     }
 
+    @Override
+    public void onFilesDrop(List<Path> paths) {
+        if (!ModularUIClientAccess.onFilesDrop(getMenu().getModularUI(), paths.stream().map(Path::toFile).toList())) {
+            super.onFilesDrop(paths);
+        }
+    }
 }

@@ -54,6 +54,7 @@
   "ldlib.gui.editor.group.widget.container": "容器控件",
   "ldlib.gui.editor.group.widget.custom": "自定义控件",
   "ldlib.gui.editor.blockstate.properties": "属性",
+  "ldlib.gui.editor.name.hdr_intensity": "强度",
   "ldlib.gui.editor.name.slot_background": "槽位背景",
   "ldlib.gui.editor.name.allow_custom_background": "允许自定义背景",
   "ldlib.gui.editor.name.allow_custom_background.tips": "如果开启，每个槽位都可以有自己的背景；如果关闭，所有槽位将共享同一个背景。",

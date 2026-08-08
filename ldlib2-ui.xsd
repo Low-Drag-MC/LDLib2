@@ -66,6 +66,8 @@
     <xs:element name="scroller-horizontal" type="Scroller" substitutionGroup="ui-node"/>
     <xs:element name="search-component" type="Element" substitutionGroup="ui-node"/>
     <xs:element name="selector" type="Selector" substitutionGroup="ui-node"/>
+    <xs:element name="slider-vertical" type="Slider" substitutionGroup="ui-node"/>
+    <xs:element name="slider-horizontal" type="Slider" substitutionGroup="ui-node"/>
     <xs:element name="split-view-vertical" type="SplitView" substitutionGroup="ui-node"/>
     <xs:element name="split-view-horizontal" type="SplitView" substitutionGroup="ui-node"/>
     <xs:element name="switch" type="Switch" substitutionGroup="ui-node"/>
@@ -262,6 +264,17 @@
 
     <!-- ========== scroller ========== -->
     <xs:complexType name="Scroller">
+        <xs:complexContent>
+            <xs:extension base="Element">
+                <xs:attribute name="min-value" type="xs:decimal"/>
+                <xs:attribute name="max-value" type="xs:decimal"/>
+                <xs:attribute name="value" type="xs:decimal"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ========== slider ========== -->
+    <xs:complexType name="Slider">
         <xs:complexContent>
             <xs:extension base="Element">
                 <xs:attribute name="min-value" type="xs:decimal"/>

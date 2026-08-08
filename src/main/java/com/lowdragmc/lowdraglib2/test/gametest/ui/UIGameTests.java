@@ -31,6 +31,7 @@ public final class UIGameTests {
         }
         initialized = true;
         UIElementRegistryGameTest.registerFunctions();
+        SliderGameTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
         eventBus.addListener(UIGameTests::registerGameTests);
     }
@@ -65,6 +66,7 @@ public final class UIGameTests {
                 new TestEnvironmentDefinition.AllOf()
         );
         UIElementRegistryGameTest.register(event, environment);
+        SliderGameTest.register(event, environment);
     }
 
     static void registerFunctionTest(

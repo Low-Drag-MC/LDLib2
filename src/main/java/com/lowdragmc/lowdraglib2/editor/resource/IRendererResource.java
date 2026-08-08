@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlock;
 import com.lowdragmc.lowdraglib2.client.renderer.block.RendererBlockEntity;
+// todo renderer
+//import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
 //import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.client.scene.FBOWorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
@@ -53,6 +55,34 @@ public class IRendererResource extends Resource<IRenderer> {
         return IRenderer.deserializeWrapper(tag);
     }
 
+    // todo renderer: importing a model json needs IModelRenderer, which is not ported to 26.1 yet.
+    //  Until it is, only this type's own resource files are importable (the Resource default).
+    //  1.21 reference implementation:
+    //  @Override
+    //  public boolean canImportFile(File file) {
+    //      return super.canImportFile(file) || file.isFile() && file.getName().toLowerCase(Locale.ROOT).endsWith(".json");
+    //  }
+    //
+    //  @Override
+    //  public void importFile(ResourceImportContext<IRenderer> context) {
+    //      var file = context.getFile();
+    //      if (super.canImportFile(file)) {
+    //          super.importFile(context);
+    //          return;
+    //      }
+    //      // a model json is only usable once it has been baked, which happens during a resource reload,
+    //      // so unlike a texture the packs have to be reloaded before the renderer will draw anything
+    //      ResourceFileImport.resolveOrImport(context.getOwner(), file, "models", location -> {
+    //          // the model location drops the "models/" prefix and the extension, that is how the bakery
+    //          // addresses it: models/block/foo.json -> block/foo
+    //          var path = location.getPath();
+    //          if (path.startsWith("models/")) path = path.substring("models/".length());
+    //          if (path.endsWith(".json")) path = path.substring(0, path.length() - ".json".length());
+    //          context.complete(new IModelRenderer(Identifier.fromNamespaceAndPath(location.getNamespace(), path)));
+    //          reloadResourcesAndRefreshOpenedContainers();
+    //      }, context::cancel);
+    //  }
+
     @Override
     public ResourceProviderContainer<IRenderer> createResourceProviderContainer(IResourceProvider<IRenderer> provider) {
         var container = super.createResourceProviderContainer(provider);
@@ -65,8 +95,10 @@ public class IRendererResource extends Resource<IRenderer> {
         // todo renderer
 //        container.setOnDragProvider(UIResourceRenderer::new);
 
+        // todo renderer: 1.21 offers a "reload_resource" entry here, which needs the openedContainers /
+        //  resource-pack reload plumbing that IRenderer has not been ported to 26.1 with yet.
         if (provider.supportAdd()) {
-            container.setOnMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
+            container.setOnCreateMenu((c, m) -> m.branch(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", menu -> {
                 for (var holder : LDLib2ClientRegistries.RENDERERS) {
                     var name = holder.annotation().name();
                     if (name.equals("empty") || name.equals("ui_resource_renderer")) continue;

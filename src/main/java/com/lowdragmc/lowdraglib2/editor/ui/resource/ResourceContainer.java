@@ -158,6 +158,7 @@ public class ResourceContainer<T> extends UIElement {
             var oldToggle = providerToggles.get(selectedProvider);
             if (oldToggle != null) {
                 oldToggle.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+                oldToggle.removeClass("__selected__");
             }
         }
         providerContainer.clearAllChildren();
@@ -166,7 +167,9 @@ public class ResourceContainer<T> extends UIElement {
         if (selectedProvider != null) {
             var toggle = providerToggles.get(selectedProvider);
             if (toggle != null) {
-                toggle.style(style -> style.overlayTexture(ColorPattern.T_LIGHT_GRAY.rectTexture()));
+                // the same look the resource grid uses, so "what is selected" reads the same everywhere
+                toggle.style(style -> style.overlayTexture(ResourceProviderContainer.defaultSelectedTexture()));
+                toggle.addClass("__selected__");
             }
             var providerView = resourceInstance.resource.createResourceProviderContainer(selectedProvider);
             providerView.setEditor(editor);
