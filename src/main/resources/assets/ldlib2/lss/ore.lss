@@ -623,6 +623,7 @@ ToggleSelectorConfigurator toggle {
 
 button.__asset-browser_breadcrumb-segment__ > text {
   color:#fff;
+  text-color: #fff;
 }
 
 button.__asset-browser_breadcrumb-segment__ {
